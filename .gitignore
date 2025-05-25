@@ -63,7 +63,7 @@ buck-out/
 /ios/Pods/
 /vendor/bundle/
 
-# 🚫 Prevent archive files (accidental large commits)
+# 🚫 Prevent all archive tarballs and large accidental uploads
 *.tar
 *.tar.gz
 *.tar.bz2
