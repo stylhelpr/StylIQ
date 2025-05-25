@@ -22,6 +22,7 @@ export const theme = {
       warning: '#FFC107',
       frostedGlass: 'rgba(38, 38, 38, 0.2)',
       skeletonLoader: '#e6e3e3',
+      poop: 'green',
     },
     ...tokens,
     shadows: {
