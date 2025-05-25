@@ -26,7 +26,6 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({
   const toggleTheme = () => {
     setMode(prev => (prev === 'light' ? 'dark' : 'light'));
   };
-  s;
 
   return (
     <ThemeContext.Provider value={{mode, theme: themes[mode], toggleTheme}}>
