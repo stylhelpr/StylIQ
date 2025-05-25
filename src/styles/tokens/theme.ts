@@ -56,4 +56,4 @@ export const theme = {
       background: '0px 4px 8px rgba(0, 0, 0, 0.6), 0px 8px 16px rgba(0, 0, 0, 0.4)',
     },
   },
-};
+} as const;

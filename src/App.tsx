@@ -1,4 +1,3 @@
-
 import React, { type PropsWithChildren } from 'react';
 import {
   SafeAreaView,
@@ -7,7 +6,8 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import { Colors } from 'react-native/Libraries/NewAppScreen';
+import * as Animatable from 'react-native-animatable';
+import { theme } from './styles/tokens/theme';
 
 const Section: React.FC<
   PropsWithChildren<{
@@ -15,77 +15,74 @@ const Section: React.FC<
   }>
 > = ({ children, title }) => {
   const isDarkMode = useColorScheme() === 'dark';
+  const currentTheme = isDarkMode ? theme.dark : theme.light;
 
-  // ✅ Optional chaining test (TS-safe)
   const deepValue: { a?: { b?: { c?: number } } } = { a: { b: { c: 123 } } };
   const result = deepValue?.a?.b?.c;
 
   return (
-    <View style={styles.sectionContainer}>
+    <Animatable.View
+      animation="fadeInUp"
+      duration={1800}
+      style={{
+        marginTop: currentTheme.spacing.xl,
+        paddingHorizontal: currentTheme.spacing.lg,
+      }}
+    >
+  <Text
+  style={{
+    fontSize: currentTheme.fontSize['2xl'],
+    fontWeight: currentTheme.fontWeight.semiBold, 
+    color: currentTheme.colors.primary,
+  }}
+>
+  {title}
+</Text>
       <Text
-        style={[
-          styles.sectionTitle,
-          { color: isDarkMode ? Colors.white : Colors.black },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          { color: isDarkMode ? Colors.light : Colors.dark },
-        ]}>
+        style={{
+          marginTop: currentTheme.spacing.sm,
+          fontSize: currentTheme.fontSize.lg,
+          fontWeight: currentTheme.fontWeight.normal,
+          color: currentTheme.colors.secondary,
+        }}
+      >
         {children}
       </Text>
-      <Text style={styles.result}>Optional chaining result: {result}</Text>
-    </View>
+      <Text
+        style={{
+          marginTop: currentTheme.spacing.md,
+          fontSize: currentTheme.fontSize.base,
+          color: currentTheme.colors.success,
+        }}
+      >
+        Optional chaining result: {result}
+      </Text>
+    </Animatable.View>
   );
 };
 
 const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-    flex: 1,
-  };
-  // console.log('✅ App component is rendering!');
-
+  const currentTheme = isDarkMode ? theme.dark : theme.light;
 
   return (
-    <SafeAreaView style={backgroundStyle}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: currentTheme.colors.background,
+        justifyContent: 'center',
+        padding: currentTheme.spacing.md,
+      }}
+    >
       <Section title="Step One">
-        Edit <Text style={styles.highlight}>App.tsx</Text> to changasdsdfsdfe this screen.
+        Edit <Text style={{ fontWeight: currentTheme.fontWeight.bold, color: 'red' }}>App.tsx</Text> to animate this screen.
       </Section>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '900',
-    color: 'red',
-  },
-  result: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#00aa00',
-  },
-});
-
 export default App;
+
 
 ////////////
 

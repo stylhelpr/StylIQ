@@ -1,4 +1,3 @@
-// tokens.ts
 export const tokens = {
   spacing: {
     xxs: 4,
@@ -44,11 +43,11 @@ export const tokens = {
     '9xl': 90,
     '10xl': 104,
   },
-    text: {
+  text: {
     body: 'base',
     label: 'sm',
     heading: 'xl',
-    },
+  },
   fontWeight: {
     thin: '100',
     extraLight: '200',
@@ -80,7 +79,7 @@ export const tokens = {
     pagePadding: 'xl',
     sectionGap: 'xxl',
     cardPadding: 'lg',
-    },
+  },
   shadows: {
     none: 'none',
     sm: '0px 1px 2px rgba(0, 0, 0, 0.1)',
@@ -90,7 +89,7 @@ export const tokens = {
     '2xl': '0px 16px 32px rgba(0, 0, 0, 0.25)',
     focusRingColor: '#2196f3',
   },
-    zIndex: {
+  zIndex: {
     auto: 'auto',
     z0: 0,
     z10: 10,
@@ -98,16 +97,16 @@ export const tokens = {
     z30: 30,
     z40: 40,
     z50: 50,
+  },
+  otion: {
+    duration: {
+      fast: 150,
+      normal: 300,
+      slow: 500,
     },
-    otion: {
-        duration: {
-            fast: 150,
-            normal: 300,
-            slow: 500,
-        },
-        easing: {
-            default: 'ease-in-out',
-            entrance: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        },
-        }
-};
+    easing: {
+      default: 'ease-in-out',
+      entrance: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    },
+  },
+} as const;
