@@ -1,5 +1,5 @@
 // theme.ts
-import { tokens } from "./tokens";
+import {tokens} from './tokens';
 
 export const theme = {
   light: {
@@ -24,12 +24,15 @@ export const theme = {
       skeletonLoader: '#e6e3e3',
       poop: 'green',
     },
+
     ...tokens,
     shadows: {
       ...tokens.shadows,
-      background: '0px 4px 8px rgba(0, 0, 0, 0.2), 0px 8px 16px rgba(0, 0, 0, 0.1)',
+      background:
+        '0px 4px 8px rgba(0, 0, 0, 0.2), 0px 8px 16px rgba(0, 0, 0, 0.1)',
     },
   },
+
   dark: {
     colors: {
       primary: '#F1F1F1',
@@ -51,10 +54,12 @@ export const theme = {
       frostedGlass: 'rgba(255, 255, 255, 0.15)',
       skeletonLoader: '#e6e3e3',
     },
+
     ...tokens,
     shadows: {
       ...tokens.shadows,
-      background: '0px 4px 8px rgba(0, 0, 0, 0.6), 0px 8px 16px rgba(0, 0, 0, 0.4)',
+      background:
+        '0px 4px 8px rgba(0, 0, 0, 0.6), 0px 8px 16px rgba(0, 0, 0, 0.4)',
     },
   },
 } as const;

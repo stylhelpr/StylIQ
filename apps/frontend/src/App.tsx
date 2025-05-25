@@ -1,7 +1,7 @@
 // App.tsx
 import React from 'react';
-import { ThemeProvider } from '../src/context/ThemeContext';
-import MainApp from '../src/MainApp'; 
+import {ThemeProvider} from './context/ThemeContext';
+import MainApp from './MainApp';
 
 const App = () => {
   return (

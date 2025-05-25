@@ -1,17 +1,16 @@
 // src/MainApp.tsx
 import React from 'react';
-import {
-  SafeAreaView,
-  Text,
-  Pressable,
-} from 'react-native';
+import {SafeAreaView, Text, Pressable} from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { useAppTheme } from './context/ThemeContext';
+import {useAppTheme} from './context/ThemeContext';
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ children, title }) => {
-  const { theme: currentTheme } = useAppTheme();
+const Section: React.FC<{title: string; children: React.ReactNode}> = ({
+  children,
+  title,
+}) => {
+  const {theme: currentTheme} = useAppTheme();
 
-  const result = { a: { b: { c: 123 } } }?.a?.b?.c;
+  const result = {a: {b: {c: 123}}}?.a?.b?.c;
 
   return (
     <Pressable onPress={() => console.log('Section tapped')}>
@@ -21,15 +20,13 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ child
         style={{
           marginTop: currentTheme.spacing.xl,
           paddingHorizontal: currentTheme.spacing.lg,
-        }}
-      >
+        }}>
         <Text
           style={{
             fontSize: currentTheme.fontSize['2xl'],
             fontWeight: currentTheme.fontWeight.semiBold,
             color: currentTheme.colors.primary,
-          }}
-        >
+          }}>
           {title}
         </Text>
         <Text
@@ -38,8 +35,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ child
             fontSize: currentTheme.fontSize.lg,
             fontWeight: currentTheme.fontWeight.normal,
             color: currentTheme.colors.secondary,
-          }}
-        >
+          }}>
           {children}
         </Text>
         <Text
@@ -47,8 +43,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ child
             marginTop: currentTheme.spacing.md,
             fontSize: currentTheme.fontSize.base,
             color: currentTheme.colors.success,
-          }}
-        >
+          }}>
           Optional chaining result: {result}
         </Text>
       </Animatable.View>
@@ -57,7 +52,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ child
 };
 
 const MainApp = () => {
-  const { theme: currentTheme, toggleTheme } = useAppTheme();
+  const {theme: currentTheme, toggleTheme} = useAppTheme();
 
   return (
     <SafeAreaView
@@ -66,16 +61,14 @@ const MainApp = () => {
         backgroundColor: currentTheme.colors.background,
         justifyContent: 'center',
         padding: currentTheme.spacing.md,
-      }}
-    >
+      }}>
       <Section title="Step One">
         Edit{' '}
         <Text
           style={{
             fontWeight: currentTheme.fontWeight.bold,
-            color: currentTheme.colors.separator,
-          }}
-        >
+            color: currentTheme.colors.error,
+          }}>
           App.tsx
         </Text>{' '}
         to animate this screen.
@@ -88,9 +81,8 @@ const MainApp = () => {
           backgroundColor: currentTheme.colors.surface,
           padding: 12,
           borderRadius: currentTheme.borderRadius.md,
-        }}
-      >
-        <Text style={{ color: currentTheme.colors.primary, textAlign: 'center' }}>
+        }}>
+        <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
           Toggle Theme
         </Text>
       </Pressable>
@@ -241,7 +233,7 @@ export default MainApp;
 //   <Text
 //   style={{
 //     fontSize: currentTheme.fontSize['2xl'],
-//     fontWeight: currentTheme.fontWeight.semiBold, 
+//     fontWeight: currentTheme.fontWeight.semiBold,
 //     color: currentTheme.colors.primary,
 //   }}
 // >
@@ -328,7 +320,7 @@ export default MainApp;
 //   <Text
 //   style={{
 //     fontSize: currentTheme.fontSize['2xl'],
-//     fontWeight: currentTheme.fontWeight.semiBold, 
+//     fontWeight: currentTheme.fontWeight.semiBold,
 //     color: currentTheme.colors.primary,
 //   }}
 // >
@@ -378,7 +370,6 @@ export default MainApp;
 // };
 
 // export default App;
-
 
 ////////////
 
@@ -433,7 +424,6 @@ export default MainApp;
 //   };
 //   // console.log('✅ App component is rendering!');
 
-
 //   return (
 //     <SafeAreaView style={backgroundStyle}>
 //       <Section title="Step One">
@@ -469,7 +459,6 @@ export default MainApp;
 // });
 
 // export default App;
-
 
 ////////////
 

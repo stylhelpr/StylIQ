@@ -70,3 +70,6 @@ buck-out/
 *.tgz
 *.tbz
 *.tbz2
+
+.env
+.env.*

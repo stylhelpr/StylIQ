@@ -1,6 +1,6 @@
 // src/context/ThemeContext.tsx
-import React, { createContext, useContext, useState } from 'react';
-import { theme as themes } from '../styles/tokens/theme';
+import React, {createContext, useContext, useState} from 'react';
+import {theme as themes} from '../styles/tokens/theme';
 
 type ThemeType = 'light' | 'dark';
 
@@ -18,15 +18,18 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useAppTheme = () => useContext(ThemeContext);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({
+  children,
+}) => {
   const [mode, setMode] = useState<ThemeType>('light');
 
   const toggleTheme = () => {
-    setMode((prev) => (prev === 'light' ? 'dark' : 'light'));
+    setMode(prev => (prev === 'light' ? 'dark' : 'light'));
   };
+  s;
 
   return (
-    <ThemeContext.Provider value={{ mode, theme: themes[mode], toggleTheme }}>
+    <ThemeContext.Provider value={{mode, theme: themes[mode], toggleTheme}}>
       {children}
     </ThemeContext.Provider>
   );

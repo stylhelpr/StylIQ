@@ -12,6 +12,7 @@ export const tokens = {
     navbar: 72,
     section: 64,
   },
+
   borderRadius: {
     none: 0,
     sm: 2,
@@ -22,6 +23,7 @@ export const tokens = {
     full: 9999,
     default: 8,
   },
+
   fontSize: {
     xxs: 10,
     xs: 12,
@@ -43,11 +45,13 @@ export const tokens = {
     '9xl': 90,
     '10xl': 104,
   },
+
   text: {
     body: 'base',
     label: 'sm',
     heading: 'xl',
   },
+
   fontWeight: {
     thin: '100',
     extraLight: '200',
@@ -59,6 +63,7 @@ export const tokens = {
     extraBold: '800',
     black: '900',
   },
+
   letterSpacing: {
     tighter: -0.02,
     tight: -0.01,
@@ -69,17 +74,20 @@ export const tokens = {
     button: -0.05,
     heading: 0.05,
   },
+
   lineHeight: {
     snug: 1.375,
     relaxed: 1.625,
     normal: 1.5,
     default: 1.6,
   },
+
   layout: {
     pagePadding: 'xl',
     sectionGap: 'xxl',
     cardPadding: 'lg',
   },
+
   shadows: {
     none: 'none',
     sm: '0px 1px 2px rgba(0, 0, 0, 0.1)',
@@ -89,6 +97,7 @@ export const tokens = {
     '2xl': '0px 16px 32px rgba(0, 0, 0, 0.25)',
     focusRingColor: '#2196f3',
   },
+
   zIndex: {
     auto: 'auto',
     z0: 0,
@@ -98,7 +107,8 @@ export const tokens = {
     z40: 40,
     z50: 50,
   },
-  otion: {
+
+  motion: {
     duration: {
       fast: 150,
       normal: 300,
