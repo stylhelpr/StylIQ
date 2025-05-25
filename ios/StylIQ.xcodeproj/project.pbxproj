@@ -8,12 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		00E356F31AD99517003FC87E /* StylIQTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 00E356F21AD99517003FC87E /* StylIQTests.m */; };
+		0F3C75FE1411F73AB34F6ED3 /* libPods-StylIQ-StylIQTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 04FAE381444FA3A028A860E3 /* libPods-StylIQ-StylIQTests.a */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		B5516FA5CA1A93F8DE4AE7A9 /* libPods-StylIQ.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 708606E238ADCF20DC802670 /* libPods-StylIQ.a */; };
-		DF811C82C2CA7F24778C1AE8 /* libPods-StylIQ-StylIQTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C12342892247E3383D50A4B2 /* libPods-StylIQ-StylIQTests.a */; };
+		851480910C738C88FA8776F8 /* libPods-StylIQ.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0DCA1186781FFF73EB69C6E8 /* libPods-StylIQ.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -30,20 +30,20 @@
 		00E356EE1AD99517003FC87E /* StylIQTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StylIQTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* StylIQTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StylIQTests.m; sourceTree = "<group>"; };
-		0A56B493EAF93341D8B98C12 /* Pods-StylIQ.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.debug.xcconfig"; sourceTree = "<group>"; };
+		04FAE381444FA3A028A860E3 /* libPods-StylIQ-StylIQTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-StylIQ-StylIQTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0DCA1186781FFF73EB69C6E8 /* libPods-StylIQ.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-StylIQ.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* StylIQ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StylIQ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = StylIQ/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = StylIQ/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = StylIQ/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = StylIQ/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = StylIQ/main.m; sourceTree = "<group>"; };
-		3C45625EEAD79A0710549C95 /* Pods-StylIQ-StylIQTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ-StylIQTests.release.xcconfig"; path = "Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests.release.xcconfig"; sourceTree = "<group>"; };
-		61F09A6BD1FD77E9D3CDCCDE /* Pods-StylIQ-StylIQTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ-StylIQTests.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests.debug.xcconfig"; sourceTree = "<group>"; };
-		708606E238ADCF20DC802670 /* libPods-StylIQ.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-StylIQ.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		14C375B55784AC3017F2992E /* Pods-StylIQ-StylIQTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ-StylIQTests.release.xcconfig"; path = "Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests.release.xcconfig"; sourceTree = "<group>"; };
+		48A36D717CC0FCC18219A0FF /* Pods-StylIQ-StylIQTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ-StylIQTests.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests.debug.xcconfig"; sourceTree = "<group>"; };
+		5204A7B5D9A519F7789F7D1C /* Pods-StylIQ.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = StylIQ/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		C12342892247E3383D50A4B2 /* libPods-StylIQ-StylIQTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-StylIQ-StylIQTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E9A7C74F2EC1C6BDAA3759C4 /* Pods-StylIQ.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.release.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F33B6E20210C8E3A433EBD3C /* Pods-StylIQ.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.release.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,7 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DF811C82C2CA7F24778C1AE8 /* libPods-StylIQ-StylIQTests.a in Frameworks */,
+				0F3C75FE1411F73AB34F6ED3 /* libPods-StylIQ-StylIQTests.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,7 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B5516FA5CA1A93F8DE4AE7A9 /* libPods-StylIQ.a in Frameworks */,
+				851480910C738C88FA8776F8 /* libPods-StylIQ.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,8 +100,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				708606E238ADCF20DC802670 /* libPods-StylIQ.a */,
-				C12342892247E3383D50A4B2 /* libPods-StylIQ-StylIQTests.a */,
+				0DCA1186781FFF73EB69C6E8 /* libPods-StylIQ.a */,
+				04FAE381444FA3A028A860E3 /* libPods-StylIQ-StylIQTests.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -140,10 +140,10 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				0A56B493EAF93341D8B98C12 /* Pods-StylIQ.debug.xcconfig */,
-				F33B6E20210C8E3A433EBD3C /* Pods-StylIQ.release.xcconfig */,
-				61F09A6BD1FD77E9D3CDCCDE /* Pods-StylIQ-StylIQTests.debug.xcconfig */,
-				3C45625EEAD79A0710549C95 /* Pods-StylIQ-StylIQTests.release.xcconfig */,
+				5204A7B5D9A519F7789F7D1C /* Pods-StylIQ.debug.xcconfig */,
+				E9A7C74F2EC1C6BDAA3759C4 /* Pods-StylIQ.release.xcconfig */,
+				48A36D717CC0FCC18219A0FF /* Pods-StylIQ-StylIQTests.debug.xcconfig */,
+				14C375B55784AC3017F2992E /* Pods-StylIQ-StylIQTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -155,12 +155,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 00E357021AD99517003FC87E /* Build configuration list for PBXNativeTarget "StylIQTests" */;
 			buildPhases = (
-				CCEC3AD649EE244B124C29C7 /* [CP] Check Pods Manifest.lock */,
+				760CA0188A48AAFEC4E92742 /* [CP] Check Pods Manifest.lock */,
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				5944E4AE4CEFD48F67CD3B27 /* [CP] Embed Pods Frameworks */,
-				BE7BA25058B381B3CC17961B /* [CP] Copy Pods Resources */,
+				4A0DAEB8ECE9A0F6954EBDFC /* [CP] Embed Pods Frameworks */,
+				B1A5C02893F20ADE2E984A7B /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -176,14 +176,14 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "StylIQ" */;
 			buildPhases = (
-				A2985CF487B9B2206D2C6807 /* [CP] Check Pods Manifest.lock */,
+				14B1F0B666C860EADA87A256 /* [CP] Check Pods Manifest.lock */,
 				FD10A7F022414F080027D42C /* Start Packager */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				64B88752730BAC3BDC6C81E4 /* [CP] Embed Pods Frameworks */,
-				7B97F636B4C9ECA940BE28E5 /* [CP] Copy Pods Resources */,
+				BAEFE90C5B071B4870E3BD4F /* [CP] Embed Pods Frameworks */,
+				5B2DB4392D228AEB35EEA407 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -267,58 +267,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		5944E4AE4CEFD48F67CD3B27 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		64B88752730BAC3BDC6C81E4 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		7B97F636B4C9ECA940BE28E5 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		A2985CF487B9B2206D2C6807 /* [CP] Check Pods Manifest.lock */ = {
+		14B1F0B666C860EADA87A256 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -340,24 +289,41 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		BE7BA25058B381B3CC17961B /* [CP] Copy Pods Resources */ = {
+		4A0DAEB8ECE9A0F6954EBDFC /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			name = "[CP] Copy Pods Resources";
+			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		CCEC3AD649EE244B124C29C7 /* [CP] Check Pods Manifest.lock */ = {
+		5B2DB4392D228AEB35EEA407 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		760CA0188A48AAFEC4E92742 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -377,6 +343,40 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B1A5C02893F20ADE2E984A7B /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		BAEFE90C5B071B4870E3BD4F /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		FD10A7F022414F080027D42C /* Start Packager */ = {
@@ -431,7 +431,7 @@
 /* Begin XCBuildConfiguration section */
 		00E356F61AD99517003FC87E /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 61F09A6BD1FD77E9D3CDCCDE /* Pods-StylIQ-StylIQTests.debug.xcconfig */;
+			baseConfigurationReference = 48A36D717CC0FCC18219A0FF /* Pods-StylIQ-StylIQTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -458,7 +458,7 @@
 		};
 		00E356F71AD99517003FC87E /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3C45625EEAD79A0710549C95 /* Pods-StylIQ-StylIQTests.release.xcconfig */;
+			baseConfigurationReference = 14C375B55784AC3017F2992E /* Pods-StylIQ-StylIQTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COPY_PHASE_STRIP = NO;
@@ -482,7 +482,7 @@
 		};
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0A56B493EAF93341D8B98C12 /* Pods-StylIQ.debug.xcconfig */;
+			baseConfigurationReference = 5204A7B5D9A519F7789F7D1C /* Pods-StylIQ.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -509,7 +509,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F33B6E20210C8E3A433EBD3C /* Pods-StylIQ.release.xcconfig */;
+			baseConfigurationReference = E9A7C74F2EC1C6BDAA3759C4 /* Pods-StylIQ.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
