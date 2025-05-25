@@ -1,3 +1,4 @@
+
 import React, { type PropsWithChildren } from 'react';
 import {
   SafeAreaView,
@@ -53,7 +54,7 @@ const App: React.FC = () => {
   return (
     <SafeAreaView style={backgroundStyle}>
       <Section title="Step One">
-        Edit <Text style={styles.highlight}>App.tsx</Text> to change this screen.
+        Edit <Text style={styles.highlight}>App.tsx</Text> to changasdsdfsdfe this screen.
       </Section>
     </SafeAreaView>
   );
@@ -85,6 +86,96 @@ const styles = StyleSheet.create({
 });
 
 export default App;
+
+////////////
+
+// import React, { type PropsWithChildren } from 'react';
+// import {
+//   SafeAreaView,
+//   StyleSheet,
+//   Text,
+//   useColorScheme,
+//   View,
+// } from 'react-native';
+// import { Colors } from 'react-native/Libraries/NewAppScreen';
+
+// const Section: React.FC<
+//   PropsWithChildren<{
+//     title: string;
+//   }>
+// > = ({ children, title }) => {
+//   const isDarkMode = useColorScheme() === 'dark';
+
+//   // ✅ Optional chaining test (TS-safe)
+//   const deepValue: { a?: { b?: { c?: number } } } = { a: { b: { c: 123 } } };
+//   const result = deepValue?.a?.b?.c;
+
+//   return (
+//     <View style={styles.sectionContainer}>
+//       <Text
+//         style={[
+//           styles.sectionTitle,
+//           { color: isDarkMode ? Colors.white : Colors.black },
+//         ]}>
+//         {title}
+//       </Text>
+//       <Text
+//         style={[
+//           styles.sectionDescription,
+//           { color: isDarkMode ? Colors.light : Colors.dark },
+//         ]}>
+//         {children}
+//       </Text>
+//       <Text style={styles.result}>Optional chaining result: {result}</Text>
+//     </View>
+//   );
+// };
+
+// const App: React.FC = () => {
+//   const isDarkMode = useColorScheme() === 'dark';
+
+//   const backgroundStyle = {
+//     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+//     flex: 1,
+//   };
+//   // console.log('✅ App component is rendering!');
+
+
+//   return (
+//     <SafeAreaView style={backgroundStyle}>
+//       <Section title="Step One">
+//         Edit <Text style={styles.highlight}>App.tsx</Text> to changasdsdfsdfe this screen.
+//       </Section>
+//     </SafeAreaView>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   sectionContainer: {
+//     marginTop: 32,
+//     paddingHorizontal: 24,
+//   },
+//   sectionTitle: {
+//     fontSize: 24,
+//     fontWeight: '600',
+//   },
+//   sectionDescription: {
+//     marginTop: 8,
+//     fontSize: 18,
+//     fontWeight: '400',
+//   },
+//   highlight: {
+//     fontWeight: '900',
+//     color: 'red',
+//   },
+//   result: {
+//     marginTop: 12,
+//     fontSize: 16,
+//     color: '#00aa00',
+//   },
+// });
+
+// export default App;
 
 
 ////////////

@@ -1,3 +1,28 @@
+// // metro.config.js
+// const { getDefaultConfig } = require('metro-config');
+// const { wrapWithReanimatedMetroConfig } = require('react-native-reanimated/metro-config');
+// const path = require('path');
+
+// const getConfig = async () => {
+//   const {
+//     resolver: { sourceExts, assetExts },
+//   } = await getDefaultConfig();
+
+//   return {
+//     projectRoot: __dirname,
+//     watchFolders: [path.resolve(__dirname)],
+//     resolver: {
+//       assetExts,
+//       sourceExts,
+//     },
+//     maxWorkers: 1,
+//   };
+// };
+
+// module.exports = wrapWithReanimatedMetroConfig(getConfig());
+
+//////////
+
 // metro.config.js
 const { getDefaultConfig } = require('metro-config');
 const path = require('path');
