@@ -3,6 +3,9 @@ import React from 'react';
 import {SafeAreaView, Text, Pressable} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {useAppTheme} from './context/ThemeContext';
+import MessageTester from './components/MessageTester';
+import TempPost from './components/TempPost';
+import TestReactQuery from './components/TestReactQuery';
 
 const Section: React.FC<{title: string; children: React.ReactNode}> = ({
   children,
@@ -62,6 +65,9 @@ const MainApp = () => {
         justifyContent: 'center',
         padding: currentTheme.spacing.md,
       }}>
+      <MessageTester />
+      <TempPost />
+      <TestReactQuery />
       <Section title="Step One">
         Edit{' '}
         <Text
