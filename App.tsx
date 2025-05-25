@@ -68,7 +68,7 @@ const App = () => {
     <SafeAreaView style={backgroundStyle}>
         <Section title="Step One">
             Eddsfgdfgit <Text style={styles.highlight}>App.tsx</Text> to change this
-            asdfsadfsdf
+     sssssssssss
            </Section>
     </SafeAreaView>
   );
