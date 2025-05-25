@@ -62,3 +62,11 @@ buck-out/
 # Ruby / CocoaPods
 /ios/Pods/
 /vendor/bundle/
+
+# 🚫 Prevent all archive tarballs and large accidental uploads
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tgz
+*.tbz
+*.tbz2
