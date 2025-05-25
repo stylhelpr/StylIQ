@@ -18,9 +18,7 @@ module.exports = (async () => {
   };
 })();
 
-
-
-
+/////////
 
 // // metro.config.js
 // const { getDefaultConfig } = require('metro-config');
