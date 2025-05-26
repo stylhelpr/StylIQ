@@ -240,7 +240,7 @@ import Geolocation from 'react-native-geolocation-service';
 import {ensureLocationPermission} from './utils/permissions';
 import {OPENWEATHER_API_KEY} from '@env';
 import {fetchWeather} from './utils/travelWeather';
-
+import MapScreen from './components/MapScreen/MapScreen';
 import MessageTester from './components/MessageTester';
 import TempPost from './components/TempPost';
 import TestReactQuery from './components/TestReactQuery';
@@ -385,6 +385,7 @@ const MainApp = () => {
           Loading weather...
         </Text>
       )}
+      <MapScreen />
 
       {/* <MessageTester />
       <TempPost />
