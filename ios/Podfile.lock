@@ -311,6 +311,8 @@ PODS:
     - glog
   - react-native-add-calendar-event (5.0.0):
     - React-Core
+  - react-native-contacts (8.0.5):
+    - React-Core
   - react-native-geolocation (3.4.0):
     - React-Core
   - react-native-geolocation-service (5.3.1):
@@ -437,6 +439,7 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - react-native-add-calendar-event (from `../node_modules/react-native-add-calendar-event`)
+  - react-native-contacts (from `../node_modules/react-native-contacts`)
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-geolocation-service (from `../node_modules/react-native-geolocation-service`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
@@ -533,6 +536,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   react-native-add-calendar-event:
     :path: "../node_modules/react-native-add-calendar-event"
+  react-native-contacts:
+    :path: "../node_modules/react-native-contacts"
   react-native-geolocation:
     :path: "../node_modules/@react-native-community/geolocation"
   react-native-geolocation-service:
@@ -624,6 +629,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 2a1985769123b199c195a96f46478b35db139712
   React-logger: d6b8c2a104ac0c237408297085a3f59d6bd514ca
   react-native-add-calendar-event: 4eb42bdf84beb58de81f6d2ce1778a7632223dfe
+  react-native-contacts: 092c5fe3150a5f0cfee0e494c2c144053c2aa137
   react-native-geolocation: 17b040465ff06d914f733d7f61356cbdae409a0d
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b
