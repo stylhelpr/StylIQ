@@ -47,6 +47,10 @@
         </dict>
     </dict>
 
+    <!-- Map permission -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We need your location to show your position on the map</string>
+
     <!-- Location permission -->
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>We use your location to show the weather near you</string>

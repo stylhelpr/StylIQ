@@ -13,11 +13,11 @@ PODS:
   - glog (0.3.5)
   - hermes-engine (0.70.10)
   - libevent (2.1.12)
-  - Permission-Camera (3.7.0):
+  - Permission-Camera (3.10.1):
     - RNPermissions
-  - Permission-LocationWhenInUse (3.7.0):
+  - Permission-LocationWhenInUse (3.10.1):
     - RNPermissions
-  - Permission-PhotoLibrary (3.7.0):
+  - Permission-PhotoLibrary (3.10.1):
     - RNPermissions
   - RCT-Folly (2021.07.22.00):
     - boost
@@ -251,6 +251,8 @@ PODS:
     - React
   - react-native-image-picker (8.2.1):
     - React-Core
+  - react-native-maps (0.30.2):
+    - React-Core
   - react-native-voice (3.2.4):
     - React-Core
   - React-perflogger (0.70.10)
@@ -321,7 +323,7 @@ PODS:
     - React-perflogger (= 0.70.10)
   - RNCPicker (2.11.0):
     - React-Core
-  - RNPermissions (3.7.0):
+  - RNPermissions (3.10.1):
     - React-Core
   - TextToSpeech (4.1.1):
     - React-Core
@@ -357,6 +359,7 @@ DEPENDENCIES:
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-geolocation-service (from `../node_modules/react-native-geolocation-service`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - react-native-maps (from `../node_modules/react-native-maps`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
@@ -435,6 +438,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-geolocation-service"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-maps:
+    :path: "../node_modules/react-native-maps"
   react-native-voice:
     :path: "../node_modules/@react-native-voice/voice"
   React-perflogger:
@@ -479,9 +484,9 @@ SPEC CHECKSUMS:
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
   hermes-engine: 409b787d72bde225a3e5ce982f9c3ace6ff56691
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
-  Permission-Camera: 7ad45e51fbcf08db0818efc4e37501007996333d
-  Permission-LocationWhenInUse: a8478317257885bcc00ca5954f8157dbf9c10a16
-  Permission-PhotoLibrary: 897398c6cde305092e2202503c5dfab2d9fd193d
+  Permission-Camera: cf14fb2d76432ee0f36546249ee608ef6037a23e
+  Permission-LocationWhenInUse: e4a1bdc6b9f4a7a598613a6a748bd186e937df34
+  Permission-PhotoLibrary: 6088ef4424a006e2bbf3ef6ccbca0f88fa1a52a4
   RCT-Folly: fd2673f5bfadb2a8173799b6965b892a67ae31d9
   RCTRequired: 23f0d5d0dea22af22f30f146e090a7d16e6b8be7
   RCTTypeSafety: ca3de65d46a130875bf7816788998f13525f3235
@@ -500,6 +505,7 @@ SPEC CHECKSUMS:
   react-native-geolocation: 17b040465ff06d914f733d7f61356cbdae409a0d
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b
+  react-native-maps: 9ae269783ee6ebd87c7598873674c83c244adde9
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc
   React-RCTActionSheet: cd3d76501a6069e164986b93f144be34b593955c
@@ -514,10 +520,10 @@ SPEC CHECKSUMS:
   React-runtimeexecutor: 77aa3714a353cfb1a5f5e315e8af5154cd3d9402
   ReactCommon: 8cae60fb5f3081673450e3ac1be996a33f81b64c
   RNCPicker: 124b4fb5859ba1a3fd53a91e16d1e7a0fc016e59
-  RNPermissions: 28014e8576e40b5f8da82b6b1f362f65371648bb
+  RNPermissions: bd0d9ca7969ff7b999aa605ee2e5919c12522bfe
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
-PODFILE CHECKSUM: 4c2469149bfd8b05615a99c659132c3e3f9b1a31
+PODFILE CHECKSUM: 64f984cc7408fd530b06d17ca19d38d549e54027
 
 COCOAPODS: 1.16.2

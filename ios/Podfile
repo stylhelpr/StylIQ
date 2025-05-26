@@ -6,8 +6,8 @@ install! 'cocoapods', deterministic_uuids: false
 
 target 'StylIQ' do
   config = use_native_modules!()
+  ENV['RCT_NO_LAUNCH_PACKAGER'] = 'true'
 
-  # Default flags for Hermes/Fabric
   flags = get_default_flags()
 
   use_react_native!(
@@ -18,15 +18,17 @@ target 'StylIQ' do
     app_path: "#{Pod::Config.instance.installation_root}/.."
   )
 
-  # ⬇️ Add this block for react-native-permissions support
+  # react-native-maps
+  pod 'react-native-maps', path: '../node_modules/react-native-maps'
+
+  # react-native-permissions
   permissions_path = '../node_modules/react-native-permissions/ios'
   pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
   pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
   pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
 
-  # ─── MANUAL POD (correct name) ───────────────────────────────────────────────
+  # react-native-voice
   pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
-  # ─────────────────────────────────────────────────────────────────────────────
 
   target 'StylIQTests' do
     inherit! :complete
@@ -38,5 +40,12 @@ target 'StylIQ' do
       mac_catalyst_enabled: false
     )
     __apply_Xcode_12_5_M1_post_install_workaround(installer)
+
+    # ⬇️ Force iOS deployment target for all pods
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.4'
+      end
+    end
   end
 end
