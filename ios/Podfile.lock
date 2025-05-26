@@ -239,6 +239,8 @@ PODS:
   - React-jsinspector (0.70.10)
   - React-logger (0.70.10):
     - glog
+  - react-native-image-picker (8.2.1):
+    - React-Core
   - react-native-voice (3.2.4):
     - React-Core
   - React-perflogger (0.70.10)
@@ -337,6 +339,7 @@ DEPENDENCIES:
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
+  - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
@@ -402,6 +405,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
   React-logger:
     :path: "../node_modules/react-native/ReactCommon/logger"
+  react-native-image-picker:
+    :path: "../node_modules/react-native-image-picker"
   react-native-voice:
     :path: "../node_modules/@react-native-voice/voice"
   React-perflogger:
@@ -459,6 +464,7 @@ SPEC CHECKSUMS:
   React-jsiexecutor: eb5c989d256412f7d48851eee16d4fb791293d4c
   React-jsinspector: 2a1985769123b199c195a96f46478b35db139712
   React-logger: d6b8c2a104ac0c237408297085a3f59d6bd514ca
+  react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc
   React-RCTActionSheet: cd3d76501a6069e164986b93f144be34b593955c
