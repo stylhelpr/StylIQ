@@ -1,3 +1,237 @@
+// import React, {useEffect, useState} from 'react';
+// import {SafeAreaView, Text, Pressable, View} from 'react-native';
+// import * as Animatable from 'react-native-animatable';
+// import {useAppTheme} from './context/ThemeContext';
+// import Geolocation from 'react-native-geolocation-service';
+// import {ensureLocationPermission} from './utils/permissions';
+// import {OPENWEATHER_API_KEY} from '@env';
+// import {
+//   fetchTomorrowWeather,
+//   reverseGeocode,
+// } from './utils/fetchTomorrowWeather';
+// import {fetchWeather} from './utils/travelWeather';
+
+// import MessageTester from './components/MessageTester';
+// import TempPost from './components/TempPost';
+// import TestReactQuery from './components/TestReactQuery';
+// import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+// import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+
+// const Section: React.FC<{title: string; children: React.ReactNode}> = ({
+//   children,
+//   title,
+// }) => {
+//   const {theme: currentTheme} = useAppTheme();
+//   const result = {a: {b: {c: 123}}}?.a?.b?.c;
+
+//   return (
+//     <Pressable onPress={() => console.log('Section tapped')}>
+//       <Animatable.View
+//         animation="fadeInUp"
+//         duration={1800}
+//         style={{
+//           marginTop: currentTheme.spacing.xl,
+//           paddingHorizontal: currentTheme.spacing.lg,
+//         }}>
+//         <Text
+//           style={{
+//             fontSize: currentTheme.fontSize['2xl'],
+//             fontWeight: currentTheme.fontWeight.semiBold,
+//             color: currentTheme.colors.primary,
+//           }}>
+//           {title}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.sm,
+//             fontSize: currentTheme.fontSize.lg,
+//             fontWeight: currentTheme.fontWeight.normal,
+//             color: currentTheme.colors.secondary,
+//           }}>
+//           {children}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.md,
+//             fontSize: currentTheme.fontSize.base,
+//             color: currentTheme.colors.success,
+//           }}>
+//           Optional chaining result: {result}
+//         </Text>
+//       </Animatable.View>
+//     </Pressable>
+//   );
+// };
+
+// const MainApp = () => {
+//   const {theme: currentTheme, toggleTheme} = useAppTheme();
+//   const [weather, setWeather] = useState<any>(null);
+//   const [city, setCity] = useState<string>('...');
+
+//   const [error, setError] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const fetchLocation = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return;
+
+//       Geolocation.getCurrentPosition(
+//         pos => {
+//           console.log('📍 User location:', pos.coords);
+//           // Optionally: fetch weather here
+//         },
+//         err => console.warn('❌ Location error:', err),
+//         {
+//           enableHighAccuracy: true,
+//           timeout: 15000,
+//           maximumAge: 1000,
+//         },
+//       );
+//     };
+
+//     fetchLocation();
+//   }, []);
+
+//   useEffect(() => {
+//     const fetchWeather = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return;
+
+//       Geolocation.getCurrentPosition(
+//         async pos => {
+//           const {latitude, longitude} = pos.coords;
+
+//           try {
+//             // Run both API requests in parallel
+//             const [weatherData, cityName] = await Promise.all([
+//               fetchTomorrowWeather(latitude, longitude),
+//               reverseGeocode(latitude, longitude),
+//             ]);
+
+//             console.log('🧠 Weather Insights:', weatherData);
+//             console.log('🏙️ Reverse geocoded city:', cityName);
+
+//             setWeather(weatherData);
+//             setCity(cityName);
+//           } catch (err) {
+//             console.error('❌ Failed to fetch weather or city info', err);
+//             setError('Failed to load weather data.');
+//           }
+//         },
+//         err => {
+//           console.warn('❌ Location error:', err);
+//           setError('Location permission error');
+//         },
+//         {
+//           enableHighAccuracy: true,
+//           timeout: 15000,
+//           maximumAge: 1000,
+//         },
+//       );
+//     };
+
+//     fetchWeather();
+//   }, []);
+
+//   return (
+//     <SafeAreaView
+//       style={{
+//         flex: 1,
+//         backgroundColor: currentTheme.colors.background,
+//         justifyContent: 'center',
+//         padding: currentTheme.spacing.md,
+//       }}>
+//       <VoiceControlComponent />
+//       <View style={{height: 300}}>
+//         <ImagePickerGrid />
+//       </View>
+//       {weather?.data?.values?.temperatureApparent ? (
+//         <View style={{marginTop: 20}}>
+//           <Text style={{fontSize: 18, color: currentTheme.colors.primary}}>
+//             📍 Location: {weather.location.lat}, {weather.location.lon}
+//           </Text>
+//           <Text style={{fontSize: 16, color: currentTheme.colors.secondary}}>
+//             🌡️ {weather.data.values.temperatureApparent}°C
+//           </Text>
+//           <Text
+//             style={{
+//               marginTop: 4,
+//               fontStyle: 'italic',
+//               color: currentTheme.colors.secondary,
+//             }}>
+//             👕 Recommended: {getStyleAdvice(weather.data.values.weatherCode)}
+//           </Text>
+//         </View>
+//       ) : (
+//         <Text style={{color: currentTheme.colors.primary}}>
+//           Loading weather...
+//         </Text>
+//       )}
+
+//       {/* <MessageTester />
+//       <TempPost />
+//       <TestReactQuery />
+//       <Section title="Step One">
+//         Edit{' '}
+//         <Text
+//           style={{
+//             fontWeight: currentTheme.fontWeight.bold,
+//             color: currentTheme.colors.error,
+//           }}
+//         >
+//           App.tsx
+//         </Text>{' '}
+//         to animate this screen.
+//       </Section> */}
+
+//       <Pressable
+//         onPress={toggleTheme}
+//         style={{
+//           marginTop: 32,
+//           backgroundColor: currentTheme.colors.surface,
+//           padding: 12,
+//           borderRadius: currentTheme.borderRadius.md,
+//         }}>
+//         <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+//           Toggle Theme
+//         </Text>
+//       </Pressable>
+//     </SafeAreaView>
+//   );
+// };
+
+// export default MainApp;
+
+// const getWeatherLabel = (code: string) => {
+//   const map: Record<string, string> = {
+//     clear: 'Clear skies',
+//     rain_light: 'Light rain',
+//     rain_heavy: 'Heavy rain',
+//     snow_light: 'Light snow',
+//     snow_heavy: 'Heavy snow',
+//     cloudy: 'Cloudy',
+//     partly_cloudy: 'Partly cloudy',
+//     fog: 'Foggy',
+//     thunderstorm: 'Storm',
+//     drizzle: 'Drizzle',
+//   };
+//   return map[code] || code;
+// };
+
+// const getStyleAdvice = (code: number) => {
+//   const map: Record<number, string> = {
+//     1000: 'T-shirt and shades',
+//     1100: 'Light jacket or sweater',
+//     1101: 'Jacket and layers',
+//     4000: 'Raincoat and waterproof shoes',
+//     5001: 'Winter coat and boots',
+//     4200: 'Umbrella and rain boots',
+//   };
+//   return map[code] || 'Check conditions and dress accordingly';
+// };
+
+///////////
+
 import React, {useEffect, useState} from 'react';
 import {SafeAreaView, Text, Pressable, View} from 'react-native';
 import * as Animatable from 'react-native-animatable';
@@ -75,19 +309,19 @@ const MainApp = () => {
       Geolocation.getCurrentPosition(
         async pos => {
           const {latitude, longitude} = pos.coords;
-          console.log('📍 User location:', pos.coords);
+          // console.log('📍 User location:', pos.coords);
 
           try {
             const data = await fetchWeather(latitude, longitude);
-            console.log('✅ Weather data returned:', data);
+            // console.log('✅ Weather data returned:', data);
             setWeather(data);
           } catch (err) {
-            console.error('❌ Weather fetch error:', err);
+            // console.error('❌ Weather fetch error:', err);
             setError('Failed to fetch weather');
           }
         },
         err => {
-          console.warn('❌ Location error:', err);
+          // console.warn('❌ Location error:', err);
           setError('Failed to get location');
         },
         {
@@ -108,7 +342,7 @@ const MainApp = () => {
 
       Geolocation.getCurrentPosition(
         pos => {
-          console.log('📍 User location:', pos.coords);
+          // console.log('📍 User location:', pos.coords);
           // Optionally: fetch weather here
         },
         err => console.warn('❌ Location error:', err),
