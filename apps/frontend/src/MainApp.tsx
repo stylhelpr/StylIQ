@@ -233,6 +233,8 @@
 ///////////
 
 import React, {useEffect, useState} from 'react';
+import messaging from '@react-native-firebase/messaging';
+import {Alert} from 'react-native';
 import {SafeAreaView, Text, Pressable, View, ScrollView} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {useAppTheme} from './context/ThemeContext';
@@ -246,6 +248,7 @@ import TempPost from './components/TempPost';
 import TestReactQuery from './components/TestReactQuery';
 import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
 import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+import './lib/firebaseConfig';
 
 const Section: React.FC<{title: string; children: React.ReactNode}> = ({
   children,
@@ -299,6 +302,38 @@ const MainApp = () => {
   const [error, setError] = useState<string | null>(null);
 
   console.log('🧪 OPENWEATHER_API_KEY from @env:', OPENWEATHER_API_KEY);
+
+  useEffect(() => {
+    const setupPush = async () => {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        console.log('✅ Push permission granted:', authStatus);
+        const token = await messaging().getToken();
+        console.log('📱 FCM Token:', token);
+      } else {
+        console.warn('❌ Push permission denied');
+      }
+    };
+
+    setupPush();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      console.log('📨 Foreground push:', remoteMessage);
+      Alert.alert(
+        remoteMessage.notification?.title || 'Notification',
+        remoteMessage.notification?.body || 'You have a new message.',
+      );
+    });
+
+    return unsubscribe;
+  }, []);
+
   useEffect(() => {
     const loadWeather = async () => {
       const hasPermission = await ensureLocationPermission();

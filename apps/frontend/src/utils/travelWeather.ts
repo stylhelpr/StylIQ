@@ -54,9 +54,9 @@ export async function fetchWeather(lat: number, lon: number) {
   const cleanKey = OPENWEATHER_API_KEY?.trim();
   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=metric`;
 
-  console.log('🔥 FETCH WEATHER EXECUTED');
-  console.log('✅ Loaded API key:', cleanKey);
-  console.log('📡 API URL:', url);
+  // console.log('🔥 FETCH WEATHER EXECUTED');
+  // console.log('✅ Loaded API key:', cleanKey);
+  // console.log('📡 API URL:', url);
 
   const res = await axios.get(url);
   return res.data;
