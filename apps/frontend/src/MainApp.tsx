@@ -301,7 +301,7 @@ const MainApp = () => {
   const [weather, setWeather] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🧪 OPENWEATHER_API_KEY from @env:', OPENWEATHER_API_KEY);
+  // console.log('🧪 OPENWEATHER_API_KEY from @env:', OPENWEATHER_API_KEY);
 
   useEffect(() => {
     const setupPush = async () => {
@@ -414,10 +414,12 @@ const MainApp = () => {
         {weather ? (
           <View style={{marginTop: 20}}>
             <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
-              📍 {weather.name}
+              📍 {weather.celsius.name}
             </Text>
             <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
-              🌡️ {weather.main.temp}°C — {weather.weather[0].description}
+              {/* 🌡️ {weather.celsius.main.temp}°C / {weather.fahrenheit.main.temp} */}
+              🌡️ {weather.fahrenheit.main.temp}
+              °F — {weather.celsius.weather[0].description}
             </Text>
           </View>
         ) : error ? (
