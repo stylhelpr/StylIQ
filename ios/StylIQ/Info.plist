@@ -47,6 +47,12 @@
         </dict>
     </dict>
 
+    <!-- Location permission -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We use your location to show the weather near you</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We use your location to show the weather near you</string>
+
     <!-- Microphone permission -->
     <key>NSMicrophoneUsageDescription</key>
     <string>We need access to your microphone for voice control.</string>

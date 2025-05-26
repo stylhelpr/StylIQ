@@ -18,10 +18,14 @@ target 'StylIQ' do
     app_path: "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # ⬇️ Add this block for react-native-permissions support
+  permissions_path = '../node_modules/react-native-permissions/ios'
+  pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+  pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
+  pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+
   # ─── MANUAL POD (correct name) ───────────────────────────────────────────────
-  # Bring in the voice module podspec
   pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
-  # (react-native-tts auto-links as TextToSpeech)
   # ─────────────────────────────────────────────────────────────────────────────
 
   target 'StylIQTests' do
