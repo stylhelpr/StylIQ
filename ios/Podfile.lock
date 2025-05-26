@@ -239,6 +239,8 @@ PODS:
   - React-jsinspector (0.70.10)
   - React-logger (0.70.10):
     - glog
+  - react-native-geolocation (3.4.0):
+    - React-Core
   - react-native-image-picker (8.2.1):
     - React-Core
   - react-native-voice (3.2.4):
@@ -311,6 +313,8 @@ PODS:
     - React-perflogger (= 0.70.10)
   - RNCPicker (2.11.0):
     - React-Core
+  - RNPermissions (5.4.0):
+    - React-Core
   - TextToSpeech (4.1.1):
     - React-Core
   - Yoga (1.14.0)
@@ -339,6 +343,7 @@ DEPENDENCIES:
   - React-jsiexecutor (from `../node_modules/react-native/ReactCommon/jsiexecutor`)
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
+  - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -354,6 +359,7 @@ DEPENDENCIES:
   - React-runtimeexecutor (from `../node_modules/react-native/ReactCommon/runtimeexecutor`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
+  - RNPermissions (from `../node_modules/react-native-permissions`)
   - TextToSpeech (from `../node_modules/react-native-tts`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -405,6 +411,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/jsinspector"
   React-logger:
     :path: "../node_modules/react-native/ReactCommon/logger"
+  react-native-geolocation:
+    :path: "../node_modules/@react-native-community/geolocation"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
   react-native-voice:
@@ -435,6 +443,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   RNCPicker:
     :path: "../node_modules/@react-native-picker/picker"
+  RNPermissions:
+    :path: "../node_modules/react-native-permissions"
   TextToSpeech:
     :path: "../node_modules/react-native-tts"
   Yoga:
@@ -464,6 +474,7 @@ SPEC CHECKSUMS:
   React-jsiexecutor: eb5c989d256412f7d48851eee16d4fb791293d4c
   React-jsinspector: 2a1985769123b199c195a96f46478b35db139712
   React-logger: d6b8c2a104ac0c237408297085a3f59d6bd514ca
+  react-native-geolocation: 17b040465ff06d914f733d7f61356cbdae409a0d
   react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc
@@ -479,6 +490,7 @@ SPEC CHECKSUMS:
   React-runtimeexecutor: 77aa3714a353cfb1a5f5e315e8af5154cd3d9402
   ReactCommon: 8cae60fb5f3081673450e3ac1be996a33f81b64c
   RNCPicker: 124b4fb5859ba1a3fd53a91e16d1e7a0fc016e59
+  RNPermissions: 9cd352285fca2a3c2640a0897936730349c62415
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
