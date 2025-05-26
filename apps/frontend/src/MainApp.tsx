@@ -248,6 +248,9 @@ import TempPost from './components/TempPost';
 import TestReactQuery from './components/TestReactQuery';
 import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
 import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+import * as AddCalendarEvent from 'react-native-add-calendar-event';
+import RNCalendarEvents from 'react-native-calendar-events';
+import AddReminderButton from 'components/AddReminderButon/AddReminderButton';
 import './lib/firebaseConfig';
 
 const Section: React.FC<{title: string; children: React.ReactNode}> = ({
@@ -292,6 +295,9 @@ const Section: React.FC<{title: string; children: React.ReactNode}> = ({
           Optional chaining result: {result}
         </Text>
       </Animatable.View>
+      <View style={{marginTop: 40}}>
+        <AddReminderButton />
+      </View>
     </Pressable>
   );
 };
@@ -393,6 +399,67 @@ const MainApp = () => {
     fetchLocation();
   }, []);
 
+  const addTestCalendarEvent = () => {
+    const now = new Date();
+    const in30Min = new Date(now.getTime() + 30 * 60 * 1000);
+
+    const eventConfig = {
+      title: 'Style Reminder: Try new look',
+      startDate: now.toISOString(),
+      endDate: in30Min.toISOString(),
+      notes: 'Pair outfit with brown Ferragamo loafers.',
+      alarms: [{relativeOffset: 0, method: 'alert'}],
+    };
+
+    if (!eventConfig.title || !eventConfig.startDate || !eventConfig.endDate) {
+      console.warn('❌ Missing required calendar event fields');
+      return;
+    }
+
+    AddCalendarEvent.presentEventCreatingDialog(eventConfig)
+      .then(eventInfo => {
+        console.log('📅 Event created:', eventInfo);
+      })
+      .catch(err => {
+        console.warn('❌ Calendar error:', err);
+      });
+  };
+
+  // Add this function inside MainApp component
+  const addCalendarReminder = async () => {
+    const start = new Date(Date.now() + 2 * 60 * 1000); // Start 2 min from now
+    const end = new Date(start.getTime() + 30 * 60 * 1000); // End 30 min later
+
+    try {
+      const permission = await RNCalendarEvents.checkPermissions();
+      if (permission !== 'authorized') {
+        const request = await RNCalendarEvents.requestPermissions();
+        if (request !== 'authorized')
+          throw new Error('Calendar permission denied');
+      }
+
+      const eventId = await RNCalendarEvents.saveEvent(
+        '🧥 Style Reminder: Try New Look',
+        {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          alarms: [{date: 0}], // Alert exactly at start
+          notes: 'Pair outfit with brown Ferragamo loafers.',
+          description: 'Your outfit reminder from StylIQ.',
+        },
+      );
+
+      console.log('📅 Calendar event added with ID:', eventId);
+      Alert.alert(
+        'Event Added',
+        'Style reminder has been added to your calendar.',
+      );
+    } catch (err) {
+      console.warn('❌ Failed to add calendar event:', err);
+      Alert.alert('Error', 'Could not add calendar event.');
+    }
+  };
+
   return (
     <SafeAreaView
       style={{
@@ -445,6 +512,32 @@ const MainApp = () => {
           <Text
             style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
             Toggle Theme
+          </Text>
+        </Pressable>
+        {/* <Pressable
+          onPress={addTestCalendarEvent}
+          style={{
+            marginTop: 32,
+            backgroundColor: currentTheme.colors.surface,
+            padding: 12,
+            borderRadius: currentTheme.borderRadius.md,
+          }}>
+          <Text
+            style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+            Add Calendar Reminder
+          </Text>
+        </Pressable> */}
+        <Pressable
+          onPress={addCalendarReminder}
+          style={{
+            marginTop: 24,
+            backgroundColor: currentTheme.colors.surface,
+            padding: 12,
+            borderRadius: currentTheme.borderRadius.md,
+          }}>
+          <Text
+            style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+            Add Style Reminder (Calendar)
           </Text>
         </Pressable>
       </ScrollView>

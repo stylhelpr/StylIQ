@@ -12,6 +12,7 @@
     "dev": "concurrently \"npm run server\" \"cd apps/frontend && npm run start\" \"cd apps/frontend && npm run ios\""
   },
   "dependencies": {
+    "@react-native-community/datetimepicker": "^8.4.1",
     "@react-native-community/geolocation": "^3.4.0",
     "@react-native-firebase/app": "^22.2.0",
     "@react-native-firebase/messaging": "^22.2.0",
@@ -21,7 +22,9 @@
     "axios": "^1.9.0",
     "react": "18.1.0",
     "react-native": "0.70.10",
+    "react-native-add-calendar-event": "^5.0.0",
     "react-native-animatable": "^1.4.0",
+    "react-native-calendar-events": "^2.2.0",
     "react-native-dotenv": "^3.4.11",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-image-picker": "^8.2.1",
