@@ -12,11 +12,13 @@
     "dev": "concurrently \"npm run server\" \"cd apps/frontend && npm run start\" \"cd apps/frontend && npm run ios\""
   },
   "dependencies": {
+    "@react-native-voice/voice": "^3.2.4",
     "axios": "^1.9.0",
     "react": "18.1.0",
     "react-native": "0.70.10",
     "react-native-animatable": "^1.4.0",
-    "react-native-dotenv": "^3.4.11"
+    "react-native-dotenv": "^3.4.11",
+    "react-native-tts": "^4.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",

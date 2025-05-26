@@ -10,6 +10,20 @@
   }
 }
 
+///////
+
+// {
+//   "extends": "@tsconfig/react-native/tsconfig.json",
+//   "compilerOptions": {
+//     "skipLibCheck": true,
+//     "baseUrl": "apps/frontend/src",
+//     "paths": {
+//       "@tokens/*": ["styles/tokens/*"],
+//       "@tokens": ["styles/tokens/index"]
+//     }
+//   }
+// }
+
 //////////
 
 // // prettier-ignore

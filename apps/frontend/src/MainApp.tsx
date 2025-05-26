@@ -6,6 +6,7 @@ import {useAppTheme} from './context/ThemeContext';
 import MessageTester from './components/MessageTester';
 import TempPost from './components/TempPost';
 import TestReactQuery from './components/TestReactQuery';
+import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
 
 const Section: React.FC<{title: string; children: React.ReactNode}> = ({
   children,
@@ -65,6 +66,7 @@ const MainApp = () => {
         justifyContent: 'center',
         padding: currentTheme.spacing.md,
       }}>
+      <VoiceControlComponent />
       <MessageTester />
       <TempPost />
       <TestReactQuery />
