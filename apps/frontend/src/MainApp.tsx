@@ -1,19 +1,23 @@
-// src/MainApp.tsx
-import React from 'react';
-import {SafeAreaView, Text, Pressable} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {SafeAreaView, Text, Pressable, View} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {useAppTheme} from './context/ThemeContext';
+import Geolocation from 'react-native-geolocation-service';
+import {ensureLocationPermission} from './utils/permissions';
+import {OPENWEATHER_API_KEY} from '@env';
+import {fetchWeather} from './utils/travelWeather';
+
 import MessageTester from './components/MessageTester';
 import TempPost from './components/TempPost';
 import TestReactQuery from './components/TestReactQuery';
 import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
 
 const Section: React.FC<{title: string; children: React.ReactNode}> = ({
   children,
   title,
 }) => {
   const {theme: currentTheme} = useAppTheme();
-
   const result = {a: {b: {c: 123}}}?.a?.b?.c;
 
   return (
@@ -57,6 +61,67 @@ const Section: React.FC<{title: string; children: React.ReactNode}> = ({
 
 const MainApp = () => {
   const {theme: currentTheme, toggleTheme} = useAppTheme();
+  const [weather, setWeather] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadWeather = async () => {
+      const hasPermission = await ensureLocationPermission();
+      if (!hasPermission) {
+        setError('Location permission denied');
+        return;
+      }
+
+      Geolocation.getCurrentPosition(
+        async pos => {
+          const {latitude, longitude} = pos.coords;
+          console.log('📍 User location:', pos.coords);
+
+          try {
+            const data = await fetchWeather(latitude, longitude);
+            console.log('✅ Weather data returned:', data);
+            setWeather(data);
+          } catch (err) {
+            console.error('❌ Weather fetch error:', err);
+            setError('Failed to fetch weather');
+          }
+        },
+        err => {
+          console.warn('❌ Location error:', err);
+          setError('Failed to get location');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 1000,
+        },
+      );
+    };
+
+    loadWeather();
+  }, []);
+
+  useEffect(() => {
+    const fetchLocation = async () => {
+      const hasPermission = await ensureLocationPermission();
+      if (!hasPermission) return;
+
+      Geolocation.getCurrentPosition(
+        pos => {
+          console.log('📍 User location:', pos.coords);
+          // Optionally: fetch weather here
+        },
+        err => console.warn('❌ Location error:', err),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 1000,
+        },
+      );
+    };
+
+    fetchLocation();
+  }, []);
 
   return (
     <SafeAreaView
@@ -67,7 +132,27 @@ const MainApp = () => {
         padding: currentTheme.spacing.md,
       }}>
       <VoiceControlComponent />
-      <MessageTester />
+      <View style={{height: 300}}>
+        <ImagePickerGrid />
+      </View>
+      {weather ? (
+        <View style={{marginTop: 20}}>
+          <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
+            📍 {weather.name}
+          </Text>
+          <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
+            🌡️ {weather.main.temp}°C — {weather.weather[0].description}
+          </Text>
+        </View>
+      ) : error ? (
+        <Text style={{color: currentTheme.colors.error}}>{error}</Text>
+      ) : (
+        <Text style={{color: currentTheme.colors.primary}}>
+          Loading weather...
+        </Text>
+      )}
+
+      {/* <MessageTester />
       <TempPost />
       <TestReactQuery />
       <Section title="Step One">
@@ -76,11 +161,12 @@ const MainApp = () => {
           style={{
             fontWeight: currentTheme.fontWeight.bold,
             color: currentTheme.colors.error,
-          }}>
+          }}
+        >
           App.tsx
         </Text>{' '}
         to animate this screen.
-      </Section>
+      </Section> */}
 
       <Pressable
         onPress={toggleTheme}
@@ -99,6 +185,372 @@ const MainApp = () => {
 };
 
 export default MainApp;
+
+//////////////
+
+// import React, {useEffect} from 'react';
+// import {SafeAreaView, Text, Pressable, View} from 'react-native';
+// import * as Animatable from 'react-native-animatable';
+// import {useAppTheme} from './context/ThemeContext';
+// import Geolocation from 'react-native-geolocation-service';
+// import {ensureLocationPermission} from './utils/permissions';
+// import {OPENWEATHER_API_KEY} from '@env';
+// import {fetchWeather} from './utils/travelWeather';
+
+// import MessageTester from './components/MessageTester';
+// import TempPost from './components/TempPost';
+// import TestReactQuery from './components/TestReactQuery';
+// import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+// import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+
+// const Section: React.FC<{title: string; children: React.ReactNode}> = ({
+//   children,
+//   title,
+// }) => {
+//   const {theme: currentTheme} = useAppTheme();
+//   const result = {a: {b: {c: 123}}}?.a?.b?.c;
+
+//   return (
+//     <Pressable onPress={() => console.log('Section tapped')}>
+//       <Animatable.View
+//         animation="fadeInUp"
+//         duration={1800}
+//         style={{
+//           marginTop: currentTheme.spacing.xl,
+//           paddingHorizontal: currentTheme.spacing.lg,
+//         }}>
+//         <Text
+//           style={{
+//             fontSize: currentTheme.fontSize['2xl'],
+//             fontWeight: currentTheme.fontWeight.semiBold,
+//             color: currentTheme.colors.primary,
+//           }}>
+//           {title}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.sm,
+//             fontSize: currentTheme.fontSize.lg,
+//             fontWeight: currentTheme.fontWeight.normal,
+//             color: currentTheme.colors.secondary,
+//           }}>
+//           {children}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.md,
+//             fontSize: currentTheme.fontSize.base,
+//             color: currentTheme.colors.success,
+//           }}>
+//           Optional chaining result: {result}
+//         </Text>
+//       </Animatable.View>
+//     </Pressable>
+//   );
+// };
+
+// const MainApp = () => {
+//   const {theme: currentTheme, toggleTheme} = useAppTheme();
+
+//   useEffect(() => {
+//     const fetchLocation = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return;
+
+//       Geolocation.getCurrentPosition(
+//         pos => {
+//           console.log('📍 User location:', pos.coords);
+//           // Optionally: fetch weather here
+//         },
+//         err => console.warn('❌ Location error:', err),
+//         {
+//           enableHighAccuracy: true,
+//           timeout: 15000,
+//           maximumAge: 1000,
+//         },
+//       );
+//     };
+
+//     fetchLocation();
+//   }, []);
+
+//   useEffect(() => {
+//     const testFetch = async () => {
+//       console.log('🚀 Calling fetchWeather() directly...');
+//       try {
+//         const data = await fetchWeather(34.0522, -118.2437); // Los Angeles
+//         console.log('✅ Weather data returned:', data);
+//       } catch (err) {
+//         console.error('❌ Weather fetch test error:', err);
+//       }
+//     };
+
+//     testFetch();
+//   }, []);
+
+//   return (
+//     <SafeAreaView
+//       style={{
+//         flex: 1,
+//         backgroundColor: currentTheme.colors.background,
+//         justifyContent: 'center',
+//         padding: currentTheme.spacing.md,
+//       }}>
+//       <VoiceControlComponent />
+//       <View style={{height: 300}}>
+//         <ImagePickerGrid />
+//       </View>
+
+//       {/* <MessageTester />
+//       <TempPost />
+//       <TestReactQuery />
+//       <Section title="Step One">
+//         Edit{' '}
+//         <Text
+//           style={{
+//             fontWeight: currentTheme.fontWeight.bold,
+//             color: currentTheme.colors.error,
+//           }}
+//         >
+//           App.tsx
+//         </Text>{' '}
+//         to animate this screen.
+//       </Section> */}
+
+//       <Pressable
+//         onPress={toggleTheme}
+//         style={{
+//           marginTop: 32,
+//           backgroundColor: currentTheme.colors.surface,
+//           padding: 12,
+//           borderRadius: currentTheme.borderRadius.md,
+//         }}>
+//         <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+//           Toggle Theme
+//         </Text>
+//       </Pressable>
+//     </SafeAreaView>
+//   );
+// };
+
+// export default MainApp;
+
+//////////////
+
+// // src/MainApp.tsx
+// import React from 'react';
+// import {SafeAreaView, Text, Pressable, View} from 'react-native';
+// import * as Animatable from 'react-native-animatable';
+// import {useAppTheme} from './context/ThemeContext';
+// import MessageTester from './components/MessageTester';
+// import TempPost from './components/TempPost';
+// import TestReactQuery from './components/TestReactQuery';
+// import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+// import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+
+// const Section: React.FC<{title: string; children: React.ReactNode}> = ({
+//   children,
+//   title,
+// }) => {
+//   const {theme: currentTheme} = useAppTheme();
+
+//   const result = {a: {b: {c: 123}}}?.a?.b?.c;
+
+//   return (
+//     <Pressable onPress={() => console.log('Section tapped')}>
+//       <Animatable.View
+//         animation="fadeInUp"
+//         duration={1800}
+//         style={{
+//           marginTop: currentTheme.spacing.xl,
+//           paddingHorizontal: currentTheme.spacing.lg,
+//         }}>
+//         <Text
+//           style={{
+//             fontSize: currentTheme.fontSize['2xl'],
+//             fontWeight: currentTheme.fontWeight.semiBold,
+//             color: currentTheme.colors.primary,
+//           }}>
+//           {title}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.sm,
+//             fontSize: currentTheme.fontSize.lg,
+//             fontWeight: currentTheme.fontWeight.normal,
+//             color: currentTheme.colors.secondary,
+//           }}>
+//           {children}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.md,
+//             fontSize: currentTheme.fontSize.base,
+//             color: currentTheme.colors.success,
+//           }}>
+//           Optional chaining result: {result}
+//         </Text>
+//       </Animatable.View>
+//     </Pressable>
+//   );
+// };
+
+// const MainApp = () => {
+//   const {theme: currentTheme, toggleTheme} = useAppTheme();
+
+//   return (
+//     <SafeAreaView
+//       style={{
+//         flex: 1,
+//         backgroundColor: currentTheme.colors.background,
+//         justifyContent: 'center',
+//         padding: currentTheme.spacing.md,
+//       }}>
+//       <VoiceControlComponent />
+//       <View
+//         style={{
+//           height: 300,
+//         }}>
+//         <ImagePickerGrid />
+//       </View>
+//       {/* <MessageTester />
+//       <TempPost />
+//       <TestReactQuery />
+//       <Section title="Step One">
+//         Edit{' '}
+//         <Text
+//           style={{
+//             fontWeight: currentTheme.fontWeight.bold,
+//             color: currentTheme.colors.error,
+//           }}>
+//           App.tsx
+//         </Text>{' '}
+//         to animate this screen.
+//       </Section> */}
+
+//       <Pressable
+//         onPress={toggleTheme}
+//         style={{
+//           marginTop: 32,
+//           backgroundColor: currentTheme.colors.surface,
+//           padding: 12,
+//           borderRadius: currentTheme.borderRadius.md,
+//         }}>
+//         <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+//           Toggle Theme
+//         </Text>
+//       </Pressable>
+//     </SafeAreaView>
+//   );
+// };
+
+// export default MainApp;
+
+/////////////
+
+// // src/MainApp.tsx
+// import React from 'react';
+// import {SafeAreaView, Text, Pressable} from 'react-native';
+// import * as Animatable from 'react-native-animatable';
+// import {useAppTheme} from './context/ThemeContext';
+// import MessageTester from './components/MessageTester';
+// import TempPost from './components/TempPost';
+// import TestReactQuery from './components/TestReactQuery';
+// import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+// import ImagePicker from './components/ImagePicker/ImagePicker';
+
+// const Section: React.FC<{title: string; children: React.ReactNode}> = ({
+//   children,
+//   title,
+// }) => {
+//   const {theme: currentTheme} = useAppTheme();
+
+//   const result = {a: {b: {c: 123}}}?.a?.b?.c;
+
+//   return (
+//     <Pressable onPress={() => console.log('Section tapped')}>
+//       <Animatable.View
+//         animation="fadeInUp"
+//         duration={1800}
+//         style={{
+//           marginTop: currentTheme.spacing.xl,
+//           paddingHorizontal: currentTheme.spacing.lg,
+//         }}>
+//         <Text
+//           style={{
+//             fontSize: currentTheme.fontSize['2xl'],
+//             fontWeight: currentTheme.fontWeight.semiBold,
+//             color: currentTheme.colors.primary,
+//           }}>
+//           {title}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.sm,
+//             fontSize: currentTheme.fontSize.lg,
+//             fontWeight: currentTheme.fontWeight.normal,
+//             color: currentTheme.colors.secondary,
+//           }}>
+//           {children}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.md,
+//             fontSize: currentTheme.fontSize.base,
+//             color: currentTheme.colors.success,
+//           }}>
+//           Optional chaining result: {result}
+//         </Text>
+//       </Animatable.View>
+//     </Pressable>
+//   );
+// };
+
+// const MainApp = () => {
+//   const {theme: currentTheme, toggleTheme} = useAppTheme();
+
+//   return (
+//     <SafeAreaView
+//       style={{
+//         flex: 1,
+//         backgroundColor: currentTheme.colors.background,
+//         justifyContent: 'center',
+//         padding: currentTheme.spacing.md,
+//       }}>
+//       <VoiceControlComponent />
+//       <ImagePicker />
+//       {/* <MessageTester />
+//       <TempPost />
+//       <TestReactQuery />
+//       <Section title="Step One">
+//         Edit{' '}
+//         <Text
+//           style={{
+//             fontWeight: currentTheme.fontWeight.bold,
+//             color: currentTheme.colors.error,
+//           }}>
+//           App.tsx
+//         </Text>{' '}
+//         to animate this screen.
+//       </Section> */}
+
+//       <Pressable
+//         onPress={toggleTheme}
+//         style={{
+//           marginTop: 32,
+//           backgroundColor: currentTheme.colors.surface,
+//           padding: 12,
+//           borderRadius: currentTheme.borderRadius.md,
+//         }}>
+//         <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+//           Toggle Theme
+//         </Text>
+//       </Pressable>
+//     </SafeAreaView>
+//   );
+// };
+
+// export default MainApp;
 
 /////////////////
 
