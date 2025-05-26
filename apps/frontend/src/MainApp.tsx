@@ -233,7 +233,7 @@
 ///////////
 
 import React, {useEffect, useState} from 'react';
-import {SafeAreaView, Text, Pressable, View} from 'react-native';
+import {SafeAreaView, Text, Pressable, View, ScrollView} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {useAppTheme} from './context/ThemeContext';
 import Geolocation from 'react-native-geolocation-service';
@@ -298,6 +298,7 @@ const MainApp = () => {
   const [weather, setWeather] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  console.log('🧪 OPENWEATHER_API_KEY from @env:', OPENWEATHER_API_KEY);
   useEffect(() => {
     const loadWeather = async () => {
       const hasPermission = await ensureLocationPermission();
@@ -362,59 +363,54 @@ const MainApp = () => {
       style={{
         flex: 1,
         backgroundColor: currentTheme.colors.background,
-        justifyContent: 'center',
-        padding: currentTheme.spacing.md,
       }}>
-      <VoiceControlComponent />
-      <View style={{height: 300}}>
-        <ImagePickerGrid />
-      </View>
-      {weather ? (
-        <View style={{marginTop: 20}}>
-          <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
-            📍 {weather.name}
-          </Text>
-          <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
-            🌡️ {weather.main.temp}°C — {weather.weather[0].description}
-          </Text>
+      <ScrollView
+        contentContainerStyle={{
+          padding: currentTheme.spacing.md,
+          paddingBottom: 80,
+        }}
+        showsVerticalScrollIndicator={false}>
+        <VoiceControlComponent />
+
+        <View style={{height: 300}}>
+          <ImagePickerGrid />
         </View>
-      ) : error ? (
-        <Text style={{color: currentTheme.colors.error}}>{error}</Text>
-      ) : (
-        <Text style={{color: currentTheme.colors.primary}}>
-          Loading weather...
-        </Text>
-      )}
-      <MapScreen />
 
-      {/* <MessageTester />
-      <TempPost />
-      <TestReactQuery />
-      <Section title="Step One">
-        Edit{' '}
-        <Text
+        {weather ? (
+          <View style={{marginTop: 20}}>
+            <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
+              📍 {weather.name}
+            </Text>
+            <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
+              🌡️ {weather.main.temp}°C — {weather.weather[0].description}
+            </Text>
+          </View>
+        ) : error ? (
+          <Text style={{color: currentTheme.colors.error}}>{error}</Text>
+        ) : (
+          <Text style={{color: currentTheme.colors.primary}}>
+            Loading weather...
+          </Text>
+        )}
+
+        <View style={{height: 300, marginTop: 20}}>
+          <MapScreen />
+        </View>
+
+        <Pressable
+          onPress={toggleTheme}
           style={{
-            fontWeight: currentTheme.fontWeight.bold,
-            color: currentTheme.colors.error,
-          }}
-        >
-          App.tsx
-        </Text>{' '}
-        to animate this screen.
-      </Section> */}
-
-      <Pressable
-        onPress={toggleTheme}
-        style={{
-          marginTop: 32,
-          backgroundColor: currentTheme.colors.surface,
-          padding: 12,
-          borderRadius: currentTheme.borderRadius.md,
-        }}>
-        <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
-          Toggle Theme
-        </Text>
-      </Pressable>
+            marginTop: 32,
+            backgroundColor: currentTheme.colors.surface,
+            padding: 12,
+            borderRadius: currentTheme.borderRadius.md,
+          }}>
+          <Text
+            style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+            Toggle Theme
+          </Text>
+        </Pressable>
+      </ScrollView>
     </SafeAreaView>
   );
 };

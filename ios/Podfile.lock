@@ -17,6 +17,8 @@ PODS:
     - RNPermissions
   - Permission-LocationWhenInUse (3.10.1):
     - RNPermissions
+  - Permission-Microphone (3.10.1):
+    - RNPermissions
   - Permission-PhotoLibrary (3.10.1):
     - RNPermissions
   - RCT-Folly (2021.07.22.00):
@@ -339,6 +341,7 @@ DEPENDENCIES:
   - libevent (~> 2.1.12)
   - Permission-Camera (from `../node_modules/react-native-permissions/ios/Camera`)
   - Permission-LocationWhenInUse (from `../node_modules/react-native-permissions/ios/LocationWhenInUse`)
+  - Permission-Microphone (from `../node_modules/react-native-permissions/ios/Microphone`)
   - Permission-PhotoLibrary (from `../node_modules/react-native-permissions/ios/PhotoLibrary`)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTRequired (from `../node_modules/react-native/Libraries/RCTRequired`)
@@ -400,6 +403,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-permissions/ios/Camera"
   Permission-LocationWhenInUse:
     :path: "../node_modules/react-native-permissions/ios/LocationWhenInUse"
+  Permission-Microphone:
+    :path: "../node_modules/react-native-permissions/ios/Microphone"
   Permission-PhotoLibrary:
     :path: "../node_modules/react-native-permissions/ios/PhotoLibrary"
   RCT-Folly:
@@ -486,6 +491,7 @@ SPEC CHECKSUMS:
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   Permission-Camera: cf14fb2d76432ee0f36546249ee608ef6037a23e
   Permission-LocationWhenInUse: e4a1bdc6b9f4a7a598613a6a748bd186e937df34
+  Permission-Microphone: 744eafab00992871bd06b3e3f1cbc1ba5b024b58
   Permission-PhotoLibrary: 6088ef4424a006e2bbf3ef6ccbca0f88fa1a52a4
   RCT-Folly: fd2673f5bfadb2a8173799b6965b892a67ae31d9
   RCTRequired: 23f0d5d0dea22af22f30f146e090a7d16e6b8be7
@@ -524,6 +530,6 @@ SPEC CHECKSUMS:
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
-PODFILE CHECKSUM: 64f984cc7408fd530b06d17ca19d38d549e54027
+PODFILE CHECKSUM: 99e767db13d6b49216a9b1eba30c8acd4e171863
 
 COCOAPODS: 1.16.2

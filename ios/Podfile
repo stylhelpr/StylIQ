@@ -26,6 +26,7 @@ target 'StylIQ' do
   pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
   pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
   pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+  pod 'Permission-Microphone', :path => "#{permissions_path}/Microphone"
 
   # react-native-voice
   pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
