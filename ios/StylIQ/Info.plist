@@ -24,6 +24,7 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>
@@ -35,12 +36,13 @@
 			</dict>
 		</dict>
 	</dict>
+
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera so you can take photos in the app.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We use your location to show the weather near you</string>
+	<string>We use your location to show the weather near you.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>We use your location to show the weather near you.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone for voice control.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -49,6 +51,13 @@
 	<string>We need access to your photo library so you can pick existing images.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>We use speech recognition to let you control the app with your voice.</string>
+
+	<!-- ✅ New Calendar + Reminders Permissions -->
+	<key>NSCalendarsUsageDescription</key>
+	<string>We need access to your calendar to set style appointments and reminders.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>We use reminders to notify you about style suggestions and events.</string>
+
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
