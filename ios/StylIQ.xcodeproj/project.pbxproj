@@ -524,6 +524,7 @@
 				PRODUCT_NAME = StylIQ;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
@@ -550,6 +551,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.mikelgiffin.styliq;
 				PRODUCT_NAME = StylIQ;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;

@@ -52,20 +52,35 @@ export async function getRouteMidpoints(
 // Fetch weather at a location
 export async function fetchWeather(lat: number, lon: number) {
   const cleanKey = OPENWEATHER_API_KEY?.trim();
+  console.log('🌍 Fetching weather for:', {lat, lon});
 
-  const [metricRes, imperialRes] = await Promise.all([
-    axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=metric`,
-    ),
-    axios.get(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=imperial`,
-    ),
-  ]);
+  try {
+    const metricUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=metric`;
+    const imperialUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=imperial`;
 
-  return {
-    celsius: metricRes.data,
-    fahrenheit: imperialRes.data,
-  };
+    console.log('🌐 Metric URL:', metricUrl);
+    console.log('🌐 Imperial URL:', imperialUrl);
+
+    const [metricRes, imperialRes] = await Promise.all([
+      axios.get(metricUrl),
+      axios.get(imperialUrl),
+    ]);
+
+    console.log('✅ Metric weather:', metricRes.data);
+    console.log('✅ Imperial weather:', imperialRes.data);
+
+    return {
+      celsius: metricRes.data,
+      fahrenheit: imperialRes.data,
+    };
+  } catch (err: any) {
+    if (axios.isAxiosError(err)) {
+      console.error('❌ Axios error:', err?.response?.data || err.message);
+    } else {
+      console.error('❌ Unknown error:', err);
+    }
+    throw err;
+  }
 }
 
 // Master function to get full travel weather

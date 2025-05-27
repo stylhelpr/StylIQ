@@ -4,7 +4,7 @@
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTRootView.h>
 #import <React/RCTAppSetupUtils.h>
-#import <Firebase.h> // ✅ Added Firebase import
+#import <Firebase.h>
 
 #if RCT_NEW_ARCH_ENABLED
 #import <React/CoreModulesPlugins.h>
@@ -26,11 +26,36 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 @end
 #endif
 
+// ✅ Custom root view controller that supports all rotations
+@interface StylIQRootViewController : UIViewController
+@end
+
+@implementation StylIQRootViewController
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+  return UIInterfaceOrientationMaskAllButUpsideDown;
+}
+
+- (BOOL)shouldAutorotate {
+  return YES;
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+  [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+
+  [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+    [self.view setNeedsLayout];
+    [self.view layoutIfNeeded];
+  } completion:nil];
+}
+
+@end
+
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-  [FIRApp configure]; // ✅ Initialize Firebase here
+  [FIRApp configure];
 
   RCTAppSetupPrepareApp(application);
   RCTBridge *bridge = [[RCTBridge alloc] initWithDelegate:self launchOptions:launchOptions];
@@ -53,31 +78,34 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
   }
 
   self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-  UIViewController *rootViewController = [UIViewController new];
+  UIViewController *rootViewController = [StylIQRootViewController new];
   rootViewController.view = rootView;
   self.window.rootViewController = rootViewController;
   [self.window makeKeyAndVisible];
+
+  // ✅ Force layout update for full screen + rotation support
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    self.window.rootViewController.view.frame = [UIScreen mainScreen].bounds;
+    [self.window.rootViewController.view setNeedsLayout];
+    [self.window.rootViewController.view layoutIfNeeded];
+  });
+
   return YES;
 }
 
-- (BOOL)concurrentRootEnabled
-{
+- (BOOL)concurrentRootEnabled {
   return true;
 }
 
-- (NSDictionary *)prepareInitialProps
-{
+- (NSDictionary *)prepareInitialProps {
   NSMutableDictionary *initProps = [NSMutableDictionary new];
-
 #ifdef RCT_NEW_ARCH_ENABLED
   initProps[kRNConcurrentRoot] = @([self concurrentRootEnabled]);
 #endif
-
   return initProps;
 }
 
-- (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
-{
+- (NSURL *)sourceURLForBridge:(RCTBridge *)bridge {
 #if DEBUG
   return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
 #else
@@ -89,8 +117,7 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 
 #pragma mark - RCTCxxBridgeDelegate
 
-- (std::unique_ptr<facebook::react::JSExecutorFactory>)jsExecutorFactoryForBridge:(RCTBridge *)bridge
-{
+- (std::unique_ptr<facebook::react::JSExecutorFactory>)jsExecutorFactoryForBridge:(RCTBridge *)bridge {
   _turboModuleManager = [[RCTTurboModuleManager alloc] initWithBridge:bridge
                                                              delegate:self
                                                             jsInvoker:bridge.jsCallInvoker];
@@ -99,26 +126,21 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 
 #pragma mark RCTTurboModuleManagerDelegate
 
-- (Class)getModuleClassFromName:(const char *)name
-{
+- (Class)getModuleClassFromName:(const char *)name {
   return RCTCoreModulesClassProvider(name);
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const std::string &)name
-                                                      jsInvoker:(std::shared_ptr<facebook::react::CallInvoker>)jsInvoker
-{
+                                                      jsInvoker:(std::shared_ptr<facebook::react::CallInvoker>)jsInvoker {
   return nullptr;
 }
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:(const std::string &)name
-                                                     initParams:
-                                                         (const facebook::react::ObjCTurboModule::InitParams &)params
-{
+                                                     initParams:(const facebook::react::ObjCTurboModule::InitParams &)params {
   return nullptr;
 }
 
-- (id<RCTTurboModule>)getModuleInstanceFromClass:(Class)moduleClass
-{
+- (id<RCTTurboModule>)getModuleInstanceFromClass:(Class)moduleClass {
   return RCTAppSetupDefaultModuleFromClass(moduleClass);
 }
 

@@ -1,21 +1,565 @@
+import React, {useEffect, useState} from 'react';
+import {
+  SafeAreaView,
+  Text,
+  Pressable,
+  View,
+  ScrollView,
+  Alert,
+  Button,
+  Platform,
+  StyleSheet,
+} from 'react-native';
+import messaging from '@react-native-firebase/messaging';
+import * as Animatable from 'react-native-animatable';
+import Geolocation from 'react-native-geolocation-service';
+import Contacts from 'react-native-contacts';
+import PushNotification from 'react-native-push-notification';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useAppTheme} from './context/ThemeContext';
+import {ensureLocationPermission} from './utils/permissions';
+import {OPENWEATHER_API_KEY} from '@env';
+import {fetchWeather} from './utils/travelWeather';
+import MapScreen from './components/MapScreen/MapScreen';
+import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+import AddReminderButton from './components/AddReminderButon/AddReminderButton';
+import {theme} from './styles/tokens/theme';
+import ResponsiveContainer from './components/ResponsiveContainer';
+import './lib/firebaseConfig';
+
+type NotificationPayload = {
+  title?: string;
+  message?: string;
+  userInfo?: any;
+  data?: any;
+  [key: string]: any;
+};
+
+const MainApp = () => {
+  const {theme: currentTheme, toggleTheme} = useAppTheme();
+  const [weather, setWeather] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [contacts, setContacts] = useState<any[]>([]);
+
+  useEffect(() => {
+    PushNotification.configure({
+      onNotification: (notification: NotificationPayload) => {
+        console.log('🔔 Local Notification:', notification);
+      },
+      requestPermissions: Platform.OS === 'ios',
+    });
+
+    PushNotification.createChannel(
+      {
+        channelId: 'style-channel',
+        channelName: 'Style Reminders',
+      },
+      created => console.log(`🛠 Notification channel created: ${created}`),
+    );
+  }, []);
+
+  useEffect(() => {
+    const setupPush = async () => {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (enabled) {
+        const token = await messaging().getToken();
+        console.log('📱 FCM Token:', token);
+      }
+    };
+    setupPush();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      Alert.alert(
+        remoteMessage.notification?.title || 'Notification',
+        remoteMessage.notification?.body || 'You have a new message.',
+      );
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const fetchLocationAndWeather = async () => {
+      const hasPermission = await ensureLocationPermission();
+      if (!hasPermission) return setError('Location permission denied');
+
+      Geolocation.getCurrentPosition(
+        async pos => {
+          try {
+            const data = await fetchWeather(
+              pos.coords.latitude,
+              pos.coords.longitude,
+            );
+            setWeather(data);
+          } catch {
+            setError('Failed to fetch weather');
+          }
+        },
+        err => setError('Failed to get location'),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 1000,
+        },
+      );
+    };
+    fetchLocationAndWeather();
+  }, []);
+
+  const loadContacts = async () => {
+    try {
+      const permission = await Contacts.requestPermission();
+      if (permission === 'authorized') {
+        const allContacts = await Contacts.getAll();
+        setContacts(allContacts);
+      } else {
+        console.warn('❌ Contacts permission denied');
+      }
+    } catch (err) {
+      console.warn('❌ Failed to load contacts:', err);
+    }
+  };
+
+  const saveReminder = async () => {
+    try {
+      await AsyncStorage.setItem('lastReminder', 'brown-suede-loafers');
+      console.log('✅ Saved reminder');
+    } catch (err) {
+      console.warn('❌ Save error', err);
+    }
+  };
+
+  const loadReminder = async () => {
+    try {
+      const reminder = await AsyncStorage.getItem('lastReminder');
+      console.log('📦 Loaded reminder:', reminder);
+    } catch (err) {
+      console.warn('❌ Load error', err);
+    }
+  };
+
+  return (
+    <SafeAreaView
+      style={{flex: 1, backgroundColor: currentTheme.colors.background}}>
+      <ScrollView
+        style={{flex: 1}}
+        contentContainerStyle={{flexGrow: 1}}
+        showsVerticalScrollIndicator={false}>
+        <ResponsiveContainer>
+          <VoiceControlComponent />
+
+          <View style={styles.imagePickerContainer}>
+            <ImagePickerGrid />
+          </View>
+
+          {weather ? (
+            <View style={styles.weatherBlock}>
+              <Text
+                style={[
+                  styles.weatherLocation,
+                  {color: currentTheme.colors.primary},
+                ]}>
+                📍 {weather.celsius.name}
+              </Text>
+              <Text
+                style={[
+                  styles.weatherDescription,
+                  {color: currentTheme.colors.secondary},
+                ]}>
+                🌡️ {weather.fahrenheit.main.temp}°F —{' '}
+                {weather.celsius.weather[0].description}
+              </Text>
+            </View>
+          ) : error ? (
+            <Text style={{color: currentTheme.colors.error}}>{error}</Text>
+          ) : (
+            <Text style={{color: currentTheme.colors.primary}}>
+              Loading weather...
+            </Text>
+          )}
+
+          <View style={styles.mapContainer}>
+            <MapScreen />
+          </View>
+
+          <Pressable onPress={toggleTheme} style={styles.toggleButton}>
+            <Text style={styles.toggleButtonText}>Toggle Theme</Text>
+          </Pressable>
+
+          <View style={styles.reminderButtonWrapper}>
+            <AddReminderButton />
+          </View>
+        </ResponsiveContainer>
+      </ScrollView>
+
+      <Button title="Save Reminder" onPress={saveReminder} />
+      <Button title="Load Reminder" onPress={loadReminder} />
+      <Button title="Load Contacts" onPress={loadContacts} />
+
+      {contacts.length > 0 && (
+        <View style={styles.contactList}>
+          <Text
+            style={[styles.contactTitle, {color: currentTheme.colors.primary}]}>
+            Sample Contacts:
+          </Text>
+          {contacts.slice(0, 5).map(contact => (
+            <Text
+              key={contact.recordID}
+              style={[
+                styles.contactItem,
+                {color: currentTheme.colors.secondary},
+              ]}>
+              • {contact.givenName} {contact.familyName}
+            </Text>
+          ))}
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  imagePickerContainer: {
+    height: 300,
+  },
+  weatherBlock: {
+    marginTop: theme.light.spacing.lg,
+  },
+  weatherLocation: {
+    fontSize: theme.light.fontSize.lg,
+  },
+  weatherDescription: {
+    fontSize: theme.light.fontSize.md,
+  },
+  mapContainer: {
+    height: 300,
+    marginTop: theme.light.spacing.lg,
+  },
+  toggleButton: {
+    marginTop: theme.light.spacing.xl,
+    backgroundColor: theme.light.colors.surface,
+    padding: theme.light.spacing.md,
+    borderRadius: theme.light.borderRadius.md,
+  },
+  toggleButtonText: {
+    color: theme.light.colors.primary,
+    textAlign: 'center',
+  },
+  reminderButtonWrapper: {
+    marginTop: theme.light.spacing.xxl,
+    backgroundColor: theme.light.colors.primary,
+    padding: theme.light.spacing.md,
+    borderRadius: theme.light.borderRadius.md,
+  },
+  contactList: {
+    marginTop: theme.light.spacing.xl,
+  },
+  contactTitle: {
+    fontSize: theme.light.fontSize.md,
+  },
+  contactItem: {
+    fontSize: theme.light.fontSize.sm,
+  },
+});
+
+export default MainApp;
+
+///////////
+
 // import React, {useEffect, useState} from 'react';
-// import {SafeAreaView, Text, Pressable, View} from 'react-native';
+// import {
+//   SafeAreaView,
+//   Text,
+//   Pressable,
+//   View,
+//   ScrollView,
+//   Alert,
+//   Button,
+//   Platform,
+// } from 'react-native';
+// import messaging from '@react-native-firebase/messaging';
+// import * as Animatable from 'react-native-animatable';
+// import Geolocation from 'react-native-geolocation-service';
+// import Contacts from 'react-native-contacts';
+// import PushNotification from 'react-native-push-notification';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useAppTheme} from './context/ThemeContext';
+// import {ensureLocationPermission} from './utils/permissions';
+// import {OPENWEATHER_API_KEY} from '@env';
+// import {fetchWeather} from './utils/travelWeather';
+// import MapScreen from './components/MapScreen/MapScreen';
+// import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
+// import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+// import AddReminderButton from './components/AddReminderButon/AddReminderButton';
+// import './lib/firebaseConfig';
+
+// type NotificationPayload = {
+//   title?: string;
+//   message?: string;
+//   userInfo?: any;
+//   data?: any;
+//   [key: string]: any;
+// };
+
+// const Section: React.FC<{title: string; children: React.ReactNode}> = ({
+//   title,
+//   children,
+// }) => {
+//   const {theme: currentTheme} = useAppTheme();
+//   return (
+//     <Pressable onPress={() => console.log('Section tapped')}>
+//       <Animatable.View
+//         animation="fadeInUp"
+//         duration={1800}
+//         style={{
+//           marginTop: currentTheme.spacing.xl,
+//           paddingHorizontal: currentTheme.spacing.lg,
+//         }}>
+//         <Text
+//           style={{
+//             fontSize: currentTheme.fontSize['2xl'],
+//             fontWeight: currentTheme.fontWeight.semiBold,
+//             color: currentTheme.colors.primary,
+//           }}>
+//           {title}
+//         </Text>
+//         <Text
+//           style={{
+//             marginTop: currentTheme.spacing.sm,
+//             fontSize: currentTheme.fontSize.lg,
+//             fontWeight: currentTheme.fontWeight.normal,
+//             color: currentTheme.colors.secondary,
+//           }}>
+//           {children}
+//         </Text>
+//       </Animatable.View>
+//     </Pressable>
+//   );
+// };
+
+// const MainApp = () => {
+//   const {theme: currentTheme, toggleTheme} = useAppTheme();
+//   const [weather, setWeather] = useState<any>(null);
+//   const [error, setError] = useState<string | null>(null);
+//   const [contacts, setContacts] = useState<any[]>([]);
+
+//   useEffect(() => {
+//     PushNotification.configure({
+//       onNotification: (notification: NotificationPayload) => {
+//         console.log('🔔 Local Notification:', notification);
+//       },
+//       requestPermissions: Platform.OS === 'ios',
+//     });
+
+//     PushNotification.createChannel(
+//       {
+//         channelId: 'style-channel',
+//         channelName: 'Style Reminders',
+//       },
+//       created => console.log(`🛠 Notification channel created: ${created}`),
+//     );
+//   }, []);
+
+//   useEffect(() => {
+//     const setupPush = async () => {
+//       const authStatus = await messaging().requestPermission();
+//       const enabled =
+//         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+//         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+//       if (enabled) {
+//         const token = await messaging().getToken();
+//         console.log('📱 FCM Token:', token);
+//       }
+//     };
+//     setupPush();
+//   }, []);
+
+//   useEffect(() => {
+//     const unsubscribe = messaging().onMessage(async remoteMessage => {
+//       Alert.alert(
+//         remoteMessage.notification?.title || 'Notification',
+//         remoteMessage.notification?.body || 'You have a new message.',
+//       );
+//     });
+//     return unsubscribe;
+//   }, []);
+
+//   useEffect(() => {
+//     const fetchLocationAndWeather = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return setError('Location permission denied');
+
+//       Geolocation.getCurrentPosition(
+//         async pos => {
+//           try {
+//             const data = await fetchWeather(
+//               pos.coords.latitude,
+//               pos.coords.longitude,
+//             );
+//             setWeather(data);
+//           } catch {
+//             setError('Failed to fetch weather');
+//           }
+//         },
+//         err => setError('Failed to get location'),
+//         {
+//           enableHighAccuracy: true,
+//           timeout: 15000,
+//           maximumAge: 1000,
+//         },
+//       );
+//     };
+//     fetchLocationAndWeather();
+//   }, []);
+
+//   const loadContacts = async () => {
+//     try {
+//       const permission = await Contacts.requestPermission();
+//       if (permission === 'authorized') {
+//         const allContacts = await Contacts.getAll();
+//         setContacts(allContacts);
+//       } else {
+//         console.warn('❌ Contacts permission denied');
+//       }
+//     } catch (err) {
+//       console.warn('❌ Failed to load contacts:', err);
+//     }
+//   };
+
+//   const saveReminder = async () => {
+//     try {
+//       await AsyncStorage.setItem('lastReminder', 'brown-suede-loafers');
+//       console.log('✅ Saved reminder');
+//     } catch (err) {
+//       console.warn('❌ Save error', err);
+//     }
+//   };
+
+//   const loadReminder = async () => {
+//     try {
+//       const reminder = await AsyncStorage.getItem('lastReminder');
+//       console.log('📦 Loaded reminder:', reminder);
+//     } catch (err) {
+//       console.warn('❌ Load error', err);
+//     }
+//   };
+
+//   return (
+//     <SafeAreaView
+//       style={{flex: 1, backgroundColor: currentTheme.colors.background}}>
+//       <ScrollView
+//         contentContainerStyle={{
+//           padding: currentTheme.spacing.md,
+//           paddingBottom: 80,
+//         }}
+//         showsVerticalScrollIndicator={false}>
+//         <VoiceControlComponent />
+
+//         <View style={{height: 300}}>
+//           <ImagePickerGrid />
+//         </View>
+
+//         {weather ? (
+//           <View style={{marginTop: 20}}>
+//             <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
+//               📍 {weather.celsius.name}
+//             </Text>
+//             <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
+//               🌡️ {weather.fahrenheit.main.temp}°F —{' '}
+//               {weather.celsius.weather[0].description}
+//             </Text>
+//           </View>
+//         ) : error ? (
+//           <Text style={{color: currentTheme.colors.error}}>{error}</Text>
+//         ) : (
+//           <Text style={{color: currentTheme.colors.primary}}>
+//             Loading weather...
+//           </Text>
+//         )}
+
+//         <View style={{height: 300, marginTop: 20}}>
+//           <MapScreen />
+//         </View>
+
+//         <Pressable
+//           onPress={toggleTheme}
+//           style={{
+//             marginTop: 32,
+//             backgroundColor: currentTheme.colors.surface,
+//             padding: 12,
+//             borderRadius: currentTheme.borderRadius.md,
+//           }}>
+//           <Text
+//             style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+//             Toggle Theme
+//           </Text>
+//         </Pressable>
+
+//         <View
+//           style={{
+//             marginTop: 40,
+//             backgroundColor: 'black',
+//             padding: 12,
+//             borderRadius: currentTheme.borderRadius.md,
+//           }}>
+//           <AddReminderButton />
+//         </View>
+//       </ScrollView>
+
+//       <Button title="Save Reminder" onPress={saveReminder} />
+//       <Button title="Load Reminder" onPress={loadReminder} />
+//       <Button title="Load Contacts" onPress={loadContacts} />
+
+//       {contacts.length > 0 && (
+//         <View style={{marginTop: 20}}>
+//           <Text style={{color: currentTheme.colors.primary, fontSize: 16}}>
+//             Sample Contacts:
+//           </Text>
+//           {contacts.slice(0, 5).map(contact => (
+//             <Text
+//               key={contact.recordID}
+//               style={{color: currentTheme.colors.secondary}}>
+//               • {contact.givenName} {contact.familyName}
+//             </Text>
+//           ))}
+//         </View>
+//       )}
+//     </SafeAreaView>
+//   );
+// };
+
+// export default MainApp;
+
+/////////////
+
+// import React, {useEffect, useState} from 'react';
+// import messaging from '@react-native-firebase/messaging';
+// import {Alert} from 'react-native';
+// import {SafeAreaView, Text, Pressable, View, ScrollView} from 'react-native';
 // import * as Animatable from 'react-native-animatable';
 // import {useAppTheme} from './context/ThemeContext';
 // import Geolocation from 'react-native-geolocation-service';
 // import {ensureLocationPermission} from './utils/permissions';
 // import {OPENWEATHER_API_KEY} from '@env';
-// import {
-//   fetchTomorrowWeather,
-//   reverseGeocode,
-// } from './utils/fetchTomorrowWeather';
 // import {fetchWeather} from './utils/travelWeather';
-
+// import MapScreen from './components/MapScreen/MapScreen';
 // import MessageTester from './components/MessageTester';
 // import TempPost from './components/TempPost';
 // import TestReactQuery from './components/TestReactQuery';
 // import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
 // import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
+// import AddReminderButton from './components/AddReminderButon/AddReminderButton';
+// import Contacts from 'react-native-contacts';
+// import {Button} from 'react-native';
+// import './lib/firebaseConfig';
 
 // const Section: React.FC<{title: string; children: React.ReactNode}> = ({
 //   children,
@@ -66,9 +610,94 @@
 // const MainApp = () => {
 //   const {theme: currentTheme, toggleTheme} = useAppTheme();
 //   const [weather, setWeather] = useState<any>(null);
-//   const [city, setCity] = useState<string>('...');
-
 //   const [error, setError] = useState<string | null>(null);
+//   const [contacts, setContacts] = useState<any[]>([]);
+
+//   // console.log('🧪 OPENWEATHER_API_KEY from @env:', OPENWEATHER_API_KEY);
+
+//   const loadContacts = async () => {
+//     try {
+//       const permission = await Contacts.requestPermission();
+
+//       if (permission === 'authorized') {
+//         const allContacts = await Contacts.getAll();
+//         setContacts(allContacts);
+//         console.log('📇 Contacts:', allContacts.slice(0, 5)); // Show first 5
+//       } else {
+//         console.warn('❌ Contacts permission denied');
+//       }
+//     } catch (err) {
+//       console.warn('❌ Failed to load contacts:', err);
+//     }
+//   };
+
+//   useEffect(() => {
+//     const setupPush = async () => {
+//       const authStatus = await messaging().requestPermission();
+//       const enabled =
+//         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+//         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+//       if (enabled) {
+//         console.log('✅ Push permission granted:', authStatus);
+//         const token = await messaging().getToken();
+//         console.log('📱 FCM Token:', token);
+//       } else {
+//         console.warn('❌ Push permission denied');
+//       }
+//     };
+
+//     setupPush();
+//   }, []);
+
+//   useEffect(() => {
+//     const unsubscribe = messaging().onMessage(async remoteMessage => {
+//       console.log('📨 Foreground push:', remoteMessage);
+//       Alert.alert(
+//         remoteMessage.notification?.title || 'Notification',
+//         remoteMessage.notification?.body || 'You have a new message.',
+//       );
+//     });
+
+//     return unsubscribe;
+//   }, []);
+
+//   useEffect(() => {
+//     const loadWeather = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) {
+//         setError('Location permission denied');
+//         return;
+//       }
+
+//       Geolocation.getCurrentPosition(
+//         async pos => {
+//           const {latitude, longitude} = pos.coords;
+//           // console.log('📍 User location:', pos.coords);
+
+//           try {
+//             const data = await fetchWeather(latitude, longitude);
+//             // console.log('✅ Weather data returned:', data);
+//             setWeather(data);
+//           } catch (err) {
+//             // console.error('❌ Weather fetch error:', err);
+//             setError('Failed to fetch weather');
+//           }
+//         },
+//         err => {
+//           // console.warn('❌ Location error:', err);
+//           setError('Failed to get location');
+//         },
+//         {
+//           enableHighAccuracy: true,
+//           timeout: 15000,
+//           maximumAge: 1000,
+//         },
+//       );
+//     };
+
+//     loadWeather();
+//   }, []);
 
 //   useEffect(() => {
 //     const fetchLocation = async () => {
@@ -77,7 +706,7 @@
 
 //       Geolocation.getCurrentPosition(
 //         pos => {
-//           console.log('📍 User location:', pos.coords);
+//           // console.log('📍 User location:', pos.coords);
 //           // Optionally: fetch weather here
 //         },
 //         err => console.warn('❌ Location error:', err),
@@ -92,460 +721,90 @@
 //     fetchLocation();
 //   }, []);
 
-//   useEffect(() => {
-//     const fetchWeather = async () => {
-//       const hasPermission = await ensureLocationPermission();
-//       if (!hasPermission) return;
-
-//       Geolocation.getCurrentPosition(
-//         async pos => {
-//           const {latitude, longitude} = pos.coords;
-
-//           try {
-//             // Run both API requests in parallel
-//             const [weatherData, cityName] = await Promise.all([
-//               fetchTomorrowWeather(latitude, longitude),
-//               reverseGeocode(latitude, longitude),
-//             ]);
-
-//             console.log('🧠 Weather Insights:', weatherData);
-//             console.log('🏙️ Reverse geocoded city:', cityName);
-
-//             setWeather(weatherData);
-//             setCity(cityName);
-//           } catch (err) {
-//             console.error('❌ Failed to fetch weather or city info', err);
-//             setError('Failed to load weather data.');
-//           }
-//         },
-//         err => {
-//           console.warn('❌ Location error:', err);
-//           setError('Location permission error');
-//         },
-//         {
-//           enableHighAccuracy: true,
-//           timeout: 15000,
-//           maximumAge: 1000,
-//         },
-//       );
-//     };
-
-//     fetchWeather();
-//   }, []);
-
 //   return (
 //     <SafeAreaView
 //       style={{
 //         flex: 1,
 //         backgroundColor: currentTheme.colors.background,
-//         justifyContent: 'center',
-//         padding: currentTheme.spacing.md,
 //       }}>
-//       <VoiceControlComponent />
-//       <View style={{height: 300}}>
-//         <ImagePickerGrid />
-//       </View>
-//       {weather?.data?.values?.temperatureApparent ? (
-//         <View style={{marginTop: 20}}>
-//           <Text style={{fontSize: 18, color: currentTheme.colors.primary}}>
-//             📍 Location: {weather.location.lat}, {weather.location.lon}
-//           </Text>
-//           <Text style={{fontSize: 16, color: currentTheme.colors.secondary}}>
-//             🌡️ {weather.data.values.temperatureApparent}°C
-//           </Text>
-//           <Text
-//             style={{
-//               marginTop: 4,
-//               fontStyle: 'italic',
-//               color: currentTheme.colors.secondary,
-//             }}>
-//             👕 Recommended: {getStyleAdvice(weather.data.values.weatherCode)}
-//           </Text>
+//       <ScrollView
+//         contentContainerStyle={{
+//           padding: currentTheme.spacing.md,
+//           paddingBottom: 80,
+//         }}
+//         showsVerticalScrollIndicator={false}>
+//         <VoiceControlComponent />
+
+//         <View style={{height: 300}}>
+//           <ImagePickerGrid />
 //         </View>
-//       ) : (
-//         <Text style={{color: currentTheme.colors.primary}}>
-//           Loading weather...
-//         </Text>
-//       )}
 
-//       {/* <MessageTester />
-//       <TempPost />
-//       <TestReactQuery />
-//       <Section title="Step One">
-//         Edit{' '}
-//         <Text
+//         {weather ? (
+//           <View style={{marginTop: 20}}>
+//             <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
+//               📍 {weather.celsius.name}
+//             </Text>
+//             <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
+//               {/* 🌡️ {weather.celsius.main.temp}°C / {weather.fahrenheit.main.temp} */}
+//               🌡️ {weather.fahrenheit.main.temp}
+//               °F — {weather.celsius.weather[0].description}
+//             </Text>
+//           </View>
+//         ) : error ? (
+//           <Text style={{color: currentTheme.colors.error}}>{error}</Text>
+//         ) : (
+//           <Text style={{color: currentTheme.colors.primary}}>
+//             Loading weather...
+//           </Text>
+//         )}
+
+//         <View style={{height: 300, marginTop: 20}}>
+//           <MapScreen />
+//         </View>
+
+//         <Pressable
+//           onPress={toggleTheme}
 //           style={{
-//             fontWeight: currentTheme.fontWeight.bold,
-//             color: currentTheme.colors.error,
-//           }}
-//         >
-//           App.tsx
-//         </Text>{' '}
-//         to animate this screen.
-//       </Section> */}
-
-//       <Pressable
-//         onPress={toggleTheme}
-//         style={{
-//           marginTop: 32,
-//           backgroundColor: currentTheme.colors.surface,
-//           padding: 12,
-//           borderRadius: currentTheme.borderRadius.md,
-//         }}>
-//         <Text style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
-//           Toggle Theme
-//         </Text>
-//       </Pressable>
+//             marginTop: 32,
+//             backgroundColor: currentTheme.colors.surface,
+//             padding: 12,
+//             borderRadius: currentTheme.borderRadius.md,
+//           }}>
+//           <Text
+//             style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
+//             Toggle Theme
+//           </Text>
+//         </Pressable>
+//         <View
+//           style={{
+//             marginTop: 40,
+//             backgroundColor: 'black',
+//             padding: 12,
+//             borderRadius: currentTheme.borderRadius.md,
+//           }}>
+//           <AddReminderButton />
+//         </View>
+//       </ScrollView>
+//       <Button title="Load Contacts" onPress={loadContacts} />
+//       {contacts.length > 0 && (
+//         <View style={{marginTop: 20}}>
+//           <Text style={{color: currentTheme.colors.primary, fontSize: 16}}>
+//             Sample Contacts:
+//           </Text>
+//           {contacts.slice(0, 5).map(contact => (
+//             <Text
+//               key={contact.recordID}
+//               style={{color: currentTheme.colors.secondary}}>
+//               • {contact.givenName} {contact.familyName}
+//             </Text>
+//           ))}
+//         </View>
+//       )}
 //     </SafeAreaView>
 //   );
 // };
 
 // export default MainApp;
-
-// const getWeatherLabel = (code: string) => {
-//   const map: Record<string, string> = {
-//     clear: 'Clear skies',
-//     rain_light: 'Light rain',
-//     rain_heavy: 'Heavy rain',
-//     snow_light: 'Light snow',
-//     snow_heavy: 'Heavy snow',
-//     cloudy: 'Cloudy',
-//     partly_cloudy: 'Partly cloudy',
-//     fog: 'Foggy',
-//     thunderstorm: 'Storm',
-//     drizzle: 'Drizzle',
-//   };
-//   return map[code] || code;
-// };
-
-// const getStyleAdvice = (code: number) => {
-//   const map: Record<number, string> = {
-//     1000: 'T-shirt and shades',
-//     1100: 'Light jacket or sweater',
-//     1101: 'Jacket and layers',
-//     4000: 'Raincoat and waterproof shoes',
-//     5001: 'Winter coat and boots',
-//     4200: 'Umbrella and rain boots',
-//   };
-//   return map[code] || 'Check conditions and dress accordingly';
-// };
-
-///////////
-
-import React, {useEffect, useState} from 'react';
-import messaging from '@react-native-firebase/messaging';
-import {Alert} from 'react-native';
-import {SafeAreaView, Text, Pressable, View, ScrollView} from 'react-native';
-import * as Animatable from 'react-native-animatable';
-import {useAppTheme} from './context/ThemeContext';
-import Geolocation from 'react-native-geolocation-service';
-import {ensureLocationPermission} from './utils/permissions';
-import {OPENWEATHER_API_KEY} from '@env';
-import {fetchWeather} from './utils/travelWeather';
-import MapScreen from './components/MapScreen/MapScreen';
-import MessageTester from './components/MessageTester';
-import TempPost from './components/TempPost';
-import TestReactQuery from './components/TestReactQuery';
-import VoiceControlComponent from './components/VoiceControlComponent/VoiceControlComponent';
-import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
-import * as AddCalendarEvent from 'react-native-add-calendar-event';
-import RNCalendarEvents from 'react-native-calendar-events';
-import AddReminderButton from 'components/AddReminderButon/AddReminderButton';
-import './lib/firebaseConfig';
-
-const Section: React.FC<{title: string; children: React.ReactNode}> = ({
-  children,
-  title,
-}) => {
-  const {theme: currentTheme} = useAppTheme();
-  const result = {a: {b: {c: 123}}}?.a?.b?.c;
-
-  return (
-    <Pressable onPress={() => console.log('Section tapped')}>
-      <Animatable.View
-        animation="fadeInUp"
-        duration={1800}
-        style={{
-          marginTop: currentTheme.spacing.xl,
-          paddingHorizontal: currentTheme.spacing.lg,
-        }}>
-        <Text
-          style={{
-            fontSize: currentTheme.fontSize['2xl'],
-            fontWeight: currentTheme.fontWeight.semiBold,
-            color: currentTheme.colors.primary,
-          }}>
-          {title}
-        </Text>
-        <Text
-          style={{
-            marginTop: currentTheme.spacing.sm,
-            fontSize: currentTheme.fontSize.lg,
-            fontWeight: currentTheme.fontWeight.normal,
-            color: currentTheme.colors.secondary,
-          }}>
-          {children}
-        </Text>
-        <Text
-          style={{
-            marginTop: currentTheme.spacing.md,
-            fontSize: currentTheme.fontSize.base,
-            color: currentTheme.colors.success,
-          }}>
-          Optional chaining result: {result}
-        </Text>
-      </Animatable.View>
-      <View style={{marginTop: 40}}>
-        <AddReminderButton />
-      </View>
-    </Pressable>
-  );
-};
-
-const MainApp = () => {
-  const {theme: currentTheme, toggleTheme} = useAppTheme();
-  const [weather, setWeather] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // console.log('🧪 OPENWEATHER_API_KEY from @env:', OPENWEATHER_API_KEY);
-
-  useEffect(() => {
-    const setupPush = async () => {
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-      if (enabled) {
-        console.log('✅ Push permission granted:', authStatus);
-        const token = await messaging().getToken();
-        console.log('📱 FCM Token:', token);
-      } else {
-        console.warn('❌ Push permission denied');
-      }
-    };
-
-    setupPush();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
-      console.log('📨 Foreground push:', remoteMessage);
-      Alert.alert(
-        remoteMessage.notification?.title || 'Notification',
-        remoteMessage.notification?.body || 'You have a new message.',
-      );
-    });
-
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const loadWeather = async () => {
-      const hasPermission = await ensureLocationPermission();
-      if (!hasPermission) {
-        setError('Location permission denied');
-        return;
-      }
-
-      Geolocation.getCurrentPosition(
-        async pos => {
-          const {latitude, longitude} = pos.coords;
-          // console.log('📍 User location:', pos.coords);
-
-          try {
-            const data = await fetchWeather(latitude, longitude);
-            // console.log('✅ Weather data returned:', data);
-            setWeather(data);
-          } catch (err) {
-            // console.error('❌ Weather fetch error:', err);
-            setError('Failed to fetch weather');
-          }
-        },
-        err => {
-          // console.warn('❌ Location error:', err);
-          setError('Failed to get location');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 1000,
-        },
-      );
-    };
-
-    loadWeather();
-  }, []);
-
-  useEffect(() => {
-    const fetchLocation = async () => {
-      const hasPermission = await ensureLocationPermission();
-      if (!hasPermission) return;
-
-      Geolocation.getCurrentPosition(
-        pos => {
-          // console.log('📍 User location:', pos.coords);
-          // Optionally: fetch weather here
-        },
-        err => console.warn('❌ Location error:', err),
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 1000,
-        },
-      );
-    };
-
-    fetchLocation();
-  }, []);
-
-  const addTestCalendarEvent = () => {
-    const now = new Date();
-    const in30Min = new Date(now.getTime() + 30 * 60 * 1000);
-
-    const eventConfig = {
-      title: 'Style Reminder: Try new look',
-      startDate: now.toISOString(),
-      endDate: in30Min.toISOString(),
-      notes: 'Pair outfit with brown Ferragamo loafers.',
-      alarms: [{relativeOffset: 0, method: 'alert'}],
-    };
-
-    if (!eventConfig.title || !eventConfig.startDate || !eventConfig.endDate) {
-      console.warn('❌ Missing required calendar event fields');
-      return;
-    }
-
-    AddCalendarEvent.presentEventCreatingDialog(eventConfig)
-      .then(eventInfo => {
-        console.log('📅 Event created:', eventInfo);
-      })
-      .catch(err => {
-        console.warn('❌ Calendar error:', err);
-      });
-  };
-
-  // Add this function inside MainApp component
-  const addCalendarReminder = async () => {
-    const start = new Date(Date.now() + 2 * 60 * 1000); // Start 2 min from now
-    const end = new Date(start.getTime() + 30 * 60 * 1000); // End 30 min later
-
-    try {
-      const permission = await RNCalendarEvents.checkPermissions();
-      if (permission !== 'authorized') {
-        const request = await RNCalendarEvents.requestPermissions();
-        if (request !== 'authorized')
-          throw new Error('Calendar permission denied');
-      }
-
-      const eventId = await RNCalendarEvents.saveEvent(
-        '🧥 Style Reminder: Try New Look',
-        {
-          startDate: start.toISOString(),
-          endDate: end.toISOString(),
-          alarms: [{date: 0}], // Alert exactly at start
-          notes: 'Pair outfit with brown Ferragamo loafers.',
-          description: 'Your outfit reminder from StylIQ.',
-        },
-      );
-
-      console.log('📅 Calendar event added with ID:', eventId);
-      Alert.alert(
-        'Event Added',
-        'Style reminder has been added to your calendar.',
-      );
-    } catch (err) {
-      console.warn('❌ Failed to add calendar event:', err);
-      Alert.alert('Error', 'Could not add calendar event.');
-    }
-  };
-
-  return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: currentTheme.colors.background,
-      }}>
-      <ScrollView
-        contentContainerStyle={{
-          padding: currentTheme.spacing.md,
-          paddingBottom: 80,
-        }}
-        showsVerticalScrollIndicator={false}>
-        <VoiceControlComponent />
-
-        <View style={{height: 300}}>
-          <ImagePickerGrid />
-        </View>
-
-        {weather ? (
-          <View style={{marginTop: 20}}>
-            <Text style={{color: currentTheme.colors.primary, fontSize: 18}}>
-              📍 {weather.celsius.name}
-            </Text>
-            <Text style={{color: currentTheme.colors.secondary, fontSize: 16}}>
-              {/* 🌡️ {weather.celsius.main.temp}°C / {weather.fahrenheit.main.temp} */}
-              🌡️ {weather.fahrenheit.main.temp}
-              °F — {weather.celsius.weather[0].description}
-            </Text>
-          </View>
-        ) : error ? (
-          <Text style={{color: currentTheme.colors.error}}>{error}</Text>
-        ) : (
-          <Text style={{color: currentTheme.colors.primary}}>
-            Loading weather...
-          </Text>
-        )}
-
-        <View style={{height: 300, marginTop: 20}}>
-          <MapScreen />
-        </View>
-
-        <Pressable
-          onPress={toggleTheme}
-          style={{
-            marginTop: 32,
-            backgroundColor: currentTheme.colors.surface,
-            padding: 12,
-            borderRadius: currentTheme.borderRadius.md,
-          }}>
-          <Text
-            style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
-            Toggle Theme
-          </Text>
-        </Pressable>
-        {/* <Pressable
-          onPress={addTestCalendarEvent}
-          style={{
-            marginTop: 32,
-            backgroundColor: currentTheme.colors.surface,
-            padding: 12,
-            borderRadius: currentTheme.borderRadius.md,
-          }}>
-          <Text
-            style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
-            Add Calendar Reminder
-          </Text>
-        </Pressable> */}
-        <Pressable
-          onPress={addCalendarReminder}
-          style={{
-            marginTop: 24,
-            backgroundColor: currentTheme.colors.surface,
-            padding: 12,
-            borderRadius: currentTheme.borderRadius.md,
-          }}>
-          <Text
-            style={{color: currentTheme.colors.primary, textAlign: 'center'}}>
-            Add Style Reminder (Calendar)
-          </Text>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-export default MainApp;
 
 //////////////
 

@@ -24,15 +24,6 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-
-	<key>UIBackgroundModes</key>
-<array>
-  <string>fetch</string>
-  <string>remote-notification</string>
-</array>
-<key>NSUserNotificationUsageDescription</key>
-<string>This app uses local notifications to remind you about your styles.</string>
-
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>
@@ -44,12 +35,12 @@
 			</dict>
 		</dict>
 	</dict>
-
-	<!-- ✅ Permissions -->
-	<key>NSContactsUsageDescription</key>
-	<string>We need access to your contacts to suggest friends and share style recommendations.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>We need access to your calendar to set style appointments and reminders.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera so you can take photos in the app.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to suggest friends and share style recommendations.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We use your location to show the weather near you</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -60,16 +51,21 @@
 	<string>We need to save photos you take back to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library so you can pick existing images.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>We use speech recognition to let you control the app with your voice.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>We need access to your calendar to set style appointments and reminders.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>We use reminders to notify you about style suggestions and events.</string>
-
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>We use speech recognition to let you control the app with your voice.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app uses local notifications to remind you about your styles.</string>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>fetch</string>
 		<string>remote-notification</string>
+	</array>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -77,11 +73,13 @@
 	<array>
 		<string>armv7</string>
 	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
-		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>

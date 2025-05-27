@@ -321,6 +321,8 @@ PODS:
     - React-Core
   - react-native-maps (0.30.2):
     - React-Core
+  - react-native-orientation-locker (1.7.0):
+    - React-Core
   - react-native-voice (3.2.4):
     - React-Core
   - React-perflogger (0.70.10)
@@ -448,6 +450,7 @@ DEPENDENCIES:
   - react-native-geolocation-service (from `../node_modules/react-native-geolocation-service`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-maps (from `../node_modules/react-native-maps`)
+  - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
@@ -552,6 +555,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-image-picker"
   react-native-maps:
     :path: "../node_modules/react-native-maps"
+  react-native-orientation-locker:
+    :path: "../node_modules/react-native-orientation-locker"
   react-native-voice:
     :path: "../node_modules/@react-native-voice/voice"
   React-perflogger:
@@ -644,6 +649,7 @@ SPEC CHECKSUMS:
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b
   react-native-maps: 9ae269783ee6ebd87c7598873674c83c244adde9
+  react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc
   React-RCTActionSheet: cd3d76501a6069e164986b93f144be34b593955c
