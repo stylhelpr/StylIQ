@@ -323,6 +323,8 @@ PODS:
     - React-Core
   - react-native-orientation-locker (1.7.0):
     - React-Core
+  - react-native-safe-area-context (5.4.1):
+    - React-Core
   - react-native-voice (3.2.4):
     - React-Core
   - React-perflogger (0.70.10)
@@ -411,6 +413,9 @@ PODS:
     - RNFBApp
   - RNPermissions (3.10.1):
     - React-Core
+  - RNScreens (3.18.2):
+    - React-Core
+    - React-RCTImage
   - TextToSpeech (4.1.1):
     - React-Core
   - Yoga (1.14.0)
@@ -451,6 +456,7 @@ DEPENDENCIES:
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
+  - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
@@ -472,6 +478,7 @@ DEPENDENCIES:
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
   - RNPermissions (from `../node_modules/react-native-permissions`)
+  - RNScreens (from `../node_modules/react-native-screens`)
   - TextToSpeech (from `../node_modules/react-native-tts`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -557,6 +564,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-maps"
   react-native-orientation-locker:
     :path: "../node_modules/react-native-orientation-locker"
+  react-native-safe-area-context:
+    :path: "../node_modules/react-native-safe-area-context"
   react-native-voice:
     :path: "../node_modules/@react-native-voice/voice"
   React-perflogger:
@@ -599,6 +608,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-firebase/messaging"
   RNPermissions:
     :path: "../node_modules/react-native-permissions"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   TextToSpeech:
     :path: "../node_modules/react-native-tts"
   Yoga:
@@ -650,6 +661,7 @@ SPEC CHECKSUMS:
   react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b
   react-native-maps: 9ae269783ee6ebd87c7598873674c83c244adde9
   react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
+  react-native-safe-area-context: dde2052b903c11d677c320b599c3244021c34ce8
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc
   React-RCTActionSheet: cd3d76501a6069e164986b93f144be34b593955c
@@ -671,9 +683,10 @@ SPEC CHECKSUMS:
   RNFBApp: 2b2bb0f17eb6732e2e90d9c57bfde443cd7fc681
   RNFBMessaging: 4627e84e9e363953357dd122543e4223c49e6bc1
   RNPermissions: bd0d9ca7969ff7b999aa605ee2e5919c12522bfe
+  RNScreens: 10cefd0dd5c6ccd8651c6ca8b276790ea10a7f20
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
-PODFILE CHECKSUM: 6ccf3e3c06c1337205847a3200be5f292bd4ddc7
+PODFILE CHECKSUM: 2170f8aecbacb6cd94c2e437af55ba4e22edb6e5
 
 COCOAPODS: 1.16.2

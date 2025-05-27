@@ -36,7 +36,12 @@
     "react-native-permissions": "^3.7.0",
     "react-native-push-notification": "^8.1.1",
     "react-native-responsive-fontsize": "^0.5.1",
-    "react-native-tts": "^4.1.1"
+    "react-native-safe-area-context": "^5.4.1",
+    "react-native-safe-area-view": "^1.1.1",
+    "react-native-tts": "^4.1.1",
+    "react-navigation": "^4.4.4",
+    "react-navigation-stack": "^1.10.3",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",
