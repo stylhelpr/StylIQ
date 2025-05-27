@@ -1,7 +1,7 @@
 require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
-platform :ios, '16.0'
+platform :ios, '13.0'
 use_modular_headers!
 install! 'cocoapods', deterministic_uuids: false
 
@@ -44,11 +44,9 @@ target 'StylIQ' do
     )
     __apply_Xcode_12_5_M1_post_install_workaround(installer)
 
-    # ✅ Global fix for Apple Silicon + simulator crash
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
-        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
-        config.build_settings["EXCLUDED_ARCHS[sdk=iphonesimulator*]"] = "arm64"
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       end
     end
   end

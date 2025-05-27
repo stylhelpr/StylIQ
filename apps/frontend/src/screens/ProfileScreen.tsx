@@ -1,15 +1,19 @@
 import React from 'react';
-import {View, Text} from 'react-native';
-import {StackScreenProps} from '@react-navigation/stack'; // ✅ use JS stack
-import {RootStackParamList} from '../navigation/RootNavigator';
+import {View, Text, Button} from 'react-native';
 
-type Props = StackScreenProps<RootStackParamList, 'Profile'>;
+type Screen = 'Home' | 'Profile';
 
-export default function ProfileScreen({route}: Props) {
+type Props = {
+  userId: string;
+  navigate: (screen: Screen, params?: {userId: string}) => void;
+};
+
+export default function ProfileScreen({userId, navigate}: Props) {
   return (
     <View>
-      <Text>Profile Screen</Text>
-      <Text>User ID: {route.params.userId}</Text>
+      <Text>👤 Profile Screen</Text>
+      <Text>User ID: {userId}</Text>
+      <Button title="Back to Home" onPress={() => navigate('Home')} />
     </View>
   );
 }

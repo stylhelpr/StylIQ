@@ -26,6 +26,7 @@ import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
 import AddReminderButton from './components/AddReminderButon/AddReminderButton';
 import {theme} from './styles/tokens/theme';
 import ResponsiveContainer from './components/ResponsiveContainer';
+import RootNavigator from './navigation/RootNavigator';
 import './lib/firebaseConfig';
 
 type NotificationPayload = {
@@ -151,6 +152,8 @@ const MainApp = () => {
         contentContainerStyle={{flexGrow: 1}}
         showsVerticalScrollIndicator={false}>
         <ResponsiveContainer>
+          <RootNavigator />
+
           <VoiceControlComponent />
 
           <View style={styles.imagePickerContainer}>

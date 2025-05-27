@@ -413,9 +413,6 @@ PODS:
     - RNFBApp
   - RNPermissions (3.10.1):
     - React-Core
-  - RNScreens (3.18.2):
-    - React-Core
-    - React-RCTImage
   - TextToSpeech (4.1.1):
     - React-Core
   - Yoga (1.14.0)
@@ -478,7 +475,6 @@ DEPENDENCIES:
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
   - RNPermissions (from `../node_modules/react-native-permissions`)
-  - RNScreens (from `../node_modules/react-native-screens`)
   - TextToSpeech (from `../node_modules/react-native-tts`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -608,8 +604,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-firebase/messaging"
   RNPermissions:
     :path: "../node_modules/react-native-permissions"
-  RNScreens:
-    :path: "../node_modules/react-native-screens"
   TextToSpeech:
     :path: "../node_modules/react-native-tts"
   Yoga:
@@ -683,10 +677,9 @@ SPEC CHECKSUMS:
   RNFBApp: 2b2bb0f17eb6732e2e90d9c57bfde443cd7fc681
   RNFBMessaging: 4627e84e9e363953357dd122543e4223c49e6bc1
   RNPermissions: bd0d9ca7969ff7b999aa605ee2e5919c12522bfe
-  RNScreens: 10cefd0dd5c6ccd8651c6ca8b276790ea10a7f20
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
-PODFILE CHECKSUM: 2170f8aecbacb6cd94c2e437af55ba4e22edb6e5
+PODFILE CHECKSUM: 3193b224168c3e0798968e673165c6a5576026a6
 
 COCOAPODS: 1.16.2
