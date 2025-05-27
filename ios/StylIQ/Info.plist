@@ -25,6 +25,14 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 
+	<key>UIBackgroundModes</key>
+<array>
+  <string>fetch</string>
+  <string>remote-notification</string>
+</array>
+<key>NSUserNotificationUsageDescription</key>
+<string>This app uses local notifications to remind you about your styles.</string>
+
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>
