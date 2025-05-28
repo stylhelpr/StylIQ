@@ -4,7 +4,7 @@ import {useAppTheme} from '../context/ThemeContext';
 
 export default function SettingsScreen() {
   const {mode, theme, toggleTheme} = useAppTheme();
-  const colors = theme.colors; // Extract colors cleanly
+  const colors = theme.colors;
 
   return (
     <View style={[styles.container, {backgroundColor: colors.background}]}>

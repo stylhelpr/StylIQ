@@ -8,8 +8,8 @@
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "server": "cd apps/server && npm run dev",
-    "dev": "concurrently \"npm run server\" \"cd apps/frontend && npm run start\" \"cd apps/frontend && npm run ios\""
+    "backend": "cd apps/backend-nest && npm run start:dev",
+    "dev": "concurrently \"npm run backend\" \"cd apps/frontend && npm run start\" \"cd apps/frontend && npm run ios\""
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",

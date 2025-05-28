@@ -6,7 +6,12 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  getStatus() {
+    return {
+      status: 'OK',
+      service: 'NestJS Backend',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    };
   }
 }
