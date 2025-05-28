@@ -93,7 +93,7 @@ export default function ClosetScreen({navigate}: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>👕 Your Closet</Text>
+      <Text style={styles.title}>Closet</Text>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {items.map(item => (
           <View key={item.id} style={styles.item}>
