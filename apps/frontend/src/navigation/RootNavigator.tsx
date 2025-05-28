@@ -1,15 +1,18 @@
 import React, {useState} from 'react';
-import {View, Button, StyleSheet} from 'react-native';
+import {View, StyleSheet} from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ClosetScreen from '../screens/ClosetScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
+import {useAppTheme} from '../context/ThemeContext';
 
-type Screen = 'Home' | 'Profile' | 'Explore' | 'Closet' | 'Settings';
+type Screen = 'Home' | 'Profile' | 'Explore' | 'Closet' | 'Settings' | 'Voice';
 
 const RootNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
+  const {theme} = useAppTheme();
 
   const navigate = (screen: Screen) => {
     setCurrentScreen(screen);
@@ -31,33 +34,88 @@ const RootNavigator = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
       <View style={styles.screen}>{renderScreen()}</View>
-      <View style={styles.tabBar}>
-        <Button title="Home" onPress={() => navigate('Home')} />
-        <Button title="Profile" onPress={() => navigate('Profile')} />
-        <Button title="Explore" onPress={() => navigate('Explore')} />
-        <Button title="Closet" onPress={() => navigate('Closet')} />
-        <Button title="Settings" onPress={() => navigate('Settings')} />
-      </View>
+      <BottomNavigation current={currentScreen} navigate={navigate} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1},
-  screen: {flex: 1},
-  tabBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    backgroundColor: '#eee',
-    borderTopWidth: 1,
-    borderColor: '#ccc',
+  container: {
+    flex: 1,
+  },
+  screen: {
+    flex: 1,
+    marginTop: 70, // 👈 Add your top margin here
   },
 });
 
 export default RootNavigator;
+
+/////////////
+
+// import React, {useState} from 'react';
+// import {View, Button, StyleSheet} from 'react-native';
+// import HomeScreen from '../screens/HomeScreen';
+// import ProfileScreen from '../screens/ProfileScreen';
+// import ExploreScreen from '../screens/ExploreScreen';
+// import ClosetScreen from '../screens/ClosetScreen';
+// import SettingsScreen from '../screens/SettingsScreen';
+
+// type Screen = 'Home' | 'Profile' | 'Explore' | 'Closet' | 'Settings';
+
+// const RootNavigator = () => {
+//   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
+
+//   const navigate = (screen: Screen) => {
+//     setCurrentScreen(screen);
+//   };
+
+//   const renderScreen = () => {
+//     switch (currentScreen) {
+//       case 'Profile':
+//         return <ProfileScreen navigate={navigate} />;
+//       case 'Explore':
+//         return <ExploreScreen navigate={navigate} />;
+//       case 'Closet':
+//         return <ClosetScreen navigate={navigate} />;
+//       case 'Settings':
+//         return <SettingsScreen navigate={navigate} />;
+//       default:
+//         return <HomeScreen navigate={navigate} />;
+//     }
+//   };
+
+//   return (
+//     <View style={styles.container}>
+//       <View style={styles.screen}>{renderScreen()}</View>
+//       <View style={styles.tabBar}>
+//         <Button title="Home" onPress={() => navigate('Home')} />
+//         <Button title="Profile" onPress={() => navigate('Profile')} />
+//         <Button title="Explore" onPress={() => navigate('Explore')} />
+//         <Button title="Closet" onPress={() => navigate('Closet')} />
+//         <Button title="Settings" onPress={() => navigate('Settings')} />
+//       </View>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1},
+//   screen: {flex: 1},
+//   tabBar: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-around',
+//     paddingVertical: 12,
+//     backgroundColor: '#eee',
+//     borderTopWidth: 1,
+//     borderColor: '#ccc',
+//   },
+// });
+
+// export default RootNavigator;
 
 /////////////
 

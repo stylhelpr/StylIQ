@@ -4,9 +4,11 @@ import {theme as themes} from '../styles/tokens/theme';
 
 type ThemeType = 'light' | 'dark';
 
+type ThemeShape = (typeof themes)[keyof typeof themes];
+
 interface ThemeContextType {
   mode: ThemeType;
-  theme: typeof themes.light;
+  theme: ThemeShape;
   toggleTheme: () => void;
 }
 
