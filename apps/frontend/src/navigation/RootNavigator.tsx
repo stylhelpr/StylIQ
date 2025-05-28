@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    marginTop: 70, // 👈 Add your top margin here
+    marginTop: 55, // 👈 Add your top margin here
   },
 });
 

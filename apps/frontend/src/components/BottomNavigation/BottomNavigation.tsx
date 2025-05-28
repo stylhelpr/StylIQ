@@ -39,21 +39,23 @@ const BottomNavigation = ({
     navBar: {
       flexDirection: 'row',
       backgroundColor: theme.colors.background,
-      height: 100,
+      height: 62,
       justifyContent: 'space-around',
       alignItems: 'center',
-      borderTopWidth: 0.5,
+      borderTopWidth: 0.3,
       borderTopColor: theme.colors.surfaceBorder,
       width: '100%',
       padding: 10,
+      marginBottom: 31,
     },
     tabButton: {
       alignItems: 'center',
       justifyContent: 'center',
     },
     tabLabel: {
-      fontSize: 12,
+      fontSize: 11,
       color: theme.colors.foreground2,
+      marginTop: 3,
     },
     activeLabel: {
       color: theme.colors.primary,
@@ -61,7 +63,7 @@ const BottomNavigation = ({
     },
     fabContainer: {
       position: 'relative',
-      top: -5,
+      top: -4,
       backgroundColor: theme.colors.background,
       borderRadius: 35,
       padding: 2,
@@ -69,8 +71,8 @@ const BottomNavigation = ({
     fab: {
       backgroundColor: theme.colors.primary,
       borderRadius: 35,
-      width: 55,
-      height: 55,
+      width: 50,
+      height: 50,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -80,7 +82,7 @@ const BottomNavigation = ({
     <TouchableOpacity style={themedStyles.tabButton} onPress={onPress}>
       <Icon
         name={icon}
-        size={30}
+        size={28}
         color={isActive ? theme.colors.primary : theme.colors.foreground2}
       />
       <Text

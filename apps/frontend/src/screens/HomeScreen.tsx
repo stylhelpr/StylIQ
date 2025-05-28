@@ -257,14 +257,14 @@ const HomeScreen = () => {
             <TouchableOpacity style={styles.iconCircle}>
               <MaterialIcons
                 name="notifications"
-                size={20}
+                size={17}
                 color={theme.colors.icon}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconCircle}>
               <MaterialIcons
                 name="person"
-                size={20}
+                size={17}
                 color={theme.colors.icon}
               />
             </TouchableOpacity>
