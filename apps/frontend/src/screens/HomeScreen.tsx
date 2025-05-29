@@ -12,10 +12,15 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Geolocation from 'react-native-geolocation-service';
 import {ensureLocationPermission} from '../utils/permissions';
 import {fetchWeather} from '../utils/travelWeather';
-
+import VoiceControlComponent from '../components/VoiceControlComponent/VoiceControlComponent';
 import {useAppTheme} from '../context/ThemeContext';
 
-const HomeScreen = () => {
+type Props = {
+  navigate: (screen: string, params?: any) => void;
+  wardrobe: any[];
+};
+
+const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const {theme} = useAppTheme();
 
   const styles = StyleSheet.create({
@@ -69,7 +74,7 @@ const HomeScreen = () => {
       alignSelf: 'flex-start',
     },
     progressButtonText: {
-      color: theme.colors.buttonText,
+      color: theme.colors.surface,
     },
     progressFooter: {
       flexDirection: 'row',
@@ -78,7 +83,7 @@ const HomeScreen = () => {
       gap: 12,
     },
     progressCount: {
-      color: theme.colors.subtleText,
+      color: theme.colors.surface,
     },
     progressBar: {
       flex: 1,
@@ -123,7 +128,7 @@ const HomeScreen = () => {
       color: theme.colors.foreground,
     },
     sendButton: {
-      backgroundColor: theme.colors.accent,
+      backgroundColor: theme.colors.surface,
       width: 32,
       height: 32,
       borderRadius: 16,
@@ -176,7 +181,7 @@ const HomeScreen = () => {
     },
     plus: {
       fontSize: 28,
-      color: theme.colors.subtleText,
+      color: theme.colors.surface,
     },
     itemImage: {
       width: 64,
@@ -188,7 +193,7 @@ const HomeScreen = () => {
       justifyContent: 'space-around',
       alignItems: 'center',
       paddingVertical: 12,
-      borderTopColor: theme.colors.border,
+      borderTopColor: theme.colors.surface,
       borderTopWidth: 1,
       backgroundColor: theme.colors.background,
     },
@@ -246,6 +251,10 @@ const HomeScreen = () => {
     fetchData();
   }, []);
 
+  const handlePromptResult = (prompt: string) => {
+    navigate('Outfit', {prompt});
+  };
+
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -302,10 +311,13 @@ const HomeScreen = () => {
           </View>
 
           <View style={styles.rowButtons}>
-            <TouchableOpacity style={styles.actionCardBlue}>
+            <VoiceControlComponent onPromptResult={handlePromptResult} />
+            {/* <TouchableOpacity
+              style={styles.actionCardBlue}
+              onPress={() => navigate('Outfit')}>
               <Text style={styles.cardText}>Start styling</Text>
               <MaterialIcons name="keyboard-voice" size={26} color="#fff" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity style={styles.actionCardGray}>
               <Text style={styles.cardText}>History</Text>
               <MaterialIcons
@@ -320,13 +332,19 @@ const HomeScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recently Added Items</Text>
           <View style={styles.rowItems}>
-            <TouchableOpacity style={styles.itemCircle}>
+            <TouchableOpacity
+              style={styles.itemCircle}
+              onPress={() => navigate('AddItem')}>
               <Text style={styles.plus}>+</Text>
             </TouchableOpacity>
-            <Image
-              source={{uri: 'https://via.placeholder.com/80x100'}}
-              style={styles.itemImage}
-            />
+
+            {wardrobe.slice(0, 3).map(item => (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => navigate('ItemDetail', {item})}>
+                <Image source={{uri: item.image}} style={styles.itemImage} />
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -354,7 +372,7 @@ export default HomeScreen;
 
 ///////////
 
-// import React from 'react';
+// import React, {useState, useEffect} from 'react';
 // import {
 //   View,
 //   Text,
@@ -365,6 +383,10 @@ export default HomeScreen;
 //   Image,
 // } from 'react-native';
 // import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import Geolocation from 'react-native-geolocation-service';
+// import {ensureLocationPermission} from '../utils/permissions';
+// import {fetchWeather} from '../utils/travelWeather';
+
 // import {useAppTheme} from '../context/ThemeContext';
 
 // const HomeScreen = () => {
@@ -402,7 +424,7 @@ export default HomeScreen;
 //       justifyContent: 'center',
 //     },
 //     progressBox: {
-//       backgroundColor: theme.colors.secondaryBackground,
+//       backgroundColor: theme.colors.surface,
 //       padding: 16,
 //       borderRadius: 16,
 //       marginVertical: 24,
@@ -447,6 +469,13 @@ export default HomeScreen;
 //     section: {
 //       marginBottom: 24,
 //     },
+//     sectionWeather: {
+//       marginTop: 6,
+//       marginBottom: 24,
+//       backgroundColor: 'grey',
+//       borderRadius: 15,
+//       padding: 12,
+//     },
 //     sectionTitle: {
 //       fontSize: 18,
 //       fontWeight: '500',
@@ -484,7 +513,7 @@ export default HomeScreen;
 //       gap: 12,
 //     },
 //     actionCardBlue: {
-//       backgroundColor: theme.colors.accent,
+//       backgroundColor: 'blue',
 //       flex: 1,
 //       padding: 16,
 //       borderRadius: 12,
@@ -562,6 +591,35 @@ export default HomeScreen;
 //     },
 //   });
 
+//   const [weather, setWeather] = useState<any>(null);
+
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return;
+
+//       Geolocation.getCurrentPosition(
+//         async pos => {
+//           try {
+//             const data = await fetchWeather(
+//               pos.coords.latitude,
+//               pos.coords.longitude,
+//             );
+//             setWeather(data);
+//           } catch (err) {
+//             console.warn('❌ Weather fetch failed:', err);
+//           }
+//         },
+//         err => {
+//           console.warn('❌ Location error:', err);
+//         },
+//         {enableHighAccuracy: true, timeout: 15000, maximumAge: 1000},
+//       );
+//     };
+
+//     fetchData();
+//   }, []);
+
 //   return (
 //     <View style={styles.screen}>
 //       <ScrollView
@@ -573,14 +631,14 @@ export default HomeScreen;
 //             <TouchableOpacity style={styles.iconCircle}>
 //               <MaterialIcons
 //                 name="notifications"
-//                 size={20}
+//                 size={17}
 //                 color={theme.colors.icon}
 //               />
 //             </TouchableOpacity>
 //             <TouchableOpacity style={styles.iconCircle}>
 //               <MaterialIcons
 //                 name="person"
-//                 size={20}
+//                 size={17}
 //                 color={theme.colors.icon}
 //               />
 //             </TouchableOpacity>
@@ -610,7 +668,7 @@ export default HomeScreen;
 //             <TextInput
 //               placeholder="Ask anything about fashion!"
 //               style={styles.input}
-//               placeholderTextColor={theme.colors.subtleText}
+//               placeholderTextColor={theme.colors.foreground}
 //             />
 //             <TouchableOpacity style={styles.sendButton}>
 //               <Text style={styles.sendArrow}>➔</Text>
@@ -648,10 +706,22 @@ export default HomeScreen;
 
 //         <View style={styles.section}>
 //           <Text style={styles.sectionTitle}>Today’s Suggestion</Text>
+//           <View style={styles.sectionWeather}>
+//             {weather && (
+//               <View style={{marginTop: 8}}>
+//                 <Text style={{color: theme.colors.foreground}}>
+//                   {weather.celsius.name}
+//                 </Text>
+//                 <Text style={{color: theme.colors.secondary}}>
+//                   🌡️ {weather.fahrenheit.main.temp}°F —{' '}
+//                   {weather.celsius.weather[0].description}
+//                 </Text>
+//               </View>
+//             )}
+//           </View>
 //         </View>
 //       </ScrollView>
 //     </View>
 //   );
 // };
-
 // export default HomeScreen;
