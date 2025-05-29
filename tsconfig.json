@@ -5,11 +5,28 @@
     "baseUrl": "apps/frontend/src",
     "paths": {
       "@tokens/*": ["styles/tokens/*"],
-      "@tokens": ["styles/tokens/index"]
+      "@tokens": ["styles/tokens/index"],
+      "@types/*": ["types/*"],
+      "@types": ["types/index"]
     },
     "typeRoots": ["./node_modules/@types", "./types"]
   }
 }
+
+//////////////
+
+// {
+//   "extends": "@tsconfig/react-native/tsconfig.json",
+//   "compilerOptions": {
+//     "skipLibCheck": true,
+//     "baseUrl": "apps/frontend/src",
+//     "paths": {
+//       "@tokens/*": ["styles/tokens/*"],
+//       "@tokens": ["styles/tokens/index"]
+//     },
+//     "typeRoots": ["./node_modules/@types", "./types"]
+//   }
+// }
 
 ///////////
 

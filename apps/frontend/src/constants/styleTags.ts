@@ -1,0 +1,18 @@
+const tags = [
+  'Casual',
+  'Business Casual',
+  'Formal',
+  'Athleisure',
+  'Date Night',
+  'Summer',
+  'Winter',
+  'Neutral Tones',
+  'Earth Tones',
+  'Luxury',
+  'Streetwear',
+  'Minimalist',
+  'Tailored',
+  'Vintage',
+  'Monochrome',
+  'Bold Colors',
+];
