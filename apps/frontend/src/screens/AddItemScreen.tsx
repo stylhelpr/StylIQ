@@ -1,40 +1,56 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  Image,
   TextInput,
-  ScrollView,
+  StyleSheet,
   Pressable,
+  ScrollView,
+  Image,
 } from 'react-native';
-import {useAppTheme} from '../../context/ThemeContext';
-
-// Mock data lookup
-import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
+import {useAppTheme} from '../context/ThemeContext';
+import ImagePickerGrid from '../components/ImagePickerGrid/ImagePickerGrid';
+import {Alert} from 'react-native';
+import uuid from 'react-native-uuid';
 
 type Props = {
-  route: any;
-  navigation: any;
+  navigate: (screen: string) => void;
+  addItem: (item: any) => void;
 };
 
-export default function ItemDetailScreen({route, navigation}: Props) {
+export default function AddItemScreen({navigate, addItem}: Props) {
   const {theme} = useAppTheme();
-  const {itemId, item: routeItem} = route.params;
-  const item = routeItem ?? mockClothingItems.find(i => i.id === itemId);
-
-  const [name, setName] = useState(item?.name || '');
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [name, setName] = useState('');
   const [category, setCategory] = useState('');
-  const [tags, setTags] = useState('');
   const [color, setColor] = useState('');
+  const [tags, setTags] = useState('');
 
-  useEffect(() => {
-    if (item) {
-      setCategory(item.name.split(' ').slice(1).join(' ')); // crude category fallback
-      setColor(item.name.split(' ')[0]); // crude color fallback
-      setTags(''); // leave blank or generate from metadata
+  const handleSave = () => {
+    console.log('🧪 imageUri:', imageUri);
+    console.log('🧪 name:', name);
+
+    if (!imageUri || !name.trim()) {
+      Alert.alert('Missing Fields', 'Please select an image and enter a name.');
+      return;
     }
-  }, [item]);
+
+    const newItem = {
+      id: uuid.v4(),
+      image: imageUri,
+      name,
+      category,
+      color,
+      tags: tags.split(',').map(t => t.trim()),
+    };
+
+    addItem(newItem);
+    navigate('Closet');
+  };
+
+  const handleCancel = () => {
+    navigate('Closet');
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -42,9 +58,9 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       padding: 16,
       backgroundColor: theme.colors.background,
     },
-    image: {
+    imagePreview: {
       width: '100%',
-      height: 320,
+      height: 300,
       borderRadius: 16,
       marginBottom: 16,
     },
@@ -73,11 +89,28 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       fontWeight: 'bold',
       fontSize: 16,
     },
+    cancelButton: {
+      backgroundColor: theme.colors.surface,
+      padding: 14,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    cancelButtonText: {
+      color: theme.colors.foreground,
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
   });
 
   return (
     <ScrollView style={styles.container}>
-      {item?.image && <Image source={{uri: item.image}} style={styles.image} />}
+      <Text style={styles.label}>Select Image</Text>
+      <ImagePickerGrid onSelectImage={setImageUri} />
+
+      {/* {imageUri && (
+        <Image source={{uri: imageUri}} style={styles.imagePreview} />
+      )} */}
 
       <Text style={styles.label}>Name</Text>
       <TextInput value={name} onChangeText={setName} style={styles.input} />
@@ -87,7 +120,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         value={category}
         onChangeText={setCategory}
         style={styles.input}
-        placeholder="e.g. Shirt, Pants, Shoes"
+        placeholder="e.g. Shirt, Pants"
       />
 
       <Text style={styles.label}>Color</Text>
@@ -95,7 +128,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         value={color}
         onChangeText={setColor}
         style={styles.input}
-        placeholder="e.g. Navy, White, Tan"
+        placeholder="e.g. Navy, White"
       />
 
       <Text style={styles.label}>Tags</Text>
@@ -103,75 +136,71 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         value={tags}
         onChangeText={setTags}
         style={styles.input}
-        placeholder="Comma separated: casual, spring, linen"
+        placeholder="Comma separated: casual, winter, linen"
       />
 
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-        <Pressable
-          style={[
-            styles.button,
-            {flex: 1, backgroundColor: theme.colors.surface},
-          ]}
-          onPress={() => navigation.goBack()}>
-          <Text style={[styles.buttonText, {color: theme.colors.foreground}]}>
-            Cancel
-          </Text>
-        </Pressable>
+      <Pressable style={styles.button} onPress={handleSave}>
+        <Text style={styles.buttonText}>Save Item</Text>
+      </Pressable>
 
-        <Pressable
-          style={[styles.button, {flex: 1}]}
-          onPress={() => navigation.goBack()}>
-          <Text style={styles.buttonText}>Save Changes</Text>
-        </Pressable>
-      </View>
+      <Pressable style={styles.cancelButton} onPress={handleCancel}>
+        <Text style={styles.cancelButtonText}>Cancel</Text>
+      </Pressable>
     </ScrollView>
   );
 }
 
-//////////////
+/////////////
 
-// import React, {useState, useEffect} from 'react';
+// import React, {useState} from 'react';
 // import {
 //   View,
 //   Text,
-//   StyleSheet,
-//   Image,
 //   TextInput,
-//   ScrollView,
+//   StyleSheet,
 //   Pressable,
+//   ScrollView,
+//   Image,
 // } from 'react-native';
-// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAppTheme} from '../context/ThemeContext';
+// import ImagePickerGrid from '../components/ImagePickerGrid/ImagePickerGrid';
+// import {v4 as uuidv4} from 'uuid';
 
-// // Mock data lookup
-// import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
-
-// type Props = {
-//   route: any;
-//   navigation: any;
+// // ⚠️ You will later connect this to useWardrobe()
+// const mockAddItem = (item: any) => {
+//   console.log('✅ New item added:', item);
 // };
 
-// export default function ItemDetailScreen({route, navigation}: Props) {
+// type Props = {
+//   navigate: (screen: string) => void;
+//   addItem: (item: any) => void;
+// };
+
+// export default function AddItemScreen({navigate, addItem}: Props) {
 //   const {theme} = useAppTheme();
-//   const {itemId} = route.params;
-//   const item = mockClothingItems.find(i => i.id === itemId);
-
-//   const [name, setName] = useState(item?.name || '');
+//   const [imageUri, setImageUri] = useState<string | null>(null);
+//   const [name, setName] = useState('');
 //   const [category, setCategory] = useState('');
-//   const [tags, setTags] = useState('');
 //   const [color, setColor] = useState('');
+//   const [tags, setTags] = useState('');
 
-//   useEffect(() => {
-//     if (item) {
-//       setCategory(item.name.split(' ').slice(1).join(' ')); // crude category fallback
-//       setColor(item.name.split(' ')[0]); // crude color fallback
-//       setTags(''); // leave blank or generate from metadata
-//     }
-//   }, [item]);
+//   const handleSave = () => {
+//     if (!imageUri || !name.trim()) return;
+
+//     const newItem = {
+//       id: uuidv4(),
+//       image: imageUri,
+//       name,
+//       category,
+//       color,
+//       tags: tags.split(',').map(t => t.trim()),
+//     };
+
+//     console.log('✅ Saving item:', newItem); // ← Add this
+
+//     addItem(newItem);
+//     navigate('Closet');
+//   };
 
 //   const styles = StyleSheet.create({
 //     container: {
@@ -179,9 +208,9 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //       padding: 16,
 //       backgroundColor: theme.colors.background,
 //     },
-//     image: {
+//     imagePreview: {
 //       width: '100%',
-//       height: 320,
+//       height: 300,
 //       borderRadius: 16,
 //       marginBottom: 16,
 //     },
@@ -214,7 +243,12 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
 //   return (
 //     <ScrollView style={styles.container}>
-//       {item?.image && <Image source={{uri: item.image}} style={styles.image} />}
+//       <Text style={styles.label}>Select Image</Text>
+//       <ImagePickerGrid onSelectImage={setImageUri} />
+
+//       {imageUri && (
+//         <Image source={{uri: imageUri}} style={styles.imagePreview} />
+//       )}
 
 //       <Text style={styles.label}>Name</Text>
 //       <TextInput value={name} onChangeText={setName} style={styles.input} />
@@ -224,7 +258,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         value={category}
 //         onChangeText={setCategory}
 //         style={styles.input}
-//         placeholder="e.g. Shirt, Pants, Shoes"
+//         placeholder="e.g. Shirt, Pants"
 //       />
 
 //       <Text style={styles.label}>Color</Text>
@@ -232,7 +266,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         value={color}
 //         onChangeText={setColor}
 //         style={styles.input}
-//         placeholder="e.g. Navy, White, Tan"
+//         placeholder="e.g. Navy, White"
 //       />
 
 //       <Text style={styles.label}>Tags</Text>
@@ -240,75 +274,74 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         value={tags}
 //         onChangeText={setTags}
 //         style={styles.input}
-//         placeholder="Comma separated: casual, spring, linen"
+//         placeholder="Comma separated: casual, winter, linen"
 //       />
 
-//       <View
-//         style={{
-//           flexDirection: 'row',
-//           justifyContent: 'space-between',
-//           gap: 12,
-//         }}>
+//       <View style={styles.buttonRow}>
 //         <Pressable
-//           style={[
-//             styles.button,
-//             {flex: 1, backgroundColor: theme.colors.surface},
-//           ]}
-//           onPress={() => navigation.goBack()}>
-//           <Text style={[styles.buttonText, {color: theme.colors.foreground}]}>
-//             Cancel
-//           </Text>
+//           style={[styles.button, styles.cancelButton]}
+//           onPress={() => navigate('Closet')}>
+//           <Text style={styles.buttonText}>Cancel</Text>
 //         </Pressable>
-
-//         <Pressable
-//           style={[styles.button, {flex: 1}]}
-//           onPress={() => navigation.goBack()}>
-//           <Text style={styles.buttonText}>Save Changes</Text>
+//         <Pressable style={styles.button} onPress={handleSave}>
+//           <Text style={styles.buttonText}>Save Item</Text>
 //         </Pressable>
 //       </View>
 //     </ScrollView>
 //   );
 // }
 
-/////////////
+///////////
 
-// import React, {useState, useEffect} from 'react';
+// import React, {useState} from 'react';
 // import {
 //   View,
 //   Text,
-//   StyleSheet,
-//   Image,
 //   TextInput,
-//   ScrollView,
+//   StyleSheet,
 //   Pressable,
+//   ScrollView,
+//   Image,
 // } from 'react-native';
-// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAppTheme} from '../context/ThemeContext';
+// import ImagePickerGrid from '../components/ImagePickerGrid/ImagePickerGrid';
+// import {v4 as uuidv4} from 'uuid';
 
-// // Mock data lookup
-// import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
-
-// type Props = {
-//   route: any;
-//   navigation: any;
+// // ⚠️ You will later connect this to useWardrobe()
+// const mockAddItem = (item: any) => {
+//   console.log('✅ New item added:', item);
 // };
 
-// export default function ItemDetailScreen({route, navigation}: Props) {
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// export default function AddItemScreen({navigate}: Props) {
 //   const {theme} = useAppTheme();
-//   const {itemId} = route.params;
-//   const item = mockClothingItems.find(i => i.id === itemId);
-
-//   const [name, setName] = useState(item?.name || '');
+//   const [imageUri, setImageUri] = useState<string | null>(null);
+//   const [name, setName] = useState('');
 //   const [category, setCategory] = useState('');
-//   const [tags, setTags] = useState('');
 //   const [color, setColor] = useState('');
+//   const [tags, setTags] = useState('');
 
-//   useEffect(() => {
-//     if (item) {
-//       setCategory(item.name.split(' ').slice(1).join(' ')); // crude category fallback
-//       setColor(item.name.split(' ')[0]); // crude color fallback
-//       setTags(''); // leave blank or generate from metadata
+//   const handleSave = () => {
+//     if (!imageUri || !name.trim()) {
+//       //   alert('Image and name are required');
+//       return;
 //     }
-//   }, [item]);
+
+//     const newItem = {
+//       id: uuidv4(),
+//       image: imageUri,
+//       name,
+//       category,
+//       color,
+//       tags: tags.split(',').map(t => t.trim()),
+//     };
+
+//     mockAddItem(newItem);
+//     navigate('Closet');
+//   };
 
 //   const styles = StyleSheet.create({
 //     container: {
@@ -316,9 +349,9 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //       padding: 16,
 //       backgroundColor: theme.colors.background,
 //     },
-//     image: {
+//     imagePreview: {
 //       width: '100%',
-//       height: 320,
+//       height: 300,
 //       borderRadius: 16,
 //       marginBottom: 16,
 //     },
@@ -351,7 +384,12 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
 //   return (
 //     <ScrollView style={styles.container}>
-//       {item?.image && <Image source={{uri: item.image}} style={styles.image} />}
+//       <Text style={styles.label}>Select Image</Text>
+//       <ImagePickerGrid onSelectImage={setImageUri} />
+
+//       {imageUri && (
+//         <Image source={{uri: imageUri}} style={styles.imagePreview} />
+//       )}
 
 //       <Text style={styles.label}>Name</Text>
 //       <TextInput value={name} onChangeText={setName} style={styles.input} />
@@ -361,7 +399,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         value={category}
 //         onChangeText={setCategory}
 //         style={styles.input}
-//         placeholder="e.g. Shirt, Pants, Shoes"
+//         placeholder="e.g. Shirt, Pants"
 //       />
 
 //       <Text style={styles.label}>Color</Text>
@@ -369,7 +407,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         value={color}
 //         onChangeText={setColor}
 //         style={styles.input}
-//         placeholder="e.g. Navy, White, Tan"
+//         placeholder="e.g. Navy, White"
 //       />
 
 //       <Text style={styles.label}>Tags</Text>
@@ -377,11 +415,11 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         value={tags}
 //         onChangeText={setTags}
 //         style={styles.input}
-//         placeholder="Comma separated: casual, spring, linen"
+//         placeholder="Comma separated: casual, winter, linen"
 //       />
 
-//       <Pressable style={styles.button} onPress={() => navigation.goBack()}>
-//         <Text style={styles.buttonText}>Save Changes</Text>
+//       <Pressable style={styles.button} onPress={handleSave}>
+//         <Text style={styles.buttonText}>Save Item</Text>
 //       </Pressable>
 //     </ScrollView>
 //   );

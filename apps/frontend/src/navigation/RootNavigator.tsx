@@ -1,3 +1,4 @@
+// RootNavigator.tsx
 import React, {useState} from 'react';
 import {View, StyleSheet} from 'react-native';
 import HomeScreen from '../screens/HomeScreen';
@@ -5,9 +6,12 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ClosetScreen from '../screens/ClosetScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AddItemScreen from '../screens/AddItemScreen';
 import ItemDetailScreen from '../components/ItemDetailScreen/ItemDetailScreen';
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import {useAppTheme} from '../context/ThemeContext';
+import {v4 as uuidv4} from 'uuid';
+import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems'; // ✅ import mock data
 
 type Screen =
   | 'Home'
@@ -16,16 +20,23 @@ type Screen =
   | 'Closet'
   | 'Settings'
   | 'Voice'
-  | 'ItemDetail';
+  | 'ItemDetail'
+  | 'AddItem';
 
 const RootNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
   const [screenParams, setScreenParams] = useState<any>(null);
+  const [wardrobe, setWardrobe] = useState<any[]>(mockClothingItems); // ✅ start with mock items
   const {theme} = useAppTheme();
 
   const navigate = (screen: Screen, params?: any) => {
     setCurrentScreen(screen);
     setScreenParams(params || null);
+  };
+
+  const addToWardrobe = (item: any) => {
+    setWardrobe(prev => [item, ...prev]);
+    setCurrentScreen('Closet');
   };
 
   const renderScreen = () => {
@@ -35,7 +46,13 @@ const RootNavigator = () => {
       case 'Explore':
         return <ExploreScreen navigate={navigate} />;
       case 'Closet':
-        return <ClosetScreen navigate={navigate} />;
+        return (
+          <ClosetScreen
+            key={wardrobe.length}
+            navigate={navigate}
+            wardrobe={wardrobe}
+          />
+        );
       case 'Settings':
         return <SettingsScreen navigate={navigate} />;
       case 'ItemDetail':
@@ -45,6 +62,8 @@ const RootNavigator = () => {
             navigation={{goBack: () => setCurrentScreen('Closet')}}
           />
         );
+      case 'AddItem':
+        return <AddItemScreen navigate={navigate} addItem={addToWardrobe} />;
       default:
         return <HomeScreen navigate={navigate} />;
     }
@@ -70,6 +89,99 @@ const styles = StyleSheet.create({
 });
 
 export default RootNavigator;
+
+///////////
+
+// // RootNavigator.tsx
+// import React, {useState} from 'react';
+// import {View, StyleSheet} from 'react-native';
+// import HomeScreen from '../screens/HomeScreen';
+// import ProfileScreen from '../screens/ProfileScreen';
+// import ExploreScreen from '../screens/ExploreScreen';
+// import ClosetScreen from '../screens/ClosetScreen';
+// import SettingsScreen from '../screens/SettingsScreen';
+// import AddItemScreen from '../screens/AddItemScreen';
+// import ItemDetailScreen from '../components/ItemDetailScreen/ItemDetailScreen';
+// import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {v4 as uuidv4} from 'uuid';
+
+// type Screen =
+//   | 'Home'
+//   | 'Profile'
+//   | 'Explore'
+//   | 'Closet'
+//   | 'Settings'
+//   | 'Voice'
+//   | 'ItemDetail'
+//   | 'AddItem';
+
+// const RootNavigator = () => {
+//   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
+//   const [screenParams, setScreenParams] = useState<any>(null);
+//   const [wardrobe, setWardrobe] = useState<any[]>([]);
+//   const {theme} = useAppTheme();
+
+//   const navigate = (screen: Screen, params?: any) => {
+//     setCurrentScreen(screen);
+//     setScreenParams(params || null);
+//   };
+
+//   const addToWardrobe = (item: any) => {
+//     setWardrobe(prev => [...prev, item]);
+//     setCurrentScreen('Closet'); // OPTIONAL: Redundant if already navigating in AddItem
+//   };
+
+//   const renderScreen = () => {
+//     switch (currentScreen) {
+//       case 'Profile':
+//         return <ProfileScreen navigate={navigate} />;
+//       case 'Explore':
+//         return <ExploreScreen navigate={navigate} />;
+//       case 'Closet':
+//         return (
+//           <ClosetScreen
+//             key={wardrobe.length} // 👈 forces rerender when new item is added
+//             navigate={navigate}
+//             wardrobe={wardrobe}
+//           />
+//         );
+//       case 'Settings':
+//         return <SettingsScreen navigate={navigate} />;
+//       case 'ItemDetail':
+//         return (
+//           <ItemDetailScreen
+//             route={{params: screenParams}}
+//             navigation={{goBack: () => setCurrentScreen('Closet')}}
+//           />
+//         );
+//       case 'AddItem':
+//         return <AddItemScreen navigate={navigate} addItem={addToWardrobe} />;
+//       default:
+//         return <HomeScreen navigate={navigate} />;
+//     }
+//   };
+
+//   return (
+//     <View
+//       style={[styles.container, {backgroundColor: theme.colors.background}]}>
+//       <View style={styles.screen}>{renderScreen()}</View>
+//       <BottomNavigation current={currentScreen} navigate={navigate} />
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   screen: {
+//     flex: 1,
+//     marginTop: 55,
+//   },
+// });
+
+// export default RootNavigator;
 
 /////////////
 
