@@ -64,12 +64,12 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
       marginBottom: ITEM_MARGIN * 2,
       backgroundColor: theme.colors.surface,
       borderRadius: 16,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 2},
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-      elevation: 3,
+      // overflow: 'hidden',
+      shadowColor: '#000', // black shadow color
+      shadowOffset: {width: 8, height: 3}, // horizontal & vertical offset
+      shadowOpacity: 0.5, // opacity of shadow
+      shadowRadius: 7, // blur radius
+      elevation: 10, // for Android shadow
     },
     image: {
       width: '100%',

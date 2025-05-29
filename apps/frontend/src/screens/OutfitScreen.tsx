@@ -4,23 +4,30 @@ import {
   Text,
   StyleSheet,
   Image,
-  Dimensions,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import {format} from 'date-fns';
 import {useAppTheme} from '../context/ThemeContext';
 import {useOutfitSuggestion, WardrobeItem} from '../hooks/useOutfitSuggestion';
 
-type Props = {
-  wardrobe: WardrobeItem[];
-};
-
 const {width} = Dimensions.get('window');
 const imageSize = width * 0.9;
 
-export default function OutfitScreen({wardrobe}: Props) {
+type Props = {
+  wardrobe: WardrobeItem[];
+  prompt?: string;
+};
+
+export default function OutfitScreen({wardrobe, prompt}: Props) {
   const {theme} = useAppTheme();
-  const outfit = useOutfitSuggestion(wardrobe);
+
+  // Extract keywords from prompt string
+  const keywords = prompt ? prompt.toLowerCase().split(' ') : [];
+
+  // Get outfit suggestion based on wardrobe and keywords
+  const outfit = useOutfitSuggestion(wardrobe, keywords);
+
   const today = format(new Date(), 'MMMM do, yyyy');
 
   const styles = StyleSheet.create({
@@ -94,6 +101,216 @@ export default function OutfitScreen({wardrobe}: Props) {
     </ScrollView>
   );
 }
+
+//////////////
+
+// import React from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   ScrollView,
+//   Dimensions,
+// } from 'react-native';
+// import {format} from 'date-fns';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useOutfitSuggestion, WardrobeItem} from '../hooks/useOutfitSuggestion';
+// import {Button} from 'react-native';
+
+// const {width} = Dimensions.get('window');
+// const imageSize = width * 0.9;
+
+// type Props = {
+//   wardrobe: WardrobeItem[];
+//   prompt?: string;
+// };
+
+// export default function OutfitScreen({wardrobe, prompt}: Props) {
+//   const {theme} = useAppTheme();
+
+//   // Optionally, parse prompt into keywords here and pass to useOutfitSuggestion
+//   const outfit = useOutfitSuggestion(wardrobe);
+
+//   const today = format(new Date(), 'MMMM do, yyyy');
+
+//   const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       paddingTop: 24,
+//       paddingHorizontal: 16,
+//       backgroundColor: theme.colors.background,
+//     },
+//     title: {
+//       fontSize: 28,
+//       fontWeight: '600',
+//       color: theme.colors.primary,
+//       marginBottom: 4,
+//     },
+//     date: {
+//       fontSize: 16,
+//       color: theme.colors.foreground,
+//       marginBottom: 24,
+//     },
+//     section: {
+//       marginBottom: 32,
+//       alignItems: 'center',
+//     },
+//     label: {
+//       fontSize: 18,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       marginBottom: 12,
+//     },
+//     image: {
+//       width: imageSize,
+//       height: imageSize,
+//       borderRadius: 16,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     placeholder: {
+//       width: imageSize,
+//       height: imageSize,
+//       borderRadius: 16,
+//       backgroundColor: theme.colors.surface,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     placeholderText: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//     },
+//   });
+
+//   const renderItem = (label: string, item?: WardrobeItem) => (
+//     <View style={styles.section}>
+//       <Text style={styles.label}>{label}</Text>
+//       {item?.image ? (
+//         <Image source={{uri: item.image}} style={styles.image} />
+//       ) : (
+//         <View style={styles.placeholder}>
+//           <Text style={styles.placeholderText}>No item selected</Text>
+//         </View>
+//       )}
+//     </View>
+//   );
+
+//   return (
+//     <ScrollView style={styles.container}>
+//       <Text style={styles.title}>Outfit Suggestion</Text>
+//       <Text style={styles.date}>{today}</Text>
+//       <Button
+//         title="Get New Outfit"
+//         onPress={() => {
+//           // Just call your hook again by forcing re-render (or implement state logic)
+//           // For now, you can add local state to trigger recompute if you want
+//         }}
+//       />
+//       {renderItem('Top', outfit.top)}
+//       {renderItem('Bottom', outfit.bottom)}
+//       {renderItem('Shoes', outfit.shoes)}
+//     </ScrollView>
+//   );
+// }
+
+///////////
+
+// import React from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   Dimensions,
+//   ScrollView,
+// } from 'react-native';
+// import {format} from 'date-fns';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useOutfitSuggestion, WardrobeItem} from '../hooks/useOutfitSuggestion';
+
+// type Props = {
+//   wardrobe: WardrobeItem[];
+// };
+
+// const {width} = Dimensions.get('window');
+// const imageSize = width * 0.9;
+
+// export default function OutfitScreen({wardrobe}: Props) {
+//   const {theme} = useAppTheme();
+//   const outfit = useOutfitSuggestion(wardrobe);
+//   const today = format(new Date(), 'MMMM do, yyyy');
+
+//   const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       paddingTop: 24,
+//       paddingHorizontal: 16,
+//       backgroundColor: theme.colors.background,
+//     },
+//     title: {
+//       fontSize: 28,
+//       fontWeight: '600',
+//       color: theme.colors.primary,
+//       marginBottom: 4,
+//     },
+//     date: {
+//       fontSize: 16,
+//       color: theme.colors.foreground,
+//       marginBottom: 24,
+//     },
+//     section: {
+//       marginBottom: 32,
+//       alignItems: 'center',
+//     },
+//     label: {
+//       fontSize: 18,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       marginBottom: 12,
+//     },
+//     image: {
+//       width: imageSize,
+//       height: imageSize,
+//       borderRadius: 16,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     placeholder: {
+//       width: imageSize,
+//       height: imageSize,
+//       borderRadius: 16,
+//       backgroundColor: theme.colors.surface,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     placeholderText: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//     },
+//   });
+
+//   const renderItem = (label: string, item?: WardrobeItem) => (
+//     <View style={styles.section}>
+//       <Text style={styles.label}>{label}</Text>
+//       {item?.image ? (
+//         <Image source={{uri: item.image}} style={styles.image} />
+//       ) : (
+//         <View style={styles.placeholder}>
+//           <Text style={styles.placeholderText}>No item selected</Text>
+//         </View>
+//       )}
+//     </View>
+//   );
+
+//   return (
+//     <ScrollView style={styles.container}>
+//       <Text style={styles.title}>Outfit Suggestion</Text>
+//       <Text style={styles.date}>{today}</Text>
+//       {renderItem('Top', outfit.top)}
+//       {renderItem('Bottom', outfit.bottom)}
+//       {renderItem('Shoes', outfit.shoes)}
+//     </ScrollView>
+//   );
+// }
 
 //////////////
 

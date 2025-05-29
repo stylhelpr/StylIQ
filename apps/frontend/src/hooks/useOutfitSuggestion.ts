@@ -16,7 +16,10 @@ export type Outfit = {
   shoes?: WardrobeItem;
 };
 
-export function useOutfitSuggestion(wardrobe: WardrobeItem[]): Outfit {
+export function useOutfitSuggestion(
+  wardrobe: WardrobeItem[],
+  keywords: string[] = [],
+): Outfit {
   const favorites = wardrobe.filter(i => i.favorite);
 
   const chooseItem = (
@@ -24,7 +27,9 @@ export function useOutfitSuggestion(wardrobe: WardrobeItem[]): Outfit {
     keywords: string[],
   ): WardrobeItem | undefined => {
     const pool = items.find(
-      i => i.category && keywords.some(k => i.category!.includes(k)),
+      i =>
+        i.category &&
+        keywords.some(k => i.category!.toLowerCase().includes(k.toLowerCase())),
     )
       ? items
       : wardrobe;
@@ -39,12 +44,75 @@ export function useOutfitSuggestion(wardrobe: WardrobeItem[]): Outfit {
   const outfit = useMemo(() => {
     const source = favorites.length >= 2 ? favorites : wardrobe;
 
-    const top = chooseItem(source, ['shirt', 'top']);
-    const bottom = chooseItem(source, ['pants', 'shorts', 'bottom']);
-    const shoes = chooseItem(source, ['shoes', 'sneakers', 'boots']);
+    // Use keywords if provided, else use defaults
+    const top = chooseItem(
+      source,
+      keywords.length ? keywords : ['shirt', 'top'],
+    );
+    const bottom = chooseItem(
+      source,
+      keywords.length ? keywords : ['pants', 'shorts', 'bottom'],
+    );
+    const shoes = chooseItem(
+      source,
+      keywords.length ? keywords : ['shoes', 'sneakers', 'boots'],
+    );
 
     return {top, bottom, shoes};
-  }, [wardrobe]);
+  }, [wardrobe, keywords]);
 
   return outfit;
 }
+
+////////////
+
+// import {useMemo} from 'react';
+
+// export type WardrobeItem = {
+//   id: string;
+//   image: string;
+//   name: string;
+//   category?: string;
+//   color?: string;
+//   tags?: string[];
+//   favorite?: boolean;
+// };
+
+// export type Outfit = {
+//   top?: WardrobeItem;
+//   bottom?: WardrobeItem;
+//   shoes?: WardrobeItem;
+// };
+
+// export function useOutfitSuggestion(wardrobe: WardrobeItem[]): Outfit {
+//   const favorites = wardrobe.filter(i => i.favorite);
+
+//   const chooseItem = (
+//     items: WardrobeItem[],
+//     keywords: string[],
+//   ): WardrobeItem | undefined => {
+//     const pool = items.find(
+//       i => i.category && keywords.some(k => i.category!.includes(k)),
+//     )
+//       ? items
+//       : wardrobe;
+
+//     return pool.find(
+//       i =>
+//         i.category &&
+//         keywords.some(k => i.category!.toLowerCase().includes(k.toLowerCase())),
+//     );
+//   };
+
+//   const outfit = useMemo(() => {
+//     const source = favorites.length >= 2 ? favorites : wardrobe;
+
+//     const top = chooseItem(source, ['shirt', 'top']);
+//     const bottom = chooseItem(source, ['pants', 'shorts', 'bottom']);
+//     const shoes = chooseItem(source, ['shoes', 'sneakers', 'boots']);
+
+//     return {top, bottom, shoes};
+//   }, [wardrobe]);
+
+//   return outfit;
+// }
