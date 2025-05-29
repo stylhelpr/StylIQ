@@ -19,7 +19,7 @@ type Props = {
   prompt?: string;
 };
 
-export default function OutfitScreen({wardrobe, prompt}: Props) {
+export default function OutfitScreen({wardrobe, prompt, navigate}: Props) {
   const {theme} = useAppTheme();
 
   // Extract keywords from prompt string

@@ -261,26 +261,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <ScrollView
         style={styles.container}
         contentContainerStyle={{paddingBottom: 90}}>
-        <View style={styles.topRow}>
-          <Text style={styles.greeting}>Hello, Guest</Text>
-          <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconCircle}>
-              <MaterialIcons
-                name="notifications"
-                size={17}
-                color={theme.colors.icon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconCircle}>
-              <MaterialIcons
-                name="person"
-                size={17}
-                color={theme.colors.icon}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <View style={styles.progressBox}>
           <View style={styles.progressContent}>
             <Text style={styles.progressText}>

@@ -1,4 +1,10 @@
-export type Screen = 'Home' | 'Profile' | 'Explore' | 'Closet' | 'Settings';
+export type Screen =
+  | 'Home'
+  | 'Profile'
+  | 'Explore'
+  | 'Closet'
+  | 'Settings'
+  | 'Search';
 
 export type NavigateFunction = (
   screen: Screen,

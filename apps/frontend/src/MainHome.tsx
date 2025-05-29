@@ -11,7 +11,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
-// 🔧 Update this import:
+
 import {
   getMessaging,
   AuthorizationStatus,
