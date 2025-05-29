@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -27,10 +27,19 @@ type Props = {
     category?: string;
     color?: string;
     tags?: string[];
+    favorite?: boolean;
   }[];
 };
+
 export default function ClosetScreen({navigate, wardrobe}: Props) {
   const {theme} = useAppTheme();
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const visibleItems = showFavoritesOnly
+    ? wardrobe.filter(i => i.favorite)
+    : wardrobe.length > 0
+    ? wardrobe
+    : items.map(i => ({...i, favorite: false}));
 
   const styles = StyleSheet.create({
     container: {
@@ -53,7 +62,7 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
     card: {
       width: imageSize,
       marginBottom: ITEM_MARGIN * 2,
-      backgroundColor: theme.colors.card,
+      backgroundColor: theme.colors.surface,
       borderRadius: 16,
       overflow: 'hidden',
       shadowColor: '#000',
@@ -85,17 +94,67 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
     },
   });
 
+  const toggleFavorite = (id: string) => {
+    const updated = wardrobe.map(item =>
+      item.id === id ? {...item, favorite: !item.favorite} : item,
+    );
+    // update wardrobe in parent
+    navigate('Closet', {updatedWardrobe: updated});
+  };
+
   return (
     <View style={{flex: 1}}>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Closet</Text>
+
+        {/* Toggle between All and Favorites */}
+        <View style={{flexDirection: 'row', marginBottom: 12, gap: 12}}>
+          <TouchableOpacity onPress={() => setShowFavoritesOnly(false)}>
+            <Text
+              style={{
+                color: showFavoritesOnly ? '#999' : theme.colors.primary,
+                fontWeight: 'bold',
+              }}>
+              All
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowFavoritesOnly(true)}>
+            <Text
+              style={{
+                color: showFavoritesOnly ? theme.colors.primary : '#999',
+                fontWeight: 'bold',
+              }}>
+              Favorites
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Wardrobe Grid */}
         <View style={styles.grid}>
-          {(wardrobe.length > 0 ? wardrobe : items).map(item => (
+          {visibleItems.map(item => (
             <Pressable
               key={item.id}
               style={styles.card}
               onPress={() => navigate('ItemDetail', {itemId: item.id, item})}>
               <Image source={{uri: item.image}} style={styles.image} />
+
+              {/* Favorite Toggle Button */}
+              <TouchableOpacity
+                onPress={() => toggleFavorite(item.id)}
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  padding: 4,
+                }}>
+                <MaterialIcons
+                  name={item.favorite ? 'star' : 'star-border'}
+                  size={22}
+                  color={item.favorite ? theme.colors.primary : '#999'}
+                />
+              </TouchableOpacity>
+
               <View style={styles.labelContainer}>
                 <Text style={styles.label}>{item.name}</Text>
               </View>
@@ -104,6 +163,7 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
         </View>
       </ScrollView>
 
+      {/* Add Item FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => navigate('AddItem')}>
         <MaterialIcons name="add" size={28} color="#fff" />
       </TouchableOpacity>

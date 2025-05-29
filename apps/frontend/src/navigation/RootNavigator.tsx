@@ -35,8 +35,20 @@ const RootNavigator = () => {
   };
 
   const addToWardrobe = (item: any) => {
-    setWardrobe(prev => [item, ...prev]);
+    const newItem = {
+      ...item,
+      favorite: false, // default not favorited
+    };
+    setWardrobe(prev => [newItem, ...prev]); // insert at top
     setCurrentScreen('Closet');
+  };
+
+  const toggleFavorite = (id: string) => {
+    setWardrobe(prev =>
+      prev.map(item =>
+        item.id === id ? {...item, favorite: !item.favorite} : item,
+      ),
+    );
   };
 
   const renderScreen = () => {
@@ -51,6 +63,7 @@ const RootNavigator = () => {
             key={wardrobe.length}
             navigate={navigate}
             wardrobe={wardrobe}
+            toggleFavorite={toggleFavorite}
           />
         );
       case 'Settings':
