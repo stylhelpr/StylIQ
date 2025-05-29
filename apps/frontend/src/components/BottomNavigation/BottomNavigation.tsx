@@ -38,15 +38,14 @@ const BottomNavigation = ({
   }>({
     navBar: {
       flexDirection: 'row',
-      backgroundColor: theme.colors.background,
-      height: 62,
+      backgroundColor: theme.colors.surface,
+      height: 67,
       justifyContent: 'space-around',
       alignItems: 'center',
       borderTopWidth: 0.3,
-      borderTopColor: theme.colors.surfaceBorder,
       width: '100%',
       padding: 10,
-      marginBottom: 31,
+      marginBottom: 15,
     },
     tabButton: {
       alignItems: 'center',
@@ -54,11 +53,11 @@ const BottomNavigation = ({
     },
     tabLabel: {
       fontSize: 11,
-      color: theme.colors.foreground2,
+      color: theme.colors.foreground,
       marginTop: 3,
     },
     activeLabel: {
-      color: theme.colors.primary,
+      color: theme.colors.foreground,
       fontWeight: '600',
     },
     fabContainer: {
@@ -69,7 +68,7 @@ const BottomNavigation = ({
       padding: 2,
     },
     fab: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: 'red',
       borderRadius: 35,
       width: 50,
       height: 50,

@@ -12,7 +12,7 @@ import {
 import {useAppTheme} from '../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
-const ITEM_MARGIN = 12;
+const ITEM_MARGIN = 5;
 const MIN_ITEM_WIDTH = 160; // Minimum width per item, tweak this as needed
 
 type Props = {
@@ -60,6 +60,7 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
       paddingHorizontal: ITEM_MARGIN,
       paddingTop: 24,
       backgroundColor: theme.colors.background,
+      marginHorizontal: 3,
     },
     title: {
       fontSize: 28,
@@ -82,11 +83,11 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
       // shadowOpacity: 0.5,
       // shadowRadius: 7,
       // elevation: 10,
-      shadowColor: '#000', // black shadow color
-      shadowOffset: {width: 10, height: 7}, // horizontal & vertical offset
-      shadowOpacity: 0.7, // opacity of shadow
-      shadowRadius: 7, // blur radius
-      elevation: 10,
+      // shadowColor: '#000', // black shadow color
+      // shadowOffset: {width: 10, height: 7}, // horizontal & vertical offset
+      // shadowOpacity: 0.7, // opacity of shadow
+      // shadowRadius: 7, // blur radius
+      // elevation: 10,
       position: 'relative',
     },
     image: {
