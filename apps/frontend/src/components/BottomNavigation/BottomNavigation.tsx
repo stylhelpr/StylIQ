@@ -33,8 +33,6 @@ const BottomNavigation = ({
     tabButton: ViewStyle;
     tabLabel: TextStyle;
     activeLabel: TextStyle;
-    fabContainer: ViewStyle;
-    fab: ViewStyle;
   }>({
     navBar: {
       flexDirection: 'row',
@@ -57,23 +55,8 @@ const BottomNavigation = ({
       marginTop: 3,
     },
     activeLabel: {
-      color: theme.colors.foreground,
+      color: theme.colors.primary,
       fontWeight: '600',
-    },
-    fabContainer: {
-      position: 'relative',
-      top: -4,
-      backgroundColor: theme.colors.background,
-      borderRadius: 35,
-      padding: 2,
-    },
-    fab: {
-      backgroundColor: 'red',
-      borderRadius: 35,
-      width: 50,
-      height: 50,
-      justifyContent: 'center',
-      alignItems: 'center',
     },
   });
 
@@ -108,13 +91,6 @@ const BottomNavigation = ({
           onPress={() => navigate('Closet')}
           isActive={current === 'Closet'}
         />
-        {/* <TouchableOpacity
-          style={themedStyles.fabContainer}
-          onPress={() => navigate('Voice')}>
-          <View style={themedStyles.fab}>
-            <Icon name="add-circle-outline" size={30} color="#fff" />
-          </View>
-        </TouchableOpacity> */}
         <TabButton
           icon="checkroom"
           label="Outfit"
@@ -133,18 +109,162 @@ const BottomNavigation = ({
           onPress={() => navigate('Profile')}
           isActive={current === 'Profile'}
         />
-        <TabButton
-          icon="settings"
-          label="Settings"
-          onPress={() => navigate('Settings')}
-          isActive={current === 'Settings'}
-        />
       </View>
     </SafeAreaView>
   );
 };
 
 export default BottomNavigation;
+
+//////////////
+
+// // components/BottomNavigation/BottomNavigation.tsx
+// import React from 'react';
+// import {
+//   View,
+//   TouchableOpacity,
+//   Text,
+//   StyleSheet,
+//   ViewStyle,
+//   TextStyle,
+// } from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+
+// interface TabButtonProps {
+//   icon: string;
+//   label: string;
+//   onPress: () => void;
+//   isActive?: boolean;
+// }
+
+// const BottomNavigation = ({
+//   current,
+//   navigate,
+// }: {
+//   current: string;
+//   navigate: (screen: string) => void;
+// }) => {
+//   const {theme} = useAppTheme();
+
+//   const themedStyles = StyleSheet.create<{
+//     navBar: ViewStyle;
+//     tabButton: ViewStyle;
+//     tabLabel: TextStyle;
+//     activeLabel: TextStyle;
+//     fabContainer: ViewStyle;
+//     fab: ViewStyle;
+//   }>({
+//     navBar: {
+//       flexDirection: 'row',
+//       backgroundColor: theme.colors.surface,
+//       height: 67,
+//       justifyContent: 'space-around',
+//       alignItems: 'center',
+//       borderTopWidth: 0.3,
+//       width: '100%',
+//       padding: 10,
+//       marginBottom: 15,
+//     },
+//     tabButton: {
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     tabLabel: {
+//       fontSize: 11,
+//       color: theme.colors.foreground,
+//       marginTop: 3,
+//     },
+//     activeLabel: {
+//       color: theme.colors.foreground,
+//       fontWeight: '600',
+//     },
+//     fabContainer: {
+//       position: 'relative',
+//       top: -4,
+//       backgroundColor: theme.colors.background,
+//       borderRadius: 35,
+//       padding: 2,
+//     },
+//     fab: {
+//       backgroundColor: 'red',
+//       borderRadius: 35,
+//       width: 50,
+//       height: 50,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//   });
+
+//   const TabButton = ({icon, label, onPress, isActive}: TabButtonProps) => (
+//     <TouchableOpacity style={themedStyles.tabButton} onPress={onPress}>
+//       <Icon
+//         name={icon}
+//         size={28}
+//         color={isActive ? theme.colors.primary : theme.colors.foreground2}
+//       />
+//       <Text
+//         style={[themedStyles.tabLabel, isActive && themedStyles.activeLabel]}>
+//         {label}
+//       </Text>
+//     </TouchableOpacity>
+//   );
+
+//   return (
+//     <SafeAreaView
+//       edges={['bottom']}
+//       style={{backgroundColor: theme.colors.background}}>
+//       <View style={themedStyles.navBar}>
+//         <TabButton
+//           icon="home"
+//           label="Home"
+//           onPress={() => navigate('Home')}
+//           isActive={current === 'Home'}
+//         />
+//         <TabButton
+//           icon="style"
+//           label="Closet"
+//           onPress={() => navigate('Closet')}
+//           isActive={current === 'Closet'}
+//         />
+//         {/* <TouchableOpacity
+//           style={themedStyles.fabContainer}
+//           onPress={() => navigate('Voice')}>
+//           <View style={themedStyles.fab}>
+//             <Icon name="add-circle-outline" size={30} color="#fff" />
+//           </View>
+//         </TouchableOpacity> */}
+//         <TabButton
+//           icon="checkroom"
+//           label="Outfit"
+//           onPress={() => navigate('Outfit')}
+//           isActive={current === 'Outfit'}
+//         />
+//         <TabButton
+//           icon="explore"
+//           label="Explore"
+//           onPress={() => navigate('Explore')}
+//           isActive={current === 'Explore'}
+//         />
+//         <TabButton
+//           icon="person"
+//           label="Profile"
+//           onPress={() => navigate('Profile')}
+//           isActive={current === 'Profile'}
+//         />
+//         <TabButton
+//           icon="settings"
+//           label="Settings"
+//           onPress={() => navigate('Settings')}
+//           isActive={current === 'Settings'}
+//         />
+//       </View>
+//     </SafeAreaView>
+//   );
+// };
+
+// export default BottomNavigation;
 
 ////////////////
 
