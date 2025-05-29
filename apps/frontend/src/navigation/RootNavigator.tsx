@@ -5,17 +5,27 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ClosetScreen from '../screens/ClosetScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ItemDetailScreen from '../components/ItemDetailScreen/ItemDetailScreen';
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import {useAppTheme} from '../context/ThemeContext';
 
-type Screen = 'Home' | 'Profile' | 'Explore' | 'Closet' | 'Settings' | 'Voice';
+type Screen =
+  | 'Home'
+  | 'Profile'
+  | 'Explore'
+  | 'Closet'
+  | 'Settings'
+  | 'Voice'
+  | 'ItemDetail';
 
 const RootNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
+  const [screenParams, setScreenParams] = useState<any>(null);
   const {theme} = useAppTheme();
 
-  const navigate = (screen: Screen) => {
+  const navigate = (screen: Screen, params?: any) => {
     setCurrentScreen(screen);
+    setScreenParams(params || null);
   };
 
   const renderScreen = () => {
@@ -28,6 +38,13 @@ const RootNavigator = () => {
         return <ClosetScreen navigate={navigate} />;
       case 'Settings':
         return <SettingsScreen navigate={navigate} />;
+      case 'ItemDetail':
+        return (
+          <ItemDetailScreen
+            route={{params: screenParams}}
+            navigation={{goBack: () => setCurrentScreen('Closet')}}
+          />
+        );
       default:
         return <HomeScreen navigate={navigate} />;
     }
@@ -48,11 +65,69 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    marginTop: 55, // 👈 Add your top margin here
+    marginTop: 55,
   },
 });
 
 export default RootNavigator;
+
+/////////////
+
+// import React, {useState} from 'react';
+// import {View, StyleSheet} from 'react-native';
+// import HomeScreen from '../screens/HomeScreen';
+// import ProfileScreen from '../screens/ProfileScreen';
+// import ExploreScreen from '../screens/ExploreScreen';
+// import ClosetScreen from '../screens/ClosetScreen';
+// import SettingsScreen from '../screens/SettingsScreen';
+// import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
+// import {useAppTheme} from '../context/ThemeContext';
+
+// type Screen = 'Home' | 'Profile' | 'Explore' | 'Closet' | 'Settings' | 'Voice';
+
+// const RootNavigator = () => {
+//   const [currentScreen, setCurrentScreen] = useState<Screen>('Home');
+//   const {theme} = useAppTheme();
+
+//   const navigate = (screen: Screen) => {
+//     setCurrentScreen(screen);
+//   };
+
+//   const renderScreen = () => {
+//     switch (currentScreen) {
+//       case 'Profile':
+//         return <ProfileScreen navigate={navigate} />;
+//       case 'Explore':
+//         return <ExploreScreen navigate={navigate} />;
+//       case 'Closet':
+//         return <ClosetScreen navigate={navigate} />;
+//       case 'Settings':
+//         return <SettingsScreen navigate={navigate} />;
+//       default:
+//         return <HomeScreen navigate={navigate} />;
+//     }
+//   };
+
+//   return (
+//     <View
+//       style={[styles.container, {backgroundColor: theme.colors.background}]}>
+//       <View style={styles.screen}>{renderScreen()}</View>
+//       <BottomNavigation current={currentScreen} navigate={navigate} />
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   screen: {
+//     flex: 1,
+//     marginTop: 55, // 👈 Add your top margin here
+//   },
+// });
+
+// export default RootNavigator;
 
 /////////////
 
