@@ -327,6 +327,8 @@ PODS:
     - React-Core
   - react-native-voice (3.2.4):
     - React-Core
+  - react-native-webview (13.13.5):
+    - React-Core
   - React-perflogger (0.70.10)
   - React-RCTActionSheet (0.70.10):
     - React-Core/RCTActionSheetHeaders (= 0.70.10)
@@ -457,6 +459,7 @@ DEPENDENCIES:
   - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
+  - react-native-webview (from `../node_modules/react-native-webview`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
   - React-RCTAnimation (from `../node_modules/react-native/Libraries/NativeAnimation`)
@@ -567,6 +570,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-voice:
     :path: "../node_modules/@react-native-voice/voice"
+  react-native-webview:
+    :path: "../node_modules/react-native-webview"
   React-perflogger:
     :path: "../node_modules/react-native/ReactCommon/reactperflogger"
   React-RCTActionSheet:
@@ -662,6 +667,7 @@ SPEC CHECKSUMS:
   react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-safe-area-context: dde2052b903c11d677c320b599c3244021c34ce8
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
+  react-native-webview: 0b3b18b003c19110c51bccc651932c127d97cc69
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc
   React-RCTActionSheet: cd3d76501a6069e164986b93f144be34b593955c
   React-RCTAnimation: 2d09db635202e5d6f66de596f5a6b38389fe76ec

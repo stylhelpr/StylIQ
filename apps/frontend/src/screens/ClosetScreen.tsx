@@ -22,12 +22,20 @@ const MIN_ITEM_WIDTH = 160;
 const categories: ('All' | MainCategory)[] = [
   'All',
   'Tops',
-  'Outerwear',
   'Bottoms',
+  'Outerwear',
   'Shoes',
   'Accessories',
   'Undergarments',
   'Activewear',
+  'Formalwear',
+  'Loungewear',
+  'Sleepwear',
+  'Swimwear',
+  'Maternity',
+  'Unisex',
+  'Costumes',
+  'Traditional Wear',
 ];
 
 const sortOptions = [

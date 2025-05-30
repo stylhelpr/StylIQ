@@ -9,6 +9,7 @@ export const theme = {
       background: '#fdfdfd',
       foreground: '#1C1C1C',
       foreground2: '#707070',
+      cardBackground: '#f2f2f7', // same light gray
       header: '#D9D9D9',
       muted: '#EAEAEA',
       input: '#EAEAEA',
@@ -40,6 +41,7 @@ export const theme = {
       background: '#00050e',
       foreground: '#fefeff',
       foreground2: '#7a7a7a',
+      cardBackground: '#1C1C1E', // iOS systemGray6
       header: '#1E1E1E',
       muted: '#757575',
       input: '#EAEAEA',
