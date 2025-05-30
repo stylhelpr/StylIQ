@@ -48,7 +48,6 @@ const RootNavigator = () => {
     },
     screen: {
       flex: 1,
-      marginTop: 55,
     },
     debugButton: {
       position: 'absolute',
