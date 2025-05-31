@@ -1,6 +1,12 @@
 import {useMemo} from 'react';
 
 export type WardrobeItem = {
+  mainCategory: any;
+  subCategory: any;
+  material: any;
+  fit: any;
+  size: any;
+  notes: any;
   id: string;
   image: string;
   name: string;
@@ -44,7 +50,6 @@ export function useOutfitSuggestion(
   const outfit = useMemo(() => {
     const source = favorites.length >= 2 ? favorites : wardrobe;
 
-    // Use keywords if provided, else use defaults
     const top = chooseItem(
       source,
       keywords.length ? keywords : ['shirt', 'top'],
@@ -64,11 +69,17 @@ export function useOutfitSuggestion(
   return outfit;
 }
 
-////////////
+//////////
 
 // import {useMemo} from 'react';
 
 // export type WardrobeItem = {
+//   mainCategory: any;
+//   subCategory: any;
+//   material: any;
+//   fit: any;
+//   size: any;
+//   notes: any;
 //   id: string;
 //   image: string;
 //   name: string;
@@ -84,7 +95,10 @@ export function useOutfitSuggestion(
 //   shoes?: WardrobeItem;
 // };
 
-// export function useOutfitSuggestion(wardrobe: WardrobeItem[]): Outfit {
+// export function useOutfitSuggestion(
+//   wardrobe: WardrobeItem[],
+//   keywords: string[] = [],
+// ): Outfit {
 //   const favorites = wardrobe.filter(i => i.favorite);
 
 //   const chooseItem = (
@@ -92,7 +106,9 @@ export function useOutfitSuggestion(
 //     keywords: string[],
 //   ): WardrobeItem | undefined => {
 //     const pool = items.find(
-//       i => i.category && keywords.some(k => i.category!.includes(k)),
+//       i =>
+//         i.category &&
+//         keywords.some(k => i.category!.toLowerCase().includes(k.toLowerCase())),
 //     )
 //       ? items
 //       : wardrobe;
@@ -107,12 +123,22 @@ export function useOutfitSuggestion(
 //   const outfit = useMemo(() => {
 //     const source = favorites.length >= 2 ? favorites : wardrobe;
 
-//     const top = chooseItem(source, ['shirt', 'top']);
-//     const bottom = chooseItem(source, ['pants', 'shorts', 'bottom']);
-//     const shoes = chooseItem(source, ['shoes', 'sneakers', 'boots']);
+//     // Use keywords if provided, else use defaults
+//     const top = chooseItem(
+//       source,
+//       keywords.length ? keywords : ['shirt', 'top'],
+//     );
+//     const bottom = chooseItem(
+//       source,
+//       keywords.length ? keywords : ['pants', 'shorts', 'bottom'],
+//     );
+//     const shoes = chooseItem(
+//       source,
+//       keywords.length ? keywords : ['shoes', 'sneakers', 'boots'],
+//     );
 
 //     return {top, bottom, shoes};
-//   }, [wardrobe]);
+//   }, [wardrobe, keywords]);
 
 //   return outfit;
 // }

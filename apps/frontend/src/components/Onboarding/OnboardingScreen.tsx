@@ -1,124 +1,118 @@
+// OnboardingScreen.tsx (Updated)
 import React, {useState} from 'react';
 import {
   View,
   Text,
-  TextInput,
-  ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 
-export default function OnboardingScreen() {
+export default function OnboardingScreen({
+  navigate,
+}: {
+  navigate: (screen: string) => void;
+}) {
   const {theme} = useAppTheme();
-  const [form, setForm] = useState({
-    name: '',
-    age: '',
-    height: '',
-    weight: '',
-    chest: '',
-    waist: '',
-    hips: '',
-    inseam: '',
-    shoeSize: '',
-    shirtSize: '',
-    pantSize: '',
-    bodyType: '',
-    skinTone: '',
-    gender: '',
-    favoriteBrands: '',
-    fitPreference: '',
-    preferredColors: '',
-    occasions: '',
-    styleGoal: '',
-    lifestyle: '',
-    budget: '',
-    boldness: '',
-    helpAreas: '',
+  const [name, setName] = useState('');
+  const [style, setStyle] = useState('');
+  const [favoriteColor, setFavoriteColor] = useState('');
+
+  const styles = StyleSheet.create({
+    container: {flex: 1},
+    content: {padding: 20, paddingTop: 60},
+    heading: {
+      fontSize: 26,
+      fontWeight: '600',
+      marginBottom: 10,
+      color: theme.colors.foreground,
+    },
+    sub: {fontSize: 16, color: '#888', marginBottom: 24},
+    input: {
+      borderWidth: 1,
+      borderRadius: 10,
+      padding: 14,
+      marginBottom: 16,
+      fontSize: 16,
+    },
+    button: {
+      paddingVertical: 14,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    buttonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    nudge: {
+      marginTop: 24,
+      fontSize: 14,
+      color: '#aaa',
+      textAlign: 'center',
+    },
   });
 
-  const handleChange = (key: string, value: string) => {
-    setForm(prev => ({...prev, [key]: value}));
+  const handleContinue = () => {
+    // save minimal profile
+    // then navigate to profile or home
+    navigate('Home');
   };
 
   return (
     <ScrollView
       style={[styles.container, {backgroundColor: theme.colors.background}]}
       contentContainerStyle={styles.content}>
-      <Text style={[styles.title, {color: theme.colors.primary}]}>
-        Welcome to StylIQ
-      </Text>
+      <Text style={styles.heading}>Welcome to StylIQ</Text>
+      <Text style={styles.sub}>Let’s set up your style basics</Text>
 
-      {Object.entries(form).map(([key, value]) => (
-        <View key={key} style={styles.inputGroup}>
-          <Text style={[styles.label, {color: theme.colors.foreground}]}>
-            {key
-              .replace(/([A-Z])/g, ' $1')
-              .replace(/^./, str => str.toUpperCase())}
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                color: theme.colors.foreground,
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.surface,
-              },
-            ]}
-            placeholder={`Enter ${key}`}
-            placeholderTextColor="#999"
-            value={value}
-            onChangeText={text => handleChange(key, text)}
-          />
-        </View>
-      ))}
+      <TextInput
+        placeholder="Your Name"
+        placeholderTextColor={theme.colors.muted}
+        style={[
+          styles.input,
+          {color: theme.colors.foreground, borderColor: theme.colors.surface},
+        ]}
+        value={name}
+        onChangeText={setName}
+      />
 
-      <TouchableOpacity style={styles.submitButton}>
-        <Text style={styles.submitText}>Save & Continue</Text>
+      <TextInput
+        placeholder="Describe your style (e.g., modern, vintage)"
+        placeholderTextColor={theme.colors.muted}
+        style={[
+          styles.input,
+          {color: theme.colors.foreground, borderColor: theme.colors.surface},
+        ]}
+        value={style}
+        onChangeText={setStyle}
+      />
+
+      <TextInput
+        placeholder="Favorite color to wear"
+        placeholderTextColor={theme.colors.muted}
+        style={[
+          styles.input,
+          {color: theme.colors.foreground, borderColor: theme.colors.surface},
+        ]}
+        value={favoriteColor}
+        onChangeText={setFavoriteColor}
+      />
+
+      <TouchableOpacity
+        onPress={handleContinue}
+        style={[styles.button, {backgroundColor: theme.colors.primary}]}>
+        <Text style={[styles.buttonText, {color: theme.colors.background}]}>
+          Continue
+        </Text>
       </TouchableOpacity>
+
+      <Text style={styles.nudge}>
+        You can complete your full style profile later for even better outfit
+        suggestions 🎯
+      </Text>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  input: {
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    fontSize: 15,
-  },
-  submitButton: {
-    backgroundColor: '#405de6',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginTop: 30,
-  },
-  submitText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

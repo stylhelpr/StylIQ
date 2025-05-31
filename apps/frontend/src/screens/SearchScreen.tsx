@@ -22,7 +22,21 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
   const [query, setQuery] = useState('');
 
   const filteredItems = wardrobe.filter(item =>
-    item.name?.toLowerCase().includes(query.toLowerCase()),
+    [
+      item.name,
+      item.mainCategory,
+      item.subCategory,
+      item.color,
+      item.material,
+      item.fit,
+      item.size,
+      item.tags?.join(' '),
+      item.notes,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(query.toLowerCase()),
   );
 
   return (
@@ -129,7 +143,7 @@ const styles = StyleSheet.create({
   },
 });
 
-////////////
+//////////////
 
 // import React, {useState} from 'react';
 // import {
@@ -147,10 +161,10 @@ const styles = StyleSheet.create({
 // type Props = {
 //   navigate: (screen: string, params?: any) => void;
 //   goBack: () => void;
-//   wardrobe: WardrobeItem[];
+//   wardrobe?: WardrobeItem[];
 // };
 
-// export default function SearchScreen({navigate, goBack, wardrobe}: Props) {
+// export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
 //   const {theme} = useAppTheme();
 //   const [query, setQuery] = useState('');
 

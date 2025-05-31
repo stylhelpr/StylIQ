@@ -9,14 +9,72 @@ import {
 import {useAppTheme} from '../context/ThemeContext';
 import BackHeader from '../components/Backheader/Backheader';
 import LinearGradient from 'react-native-linear-gradient';
+import {useProfileProgress} from '../hooks/useProfileProgress';
+import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
 
 type Props = {
   navigate: (screen: string) => void;
 };
 
+const userProfile = {
+  bodyType: 'Athletic',
+  fitPreferences: ['Slim'],
+  colorPreferences: ['Black', 'White'],
+  styleTags: ['Minimalist'],
+  measurements: {height: 178, weight: 75},
+  favoriteBrands: ['Eton', 'Amiri'],
+  climate: 'Mild',
+  lifestyle: 'Urban',
+  proportions: 'Balanced',
+  personality: 'Confident',
+};
+
+const wardrobe: WardrobeItem[] = [
+  {
+    id: '1',
+    name: 'Black Shirt',
+    image: 'https://example.com/images/black-shirt.jpg',
+    mainCategory: 'Tops',
+    subCategory: 'Shirt',
+    color: 'Black',
+    material: 'Cotton',
+    fit: 'Slim',
+    size: 'M',
+    tags: ['formal', 'essential'],
+    notes: 'Good for evening wear',
+  },
+  {
+    id: '2',
+    name: 'White Tee',
+    image: 'https://example.com/images/white-tee.jpg',
+    mainCategory: 'Tops',
+    subCategory: 'T-Shirt',
+    color: 'White',
+    material: 'Cotton',
+    fit: 'Regular',
+    size: 'L',
+    tags: ['casual', 'summer'],
+    notes: '',
+  },
+  {
+    id: '3',
+    name: 'Slim Jeans',
+    image: 'https://example.com/images/slim-jeans.jpg',
+    mainCategory: 'Bottoms',
+    subCategory: 'Jeans',
+    color: 'Dark Blue',
+    material: 'Denim',
+    fit: 'Slim',
+    size: '32',
+    tags: ['casual', 'denim'],
+    notes: '',
+  },
+];
+
 export default function StyleProfileScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const progress = useProfileProgress(userProfile, wardrobe);
 
   const styles = StyleSheet.create({
     container: {
@@ -51,13 +109,41 @@ export default function StyleProfileScreen({navigate}: Props) {
     fadeBottom: {
       flex: 1,
     },
+    progressContainer: {
+      marginTop: 16,
+      marginHorizontal: 24,
+    },
+    progressLabel: {
+      fontSize: 14,
+      color: theme.colors.foreground,
+      marginBottom: 4,
+    },
+    progressBar: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#ccc',
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: '#4caf50',
+      borderRadius: 4,
+    },
   });
 
   return (
     <View style={styles.container}>
       <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
 
-      <Text style={styles.hint}>↓ Scroll to see more ↓</Text>
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressLabel}>
+          Style Profile {progress}% complete
+        </Text>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, {width: `${progress}%`}]} />
+        </View>
+        {/* <Text style={styles.hint}>↓ Scroll to see more ↓</Text> */}
+      </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <TouchableOpacity onPress={() => navigate('Preferences')}>
