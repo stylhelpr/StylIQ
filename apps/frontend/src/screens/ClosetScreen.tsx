@@ -16,7 +16,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {getInferredCategory} from '../utils/categoryUtils';
 import {MainCategory, Subcategory} from '../types/categoryTypes';
 
-const ITEM_MARGIN = 5;
+const ITEM_MARGIN = 3;
 const MIN_ITEM_WIDTH = 160;
 
 const categories: ('All' | MainCategory)[] = [
@@ -138,7 +138,7 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
     iconButton: {
       padding: 8,
       borderRadius: 8,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: '#405de6',
       elevation: 2,
     },
     grid: {
@@ -170,7 +170,7 @@ export default function ClosetScreen({navigate, wardrobe}: Props) {
       position: 'absolute',
       bottom: 24,
       right: 24,
-      backgroundColor: theme.colors.primary,
+      backgroundColor: '#405de6',
       padding: 16,
       borderRadius: 32,
       elevation: 6,

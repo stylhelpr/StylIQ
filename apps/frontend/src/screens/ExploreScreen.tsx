@@ -108,6 +108,189 @@ export default function ExploreScreen() {
   const {speech, isRecording, startListening, stopListening} =
     useVoiceControl();
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingTop: 12,
+      paddingBottom: 24,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      paddingHorizontal: 20,
+      marginBottom: 12,
+      letterSpacing: -0.4,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      paddingHorizontal: 20,
+      marginBottom: 8,
+      marginTop: 20,
+      letterSpacing: -0.2,
+    },
+    promptRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      marginBottom: 24,
+    },
+    input: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      height: 44,
+      marginRight: 10,
+      borderColor: '#ccc',
+      backgroundColor: theme.colors.surface,
+      fontSize: 15,
+    },
+    promptButton: {
+      backgroundColor: '#000',
+      padding: 12,
+      borderRadius: 14,
+    },
+    carousel: {
+      paddingLeft: 20,
+      paddingBottom: 0,
+    },
+    card: {
+      marginRight: 12,
+      paddingVertical: 14,
+      backgroundColor: 'red',
+      borderRadius: 16,
+      marginBottom: 20,
+    },
+    AISuggestcard: {
+      marginRight: 12,
+      padding: 14,
+      backgroundColor: 'red',
+      borderRadius: 16,
+      marginBottom: 20,
+    },
+    image: {
+      width: 160,
+      height: 140,
+      borderRadius: 14,
+      backgroundColor: theme.colors.surface,
+    },
+    cardTitle: {
+      paddingTop: 10,
+      fontSize: 14,
+      fontWeight: '500',
+      textAlign: 'center',
+      color: '#333',
+    },
+    suggestionText: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      marginBottom: 12,
+      lineHeight: 20,
+    },
+    suggestedImage: {
+      width: '100%',
+      height: 160,
+      borderRadius: 16,
+      marginBottom: 10,
+    },
+    missingItem: {
+      fontSize: 15,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    price: {
+      fontSize: 14,
+      color: '#666',
+      marginBottom: 6,
+    },
+    gridContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+    },
+    gridCard: {
+      width: '47%',
+      marginBottom: 18,
+      borderRadius: 16,
+      overflow: 'hidden',
+      paddingVertical: 10,
+      backgroundColor: theme.colors.surface,
+      shadowColor: '#000',
+      shadowOpacity: 0.03,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    gridImage: {
+      width: '100%',
+      height: 110,
+      borderRadius: 14,
+      marginBottom: 8,
+    },
+    gridTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 2,
+      paddingHorizontal: 8,
+    },
+    gridSource: {
+      fontSize: 12,
+      color: '#777',
+      paddingHorizontal: 8,
+    },
+    inspoCard: {
+      width: 90,
+      marginRight: 14,
+      borderRadius: 16,
+      padding: 8,
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      shadowColor: '#000',
+      shadowOpacity: 0.03,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    inspoImage: {
+      width: 90,
+      height: 90,
+      borderRadius: 12,
+      marginBottom: 6,
+      backgroundColor: theme.colors.surface,
+    },
+    inspoText: {
+      fontSize: 12,
+      fontWeight: '500',
+      textAlign: 'center',
+      color: '#333',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.9)',
+      paddingTop: 64,
+    },
+    modalContent: {
+      flex: 1,
+      backgroundColor: '#000',
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      overflow: 'hidden',
+    },
+    webHeader: {
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      backgroundColor: '#000',
+      borderBottomWidth: 0.5,
+      borderColor: '#222',
+    },
+    closeText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '500',
+      letterSpacing: 0.4,
+    },
+  });
+
   useEffect(() => {
     setTimeout(() => {
       setTrends(dummyTrends);
@@ -168,7 +351,7 @@ export default function ExploreScreen() {
           <MaterialIcons
             name={isRecording ? 'hearing' : 'mic'}
             size={22}
-            color="#fff"
+            color="#405de6"
           />
         </Pressable>
       </View>
@@ -181,7 +364,7 @@ export default function ExploreScreen() {
           <TouchableOpacity
             key={look.id}
             style={[
-              styles.aiCard,
+              styles.card,
               {backgroundColor: theme.colors.cardBackground},
             ]}>
             <Image
@@ -205,7 +388,10 @@ export default function ExploreScreen() {
         AI Suggests
       </Text>
       <View
-        style={[styles.aiCard, {backgroundColor: theme.colors.cardBackground}]}>
+        style={[
+          styles.AISuggestcard,
+          {backgroundColor: theme.colors.cardBackground},
+        ]}>
         <Text style={[styles.suggestionText, {color: theme.colors.foreground}]}>
           Pair your navy chinos with white sneakers and a denim overshirt.
           Missing something?
@@ -316,181 +502,6 @@ export default function ExploreScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    letterSpacing: -0.4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 20,
-    letterSpacing: -0.2,
-  },
-  promptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 44,
-    marginRight: 10,
-    borderColor: '#ccc',
-    backgroundColor: '#fff',
-    fontSize: 15,
-  },
-  promptButton: {
-    backgroundColor: '#000',
-    padding: 12,
-    borderRadius: 14,
-  },
-  carousel: {
-    paddingLeft: 20,
-    paddingBottom: 0,
-  },
-  aiCard: {
-    marginRight: 12,
-    padding: 14,
-    backgroundColor: '#f2f2f7',
-    borderRadius: 16,
-    marginBottom: 20,
-  },
-  image: {
-    width: 160,
-    height: 140,
-    borderRadius: 14,
-    backgroundColor: '#eaeaea',
-  },
-  cardTitle: {
-    paddingTop: 10,
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-    color: '#333',
-  },
-  suggestionText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  suggestedImage: {
-    width: '100%',
-    height: 160,
-    borderRadius: 16,
-    marginBottom: 10,
-  },
-  missingItem: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  price: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 6,
-  },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  gridCard: {
-    width: '47%',
-    marginBottom: 18,
-    borderRadius: 16,
-    overflow: 'hidden',
-    padding: 10,
-    backgroundColor: '#f9f9fb',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  gridImage: {
-    width: '100%',
-    height: 110,
-    borderRadius: 14,
-    marginBottom: 8,
-  },
-  gridTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  gridSource: {
-    fontSize: 12,
-    color: '#777',
-  },
-  inspoCard: {
-    width: 110,
-    marginRight: 14,
-    borderRadius: 16,
-    padding: 8,
-    alignItems: 'center',
-    backgroundColor: '#f9f9fb',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  inspoImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 12,
-    marginBottom: 6,
-    backgroundColor: '#eaeaea',
-  },
-  inspoText: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-    color: '#333',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    paddingTop: 64,
-  },
-  modalContent: {
-    flex: 1,
-    backgroundColor: '#000',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-  },
-  webHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#000',
-    borderBottomWidth: 0.5,
-    borderColor: '#222',
-  },
-  closeText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    letterSpacing: 0.4,
-  },
-});
 
 /////////////
 

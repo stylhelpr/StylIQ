@@ -348,7 +348,7 @@ export default function ProfileScreen({navigate, user, wardrobe}: Props) {
         <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => navigate('Settings')}>
-          <Icon name="settings" size={24} color={theme.colors.primary} />
+          <Icon name="settings" size={24} color="#405de6" />
         </TouchableOpacity>
 
         {/* Header Row */}
