@@ -157,6 +157,12 @@ export default function ProfileScreen({navigate, user, wardrobe}: Props) {
       paddingBottom: 4,
       alignItems: 'center',
     },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      paddingHorizontal: 16,
+    },
     settingsButton: {
       position: 'absolute',
       top: 0,
@@ -345,6 +351,7 @@ export default function ProfileScreen({navigate, user, wardrobe}: Props) {
   return (
     <View style={{flex: 1}}>
       <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.header}>Profile</Text>
         <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => navigate('Settings')}>

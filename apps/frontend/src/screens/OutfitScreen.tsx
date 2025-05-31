@@ -33,9 +33,14 @@ export default function OutfitScreen({wardrobe, prompt, navigate}: Props) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      paddingTop: 24,
-      paddingHorizontal: 16,
+      paddingTop: 16,
       backgroundColor: theme.colors.background,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      paddingHorizontal: 16,
     },
     title: {
       fontSize: 28,
@@ -47,6 +52,7 @@ export default function OutfitScreen({wardrobe, prompt, navigate}: Props) {
       fontSize: 16,
       color: theme.colors.foreground,
       marginBottom: 24,
+      paddingHorizontal: 16,
     },
     section: {
       marginBottom: 32,
@@ -93,7 +99,7 @@ export default function OutfitScreen({wardrobe, prompt, navigate}: Props) {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Outfit Suggestion</Text>
+      <Text style={styles.header}>Outfit Suggestion</Text>
       <Text style={styles.date}>{today}</Text>
       {renderItem('Top', outfit.top)}
       {renderItem('Bottom', outfit.bottom)}
