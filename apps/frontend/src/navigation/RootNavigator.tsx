@@ -8,7 +8,7 @@ import ClosetScreen from '../screens/ClosetScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AddItemScreen from '../screens/AddItemScreen';
 import ItemDetailScreen from '../components/ItemDetailScreen/ItemDetailScreen';
-import OutfitScreen from '../screens/OutfitScreen';
+import OutfitSuggestionScreen from '../screens/OutfitSuggestionScreen';
 import SearchScreen from '../screens/SearchScreen';
 import LoginScreen from '../screens/LoginScreen';
 import StyleProfileScreen from '../screens/StyleProfileScreen';
@@ -219,13 +219,7 @@ const RootNavigator = () => {
       case 'AddItem':
         return <AddItemScreen navigate={navigate} addItem={addToWardrobe} />;
       case 'Outfit':
-        return (
-          <OutfitScreen
-            wardrobe={wardrobe}
-            prompt={screenParams?.prompt}
-            navigate={navigate}
-          />
-        );
+        return <OutfitSuggestionScreen navigate={navigate} />;
       case 'Search':
         return (
           <SearchScreen

@@ -390,6 +390,11 @@ export default function ProfileScreen({navigate, user, wardrobe}: Props) {
     <View style={{flex: 1}}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.header}>Profile</Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => navigate('Settings')}>
+          <Icon name="settings" size={24} color="#405de6" />
+        </TouchableOpacity>
 
         {/* Header Row */}
         <View style={styles.headerRow}>
