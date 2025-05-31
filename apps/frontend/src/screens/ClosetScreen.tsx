@@ -17,6 +17,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {getInferredCategory} from '../utils/categoryUtils';
 import {MainCategory, Subcategory} from '../types/categoryTypes';
 import EditItemModal from 'components/EditItemModal/EditItemModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ITEM_MARGIN = 19;
 const MIN_ITEM_WIDTH = 160;
@@ -223,6 +224,20 @@ export default function ClosetScreen({
       fontSize: 16,
       color: theme.colors.foreground,
     },
+    createOutfitButton: {
+      backgroundColor: '#4ade80',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      alignSelf: 'center',
+      marginVertical: 10,
+    },
+
+    createOutfitText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
   type CategorizedWardrobeItem = WardrobeItem & {
@@ -247,6 +262,11 @@ export default function ClosetScreen({
     <View style={{flex: 1}}>
       <ScrollView style={styles.container}>
         <Text style={styles.header}>Closet</Text>
+        <TouchableOpacity
+          style={styles.createOutfitButton}
+          onPress={() => navigate('OutfitBuilder')}>
+          <Text style={styles.createOutfitText}>➕ Create New Outfit</Text>
+        </TouchableOpacity>
 
         <View style={styles.filterSortRow}>
           <TouchableOpacity

@@ -6,7 +6,6 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  FlatList,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import Icon from 'react-native-vector-icons/MaterialIcons';
