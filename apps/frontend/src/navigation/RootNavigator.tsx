@@ -16,15 +16,23 @@ import {useAppTheme} from '../context/ThemeContext';
 import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 import LoginScreen from '../screens/LoginScreen';
+import StyleProfileScreen from '../screens/StyleProfileScreen';
+import PreferencesScreen from '../screens/PreferencesScreen';
+import MeasurementsScreen from '../screens/MeasurementsScreen';
+import BudgetAndBrandsScreen from '../screens/BudgetAndBrandsScreen';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
 
 type Screen =
   | 'Login'
   | 'Home'
   | 'Profile'
+  | 'StyleProfileScreen'
   | 'Explore'
   | 'Closet'
   | 'Settings'
+  | 'Preferences'
+  | 'Measurements'
+  | 'BudgetAndBrands'
   | 'Voice'
   | 'ItemDetail'
   | 'AddItem'
@@ -109,6 +117,9 @@ const RootNavigator = () => {
         return (
           <ProfileScreen navigate={navigate} user={user} wardrobe={wardrobe} />
         );
+      case 'StyleProfileScreen':
+        return <StyleProfileScreen navigate={navigate} />;
+
       case 'Explore':
         return <ExploreScreen navigate={navigate} />;
       case 'Closet':
@@ -122,6 +133,12 @@ const RootNavigator = () => {
         );
       case 'Settings':
         return <SettingsScreen navigate={navigate} />;
+      case 'Preferences':
+        return <PreferencesScreen navigate={navigate} />;
+      case 'Measurements':
+        return <MeasurementsScreen navigate={navigate} />;
+      case 'BudgetAndBrands':
+        return <BudgetAndBrandsScreen navigate={navigate} />;
       case 'ItemDetail':
         return (
           <ItemDetailScreen
