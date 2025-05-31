@@ -32,6 +32,7 @@
     "react-native-dotenv": "^3.4.11",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-image-picker": "^8.2.1",
+    "react-native-linear-gradient": "^2.8.3",
     "react-native-maps": "^0.30.2",
     "react-native-orientation-locker": "^1.7.0",
     "react-native-permissions": "^3.7.0",
