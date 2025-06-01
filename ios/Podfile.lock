@@ -317,6 +317,8 @@ PODS:
     - React-Core
   - react-native-contacts (8.0.5):
     - React-Core
+  - react-native-date-picker (5.0.12):
+    - React-Core
   - react-native-geolocation (3.4.0):
     - React-Core
   - react-native-geolocation-service (5.3.1):
@@ -460,6 +462,7 @@ DEPENDENCIES:
   - react-native-add-calendar-event (from `../node_modules/react-native-add-calendar-event`)
   - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
   - react-native-contacts (from `../node_modules/react-native-contacts`)
+  - react-native-date-picker (from `../node_modules/react-native-date-picker`)
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-geolocation-service (from `../node_modules/react-native-geolocation-service`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
@@ -569,6 +572,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-camera-roll/camera-roll"
   react-native-contacts:
     :path: "../node_modules/react-native-contacts"
+  react-native-date-picker:
+    :path: "../node_modules/react-native-date-picker"
   react-native-geolocation:
     :path: "../node_modules/@react-native-community/geolocation"
   react-native-geolocation-service:
@@ -677,6 +682,7 @@ SPEC CHECKSUMS:
   react-native-add-calendar-event: 4eb42bdf84beb58de81f6d2ce1778a7632223dfe
   react-native-cameraroll: 7cbef6db236e62e945bfdc0844f4373c0b76789b
   react-native-contacts: 092c5fe3150a5f0cfee0e494c2c144053c2aa137
+  react-native-date-picker: 2eb0ed05ab9dcb4f337deda77deaa779807c4c61
   react-native-geolocation: 17b040465ff06d914f733d7f61356cbdae409a0d
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-image-picker: 34310725cfe02f1d90e8f6088f8d5746f3e60c4b

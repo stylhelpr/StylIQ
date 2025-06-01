@@ -1,0 +1,19 @@
+import {WardrobeItem} from '../hooks/useOutfitSuggestion';
+
+export type CalendarOutfit = {
+  id: string;
+  name?: string;
+  top: WardrobeItem;
+  bottom: WardrobeItem;
+  shoes: WardrobeItem;
+  createdAt: string;
+  tags?: string[];
+  notes?: string;
+  rating?: number;
+};
+
+export type CalendarMap = {
+  [date: string]: CalendarOutfit;
+};
+
+export const CALENDAR_KEY = 'calendarOutfits';
