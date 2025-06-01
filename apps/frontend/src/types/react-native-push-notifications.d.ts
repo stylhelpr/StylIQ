@@ -1,34 +1,22 @@
+// types/react-native-push-notification.d.ts
 declare module 'react-native-push-notification' {
-  export interface Notification {
+  interface PushNotificationObject {
+    message: string;
+    date?: Date;
     title?: string;
-    message?: string;
-    userInfo?: any;
-    data?: any;
-  }
-
-  export interface ChannelConfig {
-    channelId: string;
-    channelName: string;
-    channelDescription?: string;
+    playSound?: boolean;
     soundName?: string;
-    importance?: number;
-    vibrate?: boolean;
+    channelId?: string;
+    allowWhileIdle?: boolean;
   }
 
-  export interface ConfigureOptions {
-    onNotification: (notification: Notification) => void;
-    popInitialNotification?: boolean;
-    requestPermissions?: boolean;
-  }
-
-  const PushNotification: {
-    configure: (options: ConfigureOptions) => void;
-    localNotification: (notification: Notification) => void;
-    createChannel: (
-      config: ChannelConfig,
-      cb?: (created: boolean) => void,
-    ) => void;
-  };
-
-  export default PushNotification;
+  export function configure(options: any): void;
+  export function localNotification(notification: PushNotificationObject): void;
+  export function localNotificationSchedule(
+    notification: PushNotificationObject,
+  ): void;
+  export function createChannel(
+    config: {channelId: string; channelName: string},
+    cb?: (created: boolean) => void,
+  ): void;
 }

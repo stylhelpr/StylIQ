@@ -5,6 +5,10 @@
 #import <React/RCTRootView.h>
 #import <React/RCTAppSetupUtils.h>
 #import <Firebase.h>
+#import <UserNotifications/UserNotifications.h>
+
+@interface AppDelegate () <UNUserNotificationCenterDelegate>
+@end
 
 #if RCT_NEW_ARCH_ENABLED
 #import <React/CoreModulesPlugins.h>
@@ -26,7 +30,6 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 @end
 #endif
 
-// ✅ Custom root view controller that supports all rotations
 @interface StylIQRootViewController : UIViewController
 @end
 
@@ -57,6 +60,10 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 {
   [FIRApp configure];
 
+  // ✅ Set UNUserNotificationCenter delegate
+  UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+  center.delegate = self;
+
   RCTAppSetupPrepareApp(application);
   RCTBridge *bridge = [[RCTBridge alloc] initWithDelegate:self launchOptions:launchOptions];
 
@@ -83,7 +90,6 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
   self.window.rootViewController = rootViewController;
   [self.window makeKeyAndVisible];
 
-  // ✅ Force layout update for full screen + rotation support
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
     self.window.rootViewController.view.frame = [UIScreen mainScreen].bounds;
     [self.window.rootViewController.view setNeedsLayout];
@@ -145,5 +151,13 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
 }
 
 #endif
+
+// ✅ Foreground Notification Handler
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+{
+  completionHandler(UNNotificationPresentationOptionAlert + UNNotificationPresentationOptionSound);
+}
 
 @end
