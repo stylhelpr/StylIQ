@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,121 +8,210 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
+type WardrobeItem = {
+  id: string;
+  name: string;
+  image: string; // Can be local or remote
+};
+
 type Props = {
-  outfit?: any;
+  outfit?: {
+    top?: WardrobeItem;
+    bottom?: WardrobeItem;
+    shoes?: WardrobeItem;
+  };
   onBack: () => void;
 };
 
 export default function TryOnPreviewScreen({outfit, onBack}: Props) {
-  console.log('Received outfit:', outfit); // Debug
+  useEffect(() => {
+    console.log('🧠 outfit received in TryOnPreview:', outfit);
+  }, [outfit]);
+
+  const userPhoto = require('../assets/images/full-body-temp1.png'); // Replace with correct path
+  const shirtImage = outfit?.top?.image
+    ? // ? {uri: outfit.top.image}
+      // : require('../assets/images/striped-shirt1.png');
+      require('../assets/images/striped-shirt1.png')
+    : {uri: outfit.top.image};
+
+  const styles = StyleSheet.create({
+    container: {
+      padding: 16,
+      backgroundColor: '#000',
+      alignItems: 'center',
+    },
+    title: {
+      color: 'white',
+      fontSize: 24,
+      fontWeight: '600',
+      marginBottom: 20,
+    },
+    imageWrapper: {
+      width: '100%',
+      aspectRatio: 3 / 4,
+      position: 'relative',
+      marginBottom: 20,
+    },
+    body: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      zIndex: 1,
+    },
+    shirt: {
+      position: 'absolute',
+      width: '58%',
+      height: '35%',
+      top: '27%',
+      left: '21%',
+      zIndex: 2,
+      opacity: 0.98,
+      borderRadius: 4,
+      shadowColor: '#000',
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      shadowOffset: {width: 0, height: 4},
+      elevation: 4,
+    },
+    caption: {
+      color: '#888',
+      textAlign: 'center',
+      fontSize: 14,
+      marginTop: 12,
+    },
+    backButton: {
+      marginTop: 28,
+    },
+    backText: {
+      color: '#4ea1f2',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>AR Try-On Preview</Text>
 
-      <Image
-        source={require('../assets/images/ar-preview-placeholder.png')}
-        style={styles.mockImage}
-        resizeMode="contain"
-      />
+      <View style={styles.imageWrapper}>
+        <Image source={userPhoto} style={styles.body} resizeMode="contain" />
+        <Image source={shirtImage} style={styles.shirt} resizeMode="contain" />
+      </View>
 
       <Text style={styles.caption}>
-        This is a static preview. AR feature coming soon.
+        This is a static mock showing your shirt over your body image.
       </Text>
 
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>← Back to Outfit</Text>
+        <Text style={styles.backText}>← Back to Closet</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: '#000',
-    alignItems: 'center',
-  },
-  title: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 20,
-  },
-  mockImage: {
-    width: '100%',
-    height: 420,
-    borderRadius: 12,
-    backgroundColor: '#111',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: {width: 0, height: 4},
-    elevation: 5,
-  },
-  caption: {
-    color: '#888',
-    marginTop: 16,
-    textAlign: 'center',
-    fontSize: 14,
-  },
-  backButton: {
-    marginTop: 28,
-  },
-  backText: {
-    color: '#4ea1f2',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+//////////////
 
-//////////
+// import React, {useEffect} from 'react';
+// import {
+//   View,
+//   Text,
+//   Image,
+//   StyleSheet,
+//   ScrollView,
+//   TouchableOpacity,
+//   Dimensions,
+// } from 'react-native';
 
-// import React from 'react';
-// import {View, Text, Image, StyleSheet, ScrollView} from 'react-native';
-// import {WardrobeItem} from '../hooks/useOutfitSuggestion';
+// type WardrobeItem = {
+//   image: string;
+//   name: string;
+// };
+
+// type Outfit = {
+//   top?: WardrobeItem;
+//   bottom?: WardrobeItem;
+//   shoes?: WardrobeItem;
+// };
 
 // type Props = {
-//   imageUri?: string;
-//   outfit?: {
-//     top?: WardrobeItem;
-//     bottom?: WardrobeItem;
-//     shoes?: WardrobeItem;
-//   };
+//   outfit?: Outfit;
 //   onBack: () => void;
 // };
 
 // export default function TryOnPreviewScreen({outfit, onBack}: Props) {
-//   console.log('Received outfit:', outfit); // Debug
+//   useEffect(() => {
+//     console.log('🧠 outfit received in TryOnPreview:', outfit);
+//   }, [outfit]);
 
-//   const renderItem = (label: string, item?: WardrobeItem) => {
-//     if (!item) return null;
-//     return (
-//       <View style={styles.item}>
-//         <Text style={styles.label}>{label}</Text>
-//         <Image source={{uri: item.image}} style={styles.image} />
-//         <Text style={styles.name}>{item.name}</Text>
-//       </View>
-//     );
-//   };
+//   const PREVIEW_WIDTH = Dimensions.get('window').width * 0.85;
 
 //   return (
 //     <ScrollView contentContainerStyle={styles.container}>
 //       <Text style={styles.title}>AR Try-On Preview</Text>
 
-//       {renderItem('Top', outfit?.top)}
-//       {renderItem('Bottom', outfit?.bottom)}
-//       {renderItem('Shoes', outfit?.shoes)}
+//       <View style={[styles.previewContainer, {width: PREVIEW_WIDTH}]}>
+//         <Image
+//           source={require('../assets/images/full-body-temp1.png')}
+//           style={styles.baseFigure}
+//         />
 
-//       {!outfit?.top && !outfit?.bottom && !outfit?.shoes && (
-//         <Text style={styles.emptyState}>
-//           No outfit data passed to AR preview.
-//         </Text>
-//       )}
+//         {/* Top */}
+//         {outfit?.top && (
+//           <Image
+//             source={{uri: outfit.top.image}}
+//             style={[
+//               styles.overlayImage,
+//               {
+//                 width: '50%',
+//                 aspectRatio: 3 / 4,
+//                 top: '24%',
+//                 left: '25%',
+//               },
+//             ]}
+//           />
+//         )}
+
+//         {/* Bottom */}
+//         {outfit?.bottom && (
+//           <Image
+//             source={{uri: outfit.bottom.image}}
+//             style={[
+//               styles.overlayImage,
+//               {
+//                 width: '50%',
+//                 aspectRatio: 2.8 / 4,
+//                 top: '55%',
+//                 left: '25%',
+//               },
+//             ]}
+//           />
+//         )}
+
+//         {/* Shoes */}
+//         {outfit?.shoes && (
+//           <Image
+//             source={{uri: outfit.shoes.image}}
+//             style={[
+//               styles.overlayImage,
+//               {
+//                 width: '35%',
+//                 aspectRatio: 2.5 / 1,
+//                 bottom: '2%',
+//                 left: '32.5%',
+//               },
+//             ]}
+//           />
+//         )}
+//       </View>
 
 //       <Text style={styles.caption}>
 //         This is a static preview. AR feature coming soon.
 //       </Text>
+
+//       <TouchableOpacity onPress={onBack} style={styles.backButton}>
+//         <Text style={styles.backText}>← Back to Closet</Text>
+//       </TouchableOpacity>
 //     </ScrollView>
 //   );
 // }
@@ -139,26 +228,21 @@ const styles = StyleSheet.create({
 //     fontWeight: '600',
 //     marginBottom: 20,
 //   },
-//   item: {
-//     marginBottom: 24,
+//   previewContainer: {
+//     height: Dimensions.get('window').width * 1.6,
+//     position: 'relative',
 //     alignItems: 'center',
+//     justifyContent: 'center',
 //   },
-//   label: {
-//     color: '#aaa',
-//     fontSize: 14,
-//     marginBottom: 4,
+//   baseFigure: {
+//     width: '100%',
+//     height: '100%',
+//     resizeMode: 'contain',
+//     position: 'absolute',
 //   },
-//   image: {
-//     width: 200,
-//     height: 200,
-//     borderRadius: 12,
-//     marginBottom: 8,
-//     backgroundColor: '#222',
-//   },
-//   name: {
-//     color: 'white',
-//     fontWeight: '600',
-//     fontSize: 16,
+//   overlayImage: {
+//     position: 'absolute',
+//     resizeMode: 'contain',
 //   },
 //   caption: {
 //     color: '#888',
@@ -166,86 +250,12 @@ const styles = StyleSheet.create({
 //     textAlign: 'center',
 //     fontSize: 14,
 //   },
-//   emptyState: {
-//     color: 'gray',
-//     marginTop: 40,
+//   backButton: {
+//     marginTop: 28,
+//   },
+//   backText: {
+//     color: '#4ea1f2',
 //     fontSize: 16,
-//     textAlign: 'center',
-//   },
-// });
-
-//////////
-
-// import React from 'react';
-// import {View, Text, Image, StyleSheet, ScrollView} from 'react-native';
-// import {WardrobeItem} from '../hooks/useOutfitSuggestion';
-
-// type Props = {
-//   imageUri?: string; // still keep it if needed
-//   outfit?: {
-//     top?: WardrobeItem;
-//     bottom?: WardrobeItem;
-//     shoes?: WardrobeItem;
-//   };
-//   onBack: () => void;
-// };
-
-// export default function TryOnPreviewScreen({outfit, onBack}: Props) {
-//   const renderItem = (label: string, item?: WardrobeItem) => {
-//     if (!item) return null;
-//     return (
-//       <View style={styles.item}>
-//         <Text style={styles.label}>{label}</Text>
-//         <Image source={{uri: item.image}} style={styles.image} />
-//         <Text style={styles.name}>{item.name}</Text>
-//       </View>
-//     );
-//   };
-
-//   return (
-//     <ScrollView contentContainerStyle={styles.container}>
-//       <Text style={styles.title}>AR Try-On Preview</Text>
-//       {renderItem('Top', outfit?.top)}
-//       {renderItem('Bottom', outfit?.bottom)}
-//       {renderItem('Shoes', outfit?.shoes)}
-//       <Text style={styles.caption}>AR view coming soon.</Text>
-//     </ScrollView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     padding: 16,
-//     backgroundColor: '#000',
-//     alignItems: 'center',
-//   },
-//   title: {
-//     color: 'white',
-//     fontSize: 24,
 //     fontWeight: '600',
-//     marginBottom: 20,
-//   },
-//   item: {
-//     marginBottom: 24,
-//     alignItems: 'center',
-//   },
-//   label: {
-//     color: '#aaa',
-//     fontSize: 14,
-//   },
-//   image: {
-//     width: 200,
-//     height: 200,
-//     borderRadius: 12,
-//     marginVertical: 8,
-//   },
-//   name: {
-//     color: 'white',
-//     fontWeight: '600',
-//   },
-//   caption: {
-//     color: '#888',
-//     marginTop: 16,
-//     textAlign: 'center',
 //   },
 // });

@@ -313,6 +313,8 @@ PODS:
     - glog
   - react-native-add-calendar-event (5.0.0):
     - React-Core
+  - react-native-cameraroll (7.10.0):
+    - React-Core
   - react-native-contacts (8.0.5):
     - React-Core
   - react-native-geolocation (3.4.0):
@@ -326,6 +328,8 @@ PODS:
   - react-native-orientation-locker (1.7.0):
     - React-Core
   - react-native-safe-area-context (5.4.1):
+    - React-Core
+  - react-native-view-shot (3.4.0):
     - React-Core
   - react-native-voice (3.2.4):
     - React-Core
@@ -454,6 +458,7 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - react-native-add-calendar-event (from `../node_modules/react-native-add-calendar-event`)
+  - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
   - react-native-contacts (from `../node_modules/react-native-contacts`)
   - "react-native-geolocation (from `../node_modules/@react-native-community/geolocation`)"
   - react-native-geolocation-service (from `../node_modules/react-native-geolocation-service`)
@@ -461,6 +466,7 @@ DEPENDENCIES:
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -559,6 +565,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   react-native-add-calendar-event:
     :path: "../node_modules/react-native-add-calendar-event"
+  react-native-cameraroll:
+    :path: "../node_modules/@react-native-camera-roll/camera-roll"
   react-native-contacts:
     :path: "../node_modules/react-native-contacts"
   react-native-geolocation:
@@ -573,6 +581,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-orientation-locker"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-view-shot:
+    :path: "../node_modules/react-native-view-shot"
   react-native-voice:
     :path: "../node_modules/@react-native-voice/voice"
   react-native-webview:
@@ -665,6 +675,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 2a1985769123b199c195a96f46478b35db139712
   React-logger: d6b8c2a104ac0c237408297085a3f59d6bd514ca
   react-native-add-calendar-event: 4eb42bdf84beb58de81f6d2ce1778a7632223dfe
+  react-native-cameraroll: 7cbef6db236e62e945bfdc0844f4373c0b76789b
   react-native-contacts: 092c5fe3150a5f0cfee0e494c2c144053c2aa137
   react-native-geolocation: 17b040465ff06d914f733d7f61356cbdae409a0d
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
@@ -672,6 +683,7 @@ SPEC CHECKSUMS:
   react-native-maps: 9ae269783ee6ebd87c7598873674c83c244adde9
   react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-safe-area-context: dde2052b903c11d677c320b599c3244021c34ce8
+  react-native-view-shot: 7437b5c213e1f229405d26a21f83115f16da2311
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   react-native-webview: 0b3b18b003c19110c51bccc651932c127d97cc69
   React-perflogger: f86e85eb59151d09e9b44b8931f5c088e4f08bbc

@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-camera-roll/camera-roll": "^7.10.0",
     "@react-native-community/datetimepicker": "^6.7.3",
     "@react-native-community/geolocation": "^3.4.0",
+    "@react-native-community/hooks": "^100.1.0",
     "@react-native-community/push-notification-ios": "^1.11.0",
     "@react-native-firebase/app": "^22.2.0",
     "@react-native-firebase/messaging": "^22.2.0",
@@ -44,6 +46,7 @@
     "react-native-tts": "^4.1.1",
     "react-native-uuid": "^2.0.3",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-view-shot": "^3.4.0",
     "react-native-webview": "^13.13.5",
     "styled-components": "^6.1.18",
     "zustand": "^5.0.5"

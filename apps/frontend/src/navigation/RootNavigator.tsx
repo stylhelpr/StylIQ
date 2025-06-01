@@ -35,6 +35,7 @@ import OutfitBuilderScreen from '../screens/OutfitBuilderScreen';
 import SavedOutfitsScreen from '../screens/SavedOutfitsScreen';
 import TryOnPreviewScreen from '../screens/TryOnPreviewScreen';
 import {useSavedOutfits} from '../hooks/useSavedOutfits';
+import TryOnOverlayWrapperScreen from '../screens/TryOnOverlayWrapperScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -81,7 +82,8 @@ type Screen =
   | 'OutfitBuilder'
   | 'SavedOutfits'
   | 'ARTryOnScreen'
-  | 'TryOnPreview';
+  | 'TryOnPreview'
+  | 'TryOnOverlay';
 
 const RootNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Login');
@@ -177,7 +179,7 @@ const RootNavigator = () => {
           <ClosetScreen
             key={wardrobe.length}
             navigate={navigate}
-            wardrobe={wardrobe}
+            wardrobe={screenParams?.updatedWardrobe || wardrobe}
             toggleFavorite={toggleFavorite}
           />
         );
@@ -211,6 +213,8 @@ const RootNavigator = () => {
         return <PreferencesScreen navigate={navigate} />;
       case 'Measurements':
         return <MeasurementsScreen navigate={navigate} />;
+      case 'TryOnOverlay':
+        return <TryOnOverlayWrapperScreen />;
       case 'BudgetAndBrands':
         return <BudgetAndBrandsScreen navigate={navigate} />;
       case 'Appearance':
@@ -250,13 +254,6 @@ const RootNavigator = () => {
           <ItemDetailScreen
             route={{params: screenParams}}
             navigation={{goBack: () => setCurrentScreen('Closet')}}
-          />
-        );
-      case 'ARTryOnScreen':
-        return (
-          <TryOnPreviewScreen
-            outfit={screenParams?.outfit}
-            onBack={() => setCurrentScreen(prevScreen)}
           />
         );
       case 'AddItem':
