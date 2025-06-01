@@ -225,18 +225,25 @@ export default function ClosetScreen({
       color: theme.colors.foreground,
     },
     createOutfitButton: {
-      backgroundColor: '#4ade80',
+      backgroundColor: '#405de6',
       paddingVertical: 12,
       paddingHorizontal: 16,
       borderRadius: 10,
       alignSelf: 'center',
-      marginVertical: 10,
+      marginRight: 8,
     },
-
     createOutfitText: {
       color: '#fff',
       fontSize: 16,
       fontWeight: '600',
+    },
+    tryOnButton: {
+      backgroundColor: '#405de6',
+    },
+    tryOnButtonText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: '500',
     },
   });
 
@@ -262,13 +269,14 @@ export default function ClosetScreen({
     <View style={{flex: 1}}>
       <ScrollView style={styles.container}>
         <Text style={styles.header}>Closet</Text>
-        <TouchableOpacity
-          style={styles.createOutfitButton}
-          onPress={() => navigate('OutfitBuilder')}>
-          <Text style={styles.createOutfitText}>➕ Create New Outfit</Text>
-        </TouchableOpacity>
 
         <View style={styles.filterSortRow}>
+          <TouchableOpacity
+            style={styles.createOutfitButton}
+            onPress={() => navigate('OutfitBuilder')}>
+            <Text style={styles.createOutfitText}>+ Create New Outfit</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => setShowFilter(true)}
             style={[styles.iconButton, {marginRight: 8}]}>
@@ -339,24 +347,41 @@ export default function ClosetScreen({
                       {/* ✅ ADD THIS BUTTON */}
                       <TouchableOpacity
                         onPress={() =>
-                          navigate('TryOnPreview', {
+                          navigate('TryOnOverlay', {
                             outfit: {
-                              top: item,
+                              top: {
+                                name: 'Red Tee',
+                                imageUri:
+                                  'https://yourdomain.com/mock/red-shirt.png',
+                              },
+                              bottom: {
+                                name: 'Black Jeans',
+                                imageUri:
+                                  'https://yourdomain.com/mock/black-jeans.png',
+                              },
+                              shoes: {
+                                name: 'Sneakers',
+                                imageUri:
+                                  'https://yourdomain.com/mock/sneakers.png',
+                              },
                             },
+                            userPhotoUri: Image.resolveAssetSource(
+                              require('../assets/images/full-body-temp1.png'),
+                            ).uri,
                           })
                         }
                         style={{
                           position: 'absolute',
-                          bottom: 8,
-                          right: 8,
-                          backgroundColor: '#4ade80',
+                          top: 10,
+                          left: 8,
+                          backgroundColor: 'black',
+                          // borderColor: 'white',
+                          // borderWidth: 1,
                           paddingHorizontal: 10,
                           paddingVertical: 4,
                           borderRadius: 8,
                         }}>
-                        <Text style={{color: '#fff', fontSize: 12}}>
-                          Try On
-                        </Text>
+                        <Text style={styles.tryOnButtonText}>Try On</Text>
                       </TouchableOpacity>
                     </Pressable>
                   ))}
@@ -495,22 +520,22 @@ export default function ClosetScreen({
 
                   <TouchableOpacity
                     onPress={() => {
-                      Alert.alert(
-                        'Delete Item',
-                        'Are you sure you want to delete this item?',
-                        [
-                          {text: 'Cancel', style: 'cancel'},
-                          {
-                            text: 'Delete',
-                            style: 'destructive',
-                            onPress: () => {
-                              handleDeleteItem(selectedItemToEdit.id);
-                              setShowEditModal(false);
-                              setSelectedItemToEdit(null);
-                            },
-                          },
-                        ],
-                      );
+                      // Alert.alert(
+                      //   'Delete Item',
+                      //   'Are you sure you want to delete this item?',
+                      //   [
+                      //     {text: 'Cancel', style: 'cancel'},
+                      //     {
+                      //       text: 'Delete',
+                      //       style: 'destructive',
+                      //       onPress: () => {
+                      //         handleDeleteItem(selectedItemToEdit.id);
+                      //         setShowEditModal(false);
+                      //         setSelectedItemToEdit(null);
+                      //       },
+                      //     },
+                      //   ],
+                      // );
                     }}
                     style={[
                       styles.button,

@@ -27,13 +27,11 @@ import FitPreferencesScreen from '../screens/FitPreferencesScreen';
 import HairColorScreen from '../screens/HairColorScreen';
 import PersonalityTraitsScreen from '../screens/PersonalityTraitsScreen';
 import ProportionsScreen from '../screens/ProportionsScreen';
-import SearchScreenScreen from '../screens/SearchScreen';
 import ShoppingHabitScreen from '../screens/ShoppingHabitScreen';
 import SkinToneScreen from '../screens/SkinToneScreen';
 import StyleIconsScreen from '../screens/StyleIconsScreen';
 import OutfitBuilderScreen from '../screens/OutfitBuilderScreen';
 import SavedOutfitsScreen from '../screens/SavedOutfitsScreen';
-import TryOnPreviewScreen from '../screens/TryOnPreviewScreen';
 import {useSavedOutfits} from '../hooks/useSavedOutfits';
 import TryOnOverlayWrapperScreen from '../screens/TryOnOverlayWrapperScreen';
 
@@ -81,8 +79,6 @@ type Screen =
   | 'Search'
   | 'OutfitBuilder'
   | 'SavedOutfits'
-  | 'ARTryOnScreen'
-  | 'TryOnPreview'
   | 'TryOnOverlay';
 
 const RootNavigator = () => {
@@ -191,20 +187,12 @@ const RootNavigator = () => {
             saveOutfit={saveOutfit}
           />
         );
-
       case 'SavedOutfits':
         return (
           <SavedOutfitsScreen
             savedOutfits={savedOutfits}
             onDelete={deleteOutfit}
             onToggleFavorite={toggleOutfitFavorite}
-          />
-        );
-      case 'TryOnPreview':
-        return (
-          <TryOnPreviewScreen
-            outfit={screenParams?.outfit}
-            onBack={() => setCurrentScreen(prevScreen)}
           />
         );
       case 'Settings':
@@ -214,7 +202,7 @@ const RootNavigator = () => {
       case 'Measurements':
         return <MeasurementsScreen navigate={navigate} />;
       case 'TryOnOverlay':
-        return <TryOnOverlayWrapperScreen />;
+        return <TryOnOverlayWrapperScreen screenParams={screenParams} />;
       case 'BudgetAndBrands':
         return <BudgetAndBrandsScreen navigate={navigate} />;
       case 'Appearance':
@@ -243,8 +231,6 @@ const RootNavigator = () => {
         return <PersonalityTraitsScreen navigate={navigate} />;
       case 'PreferenceStrength':
         return <ProportionsScreen navigate={navigate} />;
-      case 'Proportions':
-        return <SearchScreenScreen navigate={navigate} />;
       case 'SkinTone':
         return <SkinToneScreen navigate={navigate} />;
       case 'StyleIcon':

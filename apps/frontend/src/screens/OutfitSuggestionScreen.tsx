@@ -192,17 +192,20 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               marginTop: 12,
             }}
             onPress={() =>
-              navigate('TryOnPreview', {
+              navigate('TryOnOverlay', {
                 outfit: {
                   top: outfit.top,
                   bottom: outfit.bottom,
                   shoes: outfit.shoes,
                 },
+                userPhotoUri: Image.resolveAssetSource(
+                  require('../assets/images/full-body-temp1.png'),
+                ).uri,
               })
             }>
             <Text
               style={{color: 'black', fontWeight: '600', textAlign: 'center'}}>
-              Preview Outfit in AR
+              Try This Outfit On
             </Text>
           </TouchableOpacity>
         )}

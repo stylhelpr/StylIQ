@@ -15,7 +15,10 @@ import OverlayItem from '../components/OverlayItem/OverlayItem';
 import OutfitCarousel from '../components/OutfitCarousel/OutfitCarousel';
 import ViewShot from 'react-native-view-shot';
 import CameraRoll from '@react-native-camera-roll/camera-roll';
-import userPhoto from '../assets/images/full-body-temp1.png';
+import {Image as RNImage} from 'react-native';
+
+import stripedShirt from '../assets/images/striped-shirt1.png'; // ✅ your local shirt
+// import userPhoto from '../assets/images/full-body-temp1.png'; // not needed if coming from props
 
 type WardrobeItem = {
   name: string;
@@ -36,7 +39,11 @@ type Props = {
 
 const {width: screenWidth} = Dimensions.get('window');
 
-const TryOnOverlayScreen = ({userPhotoUri, outfit, outfitOptions}: Props) => {
+export default function TryOnOverlayScreen({
+  userPhotoUri,
+  outfit,
+  outfitOptions,
+}: Props) {
   const [currentOutfit, setCurrentOutfit] = useState(outfit);
   const viewRef = useRef(null);
 
@@ -75,8 +82,22 @@ const TryOnOverlayScreen = ({userPhotoUri, outfit, outfitOptions}: Props) => {
         ref={viewRef}
         style={StyleSheet.absoluteFill}
         options={{format: 'jpg', quality: 0.9}}>
+        {/* 📸 User full-body photo */}
         <Image source={{uri: userPhotoUri}} style={styles.userImage} />
 
+        {/* 🧥 Hardcoded local shirt overlay test */}
+        <OverlayItem
+          imageUri={RNImage.resolveAssetSource(stripedShirt).uri}
+          defaultStyle={{
+            position: 'absolute',
+            top: '23%',
+            left: '10%',
+            width: screenWidth * 0.8,
+            height: screenWidth * 0.6,
+          }}
+        />
+
+        {/* 🧠 Outfit overlays */}
         {currentOutfit.top && (
           <OverlayItem
             imageUri={currentOutfit.top.imageUri}
@@ -106,7 +127,7 @@ const TryOnOverlayScreen = ({userPhotoUri, outfit, outfitOptions}: Props) => {
       </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -153,5 +174,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default TryOnOverlayScreen;
