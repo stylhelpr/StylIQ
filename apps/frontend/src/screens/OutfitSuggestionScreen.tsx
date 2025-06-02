@@ -83,6 +83,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     null | 'top' | 'bottom' | 'shoes'
   >(null);
 
+  const [lastSpeech, setLastSpeech] = useState('');
+
   const [weather, setWeather] = useState<'hot' | 'cold' | 'rainy' | 'Any'>(
     'Any',
   );
@@ -114,11 +116,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     'Would wear this',
   ];
 
-  const handleFeedback = (type: 'like' | 'dislike') => {
-    setFeedbackData(prev => ({
-      ...prev,
-      feedback: prev.feedback === type ? null : type,
-    }));
+  const handleVoiceStart = async () => {
+    try {
+      await Voice.start('en-US');
+    } catch (e) {
+      console.error('Voice start error:', e);
+    }
   };
 
   const toggleTag = (tag: string) => {
@@ -142,28 +145,23 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   );
 
   useEffect(() => {
-    Voice.onSpeechResults = (e: any) => {
-      // handle the voice input and set weather, occasion, or style
-      const speechResult = e.value[0].toLowerCase();
+    Voice.onSpeechResults = e => {
+      const speech = e.value?.[0]?.toLowerCase() ?? '';
+      setLastSpeech(speech);
       if (
-        speechResult.includes('hot') ||
-        speechResult.includes('cold') ||
-        speechResult.includes('rainy')
+        speech.includes('hot') ||
+        speech.includes('cold') ||
+        speech.includes('rainy')
       ) {
-        setWeather(speechResult as 'hot' | 'cold' | 'rainy' | 'Any');
-      } else if (
-        speechResult.includes('casual') ||
-        speechResult.includes('formal')
-      ) {
-        setOccasion(speechResult);
+        setWeather(speech as 'hot' | 'cold' | 'rainy');
+      } else if (speech.includes('casual') || speech.includes('formal')) {
+        setOccasion(speech);
       } else {
-        setStyle(speechResult); // Map to style if mentioned
+        setStyle(speech);
       }
-      regenerateOutfit(); // Trigger outfit regeneration after voice input
-    };
 
-    // Start voice listening on button click
-    Voice.start('en-US');
+      regenerateOutfit();
+    };
 
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
@@ -257,9 +255,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           onGenerate={regenerateOutfit}
           onRegenerate={regenerateOutfit}
         />
-        <Text style={[styles.header, {color: theme.colors.foreground}]}>
-          Suggested Outfit
-        </Text>
+        <View style={{alignItems: 'center', marginBottom: 16}}>
+          <Text style={[styles.header, {color: theme.colors.foreground}]}>
+            Suggested Outfit
+          </Text>
+          <TouchableOpacity onPress={handleVoiceStart}>
+            <Text style={[styles.cardTitle, {color: theme.colors.primary}]}>
+              🎙️ Start Voice Command
+            </Text>
+          </TouchableOpacity>
+          <Text style={{color: theme.colors.muted}}>Heard: {lastSpeech}</Text>
+        </View>
         {renderCard('Top', outfit.top, 'top')}
         {renderCard('Bottom', outfit.bottom, 'bottom')}
         {renderCard('Shoes', outfit.shoes, 'shoes')}
@@ -296,7 +302,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             </TouchableOpacity>
 
             {/* ✅ This now sits OUTSIDE and is valid */}
-            <TouchableOpacity onPress={() => Voice.start('en-US')}>
+            <TouchableOpacity onPress={handleVoiceStart}>
               <Text style={styles.cardTitle}>Start Voice Command</Text>
             </TouchableOpacity>
             <Text style={styles.cardTitle}>{outfit.top?.name}</Text>
@@ -353,7 +359,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => Voice.start('en-US')}>
+            <TouchableOpacity onPress={handleVoiceStart}>
               <Text style={styles.cardTitle}>Start Voice Command</Text>
             </TouchableOpacity>
 
