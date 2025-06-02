@@ -109,6 +109,12 @@ const BottomNavigation = ({
           onPress={() => navigate('SavedOutfits')}
           isActive={current === 'SavedOutfits'}
         />
+        <TabButton
+          icon="event-note"
+          label="Planner"
+          onPress={() => navigate('Planner')}
+          isActive={current === 'Planner'}
+        />
       </View>
     </SafeAreaView>
   );

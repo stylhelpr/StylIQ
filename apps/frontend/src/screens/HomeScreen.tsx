@@ -389,7 +389,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             Cream knit sweater layered over a sharp-collar shirt. Black tailored
             trousers. Chelsea boots. Effortlessly sharp.
           </Text>
-          <TouchableOpacity style={styles.tryButton}>
+          <TouchableOpacity
+            style={styles.tryButton}
+            onPress={() => navigate('Outfit', {look: 'editorial'})}>
             <Text style={styles.tryButtonText}>Try This Look</Text>
           </TouchableOpacity>
         </View>
