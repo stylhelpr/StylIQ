@@ -135,10 +135,7 @@ export default function OutfitTuningControls({
       </View>
 
       <TouchableOpacity
-        style={[
-          styles.button,
-          {backgroundColor: theme.colors.primary, marginTop: 16},
-        ]}
+        style={[styles.button, {backgroundColor: '#405de6', marginTop: 16}]}
         onPress={onRegenerate}>
         <Text style={[styles.buttonText]}>Generate Outfit</Text>
       </TouchableOpacity>

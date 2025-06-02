@@ -4,7 +4,8 @@ export type Screen =
   | 'Explore'
   | 'Closet'
   | 'Settings'
-  | 'Search';
+  | 'Search'
+  | 'Notifications';
 
 export type NavigateFunction = (
   screen: Screen,

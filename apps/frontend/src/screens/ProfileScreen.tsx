@@ -435,7 +435,7 @@ export default function ProfileScreen({navigate, user, wardrobe}: Props) {
         </View>
 
         {/* Buttons Row */}
-        <View style={styles.buttonRow}>
+        {/* <View style={styles.buttonRow}>
           <TouchableOpacity style={[styles.actionButton, {marginRight: 6}]}>
             <Text style={styles.buttonText}>Boards</Text>
           </TouchableOpacity>
@@ -445,7 +445,7 @@ export default function ProfileScreen({navigate, user, wardrobe}: Props) {
           <TouchableOpacity style={[styles.actionButton, {marginRight: 6}]}>
             <Icon name="email" size={18} color="white" />
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         <Text style={styles.sectionTitle}>Style Profile</Text>
         <TouchableOpacity

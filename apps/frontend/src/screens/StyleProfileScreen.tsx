@@ -178,10 +178,6 @@ export default function StyleProfileScreen({navigate}: Props) {
           <Text style={styles.link}>🧵 Fit Preferences</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigate('OutfitFrequency')}>
-          <Text style={styles.link}>📅 Outfit Frequency</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity onPress={() => navigate('FashionGoals')}>
           <Text style={styles.link}>🎯 Fashion Goals</Text>
         </TouchableOpacity>

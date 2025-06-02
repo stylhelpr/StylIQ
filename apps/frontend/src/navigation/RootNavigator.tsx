@@ -35,6 +35,7 @@ import SavedOutfitsScreen from '../screens/SavedOutfitsScreen';
 import {useSavedOutfits} from '../hooks/useSavedOutfits';
 import TryOnOverlayWrapperScreen from '../screens/TryOnOverlayWrapperScreen';
 import CalendarPlannerScreen from '../screens/CalendarPlannerScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -58,7 +59,6 @@ type Screen =
   | 'Lifestyle'
   | 'ShoppingHabits'
   | 'StyleSummary'
-  | 'OutfitFrequency'
   | 'Activities'
   | 'BodyTypes'
   | 'Climate'
@@ -81,6 +81,7 @@ type Screen =
   | 'OutfitBuilder'
   | 'SavedOutfits'
   | 'TryOnOverlay'
+  | 'Notifications'
   | 'Planner';
 
 const RootNavigator = () => {
@@ -199,6 +200,8 @@ const RootNavigator = () => {
         );
       case 'Settings':
         return <SettingsScreen navigate={navigate} />;
+      case 'Notifications':
+        return <NotificationsScreen navigate={navigate} />;
       case 'Preferences':
         return <PreferencesScreen navigate={navigate} />;
       case 'Measurements':
@@ -231,7 +234,7 @@ const RootNavigator = () => {
         return <HairColorScreen navigate={navigate} />;
       case 'PersonalityTraits':
         return <PersonalityTraitsScreen navigate={navigate} />;
-      case 'PreferenceStrength':
+      case 'Proportions':
         return <ProportionsScreen navigate={navigate} />;
       case 'SkinTone':
         return <SkinToneScreen navigate={navigate} />;

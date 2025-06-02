@@ -313,6 +313,8 @@ PODS:
     - glog
   - react-native-add-calendar-event (5.0.0):
     - React-Core
+  - react-native-blur (4.4.1):
+    - React-Core
   - react-native-cameraroll (7.10.0):
     - React-Core
   - react-native-contacts (8.0.5):
@@ -460,6 +462,7 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - react-native-add-calendar-event (from `../node_modules/react-native-add-calendar-event`)
+  - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
   - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
   - react-native-contacts (from `../node_modules/react-native-contacts`)
   - react-native-date-picker (from `../node_modules/react-native-date-picker`)
@@ -568,6 +571,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   react-native-add-calendar-event:
     :path: "../node_modules/react-native-add-calendar-event"
+  react-native-blur:
+    :path: "../node_modules/@react-native-community/blur"
   react-native-cameraroll:
     :path: "../node_modules/@react-native-camera-roll/camera-roll"
   react-native-contacts:
@@ -680,6 +685,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 2a1985769123b199c195a96f46478b35db139712
   React-logger: d6b8c2a104ac0c237408297085a3f59d6bd514ca
   react-native-add-calendar-event: 4eb42bdf84beb58de81f6d2ce1778a7632223dfe
+  react-native-blur: 31d3c608b337f9d15d356148e0d88549fbf5fdc7
   react-native-cameraroll: 7cbef6db236e62e945bfdc0844f4373c0b76789b
   react-native-contacts: 092c5fe3150a5f0cfee0e494c2c144053c2aa137
   react-native-date-picker: 2eb0ed05ab9dcb4f337deda77deaa779807c4c61

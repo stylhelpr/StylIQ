@@ -104,7 +104,7 @@ const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.chatContainer}>
       <TouchableOpacity
         style={[styles.stylingCard, isPressed && styles.stylingCardPressed]}
         onPressIn={() => {
@@ -115,7 +115,7 @@ const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
           setIsPressed(false);
           stopRecording();
         }}>
-        <Text style={styles.cardText}>Start styling</Text>
+        <Text style={styles.cardText}>Chat</Text>
         <MaterialIcons name="mic" size={22} color="#fff" />
       </TouchableOpacity>
     </View>
@@ -129,9 +129,14 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     justifyContent: 'center',
   },
+  chatContainer: {
+    flex: 1,
+    paddingVertical: 12,
+    justifyContent: 'center',
+  },
   stylingCard: {
     flexDirection: 'row',
-    backgroundColor: '#0000FF',
+    backgroundColor: 'grey',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 16,
