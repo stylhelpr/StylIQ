@@ -410,12 +410,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.tile}
-            onPress={() => navigate('OutfitSuggestion')}>
+            onPress={() => navigate('Outfit')}>
             <Text style={styles.tileText}>Style Me</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.tile}
-            onPress={() => navigate('TryOn')}>
+            onPress={() => navigate('TryOnOverlay')}>
             <Text style={styles.tileText}>Try-On</Text>
           </TouchableOpacity>
         </View>

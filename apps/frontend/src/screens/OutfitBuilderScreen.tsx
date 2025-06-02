@@ -147,7 +147,7 @@ export default function OutfitBuilderScreen({
       color: '#fff',
     },
     modalContent: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: 'theme.colors.surface',
       padding: 24,
       borderRadius: 12,
       marginHorizontal: 40,
@@ -169,7 +169,7 @@ export default function OutfitBuilderScreen({
       alignItems: 'center',
     },
     modalButtonText: {
-      color: theme.colors.background,
+      color: 'theme.colors.background',
       fontWeight: '600',
     },
   });
@@ -225,7 +225,7 @@ export default function OutfitBuilderScreen({
       <TouchableOpacity
         style={[
           styles.saveButton,
-          {backgroundColor: selectedItems.length ? '#4ade80' : '#999'},
+          {backgroundColor: selectedItems.length ? '#405de6' : '#999'},
         ]}
         onPress={handleSave}
         disabled={selectedItems.length === 0}>
