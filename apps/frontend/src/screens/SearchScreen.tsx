@@ -6,42 +6,51 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from 'react-native';
-import {useAppTheme} from '../context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Voice from '@react-native-voice/voice';
+import {useAppTheme} from '../context/ThemeContext';
 import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
 
-type Props = {
-  navigate: (screen: string, params?: any) => void;
-  goBack: () => void;
-  wardrobe?: WardrobeItem[];
-};
+const CLOSET_KEY = 'savedOutfits';
+const FAVORITES_KEY = 'favoriteOutfits';
 
-export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
+export default function SearchScreen({navigate, goBack, wardrobe = []}) {
   const {theme} = useAppTheme();
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [savedOutfits, setSavedOutfits] = useState([]);
 
   useEffect(() => {
+    loadSavedOutfits();
     Voice.onSpeechResults = e => {
       const spokenText = e.value?.[0];
       if (spokenText) setQuery(spokenText);
     };
-
     return () => {
       Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
 
+  const loadSavedOutfits = async () => {
+    const [manualData, favoriteData] = await Promise.all([
+      AsyncStorage.getItem(CLOSET_KEY),
+      AsyncStorage.getItem(FAVORITES_KEY),
+    ]);
+    const manual = manualData ? JSON.parse(manualData) : [];
+    const favorites = favoriteData ? JSON.parse(favoriteData) : [];
+    setSavedOutfits([...manual, ...favorites]);
+  };
+
   const startVoice = async () => {
     try {
-      await Voice.stop(); // reset if already running
-      setQuery('');
       setIsListening(true);
       await Voice.start('en-US');
     } catch (e) {
       console.error('Voice start error:', e);
+      setIsListening(false);
     }
   };
 
@@ -50,27 +59,40 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
       await Voice.stop();
     } catch (e) {
       console.error('Voice stop error:', e);
-    } finally {
-      setIsListening(false);
     }
+    setIsListening(false);
   };
 
-  const wardrobeResults = wardrobe.filter(item =>
-    [
-      item.name,
-      item.mainCategory,
-      item.subCategory,
-      item.color,
-      item.material,
-      item.fit,
-      item.size,
-      item.tags?.join(' '),
-      item.notes,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+  const handlePressIn = () => startVoice();
+  const handlePressOut = () => stopVoice();
+
+  const matchesQuery = text =>
+    text?.toLowerCase().includes(query.toLowerCase());
+
+  const filteredWardrobe = wardrobe.filter(item =>
+    matchesQuery(
+      [
+        item.name,
+        item.mainCategory,
+        item.subCategory,
+        item.color,
+        item.material,
+        item.fit,
+        item.size,
+        item.tags?.join(' '),
+        item.notes,
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ),
+  );
+
+  const filteredOutfits = savedOutfits.filter(outfit =>
+    matchesQuery(
+      [outfit.name, outfit.tags?.join(' '), outfit.notes]
+        .filter(Boolean)
+        .join(' '),
+    ),
   );
 
   return (
@@ -78,7 +100,6 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
       style={[styles.container, {backgroundColor: theme.colors.background}]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      {/* Back Arrow */}
       <TouchableOpacity onPress={goBack} style={styles.backButton}>
         <MaterialIcons
           name="arrow-back"
@@ -87,25 +108,18 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
         />
       </TouchableOpacity>
 
-      {/* Voice Search (Hold to Speak) */}
       <TouchableOpacity
-        onPressIn={startVoice}
-        onPressOut={stopVoice}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
         style={{alignSelf: 'center', marginBottom: 12}}>
-        <Text
-          style={{
-            color: theme.colors.primary,
-            fontWeight: '600',
-            fontSize: 18,
-          }}>
-          {isListening ? '🎙️ Listening…' : '🎤 Hold to Speak'}
+        <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
+          🎤 Hold to Voice Search
         </Text>
       </TouchableOpacity>
 
-      {/* Search Input */}
       <View style={styles.inputWrapper}>
         <TextInput
-          placeholder="Search wardrobe..."
+          placeholder="Search wardrobe, saved outfits..."
           placeholderTextColor={theme.colors.foreground}
           value={query}
           onChangeText={setQuery}
@@ -131,15 +145,10 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
         )}
       </View>
 
-      {/* Results Group Title */}
-      {wardrobeResults.length > 0 && (
-        <Text style={{color: theme.colors.foreground, marginBottom: 8}}>
-          👕 Wardrobe Matches
-        </Text>
+      {filteredWardrobe.length > 0 && (
+        <Text style={styles.groupLabel}>👕 Wardrobe</Text>
       )}
-
-      {/* Results List */}
-      {wardrobeResults.map(item => (
+      {filteredWardrobe.map(item => (
         <TouchableOpacity
           key={item.id}
           style={[
@@ -156,9 +165,33 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
         </TouchableOpacity>
       ))}
 
-      {wardrobeResults.length === 0 && (
+      {filteredOutfits.length > 0 && (
+        <Text style={styles.groupLabel}>📦 Saved Outfits</Text>
+      )}
+      {filteredOutfits.map(outfit => (
+        <View
+          key={outfit.id}
+          style={[styles.card, {backgroundColor: theme.colors.surface}]}>
+          <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
+            {outfit.name?.trim() || 'Unnamed Outfit'}
+          </Text>
+          <View style={{flexDirection: 'row', gap: 8, marginTop: 6}}>
+            {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
+              i?.image ? (
+                <Image
+                  key={i.id}
+                  source={{uri: i.image}}
+                  style={{width: 60, height: 60, borderRadius: 8}}
+                />
+              ) : null,
+            )}
+          </View>
+        </View>
+      ))}
+
+      {filteredWardrobe.length === 0 && filteredOutfits.length === 0 && (
         <Text style={{color: theme.colors.foreground, marginTop: 20}}>
-          No items found.
+          No results found.
         </Text>
       )}
     </ScrollView>
@@ -166,20 +199,10 @@ export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  backButton: {
-    marginBottom: 12,
-    alignSelf: 'flex-start',
-  },
-  inputWrapper: {
-    position: 'relative',
-    marginBottom: 16,
-  },
+  container: {flex: 1},
+  content: {padding: 16},
+  backButton: {marginBottom: 12, alignSelf: 'flex-start'},
+  inputWrapper: {position: 'relative', marginBottom: 16},
   input: {
     height: 48,
     borderWidth: 1,
@@ -188,20 +211,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingRight: 40,
   },
-  clearIcon: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-  },
+  clearIcon: {position: 'absolute', right: 12, top: 12},
   card: {
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 12,
   },
+  groupLabel: {
+    marginTop: 20,
+    marginBottom: 6,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#999',
+  },
 });
 
-////////////
+/////////////////
 
 // import React, {useState, useEffect} from 'react';
 // import {
@@ -229,6 +255,11 @@ const styles = StyleSheet.create({
 //   const [isListening, setIsListening] = useState(false);
 
 //   useEffect(() => {
+//     Voice.onSpeechResults = e => {
+//       const spokenText = e.value?.[0];
+//       if (spokenText) setQuery(spokenText);
+//     };
+
 //     return () => {
 //       Voice.destroy().then(Voice.removeAllListeners);
 //     };
@@ -236,21 +267,21 @@ const styles = StyleSheet.create({
 
 //   const startVoice = async () => {
 //     try {
-//       await Voice.stop();
-//       await Voice.destroy();
-//       await Voice.removeAllListeners();
-
-//       Voice.onSpeechResults = e => {
-//         const spokenText = e.value?.[0];
-//         if (spokenText) {
-//           setQuery(spokenText);
-//         }
-//       };
-
+//       await Voice.stop(); // reset if already running
+//       setQuery('');
 //       setIsListening(true);
 //       await Voice.start('en-US');
 //     } catch (e) {
 //       console.error('Voice start error:', e);
+//     }
+//   };
+
+//   const stopVoice = async () => {
+//     try {
+//       await Voice.stop();
+//     } catch (e) {
+//       console.error('Voice stop error:', e);
+//     } finally {
 //       setIsListening(false);
 //     }
 //   };
@@ -287,12 +318,18 @@ const styles = StyleSheet.create({
 //         />
 //       </TouchableOpacity>
 
-//       {/* Voice Search */}
+//       {/* Voice Search (Hold to Speak) */}
 //       <TouchableOpacity
-//         onPress={startVoice}
+//         onPressIn={startVoice}
+//         onPressOut={stopVoice}
 //         style={{alignSelf: 'center', marginBottom: 12}}>
-//         <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
-//           🎤 Start Voice Search
+//         <Text
+//           style={{
+//             color: theme.colors.primary,
+//             fontWeight: '600',
+//             fontSize: 18,
+//           }}>
+//           {isListening ? '🎙️ Listening…' : '🎤 Hold to Speak'}
 //         </Text>
 //       </TouchableOpacity>
 
@@ -381,340 +418,6 @@ const styles = StyleSheet.create({
 //     paddingHorizontal: 14,
 //     fontSize: 16,
 //     paddingRight: 40,
-//   },
-//   clearIcon: {
-//     position: 'absolute',
-//     right: 12,
-//     top: 12,
-//   },
-//   card: {
-//     padding: 14,
-//     borderRadius: 12,
-//     borderWidth: 1,
-//     marginBottom: 12,
-//   },
-// });
-
-////////////
-
-// import React, {useState, useEffect} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   TextInput,
-//   ScrollView,
-//   TouchableOpacity,
-// } from 'react-native';
-// import {useAppTheme} from '../context/ThemeContext';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-// import Voice from '@react-native-voice/voice';
-// import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
-
-// type Props = {
-//   navigate: (screen: string, params?: any) => void;
-//   goBack: () => void;
-//   wardrobe?: WardrobeItem[];
-// };
-
-// export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
-//   const {theme} = useAppTheme();
-//   const [query, setQuery] = useState('');
-//   const [isListening, setIsListening] = useState(false);
-
-//   useEffect(() => {
-//     Voice.onSpeechResults = e => {
-//       const spokenText = e.value?.[0];
-//       if (spokenText) setQuery(spokenText);
-//     };
-//     return () => {
-//       Voice.destroy().then(Voice.removeAllListeners);
-//     };
-//   }, []);
-
-//   const startVoice = async () => {
-//     try {
-//       setIsListening(true);
-//       await Voice.start('en-US');
-//     } catch (e) {
-//       console.error('Voice start error:', e);
-//       setIsListening(false);
-//     }
-//   };
-
-//   const wardrobeResults = wardrobe.filter(item =>
-//     [
-//       item.name,
-//       item.mainCategory,
-//       item.subCategory,
-//       item.color,
-//       item.material,
-//       item.fit,
-//       item.size,
-//       item.tags?.join(' '),
-//       item.notes,
-//     ]
-//       .filter(Boolean)
-//       .join(' ')
-//       .toLowerCase()
-//       .includes(query.toLowerCase()),
-//   );
-
-//   return (
-//     <ScrollView
-//       style={[styles.container, {backgroundColor: theme.colors.background}]}
-//       contentContainerStyle={styles.content}
-//       keyboardShouldPersistTaps="handled">
-//       {/* Back Arrow */}
-//       <TouchableOpacity onPress={goBack} style={styles.backButton}>
-//         <MaterialIcons
-//           name="arrow-back"
-//           size={24}
-//           color={theme.colors.foreground}
-//         />
-//       </TouchableOpacity>
-
-//       {/* Voice Search */}
-//       <TouchableOpacity
-//         onPress={startVoice}
-//         style={{alignSelf: 'center', marginBottom: 12}}>
-//         <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
-//           🎤 Start Voice Search
-//         </Text>
-//       </TouchableOpacity>
-
-//       {/* Search Input */}
-//       <View style={styles.inputWrapper}>
-//         <TextInput
-//           placeholder="Search wardrobe..."
-//           placeholderTextColor={theme.colors.foreground}
-//           value={query}
-//           onChangeText={setQuery}
-//           style={[
-//             styles.input,
-//             {
-//               color: theme.colors.foreground,
-//               borderColor: theme.colors.foreground,
-//               backgroundColor: theme.colors.surface,
-//             },
-//           ]}
-//         />
-//         {query.length > 0 && (
-//           <TouchableOpacity
-//             onPress={() => setQuery('')}
-//             style={styles.clearIcon}>
-//             <MaterialIcons
-//               name="close"
-//               size={20}
-//               color={theme.colors.foreground}
-//             />
-//           </TouchableOpacity>
-//         )}
-//       </View>
-
-//       {/* Results Group Title */}
-//       {wardrobeResults.length > 0 && (
-//         <Text style={{color: theme.colors.foreground, marginBottom: 8}}>
-//           👕 Wardrobe Matches
-//         </Text>
-//       )}
-
-//       {/* Results List */}
-//       {wardrobeResults.map(item => (
-//         <TouchableOpacity
-//           key={item.id}
-//           style={[
-//             styles.card,
-//             {
-//               backgroundColor: theme.colors.surface,
-//               borderColor: theme.colors.surface,
-//             },
-//           ]}
-//           onPress={() => navigate('ItemDetail', {item})}>
-//           <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
-//             {item.name}
-//           </Text>
-//         </TouchableOpacity>
-//       ))}
-
-//       {wardrobeResults.length === 0 && (
-//         <Text style={{color: theme.colors.foreground, marginTop: 20}}>
-//           No items found.
-//         </Text>
-//       )}
-//     </ScrollView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-//   content: {
-//     padding: 16,
-//   },
-//   backButton: {
-//     marginBottom: 12,
-//     alignSelf: 'flex-start',
-//   },
-//   inputWrapper: {
-//     position: 'relative',
-//     marginBottom: 16,
-//   },
-//   input: {
-//     height: 48,
-//     borderWidth: 1,
-//     borderRadius: 12,
-//     paddingHorizontal: 14,
-//     fontSize: 16,
-//     paddingRight: 40, // space for clear icon
-//   },
-//   clearIcon: {
-//     position: 'absolute',
-//     right: 12,
-//     top: 12,
-//   },
-//   card: {
-//     padding: 14,
-//     borderRadius: 12,
-//     borderWidth: 1,
-//     marginBottom: 12,
-//   },
-// });
-
-/////////////
-
-// import React, {useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   TextInput,
-//   ScrollView,
-//   TouchableOpacity,
-// } from 'react-native';
-// import {useAppTheme} from '../context/ThemeContext';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-// import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
-
-// type Props = {
-//   navigate: (screen: string, params?: any) => void;
-//   goBack: () => void;
-//   wardrobe?: WardrobeItem[];
-// };
-
-// export default function SearchScreen({navigate, goBack, wardrobe = []}: Props) {
-//   const {theme} = useAppTheme();
-//   const [query, setQuery] = useState('');
-
-//   const filteredItems = wardrobe.filter(item =>
-//     [
-//       item.name,
-//       item.mainCategory,
-//       item.subCategory,
-//       item.color,
-//       item.material,
-//       item.fit,
-//       item.size,
-//       item.tags?.join(' '),
-//       item.notes,
-//     ]
-//       .filter(Boolean)
-//       .join(' ')
-//       .toLowerCase()
-//       .includes(query.toLowerCase()),
-//   );
-
-//   return (
-//     <ScrollView
-//       style={[styles.container, {backgroundColor: theme.colors.background}]}
-//       contentContainerStyle={styles.content}
-//       keyboardShouldPersistTaps="handled">
-//       {/* Back Arrow */}
-//       <TouchableOpacity onPress={goBack} style={styles.backButton}>
-//         <MaterialIcons
-//           name="arrow-back"
-//           size={24}
-//           color={theme.colors.foreground}
-//         />
-//       </TouchableOpacity>
-
-//       <View style={styles.inputWrapper}>
-//         <TextInput
-//           placeholder="Search wardrobe..."
-//           placeholderTextColor={theme.colors.foreground}
-//           value={query}
-//           onChangeText={setQuery}
-//           style={[
-//             styles.input,
-//             {
-//               color: theme.colors.foreground,
-//               borderColor: theme.colors.foreground,
-//               backgroundColor: theme.colors.surface,
-//             },
-//           ]}
-//         />
-//         {query.length > 0 && (
-//           <TouchableOpacity
-//             onPress={() => setQuery('')}
-//             style={styles.clearIcon}>
-//             <MaterialIcons
-//               name="close"
-//               size={20}
-//               color={theme.colors.foreground}
-//             />
-//           </TouchableOpacity>
-//         )}
-//       </View>
-
-//       {filteredItems.map(item => (
-//         <TouchableOpacity
-//           key={item.id}
-//           style={[
-//             styles.card,
-//             {
-//               backgroundColor: theme.colors.surface,
-//               borderColor: theme.colors.surface,
-//             },
-//           ]}
-//           onPress={() => navigate('ItemDetail', {item})}>
-//           <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
-//             {item.name}
-//           </Text>
-//         </TouchableOpacity>
-//       ))}
-
-//       {filteredItems.length === 0 && (
-//         <Text style={{color: theme.colors.foreground, marginTop: 20}}>
-//           No items found.
-//         </Text>
-//       )}
-//     </ScrollView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-//   content: {
-//     padding: 16,
-//   },
-//   backButton: {
-//     marginBottom: 12,
-//     alignSelf: 'flex-start',
-//   },
-//   inputWrapper: {
-//     position: 'relative',
-//     marginBottom: 16,
-//   },
-//   input: {
-//     height: 48,
-//     borderWidth: 1,
-//     borderRadius: 12,
-//     paddingHorizontal: 14,
-//     fontSize: 16,
-//     paddingRight: 40, // space for clear icon
 //   },
 //   clearIcon: {
 //     position: 'absolute',
