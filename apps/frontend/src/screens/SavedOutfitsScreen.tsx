@@ -282,7 +282,6 @@ export default function SavedOutfitsScreen() {
               <View style={{flexDirection: 'row', marginTop: 10}}>
                 <TouchableOpacity
                   onPress={() => {
-                    // TODO: You can wire this to set this outfit in Calendar Planner
                     Alert.alert(
                       'Planned outfit:',
                       outfit.name || 'Unnamed Outfit',
@@ -297,7 +296,6 @@ export default function SavedOutfitsScreen() {
 
                 <TouchableOpacity
                   onPress={() => {
-                    // TODO: You can wire this to pre-fill the StyleMe screen
                     Alert.alert(
                       'Rewearing outfit:',
                       outfit.name || 'Unnamed Outfit',
@@ -310,7 +308,6 @@ export default function SavedOutfitsScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* 🏷️ Tags display */}
               {/* 🏷️ Tags */}
               {(outfit.tags || []).length > 0 && (
                 <View
