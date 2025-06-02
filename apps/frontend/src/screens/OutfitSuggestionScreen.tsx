@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {saveFavoriteOutfit} from '../utils/favorites';
 import OutfitNameModal from '../components/OutfitNameModal/OutfitNameModal';
 import {saveOutfitToDate} from '../utils/calendarStorage';
+import Voice from '@react-native-voice/voice';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -82,6 +83,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     null | 'top' | 'bottom' | 'shoes'
   >(null);
 
+  const [weather, setWeather] = useState<'hot' | 'cold' | 'rainy' | 'Any'>(
+    'Any',
+  );
+
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [pendingSaveOutfit, setPendingSaveOutfit] = useState<null | {
@@ -125,12 +130,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     }));
   };
 
-  const [weather, setWeather] = useState<'hot' | 'cold' | 'rainy' | 'Any'>(
-    'Any',
-  );
   const [occasion, setOccasion] = useState<string>('Any');
   const [style, setStyle] = useState<string>('Any');
-
   const {outfit, reasons, regenerateOutfit} = useOutfitSuggestion(
     mockWardrobe,
     {
@@ -139,6 +140,35 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       styleTags: style !== 'Any' ? [style] : [],
     },
   );
+
+  useEffect(() => {
+    Voice.onSpeechResults = (e: any) => {
+      // handle the voice input and set weather, occasion, or style
+      const speechResult = e.value[0].toLowerCase();
+      if (
+        speechResult.includes('hot') ||
+        speechResult.includes('cold') ||
+        speechResult.includes('rainy')
+      ) {
+        setWeather(speechResult as 'hot' | 'cold' | 'rainy' | 'Any');
+      } else if (
+        speechResult.includes('casual') ||
+        speechResult.includes('formal')
+      ) {
+        setOccasion(speechResult);
+      } else {
+        setStyle(speechResult); // Map to style if mentioned
+      }
+      regenerateOutfit(); // Trigger outfit regeneration after voice input
+    };
+
+    // Start voice listening on button click
+    Voice.start('en-US');
+
+    return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
 
   const styles = StyleSheet.create({
     container: {flex: 1},
@@ -181,6 +211,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       color: '#007AFF',
       textAlign: 'center',
       marginBottom: 12,
+    },
+    saveOutfitButton: {
+      fontSize: 16,
+      color: theme.colors.foreground,
     },
   });
 
@@ -230,28 +264,45 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         {renderCard('Bottom', outfit.bottom, 'bottom')}
         {renderCard('Shoes', outfit.shoes, 'shoes')}
         {outfit.top && outfit.bottom && outfit.shoes && (
-          <TouchableOpacity
-            style={{
-              marginTop: 16,
-              backgroundColor: '#405de6',
-              paddingVertical: 12,
-              borderRadius: 10,
-              alignItems: 'center',
-              width: '50%',
-              alignSelf: 'center',
-            }}
-            onPress={() => {
-              setPendingSaveOutfit({
-                top: outfit.top,
-                bottom: outfit.bottom,
-                shoes: outfit.shoes,
-              });
-              setShowNameModal(true);
-            }}>
-            <Text style={[styles.saveOutfitButton, {fontWeight: '600'}]}>
-              Save to Favorites
-            </Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.colors.primary,
+                paddingVertical: 10,
+                paddingHorizontal: 24,
+                borderRadius: 10,
+                marginTop: 12,
+              }}
+              onPress={() =>
+                navigate('TryOnOverlay', {
+                  outfit: {
+                    top: outfit.top,
+                    bottom: outfit.bottom,
+                    shoes: outfit.shoes,
+                  },
+                  userPhotoUri: Image.resolveAssetSource(
+                    require('../assets/images/full-body-temp1.png'),
+                  ).uri,
+                })
+              }>
+              <Text
+                style={{
+                  color: 'black',
+                  fontWeight: '600',
+                  textAlign: 'center',
+                }}>
+                Try This Outfit On
+              </Text>
+            </TouchableOpacity>
+
+            {/* ✅ This now sits OUTSIDE and is valid */}
+            <TouchableOpacity onPress={() => Voice.start('en-US')}>
+              <Text style={styles.cardTitle}>Start Voice Command</Text>
+            </TouchableOpacity>
+            <Text style={styles.cardTitle}>{outfit.top?.name}</Text>
+            <Text style={styles.cardTitle}>{outfit.bottom?.name}</Text>
+            <Text style={styles.cardTitle}>{outfit.shoes?.name}</Text>
+          </>
         )}
 
         <View style={{marginTop: 24}}>
@@ -272,31 +323,44 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
         {/** 🧥 Existing button stays after feedback */}
         {outfit.top && outfit.bottom && outfit.shoes && (
-          <TouchableOpacity
-            style={{
-              backgroundColor: theme.colors.primary,
-              paddingVertical: 10,
-              paddingHorizontal: 24,
-              borderRadius: 10,
-              marginTop: 12,
-            }}
-            onPress={() =>
-              navigate('TryOnOverlay', {
-                outfit: {
-                  top: outfit.top,
-                  bottom: outfit.bottom,
-                  shoes: outfit.shoes,
-                },
-                userPhotoUri: Image.resolveAssetSource(
-                  require('../assets/images/full-body-temp1.png'),
-                ).uri,
-              })
-            }>
-            <Text
-              style={{color: 'black', fontWeight: '600', textAlign: 'center'}}>
-              Try This Outfit On
-            </Text>
-          </TouchableOpacity>
+          <View style={{marginTop: 24, gap: 12}}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.colors.primary,
+                paddingVertical: 10,
+                paddingHorizontal: 24,
+                borderRadius: 10,
+              }}
+              onPress={() =>
+                navigate('TryOnOverlay', {
+                  outfit: {
+                    top: outfit.top,
+                    bottom: outfit.bottom,
+                    shoes: outfit.shoes,
+                  },
+                  userPhotoUri: Image.resolveAssetSource(
+                    require('../assets/images/full-body-temp1.png'),
+                  ).uri,
+                })
+              }>
+              <Text
+                style={{
+                  color: 'black',
+                  fontWeight: '600',
+                  textAlign: 'center',
+                }}>
+                Try This Outfit On
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => Voice.start('en-US')}>
+              <Text style={styles.cardTitle}>Start Voice Command</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.cardTitle}>{outfit.top?.name}</Text>
+            <Text style={styles.cardTitle}>{outfit.bottom?.name}</Text>
+            <Text style={styles.cardTitle}>{outfit.shoes?.name}</Text>
+          </View>
         )}
       </ScrollView>
 

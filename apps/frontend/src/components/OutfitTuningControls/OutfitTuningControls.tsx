@@ -12,6 +12,7 @@ type Props = {
   onChangeOccasion: (value: string) => void;
   onChangeStyle: (value: string) => void;
   onRegenerate: () => void;
+  onGenerate?: () => void;
 };
 
 export default function OutfitTuningControls({
