@@ -285,7 +285,7 @@ export default function SavedOutfitsScreen() {
               }}>
               <Text
                 style={{
-                  color: sortType === key ? '#fff' : theme.colors.foreground2,
+                  color: sortType === key ? 'black' : theme.colors.foreground2,
                   fontWeight: '500',
                   fontSize: 13,
                 }}>
