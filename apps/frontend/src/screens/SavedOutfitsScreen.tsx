@@ -223,6 +223,12 @@ export default function SavedOutfitsScreen() {
       justifyContent: 'flex-end',
       marginTop: 16,
     },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      paddingHorizontal: 16,
+    },
   });
 
   const [sortType, setSortType] = useState<
@@ -249,6 +255,7 @@ export default function SavedOutfitsScreen() {
 
   return (
     <>
+      <Text style={styles.header}>Saved Outfit</Text>
       {/* 🔀 Sort/Filter Bar */}
       <View style={{paddingHorizontal: 16, marginBottom: 0, marginTop: 4}}>
         <Text

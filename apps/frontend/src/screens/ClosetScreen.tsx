@@ -164,7 +164,6 @@ export default function ClosetScreen({
       fontSize: 16,
       fontWeight: '600',
     },
-
     header: {
       fontSize: 28,
       fontWeight: '600',
@@ -287,7 +286,7 @@ export default function ClosetScreen({
   return (
     <View style={{flex: 1}}>
       <ScrollView style={styles.container}>
-        <Text style={styles.header}>Closet</Text>
+        <Text style={styles.header}>Wardrobe</Text>
 
         <View style={styles.filterSortRow}>
           <TouchableOpacity

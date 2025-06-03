@@ -85,7 +85,7 @@ export default function CalendarPlannerScreen() {
       padding: 12,
       flex: 1,
     },
-    title: {
+    header: {
       fontSize: 24,
       fontWeight: 'bold',
       marginBottom: 16,
@@ -143,7 +143,7 @@ export default function CalendarPlannerScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>📅 Outfit Planner</Text>
+      <Text style={styles.header}>📅 Outfit Planner</Text>
 
       {Object.keys(calendarMap).length === 0 ? (
         <Text style={styles.emptyText}>No planned outfits yet.</Text>
