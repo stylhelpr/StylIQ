@@ -1,0 +1,35 @@
+import { Controller, Post, Get, Param, Body } from '@nestjs/common';
+import { OutfitService } from './outfit.service';
+import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
+import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
+import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
+
+@Controller('outfit')
+export class OutfitController {
+  constructor(private readonly outfitService: OutfitService) {}
+
+  @Post('suggest')
+  suggestOutfit(@Body() dto: SuggestOutfitDto) {
+    return this.outfitService.suggestOutfit(dto);
+  }
+
+  @Get('suggestions/:userId')
+  getSuggestions(@Param('userId') userId: string) {
+    return this.outfitService.getSuggestions(userId);
+  }
+
+  @Post('feedback')
+  submitFeedback(@Body() dto: OutfitFeedbackDto) {
+    return this.outfitService.submitFeedback(dto);
+  }
+
+  @Post('favorite')
+  favoriteOutfit(@Body() dto: FavoriteOutfitDto) {
+    return this.outfitService.favoriteOutfit(dto);
+  }
+
+  @Get('favorites/:userId')
+  getFavorites(@Param('userId') userId: string) {
+    return this.outfitService.getFavorites(userId);
+  }
+}

@@ -1,0 +1,7 @@
+export class UploadDto {
+  user_id: string;
+  image_url: string;
+  name?: string;
+  width: number;
+  height: number;
+}

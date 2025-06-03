@@ -1,3 +1,4 @@
+// main.ts
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -11,8 +12,6 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
-  await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  await app.listen(3001, '0.0.0.0');
 }
 bootstrap();

@@ -1,12 +1,13 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Req } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get(':id')
-  getUser(@Param('id') id: string) {
-    return this.usersService.findUserById(id);
+  @Post()
+  async upsertUser(@Req() req, @Body() body) {
+    const sub = req.user.sub;
+    return this.usersService.upsertUser(sub, body);
   }
 }
