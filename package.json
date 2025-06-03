@@ -34,6 +34,7 @@
     "react-native-calendars": "^1.1312.1",
     "react-native-contacts": "^8.0.5",
     "react-native-date-picker": "^5.0.12",
+    "react-native-device-info": "^14.0.4",
     "react-native-dotenv": "^3.4.11",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-geolocation-service": "^5.3.1",
