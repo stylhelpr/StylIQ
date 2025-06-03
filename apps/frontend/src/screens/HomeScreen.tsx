@@ -175,7 +175,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       width: '49.3%',
       backgroundColor: '#405de6',
       borderRadius: 8,
-      paddingVertical: 6,
+      paddingVertical: 10,
       marginBottom: 6,
       alignItems: 'center',
       shadowColor: '#000',
@@ -292,7 +292,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       alignItems: 'flex-start',
       height: 80,
     },
-
     weatherSuggestionWrapper: {
       flex: 1,
       justifyContent: 'center',
@@ -306,7 +305,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       borderRadius: 8,
       alignSelf: 'flex-start',
     },
-
     weatherAdvice: {
       fontSize: 14,
       fontWeight: '600',
@@ -327,9 +325,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <View style={{paddingHorizontal: 16, marginBottom: 8}}>
         <Text
           style={{
-            fontSize: 16,
+            fontSize: 18,
             color: theme.colors.foreground,
-            fontWeight: '900',
+            fontWeight: '800',
             textAlign: 'center',
             marginBottom: 4,
           }}>
@@ -382,7 +380,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.aiTitle}>Ask AI</Text>
+        {/* <Text style={styles.aiTitle}>Ask AI Concierge</Text> */}
         <VoiceControlComponent
           onPromptResult={prompt => navigate('Outfit', {prompt})}
         />

@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   selectButton: {
     padding: 12,
     borderRadius: 8,
-    marginBottom: 30,
+    marginBottom: 12,
   },
   modalOverlay: {
     flex: 1,

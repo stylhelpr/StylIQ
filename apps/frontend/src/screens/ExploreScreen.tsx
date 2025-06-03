@@ -889,9 +889,9 @@ export default function ExploreScreen() {
         Explore
       </Text>
 
-      <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+      {/* <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
         Style Prompt
-      </Text>
+      </Text> */}
       <View style={styles.promptRow}>
         <TextInput
           style={[

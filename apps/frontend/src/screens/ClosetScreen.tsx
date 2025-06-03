@@ -219,7 +219,7 @@ export default function ClosetScreen({
       padding: 8,
     },
     label: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '500',
       color: theme.colors.foreground,
     },
@@ -318,16 +318,12 @@ export default function ClosetScreen({
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingHorizontal: 16,
+                paddingHorizontal: 0,
                 marginBottom: 6,
               }}>
-              <MaterialIcons
-                name={categoryIcons[mainCategory as MainCategory] || 'category'}
-                size={20}
-                color={theme.colors.primary}
-                style={{marginRight: 8}}
-              />
-              <Text style={styles.sectionTitle}>{mainCategory}</Text>
+              <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+                {mainCategory}
+              </Text>
             </View>
 
             {Object.entries(subMap).map(([subCategory, items]) => (

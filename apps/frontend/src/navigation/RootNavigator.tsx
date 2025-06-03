@@ -50,7 +50,7 @@ type Screen =
   | 'Profile'
   | 'StyleProfileScreen'
   | 'Explore'
-  | 'Closet'
+  | 'Wardrobe'
   | 'Settings'
   | 'Preferences'
   | 'Measurements'
@@ -246,7 +246,7 @@ const RootNavigator = () => {
         return (
           <ItemDetailScreen
             route={{params: screenParams}}
-            navigation={{goBack: () => setCurrentScreen('Closet')}}
+            navigation={{goBack: () => setCurrentScreen('Wardrobe')}}
           />
         );
       case 'AddItem':

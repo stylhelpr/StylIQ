@@ -178,7 +178,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     header: {
       fontSize: 22,
       fontWeight: '600',
-      marginVertical: 24,
+      marginVertical: 16,
       textAlign: 'center',
     },
     promptRow: {
@@ -201,6 +201,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       justifyContent: 'space-between',
       marginBottom: 20,
       width: '100%',
+      marginTop: 0,
     },
     chip: {
       backgroundColor: '#2a2a2a',
@@ -249,7 +250,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       backgroundColor: '#405de6',
       paddingVertical: 10,
       borderRadius: 10,
-      width: 130,
+      width: 120,
     },
     buttonText: {
       color: 'white',
@@ -260,10 +261,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     generateButton: {
       backgroundColor: '#405de6',
       paddingVertical: 10,
-      paddingHorizontal: 32,
+      paddingHorizontal: 52,
       borderRadius: 10,
-      marginBottom: 0,
-      marginTop: 8,
+      marginTop: 4,
     },
     generateButtonText: {
       color: 'white',
@@ -451,7 +451,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           <TouchableOpacity
             style={styles.button}
             onPress={() => setFeedbackModalVisible(true)}>
-            <Text style={styles.buttonText}>Rate This Outfit</Text>
+            <Text style={styles.buttonText}>Rate Outfit</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

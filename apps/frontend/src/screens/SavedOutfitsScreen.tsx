@@ -250,13 +250,13 @@ export default function SavedOutfitsScreen() {
   return (
     <>
       {/* 🔀 Sort/Filter Bar */}
-      <View style={{paddingHorizontal: 16, marginBottom: 16, marginTop: 4}}>
+      <View style={{paddingHorizontal: 16, marginBottom: 0, marginTop: 4}}>
         <Text
           style={{
             color: theme.colors.foreground,
             fontWeight: '600',
             fontSize: 15,
-            marginBottom: 8,
+            marginBottom: 14,
           }}>
           Sort by:
         </Text>
