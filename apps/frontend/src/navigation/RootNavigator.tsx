@@ -276,14 +276,6 @@ const RootNavigator = () => {
         <View style={styles.screen}>{renderScreen()}</View>
       </LayoutWrapper>
 
-      {currentScreen !== 'Login' && (
-        <TouchableOpacity
-          style={styles.debugButton}
-          onPress={() => navigate('Login')}>
-          <Text style={styles.debugButtonText}>Logout</Text>
-        </TouchableOpacity>
-      )}
-
       <BottomNavigation current={currentScreen} navigate={navigate} />
     </View>
   );
