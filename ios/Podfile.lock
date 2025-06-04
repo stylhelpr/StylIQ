@@ -1,4 +1,12 @@
 PODS:
+  - A0Auth0 (4.6.0):
+    - Auth0 (= 2.10)
+    - JWTDecode (= 3.2.0)
+    - React-Core
+    - SimpleKeychain (= 1.2.0)
+  - Auth0 (2.10.0):
+    - JWTDecode (= 3.2.0)
+    - SimpleKeychain (= 1.2.0)
   - boost (1.76.0)
   - BVLinearGradient (2.8.3):
     - React-Core
@@ -68,6 +76,7 @@ PODS:
     - GoogleUtilities/Logger
     - GoogleUtilities/Privacy
   - hermes-engine (0.70.10)
+  - JWTDecode (3.2.0)
   - libevent (2.1.12)
   - nanopb (3.30910.0):
     - nanopb/decode (= 3.30910.0)
@@ -429,11 +438,13 @@ PODS:
     - React-Core
   - RNVectorIcons (10.2.0):
     - React-Core
+  - SimpleKeychain (1.2.0)
   - TextToSpeech (4.1.1):
     - React-Core
   - Yoga (1.14.0)
 
 DEPENDENCIES:
+  - A0Auth0 (from `../node_modules/react-native-auth0`)
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
@@ -504,6 +515,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - Auth0
     - Firebase
     - FirebaseCore
     - FirebaseCoreExtension
@@ -513,11 +525,15 @@ SPEC REPOS:
     - fmt
     - GoogleDataTransport
     - GoogleUtilities
+    - JWTDecode
     - libevent
     - nanopb
     - PromisesObjC
+    - SimpleKeychain
 
 EXTERNAL SOURCES:
+  A0Auth0:
+    :path: "../node_modules/react-native-auth0"
   boost:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   BVLinearGradient:
@@ -650,6 +666,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  A0Auth0: 03f8957c3991644e0ad550a304a9d99a4b589c91
+  Auth0: 2876d0c36857422eda9cb580a6cc896c7d14cb36
   boost: 860d55a5b3a007c528ccdafab3bc6f4883e07143
   BVLinearGradient: cb006ba232a1f3e4f341bb62c42d1098c284da70
   DoubleConversion: 5189b271737e1565bdce30deb4a08d647e3f5f54
@@ -666,6 +684,7 @@ SPEC CHECKSUMS:
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   hermes-engine: 409b787d72bde225a3e5ce982f9c3ace6ff56691
+  JWTDecode: 7dae24cb9bf9b608eae61e5081029ec169bb5527
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   Permission-Calendars: 61e3173e27d050c5f90e85e8d5d9cd4873162558
@@ -725,9 +744,10 @@ SPEC CHECKSUMS:
   RNFBMessaging: 4627e84e9e363953357dd122543e4223c49e6bc1
   RNPermissions: bd0d9ca7969ff7b999aa605ee2e5919c12522bfe
   RNVectorIcons: e944f84b90781998c847ee42ad411a1bf8825ac8
+  SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
-PODFILE CHECKSUM: 3193b224168c3e0798968e673165c6a5576026a6
+PODFILE CHECKSUM: 82e083b5e8e53b6c58742970e724ff0a9fbd31b8
 
 COCOAPODS: 1.16.2

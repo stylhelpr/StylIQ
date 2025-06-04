@@ -54,7 +54,7 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 
   return (
     <View style={styles.header}>
-      <Text style={styles.title}>StylIQ</Text>
+      <Text style={styles.title}>StylHelpr</Text>
 
       <View style={styles.iconRow}>
         <TouchableOpacity

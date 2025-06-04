@@ -12,7 +12,7 @@ import { PineconeModule } from './pinecone/pinecone.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CustomOutfitModule } from './custom-outfit/custom-outfit.module';
 import { ScheduledOutfitModule } from './scheduled-outfit/scheduled-outfit.module';
-import { FeedbackModule } from './feedback/feedback.module'; // ✅ ADD THIS
+import { FeedbackModule } from './feedback/feedback.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -29,7 +29,7 @@ import { AppService } from './app.service';
     NotificationsModule,
     CustomOutfitModule,
     ScheduledOutfitModule,
-    FeedbackModule, // ✅ ALSO ADD HERE
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [AppService, DatabaseService],

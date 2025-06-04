@@ -6,6 +6,7 @@
 #import <React/RCTAppSetupUtils.h>
 #import <Firebase.h>
 #import <UserNotifications/UserNotifications.h>
+#import <React/RCTLinkingManager.h>
 
 @interface AppDelegate () <UNUserNotificationCenterDelegate>
 @end
@@ -158,6 +159,13 @@ static NSString *const kRNConcurrentRoot = @"concurrentRoot";
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
 {
   completionHandler(UNNotificationPresentationOptionAlert + UNNotificationPresentationOptionSound);
+}
+
+- (BOOL)application:(UIApplication *)app
+            openURL:(NSURL *)url
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options
+{
+  return [RCTLinkingManager application:app openURL:url options:options];
 }
 
 @end
