@@ -16,7 +16,8 @@ const windowHeight = Dimensions.get('window').height;
 type Props = {
   email: string;
   onFaceIdLogin: () => void;
-  onPasswordLogin: () => void;
+  onPasswordLogin?: () => void;
+  onGoogleLogin?: () => void;
   onLoginSuccess: () => void;
 };
 
@@ -118,15 +119,11 @@ export default function LoginScreen({
         <View style={styles.termsContainer}>
           <Text style={[styles.termsText, {color: theme.colors.foreground}]}>
             By continuing, you agree to the{' '}
-            <Text
-              style={styles.linkText}
-              onPress={() => Linking.openURL('https://www.anker.com/privacy')}>
-              Anker Innovations Privacy Policy
+            <Text style={styles.linkText} onPress={() => Linking.openURL('')}>
+              StylHelpr Privacy Policy
             </Text>
             ,{' '}
-            <Text
-              style={styles.linkText}
-              onPress={() => Linking.openURL('https://www.anker.com/terms')}>
+            <Text style={styles.linkText} onPress={() => Linking.openURL('')}>
               Terms of Use
             </Text>
             .
@@ -213,7 +210,7 @@ const styles = StyleSheet.create({
   },
 });
 
-////////////
+/////////////////
 
 // import React from 'react';
 // import {
@@ -226,12 +223,12 @@ const styles = StyleSheet.create({
 //   Linking,
 // } from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
 
 // const windowHeight = Dimensions.get('window').height;
 
 // type Props = {
 //   email: string;
-//   onGoogleLogin: () => void;
 //   onFaceIdLogin: () => void;
 //   onPasswordLogin: () => void;
 //   onLoginSuccess: () => void;
@@ -239,14 +236,31 @@ const styles = StyleSheet.create({
 
 // export default function LoginScreen({
 //   email,
-//   onGoogleLogin,
 //   onFaceIdLogin,
 //   onPasswordLogin,
 //   onLoginSuccess,
 // }: Props) {
 //   const {theme} = useAppTheme();
+//   const {authorize} = useAuth0();
 
-//   // mask email for privacy, e.g. giff***ike@hotmail.com
+//   const handleLogin = async () => {
+//     try {
+//       const redirectUrl =
+//         'com.stylhelpr.stylhelpr.auth0://dev-xeaol4s5b2zd7wuz.us.auth0.com/ios/com.stylhelpr.stylhelpr/callback';
+
+//       console.log('Using redirectUrl:', redirectUrl);
+
+//       await authorize({redirectUrl});
+
+//       onLoginSuccess();
+//     } catch (e: any) {
+//       console.error('LOGIN ERROR:', e.message || e);
+//       if (e.redirectUrl) {
+//         console.log('BAD REDIRECT URL:', e.redirectUrl);
+//       }
+//     }
+//   };
+
 //   const maskEmail = (email: string) => {
 //     const [user, domain] = email.split('@');
 //     if (!user || !domain) return email;
@@ -259,9 +273,7 @@ const styles = StyleSheet.create({
 //     <ImageBackground
 //       source={require('../assets/images/free1.jpg')}
 //       style={styles.background}
-//       resizeMode="cover"
-//       //   blurRadius={3}
-//     >
+//       resizeMode="cover">
 //       <View style={styles.container}>
 //         {/* Logo + Subtitle */}
 //         <View style={styles.logoContainer}>
@@ -273,13 +285,12 @@ const styles = StyleSheet.create({
 //           </Text>
 //         </View>
 
-//         {/* Google Button */}
+//         {/* Placeholder Google Button */}
 //         <TouchableOpacity
 //           style={[
 //             styles.googleButton,
 //             {backgroundColor: theme.colors.background},
 //           ]}
-//           onPress={onGoogleLogin}
 //           activeOpacity={0.8}>
 //           <Text style={styles.googleButtonText}>G</Text>
 //         </TouchableOpacity>
@@ -296,7 +307,7 @@ const styles = StyleSheet.create({
 //               borderRadius: 8,
 //             },
 //           ]}>
-//           {email ? maskEmail(email) : 'giffinmike@hotmail.con'}
+//           {email ? maskEmail(email) : 'giffinmike@hotmail.com'}
 //         </Text>
 
 //         {/* Face ID Button */}
@@ -310,10 +321,10 @@ const styles = StyleSheet.create({
 //           <Text style={styles.faceIdButtonText}>Face ID</Text>
 //         </TouchableOpacity>
 
-//         {/* Password Login */}
-//         <TouchableOpacity onPress={onPasswordLogin}>
+//         {/* Login Link (triggers Auth0 login) */}
+//         <TouchableOpacity onPress={handleLogin}>
 //           <Text style={[styles.passwordLogin, {color: theme.colors.primary}]}>
-//             Password login
+//             Login
 //           </Text>
 //         </TouchableOpacity>
 
@@ -343,7 +354,6 @@ const styles = StyleSheet.create({
 // const styles = StyleSheet.create({
 //   background: {
 //     flex: 1,
-//     // height: windowHeight,
 //     justifyContent: 'center',
 //     alignItems: 'center',
 //   },
@@ -412,7 +422,7 @@ const styles = StyleSheet.create({
 //     lineHeight: 18,
 //   },
 //   linkText: {
-//     color: '#007AFF', // link blue color
+//     color: '#007AFF',
 //     textDecorationLine: 'underline',
 //   },
 // });

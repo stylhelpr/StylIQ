@@ -16,15 +16,6 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 
   const {clearSession} = useAuth0();
 
-  // const handleLogout = async () => {
-  //   try {
-  //     await clearSession();
-  //     console.log('Logged out successfully');
-  //   } catch (e) {
-  //     console.error('Logout failed:', e);
-  //   }
-  // };
-
   const handleLogout = async () => {
     try {
       await clearSession(); // logs out from Auth0

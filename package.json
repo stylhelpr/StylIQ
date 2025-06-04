@@ -31,6 +31,7 @@
     "react-native-add-calendar-event": "^5.0.0",
     "react-native-animatable": "^1.4.0",
     "react-native-auth0": "^4.6.0",
+    "react-native-biometrics": "^3.0.1",
     "react-native-calendar-events": "^2.2.0",
     "react-native-calendars": "^1.1312.1",
     "react-native-contacts": "^8.0.5",

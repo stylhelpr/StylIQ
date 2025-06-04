@@ -111,5 +111,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSFaceIDUsageDescription</key>
+<string>We use Face ID to securely log you into your account.</string>
 </dict>
 </plist>
