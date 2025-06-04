@@ -5,6 +5,7 @@ export type Screen =
   | 'Closet'
   | 'Settings'
   | 'Search'
+  | 'Login'
   | 'Notifications';
 
 export type NavigateFunction = (

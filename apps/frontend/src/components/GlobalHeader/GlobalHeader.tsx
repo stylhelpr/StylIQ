@@ -16,14 +16,25 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 
   const {clearSession} = useAuth0();
 
+  // const handleLogout = async () => {
+  //   try {
+  //     await clearSession();
+  //     console.log('Logged out successfully');
+  //   } catch (e) {
+  //     console.error('Logout failed:', e);
+  //   }
+  // };
+
   const handleLogout = async () => {
     try {
-      await clearSession();
+      await clearSession(); // logs out from Auth0
       console.log('Logged out successfully');
+      navigate('Login'); // 👈 Navigate to your Login screen manually
     } catch (e) {
       console.error('Logout failed:', e);
     }
   };
+
   const styles = StyleSheet.create({
     header: {
       width: '100%',
