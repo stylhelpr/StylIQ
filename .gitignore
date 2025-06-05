@@ -74,3 +74,6 @@ buck-out/
 .env
 .env.*
 .aider*
+
+apps/backend-nest/*.json
+

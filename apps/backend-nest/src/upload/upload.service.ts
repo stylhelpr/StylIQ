@@ -5,8 +5,8 @@ import { UploadDto } from './dto/upload.dto';
 // import callVertexAI(), callGemini() here if applicable
 
 const pool = new Pool();
-const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-const index = pinecone.Index(process.env.PINECONE_INDEX_NAME);
+// const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+// const index = pinecone.Index(process.env.PINECONE_INDEX_NAME);
 
 @Injectable()
 export class UploadService {
@@ -47,17 +47,17 @@ export class UploadService {
     const itemId = res.rows[0].id;
 
     // 4. Upsert to Pinecone
-    await index.upsert({
-      upsertRequest: {
-        vectors: [
-          {
-            id: itemId,
-            values: vector,
-            metadata,
-          },
-        ],
-      },
-    });
+    // await index.upsert({
+    //   upsertRequest: {
+    //     vectors: [
+    //       {
+    //         id: itemId,
+    //         values: vector,
+    //         metadata,
+    //       },
+    //     ],
+    //   },
+    // });
 
     return { message: 'Upload complete', itemId };
   }
