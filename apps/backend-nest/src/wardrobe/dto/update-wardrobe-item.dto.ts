@@ -1,3 +1,4 @@
+// src/wardrobe/dto/update-wardrobe-item.dto.ts
 export class UpdateWardrobeItemDto {
   name?: string;
   subcategory?: string;
