@@ -1,27 +1,40 @@
 // src/auth/auth.middleware.ts
 import { FastifyInstance } from 'fastify';
-import * as jwt from 'jsonwebtoken';
 
 export function applyAuthMiddleware(fastify: FastifyInstance) {
   fastify.addHook('onRequest', async (req, reply) => {
-    const openPaths = ['/upload', '/ai/prompt', '/feedback/rate'];
-    if (openPaths.some((path) => req.url?.startsWith(path))) return;
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.status(401).send({ message: 'Missing token' });
-      return;
-    }
-
-    try {
-      const token = authHeader.split(' ')[1];
-      const decoded = jwt.decode(token) as any;
-      (req as any).user = { sub: decoded.sub };
-    } catch {
-      reply.status(401).send({ message: 'Invalid token' });
-    }
+    // ✅ TEMPORARY DEV MODE: bypass JWT and hardcode user
+    (req as any).user = { sub: 'mock-user-id' };
+    return;
   });
 }
+
+///////////////
+
+// // src/auth/auth.middleware.ts
+// import { FastifyInstance } from 'fastify';
+// import * as jwt from 'jsonwebtoken';
+
+// export function applyAuthMiddleware(fastify: FastifyInstance) {
+//   fastify.addHook('onRequest', async (req, reply) => {
+//     const openPaths = ['/upload', '/ai/prompt', '/feedback/rate'];
+//     if (openPaths.some((path) => req.url?.startsWith(path))) return;
+
+//     const authHeader = req.headers.authorization;
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       reply.status(401).send({ message: 'Missing token' });
+//       return;
+//     }
+
+//     try {
+//       const token = authHeader.split(' ')[1];
+//       const decoded = jwt.decode(token) as any;
+//       (req as any).user = { sub: decoded.sub };
+//     } catch {
+//       reply.status(401).send({ message: 'Invalid token' });
+//     }
+//   });
+// }
 
 ////////////
 
