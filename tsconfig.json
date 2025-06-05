@@ -6,10 +6,10 @@
     "paths": {
       "@tokens/*": ["styles/tokens/*"],
       "@tokens": ["styles/tokens/index"],
-      "@types/*": ["types/*"],
-      "@types": ["types/index"]
+      "@types/*": ["apps/backend-nest/types/*"],
+      "@types": ["apps/backend-nest/types/index"]
     },
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "typeRoots": ["./node_modules/@types", "apps/backend-nest/types"]
   }
 }
 

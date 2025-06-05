@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Storage } from '@google-cloud/storage';
-import { Pinecone } from '@pinecone-database/pinecone';
+// import { Pinecone } from '@pinecone-database/pinecone';
 import { Pool } from 'pg';
 import { DeleteItemDto } from './dto/delete-item.dto';
 
 const pool = new Pool();
-const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
-const index = pinecone.Index(process.env.PINECONE_INDEX_NAME);
+// const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+// const index = pinecone.Index(process.env.PINECONE_INDEX_NAME);
 const storage = new Storage();
 
 @Injectable()
@@ -21,7 +21,7 @@ export class WardrobeService {
     );
 
     // 2. Delete from Pinecone
-    await index.deleteOne(item_id);
+    // await index.deleteOne(item_id);
 
     // 3. Delete from GCS
     const bucketName = process.env.GCS_BUCKET_NAME!;

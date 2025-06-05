@@ -1,6 +1,6 @@
 export class SuggestOutfitDto {
-  user_id: string;
-  prompt: string;
+  user_id!: string;
+  prompt!: string;
   top_id?: string;
   bottom_id?: string;
   shoes_id?: string;
