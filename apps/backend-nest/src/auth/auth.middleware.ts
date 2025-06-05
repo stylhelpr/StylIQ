@@ -1,24 +1,60 @@
-// auth/auth.middleware.ts
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { FastifyRequest, FastifyReply } from 'fastify';
+// src/auth/auth.middleware.ts
+import { FastifyInstance } from 'fastify';
 import * as jwt from 'jsonwebtoken';
 
-@Injectable()
-export class AuthMiddleware implements NestMiddleware {
-  use(req: FastifyRequest, res: FastifyReply, next: () => void) {
+export function applyAuthMiddleware(fastify: FastifyInstance) {
+  fastify.addHook('onRequest', async (req, reply) => {
+    const openPaths = ['/upload', '/ai/prompt', '/feedback/rate'];
+    if (openPaths.some((path) => req.url?.startsWith(path))) return;
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).send({ message: 'Missing token' });
+      reply.status(401).send({ message: 'Missing token' });
       return;
     }
 
-    const token = authHeader.split(' ')[1];
     try {
+      const token = authHeader.split(' ')[1];
       const decoded = jwt.decode(token) as any;
-      req.user = { sub: decoded.sub };
-      next();
+      (req as any).user = { sub: decoded.sub };
     } catch {
-      res.status(401).send({ message: 'Invalid token' });
+      reply.status(401).send({ message: 'Invalid token' });
     }
-  }
+  });
 }
+
+////////////
+
+// // auth/auth.middleware.ts
+// import {
+//   Injectable,
+//   NestMiddleware,
+//   UnauthorizedException,
+// } from '@nestjs/common';
+// import { FastifyRequest } from 'fastify';
+// import * as jwt from 'jsonwebtoken';
+
+// @Injectable()
+// export class AuthMiddleware implements NestMiddleware {
+//   use(req: FastifyRequest & { user?: any }, _res: any, next: () => void) {
+//     const authHeader = req.headers['authorization'];
+
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//       throw new UnauthorizedException('Missing token');
+//     }
+
+//     const token = authHeader.split(' ')[1];
+
+//     try {
+//       const decoded = jwt.decode(token) as any;
+//       if (!decoded?.sub) {
+//         throw new UnauthorizedException('Invalid token payload');
+//       }
+
+//       req.user = { sub: decoded.sub };
+//       next();
+//     } catch (err) {
+//       throw new UnauthorizedException('Invalid token');
+//     }
+//   }
+// }
