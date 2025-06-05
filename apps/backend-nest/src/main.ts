@@ -1,3 +1,6 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -13,12 +16,35 @@ async function bootstrap() {
     adapter,
   );
 
-  // Add raw Fastify middleware hook
   applyAuthMiddleware(adapter.getInstance());
 
   await app.listen(3001, '0.0.0.0');
 }
 bootstrap();
+
+///////////////
+
+// import { NestFactory } from '@nestjs/core';
+// import {
+//   FastifyAdapter,
+//   NestFastifyApplication,
+// } from '@nestjs/platform-fastify';
+// import { AppModule } from './app.module';
+// import { applyAuthMiddleware } from './auth/auth.middleware';
+
+// async function bootstrap() {
+//   const adapter = new FastifyAdapter();
+//   const app = await NestFactory.create<NestFastifyApplication>(
+//     AppModule,
+//     adapter,
+//   );
+
+//   // Add raw Fastify middleware hook
+//   applyAuthMiddleware(adapter.getInstance());
+
+//   await app.listen(3001, '0.0.0.0');
+// }
+// bootstrap();
 
 //////////
 
