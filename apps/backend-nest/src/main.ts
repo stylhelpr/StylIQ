@@ -8,6 +8,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import { applyAuthMiddleware } from './auth/auth.middleware';
+import cors from '@fastify/cors'; // ✅ Import Fastify CORS
 
 async function bootstrap() {
   const adapter = new FastifyAdapter();
@@ -18,9 +19,41 @@ async function bootstrap() {
 
   applyAuthMiddleware(adapter.getInstance());
 
+  // ✅ Enable CORS before listening
+  await app.register(cors, {
+    origin: '*', // or specify frontend IP/domain here
+    credentials: true,
+  });
+
   await app.listen(3001, '0.0.0.0');
 }
 bootstrap();
+
+//////////////
+
+// import * as dotenv from 'dotenv';
+// dotenv.config();
+
+// import { NestFactory } from '@nestjs/core';
+// import {
+//   FastifyAdapter,
+//   NestFastifyApplication,
+// } from '@nestjs/platform-fastify';
+// import { AppModule } from './app.module';
+// import { applyAuthMiddleware } from './auth/auth.middleware';
+
+// async function bootstrap() {
+//   const adapter = new FastifyAdapter();
+//   const app = await NestFactory.create<NestFastifyApplication>(
+//     AppModule,
+//     adapter,
+//   );
+
+//   applyAuthMiddleware(adapter.getInstance());
+
+//   await app.listen(3001, '0.0.0.0');
+// }
+// bootstrap();
 
 ///////////////
 
