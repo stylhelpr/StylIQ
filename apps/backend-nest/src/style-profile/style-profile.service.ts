@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import { UpdateStyleProfileDto } from './dto/update-style-profile.dto';
 
-const pool = new Pool();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 @Injectable()
 export class StyleProfileService {
@@ -15,13 +18,21 @@ export class StyleProfileService {
   }
 
   async updateProfile(userId: string, dto: UpdateStyleProfileDto) {
-    const fields = Object.entries(dto).map(([key], i) => `${key} = $${i + 2}`);
-    const values = Object.values(dto);
-    const query = `INSERT INTO style_profiles (user_id, ${Object.keys(dto).join(', ')})
+    const entries = Object.entries(dto);
+    const values = entries.map(([, val]) => val);
+
+    const keys = entries.map(([key]) => key);
+    const setClause = entries
+      .map(([key], i) => `${key} = $${i + 2}`)
+      .join(', ');
+
+    const query = `
+      INSERT INTO style_profiles (user_id, ${keys.join(', ')})
       VALUES ($1, ${values.map((_, i) => `$${i + 2}`).join(', ')})
       ON CONFLICT (user_id)
-      DO UPDATE SET ${fields.join(', ')}, updated_at = now()
-      RETURNING *`;
+      DO UPDATE SET ${setClause ? `${setClause}, ` : ''}updated_at = now()
+      RETURNING *;
+    `;
 
     const res = await pool.query(query, [userId, ...values]);
     return res.rows[0];

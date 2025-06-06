@@ -3,7 +3,10 @@ import { Pool } from 'pg';
 import { CreateCustomOutfitDto } from './dto/create-custom-outfit.dto';
 import { UpdateCustomOutfitDto } from './dto/update-custom-outfit.dto';
 
-const pool = new Pool();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 @Injectable()
 export class CustomOutfitService {
@@ -11,37 +14,107 @@ export class CustomOutfitService {
     const { user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes } =
       dto;
 
-    const res = await pool.query(
+    const result = await pool.query(
       `INSERT INTO custom_outfits (
         user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`,
       [user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes],
     );
 
-    return res.rows[0];
+    return {
+      message: 'Custom outfit created successfully',
+      outfit: result.rows[0],
+    };
   }
 
   async getByUser(userId: string) {
-    const res = await pool.query(
+    const result = await pool.query(
       `SELECT * FROM custom_outfits WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId],
     );
-    return res.rows;
+    return result.rows;
   }
 
   async update(id: string, dto: UpdateCustomOutfitDto) {
-    const fields = Object.entries(dto).map(([key], i) => `${key} = $${i + 2}`);
-    const values = Object.values(dto);
-    const query = `UPDATE custom_outfits
-      SET ${fields.join(', ')}, updated_at = now()
-      WHERE id = $1 RETURNING *`;
+    const fields: string[] = [];
+    const values: any[] = [];
+    let i = 1;
 
-    const res = await pool.query(query, [id, ...values]);
-    return res.rows[0];
+    for (const key of Object.keys(dto) as (keyof UpdateCustomOutfitDto)[]) {
+      const value = dto[key];
+      if (value !== undefined) {
+        fields.push(`${key} = $${++i}`);
+        values.push(value);
+      }
+    }
+
+    const query = `
+    UPDATE custom_outfits
+    SET ${fields.join(', ')}, updated_at = now()
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+    const result = await pool.query(query, [id, ...values]);
+    return {
+      message: 'Custom outfit updated successfully',
+      outfit: result.rows[0],
+    };
   }
 
   async delete(id: string) {
     await pool.query(`DELETE FROM custom_outfits WHERE id = $1`, [id]);
-    return { message: 'Deleted' };
+    return { message: 'Custom outfit deleted successfully' };
   }
 }
+
+///////////////
+
+// import { Injectable } from '@nestjs/common';
+// import { Pool } from 'pg';
+// import { CreateCustomOutfitDto } from './dto/create-custom-outfit.dto';
+// import { UpdateCustomOutfitDto } from './dto/update-custom-outfit.dto';
+
+// const pool = new Pool();
+
+// @Injectable()
+// export class CustomOutfitService {
+//   async create(dto: CreateCustomOutfitDto) {
+//     const { user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes } =
+//       dto;
+
+//     const res = await pool.query(
+//       `INSERT INTO custom_outfits (
+//         user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes
+//       ) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+//       [user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes],
+//     );
+
+//     return res.rows[0];
+//   }
+
+//   async getByUser(userId: string) {
+//     const res = await pool.query(
+//       `SELECT * FROM custom_outfits WHERE user_id = $1 ORDER BY created_at DESC`,
+//       [userId],
+//     );
+//     return res.rows;
+//   }
+
+//   async update(id: string, dto: UpdateCustomOutfitDto) {
+//     const fields = Object.entries(dto).map(([key], i) => `${key} = $${i + 2}`);
+//     const values = Object.values(dto);
+//     const query = `UPDATE custom_outfits
+//       SET ${fields.join(', ')}, updated_at = now()
+//       WHERE id = $1 RETURNING *`;
+
+//     const res = await pool.query(query, [id, ...values]);
+//     return res.rows[0];
+//   }
+
+//   async delete(id: string) {
+//     await pool.query(`DELETE FROM custom_outfits WHERE id = $1`, [id]);
+//     return { message: 'Deleted' };
+//   }
+// }

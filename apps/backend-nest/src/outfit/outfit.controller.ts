@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Delete } from '@nestjs/common';
 import { OutfitService } from './outfit.service';
 import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
@@ -31,5 +31,15 @@ export class OutfitController {
   @Get('favorites/:userId')
   getFavorites(@Param('userId') userId: string) {
     return this.outfitService.getFavorites(userId);
+  }
+
+  @Delete('favorite')
+  unfavoriteOutfit(@Body() dto: FavoriteOutfitDto) {
+    return this.outfitService.unfavoriteOutfit(dto);
+  }
+
+  @Get('suggestion/:id')
+  getSuggestionById(@Param('id') id: string) {
+    return this.outfitService.getSuggestionById(id);
   }
 }

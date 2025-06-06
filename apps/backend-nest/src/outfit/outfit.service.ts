@@ -4,7 +4,10 @@ import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
 import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
 
-const pool = new Pool();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 @Injectable()
 export class OutfitService {
@@ -24,9 +27,8 @@ export class OutfitService {
       `INSERT INTO outfit_suggestions (
         user_id, prompt, top_id, bottom_id, shoes_id,
         accessory_ids, weather_data, location
-      ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8
-      ) RETURNING *`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *`,
       [
         user_id,
         prompt,
@@ -50,14 +52,21 @@ export class OutfitService {
     return res.rows;
   }
 
+  async getSuggestionById(id: string) {
+    const res = await pool.query(
+      'SELECT * FROM outfit_suggestions WHERE id = $1',
+      [id],
+    );
+    return res.rows[0] ?? { message: 'Not found' };
+  }
+
   async submitFeedback(dto: OutfitFeedbackDto) {
     const { user_id, outfit_id, rating, notes } = dto;
     const res = await pool.query(
       `INSERT INTO outfit_feedback (
         user_id, outfit_id, rating, notes
-      ) VALUES (
-        $1, $2, $3, $4
-      ) RETURNING *`,
+      ) VALUES ($1, $2, $3, $4)
+      RETURNING *`,
       [user_id, outfit_id, rating, notes],
     );
     return res.rows[0];
@@ -71,6 +80,15 @@ export class OutfitService {
       [user_id, outfit_id],
     );
     return { message: 'Favorited' };
+  }
+
+  async unfavoriteOutfit(dto: FavoriteOutfitDto) {
+    const { user_id, outfit_id } = dto;
+    await pool.query(
+      `DELETE FROM outfit_favorites WHERE user_id = $1 AND outfit_id = $2`,
+      [user_id, outfit_id],
+    );
+    return { message: 'Unfavorited' };
   }
 
   async getFavorites(userId: string) {

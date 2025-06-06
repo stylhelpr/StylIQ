@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import { RegisterTokenDto } from './dto/register-token.dto';
 
-const pool = new Pool();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 @Injectable()
 export class NotificationsService {
@@ -11,11 +14,12 @@ export class NotificationsService {
 
     const res = await pool.query(
       `
-      INSERT INTO push_tokens (user_id, device_token, platform)
+      INSERT INTO push_tokens (user_id, token, platform)
       VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, device_token)
+      ON CONFLICT (user_id, token)
       DO UPDATE SET updated_at = now()
       RETURNING *;
+
     `,
       [user_id, device_token, platform],
     );

@@ -153,9 +153,12 @@ CREATE TABLE push_tokens (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token TEXT NOT NULL,
   device TEXT,
-  platform TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  platform TEXT CHECK (platform IN ('ios', 'android')) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (user_id, token)
 );
+
 
 -- ========================
 -- IMAGE UPLOAD EVENTS
@@ -186,7 +189,6 @@ CREATE TABLE search_logs (
 -- ========================
 -- USER SUBSCRIPTIONS
 -- ========================
-
 CREATE TABLE user_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

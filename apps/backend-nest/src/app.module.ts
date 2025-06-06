@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DatabaseService } from './db/database.service';
 
 import { UsersModule } from './users/users.module';
+import { ImageUploadEventsModule } from './image-upload-events/imnage-upload-events.module';
 import { WardrobeModule } from './wardrobe/wardrobe.module';
 import { StyleProfileModule } from './style-profile/style.profile.module';
 import { OutfitModule } from './outfit/outfit.module';
@@ -12,7 +13,9 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { CustomOutfitModule } from './custom-outfit/custom-outfit.module';
 import { ScheduledOutfitModule } from './scheduled-outfit/scheduled-outfit.module';
 import { FeedbackModule } from './feedback/feedback.module';
-import { GCSModule } from './gcs/gcs.module'; // ✅ Add this
+import { SearchLogsModule } from './search-logs/search-logs.module';
+import { UserSubscriptionsModule } from './user-subscriptions/user-subscriptions.module';
+import { GCSModule } from './gcs/gcs.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -30,7 +33,10 @@ import { AppService } from './app.service';
     CustomOutfitModule,
     ScheduledOutfitModule,
     FeedbackModule,
-    GCSModule, // ✅ Add this
+    GCSModule,
+    ImageUploadEventsModule,
+    SearchLogsModule,
+    UserSubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, DatabaseService],
