@@ -85,7 +85,7 @@ export default function StyleProfileScreen({navigate}: Props) {
   }
 
   const {styleProfile, updateProfile, isLoading, isUpdating, isError} =
-    useStyleProfile(uuid);
+    useStyleProfile(auth0Sub);
 
   if (isLoading) {
     return (
