@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import BackHeader from '../components/Backheader/Backheader';
@@ -13,6 +14,7 @@ import {useProfileProgress} from '../hooks/useProfileProgress';
 import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useAuth0} from 'react-native-auth0';
+import {useUUID} from '../context/UUIDContext';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -62,23 +64,52 @@ const wardrobe: WardrobeItem[] = [
 
 export default function StyleProfileScreen({navigate}: Props) {
   const {user} = useAuth0();
-  const userId = user?.sub;
+  const auth0Sub = user?.sub;
+  const uuid = useUUID();
   const {theme} = useAppTheme();
   const colors = theme.colors;
 
-  const {styleProfile, updateProfile, isLoading, isUpdating} = useStyleProfile(
-    userId || '',
-  );
+  console.log('🧠 Auth0 sub:', auth0Sub);
+  console.log('🧠 uuid from context:', uuid);
 
-  if (isLoading || !styleProfile) {
+  // 🔄 Wait until both IDs are ready
+  if (!auth0Sub || !uuid) {
     return (
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <Text>Loading Style Profile...</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{color: 'gray', marginTop: 12}}>
+          Loading user profile...
+        </Text>
       </View>
     );
   }
 
-  const progress = useProfileProgress(styleProfile, wardrobe);
+  const {styleProfile, updateProfile, isLoading, isUpdating, isError} =
+    useStyleProfile(uuid);
+
+  if (isLoading) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{marginTop: 12}}>Loading Style Profile...</Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+        <Text style={{color: 'red'}}>❌ Error loading style profile.</Text>
+      </View>
+    );
+  }
+
+  let progress = 0;
+  try {
+    progress = useProfileProgress(styleProfile, wardrobe);
+  } catch (e) {
+    console.error('❌ useProfileProgress error:', e);
+  }
 
   const styles = StyleSheet.create({
     container: {
@@ -128,21 +159,6 @@ export default function StyleProfileScreen({navigate}: Props) {
     },
   });
 
-  if (isLoading || !styleProfile) {
-    return (
-      <View style={styles.container}>
-        <Text
-          style={{
-            color: colors.foreground,
-            textAlign: 'center',
-            marginTop: 40,
-          }}>
-          Loading style profile...
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
@@ -180,6 +196,16 @@ export default function StyleProfileScreen({navigate}: Props) {
             <Text style={styles.link}>{label}</Text>
           </TouchableOpacity>
         ))}
+
+        <Text
+          style={{
+            marginTop: 30,
+            textAlign: 'center',
+            color: 'gray',
+            fontSize: 12,
+          }}>
+          ✅ Reached End of Screen
+        </Text>
       </ScrollView>
 
       <View style={styles.scrollFade} pointerEvents="none">
@@ -191,6 +217,420 @@ export default function StyleProfileScreen({navigate}: Props) {
     </View>
   );
 }
+
+////////////
+
+// import React from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TouchableOpacity,
+//   ScrollView,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import BackHeader from '../components/Backheader/Backheader';
+// import LinearGradient from 'react-native-linear-gradient';
+// import {useProfileProgress} from '../hooks/useProfileProgress';
+// import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
+// import {useAuth0} from 'react-native-auth0';
+
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// const wardrobe: WardrobeItem[] = [
+//   {
+//     id: '1',
+//     name: 'Black Shirt',
+//     image: 'https://example.com/images/black-shirt.jpg',
+//     mainCategory: 'Tops',
+//     subCategory: 'Shirt',
+//     color: 'Black',
+//     material: 'Cotton',
+//     fit: 'Slim',
+//     size: 'M',
+//     tags: ['formal', 'essential'],
+//     notes: 'Good for evening wear',
+//   },
+//   {
+//     id: '2',
+//     name: 'White Tee',
+//     image: 'https://example.com/images/white-tee.jpg',
+//     mainCategory: 'Tops',
+//     subCategory: 'T-Shirt',
+//     color: 'White',
+//     material: 'Cotton',
+//     fit: 'Regular',
+//     size: 'L',
+//     tags: ['casual', 'summer'],
+//     notes: '',
+//   },
+//   {
+//     id: '3',
+//     name: 'Slim Jeans',
+//     image: 'https://example.com/images/slim-jeans.jpg',
+//     mainCategory: 'Bottoms',
+//     subCategory: 'Jeans',
+//     color: 'Dark Blue',
+//     material: 'Denim',
+//     fit: 'Slim',
+//     size: '32',
+//     tags: ['casual', 'denim'],
+//     notes: '',
+//   },
+// ];
+
+// export default function StyleProfileScreen({navigate}: Props) {
+//   const {user} = useAuth0();
+//   const userId = user?.sub;
+//   const {theme} = useAppTheme();
+//   const colors = theme.colors;
+
+//   console.log('🧠 user.sub:', userId);
+
+//   if (!userId) {
+//     return (
+//       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+//         <Text style={{color: 'red'}}>
+//           ⚠️ No user ID found. Please log in again.
+//         </Text>
+//       </View>
+//     );
+//   }
+
+//   const {styleProfile, updateProfile, isLoading, isUpdating, isError} =
+//     useStyleProfile(userId);
+
+//   console.log('📄 styleProfile:', styleProfile);
+
+//   if (isLoading) {
+//     return (
+//       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+//         <Text>Loading Style Profile...</Text>
+//       </View>
+//     );
+//   }
+
+//   if (isError) {
+//     return (
+//       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+//         <Text style={{color: 'red'}}>❌ Error loading style profile.</Text>
+//       </View>
+//     );
+//   }
+
+//   let progress = 0;
+//   try {
+//     progress = useProfileProgress(styleProfile, wardrobe);
+//     console.log('📊 profile progress:', progress);
+//   } catch (e) {
+//     console.error('❌ useProfileProgress error:', e);
+//   }
+
+//   const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       backgroundColor: colors.background,
+//     },
+//     content: {
+//       padding: 20,
+//       paddingBottom: 60,
+//     },
+//     link: {
+//       fontSize: 16,
+//       paddingVertical: 12,
+//       color: colors.primary,
+//       borderBottomWidth: 1,
+//       borderBottomColor: colors.surface,
+//     },
+//     scrollFade: {
+//       position: 'absolute',
+//       bottom: 0,
+//       left: 0,
+//       right: 0,
+//       height: 30,
+//     },
+//     fadeBottom: {
+//       flex: 1,
+//     },
+//     progressContainer: {
+//       marginTop: 16,
+//       marginHorizontal: 24,
+//     },
+//     progressLabel: {
+//       fontSize: 14,
+//       color: theme.colors.foreground,
+//       marginBottom: 4,
+//     },
+//     progressBar: {
+//       height: 8,
+//       borderRadius: 4,
+//       backgroundColor: '#ccc',
+//       overflow: 'hidden',
+//     },
+//     progressFill: {
+//       height: '100%',
+//       backgroundColor: '#4caf50',
+//       borderRadius: 4,
+//     },
+//   });
+
+//   return (
+//     <View style={styles.container}>
+//       <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
+
+//       <View style={styles.progressContainer}>
+//         <Text style={styles.progressLabel}>
+//           Style Profile {progress}% complete
+//         </Text>
+//         <View style={styles.progressBar}>
+//           <View style={[styles.progressFill, {width: `${progress}%`}]} />
+//         </View>
+//       </View>
+
+//       <ScrollView contentContainerStyle={styles.content}>
+//         {[
+//           ['Preferences', '👗 Style Preferences'],
+//           ['Measurements', '📏 Measurements'],
+//           ['BudgetAndBrands', '💰 Budget & Brands'],
+//           ['Appearance', '🧍 Appearance'],
+//           ['Lifestyle', '🌎 Lifestyle'],
+//           ['BodyTypes', '📐 Body Type'],
+//           ['Proportions', '📊 Body Proportions'],
+//           ['FitPreferences', '🧵 Fit Preferences'],
+//           ['FashionGoals', '🎯 Fashion Goals'],
+//           ['Climate', '🌤️ Climate'],
+//           ['HairColor', '💇 Hair Color'],
+//           ['SkinTone', '🎨 Skin Tone'],
+//           ['EyeColor', '👁️ Eye Color'],
+//           ['ShoppingHabits', '🛍️ Shopping Habits'],
+//           ['Activities', '🏃 Activities'],
+//           ['PersonalityTraits', '🧠 Personality Traits'],
+//           ['ColorPreferences', '🌈 Color Preferences'],
+//         ].map(([screen, label]) => (
+//           <TouchableOpacity key={screen} onPress={() => navigate(screen)}>
+//             <Text style={styles.link}>{label}</Text>
+//           </TouchableOpacity>
+//         ))}
+
+//         <Text
+//           style={{
+//             marginTop: 30,
+//             textAlign: 'center',
+//             color: 'gray',
+//             fontSize: 12,
+//           }}>
+//           ✅ Reached End of Screen
+//         </Text>
+//       </ScrollView>
+
+//       <View style={styles.scrollFade} pointerEvents="none">
+//         <LinearGradient
+//           colors={['transparent', colors.background]}
+//           style={styles.fadeBottom}
+//         />
+//       </View>
+//     </View>
+//   );
+// }
+
+/////////////////
+
+// import React from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TouchableOpacity,
+//   ScrollView,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import BackHeader from '../components/Backheader/Backheader';
+// import LinearGradient from 'react-native-linear-gradient';
+// import {useProfileProgress} from '../hooks/useProfileProgress';
+// import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
+// import {useAuth0} from 'react-native-auth0';
+
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// const wardrobe: WardrobeItem[] = [
+//   {
+//     id: '1',
+//     name: 'Black Shirt',
+//     image: 'https://example.com/images/black-shirt.jpg',
+//     mainCategory: 'Tops',
+//     subCategory: 'Shirt',
+//     color: 'Black',
+//     material: 'Cotton',
+//     fit: 'Slim',
+//     size: 'M',
+//     tags: ['formal', 'essential'],
+//     notes: 'Good for evening wear',
+//   },
+//   {
+//     id: '2',
+//     name: 'White Tee',
+//     image: 'https://example.com/images/white-tee.jpg',
+//     mainCategory: 'Tops',
+//     subCategory: 'T-Shirt',
+//     color: 'White',
+//     material: 'Cotton',
+//     fit: 'Regular',
+//     size: 'L',
+//     tags: ['casual', 'summer'],
+//     notes: '',
+//   },
+//   {
+//     id: '3',
+//     name: 'Slim Jeans',
+//     image: 'https://example.com/images/slim-jeans.jpg',
+//     mainCategory: 'Bottoms',
+//     subCategory: 'Jeans',
+//     color: 'Dark Blue',
+//     material: 'Denim',
+//     fit: 'Slim',
+//     size: '32',
+//     tags: ['casual', 'denim'],
+//     notes: '',
+//   },
+// ];
+
+// export default function StyleProfileScreen({navigate}: Props) {
+//   const {user} = useAuth0();
+//   const userId = user?.sub;
+//   const {theme} = useAppTheme();
+//   const colors = theme.colors;
+
+//   const {styleProfile, updateProfile, isLoading, isUpdating} = useStyleProfile(
+//     userId || '',
+//   );
+
+//   if (isLoading || !styleProfile) {
+//     return (
+//       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+//         <Text>Loading Style Profile...</Text>
+//       </View>
+//     );
+//   }
+
+//   const progress = useProfileProgress(styleProfile, wardrobe);
+
+//   const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       backgroundColor: colors.background,
+//     },
+//     content: {
+//       padding: 20,
+//       paddingBottom: 60,
+//     },
+//     link: {
+//       fontSize: 16,
+//       paddingVertical: 12,
+//       color: colors.primary,
+//       borderBottomWidth: 1,
+//       borderBottomColor: colors.surface,
+//     },
+//     scrollFade: {
+//       position: 'absolute',
+//       bottom: 0,
+//       left: 0,
+//       right: 0,
+//       height: 30,
+//     },
+//     fadeBottom: {
+//       flex: 1,
+//     },
+//     progressContainer: {
+//       marginTop: 16,
+//       marginHorizontal: 24,
+//     },
+//     progressLabel: {
+//       fontSize: 14,
+//       color: theme.colors.foreground,
+//       marginBottom: 4,
+//     },
+//     progressBar: {
+//       height: 8,
+//       borderRadius: 4,
+//       backgroundColor: '#ccc',
+//       overflow: 'hidden',
+//     },
+//     progressFill: {
+//       height: '100%',
+//       backgroundColor: '#4caf50',
+//       borderRadius: 4,
+//     },
+//   });
+
+//   if (isLoading || !styleProfile) {
+//     return (
+//       <View style={styles.container}>
+//         <Text
+//           style={{
+//             color: colors.foreground,
+//             textAlign: 'center',
+//             marginTop: 40,
+//           }}>
+//           Loading style profile...
+//         </Text>
+//       </View>
+//     );
+//   }
+
+//   return (
+//     <View style={styles.container}>
+//       <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
+
+//       <View style={styles.progressContainer}>
+//         <Text style={styles.progressLabel}>
+//           Style Profile {progress}% complete
+//         </Text>
+//         <View style={styles.progressBar}>
+//           <View style={[styles.progressFill, {width: `${progress}%`}]} />
+//         </View>
+//       </View>
+
+//       <ScrollView contentContainerStyle={styles.content}>
+//         {[
+//           ['Preferences', '👗 Style Preferences'],
+//           ['Measurements', '📏 Measurements'],
+//           ['BudgetAndBrands', '💰 Budget & Brands'],
+//           ['Appearance', '🧍 Appearance'],
+//           ['Lifestyle', '🌎 Lifestyle'],
+//           ['BodyTypes', '📐 Body Type'],
+//           ['Proportions', '📊 Body Proportions'],
+//           ['FitPreferences', '🧵 Fit Preferences'],
+//           ['FashionGoals', '🎯 Fashion Goals'],
+//           ['Climate', '🌤️ Climate'],
+//           ['HairColor', '💇 Hair Color'],
+//           ['SkinTone', '🎨 Skin Tone'],
+//           ['EyeColor', '👁️ Eye Color'],
+//           ['ShoppingHabits', '🛍️ Shopping Habits'],
+//           ['Activities', '🏃 Activities'],
+//           ['PersonalityTraits', '🧠 Personality Traits'],
+//           ['ColorPreferences', '🌈 Color Preferences'],
+//         ].map(([screen, label]) => (
+//           <TouchableOpacity key={screen} onPress={() => navigate(screen)}>
+//             <Text style={styles.link}>{label}</Text>
+//           </TouchableOpacity>
+//         ))}
+//       </ScrollView>
+
+//       <View style={styles.scrollFade} pointerEvents="none">
+//         <LinearGradient
+//           colors={['transparent', colors.background]}
+//           style={styles.fadeBottom}
+//         />
+//       </View>
+//     </View>
+//   );
+// }
 
 ////////////
 

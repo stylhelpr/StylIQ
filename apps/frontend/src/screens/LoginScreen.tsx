@@ -11,7 +11,6 @@ import {
 import {useAppTheme} from '../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
 import jwtDecode from 'jwt-decode';
-import {authorize} from 'react-native-auth0';
 
 const windowHeight = Dimensions.get('window').height;
 
@@ -30,14 +29,20 @@ export default function LoginScreen({
   onLoginSuccess,
 }: Props) {
   const {theme} = useAppTheme();
-  const {authorize} = useAuth0();
+  const {authorize} = useAuth0(); // ✅ correct usage, no direct import
 
   const handleLogin = async () => {
     try {
       const redirectUrl =
         'com.stylhelpr.stylhelpr.auth0://dev-xeaol4s5b2zd7wuz.us.auth0.com/ios/com.stylhelpr.stylhelpr/callback';
 
-      const credentials = await authorize({redirectUrl});
+      // const credentials = await authorize({redirectUrl});
+      const credentials = await authorize({
+        redirectUrl,
+        audience: 'http://localhost:3001', // ✅ Add this
+        scope: 'openid profile email',
+        responseType: 'token id_token', // ✅ May require cast if TS complains
+      } as any); // 👈 Only if needed
 
       if (!credentials || !credentials.idToken) {
         throw new Error('Missing Auth0 credentials or idToken');
@@ -53,7 +58,7 @@ export default function LoginScreen({
       const [first_name, ...lastParts] = name?.split(' ') || ['User'];
       const last_name = lastParts.join(' ');
 
-      const response = await fetch('http://192.168.0.106:3001/users/sync', {
+      const response = await fetch('http://192.168.0.106:3001/api/users/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

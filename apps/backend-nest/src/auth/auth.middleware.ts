@@ -2,14 +2,25 @@
 import { FastifyInstance } from 'fastify';
 
 export function applyAuthMiddleware(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', async (req, reply) => {
-    // ✅ TEMPORARY DEV MODE: bypass JWT and hardcode user
-    (req as any).user = { sub: 'mock-user-id' };
-    return;
-  });
+  // No-op: JWT handled by JwtAuthGuard
 }
 
-///////////////
+export {}; // 👈 This keeps it recognized as a module even if nothing is used
+
+///////////
+
+// src/auth/auth.middleware.ts
+// import { FastifyInstance } from 'fastify';
+
+// export function applyAuthMiddleware(fastify: FastifyInstance) {
+//   fastify.addHook('onRequest', async (req, reply) => {
+//     // ✅ TEMPORARY DEV MODE: bypass JWT and hardcode user
+//     (req as any).user = { sub: 'mock-user-id' };
+//     return;
+//   });
+// }
+
+// ///////////////
 
 // // src/auth/auth.middleware.ts
 // import { FastifyInstance } from 'fastify';
