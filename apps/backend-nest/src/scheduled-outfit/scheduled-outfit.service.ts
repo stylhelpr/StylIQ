@@ -29,7 +29,16 @@ export class ScheduledOutfitService {
 
   async getByUser(userId: string) {
     const res = await pool.query(
-      `SELECT * FROM scheduled_outfits WHERE user_id = $1 ORDER BY scheduled_for ASC`,
+      `
+      SELECT so.id, so.scheduled_for, so.notes, so.created_at,
+             COALESCE(os.name, co.name) AS outfit_name,
+             COALESCE(os.rating, 0) AS rating
+      FROM scheduled_outfits so
+      LEFT JOIN outfit_suggestions os ON so.ai_outfit_id = os.id
+      LEFT JOIN custom_outfits co ON so.custom_outfit_id = co.id
+      WHERE so.user_id = $1
+      ORDER BY so.scheduled_for ASC
+      `,
       [userId],
     );
     return res.rows;
@@ -56,7 +65,7 @@ export class ScheduledOutfitService {
   }
 }
 
-////////////
+//////////////
 
 // import { Injectable } from '@nestjs/common';
 // import { Pool } from 'pg';
@@ -71,28 +80,17 @@ export class ScheduledOutfitService {
 // @Injectable()
 // export class ScheduledOutfitService {
 //   async create(dto: CreateScheduledOutfitDto) {
-//     const {
-//       user_id,
-//       outfit_id, // might be ai or custom
-//       outfit_type,
-//       scheduled_for,
-//       location,
-//       notes,
-//     } = dto;
+//     const { user_id, outfit_id, outfit_type, scheduled_for, location, notes } =
+//       dto;
 
-//     const isAi = outfit_type === 'ai';
+//     const column =
+//       outfit_type === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
 
 //     const res = await pool.query(
-//       `
-//     INSERT INTO scheduled_outfits (
-//       user_id,
-//       ${isAi ? 'ai_outfit_id' : 'custom_outfit_id'},
-//       scheduled_for,
-//       notes
-//     ) VALUES ($1, $2, $3, $4)
-//     RETURNING *;
-//     `,
-//       [user_id, outfit_id, scheduled_for, notes],
+//       `INSERT INTO scheduled_outfits (
+//         user_id, ${column}, scheduled_for, location, notes
+//       ) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+//       [user_id, outfit_id, scheduled_for, location, notes],
 //     );
 
 //     return res.rows[0];
@@ -100,21 +98,25 @@ export class ScheduledOutfitService {
 
 //   async getByUser(userId: string) {
 //     const res = await pool.query(
-//       `SELECT * FROM scheduled_outfits WHERE user_id = $1 ORDER BY scheduled_for ASC`,
+//       `
+//     SELECT so.*,
+//            co.name AS custom_outfit_name, co.rating AS custom_outfit_rating,
+//            ao.name AS ai_outfit_name, ao.rating AS ai_outfit_rating
+//     FROM scheduled_outfits so
+//     LEFT JOIN custom_outfits co ON so.custom_outfit_id = co.id
+//     LEFT JOIN outfit_suggestions ao ON so.ai_outfit_id = ao.id
+//     WHERE so.user_id = $1
+//     ORDER BY so.scheduled_for ASC
+//     `,
 //       [userId],
 //     );
-//     return res.rows;
-//   }
 
-//   async update(id: string, dto: UpdateScheduledOutfitDto) {
-//     const fields = Object.entries(dto).map(([key], i) => `${key} = $${i + 2}`);
-//     const values = Object.values(dto);
-//     const query = `UPDATE scheduled_outfits
-//       SET ${fields.join(', ')}, updated_at = now()
-//       WHERE id = $1 RETURNING *`;
-
-//     const res = await pool.query(query, [id, ...values]);
-//     return res.rows[0];
+//     return res.rows.map((row) => ({
+//       ...row,
+//       outfit_name:
+//         row.custom_outfit_name || row.ai_outfit_name || 'Unnamed Outfit',
+//       rating: row.custom_outfit_rating ?? row.ai_outfit_rating,
+//     }));
 //   }
 
 //   async delete(id: string) {
