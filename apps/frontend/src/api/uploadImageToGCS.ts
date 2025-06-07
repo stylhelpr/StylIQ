@@ -22,7 +22,7 @@ export async function uploadImageToGCS({
 
   console.log('📡 Step 2 - Uploading to GCS URL:', uploadUrl);
   console.log('🧾 Step 2 - MIME Type:', mimeType);
-
+  console.log('📡 Step 1 - Presigned URL response:', {uploadUrl, publicUrl});
   const uploadRes = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
@@ -39,6 +39,50 @@ export async function uploadImageToGCS({
 
   return publicUrl;
 }
+
+////////////
+
+// import mime from 'react-native-mime-types';
+// import {getPresignedUrl} from './getPresignedUrl';
+
+// type UploadOptions = {
+//   localUri: string;
+//   filename: string;
+//   userId: string;
+// };
+
+// export async function uploadImageToGCS({
+//   localUri,
+//   filename,
+//   userId,
+// }: UploadOptions): Promise<string> {
+//   //   const mimeType = mime.lookup(filename) || 'application/octet-stream';
+//   const mimeType = 'image/jpeg'; // 🛠 Force match with backend signed URL
+
+//   const {uploadUrl, publicUrl} = await getPresignedUrl(userId, filename); // ✅ Only 2 args now
+
+//   const response = await fetch(localUri);
+//   const blob = await response.blob();
+
+//   console.log('📡 Step 2 - Uploading to GCS URL:', uploadUrl);
+//   console.log('🧾 Step 2 - MIME Type:', mimeType);
+
+//   const uploadRes = await fetch(uploadUrl, {
+//     method: 'PUT',
+//     headers: {
+//       'Content-Type': mimeType,
+//     },
+//     body: blob,
+//   });
+
+//   if (!uploadRes.ok) {
+//     const errorText = await uploadRes.text();
+//     console.error('❌ Step 3 - Upload failed:', uploadRes.status, errorText);
+//     throw new Error('Upload to GCS failed: ' + uploadRes.status);
+//   }
+
+//   return publicUrl;
+// }
 
 ////////////////
 

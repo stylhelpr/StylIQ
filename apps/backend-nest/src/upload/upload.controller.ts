@@ -10,11 +10,24 @@ export class UploadController {
     @Query('userId') userId: string,
     @Query('filename') filename: string,
   ) {
-    return await this.uploadService.generatePresignedUrl(userId, filename);
+    console.log('📥 Request received for presign:', { userId, filename });
+
+    try {
+      const result = await this.uploadService.generatePresignedUrl(
+        userId,
+        filename,
+      );
+      console.log('✅ Presign success:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Presign generation failed:', error);
+      throw error; // Or: throw new InternalServerErrorException('Presign URL generation failed');
+    }
   }
 
   @Post('complete')
   async saveToDatabase(@Body() body: any) {
+    console.log('📦 Received POST /upload/complete:', body); // <== Add this
     return await this.uploadService.saveWardrobeItem(body);
   }
 }
