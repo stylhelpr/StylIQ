@@ -191,6 +191,8 @@ export default function StyleProfileScreen({navigate}: Props) {
           ['Activities', '🏃 Activities'],
           ['PersonalityTraits', '🧠 Personality Traits'],
           ['ColorPreferences', '🌈 Color Preferences'],
+          ['Undertone', '🫧 Undertone'],
+          ['StyleKeywords', '🪞 Style Keywords'],
         ].map(([screen, label]) => (
           <TouchableOpacity key={screen} onPress={() => navigate(screen)}>
             <Text style={styles.link}>{label}</Text>

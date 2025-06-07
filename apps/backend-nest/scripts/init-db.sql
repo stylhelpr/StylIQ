@@ -202,3 +202,32 @@ CREATE TABLE user_subscriptions (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- ========================
+-- EXTEND STYLE PROFILE TO MATCH FULL UI
+-- ========================
+ALTER TABLE style_profiles
+-- Appearance
+ADD COLUMN proportions TEXT,
+ADD COLUMN hair_color TEXT,
+ADD COLUMN eye_color TEXT,
+
+-- Measurements
+ADD COLUMN height TEXT,
+ADD COLUMN weight TEXT,
+ADD COLUMN chest TEXT,
+ADD COLUMN waist TEXT,
+ADD COLUMN inseam TEXT,
+ADD COLUMN shoe_size TEXT,
+
+-- Preferences
+ADD COLUMN style_preferences TEXT[],
+ADD COLUMN fit_preferences TEXT[],
+ADD COLUMN fashion_confidence TEXT,
+ADD COLUMN fashion_boldness TEXT,
+
+-- Additional fields
+ADD COLUMN shopping_habits TEXT[],
+ADD COLUMN personality_traits TEXT[],
+ADD COLUMN lifestyle_notes TEXT,
+ADD COLUMN is_style_profile_complete BOOLEAN DEFAULT false;
