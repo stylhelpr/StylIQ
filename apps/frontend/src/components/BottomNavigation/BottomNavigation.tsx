@@ -104,8 +104,8 @@ const BottomNavigation = ({
           isActive={current === 'Explore'}
         />
         <TabButton
-          icon="favorite"
-          label="Favorites"
+          icon="checkroom"
+          label="Outfits"
           onPress={() => navigate('SavedOutfits')}
           isActive={current === 'SavedOutfits'}
         />
