@@ -211,6 +211,15 @@ export default function SavedOutfitsScreen() {
 
   const handlePlanOutfit = async (outfitId: string, selectedDate: Date) => {
     try {
+      const selectedOutfit = combinedOutfits.find(o => o.id === outfitId);
+      if (!selectedOutfit) {
+        console.warn('⚠️ Outfit not found');
+        return;
+      }
+
+      const outfit_type =
+        (selectedOutfit as any).type === 'custom' ? 'custom' : 'ai';
+
       const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
         method: 'POST',
         headers: {
@@ -219,7 +228,7 @@ export default function SavedOutfitsScreen() {
         body: JSON.stringify({
           user_id: userId,
           outfit_id: outfitId,
-          outfit_type: 'ai',
+          outfit_type,
           scheduled_for: selectedDate.toISOString(),
         }),
       });
@@ -228,7 +237,6 @@ export default function SavedOutfitsScreen() {
         throw new Error('Failed to schedule outfit');
       }
 
-      // 🟢 Persist to local UI
       setCombinedOutfits(prev =>
         prev.map(o =>
           o.id === outfitId
@@ -426,7 +434,7 @@ export default function SavedOutfitsScreen() {
           body: JSON.stringify({
             user_id: userId,
             outfit_id: planningOutfitId,
-            outfit_type: 'ai',
+            outfit_type: (outfit as any).type === 'custom' ? 'custom' : 'ai',
             scheduled_for: selectedDate.toISOString(),
           }),
         });
@@ -744,13 +752,26 @@ export default function SavedOutfitsScreen() {
               onPress={async () => {
                 if (selectedTempDate && planningOutfitId) {
                   try {
+                    const selectedOutfit = combinedOutfits.find(
+                      o => o.id === planningOutfitId,
+                    );
+                    if (!selectedOutfit) {
+                      console.warn('⚠️ Outfit not found');
+                      return;
+                    }
+
+                    const outfit_type =
+                      (selectedOutfit as any).type === 'custom'
+                        ? 'custom'
+                        : 'ai';
+
                     await fetch(`${API_BASE_URL}/scheduled-outfits`, {
                       method: 'POST',
                       headers: {'Content-Type': 'application/json'},
                       body: JSON.stringify({
                         user_id: userId,
                         outfit_id: planningOutfitId,
-                        outfit_type: 'ai', // or 'custom' if you're supporting both
+                        outfit_type,
                         scheduled_for: selectedTempDate.toISOString(),
                       }),
                     });
@@ -764,10 +785,10 @@ export default function SavedOutfitsScreen() {
                   } catch (err) {
                     console.error('❌ Failed to schedule outfit:', err);
                   }
-                }
 
-                setShowDatePicker(false);
-                setPlanningOutfitId(null);
+                  setShowDatePicker(false);
+                  setPlanningOutfitId(null);
+                }
               }}>
               <Text style={{color: 'white', fontWeight: '600'}}>Done</Text>
             </TouchableOpacity>
