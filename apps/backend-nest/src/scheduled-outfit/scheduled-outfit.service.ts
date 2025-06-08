@@ -105,6 +105,19 @@ export class ScheduledOutfitService {
     await pool.query(`DELETE FROM scheduled_outfits WHERE id = $1`, [id]);
     return { message: 'Deleted' };
   }
+
+  async deleteByUserAndOutfit(userId: string, outfitId: string) {
+    const res = await pool.query(
+      `
+    DELETE FROM scheduled_outfits
+    WHERE user_id = $1 AND (custom_outfit_id = $2 OR ai_outfit_id = $2)
+    RETURNING *
+    `,
+      [userId, outfitId],
+    );
+
+    return { message: 'Deleted', rowsAffected: res.rowCount };
+  }
 }
 
 ///////////////

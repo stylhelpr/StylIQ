@@ -34,6 +34,13 @@ export class ScheduledOutfitController {
   delete(@Param('id') id: string) {
     return this.service.delete(id);
   }
+
+  @Delete()
+  async deleteByUserAndOutfit(
+    @Body() body: { user_id: string; outfit_id: string },
+  ) {
+    return this.service.deleteByUserAndOutfit(body.user_id, body.outfit_id);
+  }
 }
 
 /////////

@@ -216,44 +216,25 @@ export default function SavedOutfitsScreen() {
     }
   };
 
-  const handlePlanOutfit = async (outfitId: string, selectedDate: Date) => {
+  const cancelPlannedOutfit = async (outfitId: string) => {
     try {
-      const selectedOutfit = combinedOutfits.find(o => o.id === outfitId);
-      if (!selectedOutfit) {
-        console.warn('⚠️ Outfit not found');
-        return;
-      }
-
-      const outfit_type =
-        (selectedOutfit as any).type === 'custom' ? 'custom' : 'ai';
-
       const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           user_id: userId,
           outfit_id: outfitId,
-          outfit_type,
-          scheduled_for: selectedDate.toISOString(),
         }),
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to schedule outfit');
-      }
+      if (!res.ok) throw new Error('Failed to cancel planned outfit');
 
       setCombinedOutfits(prev =>
-        prev.map(o =>
-          o.id === outfitId
-            ? {...o, plannedDate: selectedDate.toISOString()}
-            : o,
-        ),
+        prev.map(o => (o.id === outfitId ? {...o, plannedDate: undefined} : o)),
       );
     } catch (err) {
-      console.error('❌ Failed to plan outfit:', err);
-      Alert.alert('Error', 'Could not schedule this outfit.');
+      console.error('❌ Failed to cancel plan:', err);
+      Alert.alert('Error', 'Could not cancel the planned date.');
     }
   };
 
@@ -646,6 +627,21 @@ export default function SavedOutfitsScreen() {
                       📅 Plan This Outfit
                     </Text>
                   </TouchableOpacity>
+
+                  {outfit.plannedDate && (
+                    <TouchableOpacity
+                      onPress={() => cancelPlannedOutfit(outfit.id)}>
+                      <Text
+                        style={{
+                          color: 'red',
+                          fontWeight: '600',
+                          paddingRight: 12,
+                          fontSize: 14,
+                        }}>
+                        ❌ Cancel Plan
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
                     onPress={() => {
