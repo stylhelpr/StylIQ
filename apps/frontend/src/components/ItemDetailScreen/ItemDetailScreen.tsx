@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Pressable,
+  Alert,
 } from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
@@ -33,6 +34,24 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       setTags('');
     }
   }, [item]);
+
+  const handleDelete = () => {
+    if (!item?.id) return;
+    Alert.alert('Delete Item', 'Are you sure you want to delete this item?', [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          // TODO: Replace this with actual delete mutation or API call
+          console.log('Deleting item:', item.id);
+
+          // Navigate back to wardrobe screen
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -94,8 +113,17 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       fontWeight: 'bold',
       fontSize: 16,
     },
-    buttonWithMarginRight: {
-      marginRight: 12,
+    deleteButton: {
+      backgroundColor: '#cc0000',
+      paddingVertical: 14,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    deleteText: {
+      color: '#fff',
+      fontWeight: 'bold',
+      fontSize: 16,
     },
   });
 
@@ -135,26 +163,29 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
       <View style={styles.buttonRow}>
         <Pressable
-          style={[
-            styles.button,
-            styles.cancelButton,
-            styles.buttonWithMarginRight,
-          ]}
+          style={[styles.button, styles.cancelButton]}
           onPress={() => navigation.goBack()}>
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
 
         <Pressable
           style={[styles.button, styles.saveButton]}
-          onPress={() => navigation.goBack()}>
+          onPress={() => {
+            // TODO: Hook up save mutation
+            navigation.goBack();
+          }}>
           <Text style={styles.saveText}>Save Changes</Text>
         </Pressable>
       </View>
+
+      <Pressable style={styles.deleteButton} onPress={handleDelete}>
+        <Text style={styles.deleteText}>Delete Item</Text>
+      </Pressable>
     </ScrollView>
   );
 }
 
-///////////////
+/////////////////
 
 // import React, {useState, useEffect} from 'react';
 // import {
@@ -167,8 +198,6 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //   Pressable,
 // } from 'react-native';
 // import {useAppTheme} from '../../context/ThemeContext';
-
-// // Mock data lookup
 // import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
 
 // type Props = {
@@ -188,53 +217,79 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
 //   useEffect(() => {
 //     if (item) {
-//       setCategory(item.name.split(' ').slice(1).join(' ')); // crude category fallback
-//       setColor(item.name.split(' ')[0]); // crude color fallback
-//       setTags(''); // leave blank or generate from metadata
+//       setCategory(item.name.split(' ').slice(1).join(' '));
+//       setColor(item.name.split(' ')[0]);
+//       setTags('');
 //     }
 //   }, [item]);
 
 //   const styles = StyleSheet.create({
 //     container: {
 //       flex: 1,
-//       padding: 16,
+//       paddingHorizontal: 16,
+//       paddingTop: 20,
+//       paddingBottom: 40,
 //       backgroundColor: theme.colors.background,
 //     },
 //     image: {
 //       width: '100%',
 //       height: 320,
 //       borderRadius: 16,
-//       marginBottom: 16,
+//       marginBottom: 20,
 //     },
 //     label: {
-//       fontSize: 14,
+//       fontSize: 13,
+//       fontWeight: '600',
 //       color: theme.colors.foreground,
 //       marginBottom: 4,
+//       marginTop: 8,
 //     },
 //     input: {
 //       borderWidth: 1,
 //       borderColor: theme.colors.surface,
-//       borderRadius: 8,
-//       padding: 10,
-//       marginBottom: 16,
+//       borderRadius: 10,
+//       paddingHorizontal: 12,
+//       paddingVertical: 10,
+//       marginBottom: 14,
+//       fontSize: 15,
 //       color: theme.colors.foreground,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     buttonRow: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       marginTop: 30,
+//       gap: 12,
 //     },
 //     button: {
-//       backgroundColor: theme.colors.primary,
-//       padding: 14,
+//       flex: 1,
+//       paddingVertical: 14,
 //       borderRadius: 12,
 //       alignItems: 'center',
-//       marginTop: 20,
 //     },
-//     buttonText: {
+//     cancelButton: {
+//       backgroundColor: theme.colors.surface,
+//     },
+//     cancelText: {
+//       color: theme.colors.foreground,
+//       fontWeight: 'bold',
+//       fontSize: 16,
+//     },
+//     saveButton: {
+//       backgroundColor: '#405de6',
+//     },
+//     saveText: {
 //       color: '#fff',
 //       fontWeight: 'bold',
 //       fontSize: 16,
 //     },
+//     buttonWithMarginRight: {
+//       marginRight: 12,
+//     },
 //   });
 
 //   return (
-//     <ScrollView style={styles.container}>
+//     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 //       {item?.image && <Image source={{uri: item.image}} style={styles.image} />}
 
 //       <Text style={styles.label}>Name</Text>
@@ -246,6 +301,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         onChangeText={setCategory}
 //         style={styles.input}
 //         placeholder="e.g. Shirt, Pants, Shoes"
+//         placeholderTextColor={theme.colors.muted}
 //       />
 
 //       <Text style={styles.label}>Color</Text>
@@ -254,6 +310,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         onChangeText={setColor}
 //         style={styles.input}
 //         placeholder="e.g. Navy, White, Tan"
+//         placeholderTextColor={theme.colors.muted}
 //       />
 
 //       <Text style={styles.label}>Tags</Text>
@@ -262,29 +319,24 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //         onChangeText={setTags}
 //         style={styles.input}
 //         placeholder="Comma separated: casual, spring, linen"
+//         placeholderTextColor={theme.colors.muted}
 //       />
 
-//       <View
-//         style={{
-//           flexDirection: 'row',
-//           justifyContent: 'space-between',
-//           gap: 12,
-//         }}>
+//       <View style={styles.buttonRow}>
 //         <Pressable
 //           style={[
 //             styles.button,
-//             {flex: 1, backgroundColor: theme.colors.surface},
+//             styles.cancelButton,
+//             styles.buttonWithMarginRight,
 //           ]}
 //           onPress={() => navigation.goBack()}>
-//           <Text style={[styles.buttonText, {color: theme.colors.foreground}]}>
-//             Cancel
-//           </Text>
+//           <Text style={styles.cancelText}>Cancel</Text>
 //         </Pressable>
 
 //         <Pressable
-//           style={[styles.button, {flex: 1}]}
+//           style={[styles.button, styles.saveButton]}
 //           onPress={() => navigation.goBack()}>
-//           <Text style={styles.buttonText}>Save Changes</Text>
+//           <Text style={styles.saveText}>Save Changes</Text>
 //         </Pressable>
 //       </View>
 //     </ScrollView>
