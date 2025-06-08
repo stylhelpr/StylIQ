@@ -17,7 +17,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFavorites} from '../hooks/useFavorites';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
-// import Share from 'react-native-share';
 
 type SavedOutfit = {
   id: string;
@@ -40,7 +39,7 @@ export default function SavedOutfitsScreen() {
   const PORT = 3001;
   const userId = useUUID();
 
-  if (!userId) return null; // or a loader, error screen, etc.
+  if (!userId) return null;
   const [scheduledOutfits, setScheduledOutfits] = useState<
     Record<string, string>
   >({});
@@ -71,7 +70,7 @@ export default function SavedOutfitsScreen() {
           `${API_BASE_URL}/scheduled-outfits/user/${userId}`,
         );
         const data = await res.json();
-        setSavedOutfits(data); // hydrate local state
+        setSavedOutfits(data);
       } catch (err) {
         console.error('❌ Error fetching scheduled outfits:', err);
       }
@@ -79,40 +78,6 @@ export default function SavedOutfitsScreen() {
 
     if (userId) fetchScheduled();
   }, [userId]);
-
-  const normalizeOutfit = (o: any): SavedOutfit | null => {
-    if (o.top && o.bottom && o.shoes) {
-      return {
-        id: o.id || Date.now().toString(),
-        name: o.name || '',
-        top: o.top,
-        bottom: o.bottom,
-        shoes: o.shoes,
-        createdAt: o.createdAt || new Date().toISOString(),
-        tags: o.tags || [],
-        notes: o.notes || '',
-        rating: o.rating ?? undefined,
-        favorited: o.favorited || false,
-        plannedDate: o.plannedDate || undefined,
-      };
-    }
-    if (Array.isArray(o.items) && o.items.length >= 3) {
-      return {
-        id: o.name || Date.now().toString(),
-        name: o.name || '',
-        top: o.items[0],
-        bottom: o.items[1],
-        shoes: o.items[2],
-        createdAt: new Date().toISOString(),
-        tags: [],
-        notes: '',
-        rating: undefined,
-        favorited: o.favorited || false,
-      };
-    }
-    console.warn('Bad outfit:', o);
-    return null;
-  };
 
   const normalizeImageUrl = (url: string | undefined | null): string => {
     if (!url) return '';
@@ -138,93 +103,100 @@ export default function SavedOutfitsScreen() {
       const parsedCustomData = customData;
       console.log('🧠 parsedCustomData:', parsedCustomData);
 
-      const normalize = (o: any, isCustom: boolean): SavedOutfit => ({
-        id: o.id,
-        name: o.name || '',
-        top: o.top
-          ? {
-              id: o.top.id,
-              name: o.top.name,
-              image: normalizeImageUrl(o.top.image || o.top.image_url),
-              mainCategory: '',
-              subCategory: '',
-              material: '',
-              fit: '',
-              color: '',
-              size: '',
-              notes: '',
-            }
-          : {
-              id: '',
-              name: '',
-              image: '',
-              mainCategory: '',
-              subCategory: '',
-              material: '',
-              fit: '',
-              color: '',
-              size: '',
-              notes: '',
-            },
-        bottom: o.bottom
-          ? {
-              id: o.bottom.id,
-              name: o.bottom.name,
-              image: normalizeImageUrl(o.bottom.image || o.bottom.image_url),
-              mainCategory: '',
-              subCategory: '',
-              material: '',
-              fit: '',
-              color: '',
-              size: '',
-              notes: '',
-            }
-          : {
-              id: '',
-              name: '',
-              image: '',
-              mainCategory: '',
-              subCategory: '',
-              material: '',
-              fit: '',
-              color: '',
-              size: '',
-              notes: '',
-            },
-        shoes: o.shoes
-          ? {
-              id: o.shoes.id,
-              name: o.shoes.name,
-              image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
-              mainCategory: '',
-              subCategory: '',
-              material: '',
-              fit: '',
-              color: '',
-              size: '',
-              notes: '',
-            }
-          : {
-              id: '',
-              name: '',
-              image: '',
-              mainCategory: '',
-              subCategory: '',
-              material: '',
-              fit: '',
-              color: '',
-              size: '',
-              notes: '',
-            },
-        createdAt: o.created_at
-          ? new Date(o.created_at).toISOString()
-          : new Date().toISOString(), // ✅ Fix applied here
-        tags: o.tags || [],
-        notes: o.notes || '',
-        rating: o.rating ?? undefined,
-        favorited: true,
-        plannedDate: o.planned_date || undefined,
-      });
+      const normalize = (o: any, isCustom: boolean): SavedOutfit => {
+        const outfit: SavedOutfit = {
+          id: o.id,
+          name: o.name || '',
+          top: o.top
+            ? {
+                id: o.top.id,
+                name: o.top.name,
+                image: normalizeImageUrl(o.top.image || o.top.image_url),
+                mainCategory: '',
+                subCategory: '',
+                material: '',
+                fit: '',
+                color: '',
+                size: '',
+                notes: '',
+              }
+            : {
+                id: '',
+                name: '',
+                image: '',
+                mainCategory: '',
+                subCategory: '',
+                material: '',
+                fit: '',
+                color: '',
+                size: '',
+                notes: '',
+              },
+          bottom: o.bottom
+            ? {
+                id: o.bottom.id,
+                name: o.bottom.name,
+                image: normalizeImageUrl(o.bottom.image || o.bottom.image_url),
+                mainCategory: '',
+                subCategory: '',
+                material: '',
+                fit: '',
+                color: '',
+                size: '',
+                notes: '',
+              }
+            : {
+                id: '',
+                name: '',
+                image: '',
+                mainCategory: '',
+                subCategory: '',
+                material: '',
+                fit: '',
+                color: '',
+                size: '',
+                notes: '',
+              },
+          shoes: o.shoes
+            ? {
+                id: o.shoes.id,
+                name: o.shoes.name,
+                image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
+                mainCategory: '',
+                subCategory: '',
+                material: '',
+                fit: '',
+                color: '',
+                size: '',
+                notes: '',
+              }
+            : {
+                id: '',
+                name: '',
+                image: '',
+                mainCategory: '',
+                subCategory: '',
+                material: '',
+                fit: '',
+                color: '',
+                size: '',
+                notes: '',
+              },
+          createdAt: o.created_at
+            ? new Date(o.created_at).toISOString()
+            : new Date().toISOString(),
+          tags: o.tags || [],
+          notes: o.notes || '',
+          rating: o.rating ?? undefined,
+          favorited: true,
+          plannedDate: o.planned_date || undefined,
+        };
+
+        // 👇 Attach dynamic "type" field without modifying SavedOutfit
+        (outfit as any).type = isCustom ? 'custom' : 'ai';
+
+        return outfit;
+      };
 
       const allOutfits = [
         ...parsedAiData.map((o: any) => normalize(o, false)),
@@ -270,43 +242,96 @@ export default function SavedOutfitsScreen() {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const deleted = combinedOutfits.find(o => o.id === id);
     if (!deleted) return;
 
-    const updated = combinedOutfits.filter(o => o.id !== id);
-    const manual = updated.filter(o => !o.favorited);
-    const favorites = updated.filter(o => o.favorited);
-    setCombinedOutfits(updated);
-    setLastDeletedOutfit(deleted);
-    setTimeout(() => {
-      setLastDeletedOutfit(null);
-    }, 3000); // 3 seconds
+    try {
+      const res = await fetch(`${API_BASE_URL}/outfit/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) throw new Error('Failed to delete from DB');
+
+      const updated = combinedOutfits.filter(o => o.id !== id);
+      setCombinedOutfits(updated);
+      setLastDeletedOutfit(deleted);
+      setTimeout(() => setLastDeletedOutfit(null), 3000);
+    } catch (err) {
+      console.error('❌ Error deleting outfit:', err);
+      Alert.alert('Error', 'Could not delete outfit from the database.');
+    }
   };
 
   const toggleFavorite = async (id: string) => {
-    const isFavorited = favorites.includes(id);
+    const outfit = combinedOutfits.find(o => o.id === id);
+    if (!outfit) return;
+
+    const type = (outfit as any).type === 'custom' ? 'custom' : 'ai';
+
     try {
+      const isFavorited = favorites.includes(id);
+
+      const endpoint = `${API_BASE_URL}/outfit/favorite`;
+      const payload = {
+        user_id: userId,
+        outfit_id: id,
+        type, // send type to backend if needed
+      };
+
+      const res = await fetch(endpoint, {
+        method: isFavorited ? 'DELETE' : 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to toggle favorite');
+      }
+
+      // Update local favorite list
       if (isFavorited) {
         await removeFavorite(id);
       } else {
         await addFavorite(id);
       }
     } catch (err) {
-      console.error('Error toggling favorite', err);
+      console.error('❌ Error toggling favorite:', err);
     }
   };
 
   const handleNameSave = async () => {
-    if (!editingOutfitId) return;
-    const updated = combinedOutfits.map(o =>
-      o.id === editingOutfitId ? {...o, name: editedName} : o,
-    );
-    const manual = updated.filter(o => !o.favorited);
-    const favorites = updated.filter(o => o.favorited);
-    setCombinedOutfits(updated);
-    setEditingOutfitId(null);
-    setEditedName('');
+    if (!editingOutfitId || editedName.trim() === '') return;
+
+    const outfit = combinedOutfits.find(o => o.id === editingOutfitId);
+    if (!outfit) return;
+
+    try {
+      const table = outfit.type === 'custom' ? 'custom' : 'suggestions';
+
+      const res = await fetch(
+        `${API_BASE_URL}/outfit/${table}/${editingOutfitId}`,
+        {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: editedName.trim()}),
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error('Failed to update outfit name');
+      }
+
+      const updated = combinedOutfits.map(o =>
+        o.id === editingOutfitId ? {...o, name: editedName} : o,
+      );
+      setCombinedOutfits(updated);
+      setEditingOutfitId(null);
+      setEditedName('');
+    } catch (err) {
+      console.error('❌ Error updating outfit name:', err);
+      Alert.alert('Error', 'Failed to update outfit name in the database.');
+    }
   };
 
   useEffect(() => {

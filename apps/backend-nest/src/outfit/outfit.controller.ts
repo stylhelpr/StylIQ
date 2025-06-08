@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Param, Body, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  Delete,
+  Put,
+} from '@nestjs/common';
 import { OutfitService } from './outfit.service';
 import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
@@ -46,6 +54,20 @@ export class OutfitController {
   @Get('suggestion/:id')
   getSuggestionById(@Param('id') id: string) {
     return this.outfitService.getSuggestionById(id);
+  }
+
+  @Delete(':id')
+  deleteOutfit(@Param('id') id: string) {
+    return this.outfitService.deleteOutfit(id);
+  }
+
+  @Put(':table/:id')
+  updateOutfitName(
+    @Param('table') table: 'custom' | 'suggestions',
+    @Param('id') id: string,
+    @Body() body: { name: string },
+  ) {
+    return this.outfitService.updateOutfitName(table, id, body.name);
   }
 }
 

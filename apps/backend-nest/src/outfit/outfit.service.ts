@@ -232,6 +232,36 @@ export class OutfitService {
         : null,
     }));
   }
+
+  async deleteOutfit(id: string) {
+    // Delete from AI-generated outfits
+    await pool.query(`DELETE FROM outfit_suggestions WHERE id = $1`, [id]);
+
+    // Also delete from custom outfits (safe to run even if not found)
+    await pool.query(`DELETE FROM custom_outfits WHERE id = $1`, [id]);
+
+    // Also optionally delete feedback & favorites linked to this outfit
+    await pool.query(`DELETE FROM outfit_feedback WHERE outfit_id = $1`, [id]);
+    await pool.query(`DELETE FROM outfit_favorites WHERE outfit_id = $1`, [id]);
+
+    return { message: 'Deleted from database' };
+  }
+
+  async updateOutfitName(
+    table: 'custom' | 'suggestions',
+    id: string,
+    name: string,
+  ) {
+    const tableName =
+      table === 'custom' ? 'custom_outfits' : 'outfit_suggestions';
+
+    await pool.query(`UPDATE ${tableName} SET name = $1 WHERE id = $2`, [
+      name,
+      id,
+    ]);
+
+    return { message: 'Outfit name updated' };
+  }
 }
 
 ////////
