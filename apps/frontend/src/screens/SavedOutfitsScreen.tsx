@@ -267,34 +267,35 @@ export default function SavedOutfitsScreen() {
     const outfit = combinedOutfits.find(o => o.id === id);
     if (!outfit) return;
 
-    const type = (outfit as any).type === 'custom' ? 'custom' : 'ai';
-
     try {
       const isFavorited = favorites.includes(id);
 
-      const endpoint = `${API_BASE_URL}/outfit/favorite`;
       const payload = {
         user_id: userId,
         outfit_id: id,
-        type, // send type to backend if needed
       };
 
-      const res = await fetch(endpoint, {
+      const res = await fetch(`${API_BASE_URL}/outfit-favorites`, {
         method: isFavorited ? 'DELETE' : 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to toggle favorite');
+        const error = await res.text();
+        throw new Error(`Failed to toggle favorite: ${error}`);
       }
 
-      // Update local favorite list
       if (isFavorited) {
         await removeFavorite(id);
       } else {
         await addFavorite(id);
       }
+
+      // 🧠 Sync UI
+      setCombinedOutfits(prev =>
+        prev.map(o => (o.id === id ? {...o, favorited: !isFavorited} : o)),
+      );
     } catch (err) {
       console.error('❌ Error toggling favorite:', err);
     }
