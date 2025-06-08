@@ -1,20 +1,33 @@
 import {useEffect, useState} from 'react';
 
+// export type WardrobeItem = {
+//   mainCategory: any;
+//   subCategory: any;
+//   material: any;
+//   fit: any;
+//   size: any;
+//   notes: any;
+//   id: string;
+//   image: string;
+//   name: string;
+//   category?: string;
+//   color?: string;
+//   tags?: string[];
+//   favorite?: boolean;
+//   occasion?: string;
+// };
+
 export type WardrobeItem = {
-  mainCategory: any;
-  subCategory: any;
-  material: any;
-  fit: any;
-  size: any;
-  notes: any;
   id: string;
-  image: string;
   name: string;
-  category?: string;
-  color?: string;
-  tags?: string[];
-  favorite?: boolean;
-  occasion?: string;
+  image: string;
+  mainCategory: string;
+  subCategory: string;
+  material: string;
+  fit: string;
+  color: string;
+  size: string;
+  notes: string;
 };
 
 export type Outfit = {

@@ -20,6 +20,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PushNotification from 'react-native-push-notification';
 import {notifyOutfitForTomorrow} from '../utils/notifyOutfitForTomorrow';
 import {initializeNotifications} from '../utils/notificationService';
+import {useUUID} from '../context/UUIDContext';
+import {API_BASE_URL} from '../config/api';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -56,6 +58,28 @@ const profileImages = [
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const {theme} = useAppTheme();
   const [weather, setWeather] = useState(null);
+  const userId = useUUID();
+
+  const [firstName, setFirstName] = useState('');
+
+  const LOCAL_IP = '192.168.0.106';
+  const PORT = 3001;
+  const BASE_URL = `${API_BASE_URL}/wardrobe`;
+
+  useEffect(() => {
+    const fetchFirstName = async () => {
+      if (!userId) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+        const data = await res.json();
+        setFirstName(data.first_name);
+      } catch (err) {
+        console.error('❌ Failed to fetch user:', err);
+      }
+    };
+
+    fetchFirstName();
+  }, [userId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -331,7 +355,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             textAlign: 'center',
             marginBottom: 4,
           }}>
-          "Hey Mike, ready to get styled today?"
+          {firstName
+            ? `Hey ${firstName}, ready to get styled today?`
+            : 'Hey there, ready to get styled today?'}
         </Text>
       </View>
       <View style={{position: 'relative', marginBottom: 20}}>
@@ -406,7 +432,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         <View style={styles.tileRow}>
           <TouchableOpacity
             style={styles.tile}
-            onPress={() => navigate('Closet')}>
+            onPress={() => navigate('Wardrobe')}>
             <Text style={styles.tileText}>My Closet</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -498,7 +524,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
 export default HomeScreen;
 
-////////////
+/////////////////
 
 // import React, {useEffect, useState} from 'react';
 // import {

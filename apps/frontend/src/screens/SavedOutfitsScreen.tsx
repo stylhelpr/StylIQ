@@ -10,12 +10,13 @@ import {
   TextInput,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import ViewShot from 'react-native-view-shot';
-import {useAuth0} from 'react-native-auth0';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFavorites} from '../hooks/useFavorites';
+import {useUUID} from '../context/UUIDContext';
+import {API_BASE_URL} from '../config/api';
 // import Share from 'react-native-share';
 
 type SavedOutfit = {
@@ -36,8 +37,11 @@ const CLOSET_KEY = 'savedOutfits';
 const FAVORITES_KEY = 'favoriteOutfits';
 
 export default function SavedOutfitsScreen() {
-  const {user} = useAuth0();
-  const userId = user?.sub || '';
+  const PORT = 3001;
+  const userId = useUUID();
+
+  if (!userId) return null; // or a loader, error screen, etc.
+
   const {favorites, addFavorite, removeFavorite} = useFavorites(userId);
 
   const {theme} = useAppTheme();
@@ -90,29 +94,81 @@ export default function SavedOutfitsScreen() {
     return null;
   };
 
+  const normalizeImageUrl = (url: string | undefined | null): string => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  };
+
   const loadOutfits = async () => {
-    const [manualData, favoriteData] = await Promise.all([
-      AsyncStorage.getItem(CLOSET_KEY),
-      AsyncStorage.getItem(FAVORITES_KEY), // ← legacy fallback
-    ]);
+    try {
+      const res = await fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch outfits');
+      const data = await res.json();
 
-    const manualOutfitsRaw = manualData ? JSON.parse(manualData) : [];
-    const favoriteOutfitsRaw = favoriteData ? JSON.parse(favoriteData) : [];
+      const mapped = data
+        .filter((o: any) => o.top && o.bottom && o.shoes)
+        .map(
+          (o: any): SavedOutfit => ({
+            id: o.id,
+            name: o.name || '',
+            top: {
+              id: o.top.id,
+              name: o.top.name,
+              image: normalizeImageUrl(o.top.image_url),
+              mainCategory: '',
+              subCategory: '',
+              material: '',
+              fit: '',
+              color: '',
+              size: '',
+              notes: '',
+            },
+            bottom: {
+              id: o.bottom.id,
+              name: o.bottom.name,
+              image: normalizeImageUrl(o.bottom.image_url),
+              mainCategory: '',
+              subCategory: '',
+              material: '',
+              fit: '',
+              color: '',
+              size: '',
+              notes: '',
+            },
+            shoes: {
+              id: o.shoes.id,
+              name: o.shoes.name,
+              image: normalizeImageUrl(o.shoes.image_url),
+              mainCategory: '',
+              subCategory: '',
+              material: '',
+              fit: '',
+              color: '',
+              size: '',
+              notes: '',
+            },
+            createdAt: o.createdAt,
+            tags: [],
+            notes: o.notes || '',
+            rating: o.rating ?? undefined,
+            favorited: true,
+            plannedDate: o.planned_date || undefined,
+          }),
+        );
 
-    const merged = [...manualOutfitsRaw, ...favoriteOutfitsRaw];
-    const valid = merged
-      .map(normalizeOutfit)
-      .filter((o): o is SavedOutfit => o !== null)
-      .map(outfit => ({
-        ...outfit,
-        favorited: Array.isArray(favorites) && favorites.includes(outfit.id),
-      }))
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      console.log(
+        '🧪 Outfit image URLs:',
+        mapped.map(o => ({
+          top: o.top.image,
+          bottom: o.bottom.image,
+          shoes: o.shoes.image,
+        })),
       );
 
-    setCombinedOutfits(valid);
+      setCombinedOutfits(mapped);
+    } catch (err) {
+      console.error('❌ Failed to load outfits from API:', err);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -124,10 +180,6 @@ export default function SavedOutfitsScreen() {
     const favorites = updated.filter(o => o.favorited);
     setCombinedOutfits(updated);
     setLastDeletedOutfit(deleted);
-
-    AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
-    AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-
     setTimeout(() => {
       setLastDeletedOutfit(null);
     }, 3000); // 3 seconds
@@ -153,16 +205,16 @@ export default function SavedOutfitsScreen() {
     );
     const manual = updated.filter(o => !o.favorited);
     const favorites = updated.filter(o => o.favorited);
-    await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
-    await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
     setCombinedOutfits(updated);
     setEditingOutfitId(null);
     setEditedName('');
   };
 
   useEffect(() => {
-    loadOutfits();
-  }, []);
+    if (userId) {
+      loadOutfits();
+    }
+  }, [userId]);
 
   const styles = StyleSheet.create({
     container: {padding: 12, paddingBottom: 40},
@@ -368,15 +420,14 @@ export default function SavedOutfitsScreen() {
                         )}
                         {outfit.createdAt && (
                           <Text style={styles.timestamp}>
-                            Saved:{' '}
-                            {new Date(outfit.createdAt).toLocaleDateString(
-                              undefined,
-                              {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              },
-                            )}
+                            {`Saved on ${new Date(
+                              outfit.createdAt,
+                            ).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}`}
                           </Text>
                         )}
                       </View>
@@ -690,7 +741,7 @@ export default function SavedOutfitsScreen() {
   );
 }
 
-///////////
+////////
 
 // import React, {useEffect, useRef, useState} from 'react';
 // import {
@@ -708,6 +759,8 @@ export default function SavedOutfitsScreen() {
 // import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 // import DateTimePicker from '@react-native-community/datetimepicker';
 // import ViewShot from 'react-native-view-shot';
+// import {useAuth0} from 'react-native-auth0';
+// import {useFavorites} from '../hooks/useFavorites';
 // // import Share from 'react-native-share';
 
 // type SavedOutfit = {
@@ -728,6 +781,10 @@ export default function SavedOutfitsScreen() {
 // const FAVORITES_KEY = 'favoriteOutfits';
 
 // export default function SavedOutfitsScreen() {
+//   const {user} = useAuth0();
+//   const userId = user?.sub || '';
+//   const {favorites, addFavorite, removeFavorite} = useFavorites(userId);
+
 //   const {theme} = useAppTheme();
 //   const [combinedOutfits, setCombinedOutfits] = useState<SavedOutfit[]>([]);
 //   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
@@ -781,18 +838,25 @@ export default function SavedOutfitsScreen() {
 //   const loadOutfits = async () => {
 //     const [manualData, favoriteData] = await Promise.all([
 //       AsyncStorage.getItem(CLOSET_KEY),
-//       AsyncStorage.getItem(FAVORITES_KEY),
+//       AsyncStorage.getItem(FAVORITES_KEY), // ← legacy fallback
 //     ]);
+
 //     const manualOutfitsRaw = manualData ? JSON.parse(manualData) : [];
 //     const favoriteOutfitsRaw = favoriteData ? JSON.parse(favoriteData) : [];
+
 //     const merged = [...manualOutfitsRaw, ...favoriteOutfitsRaw];
 //     const valid = merged
 //       .map(normalizeOutfit)
 //       .filter((o): o is SavedOutfit => o !== null)
+//       .map(outfit => ({
+//         ...outfit,
+//         favorited: Array.isArray(favorites) && favorites.includes(outfit.id),
+//       }))
 //       .sort(
 //         (a, b) =>
 //           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
 //       );
+
 //     setCombinedOutfits(valid);
 //   };
 
@@ -815,14 +879,16 @@ export default function SavedOutfitsScreen() {
 //   };
 
 //   const toggleFavorite = async (id: string) => {
-//     const updated = combinedOutfits.map(o =>
-//       o.id === id ? {...o, favorited: !o.favorited} : o,
-//     );
-//     const manual = updated.filter(o => !o.favorited);
-//     const favorites = updated.filter(o => o.favorited);
-//     await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
-//     await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-//     setCombinedOutfits(updated);
+//     const isFavorited = favorites.includes(id);
+//     try {
+//       if (isFavorited) {
+//         await removeFavorite(id);
+//       } else {
+//         await addFavorite(id);
+//       }
+//     } catch (err) {
+//       console.error('Error toggling favorite', err);
+//     }
 //   };
 
 //   const handleNameSave = async () => {
