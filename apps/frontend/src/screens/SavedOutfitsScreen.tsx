@@ -44,7 +44,7 @@ export default function SavedOutfitsScreen() {
     Record<string, string>
   >({});
 
-  const {favorites, addFavorite, removeFavorite} = useFavorites(userId);
+  const {favorites, toggleFavorite, setFavorites} = useFavorites(userId);
 
   const {theme} = useAppTheme();
   const [combinedOutfits, setCombinedOutfits] = useState<SavedOutfit[]>([]);
@@ -260,44 +260,6 @@ export default function SavedOutfitsScreen() {
     } catch (err) {
       console.error('❌ Error deleting outfit:', err);
       Alert.alert('Error', 'Could not delete outfit from the database.');
-    }
-  };
-
-  const toggleFavorite = async (id: string) => {
-    const outfit = combinedOutfits.find(o => o.id === id);
-    if (!outfit) return;
-
-    try {
-      const isFavorited = favorites.includes(id);
-
-      const payload = {
-        user_id: userId,
-        outfit_id: id,
-      };
-
-      const res = await fetch(`${API_BASE_URL}/outfit-favorites`, {
-        method: isFavorited ? 'DELETE' : 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`Failed to toggle favorite: ${error}`);
-      }
-
-      if (isFavorited) {
-        await removeFavorite(id);
-      } else {
-        await addFavorite(id);
-      }
-
-      // 🧠 Sync UI
-      setCombinedOutfits(prev =>
-        prev.map(o => (o.id === id ? {...o, favorited: !isFavorited} : o)),
-      );
-    } catch (err) {
-      console.error('❌ Error toggling favorite:', err);
     }
   };
 
@@ -601,7 +563,16 @@ export default function SavedOutfitsScreen() {
                     )}
                   </TouchableOpacity>
                   <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <TouchableOpacity onPress={() => toggleFavorite(outfit.id)}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        toggleFavorite(
+                          outfit.id,
+                          (outfit as any).type === 'custom'
+                            ? 'custom'
+                            : 'suggestion',
+                          setCombinedOutfits,
+                        )
+                      }>
                       <Text style={{fontSize: 18}}>
                         {outfit.favorited ? '❤️' : '🤍'}
                       </Text>

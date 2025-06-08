@@ -13,16 +13,28 @@ export class OutfitFavoritesService {
   async addFavorite(dto: AddFavoriteDto) {
     const { user_id, outfit_id } = dto;
 
-    await pool.query(
-      `
-        INSERT INTO outfit_favorites (user_id, outfit_id)
-        VALUES ($1, $2)
-        ON CONFLICT (user_id, outfit_id) DO NOTHING
+    try {
+      const result = await pool.query(
+        `
+      INSERT INTO outfit_favorites (user_id, outfit_id)
+      VALUES ($1, $2)
+      ON CONFLICT (user_id, outfit_id) DO NOTHING
+      RETURNING *
       `,
-      [user_id, outfit_id],
-    );
+        [user_id, outfit_id],
+      );
 
-    return { message: 'Favorited' };
+      if (result.rows.length === 0) {
+        console.log('⚠️ Favorite already exists:', { user_id, outfit_id });
+        return { message: 'Already favorited' };
+      }
+
+      console.log('✅ Favorite added:', result.rows[0]);
+      return { message: 'Favorited' };
+    } catch (err) {
+      console.error('❌ addFavorite failed:', err);
+      throw err;
+    }
   }
 
   async removeFavorite(dto: RemoveFavoriteDto) {
@@ -30,9 +42,9 @@ export class OutfitFavoritesService {
 
     await pool.query(
       `
-        DELETE FROM outfit_favorites
-        WHERE user_id = $1 AND outfit_id = $2
-      `,
+      DELETE FROM outfit_favorites
+      WHERE user_id = $1 AND outfit_id = $2
+    `,
       [user_id, outfit_id],
     );
 
@@ -42,12 +54,30 @@ export class OutfitFavoritesService {
   async getFavorites(user_id: string) {
     const result = await pool.query(
       `
-        SELECT o.*
-        FROM outfit_favorites f
-        JOIN outfit_suggestions o ON o.id = f.outfit_id
-        WHERE f.user_id = $1
-        ORDER BY f.saved_at DESC
-      `,
+    SELECT 
+      o.id,
+      o.name,
+      f.saved_at::timestamptz AS favorited_on,
+      NULL AS image_url,
+      'suggestion' AS source
+    FROM outfit_favorites f
+    JOIN outfit_suggestions o ON o.id = f.outfit_id
+    WHERE f.user_id = $1 AND f.outfit_type = 'suggestion'
+
+    UNION ALL
+
+    SELECT 
+      c.id,
+      c.name,
+      f.saved_at::timestamptz AS favorited_on,
+      NULL AS image_url,
+      'custom' AS source
+    FROM outfit_favorites f
+    JOIN custom_outfits c ON c.id = f.outfit_id
+    WHERE f.user_id = $1 AND f.outfit_type = 'custom'
+
+    ORDER BY favorited_on DESC
+    `,
       [user_id],
     );
 

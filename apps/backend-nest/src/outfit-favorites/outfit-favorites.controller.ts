@@ -7,16 +7,15 @@ import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
 export class OutfitFavoritesController {
   constructor(private readonly service: OutfitFavoritesService) {}
 
-  @Post()
+  @Post('add')
   async addFavorite(@Body() dto: AddFavoriteDto) {
     return this.service.addFavorite(dto);
   }
 
-  @Delete()
+  @Post('remove')
   async removeFavorite(@Body() dto: RemoveFavoriteDto) {
     return this.service.removeFavorite(dto);
   }
-
   @Get()
   async getFavorites(@Query('user_id') user_id: string) {
     return this.service.getFavorites(user_id);
