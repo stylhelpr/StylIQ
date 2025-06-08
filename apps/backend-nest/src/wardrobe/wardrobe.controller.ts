@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Put,
+  Query,
 } from '@nestjs/common';
 import { WardrobeService } from './wardrobe.service';
 import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
@@ -23,6 +24,11 @@ export class WardrobeController {
 
   @Get(':user_id')
   getByUser(@Param('user_id') userId: string) {
+    return this.service.getItemsByUser(userId);
+  }
+
+  @Get()
+  getByUserQuery(@Query('user_id') userId: string) {
     return this.service.getItemsByUser(userId);
   }
 
