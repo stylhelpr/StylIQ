@@ -1,6 +1,6 @@
-// src/wardrobe/dto/update-wardrobe-item.dto.ts
 export class UpdateWardrobeItemDto {
   name?: string;
+  main_category?: string;
   subcategory?: string;
   color?: string;
   material?: string;
@@ -10,4 +10,5 @@ export class UpdateWardrobeItemDto {
   metadata?: Record<string, any>;
   width?: number;
   height?: number;
+  tags?: string[];
 }

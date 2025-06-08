@@ -119,10 +119,19 @@ export class WardrobeService {
       [item_id, user_id],
     );
 
-    // Delete from GCS
+    // Delete from GCS — now safely wrapped
     const bucketName = process.env.GCS_BUCKET_NAME!;
     const fileName = this.extractFileName(image_url);
-    await storage.bucket(bucketName).file(fileName).delete();
+
+    try {
+      await storage.bucket(bucketName).file(fileName).delete();
+    } catch (err: any) {
+      if (err.code === 404) {
+        console.warn('🧼 GCS file already deleted:', fileName);
+      } else {
+        throw err;
+      }
+    }
 
     return { message: 'Wardrobe item deleted successfully' };
   }

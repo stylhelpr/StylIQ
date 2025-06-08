@@ -10,6 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {API_BASE_URL} from '../../config/api';
 import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
 
 type Props = {
@@ -19,6 +21,7 @@ type Props = {
 
 export default function ItemDetailScreen({route, navigation}: Props) {
   const {theme} = useAppTheme();
+  const queryClient = useQueryClient();
   const {itemId, item: routeItem} = route.params;
   const item = routeItem ?? mockClothingItems.find(i => i.id === itemId);
 
@@ -31,9 +34,65 @@ export default function ItemDetailScreen({route, navigation}: Props) {
     if (item) {
       setCategory(item.name.split(' ').slice(1).join(' '));
       setColor(item.name.split(' ')[0]);
-      setTags('');
+      setTags(''); // optional: preload item.tags.join(', ') if needed
     }
   }, [item]);
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!item?.id) throw new Error('Missing item ID');
+      const res = await fetch(`${API_BASE_URL}/wardrobe/${item.id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          name,
+          color,
+          main_category: category,
+          tags: tags
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean), // remove empty strings
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update item');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['wardrobe']});
+      navigation.goBack();
+    },
+    onError: () => {
+      Alert.alert('Error', 'Failed to save changes.');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!item?.id || !item?.user_id || !item?.image_url) {
+        throw new Error('Missing item info');
+      }
+
+      const res = await fetch(`${API_BASE_URL}/wardrobe`, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          item_id: item.id,
+          user_id: item.user_id,
+          image_url: item.image_url,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete item');
+      return item.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['wardrobe']});
+      navigation.goBack();
+    },
+    onError: () => {
+      Alert.alert('Error', 'Failed to delete item.');
+    },
+  });
 
   const handleDelete = () => {
     if (!item?.id) return;
@@ -42,13 +101,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          // TODO: Replace this with actual delete mutation or API call
-          console.log('Deleting item:', item.id);
-
-          // Navigate back to wardrobe screen
-          navigation.goBack();
-        },
+        onPress: () => deleteMutation.mutate(),
       },
     ]);
   };
@@ -89,7 +142,6 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: 30,
-      gap: 12,
     },
     button: {
       flex: 1,
@@ -129,7 +181,9 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {item?.image && <Image source={{uri: item.image}} style={styles.image} />}
+      {item?.image_url && (
+        <Image source={{uri: item.image_url}} style={styles.image} />
+      )}
 
       <Text style={styles.label}>Name</Text>
       <TextInput value={name} onChangeText={setName} style={styles.input} />
@@ -169,11 +223,8 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         </Pressable>
 
         <Pressable
-          style={[styles.button, styles.saveButton]}
-          onPress={() => {
-            // TODO: Hook up save mutation
-            navigation.goBack();
-          }}>
+          style={[styles.button, styles.saveButton, {marginLeft: 16}]}
+          onPress={() => updateMutation.mutate()}>
           <Text style={styles.saveText}>Save Changes</Text>
         </Pressable>
       </View>
@@ -196,8 +247,11 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //   TextInput,
 //   ScrollView,
 //   Pressable,
+//   Alert,
 // } from 'react-native';
 // import {useAppTheme} from '../../context/ThemeContext';
+// import {useMutation, useQueryClient} from '@tanstack/react-query';
+// import {API_BASE_URL} from '../../config/api';
 // import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
 
 // type Props = {
@@ -207,6 +261,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
 // export default function ItemDetailScreen({route, navigation}: Props) {
 //   const {theme} = useAppTheme();
+//   const queryClient = useQueryClient();
 //   const {itemId, item: routeItem} = route.params;
 //   const item = routeItem ?? mockClothingItems.find(i => i.id === itemId);
 
@@ -222,6 +277,71 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //       setTags('');
 //     }
 //   }, [item]);
+
+//   const updateMutation = useMutation({
+//     mutationFn: async () => {
+//       if (!item?.id) throw new Error('Missing item ID');
+//       const res = await fetch(`${API_BASE_URL}/wardrobe/${item.id}`, {
+//         method: 'PUT', // 🔥 correct method
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           name,
+//           color,
+//           main_category: category,
+//           tags,
+//         }),
+//       });
+//       if (!res.ok) throw new Error('Failed to update item');
+//       return res.json();
+//     },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe']});
+//       navigation.goBack();
+//     },
+//     onError: () => {
+//       Alert.alert('Error', 'Failed to save changes.');
+//     },
+//   });
+
+//   const deleteMutation = useMutation({
+//     mutationFn: async () => {
+//       if (!item?.id || !item?.user_id || !item?.image_url) {
+//         throw new Error('Missing item info');
+//       }
+
+//       const res = await fetch(`${API_BASE_URL}/wardrobe`, {
+//         method: 'DELETE',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           item_id: item.id,
+//           user_id: item.user_id,
+//           image_url: item.image_url,
+//         }),
+//       });
+
+//       if (!res.ok) throw new Error('Failed to delete item');
+//       return item.id;
+//     },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe']});
+//       navigation.goBack();
+//     },
+//     onError: () => {
+//       Alert.alert('Error', 'Failed to delete item.');
+//     },
+//   });
+
+//   const handleDelete = () => {
+//     if (!item?.id) return;
+//     Alert.alert('Delete Item', 'Are you sure you want to delete this item?', [
+//       {text: 'Cancel', style: 'cancel'},
+//       {
+//         text: 'Delete',
+//         style: 'destructive',
+//         onPress: () => deleteMutation.mutate(),
+//       },
+//     ]);
+//   };
 
 //   const styles = StyleSheet.create({
 //     container: {
@@ -259,7 +379,6 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //       flexDirection: 'row',
 //       justifyContent: 'space-between',
 //       marginTop: 30,
-//       gap: 12,
 //     },
 //     button: {
 //       flex: 1,
@@ -283,8 +402,17 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 //       fontWeight: 'bold',
 //       fontSize: 16,
 //     },
-//     buttonWithMarginRight: {
-//       marginRight: 12,
+//     deleteButton: {
+//       backgroundColor: '#cc0000',
+//       paddingVertical: 14,
+//       borderRadius: 12,
+//       alignItems: 'center',
+//       marginTop: 20,
+//     },
+//     deleteText: {
+//       color: '#fff',
+//       fontWeight: 'bold',
+//       fontSize: 16,
 //     },
 //   });
 
@@ -324,21 +452,21 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
 //       <View style={styles.buttonRow}>
 //         <Pressable
-//           style={[
-//             styles.button,
-//             styles.cancelButton,
-//             styles.buttonWithMarginRight,
-//           ]}
+//           style={[styles.button, styles.cancelButton]}
 //           onPress={() => navigation.goBack()}>
 //           <Text style={styles.cancelText}>Cancel</Text>
 //         </Pressable>
 
 //         <Pressable
-//           style={[styles.button, styles.saveButton]}
-//           onPress={() => navigation.goBack()}>
+//           style={[styles.button, styles.saveButton, {marginLeft: 16}]}
+//           onPress={() => updateMutation.mutate()}>
 //           <Text style={styles.saveText}>Save Changes</Text>
 //         </Pressable>
 //       </View>
+
+//       <Pressable style={styles.deleteButton} onPress={handleDelete}>
+//         <Text style={styles.deleteText}>Delete Item</Text>
+//       </Pressable>
 //     </ScrollView>
 //   );
 // }
