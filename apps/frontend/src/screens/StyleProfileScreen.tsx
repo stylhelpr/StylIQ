@@ -198,16 +198,6 @@ export default function StyleProfileScreen({navigate}: Props) {
             <Text style={styles.link}>{label}</Text>
           </TouchableOpacity>
         ))}
-
-        <Text
-          style={{
-            marginTop: 30,
-            textAlign: 'center',
-            color: 'gray',
-            fontSize: 12,
-          }}>
-          ✅ Reached End of Screen
-        </Text>
       </ScrollView>
 
       <View style={styles.scrollFade} pointerEvents="none">

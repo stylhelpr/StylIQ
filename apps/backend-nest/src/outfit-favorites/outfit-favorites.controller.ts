@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Delete, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { OutfitFavoritesService } from './outfit-favorites.service';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
 import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
@@ -19,5 +27,10 @@ export class OutfitFavoritesController {
   @Get()
   async getFavorites(@Query('user_id') user_id: string) {
     return this.service.getFavorites(user_id);
+  }
+
+  @Get('count/:userId')
+  getUserFavoritesCount(@Param('userId') userId: string) {
+    return this.service.getUserFavoritesCount(userId);
   }
 }

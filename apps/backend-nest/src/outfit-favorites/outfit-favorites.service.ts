@@ -37,6 +37,14 @@ export class OutfitFavoritesService {
     }
   }
 
+  async getUserFavoritesCount(userId: string) {
+    const result = await pool.query(
+      `SELECT COUNT(*) FROM outfit_favorites WHERE user_id = $1`,
+      [userId],
+    );
+    return { count: parseInt(result.rows[0].count, 10) };
+  }
+
   async removeFavorite(dto: RemoveFavoriteDto) {
     const { user_id, outfit_id } = dto;
 

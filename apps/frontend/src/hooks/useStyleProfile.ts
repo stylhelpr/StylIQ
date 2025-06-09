@@ -84,17 +84,20 @@ export function useStyleProfile(userId: string) {
   };
 }
 
-///////////
+//////////
 
+// // useStyleProfile.ts
 // import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 // import axios from 'axios';
 // import {Platform} from 'react-native';
 
-// // Set your actual backend URL
+// const LOCAL_IP = '192.168.0.106';
+// const PORT = 3001;
+
 // const BASE_URL =
 //   Platform.OS === 'android'
-//     ? 'http://10.0.2.2:3000/api/style-profile' // Android emulator local
-//     : 'http://localhost:3000/api/style-profile'; // iOS simulator
+//     ? `http://10.0.2.2:${PORT}/api/style-profile`
+//     : `http://${LOCAL_IP}:${PORT}/api/style-profile`;
 
 // export function useStyleProfile(userId: string) {
 //   const queryClient = useQueryClient();
@@ -104,25 +107,59 @@ export function useStyleProfile(userId: string) {
 //     enabled: !!userId,
 //     queryFn: async () => {
 //       console.log('🔍 Fetching style profile for:', userId);
-//       const response = await axios.get(`${BASE_URL}/${userId}`);
-//       console.log('✅ Fetched style profile:', response.data);
-//       return response.data;
+//       try {
+//         const response = await axios.get(`${BASE_URL}/${userId}`);
+//         console.log('✅ Fetched style profile:', response.data);
+//         return response.data;
+//       } catch (err: any) {
+//         console.error(
+//           '❌ Error fetching style profile:',
+//           err.response?.data || err.message || err,
+//         );
+//         throw err;
+//       }
 //     },
 //   });
 
 //   const mutation = useMutation({
 //     mutationFn: async (updatedProfile: any) => {
+//       console.log('📝 Updating style profile for:', userId);
 //       const response = await axios.put(`${BASE_URL}/${userId}`, updatedProfile);
 //       return response.data;
 //     },
 //     onSuccess: () => {
+//       console.log('♻️ Invalidating style profile cache for:', userId);
 //       queryClient.invalidateQueries({queryKey: ['styleProfile', userId]});
 //     },
 //   });
 
 //   const updateProfile = (field: string, value: any) => {
 //     if (!query.data) return;
-//     const updated = {...query.data, [field]: value};
+
+//     const validKeys = [
+//       'body_type',
+//       'skin_tone',
+//       'undertone',
+//       'climate',
+//       'favorite_colors',
+//       'disliked_styles',
+//       'style_keywords',
+//       'budget_level',
+//       'preferred_brands',
+//       'daily_activities',
+//       'goals',
+//     ];
+
+//     const updated = {
+//       ...Object.fromEntries(
+//         Object.entries(query.data || {}).filter(([key]) =>
+//           validKeys.includes(key),
+//         ),
+//       ),
+//       [field]: value,
+//     };
+
+//     console.log('✅ Sending filtered updated profile:', updated);
 //     mutation.mutate(updated);
 //   };
 
@@ -133,43 +170,4 @@ export function useStyleProfile(userId: string) {
 //     isUpdating: mutation.isPending,
 //     isError: query.isError,
 //   };
-// }
-
-///////////////
-
-// // hooks/useStyleProfile.ts
-// import {useState} from 'react';
-
-// export function useStyleProfile() {
-//   const [styleProfile, setStyleProfile] = useState({
-//     height: '',
-//     weight: '',
-//     bodyType: '',
-//     skinTone: '',
-//     hairColor: '',
-//     topSize: '',
-//     bottomSize: '',
-//     shoeSize: '',
-//     preferredFit: '',
-//     primaryStyles: [],
-//     colorPreferences: [],
-//     patterns: [],
-//     location: '',
-//     dailyActivities: [],
-//     occasions: [],
-//     priceRange: '',
-//     preferredBrands: [],
-//     dislikes: [],
-//     desiredImpression: '',
-//     notes: '',
-//   });
-
-//   const updateProfile = (field: string, value: any) => {
-//     setStyleProfile(prev => ({
-//       ...prev,
-//       [field]: value,
-//     }));
-//   };
-
-//   return {styleProfile, updateProfile};
 // }

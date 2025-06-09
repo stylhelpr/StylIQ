@@ -34,6 +34,11 @@ export class CustomOutfitController {
   delete(@Param('id') id: string) {
     return this.service.delete(id);
   }
+
+  @Get('count/:userId')
+  getCountByUser(@Param('userId') userId: string) {
+    return this.service.countByUser(userId);
+  }
 }
 
 ////////////

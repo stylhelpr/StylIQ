@@ -28,6 +28,14 @@ export class CustomOutfitService {
     };
   }
 
+  async countByUser(userId: string): Promise<{ count: number }> {
+    const result = await pool.query(
+      'SELECT COUNT(*) FROM custom_outfits WHERE user_id = $1',
+      [userId],
+    );
+    return { count: Number(result.rows[0].count) };
+  }
+
   async getByUser(userId: string) {
     const result = await pool.query(
       `SELECT * FROM custom_outfits WHERE user_id = $1 ORDER BY created_at DESC`,
