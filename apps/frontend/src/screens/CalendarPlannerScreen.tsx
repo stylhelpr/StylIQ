@@ -2,1646 +2,1079 @@ import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
+  Modal,
   TouchableOpacity,
+  ScrollView,
   Image,
-  Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import {useAuth0} from 'react-native-auth0';
+import {Calendar, DateObject} from 'react-native-calendars';
 import {useAppTheme} from '../context/ThemeContext';
-import {CalendarOutfit} from '../types/calendarTypes';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {useUUID} from '../context/UUIDContext';
+import {API_BASE_URL} from '../config/api';
 
-const CALENDAR_KEY = 'calendarOutfits';
+// 🔷 Types
 
-const getLocalDateString = (date: Date) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
+type WardrobeItem = {
+  id: string;
+  name: string;
+  image: string;
+  mainCategory: string;
+  subCategory: string;
+  material: string;
+  fit: string;
+  color: string;
+  size: string;
+  notes: string;
 };
 
-export default function CalendarPlannerScreen() {
+type SavedOutfit = {
+  id: string;
+  name?: string;
+  top: WardrobeItem | null;
+  bottom: WardrobeItem | null;
+  shoes: WardrobeItem | null;
+  createdAt: string;
+  tags?: string[];
+  notes?: string;
+  rating?: number;
+  favorited?: boolean;
+  plannedDate?: string;
+  type?: 'custom' | 'ai';
+};
+
+export default function OutfitPlannerScreen() {
   const {theme} = useAppTheme();
-  const [calendarMap, setCalendarMap] = useState<{
-    [date: string]: CalendarOutfit;
-  }>({});
-  const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-  const [newDate, setNewDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [pendingDeleteDate, setPendingDeleteDate] = useState<string | null>(
-    null,
-  );
+  const {user} = useAuth0();
+  const userId = useUUID() || user?.sub || '';
+
+  const [scheduledOutfits, setScheduledOutfits] = useState<SavedOutfit[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const normalizeImageUrl = (url: string | undefined | null): string => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  };
 
   useEffect(() => {
-    loadCalendar();
-  }, []);
+    if (!userId) return;
 
-  const loadCalendar = async () => {
-    const data = await AsyncStorage.getItem(CALENDAR_KEY);
-    if (data) {
-      setCalendarMap(JSON.parse(data));
-    }
+    const fetchData = async () => {
+      try {
+        const [aiRes, customRes, scheduledRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
+          fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
+          fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
+        ]);
+
+        if (!aiRes.ok || !customRes.ok || !scheduledRes.ok) {
+          throw new Error('Failed to fetch outfit schedule data');
+        }
+
+        const [aiData, customData, scheduledData] = await Promise.all([
+          aiRes.json(),
+          customRes.json(),
+          scheduledRes.json(),
+        ]);
+
+        const scheduleMap: Record<string, string> = {};
+        for (const s of scheduledData) {
+          if (s.ai_outfit_id) {
+            scheduleMap[s.ai_outfit_id] = s.scheduled_for;
+          } else if (s.custom_outfit_id) {
+            scheduleMap[s.custom_outfit_id] = s.scheduled_for;
+          }
+        }
+
+        const normalize = (o: any, isCustom: boolean): SavedOutfit | null => {
+          const id = o.id;
+          const plannedDate = scheduleMap[id];
+          if (!plannedDate) return null;
+
+          return {
+            id,
+            name: o.name || '',
+            top: o.top
+              ? {
+                  id: o.top.id,
+                  name: o.top.name,
+                  image: normalizeImageUrl(o.top.image || o.top.image_url),
+                  mainCategory: '',
+                  subCategory: '',
+                  material: '',
+                  fit: '',
+                  color: '',
+                  size: '',
+                  notes: '',
+                }
+              : null,
+            bottom: o.bottom
+              ? {
+                  id: o.bottom.id,
+                  name: o.bottom.name,
+                  image: normalizeImageUrl(
+                    o.bottom.image || o.bottom.image_url,
+                  ),
+                  mainCategory: '',
+                  subCategory: '',
+                  material: '',
+                  fit: '',
+                  color: '',
+                  size: '',
+                  notes: '',
+                }
+              : null,
+            shoes: o.shoes
+              ? {
+                  id: o.shoes.id,
+                  name: o.shoes.name,
+                  image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
+                  mainCategory: '',
+                  subCategory: '',
+                  material: '',
+                  fit: '',
+                  color: '',
+                  size: '',
+                  notes: '',
+                }
+              : null,
+            createdAt: o.created_at
+              ? new Date(o.created_at).toISOString()
+              : new Date().toISOString(),
+            tags: o.tags || [],
+            notes: o.notes || '',
+            rating: o.rating ?? undefined,
+            favorited: false,
+            plannedDate,
+            type: isCustom ? 'custom' : 'ai',
+          };
+        };
+
+        const outfits = [
+          ...aiData.map(o => normalize(o, false)),
+          ...customData.map(o => normalize(o, true)),
+        ].filter(Boolean) as SavedOutfit[];
+
+        setScheduledOutfits(outfits);
+      } catch (err) {
+        console.error('❌ Failed to load calendar outfits:', err);
+      }
+    };
+
+    fetchData();
+  }, [userId]);
+
+  const markedDates = scheduledOutfits.reduce((acc, outfit) => {
+    const date = outfit.plannedDate!.split('T')[0];
+    if (!acc[date]) acc[date] = {dots: []};
+    acc[date].dots.push({
+      color: outfit.type === 'ai' ? '#405de6' : '#00c6ae',
+    });
+    return acc;
+  }, {} as Record<string, any>);
+
+  const outfitsByDate = scheduledOutfits.reduce((acc, outfit) => {
+    const date = outfit.plannedDate!.split('T')[0];
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(outfit);
+    return acc;
+  }, {} as Record<string, SavedOutfit[]>);
+
+  const handleDayPress = (day: DateObject) => {
+    setSelectedDate(day.dateString);
+    setModalVisible(true);
   };
-
-  const handleDeletePlannedOutfit = async (dateToDelete: string) => {
-    const updated = {...calendarMap};
-    delete updated[dateToDelete];
-    await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updated));
-    setCalendarMap(updated);
-  };
-
-  const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-    const newDateKey = getLocalDateString(selectedDate);
-    if (oldDateKey === newDateKey) {
-      setShowDatePicker(false);
-      setEditingDateKey(null);
-      return;
-    }
-
-    const updatedMap = {...calendarMap};
-    if (updatedMap[newDateKey]) {
-      Alert.alert('Another outfit is already planned on this date.');
-      setShowDatePicker(false);
-      setEditingDateKey(null);
-      return;
-    }
-
-    updatedMap[newDateKey] = updatedMap[oldDateKey];
-    delete updatedMap[oldDateKey];
-
-    await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-    setCalendarMap(updatedMap);
-    setShowDatePicker(false);
-    setEditingDateKey(null);
-  };
-
-  const styles = StyleSheet.create({
-    container: {
-      backgroundColor: theme.colors.background,
-      padding: 12,
-      flex: 1,
-    },
-    header: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      marginBottom: 16,
-      color: theme.colors.foreground,
-    },
-    emptyText: {
-      color: theme.colors.foreground,
-      fontSize: 16,
-    },
-    card: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 20,
-      shadowColor: '#000',
-      shadowOpacity: 0.04,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    dateText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    nameText: {
-      fontSize: 14,
-      color: theme.colors.foreground,
-      marginBottom: 10,
-    },
-    imageRow: {
-      flexDirection: 'row',
-      marginBottom: 12,
-    },
-    image: {
-      width: 64,
-      height: 64,
-      borderRadius: 12,
-      marginRight: 8,
-      backgroundColor: theme.colors.surface,
-    },
-    timestamp: {
-      fontSize: 12,
-      color: '#CCCCCC',
-      marginTop: 4,
-      marginBottom: 4,
-      fontWeight: '500',
-    },
-  });
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>📅 Outfit Planner</Text>
+    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <Calendar
+        onDayPress={handleDayPress}
+        markedDates={{
+          ...markedDates,
+          ...(selectedDate
+            ? {
+                [selectedDate]: {
+                  selected: true,
+                  selectedColor: theme.colors.primary,
+                },
+              }
+            : {}),
+        }}
+        markingType="multi-dot"
+        theme={{
+          calendarBackground: theme.colors.background,
+          textSectionTitleColor: theme.colors.foreground2,
+          dayTextColor: theme.colors.foreground,
+          todayTextColor: theme.colors.primary,
+          selectedDayBackgroundColor: theme.colors.primary,
+          selectedDayTextColor: '#fff',
+          arrowColor: theme.colors.primary,
+          monthTextColor: theme.colors.primary,
+          textMonthFontWeight: 'bold',
+          textDayFontSize: 16,
+          textMonthFontSize: 18,
+          textDayHeaderFontSize: 14,
+          dotColor: theme.colors.primary,
+          selectedDotColor: '#fff',
+          disabledArrowColor: '#444',
+        }}
+      />
 
-      {Object.keys(calendarMap).length === 0 ? (
-        <Text style={styles.emptyText}>No planned outfits yet.</Text>
-      ) : (
-        Object.entries(calendarMap).map(([date, outfit]) => (
-          <View key={date}>
-            <View style={styles.card}>
-              {/* Top Row with Name + Trash Icon */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setEditingDateKey(date);
-                    setNewDate(new Date(date));
-                    setShowDatePicker(true);
-                  }}
-                  style={{flex: 1}}>
-                  <Text
-                    style={[
-                      styles.nameText,
-                      {fontWeight: '800', fontSize: 16},
-                    ]}>
-                    {outfit.name?.trim() || 'Unnamed Outfit'}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: 'rgba(0,0,0,0.35)',
+          }}>
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 20,
+              maxHeight: '75%',
+            }}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.foreground,
+                marginBottom: 12,
+              }}>
+              Outfits on {selectedDate}
+            </Text>
+
+            <ScrollView>
+              {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+                <View
+                  key={index}
+                  style={{
+                    marginBottom: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#ddd',
+                    paddingBottom: 8,
+                  }}>
+                  <Text style={{color: theme.colors.foreground, fontSize: 16}}>
+                    {o.name?.trim() || 'Unnamed Outfit'}
                   </Text>
-                  <Text style={[styles.dateText, {marginTop: 2, fontSize: 12}]}>
-                    Planned for:{' '}
-                    {new Date(date).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                  {outfit.createdAt && (
-                    <Text style={styles.timestamp}>
-                      Saved:{' '}
-                      {new Date(outfit.createdAt).toLocaleDateString(
-                        undefined,
-                        {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        },
-                      )}
+
+                  <View style={{flexDirection: 'row', marginTop: 8}}>
+                    {[o.top, o.bottom, o.shoes].map(item =>
+                      item?.image ? (
+                        <Image
+                          key={item.id}
+                          source={{uri: item.image}}
+                          style={{
+                            width: 60,
+                            height: 60,
+                            borderRadius: 8,
+                            marginRight: 8,
+                          }}
+                        />
+                      ) : null,
+                    )}
+                  </View>
+
+                  {o.notes ? (
+                    <Text
+                      style={{
+                        fontStyle: 'italic',
+                        color: theme.colors.foreground2,
+                        marginTop: 6,
+                      }}>
+                      {o.notes}
+                    </Text>
+                  ) : null}
+
+                  {typeof o.rating === 'number' && (
+                    <Text style={{color: '#FFD700', marginTop: 4}}>
+                      {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
                     </Text>
                   )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setPendingDeleteDate(date);
-                    setShowDeleteConfirm(true);
-                  }}
-                  style={{marginLeft: 10}}>
-                  <Text style={{fontSize: 18}}>🗑️</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.imageRow}>
-                {[outfit.top, outfit.bottom, outfit.shoes].map(item =>
-                  item?.image ? (
-                    <Image
-                      key={item.id}
-                      source={{uri: item.image}}
-                      style={styles.image}
-                    />
-                  ) : null,
-                )}
-              </View>
-            </View>
-
-            {showDatePicker && editingDateKey === date && (
-              <View
-                style={{
-                  backgroundColor: '#000',
-                  paddingBottom: 40,
-                }}>
-                <DateTimePicker
-                  value={newDate}
-                  mode="date"
-                  display="spinner"
-                  themeVariant="dark"
-                  onChange={(event, selectedDate) => {
-                    if (selectedDate) {
-                      setNewDate(selectedDate);
-                    }
-                  }}
-                />
-                <View style={{alignItems: 'center', marginTop: 12}}>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: '#405de6',
-                      paddingVertical: 8,
-                      paddingHorizontal: 20,
-                      borderRadius: 20,
-                    }}
-                    onPress={() => {
-                      if (editingDateKey && newDate) {
-                        handleChangeDate(editingDateKey, newDate);
-                      }
-                      setShowDatePicker(false);
-                      setEditingDateKey(null);
-                    }}>
-                    <Text style={{color: 'white', fontWeight: '600'}}>
-                      Done
-                    </Text>
-                  </TouchableOpacity>
                 </View>
-              </View>
-            )}
+              ))}
+            </ScrollView>
 
-            {showDeleteConfirm && pendingDeleteDate && (
-              <View
+            <TouchableOpacity
+              onPress={() => setModalVisible(false)}
+              style={{
+                marginTop: 20,
+                alignSelf: 'flex-end',
+                backgroundColor: theme.colors.secondary,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 6,
+              }}>
+              <Text
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: 20,
+                  color: 'whte',
+
+                  fontWeight: '600',
                 }}>
-                <View
-                  style={{
-                    backgroundColor: theme.colors.surface,
-                    padding: 24,
-                    borderRadius: 12,
-                    width: '100%',
-                    maxWidth: 360,
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      color: theme.colors.foreground,
-                      fontWeight: '600',
-                      marginBottom: 12,
-                    }}>
-                    Delete this planned outfit?
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      color: theme.colors.foreground2,
-                      marginBottom: 20,
-                    }}>
-                    This action cannot be undone.
-                  </Text>
-                  <View
-                    style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowDeleteConfirm(false);
-                        setPendingDeleteDate(null);
-                      }}
-                      style={{marginRight: 16}}>
-                      <Text style={{color: theme.colors.foreground}}>
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (pendingDeleteDate)
-                          handleDeletePlannedOutfit(pendingDeleteDate);
-                        setShowDeleteConfirm(false);
-                        setPendingDeleteDate(null);
-                      }}>
-                      <Text style={{color: 'red', fontWeight: '600'}}>
-                        Delete
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
+                Close
+              </Text>
+            </TouchableOpacity>
           </View>
-        ))
-      )}
-    </ScrollView>
+        </View>
+      </Modal>
+    </View>
   );
 }
-
-/////////////////////
+//////////////
 
 // import React, {useEffect, useState} from 'react';
 // import {
 //   View,
 //   Text,
-//   StyleSheet,
-//   ScrollView,
+//   Modal,
 //   TouchableOpacity,
+//   ScrollView,
 //   Image,
-//   Alert,
 // } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import DateTimePicker from '@react-native-community/datetimepicker';
+// import {useAuth0} from 'react-native-auth0';
+// import {Calendar, DateObject} from 'react-native-calendars';
 // import {useAppTheme} from '../context/ThemeContext';
-// import {CalendarOutfit} from '../types/calendarTypes';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
 
-// const CALENDAR_KEY = 'calendarOutfits';
-
-// const getLocalDateString = (date: Date) => {
-//   const year = date.getFullYear();
-//   const month = `${date.getMonth() + 1}`.padStart(2, '0');
-//   const day = `${date.getDate()}`.padStart(2, '0');
-//   return `${year}-${month}-${day}`;
+// type WardrobeItem = {
+//   id: string;
+//   name: string;
+//   image: string;
+//   mainCategory: string;
+//   subCategory: string;
+//   material: string;
+//   fit: string;
+//   color: string;
+//   size: string;
+//   notes: string;
 // };
 
-// export default function CalendarPlannerScreen() {
+// type SavedOutfit = {
+//   id: string;
+//   name?: string;
+//   top: WardrobeItem | null;
+//   bottom: WardrobeItem | null;
+//   shoes: WardrobeItem | null;
+//   createdAt: string;
+//   tags?: string[];
+//   notes?: string;
+//   rating?: number;
+//   favorited?: boolean;
+//   plannedDate?: string;
+//   type?: 'custom' | 'ai';
+// };
+
+// export default function OutfitPlannerScreen() {
 //   const {theme} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-//   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-//   const [newDate, setNewDate] = useState(new Date());
-//   const [showDatePicker, setShowDatePicker] = useState(false);
+//   const {user} = useAuth0();
+//   const userId = useUUID() || user?.sub || '';
+
+//   const [scheduledOutfits, setScheduledOutfits] = useState<SavedOutfit[]>([]);
+//   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+//   const [modalVisible, setModalVisible] = useState(false);
+
+//   const normalizeImageUrl = (url: string | undefined | null): string => {
+//     if (!url) return '';
+//     return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+//   };
 
 //   useEffect(() => {
-//     loadCalendar();
-//   }, []);
+//     if (!userId) return;
 
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
+//     const fetchData = async () => {
+//       try {
+//         const [aiRes, customRes, scheduledRes] = await Promise.all([
+//           fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
+//           fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
+//           fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
+//         ]);
+
+//         if (!aiRes.ok || !customRes.ok || !scheduledRes.ok) {
+//           throw new Error('Failed to fetch outfit schedule data');
+//         }
+
+//         const [aiData, customData, scheduledData] = await Promise.all([
+//           aiRes.json(),
+//           customRes.json(),
+//           scheduledRes.json(),
+//         ]);
+
+//         const scheduleMap: Record<string, string> = {};
+//         for (const s of scheduledData) {
+//           if (s.ai_outfit_id) {
+//             scheduleMap[s.ai_outfit_id] = s.scheduled_for;
+//           } else if (s.custom_outfit_id) {
+//             scheduleMap[s.custom_outfit_id] = s.scheduled_for;
+//           }
+//         }
+
+//         const normalize = (o: any, isCustom: boolean): SavedOutfit | null => {
+//           const id = o.id;
+//           const plannedDate = scheduleMap[id];
+//           if (!plannedDate) return null;
+
+//           return {
+//             id,
+//             name: o.name || '',
+//             top: o.top
+//               ? {
+//                   id: o.top.id,
+//                   name: o.top.name,
+//                   image: normalizeImageUrl(o.top.image || o.top.image_url),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             bottom: o.bottom
+//               ? {
+//                   id: o.bottom.id,
+//                   name: o.bottom.name,
+//                   image: normalizeImageUrl(
+//                     o.bottom.image || o.bottom.image_url,
+//                   ),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             shoes: o.shoes
+//               ? {
+//                   id: o.shoes.id,
+//                   name: o.shoes.name,
+//                   image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             createdAt: o.created_at
+//               ? new Date(o.created_at).toISOString()
+//               : new Date().toISOString(),
+//             tags: o.tags || [],
+//             notes: o.notes || '',
+//             rating: o.rating ?? undefined,
+//             favorited: false,
+//             plannedDate,
+//             type: isCustom ? 'custom' : 'ai',
+//           };
+//         };
+
+//         const outfits = [
+//           ...aiData.map(o => normalize(o, false)),
+//           ...customData.map(o => normalize(o, true)),
+//         ].filter(Boolean) as SavedOutfit[];
+
+//         setScheduledOutfits(outfits);
+//       } catch (err) {
+//         console.error('❌ Failed to load calendar outfits:', err);
+//       }
+//     };
+
+//     fetchData();
+//   }, [userId]);
+
+//   const markedDates = scheduledOutfits.reduce((acc, outfit) => {
+//     const date = outfit.plannedDate!.split('T')[0];
+//     acc[date] = {
+//       marked: true,
+//       dots: [{color: theme.colors.primary}],
+//     };
+//     return acc;
+//   }, {} as Record<string, any>);
+
+//   const outfitsByDate = scheduledOutfits.reduce((acc, outfit) => {
+//     const date = outfit.plannedDate!.split('T')[0];
+//     if (!acc[date]) acc[date] = [];
+//     acc[date].push(outfit);
+//     return acc;
+//   }, {} as Record<string, SavedOutfit[]>);
+
+//   const handleDayPress = (day: DateObject) => {
+//     setSelectedDate(day.dateString);
+//     setModalVisible(true);
 //   };
-
-//   const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-//     const newDateKey = getLocalDateString(selectedDate);
-//     if (oldDateKey === newDateKey) {
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     const updatedMap = {...calendarMap};
-//     if (updatedMap[newDateKey]) {
-//       Alert.alert('Another outfit is already planned on this date.');
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     updatedMap[newDateKey] = updatedMap[oldDateKey];
-//     delete updatedMap[oldDateKey];
-
-//     await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-//     setCalendarMap(updatedMap);
-//     setShowDatePicker(false);
-//     setEditingDateKey(null);
-//   };
-
-//   const styles = StyleSheet.create({
-//     container: {
-//       backgroundColor: theme.colors.background,
-//       padding: 12,
-//       flex: 1,
-//     },
-//     title: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       marginBottom: 16,
-//       color: theme.colors.foreground,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//       fontSize: 16,
-//     },
-//     card: {
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 16,
-//       padding: 16,
-//       marginBottom: 20,
-//       shadowColor: '#000',
-//       shadowOpacity: 0.04,
-//       shadowRadius: 4,
-//       elevation: 2,
-//     },
-//     headerRow: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       alignItems: 'center',
-//       marginBottom: 8,
-//     },
-//     dateText: {
-//       fontSize: 16,
-//       fontWeight: '600',
-//       color: theme.colors.primary,
-//     },
-//     nameText: {
-//       fontSize: 14,
-//       color: theme.colors.foreground,
-//       marginBottom: 10,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       marginBottom: 12,
-//     },
-//     image: {
-//       width: 64,
-//       height: 64,
-//       borderRadius: 12,
-//       marginRight: 8,
-//       backgroundColor: theme.colors.surface,
-//     },
-//     timestamp: {
-//       fontSize: 12,
-//       color: '#CCCCCC',
-//       marginTop: 4,
-//       marginBottom: 4,
-//       fontWeight: '500',
-//     },
-//   });
 
 //   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>📅 Outfit Planner</Text>
+//     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+//       <Calendar
+//         onDayPress={handleDayPress}
+//         markedDates={{
+//           ...markedDates,
+//           ...(selectedDate
+//             ? {[selectedDate]: {selected: true, selectedColor: '#405de6'}}
+//             : {}),
+//         }}
+//         theme={{
+//           calendarBackground: theme.colors.background,
+//           dayTextColor: theme.colors.foreground,
+//           monthTextColor: theme.colors.primary,
+//           selectedDayBackgroundColor: theme.colors.primary,
+//           selectedDayTextColor: 'white',
+//         }}
+//       />
 
-//       {Object.keys(calendarMap).length === 0 ? (
-//         <Text style={styles.emptyText}>No planned outfits yet.</Text>
-//       ) : (
-//         Object.entries(calendarMap).map(([date, outfit]) => (
-//           <View key={date}>
-//             <View style={styles.card}>
-//               <TouchableOpacity
-//                 onPress={() => {
-//                   setEditingDateKey(date);
-//                   setNewDate(new Date(date));
-//                   setShowDatePicker(true);
-//                 }}
-//                 style={{flex: 1, marginBottom: 8}}>
-//                 <Text
-//                   style={[styles.nameText, {fontWeight: '800', fontSize: 16}]}>
-//                   {outfit.name?.trim() || 'Unnamed Outfit'}
-//                 </Text>
-//                 <Text style={[styles.dateText, {marginTop: 2, fontSize: 12}]}>
-//                   Planned for:{' '}
-//                   {new Date(date).toLocaleDateString(undefined, {
-//                     month: 'short',
-//                     day: 'numeric',
-//                     year: 'numeric',
-//                   })}
-//                 </Text>
-//                 {outfit.createdAt && (
-//                   <Text style={styles.timestamp}>
-//                     Saved:{' '}
-//                     {new Date(outfit.createdAt).toLocaleDateString(undefined, {
-//                       month: 'short',
-//                       day: 'numeric',
-//                       year: 'numeric',
-//                     })}
+//       {/* 📆 Modal for selected day's outfits */}
+//       <Modal visible={modalVisible} animationType="slide" transparent={true}>
+//         <View
+//           style={{
+//             flex: 1,
+//             backgroundColor: 'rgba(0,0,0,0.5)',
+//             justifyContent: 'center',
+//             padding: 20,
+//           }}>
+//           <View
+//             style={{
+//               backgroundColor: theme.colors.surface,
+//               borderRadius: 10,
+//               padding: 20,
+//               maxHeight: '80%',
+//             }}>
+//             <Text
+//               style={{
+//                 fontSize: 18,
+//                 fontWeight: '600',
+//                 color: theme.colors.foreground,
+//                 marginBottom: 12,
+//               }}>
+//               Outfits on {selectedDate}
+//             </Text>
+
+//             <ScrollView>
+//               {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+//                 <View
+//                   key={index}
+//                   style={{
+//                     marginBottom: 16,
+//                     borderBottomWidth: 1,
+//                     borderBottomColor: '#ddd',
+//                     paddingBottom: 8,
+//                   }}>
+//                   <Text style={{color: theme.colors.foreground, fontSize: 16}}>
+//                     {o.name?.trim() || 'Unnamed Outfit'}
 //                   </Text>
-//                 )}
-//               </TouchableOpacity>
 
-//               <View style={styles.imageRow}>
-//                 {[outfit.top, outfit.bottom, outfit.shoes].map(item =>
-//                   item?.image ? (
-//                     <Image
-//                       key={item.id}
-//                       source={{uri: item.image}}
-//                       style={styles.image}
-//                     />
-//                   ) : null,
-//                 )}
-//               </View>
-//             </View>
+//                   <View style={{flexDirection: 'row', marginTop: 8}}>
+//                     {[o.top, o.bottom, o.shoes].map(item =>
+//                       item?.image ? (
+//                         <Image
+//                           key={item.id}
+//                           source={{uri: item.image}}
+//                           style={{
+//                             width: 60,
+//                             height: 60,
+//                             borderRadius: 8,
+//                             marginRight: 8,
+//                           }}
+//                         />
+//                       ) : null,
+//                     )}
+//                   </View>
 
-//             {showDatePicker && editingDateKey === date && (
-//               <View
-//                 style={{
-//                   backgroundColor: '#000',
-//                   paddingBottom: 40,
-//                 }}>
-//                 <DateTimePicker
-//                   value={newDate}
-//                   mode="date"
-//                   display="spinner"
-//                   themeVariant="dark"
-//                   onChange={(event, selectedDate) => {
-//                     if (selectedDate) {
-//                       setNewDate(selectedDate);
-//                     }
-//                   }}
-//                 />
-//                 <View style={{alignItems: 'center', marginTop: 12}}>
-//                   <TouchableOpacity
-//                     style={{
-//                       backgroundColor: '#405de6',
-//                       paddingVertical: 8,
-//                       paddingHorizontal: 20,
-//                       borderRadius: 20,
-//                     }}
-//                     onPress={() => {
-//                       if (editingDateKey && newDate) {
-//                         handleChangeDate(editingDateKey, newDate);
-//                       }
-//                       setShowDatePicker(false);
-//                       setEditingDateKey(null);
-//                     }}>
-//                     <Text style={{color: 'white', fontWeight: '600'}}>
-//                       Done
+//                   {o.notes ? (
+//                     <Text
+//                       style={{
+//                         fontStyle: 'italic',
+//                         color: theme.colors.foreground2,
+//                         marginTop: 6,
+//                       }}>
+//                       {o.notes}
 //                     </Text>
-//                   </TouchableOpacity>
+//                   ) : null}
+
+//                   {typeof o.rating === 'number' && (
+//                     <Text style={{color: '#FFD700', marginTop: 4}}>
+//                       {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
+//                     </Text>
+//                   )}
 //                 </View>
-//               </View>
-//             )}
+//               ))}
+//             </ScrollView>
+
+//             <TouchableOpacity
+//               onPress={() => setModalVisible(false)}
+//               style={{
+//                 marginTop: 20,
+//                 alignSelf: 'flex-end',
+//                 backgroundColor: theme.colors.primary,
+//                 paddingHorizontal: 16,
+//                 paddingVertical: 8,
+//                 borderRadius: 6,
+//               }}>
+//               <Text style={{color: 'white', fontWeight: '600'}}>Close</Text>
+//             </TouchableOpacity>
 //           </View>
-//         ))
-//       )}
-//     </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
 //   );
 // }
 
-////////////////
+/////////////////
 
 // import React, {useEffect, useState} from 'react';
 // import {
 //   View,
 //   Text,
-//   StyleSheet,
-//   ScrollView,
+//   Modal,
 //   TouchableOpacity,
+//   ScrollView,
 //   Image,
-//   Alert,
 // } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import DateTimePicker from '@react-native-community/datetimepicker';
+// import {useAuth0} from 'react-native-auth0';
+// import {Calendar, DateObject} from 'react-native-calendars';
 // import {useAppTheme} from '../context/ThemeContext';
-// import {CalendarOutfit} from '../types/calendarTypes';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
 
-// const CALENDAR_KEY = 'calendarOutfits';
-
-// const getLocalDateString = (date: Date) => {
-//   const year = date.getFullYear();
-//   const month = `${date.getMonth() + 1}`.padStart(2, '0');
-//   const day = `${date.getDate()}`.padStart(2, '0');
-//   return `${year}-${month}-${day}`;
+// type WardrobeItem = {
+//   id: string;
+//   name: string;
+//   image: string;
+//   mainCategory: string;
+//   subCategory: string;
+//   material: string;
+//   fit: string;
+//   color: string;
+//   size: string;
+//   notes: string;
 // };
 
-// export default function CalendarPlannerScreen() {
+// type SavedOutfit = {
+//   id: string;
+//   name?: string;
+//   top: WardrobeItem | null;
+//   bottom: WardrobeItem | null;
+//   shoes: WardrobeItem | null;
+//   createdAt: string;
+//   tags?: string[];
+//   notes?: string;
+//   rating?: number;
+//   favorited?: boolean;
+//   plannedDate?: string;
+//   type?: 'custom' | 'ai';
+// };
+
+// export default function OutfitPlannerScreen() {
 //   const {theme} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-//   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-//   const [newDate, setNewDate] = useState(new Date());
-//   const [showDatePicker, setShowDatePicker] = useState(false);
+//   const {user} = useAuth0();
+//   const userId = useUUID() || user?.sub || '';
+
+//   const [scheduledOutfits, setScheduledOutfits] = useState<SavedOutfit[]>([]);
+//   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+//   const [modalVisible, setModalVisible] = useState(false);
+
+//   const normalizeImageUrl = (url: string | undefined | null): string => {
+//     if (!url) return '';
+//     return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+//   };
 
 //   useEffect(() => {
-//     loadCalendar();
-//   }, []);
+//     if (!userId) return;
 
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
+//     const fetchData = async () => {
+//       try {
+//         const [aiRes, customRes, scheduledRes] = await Promise.all([
+//           fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
+//           fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
+//           fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
+//         ]);
+
+//         if (!aiRes.ok || !customRes.ok || !scheduledRes.ok) {
+//           throw new Error('Failed to fetch outfit schedule data');
+//         }
+
+//         const [aiData, customData, scheduledData] = await Promise.all([
+//           aiRes.json(),
+//           customRes.json(),
+//           scheduledRes.json(),
+//         ]);
+
+//         const scheduleMap: Record<string, string> = {};
+//         for (const s of scheduledData) {
+//           if (s.ai_outfit_id) {
+//             scheduleMap[s.ai_outfit_id] = s.scheduled_for;
+//           } else if (s.custom_outfit_id) {
+//             scheduleMap[s.custom_outfit_id] = s.scheduled_for;
+//           }
+//         }
+
+//         const normalize = (o: any, isCustom: boolean): SavedOutfit | null => {
+//           const id = o.id;
+//           const plannedDate = scheduleMap[id];
+//           if (!plannedDate) return null;
+
+//           return {
+//             id,
+//             name: o.name || '',
+//             top: o.top
+//               ? {
+//                   id: o.top.id,
+//                   name: o.top.name,
+//                   image: normalizeImageUrl(o.top.image || o.top.image_url),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             bottom: o.bottom
+//               ? {
+//                   id: o.bottom.id,
+//                   name: o.bottom.name,
+//                   image: normalizeImageUrl(
+//                     o.bottom.image || o.bottom.image_url,
+//                   ),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             shoes: o.shoes
+//               ? {
+//                   id: o.shoes.id,
+//                   name: o.shoes.name,
+//                   image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             createdAt: o.created_at
+//               ? new Date(o.created_at).toISOString()
+//               : new Date().toISOString(),
+//             tags: o.tags || [],
+//             notes: o.notes || '',
+//             rating: o.rating ?? undefined,
+//             favorited: false,
+//             plannedDate,
+//             type: isCustom ? 'custom' : 'ai',
+//           };
+//         };
+
+//         const outfits = [
+//           ...aiData.map(o => normalize(o, false)),
+//           ...customData.map(o => normalize(o, true)),
+//         ].filter(Boolean) as SavedOutfit[];
+
+//         setScheduledOutfits(outfits);
+//       } catch (err) {
+//         console.error('❌ Failed to load calendar outfits:', err);
+//       }
+//     };
+
+//     fetchData();
+//   }, [userId]);
+
+//   const markedDates = scheduledOutfits.reduce((acc, outfit) => {
+//     const date = outfit.plannedDate!.split('T')[0];
+//     acc[date] = {
+//       marked: true,
+//       dots: [{color: theme.colors.primary}],
+//     };
+//     return acc;
+//   }, {} as Record<string, any>);
+
+//   const outfitsByDate = scheduledOutfits.reduce((acc, outfit) => {
+//     const date = outfit.plannedDate!.split('T')[0];
+//     if (!acc[date]) acc[date] = [];
+//     acc[date].push(outfit);
+//     return acc;
+//   }, {} as Record<string, SavedOutfit[]>);
+
+//   const handleDayPress = (day: DateObject) => {
+//     setSelectedDate(day.dateString);
+//     setModalVisible(true);
 //   };
-
-//   const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-//     const newDateKey = getLocalDateString(selectedDate);
-//     if (oldDateKey === newDateKey) {
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     const updatedMap = {...calendarMap};
-//     if (updatedMap[newDateKey]) {
-//       Alert.alert('Another outfit is already planned on this date.');
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     updatedMap[newDateKey] = updatedMap[oldDateKey];
-//     delete updatedMap[oldDateKey];
-
-//     await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-//     setCalendarMap(updatedMap);
-//     setShowDatePicker(false);
-//     setEditingDateKey(null);
-//   };
-
-//   const styles = StyleSheet.create({
-//     container: {
-//       backgroundColor: theme.colors.background,
-//       padding: 16,
-//       flex: 1,
-//     },
-//     title: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       marginBottom: 16,
-//       color: theme.colors.foreground,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//       fontSize: 16,
-//     },
-//     card: {
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 16,
-//       padding: 16,
-//       marginBottom: 20,
-//       shadowColor: '#000',
-//       shadowOpacity: 0.04,
-//       shadowRadius: 4,
-//       elevation: 2,
-//     },
-//     headerRow: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       alignItems: 'center',
-//       marginBottom: 8,
-//     },
-//     dateText: {
-//       fontSize: 16,
-//       fontWeight: '600',
-//       color: theme.colors.primary,
-//     },
-//     nameText: {
-//       fontSize: 14,
-//       color: theme.colors.foreground,
-//       marginBottom: 10,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       marginBottom: 12,
-//     },
-//     image: {
-//       width: 64,
-//       height: 64,
-//       borderRadius: 12,
-//       marginRight: 8,
-//       backgroundColor: theme.colors.surface,
-//     },
-//   });
 
 //   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>📅 Outfit Planner</Text>
+//     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+//       <Calendar
+//         onDayPress={handleDayPress}
+//         markedDates={{
+//           ...markedDates,
+//           ...(selectedDate
+//             ? {[selectedDate]: {selected: true, selectedColor: '#405de6'}}
+//             : {}),
+//         }}
+//         theme={{
+//           calendarBackground: theme.colors.background,
+//           dayTextColor: theme.colors.foreground,
+//           monthTextColor: theme.colors.primary,
+//           selectedDayBackgroundColor: theme.colors.primary,
+//           selectedDayTextColor: 'white',
+//         }}
+//       />
 
-//       {Object.keys(calendarMap).length === 0 ? (
-//         <Text style={styles.emptyText}>No planned outfits yet.</Text>
-//       ) : (
-//         Object.entries(calendarMap).map(([date, outfit]) => (
-//           <View key={date} style={styles.card}>
-//             <View style={styles.headerRow}>
-//               <Text style={styles.dateText}>{date}</Text>
-//               <TouchableOpacity
-//                 onPress={() => {
-//                   setEditingDateKey(date);
-//                   setNewDate(new Date(date));
-//                   setShowDatePicker(true);
-//                 }}>
-//                 <MaterialIcons name="edit-calendar" size={22} color="#405de6" />
-//               </TouchableOpacity>
-//             </View>
-
-//             <Text style={styles.nameText}>
-//               {outfit.name || 'Unnamed Outfit'}
+//       {/* 📆 Modal for selected day's outfits */}
+//       <Modal visible={modalVisible} animationType="slide" transparent={true}>
+//         <View
+//           style={{
+//             flex: 1,
+//             backgroundColor: 'rgba(0,0,0,0.5)',
+//             justifyContent: 'center',
+//             padding: 20,
+//           }}>
+//           <View
+//             style={{
+//               backgroundColor: theme.colors.surface,
+//               borderRadius: 10,
+//               padding: 20,
+//               maxHeight: '80%',
+//             }}>
+//             <Text
+//               style={{
+//                 fontSize: 18,
+//                 fontWeight: '600',
+//                 color: theme.colors.foreground,
+//                 marginBottom: 12,
+//               }}>
+//               Outfits on {selectedDate}
 //             </Text>
 
-//             <View style={styles.imageRow}>
-//               {[outfit.top, outfit.bottom, outfit.shoes].map(item =>
-//                 item?.image ? (
-//                   <Image
-//                     key={item.id}
-//                     source={{uri: item.image}}
-//                     style={styles.image}
-//                   />
-//                 ) : null,
-//               )}
-//             </View>
+//             <ScrollView>
+//               {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+//                 <View
+//                   key={index}
+//                   style={{
+//                     marginBottom: 16,
+//                     borderBottomWidth: 1,
+//                     borderBottomColor: '#ddd',
+//                     paddingBottom: 8,
+//                   }}>
+//                   <Text style={{color: theme.colors.foreground, fontSize: 16}}>
+//                     {o.name?.trim() || 'Unnamed Outfit'}
+//                   </Text>
 
-//             {/* ⬇️ Inline calendar just like SavedOutfitsScreen */}
-//             {showDatePicker && editingDateKey === date && (
-//               <View
-//                 style={{
-//                   backgroundColor: '#000',
-//                   marginTop: 12,
-//                   borderRadius: 12,
-//                   paddingBottom: 16,
-//                 }}>
-//                 <DateTimePicker
-//                   value={newDate}
-//                   mode="date"
-//                   display="spinner"
-//                   themeVariant="dark"
-//                   onChange={(event, selectedDate) => {
-//                     if (selectedDate) {
-//                       setNewDate(selectedDate);
-//                     }
-//                   }}
-//                 />
-//                 <View style={{alignItems: 'center', marginTop: 12}}>
-//                   <TouchableOpacity
-//                     style={{
-//                       backgroundColor: '#405de6',
-//                       paddingVertical: 8,
-//                       paddingHorizontal: 20,
-//                       borderRadius: 20,
-//                     }}
-//                     onPress={() => {
-//                       if (editingDateKey && newDate) {
-//                         handleChangeDate(editingDateKey, newDate);
-//                       }
-//                       setShowDatePicker(false);
-//                       setEditingDateKey(null);
-//                     }}>
-//                     <Text style={{color: 'white', fontWeight: '600'}}>
-//                       Done
+//                   <View style={{flexDirection: 'row', marginTop: 8}}>
+//                     {[o.top, o.bottom, o.shoes].map(item =>
+//                       item?.image ? (
+//                         <Image
+//                           key={item.id}
+//                           source={{uri: item.image}}
+//                           style={{
+//                             width: 60,
+//                             height: 60,
+//                             borderRadius: 8,
+//                             marginRight: 8,
+//                           }}
+//                         />
+//                       ) : null,
+//                     )}
+//                   </View>
+
+//                   {o.notes ? (
+//                     <Text
+//                       style={{
+//                         fontStyle: 'italic',
+//                         color: theme.colors.foreground2,
+//                         marginTop: 6,
+//                       }}>
+//                       {o.notes}
 //                     </Text>
-//                   </TouchableOpacity>
+//                   ) : null}
+
+//                   {typeof o.rating === 'number' && (
+//                     <Text style={{color: '#FFD700', marginTop: 4}}>
+//                       {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
+//                     </Text>
+//                   )}
 //                 </View>
-//               </View>
-//             )}
+//               ))}
+//             </ScrollView>
+
+//             <TouchableOpacity
+//               onPress={() => setModalVisible(false)}
+//               style={{
+//                 marginTop: 20,
+//                 alignSelf: 'flex-end',
+//                 backgroundColor: theme.colors.primary,
+//                 paddingHorizontal: 16,
+//                 paddingVertical: 8,
+//                 borderRadius: 6,
+//               }}>
+//               <Text style={{color: 'white', fontWeight: '600'}}>Close</Text>
+//             </TouchableOpacity>
 //           </View>
-//         ))
-//       )}
-//     </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
 //   );
 // }
 
 /////////////
 
 // import React, {useEffect, useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   ScrollView,
-//   TouchableOpacity,
-//   Image,
-//   Platform,
-//   Alert,
-// } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import DateTimePicker from '@react-native-community/datetimepicker';
+// import {View, Text, Modal, TouchableOpacity, ScrollView} from 'react-native';
+// import axios from 'axios';
+// import {useAuth0} from 'react-native-auth0';
 // import {useAppTheme} from '../context/ThemeContext';
-// import {CalendarOutfit} from '../types/calendarTypes';
+// import {Calendar, DateObject} from 'react-native-calendars';
 
-// const CALENDAR_KEY = 'calendarOutfits';
+// export default function OutfitPlannerScreen() {
+//   const {theme} = useAppTheme();
+//   const {user} = useAuth0();
+//   const userId = user?.sub || '';
 
-// const getLocalDateString = (date: Date) => {
-//   const year = date.getFullYear();
-//   const month = `${date.getMonth() + 1}`.padStart(2, '0');
-//   const day = `${date.getDate()}`.padStart(2, '0');
-//   return `${year}-${month}-${day}`;
-// };
-
-// export default function CalendarPlannerScreen() {
-//   const {theme, mode} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-//   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-//   const [newDate, setNewDate] = useState(new Date());
-//   const [showDatePicker, setShowDatePicker] = useState(false);
-
-//   useEffect(() => {
-//     loadCalendar();
-//   }, []);
-
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
-//   };
-
-//   const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-//     const newDateKey = getLocalDateString(selectedDate);
-//     if (oldDateKey === newDateKey) {
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     const updatedMap = {...calendarMap};
-//     if (updatedMap[newDateKey]) {
-//       Alert.alert('Another outfit is already planned on this date.');
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     updatedMap[newDateKey] = updatedMap[oldDateKey];
-//     delete updatedMap[oldDateKey];
-
-//     await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-//     setCalendarMap(updatedMap);
-//     setShowDatePicker(false);
-//     setEditingDateKey(null);
-//   };
-
-//   const styles = StyleSheet.create({
-//     container: {
-//       backgroundColor: theme.colors.background,
-//       padding: 16,
-//       flex: 1,
-//     },
-//     card: {
-//       marginBottom: 16,
-//       padding: 12,
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 10,
-//     },
-//     dateText: {
-//       fontWeight: '600',
-//       color: theme.colors.foreground,
-//     },
-//     nameText: {
-//       color: theme.colors.foreground,
-//       marginTop: 2,
-//       marginBottom: 8,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       marginBottom: 10,
-//     },
-//     image: {
-//       width: 60,
-//       height: 60,
-//       borderRadius: 8,
-//       marginRight: 8,
-//     },
-//     changeButton: {
-//       backgroundColor: '#007AFF',
-//       paddingVertical: 6,
-//       paddingHorizontal: 12,
-//       borderRadius: 8,
-//       alignSelf: 'flex-start',
-//     },
-//     changeButtonText: {
-//       color: '#000',
-//       fontWeight: '600',
-//     },
-//     title: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       marginBottom: 12,
-//       color: theme.colors.foreground,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//     },
-//   });
-
-//   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>📅 Outfit Planner</Text>
-
-//       {Object.keys(calendarMap).length === 0 ? (
-//         <Text style={styles.emptyText}>No planned outfits yet.</Text>
-//       ) : (
-//         Object.entries(calendarMap).map(([date, outfit]) => (
-//           <View key={date} style={styles.card}>
-//             <Text style={styles.dateText}>{date}</Text>
-//             <Text style={styles.nameText}>
-//               {outfit.name || 'Unnamed Outfit'}
-//             </Text>
-
-//             <View style={styles.imageRow}>
-//               {[outfit.top, outfit.bottom, outfit.shoes].map(item =>
-//                 item?.image ? (
-//                   <Image
-//                     key={item.id}
-//                     source={{uri: item.image}}
-//                     style={styles.image}
-//                   />
-//                 ) : null,
-//               )}
-//             </View>
-
-//             <TouchableOpacity
-//               style={styles.changeButton}
-//               onPress={() => {
-//                 setEditingDateKey(date);
-//                 setNewDate(new Date(date));
-//                 setShowDatePicker(true);
-//               }}>
-//               <Text style={styles.changeButtonText}>Change Date</Text>
-//             </TouchableOpacity>
-//           </View>
-//         ))
-//       )}
-
-//       {showDatePicker && editingDateKey && (
-//         <DateTimePicker
-//           value={newDate}
-//           mode="date"
-//           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-//           themeVariant={mode === 'dark' ? 'dark' : 'light'}
-//           onChange={(_, selected) => {
-//             if (selected) {
-//               handleChangeDate(editingDateKey, selected);
-//             } else {
-//               setShowDatePicker(false);
-//               setEditingDateKey(null);
-//             }
-//           }}
-//         />
-//       )}
-//     </ScrollView>
-//   );
-// }
-
-///////////////////
-
-// import React, {useEffect, useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   ScrollView,
-//   TouchableOpacity,
-//   Image,
-//   Platform,
-//   Alert,
-// } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import DateTimePicker from '@react-native-community/datetimepicker';
-// import {Calendar} from 'react-native-calendars';
-// import {useAppTheme} from '../context/ThemeContext';
-// import {CalendarOutfit} from '../types/calendarTypes';
-
-// const CALENDAR_KEY = 'calendarOutfits';
-
-// const getLocalDateString = (date: Date) => {
-//   const year = date.getFullYear();
-//   const month = `${date.getMonth() + 1}`.padStart(2, '0');
-//   const day = `${date.getDate()}`.padStart(2, '0');
-//   return `${year}-${month}-${day}`;
-// };
-
-// export default function CalendarPlannerScreen() {
-//   const {theme, mode} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-//   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-//   const [newDate, setNewDate] = useState(new Date());
-//   const [showDatePicker, setShowDatePicker] = useState(false);
+//   const [calendarData, setCalendarData] = useState<any[]>([]);
 //   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+//   const [modalVisible, setModalVisible] = useState(false);
 
 //   useEffect(() => {
-//     loadCalendar();
-//   }, []);
+//     if (!userId) return;
 
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
-//   };
-
-//   const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-//     const newDateKey = getLocalDateString(selectedDate);
-//     if (oldDateKey === newDateKey) {
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     const updatedMap = {...calendarMap};
-//     if (updatedMap[newDateKey]) {
-//       Alert.alert('Another outfit is already planned on this date.');
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     updatedMap[newDateKey] = updatedMap[oldDateKey];
-//     delete updatedMap[oldDateKey];
-
-//     await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-//     setCalendarMap(updatedMap);
-//     setShowDatePicker(false);
-//     setEditingDateKey(null);
-//   };
-
-//   const markedDates = Object.keys(calendarMap).reduce((acc, date) => {
-//     acc[date] = {
-//       marked: true,
-//       dotColor: theme.colors.primary,
-//       selected: date === selectedDate,
-//       selectedColor: theme.colors.primary,
+//     const fetchScheduledOutfits = async () => {
+//       try {
+//         const response = await axios.get(
+//           `http://192.168.0.106:3001/scheduled-outfits/${userId}`,
+//         );
+//         setCalendarData(response.data);
+//       } catch (error) {
+//         console.error('Error fetching scheduled outfits:', error);
+//       }
 //     };
+
+//     fetchScheduledOutfits();
+//   }, [userId]);
+
+//   // 🔵 Convert scheduled outfits to marked dates
+//   const markedDates = calendarData.reduce((acc, item) => {
+//     const date = item.scheduled_for.split('T')[0];
+//     if (!acc[date]) {
+//       acc[date] = {marked: true, dots: [{color: theme.colors.primary}]};
+//     }
 //     return acc;
-//   }, {} as any);
+//   }, {} as Record<string, any>);
 
-//   const styles = StyleSheet.create({
-//     container: {backgroundColor: theme.colors.background, flex: 1},
-//     calendarWrapper: {padding: 12},
-//     card: {
-//       marginBottom: 16,
-//       marginHorizontal: 16,
-//       padding: 12,
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 10,
-//     },
-//     dateText: {fontWeight: '600', color: theme.colors.foreground},
-//     nameText: {
-//       color: theme.colors.foreground,
-//       marginTop: 2,
-//       marginBottom: 8,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       marginBottom: 10,
-//     },
-//     image: {
-//       width: 60,
-//       height: 60,
-//       borderRadius: 8,
-//       marginRight: 8,
-//     },
-//     changeButton: {
-//       backgroundColor: '#007AFF',
-//       paddingVertical: 6,
-//       paddingHorizontal: 12,
-//       borderRadius: 8,
-//       alignSelf: 'flex-start',
-//     },
-//     changeButtonText: {color: '#000', fontWeight: '600'},
-//     title: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       margin: 16,
-//       color: theme.colors.foreground,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//       marginHorizontal: 16,
-//     },
-//   });
+//   const outfitsByDate = calendarData.reduce((acc, item) => {
+//     const date = item.scheduled_for.split('T')[0];
+//     if (!acc[date]) acc[date] = [];
+//     acc[date].push(item);
+//     return acc;
+//   }, {} as Record<string, any[]>);
+
+//   const handleDayPress = (day: DateObject) => {
+//     setSelectedDate(day.dateString);
+//     setModalVisible(true);
+//   };
 
 //   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>📅 Outfit Planner</Text>
+//     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+//       <Calendar
+//         onDayPress={handleDayPress}
+//         markedDates={{
+//           ...markedDates,
+//           ...(selectedDate
+//             ? {[selectedDate]: {selected: true, selectedColor: '#405de6'}}
+//             : {}),
+//         }}
+//         theme={{
+//           calendarBackground: theme.colors.background,
+//           dayTextColor: theme.colors.foreground,
+//           monthTextColor: theme.colors.primary,
+//           selectedDayBackgroundColor: theme.colors.primary,
+//           selectedDayTextColor: 'white',
+//         }}
+//       />
 
-//       <View style={styles.calendarWrapper}>
-//         <Calendar
-//           markedDates={markedDates}
-//           onDayPress={day => {
-//             const dateKey = day.dateString;
-//             setSelectedDate(dateKey);
-//           }}
-//           theme={{
-//             calendarBackground: theme.colors.background,
-//             dayTextColor: theme.colors.foreground,
-//             monthTextColor: theme.colors.foreground,
-//             arrowColor: theme.colors.primary,
-//             todayTextColor: theme.colors.primary,
-//             selectedDayBackgroundColor: theme.colors.primary,
-//             selectedDayTextColor: '#000',
-//           }}
-//         />
-//       </View>
-
-//       {selectedDate && calendarMap[selectedDate] ? (
-//         <View style={styles.card}>
-//           <Text style={styles.dateText}>{selectedDate}</Text>
-//           <Text style={styles.nameText}>
-//             {calendarMap[selectedDate].name || 'Unnamed Outfit'}
-//           </Text>
-
-//           <View style={styles.imageRow}>
-//             {[
-//               calendarMap[selectedDate].top,
-//               calendarMap[selectedDate].bottom,
-//               calendarMap[selectedDate].shoes,
-//             ].map(item =>
-//               item?.image ? (
-//                 <Image
-//                   key={item.id}
-//                   source={{uri: item.image}}
-//                   style={styles.image}
-//                 />
-//               ) : null,
-//             )}
-//           </View>
-
-//           <TouchableOpacity
-//             style={styles.changeButton}
-//             onPress={() => {
-//               setEditingDateKey(selectedDate);
-//               setNewDate(new Date(selectedDate));
-//               setShowDatePicker(true);
+//       {/* 📆 Modal for selected day's outfits */}
+//       <Modal visible={modalVisible} animationType="slide" transparent={true}>
+//         <View
+//           style={{
+//             flex: 1,
+//             backgroundColor: 'rgba(0,0,0,0.5)',
+//             justifyContent: 'center',
+//             padding: 20,
+//           }}>
+//           <View
+//             style={{
+//               backgroundColor: theme.colors.surface,
+//               borderRadius: 10,
+//               padding: 20,
+//               maxHeight: '80%',
 //             }}>
-//             <Text style={styles.changeButtonText}>Change Date</Text>
-//           </TouchableOpacity>
+//             <Text
+//               style={{
+//                 fontSize: 18,
+//                 fontWeight: '600',
+//                 color: theme.colors.foreground,
+//                 marginBottom: 12,
+//               }}>
+//               Outfits on {selectedDate}
+//             </Text>
+
+//             <ScrollView>
+//               {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+//                 <View
+//                   key={index}
+//                   style={{
+//                     marginBottom: 16,
+//                     borderBottomWidth: 1,
+//                     borderBottomColor: '#ddd',
+//                     paddingBottom: 8,
+//                   }}>
+//                   <Text style={{color: theme.colors.foreground, fontSize: 16}}>
+//                     {o.outfit_name || 'Unnamed Outfit'}
+//                   </Text>
+//                   {o.notes ? (
+//                     <Text
+//                       style={{
+//                         fontStyle: 'italic',
+//                         color: theme.colors.foreground2,
+//                       }}>
+//                       {o.notes}
+//                     </Text>
+//                   ) : null}
+//                   {typeof o.rating === 'number' && (
+//                     <Text style={{color: '#FFD700'}}>
+//                       {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
+//                     </Text>
+//                   )}
+//                 </View>
+//               ))}
+//             </ScrollView>
+
+//             <TouchableOpacity
+//               onPress={() => setModalVisible(false)}
+//               style={{
+//                 marginTop: 20,
+//                 alignSelf: 'flex-end',
+//                 backgroundColor: theme.colors.primary,
+//                 paddingHorizontal: 16,
+//                 paddingVertical: 8,
+//                 borderRadius: 6,
+//               }}>
+//               <Text style={{color: 'white', fontWeight: '600'}}>Close</Text>
+//             </TouchableOpacity>
+//           </View>
 //         </View>
-//       ) : (
-//         <Text style={styles.emptyText}>
-//           {selectedDate
-//             ? 'No outfit planned for this day.'
-//             : 'Select a date to view planned outfit.'}
-//         </Text>
-//       )}
-
-//       {showDatePicker && editingDateKey && (
-//         <DateTimePicker
-//           value={newDate}
-//           mode="date"
-//           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-//           themeVariant={mode === 'dark' ? 'dark' : 'light'}
-//           onChange={(_, selected) => {
-//             if (selected) {
-//               handleChangeDate(editingDateKey, selected);
-//             } else {
-//               setShowDatePicker(false);
-//               setEditingDateKey(null);
-//             }
-//           }}
-//         />
-//       )}
-//     </ScrollView>
-//   );
-// }
-
-////////////
-
-// import React, {useEffect, useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   ScrollView,
-//   TouchableOpacity,
-//   Image,
-//   Platform,
-//   Alert,
-// } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import DateTimePicker from '@react-native-community/datetimepicker';
-// import {useAppTheme} from '../context/ThemeContext';
-// import {CalendarOutfit} from '../types/calendarTypes';
-
-// const CALENDAR_KEY = 'calendarOutfits';
-
-// const getLocalDateString = (date: Date) => {
-//   const year = date.getFullYear();
-//   const month = `${date.getMonth() + 1}`.padStart(2, '0');
-//   const day = `${date.getDate()}`.padStart(2, '0');
-//   return `${year}-${month}-${day}`;
-// };
-
-// export default function CalendarPlannerScreen() {
-//   const {theme, mode} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-//   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-//   const [newDate, setNewDate] = useState(new Date());
-//   const [showDatePicker, setShowDatePicker] = useState(false);
-
-//   useEffect(() => {
-//     loadCalendar();
-//   }, []);
-
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
-//   };
-
-//   const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-//     const newDateKey = getLocalDateString(selectedDate); // ⬅️ use local date
-//     if (oldDateKey === newDateKey) {
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     const updatedMap = {...calendarMap};
-//     if (updatedMap[newDateKey]) {
-//       Alert.alert('Another outfit is already planned on this date.');
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     updatedMap[newDateKey] = updatedMap[oldDateKey];
-//     delete updatedMap[oldDateKey];
-
-//     await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-//     setCalendarMap(updatedMap);
-//     setShowDatePicker(false);
-//     setEditingDateKey(null);
-//   };
-
-//   const styles = StyleSheet.create({
-//     container: {
-//       backgroundColor: theme.colors.background,
-//       padding: 16,
-//       flex: 1,
-//     },
-//     card: {
-//       marginBottom: 16,
-//       padding: 12,
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 10,
-//     },
-//     dateText: {
-//       fontWeight: '600',
-//       color: theme.colors.foreground,
-//     },
-//     nameText: {
-//       color: theme.colors.foreground,
-//       marginTop: 2,
-//       marginBottom: 8,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       marginBottom: 10,
-//     },
-//     image: {
-//       width: 60,
-//       height: 60,
-//       borderRadius: 8,
-//       marginRight: 8,
-//     },
-//     changeButton: {
-//       backgroundColor: '#007AFF',
-//       paddingVertical: 6,
-//       paddingHorizontal: 12,
-//       borderRadius: 8,
-//       alignSelf: 'flex-start',
-//     },
-//     changeButtonText: {
-//       color: '#000',
-//       fontWeight: '600',
-//     },
-//     title: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       marginBottom: 12,
-//       color: theme.colors.foreground,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//     },
-//   });
-
-//   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>📅 Outfit Planner</Text>
-
-//       {Object.keys(calendarMap).length === 0 ? (
-//         <Text style={styles.emptyText}>No planned outfits yet.</Text>
-//       ) : (
-//         Object.entries(calendarMap).map(([date, outfit]) => (
-//           <View key={date} style={styles.card}>
-//             <Text style={styles.dateText}>{date}</Text>
-//             <Text style={styles.nameText}>
-//               {outfit.name || 'Unnamed Outfit'}
-//             </Text>
-
-//             <View style={styles.imageRow}>
-//               {[outfit.top, outfit.bottom, outfit.shoes].map(item =>
-//                 item?.image ? (
-//                   <Image
-//                     key={item.id}
-//                     source={{uri: item.image}}
-//                     style={styles.image}
-//                   />
-//                 ) : null,
-//               )}
-//             </View>
-
-//             <TouchableOpacity
-//               style={styles.changeButton}
-//               onPress={() => {
-//                 setEditingDateKey(date);
-//                 setNewDate(new Date(date));
-//                 setShowDatePicker(true);
-//               }}>
-//               <Text style={styles.changeButtonText}>Change Date</Text>
-//             </TouchableOpacity>
-//           </View>
-//         ))
-//       )}
-
-//       {showDatePicker && editingDateKey && (
-//         <DateTimePicker
-//           value={newDate}
-//           mode="date"
-//           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-//           themeVariant={mode === 'dark' ? 'dark' : 'light'}
-//           onChange={(_, selected) => {
-//             if (selected) {
-//               handleChangeDate(editingDateKey, selected);
-//             } else {
-//               setShowDatePicker(false);
-//               setEditingDateKey(null);
-//             }
-//           }}
-//         />
-//       )}
-//     </ScrollView>
-//   );
-// }
-
-////////////
-
-// import React, {useEffect, useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   ScrollView,
-//   TouchableOpacity,
-//   Image,
-//   Platform,
-//   Alert,
-// } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import DateTimePicker from '@react-native-community/datetimepicker';
-// import {useAppTheme} from '../context/ThemeContext';
-// import {CalendarOutfit} from '../types/calendarTypes';
-
-// const CALENDAR_KEY = 'calendarOutfits';
-
-// export default function CalendarPlannerScreen() {
-//   const {theme} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-//   const [editingDateKey, setEditingDateKey] = useState<string | null>(null);
-//   const [newDate, setNewDate] = useState(new Date());
-//   const [showDatePicker, setShowDatePicker] = useState(false);
-
-//   useEffect(() => {
-//     loadCalendar();
-//   }, []);
-
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
-//   };
-
-//   const handleChangeDate = async (oldDateKey: string, selectedDate: Date) => {
-//     const newDateKey = selectedDate.toISOString().split('T')[0];
-//     if (oldDateKey === newDateKey) {
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     const updatedMap = {...calendarMap};
-//     if (updatedMap[newDateKey]) {
-//       Alert.alert('Another outfit is already planned on this date.');
-//       setShowDatePicker(false);
-//       setEditingDateKey(null);
-//       return;
-//     }
-
-//     updatedMap[newDateKey] = updatedMap[oldDateKey];
-//     delete updatedMap[oldDateKey];
-
-//     await AsyncStorage.setItem(CALENDAR_KEY, JSON.stringify(updatedMap));
-//     setCalendarMap(updatedMap);
-//     setShowDatePicker(false);
-//     setEditingDateKey(null);
-//   };
-
-//   const styles = StyleSheet.create({
-//     container: {
-//       backgroundColor: theme.colors.background,
-//       padding: 16,
-//       flex: 1,
-//     },
-//     card: {
-//       marginBottom: 16,
-//       padding: 12,
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 10,
-//     },
-//     dateText: {
-//       fontWeight: '600',
-//       color: theme.colors.foreground,
-//     },
-//     nameText: {
-//       color: theme.colors.foreground,
-//       marginTop: 2,
-//       marginBottom: 8,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       marginBottom: 10,
-//     },
-//     image: {
-//       width: 60,
-//       height: 60,
-//       borderRadius: 8,
-//       marginRight: 8,
-//     },
-//     changeButton: {
-//       backgroundColor: theme.colors.primary,
-//       paddingVertical: 6,
-//       paddingHorizontal: 12,
-//       borderRadius: 8,
-//       alignSelf: 'flex-start',
-//     },
-//     changeButtonText: {
-//       color: '#000',
-//       fontWeight: '600',
-//     },
-//     title: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       marginBottom: 12,
-//       color: theme.colors.foreground,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//     },
-//   });
-
-//   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>📅 Outfit Planner</Text>
-
-//       {Object.keys(calendarMap).length === 0 ? (
-//         <Text style={styles.emptyText}>No planned outfits yet.</Text>
-//       ) : (
-//         Object.entries(calendarMap).map(([date, outfit]) => (
-//           <View key={date} style={styles.card}>
-//             <Text style={styles.dateText}>{date}</Text>
-//             <Text style={styles.nameText}>
-//               {outfit.name || 'Unnamed Outfit'}
-//             </Text>
-
-//             <View style={styles.imageRow}>
-//               {[outfit.top, outfit.bottom, outfit.shoes].map(item =>
-//                 item?.image ? (
-//                   <Image
-//                     key={item.id}
-//                     source={{uri: item.image}}
-//                     style={styles.image}
-//                   />
-//                 ) : null,
-//               )}
-//             </View>
-
-//             <TouchableOpacity
-//               style={styles.changeButton}
-//               onPress={() => {
-//                 setEditingDateKey(date);
-//                 setNewDate(new Date(date));
-//                 setShowDatePicker(true);
-//               }}>
-//               <Text style={styles.changeButtonText}>Change Date</Text>
-//             </TouchableOpacity>
-//           </View>
-//         ))
-//       )}
-
-//       {showDatePicker && editingDateKey && (
-//         <DateTimePicker
-//           value={newDate}
-//           mode="date"
-//           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-//           onChange={(_, selected) => {
-//             if (selected) {
-//               handleChangeDate(editingDateKey, selected);
-//             } else {
-//               setShowDatePicker(false);
-//               setEditingDateKey(null);
-//             }
-//           }}
-//         />
-//       )}
-//     </ScrollView>
-//   );
-// }
-
-///////////////
-
-// import React, {useEffect, useState} from 'react';
-// import {View, Text, StyleSheet, ScrollView, Image} from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import {useAppTheme} from '../context/ThemeContext';
-// import {WardrobeItem} from '../hooks/useOutfitSuggestion';
-
-// type CalendarOutfit = {
-//   id: string;
-//   name?: string;
-//   top: WardrobeItem;
-//   bottom: WardrobeItem;
-//   shoes: WardrobeItem;
-//   createdAt: string;
-//   tags?: string[];
-//   notes?: string;
-//   rating?: number;
-// };
-
-// const CALENDAR_KEY = 'calendarOutfits';
-
-// export default function CalendarPlannerScreen() {
-//   const {theme} = useAppTheme();
-//   const [calendarMap, setCalendarMap] = useState<{
-//     [date: string]: CalendarOutfit;
-//   }>({});
-
-//   useEffect(() => {
-//     loadCalendar();
-//   }, []);
-
-//   const loadCalendar = async () => {
-//     const data = await AsyncStorage.getItem(CALENDAR_KEY);
-//     if (data) {
-//       setCalendarMap(JSON.parse(data));
-//     }
-//   };
-
-//   const styles = StyleSheet.create({
-//     container: {
-//       backgroundColor: theme.colors.background,
-//       padding: 16,
-//     },
-//     card: {
-//       marginBottom: 12,
-//       padding: 12,
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 10,
-//     },
-//     dateText: {
-//       fontWeight: '600',
-//       color: theme.colors.foreground,
-//     },
-//     nameText: {
-//       color: theme.colors.foreground,
-//       marginBottom: 8,
-//     },
-//     imageRow: {
-//       flexDirection: 'row',
-//       gap: 8,
-//     },
-//     image: {
-//       width: 60,
-//       height: 60,
-//       borderRadius: 8,
-//       marginRight: 6,
-//     },
-//     emptyText: {
-//       color: theme.colors.foreground,
-//     },
-//     header: {
-//       fontSize: 24,
-//       fontWeight: 'bold',
-//       marginBottom: 12,
-//       color: theme.colors.foreground,
-//     },
-//   });
-
-//   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.header}>📅 Outfit Planner</Text>
-
-//       {Object.keys(calendarMap).length === 0 ? (
-//         <Text style={styles.emptyText}>No planned outfits yet.</Text>
-//       ) : (
-//         Object.entries(calendarMap)
-//           .sort(([a], [b]) => a.localeCompare(b)) // Optional: sort by date
-//           .map(([date, outfit]) => (
-//             <View key={date} style={styles.card}>
-//               <Text style={styles.dateText}>{date}</Text>
-//               <Text style={styles.nameText}>
-//                 {outfit.name || 'Unnamed Outfit'}
-//               </Text>
-//               <View style={styles.imageRow}>
-//                 {[outfit.top, outfit.bottom, outfit.shoes].map(i => (
-//                   <Image
-//                     key={i.id}
-//                     source={{uri: i.image}}
-//                     style={styles.image}
-//                   />
-//                 ))}
-//               </View>
-//             </View>
-//           ))
-//       )}
-//     </ScrollView>
+//       </Modal>
+//     </View>
 //   );
 // }
