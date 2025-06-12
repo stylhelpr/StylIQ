@@ -16,8 +16,6 @@ import {useAppTheme} from '../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {getInferredCategory} from '../utils/categoryUtils';
 import {MainCategory, Subcategory} from '../types/categoryTypes';
-import EditItemModal from '../components/EditItemModal/EditItemModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Alert} from 'react-native';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useUUID} from '../context/UUIDContext';

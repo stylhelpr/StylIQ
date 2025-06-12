@@ -484,7 +484,7 @@ export default function ProfileScreen({navigate}: Props) {
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statNumber}>{wardrobe.length}</Text>
-              <Text style={styles.statLabel}>Items</Text>
+              <Text style={styles.statLabel}>Wardrobe Items</Text>
             </View>
             <View style={styles.statBox}>
               <Text style={styles.statNumber}>{totalCustomOutfits}</Text>
