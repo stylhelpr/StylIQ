@@ -13,6 +13,7 @@ import {Chip} from '../components/Chip/Chip';
 import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import currency from 'currency.js';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -37,7 +38,8 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
 
-  const [budget, setBudget] = useState('');
+  const [budgetInput, setBudgetInput] = useState('');
+  const [parsedBudget, setParsedBudget] = useState<number | null>(null);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   const {user} = useAuth0();
@@ -50,7 +52,8 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
         const data = await AsyncStorage.getItem(STORAGE_KEY);
         if (data) {
           const parsed = JSON.parse(data);
-          setBudget(parsed.budget || '');
+          setParsedBudget(parsed.budget || null);
+          setBudgetInput(parsed.budget ? currency(parsed.budget).format() : '');
           setSelectedBrands(parsed.brands || []);
         }
       } catch (err) {
@@ -61,17 +64,22 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
     loadFromStorage();
   }, []);
 
-  const saveAndSync = async (newBudget: string, brands: string[]) => {
+  const saveAndSync = async (budget: number | null, brands: string[]) => {
     try {
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({budget: newBudget, brands}),
-      );
-      updateProfile('budget_level', newBudget);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({budget, brands}));
+      if (budget !== null) updateProfile('budget_level', budget);
       updateProfile('preferred_brands', brands);
     } catch (err) {
       console.warn('⚠️ Failed to save or sync Budget & Brands:', err);
     }
+  };
+
+  const handleBudgetChange = (value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    const numeric = parseInt(cleaned || '0');
+    setParsedBudget(numeric);
+    setBudgetInput(currency(numeric, {symbol: '$', precision: 0}).format());
+    saveAndSync(numeric, selectedBrands);
   };
 
   const toggleBrand = (label: string, selected: boolean) => {
@@ -79,12 +87,7 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
       ? [...selectedBrands, label]
       : selectedBrands.filter(b => b !== label);
     setSelectedBrands(updated);
-    saveAndSync(budget, updated);
-  };
-
-  const handleBudgetChange = (value: string) => {
-    setBudget(value);
-    saveAndSync(value, selectedBrands);
+    saveAndSync(parsedBudget, updated);
   };
 
   return (
@@ -108,7 +111,7 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
             {borderColor: colors.surface, color: colors.foreground},
           ]}
           keyboardType="numeric"
-          value={budget}
+          value={budgetInput}
           onChangeText={handleBudgetChange}
         />
         <Text
@@ -173,6 +176,8 @@ const styles = StyleSheet.create({
 // import {useAppTheme} from '../context/ThemeContext';
 // import {Chip} from '../components/Chip/Chip';
 // import BackHeader from '../components/Backheader/Backheader';
+// import {useAuth0} from 'react-native-auth0';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -180,25 +185,30 @@ const styles = StyleSheet.create({
 
 // const STORAGE_KEY = 'budgetAndBrands';
 
+// const allBrands = [
+//   'Zara',
+//   'UNIQLO',
+//   'Ferragamo',
+//   'Burberry',
+//   'Amiri',
+//   'GOBI',
+//   'Eton',
+//   'Ralph Lauren',
+//   'Gucci',
+//   'Theory',
+// ];
+
 // export default function BudgetAndBrandsScreen({navigate}: Props) {
 //   const {theme} = useAppTheme();
 //   const colors = theme.colors;
 
-//   const allBrands = [
-//     'Zara',
-//     'UNIQLO',
-//     'Ferragamo',
-//     'Burberry',
-//     'Amiri',
-//     'GOBI',
-//     'Eton',
-//     'Ralph Lauren',
-//     'Gucci',
-//     'Theory',
-//   ];
-
-//   const [budget, setBudget] = useState('');
+//   const [budgetRaw, setBudgetRaw] = useState('');
+//   const [displayBudget, setDisplayBudget] = useState('');
 //   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+
+//   const {user} = useAuth0();
+//   const userId = user?.sub || '';
+//   const {updateProfile} = useStyleProfile(userId);
 
 //   useEffect(() => {
 //     const loadFromStorage = async () => {
@@ -206,7 +216,9 @@ const styles = StyleSheet.create({
 //         const data = await AsyncStorage.getItem(STORAGE_KEY);
 //         if (data) {
 //           const parsed = JSON.parse(data);
-//           setBudget(parsed.budget || '');
+//           const raw = parsed.budget || '';
+//           setBudgetRaw(raw);
+//           setDisplayBudget(raw ? `$${parseInt(raw).toLocaleString()}` : '');
 //           setSelectedBrands(parsed.brands || []);
 //         }
 //       } catch (err) {
@@ -217,15 +229,27 @@ const styles = StyleSheet.create({
 //     loadFromStorage();
 //   }, []);
 
-//   const saveToStorage = async (newBudget: string, brands: string[]) => {
+//   const saveAndSync = async (rawBudget: string, brands: string[]) => {
+//     const numericBudget = parseInt(rawBudget);
+//     const safeBudget = isNaN(numericBudget) ? 0 : numericBudget;
+
 //     try {
 //       await AsyncStorage.setItem(
 //         STORAGE_KEY,
-//         JSON.stringify({budget: newBudget, brands}),
+//         JSON.stringify({budget: safeBudget.toString(), brands}),
 //       );
+//       updateProfile('budget_level', safeBudget.toString()); // <- ✅ synced as string for Postgres
+//       updateProfile('preferred_brands', brands);
 //     } catch (err) {
-//       console.warn('⚠️ Failed to save Budget & Brands:', err);
+//       console.warn('⚠️ Failed to save or sync Budget & Brands:', err);
 //     }
+//   };
+
+//   const handleBudgetChange = (val: string) => {
+//     const cleaned = val.replace(/[^0-9]/g, '');
+//     setBudgetRaw(cleaned);
+//     setDisplayBudget(cleaned ? `$${parseInt(cleaned).toLocaleString()}` : '');
+//     saveAndSync(cleaned, selectedBrands);
 //   };
 
 //   const toggleBrand = (label: string, selected: boolean) => {
@@ -233,12 +257,7 @@ const styles = StyleSheet.create({
 //       ? [...selectedBrands, label]
 //       : selectedBrands.filter(b => b !== label);
 //     setSelectedBrands(updated);
-//     saveToStorage(budget, updated);
-//   };
-
-//   const handleBudgetChange = (value: string) => {
-//     setBudget(value);
-//     saveToStorage(value, selectedBrands);
+//     saveAndSync(budgetRaw, updated);
 //   };
 
 //   return (
@@ -262,7 +281,7 @@ const styles = StyleSheet.create({
 //             {borderColor: colors.surface, color: colors.foreground},
 //           ]}
 //           keyboardType="numeric"
-//           value={budget}
+//           value={displayBudget}
 //           onChangeText={handleBudgetChange}
 //         />
 //         <Text
@@ -311,147 +330,3 @@ const styles = StyleSheet.create({
 //     gap: 10,
 //   },
 // });
-
-// //////////////
-
-// // import React, {useEffect, useState} from 'react';
-// // import {
-// //   View,
-// //   Text,
-// //   StyleSheet,
-// //   TextInput,
-// //   ScrollView,
-// //   Alert,
-// // } from 'react-native';
-// // import AsyncStorage from '@react-native-async-storage/async-storage';
-// // import {useAppTheme} from '../context/ThemeContext';
-// // import {Chip} from '../components/Chip/Chip';
-// // import BackHeader from '../components/Backheader/Backheader';
-
-// // type Props = {
-// //   navigate: (screen: string) => void;
-// // };
-
-// // const STORAGE_KEY = 'budgetAndBrands';
-
-// // export default function BudgetAndBrandsScreen({navigate}: Props) {
-// //   const {theme} = useAppTheme();
-// //   const colors = theme.colors;
-
-// //   const allBrands = [
-// //     'Zara',
-// //     'UNIQLO',
-// //     'Ferragamo',
-// //     'Burberry',
-// //     'Amiri',
-// //     'GOBI',
-// //     'Eton',
-// //     'Ralph Lauren',
-// //     'Gucci',
-// //     'Theory',
-// //   ];
-
-// //   const [budget, setBudget] = useState('');
-// //   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-
-// //   useEffect(() => {
-// //     AsyncStorage.getItem(STORAGE_KEY)
-// //       .then(data => {
-// //         if (data) {
-// //           const parsed = JSON.parse(data);
-// //           setBudget(parsed.budget || '');
-// //           setSelectedBrands(parsed.brands || []);
-// //         }
-// //       })
-// //       .catch(() => Alert.alert('Error loading preferences'));
-// //   }, []);
-
-// //   const toggleBrand = (label: string, selected: boolean) => {
-// //     const updated = selected
-// //       ? [...selectedBrands, label]
-// //       : selectedBrands.filter(b => b !== label);
-// //     setSelectedBrands(updated);
-// //     AsyncStorage.setItem(
-// //       STORAGE_KEY,
-// //       JSON.stringify({budget, brands: updated}),
-// //     );
-// //   };
-
-// //   const handleBudgetChange = (value: string) => {
-// //     setBudget(value);
-// //     AsyncStorage.setItem(
-// //       STORAGE_KEY,
-// //       JSON.stringify({budget: value, brands: selectedBrands}),
-// //     );
-// //   };
-
-// //   return (
-// //     <View style={styles.container}>
-// //       <BackHeader
-// //         title="Style Profile"
-// //         onBack={() => navigate('StyleProfileScreen')}
-// //       />
-// //       <ScrollView style={{backgroundColor: colors.background}}>
-// //         <Text style={[styles.title, {color: colors.primary}]}>
-// //           Budget & Brands
-// //         </Text>
-// //         <Text style={[styles.subtitle, {color: colors.foreground}]}>
-// //           Your Monthly Style Budget:
-// //         </Text>
-// //         <TextInput
-// //           placeholder="$ Amount"
-// //           placeholderTextColor={colors.muted}
-// //           style={[
-// //             styles.input,
-// //             {borderColor: colors.surface, color: colors.foreground},
-// //           ]}
-// //           keyboardType="numeric"
-// //           value={budget}
-// //           onChangeText={handleBudgetChange}
-// //         />
-// //         <Text
-// //           style={[styles.subtitle, {marginTop: 20, color: colors.foreground}]}>
-// //           Your Favorite Brands:
-// //         </Text>
-// //         <View style={styles.chipGroup}>
-// //           {allBrands.map(brand => (
-// //             <Chip
-// //               key={brand}
-// //               label={brand}
-// //               selected={selectedBrands.includes(brand)}
-// //               onPress={selected => toggleBrand(brand, selected)}
-// //             />
-// //           ))}
-// //         </View>
-// //       </ScrollView>
-// //     </View>
-// //   );
-// // }
-
-// // const styles = StyleSheet.create({
-// //   container: {
-// //     padding: 20,
-// //     flex: 1,
-// //   },
-// //   title: {
-// //     fontSize: 22,
-// //     fontWeight: '700',
-// //     marginBottom: 10,
-// //   },
-// //   subtitle: {
-// //     fontSize: 16,
-// //     marginBottom: 10,
-// //   },
-// //   input: {
-// //     borderWidth: 1,
-// //     borderRadius: 8,
-// //     padding: 10,
-// //     fontSize: 16,
-// //     marginBottom: 20,
-// //   },
-// //   chipGroup: {
-// //     flexDirection: 'row',
-// //     flexWrap: 'wrap',
-// //     gap: 10,
-// //   },
-// // });

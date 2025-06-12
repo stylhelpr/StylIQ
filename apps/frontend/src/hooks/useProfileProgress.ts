@@ -1,3 +1,5 @@
+import type {WardrobeItem} from '../types/wardrobe';
+
 export function useProfileProgress(userProfile: any, wardrobe: WardrobeItem[]) {
   let progress = 0;
 

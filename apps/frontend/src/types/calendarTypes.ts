@@ -1,4 +1,4 @@
-import {WardrobeItem} from '../hooks/useOutfitSuggestion';
+import type {WardrobeItem} from './wardrobe';
 
 export type CalendarOutfit = {
   id: string;
