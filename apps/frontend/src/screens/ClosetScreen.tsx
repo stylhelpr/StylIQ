@@ -20,6 +20,7 @@ import {Alert} from 'react-native';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 const categoryIcons: Partial<Record<MainCategory, string>> = {
   Tops: 'checkroom',
@@ -109,6 +110,8 @@ export default function ClosetScreen({navigate}: Props) {
   const [selectedItemToEdit, setSelectedItemToEdit] =
     useState<WardrobeItem | null>(null);
   const [editedItem, setEditedItem] = useState<WardrobeItem | null>(null);
+  const [editedName, setEditedName] = useState('');
+  const [editedColor, setEditedColor] = useState('');
 
   const {
     data: wardrobe = [],
@@ -342,26 +345,30 @@ export default function ClosetScreen({navigate}: Props) {
       <Text style={styles.header}>Wardrobe</Text>
 
       <View style={styles.filterSortRow}>
-        <TouchableOpacity
+        <AppleTouchFeedback
           style={styles.createOutfitButton}
+          hapticStyle="impactHeavy"
           onPress={() => navigate('OutfitBuilder')}>
           <Text style={styles.createOutfitText}>+ Create New Outfit</Text>
-        </TouchableOpacity>
+        </AppleTouchFeedback>
 
-        <TouchableOpacity
-          onPress={() => setShowFilter(true)}
-          style={[styles.iconButton, {marginRight: 8}]}>
+        <AppleTouchFeedback
+          style={{...styles.iconButton, marginRight: 8}}
+          hapticStyle="impactLight"
+          onPress={() => setShowFilter(true)}>
           <MaterialIcons
             name="filter-list"
             size={24}
             color={theme.colors.primary}
           />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setShowSort(true)}
-          style={styles.iconButton}>
+        </AppleTouchFeedback>
+
+        <AppleTouchFeedback
+          style={{...styles.iconButton}}
+          hapticStyle="impactLight"
+          onPress={() => setShowSort(true)}>
           <MaterialIcons name="sort" size={24} color={theme.colors.primary} />
-        </TouchableOpacity>
+        </AppleTouchFeedback>
       </View>
 
       <ScrollView style={styles.container}>
@@ -384,28 +391,24 @@ export default function ClosetScreen({navigate}: Props) {
                 {/* ✅ This wraps only the image cards for this group in a proper grid */}
                 <View style={styles.grid}>
                   {items.map(item => (
-                    <Pressable
+                    <AppleTouchFeedback
                       key={item.id}
                       style={styles.card}
+                      hapticStyle="impactLight"
+                      onPress={() =>
+                        navigate('ItemDetail', {itemId: item.id, item})
+                      }
                       onLongPress={() => {
                         setSelectedItemToEdit(item);
                         setShowEditModal(true);
-                      }}
-                      onPress={() =>
-                        navigate('ItemDetail', {itemId: item.id, item})
-                      }>
+                      }}>
                       <Image
                         source={{uri: item.image_url}}
                         style={styles.image}
                         resizeMode="cover"
                       />
-                      <TouchableOpacity
-                        onPress={() =>
-                          favoriteMutation.mutate({
-                            id: item.id,
-                            favorite: !item.favorite,
-                          })
-                        }
+
+                      <View
                         style={{
                           position: 'absolute',
                           top: 8,
@@ -413,12 +416,24 @@ export default function ClosetScreen({navigate}: Props) {
                           zIndex: 10,
                           padding: 4,
                         }}>
-                        <MaterialIcons
-                          name={item.favorite ? 'star' : 'star-border'}
-                          size={22}
-                          color={item.favorite ? theme.colors.primary : '#999'}
-                        />
-                      </TouchableOpacity>
+                        <AppleTouchFeedback
+                          hapticStyle="impactLight"
+                          onPress={() =>
+                            favoriteMutation.mutate({
+                              id: item.id,
+                              favorite: !item.favorite,
+                            })
+                          }>
+                          <MaterialIcons
+                            name={item.favorite ? 'star' : 'star-border'}
+                            size={22}
+                            color={
+                              item.favorite ? theme.colors.primary : '#999'
+                            }
+                          />
+                        </AppleTouchFeedback>
+                      </View>
+
                       <View style={styles.labelContainer}>
                         <Text style={styles.label}>{item.name}</Text>
                         <Text
@@ -426,6 +441,7 @@ export default function ClosetScreen({navigate}: Props) {
                           {subCategory}
                         </Text>
                       </View>
+
                       <TouchableOpacity
                         onPress={() =>
                           navigate('TryOnOverlay', {
@@ -451,7 +467,7 @@ export default function ClosetScreen({navigate}: Props) {
                         }}>
                         <Text style={styles.tryOnButtonText}>Try On</Text>
                       </TouchableOpacity>
-                    </Pressable>
+                    </AppleTouchFeedback>
                   ))}
                 </View>
               </View>
@@ -460,9 +476,11 @@ export default function ClosetScreen({navigate}: Props) {
         ))}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigate('AddItem')}>
+      <AppleTouchFeedback
+        style={{...styles.fab, marginRight: 16}}
+        onPress={() => navigate('AddItem')}>
         <MaterialIcons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+      </AppleTouchFeedback>
 
       <Modal visible={showFilter} transparent animationType="slide">
         <TouchableWithoutFeedback onPress={() => setShowFilter(false)}>
@@ -624,6 +642,635 @@ export default function ClosetScreen({navigate}: Props) {
     </View>
   );
 }
+
+/////////
+
+// import React, {useState, useEffect, useMemo} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   ScrollView,
+//   Pressable,
+//   Dimensions,
+//   TouchableOpacity,
+//   Modal,
+//   TouchableWithoutFeedback,
+//   TextInput,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {getInferredCategory} from '../utils/categoryUtils';
+// import {MainCategory, Subcategory} from '../types/categoryTypes';
+// import {Alert} from 'react-native';
+// import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+
+// const categoryIcons: Partial<Record<MainCategory, string>> = {
+//   Tops: 'checkroom',
+//   Bottoms: 'drag-handle',
+//   Outerwear: 'ac-unit',
+//   Shoes: 'hiking',
+//   Accessories: 'watch',
+//   Undergarments: 'layers',
+//   Activewear: 'fitness-center',
+//   Formalwear: 'work',
+//   Loungewear: 'weekend',
+//   Sleepwear: 'hotel',
+//   Swimwear: 'pool',
+//   Maternity: 'pregnant-woman',
+//   Unisex: 'wc',
+//   Costumes: 'theater-comedy',
+//   'Traditional Wear': 'festival',
+// };
+
+// const ITEM_MARGIN = 19;
+// const MIN_ITEM_WIDTH = 160;
+
+// const categories: ('All' | MainCategory)[] = [
+//   'All',
+//   'Tops',
+//   'Bottoms',
+//   'Outerwear',
+//   'Shoes',
+//   'Accessories',
+//   'Undergarments',
+//   'Activewear',
+//   'Formalwear',
+//   'Loungewear',
+//   'Sleepwear',
+//   'Swimwear',
+//   'Maternity',
+//   'Unisex',
+//   'Costumes',
+//   'Traditional Wear',
+// ];
+
+// const sortOptions = [
+//   {label: 'Name A-Z', value: 'az'},
+//   {label: 'Name Z-A', value: 'za'},
+//   {label: 'Favorites First', value: 'favorites'},
+// ];
+
+// type WardrobeItem = {
+//   id: string;
+//   image_url: string;
+//   name: string;
+//   color?: string;
+//   main_category?: string;
+//   subcategory?: string;
+//   fit?: string;
+//   size?: string;
+//   brand?: string;
+//   material?: string;
+//   width?: number;
+//   height?: number;
+//   favorite?: boolean;
+// };
+
+// type Props = {
+//   navigate: (screen: string, params?: any) => void;
+// };
+
+// export default function ClosetScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const [screenWidth, setScreenWidth] = useState(
+//     Dimensions.get('window').width,
+//   );
+
+//   const LOCAL_IP = '192.168.0.106';
+//   const PORT = 3001;
+//   const BASE_URL = `${API_BASE_URL}/wardrobe`;
+
+//   const userId = useUUID();
+
+//   const [selectedCategory, setSelectedCategory] = useState<
+//     'All' | MainCategory
+//   >('All');
+//   const [sortOption, setSortOption] = useState<'az' | 'za' | 'favorites'>('az');
+//   const [showFilter, setShowFilter] = useState(false);
+//   const [showSort, setShowSort] = useState(false);
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [selectedItemToEdit, setSelectedItemToEdit] =
+//     useState<WardrobeItem | null>(null);
+//   const [editedItem, setEditedItem] = useState<WardrobeItem | null>(null);
+
+//   const {
+//     data: wardrobe = [],
+//     isLoading,
+//     isError,
+//   } = useQuery({
+//     queryKey: ['wardrobe', userId],
+//     queryFn: async () => {
+//       const res = await fetch(`${BASE_URL}/${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch wardrobe');
+//       const json = await res.json();
+//       console.log('👕 LOOOOOOOK', JSON.stringify(json, null, 2));
+//       return json;
+//     },
+//     enabled: !!userId,
+//   });
+
+//   const deleteMutation = useMutation({
+//     mutationFn: async (id: string) => {
+//       await fetch(`${API_BASE_URL}/wardrobe/${id}`, {
+//         method: 'DELETE',
+//       });
+//     },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe']});
+//     },
+//   });
+
+//   const filtered = useMemo(() => {
+//     return wardrobe
+//       .map(item => ({
+//         ...item,
+//         inferredCategory: getInferredCategory(item.name),
+//       }))
+//       .filter(item => {
+//         if (selectedCategory === 'All') return true;
+//         return item.inferredCategory?.main === selectedCategory;
+//       })
+//       .sort((a, b) => {
+//         if (sortOption === 'az') return a.name.localeCompare(b.name);
+//         if (sortOption === 'za') return b.name.localeCompare(a.name);
+//         if (sortOption === 'favorites')
+//           return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
+//         return 0;
+//       });
+//   }, [wardrobe, selectedCategory, sortOption]);
+
+//   const categorizedItems = useMemo(() => {
+//     const result: Record<string, Record<string, WardrobeItem[]>> = {};
+//     for (const item of filtered) {
+//       const main =
+//         item.main_category || item.inferredCategory?.main || 'Uncategorized';
+//       const sub = item.subcategory || item.inferredCategory?.sub || 'General';
+//       if (!result[main]) result[main] = {};
+//       if (!result[main][sub]) result[main][sub] = [];
+//       result[main][sub].push(item);
+//     }
+//     return result;
+//   }, [filtered]);
+
+//   useEffect(() => {
+//     const onChange = ({window}: {window: {width: number}}) => {
+//       setScreenWidth(window.width);
+//     };
+//     Dimensions.addEventListener('change', onChange);
+//     return () => Dimensions.removeEventListener('change', onChange);
+//   }, []);
+
+//   const numColumns =
+//     Math.floor(screenWidth / (MIN_ITEM_WIDTH + ITEM_MARGIN * 2)) || 1;
+//   const imageSize =
+//     (screenWidth - ITEM_MARGIN * (numColumns - 1) - ITEM_MARGIN * 1.5) /
+//     numColumns;
+
+//   const handleDeleteItem = (itemId: string) => {
+//     deleteMutation.mutate(itemId);
+//   };
+
+//   // const toggleFavorite = (id: string) => {
+//   //   const item = wardrobe.find(i => i.id === id);
+//   //   if (!item) return;
+//   //   favoriteMutation.mutate({id, favorite: !item.favorite});
+//   // };
+
+//   const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       paddingTop: 16,
+//       backgroundColor: theme.colors.background,
+//     },
+//     input: {
+//       borderWidth: 1,
+//       borderRadius: 10,
+//       padding: 10,
+//       marginBottom: 12,
+//       fontSize: 16,
+//     },
+//     button: {
+//       paddingVertical: 12,
+//       borderRadius: 10,
+//       alignItems: 'center',
+//     },
+//     buttonText: {
+//       fontSize: 16,
+//       fontWeight: '600',
+//     },
+//     header: {
+//       fontSize: 28,
+//       fontWeight: '600',
+//       color: theme.colors.primary,
+//       paddingHorizontal: 16,
+//     },
+//     title: {
+//       fontSize: 28,
+//       fontWeight: '600',
+//       marginBottom: 8,
+//       color: theme.colors.primary,
+//       paddingHorizontal: 16,
+//     },
+//     sectionTitle: {
+//       fontSize: 22,
+//       fontWeight: '600',
+//       marginBottom: 8,
+//       color: theme.colors.primary,
+//       paddingHorizontal: 16,
+//     },
+//     filterSortRow: {
+//       flexDirection: 'row',
+//       justifyContent: 'flex-end',
+//       paddingHorizontal: 16,
+//       paddingBottom: 8,
+//     },
+//     iconButton: {
+//       padding: 8,
+//       borderRadius: 8,
+//       backgroundColor: '#405de6',
+//       elevation: 2,
+//     },
+//     grid: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 20,
+//     },
+//     card: {
+//       width: imageSize,
+//       marginBottom: ITEM_MARGIN * 0.5,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       position: 'relative',
+//     },
+//     image: {
+//       width: '100%',
+//       height: imageSize,
+//       borderRadius: 16,
+//     },
+//     labelContainer: {
+//       padding: 8,
+//     },
+//     label: {
+//       fontSize: 13,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//     },
+//     fab: {
+//       position: 'absolute',
+//       bottom: 24,
+//       right: 24,
+//       backgroundColor: '#405de6',
+//       padding: 16,
+//       borderRadius: 32,
+//       elevation: 6,
+//     },
+//     modalContent: {
+//       backgroundColor: theme.colors.surface,
+//       padding: 20,
+//       borderRadius: 12,
+//       margin: 40,
+//     },
+//     modalOption: {
+//       paddingVertical: 12,
+//       fontSize: 16,
+//       color: theme.colors.foreground,
+//     },
+//     createOutfitButton: {
+//       backgroundColor: '#405de6',
+//       paddingVertical: 12,
+//       paddingHorizontal: 16,
+//       borderRadius: 10,
+//       alignSelf: 'center',
+//       marginRight: 8,
+//     },
+//     createOutfitText: {
+//       color: '#fff',
+//       fontSize: 16,
+//       fontWeight: '600',
+//     },
+//     tryOnButton: {
+//       backgroundColor: '#405de6',
+//     },
+//     tryOnButtonText: {
+//       color: 'white',
+//       fontSize: 14,
+//       fontWeight: '500',
+//     },
+//   });
+
+//   type CategorizedWardrobeItem = WardrobeItem & {
+//     inferredCategory: {main: MainCategory; sub: Subcategory};
+//   };
+
+//   const queryClient = useQueryClient();
+
+//   const favoriteMutation = useMutation({
+//     mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
+//       await fetch(`${BASE_URL}/favorite/${id}`, {
+//         method: 'PATCH',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({favorite}),
+//       });
+//     },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({
+//         queryKey: ['wardrobe', userId],
+//       });
+//     },
+//   });
+
+//   return (
+//     <View style={{flex: 1}}>
+//       <Text style={styles.header}>Wardrobe</Text>
+
+//       <View style={styles.filterSortRow}>
+//         <TouchableOpacity
+//           style={styles.createOutfitButton}
+//           onPress={() => navigate('OutfitBuilder')}>
+//           <Text style={styles.createOutfitText}>+ Create New Outfit</Text>
+//         </TouchableOpacity>
+
+//         <TouchableOpacity
+//           onPress={() => setShowFilter(true)}
+//           style={[styles.iconButton, {marginRight: 8}]}>
+//           <MaterialIcons
+//             name="filter-list"
+//             size={24}
+//             color={theme.colors.primary}
+//           />
+//         </TouchableOpacity>
+//         <TouchableOpacity
+//           onPress={() => setShowSort(true)}
+//           style={styles.iconButton}>
+//           <MaterialIcons name="sort" size={24} color={theme.colors.primary} />
+//         </TouchableOpacity>
+//       </View>
+
+//       <ScrollView style={styles.container}>
+//         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
+//           <View key={mainCategory} style={{marginBottom: 32}}>
+//             <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//               {mainCategory}
+//             </Text>
+
+//             {Object.entries(subMap).map(([subCategory, items]) => (
+//               <View key={subCategory} style={{marginBottom: 24}}>
+//                 <Text
+//                   style={[
+//                     styles.label,
+//                     {paddingHorizontal: 16, marginBottom: 8},
+//                   ]}>
+//                   {subCategory}
+//                 </Text>
+
+//                 {/* ✅ This wraps only the image cards for this group in a proper grid */}
+//                 <View style={styles.grid}>
+//                   {items.map(item => (
+//                     <Pressable
+//                       key={item.id}
+//                       style={styles.card}
+//                       onLongPress={() => {
+//                         setSelectedItemToEdit(item);
+//                         setShowEditModal(true);
+//                       }}
+//                       onPress={() =>
+//                         navigate('ItemDetail', {itemId: item.id, item})
+//                       }>
+//                       <Image
+//                         source={{uri: item.image_url}}
+//                         style={styles.image}
+//                         resizeMode="cover"
+//                       />
+//                       <TouchableOpacity
+//                         onPress={() =>
+//                           favoriteMutation.mutate({
+//                             id: item.id,
+//                             favorite: !item.favorite,
+//                           })
+//                         }
+//                         style={{
+//                           position: 'absolute',
+//                           top: 8,
+//                           right: 8,
+//                           zIndex: 10,
+//                           padding: 4,
+//                         }}>
+//                         <MaterialIcons
+//                           name={item.favorite ? 'star' : 'star-border'}
+//                           size={22}
+//                           color={item.favorite ? theme.colors.primary : '#999'}
+//                         />
+//                       </TouchableOpacity>
+//                       <View style={styles.labelContainer}>
+//                         <Text style={styles.label}>{item.name}</Text>
+//                         <Text
+//                           style={[styles.label, {fontSize: 12, color: '#888'}]}>
+//                           {subCategory}
+//                         </Text>
+//                       </View>
+//                       <TouchableOpacity
+//                         onPress={() =>
+//                           navigate('TryOnOverlay', {
+//                             outfit: {
+//                               top: {
+//                                 name: item.name,
+//                                 imageUri: item.image_url,
+//                               },
+//                             },
+//                             userPhotoUri: Image.resolveAssetSource(
+//                               require('../assets/images/full-body-temp1.png'),
+//                             ).uri,
+//                           })
+//                         }
+//                         style={{
+//                           position: 'absolute',
+//                           top: 10,
+//                           left: 8,
+//                           backgroundColor: 'black',
+//                           paddingHorizontal: 10,
+//                           paddingVertical: 4,
+//                           borderRadius: 8,
+//                         }}>
+//                         <Text style={styles.tryOnButtonText}>Try On</Text>
+//                       </TouchableOpacity>
+//                     </Pressable>
+//                   ))}
+//                 </View>
+//               </View>
+//             ))}
+//           </View>
+//         ))}
+//       </ScrollView>
+
+//       <TouchableOpacity style={styles.fab} onPress={() => navigate('AddItem')}>
+//         <MaterialIcons name="add" size={28} color="#fff" />
+//       </TouchableOpacity>
+
+//       <Modal visible={showFilter} transparent animationType="slide">
+//         <TouchableWithoutFeedback onPress={() => setShowFilter(false)}>
+//           <View
+//             style={{
+//               flex: 1,
+//               justifyContent: 'center',
+//               backgroundColor: 'rgba(0,0,0,0.3)',
+//             }}>
+//             <TouchableWithoutFeedback>
+//               <View style={styles.modalContent}>
+//                 {categories.map(cat => (
+//                   <TouchableOpacity
+//                     key={cat}
+//                     onPress={() => {
+//                       setSelectedCategory(cat);
+//                       setShowFilter(false);
+//                     }}>
+//                     <Text style={styles.modalOption}>{cat}</Text>
+//                   </TouchableOpacity>
+//                 ))}
+//               </View>
+//             </TouchableWithoutFeedback>
+//           </View>
+//         </TouchableWithoutFeedback>
+//       </Modal>
+
+//       <Modal visible={showSort} transparent animationType="slide">
+//         <TouchableWithoutFeedback onPress={() => setShowSort(false)}>
+//           <View
+//             style={{
+//               flex: 1,
+//               justifyContent: 'center',
+//               backgroundColor: 'rgba(0,0,0,0.3)',
+//             }}>
+//             <TouchableWithoutFeedback>
+//               <View style={styles.modalContent}>
+//                 {sortOptions.map(opt => (
+//                   <TouchableOpacity
+//                     key={opt.value}
+//                     onPress={() => {
+//                       setSortOption(opt.value as any);
+//                       setShowSort(false);
+//                     }}>
+//                     <Text style={styles.modalOption}>{opt.label}</Text>
+//                   </TouchableOpacity>
+//                 ))}
+//               </View>
+//             </TouchableWithoutFeedback>
+//           </View>
+//         </TouchableWithoutFeedback>
+//       </Modal>
+
+//       {selectedItemToEdit && (
+//         <Modal visible={showEditModal} transparent animationType="slide">
+//           <TouchableWithoutFeedback onPress={() => setShowEditModal(false)}>
+//             <View
+//               style={{
+//                 flex: 1,
+//                 justifyContent: 'center',
+//                 alignItems: 'center',
+//                 backgroundColor: 'rgba(0,0,0,0.5)',
+//               }}>
+//               <TouchableWithoutFeedback>
+//                 <View style={[styles.modalContent, {width: '85%'}]}>
+//                   <TextInput
+//                     value={editedName}
+//                     onChangeText={setEditedName}
+//                     placeholder="Name"
+//                     style={styles.input}
+//                     placeholderTextColor="#999"
+//                   />
+//                   <TextInput
+//                     value={editedColor}
+//                     onChangeText={setEditedColor}
+//                     placeholder="Color"
+//                     style={styles.input}
+//                     placeholderTextColor="#999"
+//                   />
+
+//                   <TouchableOpacity
+//                     onPress={async () => {
+//                       if (selectedItemToEdit) {
+//                         const inferred = getInferredCategory(
+//                           selectedItemToEdit.name,
+//                         );
+//                         await fetch(`${BASE_URL}/${selectedItemToEdit.id}`, {
+//                           method: 'PATCH',
+//                           headers: {'Content-Type': 'application/json'},
+//                           body: JSON.stringify({
+//                             name: selectedItemToEdit.name,
+//                             color: selectedItemToEdit.color,
+//                           }),
+//                         });
+//                         queryClient.invalidateQueries({
+//                           queryKey: ['wardrobe', userId],
+//                         });
+//                         setShowEditModal(false);
+//                         setSelectedItemToEdit(null);
+//                       }
+//                     }}
+//                     style={[
+//                       styles.button,
+//                       {
+//                         backgroundColor: theme.colors.primary,
+//                         marginTop: 12,
+//                       },
+//                     ]}>
+//                     <Text
+//                       style={[
+//                         styles.buttonText,
+//                         {color: theme.colors.background},
+//                       ]}>
+//                       Save Changes
+//                     </Text>
+//                   </TouchableOpacity>
+
+//                   {/* ✅ Properly separated Delete Button */}
+//                   <TouchableOpacity
+//                     onPress={() => {
+//                       Alert.alert(
+//                         'Delete Item',
+//                         'Are you sure you want to delete this item?',
+//                         [
+//                           {text: 'Cancel', style: 'cancel'},
+//                           {
+//                             text: 'Delete',
+//                             style: 'destructive',
+//                             onPress: () => {
+//                               handleDeleteItem(selectedItemToEdit.id);
+//                               setShowEditModal(false);
+//                               setSelectedItemToEdit(null);
+//                             },
+//                           },
+//                         ],
+//                       );
+//                     }}
+//                     style={{
+//                       backgroundColor: '#cc0000',
+//                       padding: 12,
+//                       borderRadius: 8,
+//                       marginTop: 16,
+//                     }}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         textAlign: 'center',
+//                         fontWeight: '600',
+//                       }}>
+//                       Delete Item
+//                     </Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               </TouchableWithoutFeedback>
+//             </View>
+//           </TouchableWithoutFeedback>
+//         </Modal>
+//       )}
+//     </View>
+//   );
+// }
 
 /////////
 
