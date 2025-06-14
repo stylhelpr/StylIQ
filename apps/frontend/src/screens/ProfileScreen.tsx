@@ -15,6 +15,7 @@ import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import StyleProfileScreen from './StyleProfileScreen';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 import type {Screen} from '../navigation/types';
 
@@ -242,7 +243,7 @@ export default function ProfileScreen({navigate}: Props) {
     },
     settingsButton: {
       position: 'absolute',
-      top: 0,
+      bottom: 0,
       right: 16,
       zIndex: 10,
       padding: 8,
@@ -461,11 +462,19 @@ export default function ProfileScreen({navigate}: Props) {
     <View style={{flex: 1}}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.header}>Profile</Text>
-        <TouchableOpacity
+
+        {/* <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => navigate('Settings')}>
           <Icon name="settings" size={24} color="#405de6" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+
+        <AppleTouchFeedback
+          style={styles.settingsButton}
+          onPress={() => navigate('Settings')}
+          hapticStyle="impactMedium">
+          <Icon name="settings" size={24} color="#405de6" />
+        </AppleTouchFeedback>
 
         {/* Header Row */}
         <View style={styles.headerRow}>
@@ -514,9 +523,10 @@ export default function ProfileScreen({navigate}: Props) {
         </View>
 
         <Text style={styles.sectionTitle}>Style Profile</Text>
-        <TouchableOpacity
+        <AppleTouchFeedback
           style={styles.profileMenuItem}
-          onPress={() => navigate('StyleProfileScreen')}>
+          onPress={() => navigate('StyleProfileScreen')}
+          hapticStyle="impactMedium">
           <View style={styles.menuRow}>
             <Icon
               name="person-outline"
@@ -528,7 +538,7 @@ export default function ProfileScreen({navigate}: Props) {
             </Text>
           </View>
           <Icon name="chevron-right" size={22} color="#666" />
-        </TouchableOpacity>
+        </AppleTouchFeedback>
 
         <Text style={styles.sectionTitle}>Style Tags</Text>
         <ScrollView
@@ -585,7 +595,7 @@ export default function ProfileScreen({navigate}: Props) {
   );
 }
 
-///////////////
+/////////
 
 // import React from 'react';
 // import {
@@ -597,15 +607,38 @@ export default function ProfileScreen({navigate}: Props) {
 //   TouchableOpacity,
 // } from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
+// import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 // import Icon from 'react-native-vector-icons/MaterialIcons';
+// import {useAuth0} from 'react-native-auth0';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
 // import StyleProfileScreen from './StyleProfileScreen';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
 
 // import type {Screen} from '../navigation/types';
 
 // type Props = {
 //   navigate: (screen: string) => void;
-//   user: {name: string; avatarUrl?: string};
-//   wardrobe: any[];
+//   userProfile: {
+//     name: string;
+//     email: string;
+//     jobTitle: string;
+//     fashionExpert: boolean;
+//     avatarUrl?: string;
+//     styleTags: string[];
+//     favoriteBrands: string[];
+//   };
+//   wardrobe: WardrobeItem[]; // existing
+//   outfits: SavedOutfit[]; // new
+// };
+
+// type UserProfile = {
+//   first_name: string;
+//   last_name: string;
+//   email: string;
+//   profile_picture?: string;
+//   fashion_level?: string;
+//   profession?: string;
 // };
 
 // const storyHighlights = [
@@ -706,38 +739,91 @@ export default function ProfileScreen({navigate}: Props) {
 //   },
 // ];
 
-// export default function ProfileScreen({navigate, user, wardrobe}: Props) {
+// export default function ProfileScreen({navigate}: Props) {
+//   const LOCAL_IP = '192.168.0.106';
+//   const PORT = 3001;
+//   const BASE_URL = `${API_BASE_URL}/wardrobe`;
+
+//   const userId = useUUID();
+
 //   const {theme} = useAppTheme();
+//   const {user} = useAuth0();
+//   const auth0Sub = user?.sub;
+//   const {styleProfile} = useStyleProfile(auth0Sub || '');
+//   const favoriteBrands = styleProfile?.preferred_brands || [];
+//   const styleTags = styleProfile?.style_keywords || [];
+//   console.log('📦 styleProfile:', styleProfile);
+
+//   // const {data: userProfile} = useQuery({
+//   //   enabled: !!userId,
+//   //   queryKey: ['userProfile', userId],
+//   //   queryFn: async () => {
+//   //     const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+//   //     if (!res.ok) throw new Error('Failed to fetch user profile');
+//   //     return res.json();
+//   //   },
+//   // });
+
+//   const {data: userProfile} = useQuery<UserProfile>({
+//     enabled: !!userId,
+//     queryKey: ['userProfile', userId],
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch user profile');
+//       return res.json();
+//     },
+//   });
+
+//   const {data: wardrobe = []} = useQuery({
+//     queryKey: ['wardrobe', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch wardrobe');
+//       return res.json();
+//     },
+//   });
+
+//   const {data: outfits = []} = useQuery({
+//     queryKey: ['outfits', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(
+//         `${API_BASE_URL}/custom-outfits?user_id=${userId}`,
+//       );
+//       if (!res.ok) throw new Error('Failed to fetch outfits');
+//       return res.json();
+//     },
+//   });
+
+//   const {data: totalFavorites = 0} = useQuery({
+//     queryKey: ['totalFavorites', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(
+//         `${API_BASE_URL}/outfit-favorites/count/${userId}`,
+//       );
+//       if (!res.ok) throw new Error('Failed to fetch total favorites count');
+//       const data = await res.json();
+//       return data.count;
+//     },
+//   });
+
+//   const {data: totalCustomOutfits = 0} = useQuery({
+//     queryKey: ['totalCustomOutfits', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/custom-outfits/count/${userId}`);
+//       if (!res.ok)
+//         throw new Error('Failed to fetch total custom outfits count');
+//       const data = await res.json();
+//       return data.count;
+//     },
+//   });
+
 //   const favorites = wardrobe.filter(i => i.favorite);
 //   const totalItems = wardrobe.length;
 //   const favoriteCount = wardrobe.filter(i => i.favorite).length;
-
-//   const styleTags = [
-//     'Modern',
-//     'Tailored',
-//     'Neutral Tones',
-//     'Minimalist',
-//     'Streetwear',
-//     'Monochrome',
-//     'Layered',
-//     'Luxury',
-//     'Smart Casual',
-//   ];
-
-//   const favoriteBrands = [
-//     'Ferragamo',
-//     'Eton',
-//     'GOBI',
-//     'Amiri',
-//     'Gucci',
-//     'Versace',
-//     'Tom Ford',
-//     'Prada',
-//     'Burberry',
-//     'Balmain',
-//     'Brioni',
-//     'Berluti',
-//   ];
 
 //   const styles = StyleSheet.create({
 //     headerRow: {
@@ -986,9 +1072,9 @@ export default function ProfileScreen({navigate}: Props) {
 //             <View style={styles.avatarBorder}>
 //               <Image
 //                 source={
-//                   user.avatarUrl
-//                     ? require('../assets/images/free1.jpg')
-//                     : {uri: user.avatarUrl}
+//                   userProfile?.avatarUrl
+//                     ? {uri: userProfile.avatarUrl}
+//                     : require('../assets/images/free1.jpg')
 //                 }
 //                 style={styles.avatar}
 //               />
@@ -997,14 +1083,14 @@ export default function ProfileScreen({navigate}: Props) {
 //           <View style={styles.statsRow}>
 //             <View style={styles.statBox}>
 //               <Text style={styles.statNumber}>{wardrobe.length}</Text>
-//               <Text style={styles.statLabel}>Items</Text>
+//               <Text style={styles.statLabel}>Wardrobe Items</Text>
 //             </View>
 //             <View style={styles.statBox}>
-//               <Text style={styles.statNumber}>50</Text>
+//               <Text style={styles.statNumber}>{totalCustomOutfits}</Text>
 //               <Text style={styles.statLabel}>Outfits</Text>
 //             </View>
 //             <View style={styles.statBox}>
-//               <Text style={styles.statNumber}>{favoriteCount}</Text>
+//               <Text style={styles.statNumber}>{totalFavorites}</Text>
 //               <Text style={styles.statLabel}>Favorites</Text>
 //             </View>
 //           </View>
@@ -1012,11 +1098,18 @@ export default function ProfileScreen({navigate}: Props) {
 
 //         {/* Name and Bio */}
 //         <View style={styles.bioContainer}>
-//           <Text style={styles.nameText}>{user.name || 'Guest'}</Text>
-//           <Text style={styles.bioText}>
-//             Fahion Expert{'\n'}Software Enggineer
+//           <Text style={styles.nameText}>
+//             {(userProfile?.first_name || '') +
+//               ' ' +
+//               (userProfile?.last_name || '')}
 //           </Text>
-//           <Text style={styles.linkText}>giffinmike@hotmail.com</Text>
+//           {userProfile?.fashion_level && (
+//             <Text style={styles.bioText}>{userProfile.fashion_level}</Text>
+//           )}
+//           {userProfile?.profession && (
+//             <Text style={styles.bioText}>{userProfile.profession}</Text>
+//           )}
+//           <Text style={styles.linkText}>{userProfile?.email}</Text>
 //         </View>
 
 //         <Text style={styles.sectionTitle}>Style Profile</Text>
@@ -1048,6 +1141,7 @@ export default function ProfileScreen({navigate}: Props) {
 //             </View>
 //           ))}
 //         </ScrollView>
+
 //         <Text style={[styles.sectionTitle, {marginTop: -49}]}>
 //           Favorite Brands
 //         </Text>
@@ -1063,7 +1157,7 @@ export default function ProfileScreen({navigate}: Props) {
 //           ))}
 //         </ScrollView>
 
-//         {/* Story Highlights */}
+//         {/* Favorite Outfits */}
 //         <Text style={[styles.sectionTitle, {marginTop: -49}]}>
 //           Favorite Outfits
 //         </Text>

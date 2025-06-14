@@ -17,6 +17,7 @@ import {useAuth0} from 'react-native-auth0';
 import {useUUID} from '../context/UUIDContext';
 import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../config/api';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -129,6 +130,13 @@ export default function StyleProfileScreen({navigate}: Props) {
     <View style={styles.container}>
       <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
 
+      {/* <AppleTouchFeedback
+        onPress={onBack}
+        hapticStyle="impactMedium"
+        style={styles.iconWrapper}>
+        <Icon name="arrow-back" size={24} color={theme.colors.primary} />
+      </AppleTouchFeedback> */}
+
       <View style={styles.progressContainer}>
         <Text style={styles.progressLabel}>
           Style Profile {progress}% complete
@@ -160,9 +168,13 @@ export default function StyleProfileScreen({navigate}: Props) {
           ['Undertone', '🫧 Undertone'],
           ['StyleKeywords', '🪞 Style Keywords'],
         ].map(([screen, label]) => (
-          <TouchableOpacity key={screen} onPress={() => navigate(screen)}>
+          <AppleTouchFeedback
+            key={screen}
+            onPress={() => navigate(screen)}
+            hapticStyle="impactMedium"
+            style={{marginBottom: 12}}>
             <Text style={styles.link}>{label}</Text>
-          </TouchableOpacity>
+          </AppleTouchFeedback>
         ))}
       </ScrollView>
 
@@ -176,7 +188,7 @@ export default function StyleProfileScreen({navigate}: Props) {
   );
 }
 
-//////////
+///////////
 
 // import React from 'react';
 // import {
@@ -195,52 +207,12 @@ export default function StyleProfileScreen({navigate}: Props) {
 // import {useStyleProfile} from '../hooks/useStyleProfile';
 // import {useAuth0} from 'react-native-auth0';
 // import {useUUID} from '../context/UUIDContext';
+// import {useQuery} from '@tanstack/react-query';
+// import {API_BASE_URL} from '../config/api';
 
 // type Props = {
 //   navigate: (screen: string) => void;
 // };
-
-// const wardrobe: WardrobeItem[] = [
-//   {
-//     id: '1',
-//     name: 'Black Shirt',
-//     image: 'https://example.com/images/black-shirt.jpg',
-//     mainCategory: 'Tops',
-//     subCategory: 'Shirt',
-//     color: 'Black',
-//     material: 'Cotton',
-//     fit: 'Slim',
-//     size: 'M',
-//     tags: ['formal', 'essential'],
-//     notes: 'Good for evening wear',
-//   },
-//   {
-//     id: '2',
-//     name: 'White Tee',
-//     image: 'https://example.com/images/white-tee.jpg',
-//     mainCategory: 'Tops',
-//     subCategory: 'T-Shirt',
-//     color: 'White',
-//     material: 'Cotton',
-//     fit: 'Regular',
-//     size: 'L',
-//     tags: ['casual', 'summer'],
-//     notes: '',
-//   },
-//   {
-//     id: '3',
-//     name: 'Slim Jeans',
-//     image: 'https://example.com/images/slim-jeans.jpg',
-//     mainCategory: 'Bottoms',
-//     subCategory: 'Jeans',
-//     color: 'Dark Blue',
-//     material: 'Denim',
-//     fit: 'Slim',
-//     size: '32',
-//     tags: ['casual', 'denim'],
-//     notes: '',
-//   },
-// ];
 
 // export default function StyleProfileScreen({navigate}: Props) {
 //   const {user} = useAuth0();
@@ -249,34 +221,38 @@ export default function StyleProfileScreen({navigate}: Props) {
 //   const {theme} = useAppTheme();
 //   const colors = theme.colors;
 
-//   console.log('🧠 Auth0 sub:', auth0Sub);
-//   console.log('🧠 uuid from context:', uuid);
+//   const {
+//     styleProfile,
+//     updateProfile,
+//     isLoading: profileLoading,
+//     isUpdating,
+//     isError,
+//   } = useStyleProfile(auth0Sub || '');
 
-//   // 🔄 Wait until both IDs are ready
-//   if (!auth0Sub || !uuid) {
+//   const {
+//     data: wardrobe = [],
+//     isLoading: wardrobeLoading,
+//     isError: wardrobeError,
+//   } = useQuery<WardrobeItem[]>({
+//     queryKey: ['wardrobe', uuid],
+//     enabled: !!uuid,
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${uuid}`);
+//       if (!res.ok) throw new Error('Failed to fetch wardrobe');
+//       return await res.json();
+//     },
+//   });
+
+//   if (!auth0Sub || !uuid || profileLoading || wardrobeLoading) {
 //     return (
 //       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
 //         <ActivityIndicator size="large" color={colors.primary} />
-//         <Text style={{color: 'gray', marginTop: 12}}>
-//           Loading user profile...
-//         </Text>
+//         <Text style={{color: 'gray', marginTop: 12}}>Loading profile...</Text>
 //       </View>
 //     );
 //   }
 
-//   const {styleProfile, updateProfile, isLoading, isUpdating, isError} =
-//     useStyleProfile(auth0Sub);
-
-//   if (isLoading) {
-//     return (
-//       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-//         <ActivityIndicator size="large" color={colors.primary} />
-//         <Text style={{marginTop: 12}}>Loading Style Profile...</Text>
-//       </View>
-//     );
-//   }
-
-//   if (isError) {
+//   if (isError || wardrobeError) {
 //     return (
 //       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
 //         <Text style={{color: 'red'}}>❌ Error loading style profile.</Text>
@@ -338,6 +314,8 @@ export default function StyleProfileScreen({navigate}: Props) {
 //       borderRadius: 4,
 //     },
 //   });
+
+//   console.log('🧪 StyleProfile fields: LOOOK HERE', styleProfile);
 
 //   return (
 //     <View style={styles.container}>
