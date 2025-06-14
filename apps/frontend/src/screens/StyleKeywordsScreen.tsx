@@ -12,18 +12,7 @@ type Props = {
   navigate: (screen: string) => void;
 };
 
-const options = [
-  'Trendy',
-  'Minimalist',
-  'Classic',
-  'Sporty',
-  'Edgy',
-  'Artsy',
-  'Elegant',
-  'Boho',
-  'Streetwear',
-  'Preppy',
-];
+const options = ['Classic', 'Edgy', 'Artsy', 'Elegant', 'Boho'];
 
 export default function StyleKeywordsScreen({navigate}: Props) {
   const {theme} = useAppTheme();

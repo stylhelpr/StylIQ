@@ -1,7 +1,7 @@
 import Geolocation from 'react-native-geolocation-service';
 import axios from 'axios';
 import {ensureLocationPermission} from './permissions';
-import {OPENWEATHER_API_KEY, GOOGLE_API_KEY, OPENCAGE_API_KEY} from '@env';
+// import {OPENWEATHER_API_KEY, GOOGLE_API_KEY, OPENCAGE_API_KEY} from '@env';
 
 // Get current device coordinates
 export async function getCurrentLocation(): Promise<{
@@ -19,6 +19,8 @@ export async function getCurrentLocation(): Promise<{
     );
   });
 }
+
+const OPENWEATHER_API_KEY = '88345763663b7944e3997b4cff97e73d'; // ✅ Hardcoded here
 
 // Convert destination name to lat/lon
 export async function geocodeDestination(
@@ -52,6 +54,7 @@ export async function getRouteMidpoints(
 // Fetch weather at a location
 export async function fetchWeather(lat: number, lon: number) {
   const cleanKey = OPENWEATHER_API_KEY?.trim();
+  console.log('🔑 OPENWEATHER_API_KEY:', OPENWEATHER_API_KEY);
   console.log('🌍 Fetching weather for:', {lat, lon});
 
   try {
@@ -107,7 +110,7 @@ export async function getWeatherForTrip(destinationName: string) {
   };
 }
 
-//////////////
+/////////////
 
 // import Geolocation from 'react-native-geolocation-service';
 // import axios from 'axios';
@@ -163,14 +166,36 @@ export async function getWeatherForTrip(destinationName: string) {
 // // Fetch weather at a location
 // export async function fetchWeather(lat: number, lon: number) {
 //   const cleanKey = OPENWEATHER_API_KEY?.trim();
-//   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=metric`;
+//   console.log('🔑 OPENWEATHER_API_KEY:', OPENWEATHER_API_KEY);
+//   console.log('🌍 Fetching weather for:', {lat, lon});
 
-//   // console.log('🔥 FETCH WEATHER EXECUTED');
-//   // console.log('✅ Loaded API key:', cleanKey);
-//   // console.log('📡 API URL:', url);
+//   try {
+//     const metricUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=metric`;
+//     const imperialUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=imperial`;
 
-//   const res = await axios.get(url);
-//   return res.data;
+//     console.log('🌐 Metric URL:', metricUrl);
+//     console.log('🌐 Imperial URL:', imperialUrl);
+
+//     const [metricRes, imperialRes] = await Promise.all([
+//       axios.get(metricUrl),
+//       axios.get(imperialUrl),
+//     ]);
+
+//     console.log('✅ Metric weather:', metricRes.data);
+//     console.log('✅ Imperial weather:', imperialRes.data);
+
+//     return {
+//       celsius: metricRes.data,
+//       fahrenheit: imperialRes.data,
+//     };
+//   } catch (err: any) {
+//     if (axios.isAxiosError(err)) {
+//       console.error('❌ Axios error:', err?.response?.data || err.message);
+//     } else {
+//       console.error('❌ Unknown error:', err);
+//     }
+//     throw err;
+//   }
 // }
 
 // // Master function to get full travel weather
