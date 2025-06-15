@@ -344,6 +344,11 @@ PODS:
     - React-Core
   - react-native-safe-area-context (5.4.1):
     - React-Core
+  - react-native-video (6.15.0):
+    - React-Core
+    - react-native-video/Video (= 6.15.0)
+  - react-native-video/Video (6.15.0):
+    - React-Core
   - react-native-view-shot (3.4.0):
     - React-Core
   - react-native-voice (3.2.4):
@@ -490,6 +495,7 @@ DEPENDENCIES:
   - react-native-maps (from `../node_modules/react-native-maps`)
   - react-native-orientation-locker (from `../node_modules/react-native-orientation-locker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-video (from `../node_modules/react-native-video`)
   - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - "react-native-voice (from `../node_modules/@react-native-voice/voice`)"
   - react-native-webview (from `../node_modules/react-native-webview`)
@@ -618,6 +624,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-orientation-locker"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-video:
+    :path: "../node_modules/react-native-video"
   react-native-view-shot:
     :path: "../node_modules/react-native-view-shot"
   react-native-voice:
@@ -730,6 +738,7 @@ SPEC CHECKSUMS:
   react-native-maps: 9ae269783ee6ebd87c7598873674c83c244adde9
   react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-safe-area-context: dde2052b903c11d677c320b599c3244021c34ce8
+  react-native-video: e009864808e52541bda62ce526bb601d1cf071ff
   react-native-view-shot: 7437b5c213e1f229405d26a21f83115f16da2311
   react-native-voice: 908a0eba96c8c3d643e4f98b7232c6557d0a6f9c
   react-native-webview: 0b3b18b003c19110c51bccc651932c127d97cc69
