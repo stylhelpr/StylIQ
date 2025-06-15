@@ -125,44 +125,58 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   };
 
   const styles = StyleSheet.create({
-    container: {
+    screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      paddingBottom: 12,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
     },
     title: {
       fontSize: 24,
       fontWeight: '600',
-      marginTop: 20,
-      marginBottom: 10,
-      paddingHorizontal: 16,
       color: theme.colors.primary,
     },
     subtitle: {
       fontSize: 16,
       marginTop: 16,
       marginBottom: 6,
-      paddingHorizontal: 16,
       color: theme.colors.foreground,
     },
     selectedRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      paddingHorizontal: 16,
     },
     selectedImage: {
-      width: 60,
-      height: 60,
+      width: 85,
+      height: 85,
       borderRadius: 8,
       marginRight: 6,
       marginBottom: 6,
     },
     clearButton: {
       alignSelf: 'flex-end',
-      marginHorizontal: 16,
+      padding: 8,
       marginTop: 4,
       backgroundColor: '#ddd',
       borderRadius: 8,
-      paddingHorizontal: 10,
       paddingVertical: 6,
     },
     clearButtonText: {
@@ -173,15 +187,13 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
-      padding: 16,
-      gap: 8,
     },
     itemWrapper: {
       position: 'relative',
     },
     itemImage: {
-      width: 100,
-      height: 100,
+      width: 85,
+      height: 85,
       margin: 4,
       borderRadius: 10,
     },
@@ -191,7 +203,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       right: 6,
       backgroundColor: 'rgba(0,0,0,0.6)',
       borderRadius: 12,
-      paddingHorizontal: 6,
       paddingVertical: 2,
     },
     checkText: {
@@ -201,10 +212,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     saveButton: {
       marginTop: 20,
       marginBottom: 14,
-      marginHorizontal: 16,
       paddingVertical: 12,
       borderRadius: 10,
       alignItems: 'center',
+      backgroundColor: theme.colors.button1,
     },
     saveText: {
       fontSize: 16,
@@ -213,7 +224,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
     cancelButton: {
       marginTop: 0,
-      marginHorizontal: 16,
       paddingVertical: 12,
       borderRadius: 10,
       alignItems: 'center',
@@ -224,10 +234,8 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       color: '#fff',
     },
     modalContent: {
-      backgroundColor: theme.colors.surface,
       padding: 24,
       borderRadius: 12,
-      marginHorizontal: 40,
     },
     modalInput: {
       borderWidth: 1,
@@ -239,14 +247,13 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       color: theme.colors.foreground,
     },
     modalButton: {
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
       marginTop: 20,
       paddingVertical: 10,
       borderRadius: 8,
       alignItems: 'center',
     },
     modalButtonText: {
-      color: theme.colors.background,
       fontWeight: '600',
     },
   });
@@ -280,7 +287,9 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Build Your Outfit</Text>
+      <View style={styles.section}>
+        <Text style={styles.header}>Build Your Outfit</Text>
+      </View>
 
       <Text style={styles.subtitle}>Selected Items:</Text>
       <View style={styles.selectedRow}>

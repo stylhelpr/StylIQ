@@ -414,7 +414,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </View>
       </Animated.View>
 
-      {/* Video Banner */}
       {/* Video Banner with ambient parallax */}
       <Animated.View
         style={{
@@ -443,7 +442,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           muted
           repeat
           resizeMode="cover"
-          rate={0.8}
+          rate={1.0}
           ignoreSilentSwitch="obey"
         />
         <Animated.View

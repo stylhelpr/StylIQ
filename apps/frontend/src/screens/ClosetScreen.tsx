@@ -197,11 +197,24 @@ export default function ClosetScreen({navigate}: Props) {
   // };
 
   const styles = StyleSheet.create({
-    container: {
+    screen: {
       flex: 1,
-      paddingTop: 24,
-      paddingHorizontal: 16,
       backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      paddingBottom: 12,
     },
     input: {
       borderWidth: 1,
@@ -230,23 +243,16 @@ export default function ClosetScreen({navigate}: Props) {
       marginBottom: 8,
       color: theme.colors.primary,
     },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      paddingBottom: 12,
-    },
-    filterSortRow: {
+    buttonRow: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-
+      marginTop: 20,
       paddingBottom: 8,
     },
     iconButton: {
       padding: 8,
       borderRadius: 8,
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
       elevation: 2,
     },
     grid: {
@@ -255,8 +261,8 @@ export default function ClosetScreen({navigate}: Props) {
       justifyContent: 'space-between',
     },
     card: {
-      width: imageSize,
-      marginBottom: ITEM_MARGIN * 0.5,
+      width: 184,
+      marginBottom: ITEM_MARGIN * 0.6,
       backgroundColor: theme.colors.surface,
       borderRadius: 16,
       position: 'relative',
@@ -278,7 +284,7 @@ export default function ClosetScreen({navigate}: Props) {
       position: 'absolute',
       bottom: 24,
       right: 24,
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
       padding: 16,
       borderRadius: 32,
       elevation: 6,
@@ -295,8 +301,8 @@ export default function ClosetScreen({navigate}: Props) {
       color: theme.colors.foreground,
     },
     createOutfitButton: {
-      backgroundColor: '#405de6',
-      paddingVertical: 12,
+      backgroundColor: theme.colors.button1,
+      paddingVertical: 10,
       paddingHorizontal: 16,
       borderRadius: 10,
       alignSelf: 'center',
@@ -308,7 +314,7 @@ export default function ClosetScreen({navigate}: Props) {
       fontWeight: '600',
     },
     tryOnButton: {
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
     },
     tryOnButtonText: {
       color: 'white',
@@ -339,10 +345,10 @@ export default function ClosetScreen({navigate}: Props) {
   });
 
   return (
-    <View style={{flex: 1}}>
+    <View style={[styles.screen, styles.container]}>
       <Text style={styles.header}>Wardrobe</Text>
 
-      <View style={styles.filterSortRow}>
+      <View style={styles.buttonRow}>
         <AppleTouchFeedback
           style={styles.createOutfitButton}
           hapticStyle="impactHeavy"
@@ -369,9 +375,9 @@ export default function ClosetScreen({navigate}: Props) {
         </AppleTouchFeedback>
       </View>
 
-      <ScrollView style={styles.container}>
+      <ScrollView>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
-          <View key={mainCategory} style={{marginBottom: 32}}>
+          <View key={mainCategory} style={styles.section}>
             <Text style={[styles.sectionTitle, {fontSize: 24}]}>
               {mainCategory}
             </Text>

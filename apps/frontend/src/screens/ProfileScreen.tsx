@@ -228,12 +228,24 @@ export default function ProfileScreen({navigate}: Props) {
   const favoriteCount = wardrobe.filter(i => i.favorite).length;
 
   const styles = StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 32,
+    },
     headerRow: {
       flexDirection: 'row',
-
       paddingTop: 12,
       paddingBottom: 4,
       alignItems: 'center',
+      marginTop: 20,
     },
     header: {
       fontSize: 28,
@@ -246,13 +258,6 @@ export default function ProfileScreen({navigate}: Props) {
       right: 16,
       zIndex: 10,
       padding: 8,
-    },
-    container: {
-      paddingTop: 12,
-      paddingBottom: 20,
-      backgroundColor: theme.colors.background,
-      paddingHorizontal: 16,
-      minHeight: '100%',
     },
     avatarWrapper: {
       marginRight: 20,
@@ -285,7 +290,7 @@ export default function ProfileScreen({navigate}: Props) {
     },
     statNumber: {
       fontWeight: 'bold',
-      fontSize: 16,
+      fontSize: 17,
       color: 'white',
     },
     statLabel: {
@@ -300,17 +305,17 @@ export default function ProfileScreen({navigate}: Props) {
     nameText: {
       color: 'white',
       fontWeight: 'bold',
-      fontSize: 15,
+      fontSize: 17,
     },
     bioText: {
       color: 'white',
-      fontSize: 14,
+      fontSize: 17,
       marginTop: 4,
       lineHeight: 18,
     },
     linkText: {
       color: '#4ea1f2',
-      fontSize: 14,
+      fontSize: 17,
       marginTop: 2,
     },
     buttonRow: {
@@ -330,12 +335,7 @@ export default function ProfileScreen({navigate}: Props) {
     buttonText: {
       color: 'white',
       fontWeight: '600',
-      fontSize: 16,
-    },
-    highlightsScroll: {
-      marginTop: 0,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      fontSize: 17,
     },
     highlightCircle: {
       alignItems: 'center',
@@ -344,7 +344,7 @@ export default function ProfileScreen({navigate}: Props) {
     highlightText: {
       marginTop: 8,
       color: '#ddd',
-      fontSize: 12,
+      fontSize: 17,
     },
     gridRow: {
       justifyContent: 'space-between',
@@ -384,25 +384,22 @@ export default function ProfileScreen({navigate}: Props) {
       backgroundColor: '#888',
     },
     sectionTitle: {
-      fontWeight: '700',
-      fontSize: 14,
-      color: '#fff',
-
-      paddingTop: 14,
-      paddingBottom: 4,
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      paddingBottom: 12,
     },
     tagsContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       width: '100%',
-
-      marginBottom: 12,
     },
     tag: {
       backgroundColor: theme.colors.surface,
-      paddingHorizontal: 12,
-      paddingVertical: 5,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       borderRadius: 18,
       marginRight: 8,
       shadowColor: '#000',
@@ -421,11 +418,9 @@ export default function ProfileScreen({navigate}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 8,
+      paddingVertical: 12,
       paddingHorizontal: 16,
-      marginTop: 12,
-      marginBottom: 12,
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
       borderRadius: 10,
       elevation: 1,
       shadowColor: '#000',
@@ -436,10 +431,9 @@ export default function ProfileScreen({navigate}: Props) {
     menuRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
     },
     menuText: {
-      fontSize: 14,
+      fontSize: 17,
       fontWeight: '500',
     },
     editButton: {
@@ -456,24 +450,18 @@ export default function ProfileScreen({navigate}: Props) {
   });
 
   return (
-    <View style={{flex: 1}}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.header}>Profile</Text>
+    <ScrollView style={[styles.screen, styles.container]}>
+      <Text style={styles.header}>Profile</Text>
 
-        {/* <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => navigate('Settings')}>
-          <Icon name="settings" size={24} color="#405de6" />
-        </TouchableOpacity> */}
+      <AppleTouchFeedback
+        style={styles.settingsButton}
+        onPress={() => navigate('Settings')}
+        hapticStyle="impactMedium">
+        <Icon name="settings" size={24} color="#405de6" />
+      </AppleTouchFeedback>
 
-        <AppleTouchFeedback
-          style={styles.settingsButton}
-          onPress={() => navigate('Settings')}
-          hapticStyle="impactMedium">
-          <Icon name="settings" size={24} color="#405de6" />
-        </AppleTouchFeedback>
-
-        {/* Header Row */}
+      {/* Header Row */}
+      <View style={styles.section}>
         <View style={styles.headerRow}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarBorder}>
@@ -518,7 +506,9 @@ export default function ProfileScreen({navigate}: Props) {
           )}
           <Text style={styles.linkText}>{userProfile?.email}</Text>
         </View>
+      </View>
 
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Style Profile</Text>
         <AppleTouchFeedback
           style={styles.profileMenuItem}
@@ -536,43 +526,40 @@ export default function ProfileScreen({navigate}: Props) {
           </View>
           <Icon name="chevron-right" size={22} color="#666" />
         </AppleTouchFeedback>
+      </View>
 
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Style Tags</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}
-          style={styles.highlightsScroll}>
+          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}>
           {styleTags.map(tag => (
             <View key={tag} style={styles.tag}>
               <Text style={styles.tagText}>#{tag}</Text>
             </View>
           ))}
         </ScrollView>
+      </View>
 
-        <Text style={[styles.sectionTitle, {marginTop: -49}]}>
-          Favorite Brands
-        </Text>
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle]}>Favorite Brands</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}
-          style={styles.highlightsScroll}>
+          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}>
           {favoriteBrands.map(brand => (
             <View key={brand} style={styles.tag}>
               <Text style={styles.tagText}>{brand}</Text>
             </View>
           ))}
         </ScrollView>
+      </View>
 
-        {/* Favorite Outfits */}
-        <Text style={[styles.sectionTitle, {marginTop: -49}]}>
-          Favorite Outfits
-        </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.highlightsScroll}>
+      {/* Favorite Outfits */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle]}>Favorite Outfits</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {storyHighlights.map((label, index) => (
             <View key={index} style={styles.highlightCircle}>
               <View style={styles.highlightBorder}>
@@ -587,8 +574,8 @@ export default function ProfileScreen({navigate}: Props) {
             </View>
           ))}
         </ScrollView>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 

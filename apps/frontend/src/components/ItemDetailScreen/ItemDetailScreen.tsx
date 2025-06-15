@@ -162,7 +162,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       fontSize: 16,
     },
     saveButton: {
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
     },
     saveText: {
       color: '#fff',

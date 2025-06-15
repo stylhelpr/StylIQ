@@ -113,7 +113,7 @@ export default function AddItemScreen({
       borderRadius: 12,
       alignItems: 'center',
       marginTop: 20,
-      backgroundColor: '#405de6',
+      backgroundColor: theme.colors.button1,
     },
     buttonText: {
       fontWeight: 'bold',
@@ -158,7 +158,7 @@ export default function AddItemScreen({
       )}
 
       <View style={styles.formSection}>
-        <Text style={styles.label}>Name</Text>
+        <Text style={styles.label}>Nameasd</Text>
         <TextInput
           value={name}
           onChangeText={setName}

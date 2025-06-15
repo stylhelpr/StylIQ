@@ -17,6 +17,7 @@ import {
   ImageLibraryOptions,
   CameraOptions,
 } from 'react-native-image-picker';
+import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Props = {
@@ -26,6 +27,7 @@ type Props = {
 
 export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   const [photos, setPhotos] = useState<Asset[]>([]);
+  const {theme} = useAppTheme();
 
   const styles = StyleSheet.create({
     container: {flex: 1},
@@ -36,8 +38,8 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       marginBottom: 4,
     },
     imagePickerButton: {
-      flex: 1, // Each button fills equally
-      backgroundColor: '#405de6',
+      flex: 1,
+      backgroundColor: theme.colors.button1,
       paddingVertical: 6,
       paddingHorizontal: 20,
       borderRadius: 10,

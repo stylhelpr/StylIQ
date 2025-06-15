@@ -29,7 +29,7 @@ type TrendArticle = {
   link: string;
 };
 
-const ITEM_MARGIN = 9.5;
+const ITEM_MARGIN = 9.0;
 const MIN_ITEM_WIDTH = 160;
 const screenWidth = Dimensions.get('window').width;
 
@@ -120,16 +120,21 @@ export default function ExploreScreen() {
     useVoiceControl();
 
   const styles = StyleSheet.create({
-    container: {
+    screen: {
       flex: 1,
-      paddingTop: 12,
-      paddingBottom: 24,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
       paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
     },
     header: {
       fontSize: 28,
       fontWeight: '600',
-      marginBottom: 8,
       color: theme.colors.primary,
     },
     title: {
@@ -140,17 +145,17 @@ export default function ExploreScreen() {
       letterSpacing: -0.4,
     },
     sectionTitle: {
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: '600',
-
-      marginBottom: 12,
-      letterSpacing: -0.2,
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      paddingBottom: 12,
     },
     promptRow: {
       flexDirection: 'row',
       alignItems: 'center',
-
-      marginBottom: 24,
+      marginBottom: 32,
+      marginTop: 32,
     },
     input: {
       flex: 1,
@@ -168,9 +173,8 @@ export default function ExploreScreen() {
       padding: 12,
       borderRadius: 14,
     },
-    carousel: {},
     card: {
-      marginRight: 8,
+      marginRight: 12,
       backgroundColor: theme.colors.surface,
       borderRadius: 16,
       marginBottom: 20,
@@ -249,7 +253,7 @@ export default function ExploreScreen() {
     },
     inspoCard: {
       marginBottom: 6,
-      marginRight: ITEM_MARGIN * 2,
+      marginRight: ITEM_MARGIN * 1,
       borderRadius: 16,
       alignItems: 'center',
       backgroundColor: theme.colors.surface,
@@ -269,7 +273,6 @@ export default function ExploreScreen() {
       fontSize: 12,
       fontWeight: '500',
       color: theme.colors.foreground,
-
       paddingVertical: 2,
       paddingBottom: 8,
       textAlign: 'center',
@@ -337,6 +340,7 @@ export default function ExploreScreen() {
       {/* <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
         Style Prompt
       </Text> */}
+
       <View style={styles.promptRow}>
         <TextInput
           style={[
@@ -367,117 +371,123 @@ export default function ExploreScreen() {
         </Pressable>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.carousel}>
-        {featuredLooks.map(look => (
-          <AppleTouchFeedback
-            key={look.id}
-            onPress={() => {
-              /* add behavior if needed */
-            }}
-            style={styles.card}
-            hapticStyle="impactLight">
-            <Image
-              source={{uri: look.uri}}
-              style={styles.image}
-              onError={e =>
-                console.log(
-                  `❌ Failed to load image for ${look.title}`,
-                  e.nativeEvent.error,
-                )
-              }
-            />
-            <Text style={[styles.cardTitle]}>{look.title}</Text>
-          </AppleTouchFeedback>
-        ))}
-      </ScrollView>
-
-      <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
-        AI Suggests
-      </Text>
-      <View style={[styles.AISuggestcard]}>
-        <Text style={[styles.suggestionText, {color: theme.colors.foreground}]}>
-          Pair your navy chinos with white sneakers and a denim overshirt.
-          Missing something?
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+          Current Picks
         </Text>
-        <Image
-          source={{uri: missingItemSuggestion.image}}
-          style={styles.suggestedImage}
-        />
-        <Text style={[styles.missingItem, {color: theme.colors.primary}]}>
-          Suggested: {missingItemSuggestion.name}
-        </Text>
-        <Text style={[styles.price, {color: theme.colors.foreground}]}>
-          {missingItemSuggestion.price}
-        </Text>
-        <AppleTouchFeedback
-          onPress={() =>
-            setWebUrl(
-              'https://www.ssense.com/en-us/men/product/acne-studios/green-bomber-jacket/1234567',
-            )
-          }
-          hapticStyle="impactLight">
-          <Text
-            style={{
-              color: theme.colors.foreground,
-              textDecorationLine: 'underline',
-            }}>
-            View Item
-          </Text>
-        </AppleTouchFeedback>
-      </View>
-
-      <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
-        Style Inspiration
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{paddingLeft: 20, marginBottom: 12}}>
-        {mockClothingItems.slice(0, 15).map(item => (
-          <View key={item.id} style={[styles.inspoCard]}>
-            <Image source={{uri: item.image}} style={styles.inspoImage} />
-            <Text
-              style={[styles.inspoText, {color: theme.colors.foreground}]}
-              numberOfLines={1}>
-              {item.name}
-            </Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
-        Trend Lookout
-      </Text>
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={theme.colors.primary}
-          style={{marginTop: 24}}
-        />
-      ) : (
-        <View style={styles.gridContainer}>
-          {trends.map(trend => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {featuredLooks.map(look => (
             <AppleTouchFeedback
-              key={trend.id}
-              onPress={() => setWebUrl(trend.link)}
-              style={styles.gridCard}
+              key={look.id}
+              onPress={() => {
+                /* add behavior if needed */
+              }}
+              style={styles.card}
               hapticStyle="impactLight">
-              <Image source={{uri: trend.image}} style={styles.gridImage} />
-              <View style={styles.gridLabelContainer}>
-                <Text style={styles.gridTitle} numberOfLines={1}>
-                  {trend.title}
-                </Text>
-                <Text style={styles.gridSource} numberOfLines={1}>
-                  {trend.source}
-                </Text>
-              </View>
+              <Image
+                source={{uri: look.uri}}
+                style={styles.image}
+                onError={e =>
+                  console.log(
+                    `❌ Failed to load image for ${look.title}`,
+                    e.nativeEvent.error,
+                  )
+                }
+              />
+              <Text style={[styles.cardTitle]}>{look.title}</Text>
             </AppleTouchFeedback>
           ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.sectionTitle}>
+        <Text style={[[styles.sectionTitle], {color: theme.colors.primary}]}>
+          AI Suggests
+        </Text>
+        <View style={[styles.AISuggestcard]}>
+          <Text
+            style={[styles.suggestionText, {color: theme.colors.foreground}]}>
+            Pair your navy chinos with white sneakers and a denim overshirt.
+            Missing something?
+          </Text>
+          <Image
+            source={{uri: missingItemSuggestion.image}}
+            style={styles.suggestedImage}
+          />
+          <Text style={[styles.missingItem, {color: theme.colors.primary}]}>
+            Suggested: {missingItemSuggestion.name}
+          </Text>
+          <Text style={[styles.price, {color: theme.colors.foreground}]}>
+            {missingItemSuggestion.price}
+          </Text>
+          <AppleTouchFeedback
+            onPress={() =>
+              setWebUrl(
+                'https://www.ssense.com/en-us/men/product/acne-studios/green-bomber-jacket/1234567',
+              )
+            }
+            hapticStyle="impactLight">
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                textDecorationLine: 'underline',
+              }}>
+              View Item
+            </Text>
+          </AppleTouchFeedback>
         </View>
-      )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+          Style Inspiration
+        </Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {mockClothingItems.slice(0, 15).map(item => (
+            <View key={item.id} style={styles.card}>
+              <Image source={{uri: item.image}} style={styles.image} />
+              <Text
+                style={[styles.cardTitle, {color: theme.colors.foreground}]}
+                numberOfLines={1}>
+                {item.name}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+          Trend Lookout
+        </Text>
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color={theme.colors.primary}
+            style={{marginTop: 24}}
+          />
+        ) : (
+          <View style={styles.gridContainer}>
+            {trends.map(trend => (
+              <AppleTouchFeedback
+                key={trend.id}
+                onPress={() => setWebUrl(trend.link)}
+                style={styles.gridCard}
+                hapticStyle="impactLight">
+                <Image source={{uri: trend.image}} style={styles.gridImage} />
+                <View style={styles.gridLabelContainer}>
+                  <Text style={styles.gridTitle} numberOfLines={1}>
+                    {trend.title}
+                  </Text>
+                  <Text style={styles.gridSource} numberOfLines={1}>
+                    {trend.source}
+                  </Text>
+                </View>
+              </AppleTouchFeedback>
+            ))}
+          </View>
+        )}
+      </View>
 
       <Modal visible={!!webUrl} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
