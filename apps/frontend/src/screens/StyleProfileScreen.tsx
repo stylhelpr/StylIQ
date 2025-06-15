@@ -79,10 +79,11 @@ export default function StyleProfileScreen({navigate}: Props) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
+      paddingHorizontal: 16,
       backgroundColor: colors.background,
     },
     content: {
-      padding: 20,
+      paddingVertical: 12,
       paddingBottom: 60,
     },
     link: {
@@ -104,7 +105,6 @@ export default function StyleProfileScreen({navigate}: Props) {
     },
     progressContainer: {
       marginTop: 16,
-      marginHorizontal: 24,
     },
     progressLabel: {
       fontSize: 14,

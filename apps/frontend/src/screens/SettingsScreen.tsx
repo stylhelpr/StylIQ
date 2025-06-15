@@ -302,7 +302,7 @@ export default function SettingsScreen({navigate}: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {flex: 1, padding: 20},
+  container: {flex: 1, paddingHorizontal: 16, paddingVertical: 20},
   title: {fontSize: 24, fontWeight: 'bold', marginBottom: 20},
   row: {
     flexDirection: 'row',

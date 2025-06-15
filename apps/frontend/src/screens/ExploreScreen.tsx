@@ -124,13 +124,13 @@ export default function ExploreScreen() {
       flex: 1,
       paddingTop: 12,
       paddingBottom: 24,
+      paddingHorizontal: 16,
     },
     header: {
       fontSize: 28,
       fontWeight: '600',
       marginBottom: 8,
       color: theme.colors.primary,
-      paddingHorizontal: 16,
     },
     title: {
       fontSize: 14,
@@ -142,14 +142,14 @@ export default function ExploreScreen() {
     sectionTitle: {
       fontSize: 18,
       fontWeight: '600',
-      paddingHorizontal: 20,
+
       marginBottom: 12,
       letterSpacing: -0.2,
     },
     promptRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 20,
+
       marginBottom: 24,
     },
     input: {
@@ -168,10 +168,7 @@ export default function ExploreScreen() {
       padding: 12,
       borderRadius: 14,
     },
-    carousel: {
-      paddingLeft: 20,
-      paddingBottom: 0,
-    },
+    carousel: {},
     card: {
       marginRight: 8,
       backgroundColor: theme.colors.surface,
@@ -179,7 +176,6 @@ export default function ExploreScreen() {
       marginBottom: 20,
     },
     AISuggestcard: {
-      marginHorizontal: 16,
       padding: 12,
       backgroundColor: theme.colors.surface,
       borderRadius: 16,
@@ -225,11 +221,10 @@ export default function ExploreScreen() {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
-      paddingHorizontal: 20,
     },
     gridCard: {
       width: imageSize,
-      marginBottom: ITEM_MARGIN * 0.8,
+      marginBottom: ITEM_MARGIN * 1.0,
       borderRadius: 16,
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
@@ -248,11 +243,9 @@ export default function ExploreScreen() {
     gridSource: {
       fontSize: 12,
       color: '#777',
-      paddingHorizontal: 8,
-      paddingBottom: 8,
     },
     gridLabelContainer: {
-      padding: 8,
+      padding: 12,
     },
     inspoCard: {
       marginBottom: 6,
@@ -276,7 +269,7 @@ export default function ExploreScreen() {
       fontSize: 12,
       fontWeight: '500',
       color: theme.colors.foreground,
-      paddingHorizontal: 4,
+
       paddingVertical: 2,
       paddingBottom: 8,
       textAlign: 'center',
@@ -294,7 +287,6 @@ export default function ExploreScreen() {
       overflow: 'hidden',
     },
     webHeader: {
-      paddingHorizontal: 20,
       paddingVertical: 14,
       backgroundColor: '#000',
       borderBottomWidth: 0.5,

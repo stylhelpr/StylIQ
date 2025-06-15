@@ -199,7 +199,8 @@ export default function ClosetScreen({navigate}: Props) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      paddingTop: 16,
+      paddingTop: 24,
+      paddingHorizontal: 16,
       backgroundColor: theme.colors.background,
     },
     input: {
@@ -222,26 +223,24 @@ export default function ClosetScreen({navigate}: Props) {
       fontSize: 28,
       fontWeight: '600',
       color: theme.colors.primary,
-      paddingHorizontal: 16,
     },
     title: {
       fontSize: 28,
       fontWeight: '600',
       marginBottom: 8,
       color: theme.colors.primary,
-      paddingHorizontal: 16,
     },
     sectionTitle: {
-      fontSize: 22,
+      fontSize: 17,
       fontWeight: '600',
-      marginBottom: 8,
-      color: theme.colors.primary,
-      paddingHorizontal: 16,
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      paddingBottom: 12,
     },
     filterSortRow: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      paddingHorizontal: 16,
+
       paddingBottom: 8,
     },
     iconButton: {
@@ -254,7 +253,6 @@ export default function ClosetScreen({navigate}: Props) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
-      paddingHorizontal: 20,
     },
     card: {
       width: imageSize,

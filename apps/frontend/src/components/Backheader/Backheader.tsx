@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 16,
   },
   iconWrapper: {
     paddingRight: 12,

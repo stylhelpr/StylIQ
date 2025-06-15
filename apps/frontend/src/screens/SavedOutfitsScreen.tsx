@@ -324,11 +324,15 @@ export default function SavedOutfitsScreen() {
   }, [userId, favoritesLoading]);
 
   const styles = StyleSheet.create({
-    container: {padding: 12, paddingBottom: 40},
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
     card: {
       borderRadius: 12,
       padding: 12,
-      marginBottom: 16,
+      marginBottom: 14,
       elevation: 2,
     },
     headerRow: {

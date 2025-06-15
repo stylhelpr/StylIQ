@@ -230,7 +230,7 @@ export default function ProfileScreen({navigate}: Props) {
   const styles = StyleSheet.create({
     headerRow: {
       flexDirection: 'row',
-      paddingHorizontal: 16,
+
       paddingTop: 12,
       paddingBottom: 4,
       alignItems: 'center',
@@ -239,7 +239,6 @@ export default function ProfileScreen({navigate}: Props) {
       fontSize: 28,
       fontWeight: '600',
       color: theme.colors.primary,
-      paddingHorizontal: 16,
     },
     settingsButton: {
       position: 'absolute',
@@ -252,6 +251,7 @@ export default function ProfileScreen({navigate}: Props) {
       paddingTop: 12,
       paddingBottom: 20,
       backgroundColor: theme.colors.background,
+      paddingHorizontal: 16,
       minHeight: '100%',
     },
     avatarWrapper: {
@@ -294,7 +294,6 @@ export default function ProfileScreen({navigate}: Props) {
       fontWeight: '600',
     },
     bioContainer: {
-      paddingHorizontal: 16,
       marginTop: 6,
       marginBottom: 4,
     },
@@ -318,7 +317,7 @@ export default function ProfileScreen({navigate}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: 8,
-      paddingHorizontal: 16,
+
       gap: 6,
     },
     actionButton: {
@@ -370,9 +369,7 @@ export default function ProfileScreen({navigate}: Props) {
       paddingVertical: 8,
       marginTop: 10,
     },
-    tabIcon: {
-      paddingHorizontal: 16,
-    },
+    tabIcon: {},
     highlightBorder: {
       width: 70,
       height: 70,
@@ -390,7 +387,7 @@ export default function ProfileScreen({navigate}: Props) {
       fontWeight: '700',
       fontSize: 14,
       color: '#fff',
-      paddingHorizontal: 16,
+
       paddingTop: 14,
       paddingBottom: 4,
     },
@@ -399,7 +396,7 @@ export default function ProfileScreen({navigate}: Props) {
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
       width: '100%',
-      paddingHorizontal: 16,
+
       marginBottom: 12,
     },
     tag: {
