@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Animated,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import VoiceControlComponent from '../components/VoiceControlComponent/VoiceControlComponent';
@@ -24,9 +25,6 @@ import {initializeNotifications} from '../utils/notificationService';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import Video from 'react-native-video';
-// import {Animated} from 'react-native';
-
-// const scrollY = useRef(new Animated.Value(0)).current;
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -94,6 +92,20 @@ const savedLooksPreview = [
 ];
 
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const interpolatedBlurAmount = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [10, 2],
+    extrapolate: 'clamp',
+  });
+
+  const interpolatedShadowOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0.12, 0.03],
+    extrapolate: 'clamp',
+  });
+
   const {theme} = useAppTheme();
   const [weather, setWeather] = useState(null);
   const userId = useUUID();
@@ -331,19 +343,58 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
   });
 
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <Animatable.View
-        animation="fadeInDown"
-        delay={100}
-        duration={700}
-        useNativeDriver
+  // Define your nudge logic
+  const SmartNudge = ({theme}) => (
+    <Animatable.View
+      animation="fadeIn"
+      delay={1000}
+      duration={800}
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: 14,
+        marginTop: 10,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      }}>
+      <Text
         style={{
+          fontSize: 14,
+          fontWeight: '600',
+          color: theme.colors.primary,
+          fontStyle: 'italic',
+        }}>
+        🧠 It might rain later — consider a jacket with your look.
+      </Text>
+    </Animatable.View>
+  );
+
+  return (
+    <Animated.ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      scrollEventThrottle={16}
+      onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {
+        useNativeDriver: true,
+      })}>
+      {/* Greeting */}
+      <Animated.View
+        style={{
+          transform: [
+            {
+              translateY: scrollY.interpolate({
+                inputRange: [0, 100],
+                outputRange: [0, -10],
+                extrapolate: 'clamp',
+              }),
+            },
+          ],
           marginBottom: 16,
           marginHorizontal: 16,
           borderRadius: 20,
           overflow: 'hidden',
-          // 🚫 no background, no blur
         }}>
         <View style={{padding: 16, alignItems: 'center'}}>
           <Text
@@ -361,14 +412,30 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               : 'Hey there, ready to get styled today?'}
           </Text>
         </View>
-      </Animatable.View>
+      </Animated.View>
 
-      <View
+      {/* Video Banner */}
+      {/* Video Banner with ambient parallax */}
+      <Animated.View
         style={{
           position: 'relative',
           marginBottom: 20,
           borderRadius: 15,
           overflow: 'hidden',
+          transform: [
+            {
+              translateY: scrollY.interpolate({
+                inputRange: [0, 100],
+                outputRange: [0, -10],
+                extrapolate: 'clamp',
+              }),
+            },
+          ],
+          shadowColor: '#000',
+          shadowOffset: {width: 0, height: 6},
+          shadowOpacity: interpolatedShadowOpacity,
+          shadowRadius: 12,
+          elevation: 5,
         }}>
         <Video
           source={require('../assets/images/free4.mp4')}
@@ -379,8 +446,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           rate={0.8}
           ignoreSilentSwitch="obey"
         />
-
-        <BlurView
+        <Animated.View
           style={{
             position: 'absolute',
             bottom: 10,
@@ -389,10 +455,16 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             backgroundColor: 'rgba(0,0,0,0.45)',
             padding: 12,
             borderRadius: 16,
-          }}
-          blurType="light"
-          blurAmount={10}
-          reducedTransparencyFallbackColor="rgba(255,255,255,0.2)">
+            transform: [
+              {
+                translateY: scrollY.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: [0, -4],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          }}>
           <Animatable.Text
             animation="fadeInDown"
             delay={200}
@@ -405,9 +477,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             style={styles.bannerSubtext}>
             Curated just for you this season.
           </Animatable.Text>
-        </BlurView>
-      </View>
+        </Animated.View>
+      </Animated.View>
 
+      {/* Weather Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Weather</Text>
         {weather && (
@@ -440,6 +513,36 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         )}
       </View>
 
+      {/* ✅ Smart AI Nudge */}
+      {weather?.fahrenheit?.main?.temp < 55 && (
+        <Animatable.View
+          animation="fadeInUp"
+          delay={300}
+          duration={800}
+          useNativeDriver
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 20,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 16,
+            padding: 16,
+            shadowColor: '#000',
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 3,
+          }}>
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: '600',
+              color: '#ffd369',
+              fontStyle: 'italic',
+            }}>
+            🧥 It might rain later — consider a jacket with your look.
+          </Text>
+        </Animatable.View>
+      )}
+
       <View style={styles.section}>
         {/* <Text style={styles.aiTitle}>Ask AI Concierge</Text> */}
         <VoiceControlComponent
@@ -453,8 +556,23 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         duration={800}
         useNativeDriver
         style={styles.section}>
-        <Text style={styles.sectionTitle}>Editorial Look</Text>
-
+        <Animated.Text
+          style={[
+            styles.sectionTitle,
+            {
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 60],
+                    outputRange: [0, -3],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            },
+          ]}>
+          Editorial Look
+        </Animated.Text>
         <Animatable.View
           animation="zoomIn"
           delay={400}
@@ -470,7 +588,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             animation="pulse"
             iterationCount="infinite"
             duration={2600}
-            style={{alignSelf: 'center', width: '100%'}}>
+            style={{
+              alignSelf: 'center',
+              width: '100%',
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 60],
+                    outputRange: [0, -4],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            }}>
             <AppleTouchFeedback
               hapticStyle="impactHeavy"
               onPress={() => navigate('Outfit', {look: 'editorial'})}>
@@ -627,15 +757,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </View>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 };
 
 export default HomeScreen;
 
-/////////////////
+//////////////
 
-// import React, {useEffect, useState} from 'react';
+// import React, {useEffect, useState, useRef} from 'react';
 // import {
 //   View,
 //   Text,
@@ -661,6 +791,9 @@ export default HomeScreen;
 // import {useUUID} from '../context/UUIDContext';
 // import {API_BASE_URL} from '../config/api';
 // import Video from 'react-native-video';
+// // import {Animated} from 'react-native';
+
+// // const scrollY = useRef(new Animated.Value(0)).current;
 
 // type Props = {
 //   navigate: (screen: string, params?: any) => void;
@@ -787,7 +920,7 @@ export default HomeScreen;
 //       paddingHorizontal: 16,
 //     },
 //     section: {
-//       marginBottom: 14,
+//       marginBottom: 20,
 //     },
 //     bannerImage: {
 //       width: '100%',
@@ -848,7 +981,7 @@ export default HomeScreen;
 //       elevation: 3,
 //     },
 //     tryButton: {
-//       backgroundColor: '#007AFF',
+//       backgroundColor: theme.colors.button1,
 //       paddingVertical: 10,
 //       borderRadius: 14,
 //       marginTop: 14,
@@ -867,7 +1000,7 @@ export default HomeScreen;
 //     },
 //     tile: {
 //       width: 186,
-//       backgroundColor: '#007AFF',
+//       backgroundColor: theme.colors.button1,
 //       borderRadius: 14,
 //       paddingVertical: 14,
 //       alignItems: 'center',
@@ -926,7 +1059,7 @@ export default HomeScreen;
 //       color: '#ccc',
 //     },
 //     weatherTempContainer: {
-//       backgroundColor: '#007AFF',
+//       backgroundColor: theme.colors.button1,
 //       paddingVertical: 6,
 //       paddingHorizontal: 14,
 //       borderRadius: 12,
@@ -977,63 +1110,53 @@ export default HomeScreen;
 //           marginHorizontal: 16,
 //           borderRadius: 20,
 //           overflow: 'hidden',
+//           // 🚫 no background, no blur
 //         }}>
-//         <BlurView
-//           style={{padding: 16, alignItems: 'center'}}
-//           blurType="light"
-//           blurAmount={12}
-//           reducedTransparencyFallbackColor="rgba(255,255,255,0.2)">
+//         <View style={{padding: 16, alignItems: 'center'}}>
 //           <Text
 //             style={{
-//               fontSize: 18,
-//               color: theme.colors.foreground,
+//               fontSize: 17,
 //               fontWeight: '800',
+//               color: '#fff',
 //               textAlign: 'center',
+//               textShadowColor: 'rgba(0,0,0,0.6)',
+//               textShadowOffset: {width: 0, height: 1},
+//               textShadowRadius: 2,
 //             }}>
 //             {firstName
 //               ? `Hey ${firstName}, ready to get styled today?`
 //               : 'Hey there, ready to get styled today?'}
 //           </Text>
-//         </BlurView>
+//         </View>
 //       </Animatable.View>
 
-//       {/* <View style={{position: 'relative', marginBottom: 20}}>
-//         <Image
-//           source={require('../assets/images/free1.jpg')}
-//           style={styles.bannerImage}
-//         />
-//         <BlurView
-//           style={styles.bannerOverlay}
-//           blurType="light"
-//           blurAmount={10}
-//           reducedTransparencyFallbackColor="rgba(255,255,255,0.2)">
-//           <Animatable.Text
-//             animation="fadeInDown"
-//             delay={200}
-//             style={styles.bannerText}>
-//             Discover Your Signature Look
-//           </Animatable.Text>
-//           <Animatable.Text
-//             animation="fadeIn"
-//             delay={400}
-//             style={styles.bannerSubtext}>
-//             Curated just for you this season.
-//           </Animatable.Text>
-//         </BlurView>
-//       </View> */}
-
-//       <View style={{position: 'relative', marginBottom: 20}}>
+//       <View
+//         style={{
+//           position: 'relative',
+//           marginBottom: 20,
+//           borderRadius: 15,
+//           overflow: 'hidden',
+//         }}>
 //         <Video
-//           source={{uri: 'https://www.w3schools.com/html/mov_bbb.mp4'}} // TEMP VIDEO
-//           style={styles.bannerImage}
+//           source={require('../assets/images/free4.mp4')}
+//           style={{width: '100%', height: 200}}
 //           muted
 //           repeat
 //           resizeMode="cover"
-//           rate={1.0}
+//           rate={0.8}
 //           ignoreSilentSwitch="obey"
 //         />
+
 //         <BlurView
-//           style={styles.bannerOverlay}
+//           style={{
+//             position: 'absolute',
+//             bottom: 10,
+//             left: 10,
+//             right: 16,
+//             backgroundColor: 'rgba(0,0,0,0.45)',
+//             padding: 12,
+//             borderRadius: 16,
+//           }}
 //           blurType="light"
 //           blurAmount={10}
 //           reducedTransparencyFallbackColor="rgba(255,255,255,0.2)">
@@ -1165,57 +1288,6 @@ export default HomeScreen;
 //         </AppleTouchFeedback>
 //       </View>
 
-//       {/* <Text style={styles.sectionTitle}>Quick Access</Text>
-//       <View style={styles.tileRow}>
-//         {['Wardrobe', 'AddItem', 'Outfit', 'TryOnOverlay'].map(
-//           (screen, index) => (
-//             <Animatable.View
-//               key={screen}
-//               animation="fadeInUp"
-//               delay={index * 150}
-//               duration={600}
-//               useNativeDriver
-//               style={styles.tile}>
-//               <AppleTouchFeedback
-//                 style={{width: '100%', alignItems: 'center'}}
-//                 hapticStyle="impactHeavy"
-//                 onPress={() => navigate(screen)}>
-//                 <Text style={styles.tileText}>
-//                   {screen === 'Outfit' ? 'Style Me' : screen}
-//                 </Text>
-//               </AppleTouchFeedback>
-//             </Animatable.View>
-//           ),
-//         )}
-
-//         <AppleTouchFeedback
-//           style={styles.tile}
-//           hapticStyle="impactHeavy"
-//           onPress={() => navigate('AddItem')}>
-//           <Text style={styles.tileText} numberOfLines={1}>
-//             Add Item
-//           </Text>
-//         </AppleTouchFeedback>
-
-//         <AppleTouchFeedback
-//           style={styles.tile}
-//           hapticStyle="impactHeavy"
-//           onPress={() => navigate('Outfit')}>
-//           <Text style={styles.tileText} numberOfLines={1}>
-//             Style Me
-//           </Text>
-//         </AppleTouchFeedback>
-
-//         <AppleTouchFeedback
-//           style={styles.tile}
-//           hapticStyle="impactHeavy"
-//           onPress={() => navigate('TryOnOverlay')}>
-//           <Text style={styles.tileText} numberOfLines={1}>
-//             Try-On
-//           </Text>
-//         </AppleTouchFeedback>
-//       </View> */}
-
 //       <View style={styles.section}>
 //         <Text style={styles.sectionTitle}>Recommended Outfit</Text>
 //         <ScrollView
@@ -1284,7 +1356,6 @@ export default HomeScreen;
 //         <Text style={styles.sectionTitle}>Notifications</Text>
 //         <TouchableOpacity
 //           style={{
-//             backgroundColor: theme.colors.primary,
 //             padding: 12,
 //             borderRadius: 8,
 //             alignItems: 'center',
@@ -1305,28 +1376,22 @@ export default HomeScreen;
 //               console.log('🔕 Notifications are disabled');
 //             }
 //           }}>
-//           <Text style={{color: theme.colors.surface}}>Send Notification</Text>
-//         </TouchableOpacity>
-//       </View>
-//     </ScrollView>
-//   );
-// };
-
-// export default HomeScreen;
-
-//                 channelId: 'style-channel',
-//                 title: '📣 Test Notification',
-//                 message: 'This is a test style reminder!',
-//                 playSound: true,
-//                 soundName: 'default',
-//                 importance: 4,
-//                 vibrate: true,
-//               });
-//             } else {
-//               console.log('🔕 Notifications are disabled');
-//             }
-//           }}>
-//           <Text style={{color: theme.colors.surface}}>Send Notification</Text>
+//           <View
+//             style={{
+//               backgroundColor: theme.colors.button1,
+//               padding: 12,
+//               borderRadius: 8,
+//               alignItems: 'center',
+//             }}>
+//             <Text
+//               style={{
+//                 color: theme.colors.primary,
+//                 fontSize: 16,
+//                 fontWeight: '600',
+//               }}>
+//               Send Notification
+//             </Text>
+//           </View>
 //         </TouchableOpacity>
 //       </View>
 //     </ScrollView>
