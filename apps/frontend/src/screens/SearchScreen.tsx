@@ -12,10 +12,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Voice from '@react-native-voice/voice';
 import {useAppTheme} from '../context/ThemeContext';
-import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
+import type {WardrobeItem} from '../types/wardrobe';
 import {useUUID} from '../context/UUIDContext';
 import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../config/api';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type SavedOutfit = {
   id: string;
@@ -124,13 +125,26 @@ export default function SearchScreen({navigate, goBack}) {
       style={[styles.container, {backgroundColor: theme.colors.background}]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <TouchableOpacity onPress={goBack} style={styles.backButton}>
+      <AppleTouchFeedback
+        onPress={goBack}
+        hapticStyle="impactMedium"
+        style={styles.backButton}>
         <MaterialIcons
           name="arrow-back"
           size={24}
           color={theme.colors.foreground}
         />
-      </TouchableOpacity>
+      </AppleTouchFeedback>
+
+      {/* <AppleTouchFeedback
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        hapticStyle="impactLight"
+        style={{alignSelf: 'center', marginBottom: 12}}>
+        <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
+          🎤 Hold to Voice Search
+        </Text>
+      </AppleTouchFeedback> */}
 
       <TouchableOpacity
         onPressIn={handlePressIn}
@@ -157,15 +171,16 @@ export default function SearchScreen({navigate, goBack}) {
           ]}
         />
         {query.length > 0 && (
-          <TouchableOpacity
+          <AppleTouchFeedback
             onPress={() => setQuery('')}
+            hapticStyle="impactLight"
             style={styles.clearIcon}>
             <MaterialIcons
               name="close"
               size={20}
               color={theme.colors.foreground}
             />
-          </TouchableOpacity>
+          </AppleTouchFeedback>
         )}
       </View>
 
@@ -251,7 +266,7 @@ const styles = StyleSheet.create({
   },
 });
 
-////////////
+/////////////
 
 // import React, {useState, useEffect} from 'react';
 // import {
@@ -267,19 +282,53 @@ const styles = StyleSheet.create({
 // import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // import Voice from '@react-native-voice/voice';
 // import {useAppTheme} from '../context/ThemeContext';
-// import type {WardrobeItem} from '../hooks/useOutfitSuggestion';
+// import type {WardrobeItem} from '../types/wardrobe';
+// import {useUUID} from '../context/UUIDContext';
+// import {useQuery} from '@tanstack/react-query';
+// import {API_BASE_URL} from '../config/api';
 
-// const CLOSET_KEY = 'savedOutfits';
-// const FAVORITES_KEY = 'favoriteOutfits';
+// type SavedOutfit = {
+//   id: string;
+//   name?: string;
+//   top: WardrobeItem;
+//   bottom: WardrobeItem;
+//   shoes: WardrobeItem;
+//   createdAt: string;
+//   tags?: string[];
+//   notes?: string;
+//   rating?: number;
+//   favorited?: boolean;
+// };
 
-// export default function SearchScreen({navigate, goBack, wardrobe = []}) {
+// export default function SearchScreen({navigate, goBack}) {
+//   const userId = useUUID();
 //   const {theme} = useAppTheme();
 //   const [query, setQuery] = useState('');
 //   const [isListening, setIsListening] = useState(false);
-//   const [savedOutfits, setSavedOutfits] = useState([]);
+
+//   const {data: wardrobe = []} = useQuery<WardrobeItem[]>({
+//     queryKey: ['wardrobe', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch wardrobe items');
+//       return await res.json();
+//     },
+//   });
+
+//   const {data: savedOutfits = []} = useQuery<SavedOutfit[]>({
+//     queryKey: ['savedOutfits', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(
+//         `${API_BASE_URL}/custom-outfits?user_id=${userId}`,
+//       );
+//       if (!res.ok) throw new Error('Failed to fetch saved outfits');
+//       return await res.json();
+//     },
+//   });
 
 //   useEffect(() => {
-//     loadSavedOutfits();
 //     Voice.onSpeechResults = e => {
 //       const spokenText = e.value?.[0];
 //       if (spokenText) setQuery(spokenText);
@@ -288,16 +337,6 @@ const styles = StyleSheet.create({
 //       Voice.destroy().then(Voice.removeAllListeners);
 //     };
 //   }, []);
-
-//   const loadSavedOutfits = async () => {
-//     const [manualData, favoriteData] = await Promise.all([
-//       AsyncStorage.getItem(CLOSET_KEY),
-//       AsyncStorage.getItem(FAVORITES_KEY),
-//     ]);
-//     const manual = manualData ? JSON.parse(manualData) : [];
-//     const favorites = favoriteData ? JSON.parse(favoriteData) : [];
-//     setSavedOutfits([...manual, ...favorites]);
-//   };
 
 //   const startVoice = async () => {
 //     try {
@@ -321,8 +360,8 @@ const styles = StyleSheet.create({
 //   const handlePressIn = () => startVoice();
 //   const handlePressOut = () => stopVoice();
 
-//   const matchesQuery = text =>
-//     text?.toLowerCase().includes(query.toLowerCase());
+//   const matchesQuery = (text: string | undefined): boolean =>
+//     !!text?.toLowerCase().includes(query.toLowerCase());
 
 //   const filteredWardrobe = wardrobe.filter(item =>
 //     matchesQuery(
@@ -334,7 +373,7 @@ const styles = StyleSheet.create({
 //         item.material,
 //         item.fit,
 //         item.size,
-//         item.tags?.join(' '),
+//         Array.isArray(item.tags) ? item.tags.join(' ') : '',
 //         item.notes,
 //       ]
 //         .filter(Boolean)
@@ -423,14 +462,14 @@ const styles = StyleSheet.create({
 //       {filteredOutfits.length > 0 && (
 //         <Text style={styles.groupLabel}>📦 Saved Outfits</Text>
 //       )}
-//       {filteredOutfits.map(outfit => (
+//       {filteredOutfits.map((outfit: SavedOutfit) => (
 //         <View
 //           key={outfit.id}
 //           style={[styles.card, {backgroundColor: theme.colors.surface}]}>
 //           <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
 //             {outfit.name?.trim() || 'Unnamed Outfit'}
 //           </Text>
-//           <View style={{flexDirection: 'row', gap: 8, marginTop: 6}}>
+//           <View style={{flexDirection: 'row', marginTop: 6}}>
 //             {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
 //               i?.image ? (
 //                 <Image

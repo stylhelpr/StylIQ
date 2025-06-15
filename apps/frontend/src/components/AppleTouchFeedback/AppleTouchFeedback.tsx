@@ -1,11 +1,11 @@
 import React, {useRef} from 'react';
-import {Pressable, Animated, ViewStyle} from 'react-native';
+import {Pressable, Animated, StyleProp, ViewStyle} from 'react-native';
 import {triggerHaptic} from '../../utils/haptics';
 
 type Props = {
   children: React.ReactNode;
   onPress: () => void;
-  onLongPress?: () => void; // <-- added
+  onLongPress?: () => void;
   hapticStyle?:
     | 'impactLight'
     | 'impactMedium'
@@ -13,24 +13,27 @@ type Props = {
     | 'notificationSuccess'
     | 'notificationWarning'
     | 'notificationError';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
 };
 
 export default function AppleTouchFeedback({
   children,
   onPress,
-  onLongPress, // <-- destructure here
+  onLongPress,
   hapticStyle = 'impactLight',
   style,
+  disabled = false,
 }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
+    if (disabled) return;
     if (hapticStyle) {
       triggerHaptic(hapticStyle);
     }
     Animated.spring(scale, {
-      toValue: 0.96,
+      toValue: 0.9,
       useNativeDriver: true,
       speed: 40,
       bounciness: 8,
@@ -38,6 +41,7 @@ export default function AppleTouchFeedback({
   };
 
   const handlePressOut = () => {
+    if (disabled) return;
     Animated.spring(scale, {
       toValue: 1,
       useNativeDriver: true,
@@ -46,32 +50,37 @@ export default function AppleTouchFeedback({
     }).start();
   };
 
+  const handlePress = () => {
+    if (disabled) return;
+    onPress();
+  };
+
   return (
     <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress} // <-- pass it here
+      onPress={handlePress}
+      onLongPress={disabled ? undefined : onLongPress}
       onPressIn={handlePressIn}
-      onPressOut={handlePressOut}>
-      <Animated.View
-        style={[
-          {transform: [{scale}]},
-          style, // Apply layout styles here so scaling + layout are synced
-        ]}>
+      onPressOut={handlePressOut}
+      disabled={disabled}
+      style={{opacity: disabled ? 0.5 : 1}} // Visual feedback for disabled state
+    >
+      <Animated.View style={[{transform: [{scale}]}, style]}>
         {children}
       </Animated.View>
     </Pressable>
   );
 }
 
-////////
+///////////
 
 // import React, {useRef} from 'react';
-// import {Pressable, Animated, ViewStyle} from 'react-native';
+// import {Pressable, Animated, StyleProp, ViewStyle} from 'react-native';
 // import {triggerHaptic} from '../../utils/haptics';
 
 // type Props = {
 //   children: React.ReactNode;
 //   onPress: () => void;
+//   onLongPress?: () => void;
 //   hapticStyle?:
 //     | 'impactLight'
 //     | 'impactMedium'
@@ -79,12 +88,13 @@ export default function AppleTouchFeedback({
 //     | 'notificationSuccess'
 //     | 'notificationWarning'
 //     | 'notificationError';
-//   style?: ViewStyle;
+//   style?: StyleProp<ViewStyle>; // <-- Changed here
 // };
 
 // export default function AppleTouchFeedback({
 //   children,
 //   onPress,
+//   onLongPress,
 //   hapticStyle = 'impactLight',
 //   style,
 // }: Props) {
@@ -95,7 +105,7 @@ export default function AppleTouchFeedback({
 //       triggerHaptic(hapticStyle);
 //     }
 //     Animated.spring(scale, {
-//       toValue: 0.96,
+//       toValue: 0.9,
 //       useNativeDriver: true,
 //       speed: 40,
 //       bounciness: 8,
@@ -114,15 +124,10 @@ export default function AppleTouchFeedback({
 //   return (
 //     <Pressable
 //       onPress={onPress}
+//       onLongPress={onLongPress}
 //       onPressIn={handlePressIn}
-//       onPressOut={handlePressOut}
-//       // Remove style here to avoid conflicts
-//     >
-//       <Animated.View
-//         style={[
-//           {transform: [{scale}]},
-//           style, // Apply layout styles here so scaling + layout are synced
-//         ]}>
+//       onPressOut={handlePressOut}>
+//       <Animated.View style={[{transform: [{scale}]}, style]}>
 //         {children}
 //       </Animated.View>
 //     </Pressable>

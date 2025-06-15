@@ -17,10 +17,11 @@ import {
   ImageLibraryOptions,
   CameraOptions,
 } from 'react-native-image-picker';
+import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Props = {
   onSelectImage?: (uri: string) => void;
-  selectedUri?: string | null; // 🔥 Use this to hide grid if image is selected
+  selectedUri?: string | null;
 };
 
 export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
@@ -28,11 +29,24 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 
   const styles = StyleSheet.create({
     container: {flex: 1},
-    buttons: {
+    imagePickerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    imagePickerButton: {
+      flex: 1, // Each button fills equally
+      backgroundColor: '#405de6',
+      paddingVertical: 6,
+      paddingHorizontal: 20,
+      borderRadius: 10,
       alignItems: 'center',
-      flexWrap: 'wrap',
+    },
+    imagePickerText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '600',
     },
     grid: {
       flexDirection: 'row',
@@ -46,26 +60,11 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       borderRadius: 8,
       backgroundColor: '#eee',
     },
-    imagePickerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 4,
-      marginBottom: 4,
-    },
-    imagePickerButton: {
-      flex: 1,
-      backgroundColor: '#405de6',
-      paddingVertical: 6,
-      borderRadius: 10,
-      alignItems: 'center',
-      maxWidth: 130,
-    },
-    imagePickerText: {
-      color: '#fff',
-      fontSize: 14,
-      fontWeight: '600',
-    },
   });
+
+  // Add marginRight to all buttons except the last
+  const buttonMarginStyle = (index: number) =>
+    index !== 2 ? {marginRight: 8} : undefined;
 
   const requestAndroidPermissions = async () => {
     if (Platform.OS !== 'android') return true;
@@ -96,8 +95,6 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       quality: 1,
       includeBase64: false,
       saveToPhotos: true,
-      maxWidth: undefined,
-      maxHeight: undefined,
     };
     const result = await launchCamera(options);
     if (result.assets?.length) {
@@ -114,8 +111,6 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       quality: 1,
       selectionLimit: 0,
       includeBase64: false,
-      maxWidth: undefined,
-      maxHeight: undefined,
     };
     const result = await launchImageLibrary(options);
     if (result.assets?.length) {
@@ -143,22 +138,21 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.imagePickerRow}>
-        <TouchableOpacity style={styles.imagePickerButton} onPress={takePhoto}>
-          <Text style={styles.imagePickerText}>Take Photo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.imagePickerButton, {marginRight: 4}]}
-          onPress={recordVideo}>
-          <Text style={styles.imagePickerText}>Record Video</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.imagePickerButton, {marginRight: 4}]}
-          onPress={pickFromGallery}>
-          <Text style={styles.imagePickerText}>Photo Library</Text>
-        </TouchableOpacity>
+        {[
+          {label: 'Take Photo', onPress: takePhoto},
+          {label: 'Record Video', onPress: recordVideo},
+          {label: 'Photo Library', onPress: pickFromGallery},
+        ].map(({label, onPress}, i) => (
+          <AppleTouchFeedback
+            key={label}
+            onPress={onPress}
+            hapticStyle="impactMedium"
+            style={[styles.imagePickerButton, buttonMarginStyle(i)]}>
+            <Text style={styles.imagePickerText}>{label}</Text>
+          </AppleTouchFeedback>
+        ))}
       </View>
 
-      {/* ✅ Show thumbnails only if no image has been selected yet */}
       {!selectedUri && (
         <ScrollView contentContainerStyle={styles.grid}>
           {photos
@@ -180,12 +174,11 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   );
 }
 
-////////////////
+//////////
 
 // import React, {useState} from 'react';
 // import {
 //   View,
-//   Button,
 //   Image,
 //   Platform,
 //   PermissionsAndroid,
@@ -205,9 +198,10 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 
 // type Props = {
 //   onSelectImage?: (uri: string) => void;
+//   selectedUri?: string | null; // 🔥 Use this to hide grid if image is selected
 // };
 
-// export default function ImagePickerGrid({onSelectImage}: Props) {
+// export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //   const [photos, setPhotos] = useState<Asset[]>([]);
 
 //   const styles = StyleSheet.create({
@@ -242,6 +236,7 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //       paddingVertical: 6,
 //       borderRadius: 10,
 //       alignItems: 'center',
+//       maxWidth: 130,
 //     },
 //     imagePickerText: {
 //       color: '#fff',
@@ -276,13 +271,17 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //     if (!(await requestAndroidPermissions())) return;
 //     const options: CameraOptions = {
 //       mediaType: 'photo',
+//       quality: 1,
+//       includeBase64: false,
 //       saveToPhotos: true,
+//       maxWidth: undefined,
+//       maxHeight: undefined,
 //     };
 //     const result = await launchCamera(options);
 //     if (result.assets?.length) {
 //       setPhotos(curr => [...curr, ...result.assets!]);
 //       if (onSelectImage && result.assets[0].uri) {
-//         onSelectImage(result.assets[0].uri); // ✅ auto-select first
+//         onSelectImage(result.assets[0].uri);
 //       }
 //     }
 //   };
@@ -290,13 +289,17 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //   const pickFromGallery = async () => {
 //     const options: ImageLibraryOptions = {
 //       mediaType: 'photo',
+//       quality: 1,
 //       selectionLimit: 0,
+//       includeBase64: false,
+//       maxWidth: undefined,
+//       maxHeight: undefined,
 //     };
 //     const result = await launchImageLibrary(options);
 //     if (result.assets?.length) {
 //       setPhotos(curr => [...curr, ...result.assets!]);
 //       if (onSelectImage && result.assets[0].uri) {
-//         onSelectImage(result.assets[0].uri); // ✅ auto-select first
+//         onSelectImage(result.assets[0].uri);
 //       }
 //     }
 //   };
@@ -322,32 +325,35 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //           <Text style={styles.imagePickerText}>Take Photo</Text>
 //         </TouchableOpacity>
 //         <TouchableOpacity
-//           style={styles.imagePickerButton}
+//           style={[styles.imagePickerButton, {marginRight: 4}]}
 //           onPress={recordVideo}>
 //           <Text style={styles.imagePickerText}>Record Video</Text>
 //         </TouchableOpacity>
 //         <TouchableOpacity
-//           style={styles.imagePickerButton}
+//           style={[styles.imagePickerButton, {marginRight: 4}]}
 //           onPress={pickFromGallery}>
 //           <Text style={styles.imagePickerText}>Photo Library</Text>
 //         </TouchableOpacity>
 //       </View>
 
-//       <ScrollView contentContainerStyle={styles.grid}>
-//         {photos
-//           .filter((photo): photo is Asset & {uri: string} => !!photo.uri)
-//           .map((photo, idx) => (
-//             <TouchableOpacity
-//               key={photo.uri + idx}
-//               onPress={() => onSelectImage?.(photo.uri)}>
-//               <Image
-//                 source={{uri: photo.uri}}
-//                 style={styles.thumbnail}
-//                 resizeMode="cover"
-//               />
-//             </TouchableOpacity>
-//           ))}
-//       </ScrollView>
+//       {/* ✅ Show thumbnails only if no image has been selected yet */}
+//       {!selectedUri && (
+//         <ScrollView contentContainerStyle={styles.grid}>
+//           {photos
+//             .filter((photo): photo is Asset & {uri: string} => !!photo.uri)
+//             .map((photo, idx) => (
+//               <TouchableOpacity
+//                 key={photo.uri + idx}
+//                 onPress={() => onSelectImage?.(photo.uri)}>
+//                 <Image
+//                   source={{uri: photo.uri}}
+//                   style={styles.thumbnail}
+//                   resizeMode="cover"
+//                 />
+//               </TouchableOpacity>
+//             ))}
+//         </ScrollView>
+//       )}
 //     </View>
 //   );
 // }

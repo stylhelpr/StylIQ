@@ -13,6 +13,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -218,10 +219,16 @@ export default function MeasurementsScreen({navigate}: Props) {
           <Text style={{color: colors.foreground}}>
             Units: {unitPreference === 'imperial' ? 'in/lbs' : 'cm/kg'}
           </Text>
-          <Switch
-            value={unitPreference === 'metric'}
-            onValueChange={toggleUnits}
-          />
+          <AppleTouchFeedback
+            onPress={toggleUnits}
+            hapticStyle="impactLight"
+            style={{borderRadius: 20}}>
+            <Switch
+              value={unitPreference === 'metric'}
+              onValueChange={toggleUnits}
+              pointerEvents="none"
+            />
+          </AppleTouchFeedback>
         </View>
 
         <Text style={[styles.title, {color: colors.primary}]}>
