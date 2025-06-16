@@ -31,6 +31,39 @@ export default function ColorPreferencesScreen({navigate}: Props) {
   const colors = theme.colors;
   const [selected, setSelected] = useState<string[]>([]);
 
+  const styles = StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    chipGroup: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 4,
+    },
+    subtitle: {fontSize: 16, marginBottom: 20},
+  });
+
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {updateProfile} = useStyleProfile(userId);
@@ -51,16 +84,16 @@ export default function ColorPreferencesScreen({navigate}: Props) {
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.background}]}>
-      <BackHeader
-        title="Color Preferences"
-        onBack={() => navigate('StyleProfileScreen')}
-      />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, {color: colors.primary}]}>
-          Preferred Colors
-        </Text>
-        <Text style={[styles.subtitle, {color: colors.foreground}]}>
+    <View
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      <Text style={[styles.header, {color: theme.colors.primary}]}>
+        Color Preferences
+      </Text>
+
+      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
+      <ScrollView contentContainerStyle={styles.section}>
+        <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
           Choose colors you like wearing:
         </Text>
         <View style={styles.chipGroup}>
@@ -78,15 +111,7 @@ export default function ColorPreferencesScreen({navigate}: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  content: {padding: 20},
-  title: {fontSize: 22, fontWeight: '700', marginBottom: 10},
-  subtitle: {fontSize: 16, marginBottom: 20},
-  chipGroup: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
-});
-
-/////////////////
+/////////////
 
 // import React, {useEffect, useState} from 'react';
 // import {View, Text, StyleSheet, ScrollView} from 'react-native';
@@ -94,6 +119,8 @@ const styles = StyleSheet.create({
 // import BackHeader from '../components/Backheader/Backheader';
 // import {Chip} from '../components/Chip/Chip';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useAuth0} from 'react-native-auth0';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
 
 // const COLOR_KEY = 'style.colorPreferences';
 
@@ -110,18 +137,18 @@ const styles = StyleSheet.create({
 //   'Bold Colors',
 // ];
 
-// export default function ColorPreferencesScreen({navigate}) {
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// export default function ColorPreferencesScreen({navigate}: Props) {
 //   const {theme} = useAppTheme();
 //   const colors = theme.colors;
 //   const [selected, setSelected] = useState<string[]>([]);
 
-//   const styles = StyleSheet.create({
-//     container: {flex: 1},
-//     content: {padding: 20},
-//     title: {fontSize: 22, fontWeight: '700', marginBottom: 10},
-//     subtitle: {fontSize: 16, marginBottom: 20},
-//     chipGroup: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
-//   });
+//   const {user} = useAuth0();
+//   const userId = user?.sub || '';
+//   const {updateProfile} = useStyleProfile(userId);
 
 //   useEffect(() => {
 //     AsyncStorage.getItem(COLOR_KEY).then(data => {
@@ -135,6 +162,7 @@ const styles = StyleSheet.create({
 //       : [...selected, color];
 //     setSelected(updated);
 //     await AsyncStorage.setItem(COLOR_KEY, JSON.stringify(updated));
+//     updateProfile('color_preferences', updated); // sync to DB
 //   };
 
 //   return (
@@ -164,3 +192,11 @@ const styles = StyleSheet.create({
 //     </View>
 //   );
 // }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1},
+//   content: {padding: 20},
+//   title: {fontSize: 22, fontWeight: '700', marginBottom: 10},
+//   subtitle: {fontSize: 16, marginBottom: 20},
+//   chipGroup: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
+// });

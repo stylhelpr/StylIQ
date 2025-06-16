@@ -203,7 +203,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       fontWeight: '600',
       lineHeight: 24,
       color: theme.colors.foreground,
-      paddingBottom: 12,
+      marginBottom: 12,
     },
     bodyText: {
       fontSize: 16,
@@ -343,7 +343,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
   });
 
-  // Define your nudge logic
   const SmartNudge = ({theme}) => (
     <Animatable.View
       animation="fadeIn"

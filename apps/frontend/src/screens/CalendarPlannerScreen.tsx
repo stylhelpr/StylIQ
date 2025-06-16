@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  StyleSheet,
 } from 'react-native';
 import {useAuth0} from 'react-native-auth0';
 import {Calendar, DateObject} from 'react-native-calendars';
@@ -43,9 +44,53 @@ type SavedOutfit = {
 };
 
 export default function OutfitPlannerScreen() {
-  const {theme} = useAppTheme();
   const {user} = useAuth0();
   const userId = useUUID() || user?.sub || '';
+  const {theme} = useAppTheme();
+  const colors = theme.colors;
+
+  const styles = StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+      marginTop: 20,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    chipGroup: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 4,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.surface,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      fontSize: 16,
+      color: colors.foreground,
+    },
+    chipRow: {flexDirection: 'row', flexWrap: 'wrap', marginTop: 4},
+  });
 
   const [scheduledOutfits, setScheduledOutfits] = useState<SavedOutfit[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -186,138 +231,143 @@ export default function OutfitPlannerScreen() {
   };
 
   return (
-    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
-      <Calendar
-        onDayPress={handleDayPress}
-        markedDates={{
-          ...markedDates,
-          ...(selectedDate
-            ? {
-                [selectedDate]: {
-                  selected: true,
-                  selectedColor: theme.colors.primary,
-                },
-              }
-            : {}),
-        }}
-        markingType="multi-dot"
-        theme={{
-          calendarBackground: theme.colors.background,
-          textSectionTitleColor: theme.colors.foreground2,
-          dayTextColor: theme.colors.foreground,
-          todayTextColor: theme.colors.primary,
-          selectedDayBackgroundColor: theme.colors.primary,
-          selectedDayTextColor: '#fff',
-          arrowColor: theme.colors.primary,
-          monthTextColor: theme.colors.primary,
-          textMonthFontWeight: 'bold',
-          textDayFontSize: 16,
-          textMonthFontSize: 18,
-          textDayHeaderFontSize: 14,
-          dotColor: theme.colors.primary,
-          selectedDotColor: '#fff',
-          disabledArrowColor: '#444',
-        }}
-      />
+    <View style={[styles.container]}>
+      <Text style={[styles.header]}>Planned Outfits</Text>
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'flex-end',
-            backgroundColor: 'rgba(0,0,0,0.35)',
-          }}>
+      <View style={styles.section}>
+        <Calendar
+          onDayPress={handleDayPress}
+          markedDates={{
+            ...markedDates,
+            ...(selectedDate
+              ? {
+                  [selectedDate]: {
+                    selected: true,
+                    selectedColor: theme.colors.primary,
+                  },
+                }
+              : {}),
+          }}
+          markingType="multi-dot"
+          theme={{
+            calendarBackground: theme.colors.background,
+            textSectionTitleColor: theme.colors.foreground2,
+            dayTextColor: theme.colors.foreground,
+            todayTextColor: theme.colors.primary,
+            selectedDayBackgroundColor: theme.colors.primary,
+            selectedDayTextColor: '#fff',
+            arrowColor: theme.colors.primary,
+            monthTextColor: theme.colors.primary,
+            textMonthFontWeight: 'bold',
+            textDayFontSize: 16,
+            textMonthFontSize: 18,
+            textDayHeaderFontSize: 14,
+            dotColor: theme.colors.primary,
+            selectedDotColor: '#fff',
+            disabledArrowColor: '#444',
+          }}
+        />
+
+        <Modal visible={modalVisible} animationType="slide" transparent>
           <View
             style={{
-              backgroundColor: theme.colors.surface,
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              padding: 20,
-              maxHeight: '75%',
+              flex: 1,
+              justifyContent: 'flex-end',
+              backgroundColor: 'rgba(0,0,0,0.35)',
             }}>
-            <Text
+            <View
               style={{
-                fontSize: 18,
-                fontWeight: '600',
-                color: theme.colors.foreground,
-                marginBottom: 12,
-              }}>
-              Outfits on {selectedDate}
-            </Text>
-
-            <ScrollView>
-              {(outfitsByDate[selectedDate!] || []).map((o, index) => (
-                <View
-                  key={index}
-                  style={{
-                    marginBottom: 16,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#ddd',
-                    paddingBottom: 8,
-                  }}>
-                  <Text style={{color: theme.colors.foreground, fontSize: 16}}>
-                    {o.name?.trim() || 'Unnamed Outfit'}
-                  </Text>
-
-                  <View style={{flexDirection: 'row', marginTop: 8}}>
-                    {[o.top, o.bottom, o.shoes].map(item =>
-                      item?.image ? (
-                        <Image
-                          key={item.id}
-                          source={{uri: item.image}}
-                          style={{
-                            width: 60,
-                            height: 60,
-                            borderRadius: 8,
-                            marginRight: 8,
-                          }}
-                        />
-                      ) : null,
-                    )}
-                  </View>
-
-                  {o.notes ? (
-                    <Text
-                      style={{
-                        fontStyle: 'italic',
-                        color: theme.colors.foreground2,
-                        marginTop: 6,
-                      }}>
-                      {o.notes}
-                    </Text>
-                  ) : null}
-
-                  {typeof o.rating === 'number' && (
-                    <Text style={{color: '#FFD700', marginTop: 4}}>
-                      {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-
-            <AppleTouchFeedback
-              onPress={() => setModalVisible(false)}
-              hapticStyle="impactMedium"
-              style={{
-                marginTop: 20,
-                alignSelf: 'flex-end',
-                backgroundColor: theme.colors.secondary,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 6,
+                backgroundColor: theme.colors.surface,
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                padding: 20,
+                maxHeight: '75%',
               }}>
               <Text
                 style={{
-                  color: 'white',
+                  fontSize: 18,
                   fontWeight: '600',
+                  color: theme.colors.foreground,
+                  marginBottom: 12,
                 }}>
-                Close
+                Outfits on {selectedDate}
               </Text>
-            </AppleTouchFeedback>
+
+              <ScrollView>
+                {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+                  <View
+                    key={index}
+                    style={{
+                      marginBottom: 16,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#ddd',
+                      paddingBottom: 8,
+                    }}>
+                    <Text
+                      style={{color: theme.colors.foreground, fontSize: 16}}>
+                      {o.name?.trim() || 'Unnamed Outfit'}
+                    </Text>
+
+                    <View style={{flexDirection: 'row', marginTop: 8}}>
+                      {[o.top, o.bottom, o.shoes].map(item =>
+                        item?.image ? (
+                          <Image
+                            key={item.id}
+                            source={{uri: item.image}}
+                            style={{
+                              width: 60,
+                              height: 60,
+                              borderRadius: 8,
+                              marginRight: 8,
+                            }}
+                          />
+                        ) : null,
+                      )}
+                    </View>
+
+                    {o.notes ? (
+                      <Text
+                        style={{
+                          fontStyle: 'italic',
+                          color: theme.colors.foreground2,
+                          marginTop: 6,
+                        }}>
+                        {o.notes}
+                      </Text>
+                    ) : null}
+
+                    {typeof o.rating === 'number' && (
+                      <Text style={{color: '#FFD700', marginTop: 4}}>
+                        {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+
+              <AppleTouchFeedback
+                onPress={() => setModalVisible(false)}
+                hapticStyle="impactMedium"
+                style={{
+                  marginTop: 20,
+                  alignSelf: 'flex-end',
+                  backgroundColor: theme.colors.secondary,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 6,
+                }}>
+                <Text
+                  style={{
+                    color: 'white',
+                    fontWeight: '600',
+                  }}>
+                  Close
+                </Text>
+              </AppleTouchFeedback>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </View>
     </View>
   );
 }

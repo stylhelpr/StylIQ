@@ -142,7 +142,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       fontWeight: '600',
       lineHeight: 24,
       color: theme.colors.foreground,
-      paddingBottom: 12,
+      marginBottom: 12,
     },
     header: {
       fontSize: 28,
@@ -291,7 +291,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
         <Text style={styles.header}>Build Your Outfit</Text>
       </View>
 
-      <Text style={styles.subtitle}>Selected Items:</Text>
+      <Text style={styles.sectionTitle}>Selected Items:</Text>
       <View style={styles.selectedRow}>
         {selectedItems.map(item => (
           <Image

@@ -30,6 +30,41 @@ const preferences = [
 export default function PreferencesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const styles = StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    subtitle: {
+      fontSize: 17,
+      marginBottom: 20,
+    },
+    chipGroup: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 4,
+    },
+  });
 
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
 
@@ -59,16 +94,16 @@ export default function PreferencesScreen({navigate}: Props) {
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.background}]}>
-      <BackHeader
-        title="Style Profile"
-        onBack={() => navigate('StyleProfileScreen')}
-      />
-      <ScrollView style={styles.scroll}>
-        <Text style={[styles.title, {color: colors.primary}]}>
-          Style Preferences
-        </Text>
-        <Text style={[styles.subtitle, {color: colors.foreground}]}>
+    <View
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      <Text style={[styles.header, {color: theme.colors.primary}]}>
+        Style Preferences
+      </Text>
+
+      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
+      <ScrollView style={[styles.section]}>
+        <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
           Select the styles you’re most drawn to:
         </Text>
         <View style={styles.chipGroup}>
@@ -89,30 +124,7 @@ export default function PreferencesScreen({navigate}: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  chipGroup: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-});
-
-///////////
+/////////
 
 // import React, {useEffect, useState} from 'react';
 // import {View, Text, StyleSheet, ScrollView} from 'react-native';
@@ -122,6 +134,7 @@ const styles = StyleSheet.create({
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import {useAuth0} from 'react-native-auth0';
 // import {useStyleProfile} from '../hooks/useStyleProfile';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -141,6 +154,29 @@ const styles = StyleSheet.create({
 //   'Trendy',
 //   'Business Casual',
 // ];
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   scroll: {
+//     padding: 20,
+//   },
+//   title: {
+//     fontSize: 22,
+//     fontWeight: '700',
+//     marginBottom: 10,
+//   },
+//   subtitle: {
+//     fontSize: 16,
+//     marginBottom: 20,
+//   },
+//   chipGroup: {
+//     flexDirection: 'row',
+//     flexWrap: 'wrap',
+//     gap: 10,
+//   },
+// });
 
 // export default function PreferencesScreen({navigate}: Props) {
 //   const {theme} = useAppTheme();
@@ -188,38 +224,18 @@ const styles = StyleSheet.create({
 //         </Text>
 //         <View style={styles.chipGroup}>
 //           {preferences.map(pref => (
-//             <Chip
+//             <AppleTouchFeedback
 //               key={pref}
-//               label={pref}
-//               selected={selectedPrefs.includes(pref)}
 //               onPress={() => togglePref(pref)}
-//             />
+//               hapticStyle="impactLight"
+//               style={{margin: 4}}>
+//               <View>
+//                 <Chip label={pref} selected={selectedPrefs.includes(pref)} />
+//               </View>
+//             </AppleTouchFeedback>
 //           ))}
 //         </View>
 //       </ScrollView>
 //     </View>
 //   );
 // }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-//   scroll: {
-//     padding: 20,
-//   },
-//   title: {
-//     fontSize: 22,
-//     fontWeight: '700',
-//     marginBottom: 10,
-//   },
-//   subtitle: {
-//     fontSize: 16,
-//     marginBottom: 20,
-//   },
-//   chipGroup: {
-//     flexDirection: 'row',
-//     flexWrap: 'wrap',
-//     gap: 10,
-//   },
-// });

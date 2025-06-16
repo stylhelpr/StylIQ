@@ -72,22 +72,35 @@ export default function StyleProfileScreen({navigate}: Props) {
   let progress = 0;
   try {
     progress = useProfileProgress(styleProfile, wardrobe);
-  } catch (e) {
-    console.error('❌ useProfileProgress error:', e);
-  }
+  } catch (e) {}
 
   const styles = StyleSheet.create({
-    container: {
+    screen: {
       flex: 1,
-      paddingHorizontal: 16,
-      backgroundColor: colors.background,
+      backgroundColor: theme.colors.background,
     },
-    content: {
-      paddingVertical: 12,
+    container: {
+      paddingTop: 24,
       paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
     },
     link: {
-      fontSize: 16,
+      fontSize: 17,
       paddingVertical: 12,
       color: colors.primary,
       borderBottomWidth: 1,
@@ -103,11 +116,8 @@ export default function StyleProfileScreen({navigate}: Props) {
     fadeBottom: {
       flex: 1,
     },
-    progressContainer: {
-      marginTop: 16,
-    },
     progressLabel: {
-      fontSize: 14,
+      fontSize: 16,
       color: theme.colors.foreground,
       marginBottom: 4,
     },
@@ -124,20 +134,15 @@ export default function StyleProfileScreen({navigate}: Props) {
     },
   });
 
-  console.log('🧪 StyleProfile fields: LOOOK HERE', styleProfile);
-
   return (
-    <View style={styles.container}>
-      <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
+    <View
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      <Text style={[styles.header, {color: theme.colors.primary}]}>
+        Style Profile
+      </Text>
+      <BackHeader title="" onBack={() => navigate('Profile')} />
 
-      {/* <AppleTouchFeedback
-        onPress={onBack}
-        hapticStyle="impactMedium"
-        style={styles.iconWrapper}>
-        <Icon name="arrow-back" size={24} color={theme.colors.primary} />
-      </AppleTouchFeedback> */}
-
-      <View style={styles.progressContainer}>
+      <View style={styles.section}>
         <Text style={styles.progressLabel}>
           Style Profile {progress}% complete
         </Text>
@@ -146,7 +151,9 @@ export default function StyleProfileScreen({navigate}: Props) {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={{paddingBottom: 100}}
+        showsVerticalScrollIndicator={false}>
         {[
           ['Preferences', '👗 Style Preferences'],
           ['Measurements', '📏 Measurements'],
@@ -188,7 +195,7 @@ export default function StyleProfileScreen({navigate}: Props) {
   );
 }
 
-///////////
+///////////////
 
 // import React from 'react';
 // import {
@@ -209,6 +216,7 @@ export default function StyleProfileScreen({navigate}: Props) {
 // import {useUUID} from '../context/UUIDContext';
 // import {useQuery} from '@tanstack/react-query';
 // import {API_BASE_URL} from '../config/api';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -268,12 +276,32 @@ export default function StyleProfileScreen({navigate}: Props) {
 //   }
 
 //   const styles = StyleSheet.create({
-//     container: {
+//     screen: {
 //       flex: 1,
-//       backgroundColor: colors.background,
+//       backgroundColor: theme.colors.background,
+//     },
+//     container: {
+//       paddingTop: 24,
+//       paddingBottom: 60,
+//       paddingHorizontal: 16,
+//     },
+//     section: {
+//       marginBottom: 32,
+//     },
+//     header: {
+//       fontSize: 28,
+//       fontWeight: '600',
+//       color: theme.colors.primary,
+//     },
+//     sectionTitle: {
+//       fontSize: 17,
+//       fontWeight: '600',
+//       lineHeight: 24,
+//       color: theme.colors.foreground,
+//       paddingBottom: 12,
 //     },
 //     content: {
-//       padding: 20,
+//       paddingVertical: 12,
 //       paddingBottom: 60,
 //     },
 //     link: {
@@ -295,7 +323,6 @@ export default function StyleProfileScreen({navigate}: Props) {
 //     },
 //     progressContainer: {
 //       marginTop: 16,
-//       marginHorizontal: 24,
 //     },
 //     progressLabel: {
 //       fontSize: 14,
@@ -318,15 +345,21 @@ export default function StyleProfileScreen({navigate}: Props) {
 //   console.log('🧪 StyleProfile fields: LOOOK HERE', styleProfile);
 
 //   return (
-//     <View style={styles.container}>
-//       <BackHeader title="Style Profile" onBack={() => navigate('Profile')} />
+//     <View
+//       style={[styles.container, {backgroundColor: theme.colors.background}]}>
+//       <Text style={[styles.header, {color: theme.colors.primary}]}>
+//         Style Profile
+//       </Text>
+//       <BackHeader title="" onBack={() => navigate('Profile')} />
 
-//       <View style={styles.progressContainer}>
-//         <Text style={styles.progressLabel}>
-//           Style Profile {progress}% complete
-//         </Text>
-//         <View style={styles.progressBar}>
-//           <View style={[styles.progressFill, {width: `${progress}%`}]} />
+//       <View style={styles.section}>
+//         <View style={styles.progressContainer}>
+//           <Text style={styles.progressLabel}>
+//             Style Profile {progress}% complete
+//           </Text>
+//           <View style={styles.progressBar}>
+//             <View style={[styles.progressFill, {width: `${progress}%`}]} />
+//           </View>
 //         </View>
 //       </View>
 
@@ -352,9 +385,13 @@ export default function StyleProfileScreen({navigate}: Props) {
 //           ['Undertone', '🫧 Undertone'],
 //           ['StyleKeywords', '🪞 Style Keywords'],
 //         ].map(([screen, label]) => (
-//           <TouchableOpacity key={screen} onPress={() => navigate(screen)}>
+//           <AppleTouchFeedback
+//             key={screen}
+//             onPress={() => navigate(screen)}
+//             hapticStyle="impactMedium"
+//             style={{marginBottom: 12}}>
 //             <Text style={styles.link}>{label}</Text>
-//           </TouchableOpacity>
+//           </AppleTouchFeedback>
 //         ))}
 //       </ScrollView>
 

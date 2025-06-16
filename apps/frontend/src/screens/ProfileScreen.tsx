@@ -238,7 +238,7 @@ export default function ProfileScreen({navigate}: Props) {
       paddingHorizontal: 16,
     },
     section: {
-      marginBottom: 32,
+      marginBottom: 20,
     },
     headerRow: {
       flexDirection: 'row',
@@ -251,6 +251,13 @@ export default function ProfileScreen({navigate}: Props) {
       fontSize: 28,
       fontWeight: '600',
       color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
     },
     settingsButton: {
       position: 'absolute',

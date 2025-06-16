@@ -37,6 +37,57 @@ export default function SearchScreen({navigate, goBack}) {
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
 
+  const styles = StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    backButton: {marginBottom: 12, alignSelf: 'flex-start'},
+    inputWrapper: {position: 'relative', marginBottom: 16},
+    input: {
+      height: 48,
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      fontSize: 16,
+      paddingRight: 40,
+    },
+    clearIcon: {position: 'absolute', right: 12, top: 12},
+    card: {
+      padding: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      marginBottom: 12,
+    },
+    groupLabel: {
+      marginTop: 20,
+      marginBottom: 6,
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#999',
+    },
+  });
+
   const {data: wardrobe = []} = useQuery<WardrobeItem[]>({
     queryKey: ['wardrobe', userId],
     enabled: !!userId,
@@ -123,12 +174,13 @@ export default function SearchScreen({navigate, goBack}) {
   return (
     <ScrollView
       style={[styles.container, {backgroundColor: theme.colors.background}]}
-      contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
+      <Text style={[styles.header, {color: theme.colors.primary}]}>Search</Text>
+
       <AppleTouchFeedback
         onPress={goBack}
         hapticStyle="impactMedium"
-        style={styles.backButton}>
+        style={{marginTop: 18}}>
         <MaterialIcons
           name="arrow-back"
           size={24}
@@ -149,7 +201,7 @@ export default function SearchScreen({navigate, goBack}) {
       <TouchableOpacity
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        style={{alignSelf: 'center', marginBottom: 12}}>
+        style={{alignSelf: 'center', marginBottom: 20}}>
         <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
           🎤 Hold to Voice Search
         </Text>
@@ -236,35 +288,6 @@ export default function SearchScreen({navigate, goBack}) {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  content: {padding: 16},
-  backButton: {marginBottom: 12, alignSelf: 'flex-start'},
-  inputWrapper: {position: 'relative', marginBottom: 16},
-  input: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    paddingRight: 40,
-  },
-  clearIcon: {position: 'absolute', right: 12, top: 12},
-  card: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  groupLabel: {
-    marginTop: 20,
-    marginBottom: 6,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#999',
-  },
-});
 
 /////////////
 

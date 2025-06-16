@@ -11,7 +11,6 @@ type Props = {
   navigate: (screen: string) => void;
 };
 
-// ✅ Removed climate to avoid overlap with ClimateScreen
 const categories = {
   daily_activities: ['Work', 'Gym', 'Outdoor', 'Travel', 'Relaxing', 'Events'],
   favorite_colors: [
@@ -32,6 +31,44 @@ export default function LifestyleScreen({navigate}: Props) {
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {updateProfile} = useStyleProfile(userId);
+
+  const styles = StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      paddingTop: 24,
+      paddingBottom: 60,
+      paddingHorizontal: 16,
+    },
+    section: {
+      marginBottom: 20,
+    },
+    header: {
+      fontSize: 28,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    input: {
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 17,
+    },
+    chipGroup: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 4,
+    },
+  });
 
   const [selected, setSelected] = useState<{[key: string]: string[]}>({});
   const [dislikes, setDislikes] = useState('');
@@ -71,64 +108,54 @@ export default function LifestyleScreen({navigate}: Props) {
   };
 
   return (
-    <View style={[styles.container, {backgroundColor: colors.background}]}>
-      <BackHeader
-        title="Lifestyle"
-        onBack={() => navigate('StyleProfileScreen')}
-      />
-      <ScrollView contentContainerStyle={styles.content}>
+    <View
+      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      <Text style={[styles.header, {color: theme.colors.primary}]}>
+        Lifestyle
+      </Text>
+
+      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
+      <ScrollView contentContainerStyle={styles.section}>
         {Object.entries(categories).map(([category, options]) => (
-          <View key={category}>
-            <Text style={[styles.title, {color: colors.primary}]}>
-              {category
-                .replace(/_/g, ' ')
-                .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
-            </Text>
-            <View style={styles.chipGroup}>
-              {options.map(opt => (
-                <Chip
-                  key={opt}
-                  label={opt}
-                  selected={selected[category]?.includes(opt)}
-                  onPress={() => toggleSelect(category, opt)}
-                />
-              ))}
+          <View style={styles.section}>
+            <View key={category}>
+              <Text style={[styles.sectionTitle, {color: colors.primary}]}>
+                {category
+                  .replace(/_/g, ' ')
+                  .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
+              </Text>
+              <View style={styles.chipGroup}>
+                {options.map(opt => (
+                  <Chip
+                    key={opt}
+                    label={opt}
+                    selected={selected[category]?.includes(opt)}
+                    onPress={() => toggleSelect(category, opt)}
+                  />
+                ))}
+              </View>
             </View>
           </View>
         ))}
-        <Text style={[styles.title, {color: colors.primary}]}>
-          Clothing Dislikes
-        </Text>
-        <TextInput
-          placeholder="Ex: I hate turtlenecks and pleats"
-          placeholderTextColor={colors.muted}
-          value={dislikes}
-          onChangeText={handleDislikesChange}
-          style={[
-            styles.input,
-            {borderColor: colors.surface, color: colors.foreground},
-          ]}
-        />
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, {color: colors.primary}]}>
+            Clothing Dislikes
+          </Text>
+
+          <TextInput
+            placeholder="Ex: I hate turtlenecks and pleats"
+            placeholderTextColor={colors.muted}
+            value={dislikes}
+            onChangeText={handleDislikesChange}
+            style={[
+              styles.input,
+              {borderColor: colors.surface, color: colors.foreground},
+            ]}
+          />
+        </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {flex: 1},
-  content: {padding: 20},
-  title: {fontSize: 16, fontWeight: '600', marginBottom: 6},
-  chipGroup: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 15,
-    marginBottom: 40,
-  },
-});

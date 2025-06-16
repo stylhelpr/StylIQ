@@ -149,7 +149,7 @@ export default function ExploreScreen() {
       fontWeight: '600',
       lineHeight: 24,
       color: theme.colors.foreground,
-      paddingBottom: 12,
+      marginBottom: 12,
     },
     promptRow: {
       flexDirection: 'row',

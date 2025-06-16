@@ -214,7 +214,7 @@ export default function ClosetScreen({navigate}: Props) {
       fontWeight: '600',
       lineHeight: 24,
       color: theme.colors.foreground,
-      paddingBottom: 12,
+      marginBottom: 12,
     },
     input: {
       borderWidth: 1,
@@ -246,7 +246,7 @@ export default function ClosetScreen({navigate}: Props) {
     buttonRow: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      marginTop: 20,
+      marginTop: 32,
       paddingBottom: 8,
     },
     iconButton: {
@@ -348,31 +348,33 @@ export default function ClosetScreen({navigate}: Props) {
     <View style={[styles.screen, styles.container]}>
       <Text style={styles.header}>Wardrobe</Text>
 
-      <View style={styles.buttonRow}>
-        <AppleTouchFeedback
-          style={styles.createOutfitButton}
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('OutfitBuilder')}>
-          <Text style={styles.createOutfitText}>+ Create New Outfit</Text>
-        </AppleTouchFeedback>
+      <View style={styles.section}>
+        <View style={styles.buttonRow}>
+          <AppleTouchFeedback
+            style={styles.createOutfitButton}
+            hapticStyle="impactHeavy"
+            onPress={() => navigate('OutfitBuilder')}>
+            <Text style={styles.createOutfitText}>+ Create New Outfit</Text>
+          </AppleTouchFeedback>
 
-        <AppleTouchFeedback
-          style={{...styles.iconButton, marginRight: 8}}
-          hapticStyle="impactLight"
-          onPress={() => setShowFilter(true)}>
-          <MaterialIcons
-            name="filter-list"
-            size={24}
-            color={theme.colors.primary}
-          />
-        </AppleTouchFeedback>
+          <AppleTouchFeedback
+            style={{...styles.iconButton, marginRight: 8}}
+            hapticStyle="impactLight"
+            onPress={() => setShowFilter(true)}>
+            <MaterialIcons
+              name="filter-list"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </AppleTouchFeedback>
 
-        <AppleTouchFeedback
-          style={{...styles.iconButton}}
-          hapticStyle="impactLight"
-          onPress={() => setShowSort(true)}>
-          <MaterialIcons name="sort" size={24} color={theme.colors.primary} />
-        </AppleTouchFeedback>
+          <AppleTouchFeedback
+            style={{...styles.iconButton}}
+            hapticStyle="impactLight"
+            onPress={() => setShowSort(true)}>
+            <MaterialIcons name="sort" size={24} color={theme.colors.primary} />
+          </AppleTouchFeedback>
+        </View>
       </View>
 
       <ScrollView>
