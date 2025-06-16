@@ -25,6 +25,8 @@ import {initializeNotifications} from '../utils/notificationService';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import Video from 'react-native-video';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -107,6 +109,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   });
 
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [weather, setWeather] = useState(null);
   const userId = useUUID();
 
@@ -159,18 +162,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
     bannerImage: {
       width: '100%',
       height: 200,
-      borderRadius: 20,
     },
     bannerOverlay: {
       position: 'absolute',
@@ -179,7 +173,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       right: 16,
       backgroundColor: 'rgba(0,0,0,0.45)',
       padding: 12,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
     },
     bannerText: {
       fontSize: 17,
@@ -198,13 +192,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       color: theme.colors.foreground,
       lineHeight: 22,
     },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
     bodyText: {
       fontSize: 16,
       fontWeight: '400',
@@ -217,7 +204,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     dailyLookCard: {
       backgroundColor: theme.colors.surface,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
       padding: 16,
       shadowColor: '#000',
       shadowOffset: {width: 0, height: 4},
@@ -228,7 +215,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     tryButton: {
       backgroundColor: theme.colors.button1,
       paddingVertical: 10,
-      borderRadius: 14,
+      borderRadius: tokens.borderRadius.md,
       marginTop: 14,
       alignItems: 'center',
     },
@@ -246,7 +233,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     tile: {
       width: 186,
       backgroundColor: theme.colors.button1,
-      borderRadius: 14,
+      borderRadius: tokens.borderRadius.md,
       paddingVertical: 14,
       alignItems: 'center',
       justifyContent: 'center',
@@ -270,7 +257,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     outfitImage: {
       width: 90,
       height: 90,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: '#eee',
     },
     outfitLabel: {
@@ -282,7 +269,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       maxWidth: 90,
     },
     sectionWeather: {
-      borderRadius: 20,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,
       padding: 20,
       flexDirection: 'row',
@@ -307,7 +294,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       backgroundColor: theme.colors.button1,
       paddingVertical: 6,
       paddingHorizontal: 14,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
     },
     weatherTemp: {
       fontSize: 28,
@@ -343,37 +330,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
   });
 
-  const SmartNudge = ({theme}) => (
-    <Animatable.View
-      animation="fadeIn"
-      delay={1000}
-      duration={800}
-      style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: 16,
-        padding: 14,
-        marginTop: 10,
-        marginBottom: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-      }}>
-      <Text
-        style={{
-          fontSize: 14,
-          fontWeight: '600',
-          color: theme.colors.primary,
-          fontStyle: 'italic',
-        }}>
-        🧠 It might rain later — consider a jacket with your look.
-      </Text>
-    </Animatable.View>
-  );
-
   return (
     <Animated.ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={globalStyles.container}
       scrollEventThrottle={16}
       onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {
         useNativeDriver: true,
@@ -479,8 +439,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       </Animated.View>
 
       {/* Weather Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Weather</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Weather</Text>
         {weather && (
           <Animatable.View
             animation="fadeInUp"
@@ -541,7 +501,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       )}
 
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         {/* <Text style={styles.aiTitle}>Ask AI Concierge</Text> */}
         <VoiceControlComponent
           onPromptResult={prompt => navigate('Outfit', {prompt})}
@@ -553,10 +513,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         delay={300}
         duration={800}
         useNativeDriver
-        style={styles.section}>
+        style={globalStyles.section}>
         <Animated.Text
           style={[
-            styles.sectionTitle,
+            globalStyles.sectionTitle,
             {
               transform: [
                 {
@@ -610,7 +570,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       </Animatable.View>
 
-      <Text style={styles.sectionTitle}>Quick Access</Text>
+      <Text style={globalStyles.sectionTitle}>Quick Access</Text>
       <View style={styles.tileRow}>
         <AppleTouchFeedback
           style={styles.tile}
@@ -649,8 +609,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </AppleTouchFeedback>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recommended Outfit</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Recommended Outfit</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -676,8 +636,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Saved Looks</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Saved Looks</Text>
         {savedLooksPreview.length === 0 ? (
           <Text style={{color: '#aaa', paddingLeft: 16, fontStyle: 'italic'}}>
             You haven’t saved any outfits yet. Tap the heart on your favorite
@@ -713,8 +673,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Notifications</Text>
         <TouchableOpacity
           style={{
             padding: 12,

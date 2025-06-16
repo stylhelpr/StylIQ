@@ -6,6 +6,7 @@ import BackHeader from '../components/Backheader/Backheader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -24,31 +25,12 @@ const travelOptions = ['Rarely', 'Sometimes', 'Often', 'Always'];
 export default function ClimateScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     chipGroup: {
       flexDirection: 'row',
@@ -93,15 +75,18 @@ export default function ClimateScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Climate
       </Text>
 
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
       <ScrollView>
-        <View style={styles.section}>
+        <View style={globalStyles.section}>
           <Text style={[styles.subtitle, {color: colors.foreground}]}>
             What type of climate do you live in?
           </Text>
@@ -117,8 +102,8 @@ export default function ClimateScreen({navigate}: Props) {
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Travel Frequency</Text>
+        <View style={globalStyles.section}>
+          <Text style={globalStyles.sectionTitle}>Travel Frequency</Text>
           <Text style={[styles.subtitle, {color: colors.foreground}]}>
             How often do you travel to different climates?
           </Text>

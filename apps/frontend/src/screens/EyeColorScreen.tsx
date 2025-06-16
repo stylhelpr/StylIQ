@@ -6,6 +6,7 @@ import BackHeader from '../components/Backheader/Backheader';
 import {Chip} from '../components/Chip/Chip';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -16,32 +17,13 @@ const eyeColors = ['Brown', 'Hazel', 'Amber', 'Green', 'Blue', 'Gray', 'Other'];
 export default function EyeColorScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string | null>(null);
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     chipGroup: {
       flexDirection: 'row',
@@ -72,13 +54,16 @@ export default function EyeColorScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Eye Color
       </Text>
 
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-      <ScrollView contentContainerStyle={styles.section}>
+      <ScrollView contentContainerStyle={globalStyles.section}>
         <Text style={[styles.subtitle, {color: colors.foreground}]}>
           Select your natural eye color:
         </Text>

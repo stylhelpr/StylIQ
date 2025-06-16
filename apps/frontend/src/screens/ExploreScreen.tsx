@@ -19,6 +19,8 @@ import {mockClothingItems} from '../components/mockClothingItems/mockClothingIte
 import {useVoiceControl} from '../hooks/useVoiceControl';
 import {Pressable} from 'react-native';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type TrendArticle = {
   id: string;
@@ -29,7 +31,7 @@ type TrendArticle = {
   link: string;
 };
 
-const ITEM_MARGIN = 9.0;
+const ITEM_MARGIN = 8.9;
 const MIN_ITEM_WIDTH = 160;
 const screenWidth = Dimensions.get('window').width;
 
@@ -112,6 +114,7 @@ const dummyTrends = featuredLooks.map((look, index) => ({
 
 export default function ExploreScreen() {
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [query, setQuery] = useState('');
   const [trends, setTrends] = useState<TrendArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,19 +127,6 @@ export default function ExploreScreen() {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
     title: {
       fontSize: 14,
       fontWeight: '500',
@@ -144,23 +134,16 @@ export default function ExploreScreen() {
       marginBottom: 12,
       letterSpacing: -0.4,
     },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
     promptRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 32,
-      marginTop: 32,
+      marginBottom: 20,
+      marginTop: 20,
     },
     input: {
       flex: 1,
       borderWidth: 1,
-      borderRadius: 14,
+      borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 14,
       height: 44,
       marginRight: 10,
@@ -171,24 +154,23 @@ export default function ExploreScreen() {
     promptButton: {
       backgroundColor: '#000',
       padding: 12,
-      borderRadius: 14,
+      borderRadius: tokens.borderRadius.md,
     },
     card: {
       marginRight: 12,
       backgroundColor: theme.colors.surface,
-      borderRadius: 16,
-      marginBottom: 20,
+      borderRadius: tokens.borderRadius.md,
     },
     AISuggestcard: {
       padding: 12,
       backgroundColor: theme.colors.surface,
-      borderRadius: 16,
-      marginBottom: 20,
+      borderRadius: tokens.borderRadius.md,
     },
     image: {
       width: 160,
       height: 140,
-      borderRadius: 14,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
       backgroundColor: theme.colors.surface,
     },
     cardTitle: {
@@ -207,7 +189,7 @@ export default function ExploreScreen() {
     suggestedImage: {
       width: '100%',
       height: 160,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
       marginBottom: 10,
     },
     missingItem: {
@@ -228,16 +210,16 @@ export default function ExploreScreen() {
     },
     gridCard: {
       width: imageSize,
-      marginBottom: ITEM_MARGIN * 1.0,
-      borderRadius: 16,
+      marginBottom: ITEM_MARGIN * 1.2,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
     },
     gridImage: {
       width: '100%',
       height: imageSize,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
     },
     gridTitle: {
       fontSize: 14,
@@ -252,9 +234,8 @@ export default function ExploreScreen() {
       padding: 12,
     },
     inspoCard: {
-      marginBottom: 6,
       marginRight: ITEM_MARGIN * 1,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
       alignItems: 'center',
       backgroundColor: theme.colors.surface,
       shadowColor: '#000',
@@ -265,8 +246,9 @@ export default function ExploreScreen() {
     inspoImage: {
       width: 120,
       height: 120,
-      borderRadius: 14,
-      marginBottom: 6,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
+
       backgroundColor: theme.colors.surface,
     },
     inspoText: {
@@ -285,8 +267,8 @@ export default function ExploreScreen() {
     modalContent: {
       flex: 1,
       backgroundColor: '#000',
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
       overflow: 'hidden',
     },
     webHeader: {
@@ -332,12 +314,15 @@ export default function ExploreScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Explore
       </Text>
 
-      {/* <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+      {/* <Text style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
         Style Prompt
       </Text> */}
 
@@ -371,8 +356,9 @@ export default function ExploreScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+      <View style={globalStyles.section}>
+        <Text
+          style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
           Current Picks
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -400,8 +386,9 @@ export default function ExploreScreen() {
         </ScrollView>
       </View>
 
-      <View style={styles.sectionTitle}>
-        <Text style={[[styles.sectionTitle], {color: theme.colors.primary}]}>
+      <View style={globalStyles.section}>
+        <Text
+          style={[[globalStyles.sectionTitle], {color: theme.colors.primary}]}>
           AI Suggests
         </Text>
         <View style={[styles.AISuggestcard]}>
@@ -438,8 +425,9 @@ export default function ExploreScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+      <View style={globalStyles.section}>
+        <Text
+          style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
           Style Inspiration
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -456,8 +444,9 @@ export default function ExploreScreen() {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+      <View style={globalStyles.section}>
+        <Text
+          style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
           Trend Lookout
         </Text>
         {loading ? (
@@ -860,12 +849,12 @@ export default function ExploreScreen() {
 
 //   return (
 //     <ScrollView
-//       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-//       <Text style={[styles.header, {color: theme.colors.primary}]}>
+//       style={[globalStyles.container, {backgroundColor: theme.colors.background}]}>
+//       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
 //         Explore
 //       </Text>
 
-//       {/* <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+//       {/* <Text style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
 //         Style Prompt
 //       </Text> */}
 //       <View style={styles.promptRow}>
@@ -919,7 +908,7 @@ export default function ExploreScreen() {
 //         ))}
 //       </ScrollView>
 
-//       <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+//       <Text style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
 //         AI Suggests
 //       </Text>
 //       <View style={[styles.AISuggestcard]}>
@@ -948,7 +937,7 @@ export default function ExploreScreen() {
 //         </TouchableOpacity>
 //       </View>
 
-//       <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+//       <Text style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
 //         Style Inspiration
 //       </Text>
 //       <ScrollView
@@ -967,7 +956,7 @@ export default function ExploreScreen() {
 //         ))}
 //       </ScrollView>
 
-//       <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+//       <Text style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
 //         Trend Lookout
 //       </Text>
 //       {loading ? (

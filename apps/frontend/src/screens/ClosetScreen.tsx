@@ -21,6 +21,8 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 const categoryIcons: Partial<Record<MainCategory, string>> = {
   Tops: 'checkroom',
@@ -90,6 +92,7 @@ type Props = {
 
 export default function ClosetScreen({navigate}: Props) {
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width,
   );
@@ -197,45 +200,21 @@ export default function ClosetScreen({navigate}: Props) {
   // };
 
   const styles = StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
     input: {
       borderWidth: 1,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.md,
       padding: 10,
       marginBottom: 12,
       fontSize: 16,
     },
     button: {
       paddingVertical: 12,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.md,
       alignItems: 'center',
     },
     buttonText: {
       fontSize: 16,
       fontWeight: '600',
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
     },
     title: {
       fontSize: 28,
@@ -251,7 +230,7 @@ export default function ClosetScreen({navigate}: Props) {
     },
     iconButton: {
       padding: 8,
-      borderRadius: 8,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.button1,
       elevation: 2,
     },
@@ -264,13 +243,14 @@ export default function ClosetScreen({navigate}: Props) {
       width: 184,
       marginBottom: ITEM_MARGIN * 0.6,
       backgroundColor: theme.colors.surface,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
       position: 'relative',
     },
     image: {
       width: '100%',
       height: imageSize,
-      borderRadius: 16,
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
     },
     labelContainer: {
       padding: 8,
@@ -292,7 +272,7 @@ export default function ClosetScreen({navigate}: Props) {
     modalContent: {
       backgroundColor: theme.colors.surface,
       padding: 20,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       margin: 40,
     },
     modalOption: {
@@ -304,7 +284,7 @@ export default function ClosetScreen({navigate}: Props) {
       backgroundColor: theme.colors.button1,
       paddingVertical: 10,
       paddingHorizontal: 16,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.md,
       alignSelf: 'center',
       marginRight: 8,
     },
@@ -345,10 +325,10 @@ export default function ClosetScreen({navigate}: Props) {
   });
 
   return (
-    <View style={[styles.screen, styles.container]}>
-      <Text style={styles.header}>Wardrobe</Text>
+    <View style={[globalStyles.screen, globalStyles.container]}>
+      <Text style={globalStyles.header}>Wardrobe</Text>
 
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         <View style={styles.buttonRow}>
           <AppleTouchFeedback
             style={styles.createOutfitButton}
@@ -379,8 +359,8 @@ export default function ClosetScreen({navigate}: Props) {
 
       <ScrollView>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
-          <View key={mainCategory} style={styles.section}>
-            <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+          <View key={mainCategory} style={globalStyles.section}>
+            <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
               {mainCategory}
             </Text>
 
@@ -997,7 +977,7 @@ export default function ClosetScreen({navigate}: Props) {
 
 //   return (
 //     <View style={{flex: 1}}>
-//       <Text style={styles.header}>Wardrobe</Text>
+//       <Text style={globalStyles.header}>Wardrobe</Text>
 
 //       <View style={styles.filterSortRow}>
 //         <AppleTouchFeedback
@@ -1029,7 +1009,7 @@ export default function ClosetScreen({navigate}: Props) {
 //       <ScrollView style={styles.container}>
 //         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
 //           <View key={mainCategory} style={{marginBottom: 32}}>
-//             <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//             <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
 //               {mainCategory}
 //             </Text>
 
@@ -1641,7 +1621,7 @@ export default function ClosetScreen({navigate}: Props) {
 
 //   return (
 //     <View style={{flex: 1}}>
-//       <Text style={styles.header}>Wardrobe</Text>
+//       <Text style={globalStyles.header}>Wardrobe</Text>
 
 //       <View style={styles.filterSortRow}>
 //         <TouchableOpacity
@@ -1669,7 +1649,7 @@ export default function ClosetScreen({navigate}: Props) {
 //       <ScrollView style={styles.container}>
 //         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
 //           <View key={mainCategory} style={{marginBottom: 32}}>
-//             <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//             <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
 //               {mainCategory}
 //             </Text>
 
@@ -2261,7 +2241,7 @@ export default function ClosetScreen({navigate}: Props) {
 
 //   return (
 //     <View style={{flex: 1}}>
-//       <Text style={styles.header}>Wardrobe</Text>
+//       <Text style={globalStyles.header}>Wardrobe</Text>
 
 //       <View style={styles.filterSortRow}>
 //         <TouchableOpacity
@@ -2289,7 +2269,7 @@ export default function ClosetScreen({navigate}: Props) {
 //       <ScrollView style={styles.container}>
 //         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
 //           <View key={mainCategory} style={{marginBottom: 32}}>
-//             <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//             <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
 //               {mainCategory}
 //             </Text>
 
@@ -2931,7 +2911,7 @@ export default function ClosetScreen({navigate}: Props) {
 //   return (
 //     <View style={{flex: 1}}>
 //       <ScrollView style={styles.container}>
-//         <Text style={styles.header}>Wardrobe</Text>
+//         <Text style={globalStyles.header}>Wardrobe</Text>
 
 //         <View style={styles.filterSortRow}>
 //           <TouchableOpacity
@@ -2965,7 +2945,7 @@ export default function ClosetScreen({navigate}: Props) {
 //                 paddingHorizontal: 0,
 //                 marginBottom: 6,
 //               }}>
-//               <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//               <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
 //                 {mainCategory}
 //               </Text>
 //             </View>
@@ -3604,7 +3584,7 @@ export default function ClosetScreen({navigate}: Props) {
 //   return (
 //     <View style={{flex: 1}}>
 //       <ScrollView style={styles.container}>
-//         <Text style={styles.header}>Wardrobe</Text>
+//         <Text style={globalStyles.header}>Wardrobe</Text>
 
 //         <View style={styles.filterSortRow}>
 //           <TouchableOpacity
@@ -3638,7 +3618,7 @@ export default function ClosetScreen({navigate}: Props) {
 //                 paddingHorizontal: 0,
 //                 marginBottom: 6,
 //               }}>
-//               <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//               <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
 //                 {mainCategory}
 //               </Text>
 //             </View>
@@ -4229,7 +4209,7 @@ export default function ClosetScreen({navigate}: Props) {
 //   return (
 //     <View style={{flex: 1}}>
 //       <ScrollView style={styles.container}>
-//         <Text style={styles.header}>Wardrobe</Text>
+//         <Text style={globalStyles.header}>Wardrobe</Text>
 
 //         <View style={styles.filterSortRow}>
 //           <TouchableOpacity
@@ -4263,7 +4243,7 @@ export default function ClosetScreen({navigate}: Props) {
 //                 paddingHorizontal: 0,
 //                 marginBottom: 6,
 //               }}>
-//               <Text style={[styles.sectionTitle, {fontSize: 24}]}>
+//               <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
 //                 {mainCategory}
 //               </Text>
 //             </View>

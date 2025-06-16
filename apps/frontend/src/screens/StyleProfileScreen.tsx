@@ -18,6 +18,7 @@ import {useUUID} from '../context/UUIDContext';
 import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -29,6 +30,7 @@ export default function StyleProfileScreen({navigate}: Props) {
   const uuid = useUUID();
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const {
     styleProfile,
@@ -79,26 +81,6 @@ export default function StyleProfileScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
     link: {
       fontSize: 17,
       paddingVertical: 12,
@@ -136,13 +118,16 @@ export default function StyleProfileScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Style Profile
       </Text>
       <BackHeader title="" onBack={() => navigate('Profile')} />
 
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         <Text style={styles.progressLabel}>
           Style Profile {progress}% complete
         </Text>

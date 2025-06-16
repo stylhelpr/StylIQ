@@ -14,6 +14,7 @@ import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import currency from 'currency.js';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -37,31 +38,12 @@ const allBrands = [
 export default function BudgetAndBrandsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     subtitle: {
       fontSize: 17,
@@ -135,15 +117,18 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Budget & Brands
       </Text>
 
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
-      <ScrollView style={styles.section}>
-        <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+      <ScrollView style={globalStyles.section}>
+        <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Your Monthly Style Budget:
         </Text>
         <TextInput
@@ -159,7 +144,7 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
         />
         <Text
           style={[
-            styles.sectionTitle,
+            globalStyles.sectionTitle,
             {marginTop: 20, color: colors.foreground},
           ]}>
           Your Favorite Brands:

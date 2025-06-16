@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFavorites} from '../hooks/useFavorites';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type SavedOutfit = {
   id: string;
@@ -46,6 +47,7 @@ export default function SavedOutfitsScreen() {
   >({});
 
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [combinedOutfits, setCombinedOutfits] = useState<SavedOutfit[]>([]);
   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
@@ -328,26 +330,6 @@ export default function SavedOutfitsScreen() {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
     card: {
       borderRadius: 12,
       padding: 12,
@@ -502,14 +484,21 @@ export default function SavedOutfitsScreen() {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
       <Text
-        style={[styles.header, styles.section, {color: theme.colors.primary}]}>
+        style={[
+          globalStyles.header,
+          globalStyles.section,
+          {color: theme.colors.primary},
+        ]}>
         Saved Outfits
       </Text>
 
       {/* 🔀 Sort/Filter Bar */}
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         <Text
           style={{
             color: theme.colors.foreground,
@@ -555,7 +544,7 @@ export default function SavedOutfitsScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.section}>
+      <ScrollView style={globalStyles.section}>
         {sortedOutfits.length === 0 ? (
           <Text style={{color: theme.colors.foreground, textAlign: 'center'}}>
             No saved outfits yet.

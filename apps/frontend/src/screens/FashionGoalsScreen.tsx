@@ -13,6 +13,7 @@ import {Chip} from '../components/Chip/Chip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -21,6 +22,7 @@ type Props = {
 export default function FashionGoalsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const [goals, setGoals] = useState('');
   const [confidence, setConfidence] = useState('');
@@ -67,26 +69,6 @@ export default function FashionGoalsScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
     chipGroup: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -106,14 +88,19 @@ export default function FashionGoalsScreen({navigate}: Props) {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Fashion Goals
       </Text>
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>What are your style goals?</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>
+          What are your style goals?
+        </Text>
         <TextInput
           style={styles.input}
           value={goals}
@@ -123,8 +110,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
         />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>
           How confident do you feel in your style?
         </Text>
         <View style={styles.chipRow}>
@@ -139,8 +126,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>
           Do you prefer bold or subtle looks?
         </Text>
         <View style={styles.chipRow}>

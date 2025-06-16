@@ -16,6 +16,7 @@ import {postWardrobeItem} from '../api/postWardrobeItem';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useAuth0} from 'react-native-auth0';
 import {useUUID} from '../context/UUIDContext';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 export default function AddItemScreen({
   navigate,
@@ -23,6 +24,7 @@ export default function AddItemScreen({
   navigate: (screen: string) => void;
 }) {
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const {user} = useAuth0();
   const userId = useUUID();
 
@@ -79,17 +81,6 @@ export default function AddItemScreen({
   const handleCancel = () => navigate('Closet');
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 16,
-      backgroundColor: theme.colors.background,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: theme.colors.primary,
-      marginBottom: 12,
-    },
     formSection: {
       marginTop: 24,
     },
@@ -143,10 +134,10 @@ export default function AddItemScreen({
 
   return (
     <ScrollView
-      style={styles.container}
+      style={globalStyles.container}
       contentContainerStyle={{paddingBottom: 40}}
       keyboardShouldPersistTaps="handled">
-      <Text style={styles.sectionTitle}>Select Image</Text>
+      <Text style={globalStyles.sectionTitle}>Select Image</Text>
       <ImagePickerGrid onSelectImage={setImageUri} selectedUri={imageUri} />
 
       {imageUri && (

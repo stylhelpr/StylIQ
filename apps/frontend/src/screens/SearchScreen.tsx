@@ -17,6 +17,7 @@ import {useUUID} from '../context/UUIDContext';
 import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type SavedOutfit = {
   id: string;
@@ -34,6 +35,7 @@ type SavedOutfit = {
 export default function SearchScreen({navigate, goBack}) {
   const userId = useUUID();
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
 
@@ -41,26 +43,6 @@ export default function SearchScreen({navigate, goBack}) {
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     backButton: {marginBottom: 12, alignSelf: 'flex-start'},
     inputWrapper: {position: 'relative', marginBottom: 16},
@@ -173,9 +155,14 @@ export default function SearchScreen({navigate, goBack}) {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: theme.colors.background}]}
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}
       keyboardShouldPersistTaps="handled">
-      <Text style={[styles.header, {color: theme.colors.primary}]}>Search</Text>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
+        Search
+      </Text>
 
       <AppleTouchFeedback
         onPress={goBack}

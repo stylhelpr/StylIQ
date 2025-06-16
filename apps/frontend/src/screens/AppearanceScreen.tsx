@@ -7,6 +7,7 @@ import {Chip} from '../components/Chip/Chip';
 import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -25,31 +26,12 @@ const fields = {
 export default function AppearanceScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     chipGroup: {
       flexDirection: 'row',
@@ -79,17 +61,20 @@ export default function AppearanceScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Appearance
       </Text>
 
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
-      <ScrollView contentContainerStyle={styles.section}>
+      <ScrollView contentContainerStyle={globalStyles.section}>
         {Object.entries(fields).map(([category, options]) => (
           <View key={category}>
-            <Text style={[styles.sectionTitle, {color: colors.primary}]}>
+            <Text style={[globalStyles.sectionTitle, {color: colors.primary}]}>
               {category
                 .replace(/_/g, ' ')
                 .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}

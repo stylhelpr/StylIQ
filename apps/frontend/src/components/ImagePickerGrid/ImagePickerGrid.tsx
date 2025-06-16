@@ -19,6 +19,7 @@ import {
 } from 'react-native-image-picker';
 import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
 
 type Props = {
   onSelectImage?: (uri: string) => void;
@@ -28,9 +29,9 @@ type Props = {
 export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   const [photos, setPhotos] = useState<Asset[]>([]);
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
-    container: {flex: 1},
     imagePickerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -138,7 +139,7 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={globalStyles.container}>
       <View style={styles.imagePickerRow}>
         {[
           {label: 'Take Photo', onPress: takePhoto},

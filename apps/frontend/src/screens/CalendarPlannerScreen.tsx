@@ -14,6 +14,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type WardrobeItem = {
   id: string;
@@ -47,33 +48,13 @@ export default function OutfitPlannerScreen() {
   const {user} = useAuth0();
   const userId = useUUID() || user?.sub || '';
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const colors = theme.colors;
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-      marginTop: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     chipGroup: {
       flexDirection: 'row',
@@ -231,10 +212,10 @@ export default function OutfitPlannerScreen() {
   };
 
   return (
-    <View style={[styles.container]}>
-      <Text style={[styles.header]}>Planned Outfits</Text>
+    <View style={[globalStyles.container]}>
+      <Text style={[globalStyles.header]}>Planned Outfits</Text>
 
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         <Calendar
           onDayPress={handleDayPress}
           markedDates={{

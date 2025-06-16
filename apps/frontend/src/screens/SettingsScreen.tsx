@@ -20,6 +20,7 @@ import DeviceInfo from 'react-native-device-info';
 import BackHeader from '../components/Backheader/Backheader';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigation: any;
@@ -49,6 +50,7 @@ const skinOptions: {
 
 export default function SettingsScreen({navigate}: Props) {
   const {theme, mode, setSkin} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const systemScheme = useColorScheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -59,27 +61,6 @@ export default function SettingsScreen({navigate}: Props) {
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginTop: 20,
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     row: {
       flexDirection: 'row',
@@ -236,8 +217,11 @@ export default function SettingsScreen({navigate}: Props) {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Settings
       </Text>
       <AppleTouchFeedback
@@ -247,10 +231,10 @@ export default function SettingsScreen({navigate}: Props) {
         <MaterialIcons name="arrow-back" size={24} color={colors.foreground} />
       </AppleTouchFeedback>
 
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         {/* 🔔 Notifications */}
         <View style={styles.row}>
-          <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
             Enable Notifications
           </Text>
           <Switch
@@ -261,7 +245,7 @@ export default function SettingsScreen({navigate}: Props) {
         </View>
 
         {/* 🎨 Theme */}
-        <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+        <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           App Color Theme
         </Text>
         {/* Theme selection */}
@@ -277,7 +261,7 @@ export default function SettingsScreen({navigate}: Props) {
           onPress={resetApp}
           hapticStyle="impactHeavy"
           style={styles.actionButton}>
-          <Text style={[styles.sectionTitle, {color: colors.error}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.error}]}>
             Reset App Data
           </Text>
         </AppleTouchFeedback>
@@ -287,7 +271,7 @@ export default function SettingsScreen({navigate}: Props) {
           onPress={handleDeleteAccount}
           hapticStyle="impactHeavy"
           style={styles.actionButton}>
-          <Text style={[styles.sectionTitle, {color: colors.error}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.error}]}>
             Delete My Data
           </Text>
         </AppleTouchFeedback>
@@ -297,7 +281,7 @@ export default function SettingsScreen({navigate}: Props) {
           onPress={() => Linking.openURL('https://styliq.app/privacy')}
           hapticStyle="impactLight"
           style={styles.actionButton}>
-          <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
             Privacy Policy
           </Text>
         </AppleTouchFeedback>
@@ -307,7 +291,7 @@ export default function SettingsScreen({navigate}: Props) {
           onPress={() => Linking.openURL('https://styliq.app/faq')}
           hapticStyle="impactLight"
           style={styles.actionButton}>
-          <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
             FAQ & Help
           </Text>
         </AppleTouchFeedback>
@@ -317,7 +301,7 @@ export default function SettingsScreen({navigate}: Props) {
           onPress={handleSendFeedback}
           hapticStyle="impactMedium"
           style={{paddingVertical: 12}}>
-          <Text style={[styles.sectionTitle, {color: colors.primary}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.primary}]}>
             Send Feedback
           </Text>
         </AppleTouchFeedback>
@@ -329,7 +313,7 @@ export default function SettingsScreen({navigate}: Props) {
           }}
           hapticStyle="impactLight"
           style={styles.actionButton}>
-          <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
             Open Source Licenses
           </Text>
         </AppleTouchFeedback>

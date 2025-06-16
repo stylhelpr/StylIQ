@@ -6,6 +6,7 @@ import {Chip} from '../components/Chip/Chip';
 import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -27,6 +28,7 @@ const categories = {
 export default function LifestyleScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
@@ -36,26 +38,6 @@ export default function LifestyleScreen({navigate}: Props) {
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     input: {
       borderWidth: 1,
@@ -109,18 +91,22 @@ export default function LifestyleScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Lifestyle
       </Text>
 
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
-      <ScrollView contentContainerStyle={styles.section}>
+      <ScrollView contentContainerStyle={globalStyles.section}>
         {Object.entries(categories).map(([category, options]) => (
-          <View style={styles.section}>
+          <View style={globalStyles.section}>
             <View key={category}>
-              <Text style={[styles.sectionTitle, {color: colors.primary}]}>
+              <Text
+                style={[globalStyles.sectionTitle, {color: colors.primary}]}>
                 {category
                   .replace(/_/g, ' ')
                   .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
@@ -139,8 +125,8 @@ export default function LifestyleScreen({navigate}: Props) {
           </View>
         ))}
 
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, {color: colors.primary}]}>
+        <View style={globalStyles.section}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.primary}]}>
             Clothing Dislikes
           </Text>
 

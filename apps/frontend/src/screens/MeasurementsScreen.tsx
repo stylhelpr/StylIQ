@@ -14,6 +14,7 @@ import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -34,6 +35,7 @@ const fieldMap: Record<string, string> = {
 export default function MeasurementsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {updateProfile} = useStyleProfile(userId);
@@ -42,26 +44,6 @@ export default function MeasurementsScreen({navigate}: Props) {
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     unitRow: {
       flexDirection: 'row',
@@ -253,15 +235,18 @@ export default function MeasurementsScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Measurements
       </Text>
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
-      <ScrollView style={[styles.section]}>
+      <ScrollView style={[globalStyles.section]}>
         <View style={styles.unitRow}>
-          <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+          <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
             Units: {unitPreference === 'imperial' ? 'in/lbs' : 'cm/kg'}
           </Text>
           <AppleTouchFeedback

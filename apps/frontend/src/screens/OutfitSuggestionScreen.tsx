@@ -18,6 +18,7 @@ import {saveFavoriteOutfit} from '../utils/favorites';
 import OutfitNameModal from '../components/OutfitNameModal/OutfitNameModal';
 import {saveOutfitToDate} from '../utils/calendarStorage';
 import Voice from '@react-native-voice/voice';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -79,6 +80,7 @@ const mockWardrobe: WardrobeItem[] = [
 
 export default function OutfitSuggestionScreen({navigate}: Props) {
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [visibleModal, setVisibleModal] = useState<
     null | 'top' | 'bottom' | 'shoes'
   >(null);
@@ -173,19 +175,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
+
     title: {
       fontSize: 14,
       fontWeight: '500',
@@ -411,12 +401,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   };
 
   return (
-    <View style={[styles.container]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+    <View style={[globalStyles.container]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Style Me
       </Text>
 
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Prompt input with mic */}
           <View style={styles.promptRow}>
@@ -466,7 +456,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           </TouchableOpacity>
 
           {/* Suggested outfit */}
-          {/* <Text style={[styles.header, {color: theme.colors.foreground}]}>
+          {/* <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
             Your Outfit
           </Text> */}
           {renderCard('Top', outfit.top, 'top')}
@@ -974,10 +964,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
 //   return (
 //     <>
-//       <Text style={styles.header}>Style Me</Text>
+//       <Text style={globalStyles.header}>Style Me</Text>
 
 //       <View
-//         style={[styles.container, {backgroundColor: theme.colors.background}]}>
+//         style={[globalStyles.container, {backgroundColor: theme.colors.background}]}>
 //         <ScrollView contentContainerStyle={styles.scrollContent}>
 //           {/* Prompt input with mic */}
 //           <View style={styles.promptRow}>
@@ -1027,7 +1017,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 //           </TouchableOpacity>
 
 //           {/* Suggested outfit */}
-//           {/* <Text style={[styles.header, {color: theme.colors.foreground}]}>
+//           {/* <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
 //             Your Outfit
 //           </Text> */}
 //           {renderCard('Top', outfit.top, 'top')}

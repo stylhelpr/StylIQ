@@ -6,6 +6,7 @@ import {Chip} from '../components/Chip/Chip';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 const COLOR_KEY = 'style.colorPreferences';
 
@@ -29,32 +30,13 @@ type Props = {
 export default function ColorPreferencesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string[]>([]);
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     chipGroup: {
       flexDirection: 'row',
@@ -85,15 +67,18 @@ export default function ColorPreferencesScreen({navigate}: Props) {
 
   return (
     <View
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Color Preferences
       </Text>
 
       <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
-      <ScrollView contentContainerStyle={styles.section}>
-        <Text style={[styles.sectionTitle, {color: colors.foreground}]}>
+      <ScrollView contentContainerStyle={globalStyles.section}>
+        <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Choose colors you like wearing:
         </Text>
         <View style={styles.chipGroup}>

@@ -15,6 +15,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import {useQuery} from '@tanstack/react-query';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type WardrobeItem = {
   id: string;
@@ -33,6 +34,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   const PORT = 3001;
   const userId = useUUID();
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
 
   const [selectedItems, setSelectedItems] = useState<WardrobeItem[]>([]);
   const [showNameModal, setShowNameModal] = useState(false);
@@ -128,26 +130,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
     },
     title: {
       fontSize: 24,
@@ -262,7 +244,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     return (
       <View
         style={[
-          styles.container,
+          globalStyles.container,
           {justifyContent: 'center', alignItems: 'center'},
         ]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -277,7 +259,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     return (
       <View
         style={[
-          styles.container,
+          globalStyles.container,
           {justifyContent: 'center', alignItems: 'center'},
         ]}>
         <Text style={{color: 'red'}}>Failed to load wardrobe items.</Text>
@@ -286,12 +268,12 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.header}>Build Your Outfit</Text>
+    <ScrollView style={globalStyles.container}>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.header}>Build Your Outfit</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Selected Items:</Text>
+      <Text style={globalStyles.sectionTitle}>Selected Items:</Text>
       <View style={styles.selectedRow}>
         {selectedItems.map(item => (
           <Image

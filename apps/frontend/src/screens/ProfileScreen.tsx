@@ -16,6 +16,7 @@ import {API_BASE_URL} from '../config/api';
 import StyleProfileScreen from './StyleProfileScreen';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 import type {Screen} from '../navigation/types';
 
@@ -150,6 +151,7 @@ export default function ProfileScreen({navigate}: Props) {
 
   const {theme} = useAppTheme();
   const {user} = useAuth0();
+  const globalStyles = useGlobalStyles();
   const auth0Sub = user?.sub;
   const {styleProfile} = useStyleProfile(auth0Sub || '');
   const favoriteBrands = styleProfile?.preferred_brands || [];
@@ -232,32 +234,12 @@ export default function ProfileScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
     headerRow: {
       flexDirection: 'row',
       paddingTop: 12,
       paddingBottom: 4,
       alignItems: 'center',
       marginTop: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     settingsButton: {
       position: 'absolute',
@@ -457,8 +439,8 @@ export default function ProfileScreen({navigate}: Props) {
   });
 
   return (
-    <ScrollView style={[styles.screen, styles.container]}>
-      <Text style={styles.header}>Profile</Text>
+    <ScrollView style={[styles.screen, globalStyles.container]}>
+      <Text style={globalStyles.header}>Profile</Text>
 
       <AppleTouchFeedback
         style={styles.settingsButton}
@@ -468,7 +450,7 @@ export default function ProfileScreen({navigate}: Props) {
       </AppleTouchFeedback>
 
       {/* Header Row */}
-      <View style={styles.section}>
+      <View style={globalStyles.section}>
         <View style={styles.headerRow}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarBorder}>
@@ -515,8 +497,8 @@ export default function ProfileScreen({navigate}: Props) {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Style Profile</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Style Profile</Text>
         <AppleTouchFeedback
           style={styles.profileMenuItem}
           onPress={() => navigate('StyleProfileScreen')}
@@ -535,8 +517,8 @@ export default function ProfileScreen({navigate}: Props) {
         </AppleTouchFeedback>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Style Tags</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Style Tags</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -549,8 +531,8 @@ export default function ProfileScreen({navigate}: Props) {
         </ScrollView>
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle]}>Favorite Brands</Text>
+      <View style={globalStyles.section}>
+        <Text style={[globalStyles.sectionTitle]}>Favorite Brands</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -564,8 +546,8 @@ export default function ProfileScreen({navigate}: Props) {
       </View>
 
       {/* Favorite Outfits */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle]}>Favorite Outfits</Text>
+      <View style={globalStyles.section}>
+        <Text style={[globalStyles.sectionTitle]}>Favorite Outfits</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {storyHighlights.map((label, index) => (
             <View key={index} style={styles.highlightCircle}>
