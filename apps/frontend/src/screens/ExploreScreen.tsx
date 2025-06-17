@@ -173,13 +173,6 @@ export default function ExploreScreen() {
       borderTopRightRadius: 10,
       backgroundColor: theme.colors.surface,
     },
-    cardTitle: {
-      padding: 10,
-      fontSize: 14,
-      fontWeight: '500',
-      textAlign: 'center',
-      color: theme.colors.foreground,
-    },
     suggestionText: {
       fontSize: 14,
       fontWeight: '500',
@@ -231,7 +224,8 @@ export default function ExploreScreen() {
       color: '#777',
     },
     gridLabelContainer: {
-      padding: 12,
+      paddingVertical: 4,
+      paddingHorizontal: 12,
     },
     inspoCard: {
       marginRight: ITEM_MARGIN * 1,
@@ -380,7 +374,13 @@ export default function ExploreScreen() {
                   )
                 }
               />
-              <Text style={[styles.cardTitle]}>{look.title}</Text>
+              <Text
+                style={[
+                  globalStyles.label,
+                  {marginTop: 6, marginBottom: 6, textAlign: 'center'},
+                ]}>
+                {look.title}
+              </Text>
             </AppleTouchFeedback>
           ))}
         </ScrollView>
@@ -393,7 +393,10 @@ export default function ExploreScreen() {
         </Text>
         <View style={[styles.AISuggestcard]}>
           <Text
-            style={[styles.suggestionText, {color: theme.colors.foreground}]}>
+            style={[
+              globalStyles.label,
+              {marginBottom: 10, color: theme.colors.foreground},
+            ]}>
             Pair your navy chinos with white sneakers and a denim overshirt.
             Missing something?
           </Text>
@@ -401,7 +404,11 @@ export default function ExploreScreen() {
             source={{uri: missingItemSuggestion.image}}
             style={styles.suggestedImage}
           />
-          <Text style={[styles.missingItem, {color: theme.colors.primary}]}>
+          <Text
+            style={[
+              globalStyles.label,
+              {marginBottom: 8, color: theme.colors.foreground},
+            ]}>
             Suggested: {missingItemSuggestion.name}
           </Text>
           <Text style={[styles.price, {color: theme.colors.foreground}]}>
@@ -435,7 +442,11 @@ export default function ExploreScreen() {
             <View key={item.id} style={styles.card}>
               <Image source={{uri: item.image}} style={styles.image} />
               <Text
-                style={[styles.cardTitle, {color: theme.colors.foreground}]}
+                style={[
+                  globalStyles.label,
+                  {marginTop: 6, marginBottom: 6, textAlign: 'center'},
+                  {color: theme.colors.foreground},
+                ]}
                 numberOfLines={1}>
                 {item.name}
               </Text>
@@ -465,10 +476,10 @@ export default function ExploreScreen() {
                 hapticStyle="impactLight">
                 <Image source={{uri: trend.image}} style={styles.gridImage} />
                 <View style={styles.gridLabelContainer}>
-                  <Text style={styles.gridTitle} numberOfLines={1}>
+                  <Text style={globalStyles.label} numberOfLines={1}>
                     {trend.title}
                   </Text>
-                  <Text style={styles.gridSource} numberOfLines={1}>
+                  <Text style={globalStyles.subLabel} numberOfLines={1}>
                     {trend.source}
                   </Text>
                 </View>

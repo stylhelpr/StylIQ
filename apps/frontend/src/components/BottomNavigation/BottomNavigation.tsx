@@ -51,7 +51,7 @@ const BottomNavigation = ({
     },
     activeLabel: {
       color: theme.colors.primary,
-      fontWeight: '600',
+      fontWeight: '400',
     },
   });
 
@@ -63,7 +63,7 @@ const BottomNavigation = ({
       <>
         <Icon
           name={icon}
-          size={28}
+          size={30}
           color={isActive ? theme.colors.primary : theme.colors.foreground2}
         />
         <Text

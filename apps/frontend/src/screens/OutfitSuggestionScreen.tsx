@@ -19,6 +19,7 @@ import OutfitNameModal from '../components/OutfitNameModal/OutfitNameModal';
 import {saveOutfitToDate} from '../utils/calendarStorage';
 import Voice from '@react-native-voice/voice';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -199,7 +200,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: '#1a1a1a',
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 12,
       marginBottom: 20,
       height: 48,
@@ -230,7 +231,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: '#2a2a2a',
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       padding: 12,
       marginBottom: 12,
       width: '100%',
@@ -238,7 +239,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     cardThumbnail: {
       width: 100,
       height: 100,
-      borderRadius: 8,
+      borderRadius: tokens.borderRadius.md,
       marginRight: 12,
     },
     cardDetails: {
@@ -257,38 +258,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       width: '100%',
-      marginTop: 12,
-    },
-    button: {
-      backgroundColor: theme.colors.button1,
-      paddingVertical: 10,
-      borderRadius: 10,
-      width: 120,
-    },
-    buttonText: {
-      color: 'white',
-      fontWeight: '600',
-      marginLeft: 6,
-      textAlign: 'center',
-    },
-    generateButton: {
-      backgroundColor: theme.colors.button1,
-      paddingVertical: 10,
-      paddingHorizontal: 52,
-      borderRadius: 10,
-      marginTop: 4,
-      marginBottom: 18,
-    },
-    generateButtonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: '600',
-      textAlign: 'center',
     },
     cardTight: {
       width: '100%',
       backgroundColor: '#1c1c1e',
-      borderRadius: 14,
+      borderRadius: tokens.borderRadius.md,
       overflow: 'hidden',
       marginBottom: 16,
       elevation: 2,
@@ -310,7 +284,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     card: {
       width: '100%',
       height: 180,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
       overflow: 'hidden',
       marginBottom: 16,
       backgroundColor: '#1c1c1e',
@@ -318,7 +292,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     cardOverlay: {
       width: '100%',
       height: 200,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.md,
       overflow: 'hidden',
       marginBottom: 16,
       backgroundColor: '#1c1c1e',
@@ -383,7 +357,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
       {/* 🏷️ Pill Label */}
       <View style={styles.categoryPill}>
-        <Text style={styles.pillText}>{label}</Text>
+        <Text
+          style={[
+            globalStyles.label,
+            {paddingHorizontal: 6, paddingVertical: 4},
+          ]}>
+          {label}
+        </Text>
       </View>
 
       {/* ℹ️ Text Overlay */}
@@ -429,7 +409,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               onPress={() =>
                 setWeather(prev => (prev === 'hot' ? 'cold' : 'hot'))
               }>
-              <Text style={styles.chipText}>Weather: {weather}</Text>
+              <Text style={globalStyles.label}>Weather: {weather}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -450,9 +430,14 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           </View>
 
           <TouchableOpacity
-            style={styles.generateButton}
+            style={[
+              globalStyles.buttonPrimary,
+              {width: 186, marginBottom: 20, marginTop: 8},
+            ]}
             onPress={handleGenerate}>
-            <Text style={styles.generateButtonText}>Generate Outfit</Text>
+            <Text style={[globalStyles.buttonPrimaryText]}>
+              Generate Outfit
+            </Text>
           </TouchableOpacity>
 
           {/* Suggested outfit */}
@@ -466,13 +451,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           {/* CTA row */}
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={styles.button}
+              style={[globalStyles.buttonPrimary, {width: 120}]}
               onPress={() => setFeedbackModalVisible(true)}>
-              <Text style={styles.buttonText}>Rate Outfit</Text>
+              <Text style={globalStyles.buttonPrimaryText}>Rate Outfit</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.button}
+              style={[globalStyles.buttonPrimary, {width: 120}]}
               onPress={() =>
                 navigate('TryOnOverlay', {
                   outfit,
@@ -481,11 +466,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   ).uri,
                 })
               }>
-              <Text style={styles.buttonText}>Try On</Text>
+              <Text style={globalStyles.buttonPrimaryText}>Try On</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.button}
+              style={[globalStyles.buttonPrimary, {width: 120}]}
               onPress={() => {
                 if (outfit.top && outfit.bottom && outfit.shoes) {
                   setPendingSaveOutfit({
@@ -496,7 +481,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   setShowNameModal(true);
                 }
               }}>
-              <Text style={styles.buttonText}>Save</Text>
+              <Text style={globalStyles.buttonPrimaryText}>Save</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

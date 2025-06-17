@@ -228,45 +228,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
-      marginBottom: 10,
-    },
-    tile: {
-      width: 186,
-      backgroundColor: theme.colors.button1,
-      borderRadius: tokens.borderRadius.md,
-      paddingVertical: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 1},
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-      marginBottom: 10,
-    },
-    tileText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: '#fff',
+      marginBottom: 22,
     },
     outfitCard: {
-      width: 90,
+      width: 92,
       marginRight: 12,
       alignItems: 'center',
-    },
-    outfitImage: {
-      width: 90,
-      height: 90,
-      borderRadius: tokens.borderRadius.md,
-      backgroundColor: '#eee',
-    },
-    outfitLabel: {
-      marginTop: 6,
-      fontSize: 13,
-      fontWeight: '400',
-      color: theme.colors.foreground,
-      textAlign: 'center',
-      maxWidth: 90,
     },
     sectionWeather: {
       borderRadius: tokens.borderRadius.md,
@@ -562,8 +529,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             <AppleTouchFeedback
               hapticStyle="impactHeavy"
               onPress={() => navigate('Outfit', {look: 'editorial'})}>
-              <View style={styles.tryButton}>
-                <Text style={styles.tryButtonText}>Try This Look</Text>
+              <View style={[globalStyles.buttonPrimary, {marginTop: 20}]}>
+                <Text style={globalStyles.buttonPrimaryText}>
+                  Try This Look
+                </Text>
               </View>
             </AppleTouchFeedback>
           </Animatable.View>
@@ -573,37 +542,37 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <Text style={globalStyles.sectionTitle}>Quick Access</Text>
       <View style={styles.tileRow}>
         <AppleTouchFeedback
-          style={styles.tile}
+          style={[globalStyles.buttonPrimary, {marginBottom: 12, width: 186}]}
           hapticStyle="impactHeavy"
           onPress={() => navigate('Wardrobe')}>
-          <Text style={styles.tileText} numberOfLines={1}>
+          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
             Wardrobe
           </Text>
         </AppleTouchFeedback>
 
         <AppleTouchFeedback
-          style={styles.tile}
+          style={[globalStyles.buttonPrimary, {width: 186}]}
           hapticStyle="impactHeavy"
           onPress={() => navigate('AddItem')}>
-          <Text style={styles.tileText} numberOfLines={1}>
+          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
             Add Item
           </Text>
         </AppleTouchFeedback>
 
         <AppleTouchFeedback
-          style={styles.tile}
+          style={[globalStyles.buttonPrimary, {width: 186}]}
           hapticStyle="impactHeavy"
           onPress={() => navigate('Outfit')}>
-          <Text style={styles.tileText} numberOfLines={1}>
+          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
             Style Me
           </Text>
         </AppleTouchFeedback>
 
         <AppleTouchFeedback
-          style={styles.tile}
+          style={[globalStyles.buttonPrimary, {width: 186}]}
           hapticStyle="impactHeavy"
           onPress={() => navigate('TryOnOverlay')}>
-          <Text style={styles.tileText} numberOfLines={1}>
+          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
             Try-On
           </Text>
         </AppleTouchFeedback>
@@ -614,7 +583,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}>
+          contentContainerStyle={{paddingRight: 8}}>
           {wardrobe.slice(0, 5).map((item, idx) => (
             <Animatable.View
               animation="fadeInUp"
@@ -625,10 +594,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               style={styles.outfitCard}>
               <Image
                 source={{uri: item.image}}
-                style={styles.outfitImage}
+                style={[globalStyles.image1]}
                 resizeMode="cover"
               />
-              <Text style={styles.outfitLabel} numberOfLines={1}>
+              <Text
+                style={[globalStyles.label, {marginTop: 6}]}
+                numberOfLines={1}>
                 {item.name}
               </Text>
             </Animatable.View>
@@ -647,7 +618,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}>
+            contentContainerStyle={{paddingRight: 8}}>
             {savedLooksPreview.slice(0, 5).map((look, index) => (
               <Animatable.View
                 key={look.id}
@@ -660,10 +631,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   style={{alignItems: 'center'}}>
                   <Image
                     source={{uri: look.image}}
-                    style={styles.outfitImage}
+                    style={globalStyles.image1}
                     resizeMode="cover"
                   />
-                  <Text style={styles.outfitLabel} numberOfLines={1}>
+                  <Text
+                    style={[globalStyles.label, {marginTop: 6}]}
+                    numberOfLines={1}>
                     {look.name}
                   </Text>
                 </TouchableOpacity>
@@ -676,11 +649,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <View style={globalStyles.section}>
         <Text style={globalStyles.sectionTitle}>Notifications</Text>
         <TouchableOpacity
-          style={{
-            padding: 12,
-            borderRadius: 8,
-            alignItems: 'center',
-          }}
           onPress={async () => {
             const enabled = await AsyncStorage.getItem('notificationsEnabled');
             if (enabled === 'true') {
@@ -698,20 +666,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             }
           }}>
           <View
-            style={{
-              backgroundColor: theme.colors.button1,
-              padding: 12,
-              borderRadius: 8,
-              alignItems: 'center',
-            }}>
-            <Text
-              style={{
-                color: theme.colors.primary,
-                fontSize: 16,
-                fontWeight: '600',
-              }}>
-              Send Notification
-            </Text>
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <View style={[globalStyles.buttonPrimary, {width: 186}]}>
+              <Text style={globalStyles.buttonPrimaryText}>
+                Send Notification
+              </Text>
+            </View>
           </View>
         </TouchableOpacity>
       </View>

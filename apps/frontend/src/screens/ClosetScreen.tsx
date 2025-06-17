@@ -216,20 +216,15 @@ export default function ClosetScreen({navigate}: Props) {
       fontSize: 16,
       fontWeight: '600',
     },
-    title: {
-      fontSize: 28,
-      fontWeight: '600',
-      marginBottom: 8,
-      color: theme.colors.primary,
-    },
     buttonRow: {
       flexDirection: 'row',
+      alignItems: 'center',
       justifyContent: 'flex-end',
-      marginTop: 32,
-      paddingBottom: 8,
+      marginTop: 24,
     },
     iconButton: {
-      padding: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.button1,
       elevation: 2,
@@ -329,13 +324,17 @@ export default function ClosetScreen({navigate}: Props) {
       <Text style={globalStyles.header}>Wardrobe</Text>
 
       <View style={globalStyles.section}>
-        <View style={styles.buttonRow}>
-          <AppleTouchFeedback
-            style={styles.createOutfitButton}
-            hapticStyle="impactHeavy"
-            onPress={() => navigate('OutfitBuilder')}>
-            <Text style={styles.createOutfitText}>+ Create New Outfit</Text>
-          </AppleTouchFeedback>
+        <View style={[styles.buttonRow]}>
+          <View style={{marginRight: 8}}>
+            <AppleTouchFeedback
+              style={[globalStyles.buttonPrimary, {paddingHorizontal: 18}]}
+              hapticStyle="impactHeavy"
+              onPress={() => navigate('OutfitBuilder')}>
+              <Text style={globalStyles.buttonPrimaryText}>
+                + Create New Outfit
+              </Text>
+            </AppleTouchFeedback>
+          </View>
 
           <AppleTouchFeedback
             style={{...styles.iconButton, marginRight: 8}}
@@ -360,19 +359,11 @@ export default function ClosetScreen({navigate}: Props) {
       <ScrollView>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
           <View key={mainCategory} style={globalStyles.section}>
-            <Text style={[globalStyles.sectionTitle, {fontSize: 24}]}>
-              {mainCategory}
-            </Text>
+            <Text style={[globalStyles.sectionTitle]}>{mainCategory}</Text>
 
             {Object.entries(subMap).map(([subCategory, items]) => (
               <View key={subCategory} style={{marginBottom: 24}}>
-                <Text
-                  style={[
-                    styles.label,
-                    {paddingHorizontal: 16, marginBottom: 8},
-                  ]}>
-                  {subCategory}
-                </Text>
+                <Text style={[globalStyles.title]}>{subCategory}</Text>
 
                 {/* ✅ This wraps only the image cards for this group in a proper grid */}
                 <View style={styles.grid}>
@@ -421,9 +412,8 @@ export default function ClosetScreen({navigate}: Props) {
                       </View>
 
                       <View style={styles.labelContainer}>
-                        <Text style={styles.label}>{item.name}</Text>
-                        <Text
-                          style={[styles.label, {fontSize: 12, color: '#888'}]}>
+                        <Text style={[globalStyles.label]}>{item.name}</Text>
+                        <Text style={[globalStyles.subLabel, {marginTop: 2}]}>
                           {subCategory}
                         </Text>
                       </View>

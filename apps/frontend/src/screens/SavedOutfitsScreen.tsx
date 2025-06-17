@@ -18,6 +18,7 @@ import {useFavorites} from '../hooks/useFavorites';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type SavedOutfit = {
   id: string;
@@ -331,7 +332,7 @@ export default function SavedOutfitsScreen() {
       backgroundColor: theme.colors.background,
     },
     card: {
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       padding: 12,
       marginBottom: 14,
       elevation: 2,
@@ -361,7 +362,7 @@ export default function SavedOutfitsScreen() {
     image: {
       width: 60,
       height: 60,
-      borderRadius: 8,
+      borderRadius: tokens.borderRadius.md,
       marginRight: 6,
       marginBottom: 6,
     },
@@ -387,7 +388,7 @@ export default function SavedOutfitsScreen() {
     modalContent: {
       backgroundColor: theme.colors.surface,
       padding: 20,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.md,
       width: '80%',
     },
     input: {
@@ -499,15 +500,7 @@ export default function SavedOutfitsScreen() {
 
       {/* 🔀 Sort/Filter Bar */}
       <View style={globalStyles.section}>
-        <Text
-          style={{
-            color: theme.colors.foreground,
-            fontWeight: '600',
-            fontSize: 15,
-            marginBottom: 14,
-          }}>
-          Sort by:
-        </Text>
+        <Text style={[globalStyles.label, {marginBottom: 14}]}>Sort by:</Text>
         <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
           {(
             [

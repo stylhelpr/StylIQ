@@ -17,6 +17,7 @@ import StyleProfileScreen from './StyleProfileScreen';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 import type {Screen} from '../navigation/types';
 
@@ -311,14 +312,12 @@ export default function ProfileScreen({navigate}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: 8,
-
-      gap: 6,
     },
     actionButton: {
       flex: 1,
       backgroundColor: '#405de6',
       paddingVertical: 6,
-      borderRadius: 6,
+      borderRadius: tokens.borderRadius.md,
       alignItems: 'center',
     },
     buttonText: {
@@ -358,18 +357,17 @@ export default function ProfileScreen({navigate}: Props) {
       paddingVertical: 8,
       marginTop: 10,
     },
-    tabIcon: {},
     highlightBorder: {
-      width: 70,
-      height: 70,
+      width: 92,
+      height: 92,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 4,
+      marginRight: 12,
     },
     highlightImage: {
-      width: 84,
-      height: 84,
-      borderRadius: 10,
+      width: 92,
+      height: 92,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: '#888',
     },
     sectionTitle: {
@@ -398,11 +396,6 @@ export default function ProfileScreen({navigate}: Props) {
       elevation: 2,
       alignSelf: 'flex-start',
     },
-    tagText: {
-      fontWeight: '600',
-      fontSize: 13,
-      color: theme.colors.primary,
-    },
     profileMenuItem: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -410,7 +403,7 @@ export default function ProfileScreen({navigate}: Props) {
       paddingVertical: 12,
       paddingHorizontal: 16,
       backgroundColor: theme.colors.button1,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.md,
       elevation: 1,
       shadowColor: '#000',
       shadowOpacity: 0.05,
@@ -428,7 +421,7 @@ export default function ProfileScreen({navigate}: Props) {
     editButton: {
       backgroundColor: theme.colors.primary,
       paddingVertical: 10,
-      borderRadius: 8,
+      borderRadius: tokens.borderRadius.md,
       marginTop: 20,
     },
     editButtonText: {
@@ -499,8 +492,9 @@ export default function ProfileScreen({navigate}: Props) {
 
       <View style={globalStyles.section}>
         <Text style={globalStyles.sectionTitle}>Style Profile</Text>
+
         <AppleTouchFeedback
-          style={styles.profileMenuItem}
+          style={globalStyles.buttonPrimary}
           onPress={() => navigate('StyleProfileScreen')}
           hapticStyle="impactMedium">
           <View style={styles.menuRow}>
@@ -509,11 +503,10 @@ export default function ProfileScreen({navigate}: Props) {
               size={22}
               color={theme.colors.primary}
             />
-            <Text style={[styles.menuText, {color: theme.colors.foreground}]}>
+            <Text style={[globalStyles.buttonPrimaryText]}>
               Edit Style Profile
             </Text>
           </View>
-          <Icon name="chevron-right" size={22} color="#666" />
         </AppleTouchFeedback>
       </View>
 
@@ -522,10 +515,10 @@ export default function ProfileScreen({navigate}: Props) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}>
+          contentContainerStyle={{paddingRight: 8}}>
           {styleTags.map(tag => (
             <View key={tag} style={styles.tag}>
-              <Text style={styles.tagText}>#{tag}</Text>
+              <Text style={globalStyles.label}>#{tag}</Text>
             </View>
           ))}
         </ScrollView>
@@ -536,10 +529,10 @@ export default function ProfileScreen({navigate}: Props) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingLeft: 16, paddingRight: 8}}>
+          contentContainerStyle={{paddingRight: 8}}>
           {favoriteBrands.map(brand => (
             <View key={brand} style={styles.tag}>
-              <Text style={styles.tagText}>{brand}</Text>
+              <Text style={globalStyles.label}>{brand}</Text>
             </View>
           ))}
         </ScrollView>
@@ -550,7 +543,7 @@ export default function ProfileScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle]}>Favorite Outfits</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {storyHighlights.map((label, index) => (
-            <View key={index} style={styles.highlightCircle}>
+            <View key={index}>
               <View style={styles.highlightBorder}>
                 <Image
                   source={{
@@ -559,7 +552,13 @@ export default function ProfileScreen({navigate}: Props) {
                   style={styles.highlightImage}
                 />
               </View>
-              <Text style={styles.highlightText}>{label}</Text>
+              <Text
+                style={[
+                  globalStyles.label,
+                  {marginTop: 6, textAlign: 'center'},
+                ]}>
+                {label}
+              </Text>
             </View>
           ))}
         </ScrollView>
