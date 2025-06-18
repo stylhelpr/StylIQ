@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {TouchableOpacity, Text, StyleSheet} from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
 
 type Props = {
   label: string;
@@ -11,6 +12,7 @@ type Props = {
 export const Chip = ({label, selected = false, onPress}: Props) => {
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const globalStyles = useGlobalStyles();
 
   const [isSelected, setIsSelected] = useState(selected);
 
@@ -28,15 +30,16 @@ export const Chip = ({label, selected = false, onPress}: Props) => {
     <TouchableOpacity
       onPress={handlePress}
       style={[
-        styles.chip,
+        globalStyles.pill,
         {
+          marginBottom: 12,
           backgroundColor: isSelected ? colors.primary : colors.surface,
           borderColor: isSelected ? colors.primary : colors.surface,
         },
       ]}>
       <Text
         style={[
-          styles.text,
+          globalStyles.pillText,
           {color: isSelected ? colors.background : colors.foreground},
         ]}>
         {label}
@@ -44,18 +47,3 @@ export const Chip = ({label, selected = false, onPress}: Props) => {
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  text: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});

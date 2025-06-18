@@ -42,11 +42,6 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {fontSize: 17, marginBottom: 16},
     input: {
       borderWidth: 1,
@@ -104,7 +99,7 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select what best describes your shopping behavior:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {habits.map(habit => (
             <Chip
               key={habit}

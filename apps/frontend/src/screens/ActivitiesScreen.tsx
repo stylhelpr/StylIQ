@@ -35,11 +35,6 @@ export default function ActivitiesScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {
       fontSize: 17,
       marginBottom: 15,
@@ -81,7 +76,7 @@ export default function ActivitiesScreen({navigate}: Props) {
         <Text style={globalStyles.sectionTitle}>
           What do you usually do during the week?
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {activityOptions.map(option => (
             <Chip
               key={option}

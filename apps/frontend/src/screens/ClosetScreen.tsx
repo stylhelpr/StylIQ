@@ -224,7 +224,7 @@ export default function ClosetScreen({navigate}: Props) {
     },
     iconButton: {
       paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingVertical: 9,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.button1,
       elevation: 2,

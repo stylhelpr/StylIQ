@@ -56,11 +56,6 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
       fontSize: 16,
       marginBottom: 20,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
   });
 
   const [budgetInput, setBudgetInput] = useState('');
@@ -149,7 +144,7 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
           ]}>
           Your Favorite Brands:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {allBrands.map(brand => (
             <Chip
               key={brand}

@@ -25,11 +25,6 @@ export default function EyeColorScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {
       fontSize: 17,
       marginBottom: 20,
@@ -67,7 +62,7 @@ export default function EyeColorScreen({navigate}: Props) {
         <Text style={[styles.subtitle, {color: colors.foreground}]}>
           Select your natural eye color:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {eyeColors.map(color => (
             <Chip
               key={color}

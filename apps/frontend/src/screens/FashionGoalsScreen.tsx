@@ -69,11 +69,6 @@ export default function FashionGoalsScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     input: {
       borderWidth: 1,
       borderColor: colors.surface,
@@ -83,7 +78,6 @@ export default function FashionGoalsScreen({navigate}: Props) {
       fontSize: 16,
       color: colors.foreground,
     },
-    chipRow: {flexDirection: 'row', flexWrap: 'wrap', marginTop: 4},
   });
 
   return (
@@ -114,7 +108,7 @@ export default function FashionGoalsScreen({navigate}: Props) {
         <Text style={globalStyles.sectionTitle}>
           How confident do you feel in your style?
         </Text>
-        <View style={styles.chipRow}>
+        <View style={globalStyles.pillContainer}>
           {['Very confident', 'Somewhat', 'Need help'].map(option => (
             <Chip
               key={option}
@@ -130,7 +124,7 @@ export default function FashionGoalsScreen({navigate}: Props) {
         <Text style={globalStyles.sectionTitle}>
           Do you prefer bold or subtle looks?
         </Text>
-        <View style={styles.chipRow}>
+        <View style={globalStyles.pillContainer}>
           {['Bold standout pieces', 'Neutral and subtle', 'Mix of both'].map(
             option => (
               <Chip

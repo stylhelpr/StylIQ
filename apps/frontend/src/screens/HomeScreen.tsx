@@ -186,12 +186,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       color: '#ddd',
       marginTop: 4,
     },
-    dailyLookText: {
-      fontSize: 15,
-      fontWeight: '400',
-      color: theme.colors.foreground,
-      lineHeight: 22,
-    },
     bodyText: {
       fontSize: 16,
       fontWeight: '400',
@@ -211,6 +205,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       shadowOpacity: 0.08,
       shadowRadius: 8,
       elevation: 3,
+    },
+    dailyLookText: {
+      fontSize: 13,
+      fontWeight: '400',
+      color: theme.colors.foreground,
+      lineHeight: 22,
     },
     tryButton: {
       backgroundColor: theme.colors.button1,
@@ -468,7 +468,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       )}
 
-      <View style={globalStyles.section}>
+      <View style={[globalStyles.section, {marginTop: 8}]}>
         {/* <Text style={styles.aiTitle}>Ask AI Concierge</Text> */}
         <VoiceControlComponent
           onPromptResult={prompt => navigate('Outfit', {prompt})}

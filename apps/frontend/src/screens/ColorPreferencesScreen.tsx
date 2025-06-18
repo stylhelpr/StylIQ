@@ -38,11 +38,6 @@ export default function ColorPreferencesScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {fontSize: 16, marginBottom: 20},
   });
 
@@ -81,7 +76,7 @@ export default function ColorPreferencesScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Choose colors you like wearing:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {COLORS.map(color => (
             <Chip
               key={color}

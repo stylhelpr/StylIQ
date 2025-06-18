@@ -21,6 +21,7 @@ import {Pressable} from 'react-native';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import {VibrancyView} from '@react-native-community/blur';
 
 type TrendArticle = {
   id: string;
@@ -127,35 +128,6 @@ export default function ExploreScreen() {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    title: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: theme.colors.foreground,
-      marginBottom: 12,
-      letterSpacing: -0.4,
-    },
-    promptRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 20,
-      marginTop: 20,
-    },
-    input: {
-      flex: 1,
-      borderWidth: 1,
-      borderRadius: tokens.borderRadius.md,
-      paddingHorizontal: 14,
-      height: 44,
-      marginRight: 10,
-      borderColor: '#ccc',
-      backgroundColor: theme.colors.surface,
-      fontSize: 15,
-    },
-    promptButton: {
-      backgroundColor: '#000',
-      padding: 12,
-      borderRadius: tokens.borderRadius.md,
-    },
     card: {
       marginRight: 12,
       backgroundColor: theme.colors.surface,
@@ -165,13 +137,6 @@ export default function ExploreScreen() {
       padding: 12,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
-    },
-    image: {
-      width: 160,
-      height: 140,
-      borderTopLeftRadius: 10,
-      borderTopRightRadius: 10,
-      backgroundColor: theme.colors.surface,
     },
     suggestionText: {
       fontSize: 14,
@@ -312,18 +277,24 @@ export default function ExploreScreen() {
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>
-      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
-        Explore
-      </Text>
+      <View style={globalStyles.sectionTitle}>
+        <Text
+          style={[
+            globalStyles.header,
+            {color: theme.colors.primary, marginBottom: 20},
+          ]}>
+          Explore
+        </Text>
+      </View>
 
       {/* <Text style={[globalStyles.sectionTitle, {color: theme.colors.primary}]}>
         Style Prompt
       </Text> */}
 
-      <View style={styles.promptRow}>
+      <View style={globalStyles.promptRow}>
         <TextInput
           style={[
-            styles.input,
+            globalStyles.promptInput,
             {
               color: theme.colors.foreground2,
               borderColor: theme.colors.surface,
@@ -366,7 +337,7 @@ export default function ExploreScreen() {
               hapticStyle="impactLight">
               <Image
                 source={{uri: look.uri}}
-                style={styles.image}
+                style={globalStyles.image2}
                 onError={e =>
                   console.log(
                     `❌ Failed to load image for ${look.title}`,
@@ -440,7 +411,7 @@ export default function ExploreScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {mockClothingItems.slice(0, 15).map(item => (
             <View key={item.id} style={styles.card}>
-              <Image source={{uri: item.image}} style={styles.image} />
+              <Image source={{uri: item.image}} style={globalStyles.image2} />
               <Text
                 style={[
                   globalStyles.label,

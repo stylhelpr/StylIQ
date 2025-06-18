@@ -81,13 +81,6 @@ export default function StyleProfileScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    link: {
-      fontSize: 17,
-      paddingVertical: 12,
-      color: colors.primary,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.surface,
-    },
     scrollFade: {
       position: 'absolute',
       bottom: 0,
@@ -164,8 +157,8 @@ export default function StyleProfileScreen({navigate}: Props) {
             key={screen}
             onPress={() => navigate(screen)}
             hapticStyle="impactMedium"
-            style={{marginBottom: 12}}>
-            <Text style={styles.link}>{label}</Text>
+            style={{paddingVertical: 10}}>
+            <Text style={globalStyles.sectionTitle}>{label}</Text>
           </AppleTouchFeedback>
         ))}
       </ScrollView>

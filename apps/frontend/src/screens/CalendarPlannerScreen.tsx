@@ -213,7 +213,9 @@ export default function OutfitPlannerScreen() {
 
   return (
     <View style={[globalStyles.container]}>
-      <Text style={[globalStyles.header]}>Planned Outfits</Text>
+      <Text style={[globalStyles.header, {marginBottom: 20}]}>
+        Planned Outfits
+      </Text>
 
       <View style={globalStyles.section}>
         <Calendar

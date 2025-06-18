@@ -42,11 +42,6 @@ export default function PreferencesScreen({navigate}: Props) {
       fontSize: 17,
       marginBottom: 20,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
   });
 
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
@@ -92,13 +87,12 @@ export default function PreferencesScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select the styles you’re most drawn to:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {preferences.map(pref => (
             <AppleTouchFeedback
               key={pref}
               onPress={() => togglePref(pref)}
-              hapticStyle="impactLight"
-              style={{margin: 4}}>
+              hapticStyle="impactLight">
               <View>
                 <Chip label={pref} selected={selectedPrefs.includes(pref)} />
               </View>

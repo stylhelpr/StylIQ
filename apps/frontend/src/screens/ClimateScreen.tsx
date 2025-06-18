@@ -32,11 +32,6 @@ export default function ClimateScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {
       fontSize: 16,
       marginBottom: 15,
@@ -90,7 +85,7 @@ export default function ClimateScreen({navigate}: Props) {
           <Text style={[styles.subtitle, {color: colors.foreground}]}>
             What type of climate do you live in?
           </Text>
-          <View style={styles.chipGroup}>
+          <View style={globalStyles.pillContainer}>
             {climateOptions.map(option => (
               <Chip
                 key={option}
@@ -107,7 +102,7 @@ export default function ClimateScreen({navigate}: Props) {
           <Text style={[styles.subtitle, {color: colors.foreground}]}>
             How often do you travel to different climates?
           </Text>
-          <View style={styles.chipGroup}>
+          <View style={globalStyles.pillContainer}>
             {travelOptions.map(option => (
               <Chip
                 key={option}

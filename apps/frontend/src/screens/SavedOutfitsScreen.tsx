@@ -72,7 +72,6 @@ export default function SavedOutfitsScreen() {
   } = useFavorites(userId);
 
   const [selectedTempDate, setSelectedTempDate] = useState<Date | null>(null);
-
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -90,7 +89,6 @@ export default function SavedOutfitsScreen() {
         console.error('❌ Error fetching scheduled outfits:', err);
       }
     };
-
     if (userId) fetchScheduled();
   }, [userId]);
 
@@ -117,7 +115,6 @@ export default function SavedOutfitsScreen() {
         scheduledRes.json(),
       ]);
 
-      // 🔄 Build a map of outfit ID → scheduled date
       const scheduleMap: Record<string, string> = {};
       for (const s of scheduledData) {
         if (s.ai_outfit_id) {
@@ -129,7 +126,6 @@ export default function SavedOutfitsScreen() {
 
       const normalize = (o: any, isCustom: boolean): SavedOutfit => {
         const outfitId = o.id;
-
         return {
           id: outfitId,
           name: o.name || '',
@@ -230,7 +226,6 @@ export default function SavedOutfitsScreen() {
         ...aiData.map((o: any) => normalize(o, false)),
         ...customData.map((o: any) => normalize(o, true)),
       ];
-
       setCombinedOutfits(allOutfits);
     } catch (err) {
       console.error('❌ Failed to load outfits:', err);
@@ -247,9 +242,7 @@ export default function SavedOutfitsScreen() {
           outfit_id: outfitId,
         }),
       });
-
       if (!res.ok) throw new Error('Failed to cancel planned outfit');
-
       setCombinedOutfits(prev =>
         prev.map(o => (o.id === outfitId ? {...o, plannedDate: undefined} : o)),
       );
@@ -262,14 +255,11 @@ export default function SavedOutfitsScreen() {
   const handleDelete = async (id: string) => {
     const deleted = combinedOutfits.find(o => o.id === id);
     if (!deleted) return;
-
     try {
       const res = await fetch(`${API_BASE_URL}/outfit/${id}`, {
         method: 'DELETE',
       });
-
       if (!res.ok) throw new Error('Failed to delete from DB');
-
       const updated = combinedOutfits.filter(o => o.id !== id);
       setCombinedOutfits(updated);
       setLastDeletedOutfit(deleted);
@@ -282,13 +272,10 @@ export default function SavedOutfitsScreen() {
 
   const handleNameSave = async () => {
     if (!editingOutfitId || editedName.trim() === '') return;
-
     const outfit = combinedOutfits.find(o => o.id === editingOutfitId);
     if (!outfit) return;
-
     try {
       const table = outfit.type === 'custom' ? 'custom' : 'suggestions';
-
       const res = await fetch(
         `${API_BASE_URL}/outfit/${table}/${editingOutfitId}`,
         {
@@ -297,11 +284,9 @@ export default function SavedOutfitsScreen() {
           body: JSON.stringify({name: editedName.trim()}),
         },
       );
-
       if (!res.ok) {
         throw new Error('Failed to update outfit name');
       }
-
       const updated = combinedOutfits.map(o =>
         o.id === editingOutfitId ? {...o, name: editedName} : o,
       );
@@ -314,15 +299,9 @@ export default function SavedOutfitsScreen() {
     }
   };
 
-  // useEffect(() => {
-  //   if (userId) {
-  //     loadOutfits();
-  //   }
-  // }, [userId]);
-
   useEffect(() => {
     if (userId && !favoritesLoading) {
-      loadOutfits(); // ✅ always attempt to load outfits
+      loadOutfits();
     }
   }, [userId, favoritesLoading]);
 
@@ -358,12 +337,7 @@ export default function SavedOutfitsScreen() {
     imageRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-    },
-    image: {
-      width: 60,
-      height: 60,
-      borderRadius: tokens.borderRadius.md,
-      marginRight: 6,
+      marginTop: 6,
       marginBottom: 6,
     },
     notes: {
@@ -432,11 +406,9 @@ export default function SavedOutfitsScreen() {
     selectedDate: Date | undefined,
   ) => {
     setShowDatePicker(false);
-
     if (selectedDate && planningOutfitId) {
       const outfit = combinedOutfits.find(o => o.id === planningOutfitId);
       if (!outfit) return;
-
       try {
         const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
           method: 'POST',
@@ -454,7 +426,6 @@ export default function SavedOutfitsScreen() {
         const data = await res.json();
         console.log('✅ Scheduled outfit:', data);
 
-        // ✅ Persist the planned date in local state
         const updated = combinedOutfits.map(o =>
           o.id === planningOutfitId
             ? {...o, plannedDate: selectedDate.toISOString()}
@@ -464,7 +435,6 @@ export default function SavedOutfitsScreen() {
       } catch (error) {
         console.error('❌ Error scheduling outfit:', error);
       }
-
       setPlanningOutfitId(null);
     }
   };
@@ -514,21 +484,21 @@ export default function SavedOutfitsScreen() {
               key={key}
               onPress={() => setSortType(key)}
               style={{
-                paddingHorizontal: 14,
-                paddingVertical: 7,
+                paddingHorizontal: 18,
+                paddingVertical: 8,
                 borderRadius: 20,
                 backgroundColor:
                   sortType === key
                     ? theme.colors.primary
                     : theme.colors.surface,
-                marginRight: 8,
+                marginRight: 7,
                 marginBottom: 8,
               }}>
               <Text
                 style={{
                   color: sortType === key ? 'black' : theme.colors.foreground2,
                   fontWeight: '500',
-                  fontSize: 13,
+                  fontSize: 14,
                 }}>
                 {label}
               </Text>
@@ -630,7 +600,7 @@ export default function SavedOutfitsScreen() {
                       <Image
                         key={i.id}
                         source={{uri: i.image}}
-                        style={styles.image}
+                        style={[globalStyles.image1, {marginRight: 12}]}
                       />
                     ) : null,
                   )}

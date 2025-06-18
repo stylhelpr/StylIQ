@@ -33,11 +33,6 @@ export default function AppearanceScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
   });
 
   const {user} = useAuth0();
@@ -79,7 +74,7 @@ export default function AppearanceScreen({navigate}: Props) {
                 .replace(/_/g, ' ')
                 .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
             </Text>
-            <View style={styles.chipGroup}>
+            <View style={globalStyles.pillContainer}>
               {options.map(opt => (
                 <Chip
                   key={opt}

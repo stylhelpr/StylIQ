@@ -123,15 +123,9 @@ const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    justifyContent: 'center',
-  },
+  container: {},
   chatContainer: {
     flex: 1,
-    paddingVertical: 12,
     justifyContent: 'center',
   },
   stylingCard: {

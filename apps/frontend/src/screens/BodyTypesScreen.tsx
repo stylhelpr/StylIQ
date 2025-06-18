@@ -33,11 +33,6 @@ export default function BodyTypeScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {
       fontSize: 17,
       marginBottom: 20,
@@ -82,7 +77,7 @@ export default function BodyTypeScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Pick the body type that most closely resembles your shape:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {bodyTypes.map(type => (
             <Chip
               key={type}

@@ -196,21 +196,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       paddingBottom: 40,
       alignItems: 'center',
     },
-    promptRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#1a1a1a',
-      borderRadius: tokens.borderRadius.md,
-      paddingHorizontal: 12,
-      marginBottom: 20,
-      height: 48,
-      width: '100%',
-    },
-    promptInput: {
-      flex: 1,
-      color: 'white',
-      fontSize: 16,
-    },
     chipsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -389,11 +374,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       <View style={globalStyles.section}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Prompt input with mic */}
-          <View style={styles.promptRow}>
+          <View style={globalStyles.promptRow}>
             <TextInput
               placeholder="What are you dressing for?"
               placeholderTextColor={theme.colors.muted}
-              style={styles.promptInput}
+              style={globalStyles.promptInput}
               value={lastSpeech}
               onChangeText={setLastSpeech}
             />
@@ -405,11 +390,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           {/* Filter pills */}
           <View style={styles.chipsRow}>
             <TouchableOpacity
-              style={styles.chip}
+              style={globalStyles.pill}
               onPress={() =>
                 setWeather(prev => (prev === 'hot' ? 'cold' : 'hot'))
               }>
-              <Text style={globalStyles.label}>Weather: {weather}</Text>
+              <Text style={globalStyles.pillText}>Weather: {weather}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

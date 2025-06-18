@@ -34,11 +34,6 @@ export default function SkinToneScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
     subtitle: {
       fontSize: 17,
       marginBottom: 20,
@@ -84,7 +79,7 @@ export default function SkinToneScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select the tone that best matches your natural skin:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {skinTones.map(tone => (
             <Chip
               key={tone}

@@ -37,11 +37,6 @@ export default function ProportionsScreen({navigate}: Props) {
       fontSize: 17,
       marginBottom: 20,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
   });
 
   const {user} = useAuth0();
@@ -74,7 +69,7 @@ export default function ProportionsScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Describe your proportions for fit-accurate styling:
         </Text>
-        <View style={styles.chipGroup}>
+        <View style={globalStyles.pillContainer}>
           {proportions.map(prop => (
             <Chip
               key={prop}

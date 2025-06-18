@@ -237,8 +237,6 @@ export default function ProfileScreen({navigate}: Props) {
     },
     headerRow: {
       flexDirection: 'row',
-      paddingTop: 12,
-      paddingBottom: 4,
       alignItems: 'center',
       marginTop: 20,
     },
@@ -289,41 +287,23 @@ export default function ProfileScreen({navigate}: Props) {
       fontWeight: '600',
     },
     bioContainer: {
-      marginTop: 6,
-      marginBottom: 4,
+      marginTop: 8,
     },
     nameText: {
       color: 'white',
-      fontWeight: 'bold',
+      fontWeight: '700',
       fontSize: 17,
     },
     bioText: {
       color: 'white',
-      fontSize: 17,
+      fontSize: 16,
       marginTop: 4,
       lineHeight: 18,
     },
     linkText: {
       color: '#4ea1f2',
-      fontSize: 17,
-      marginTop: 2,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 8,
-    },
-    actionButton: {
-      flex: 1,
-      backgroundColor: '#405de6',
-      paddingVertical: 6,
-      borderRadius: tokens.borderRadius.md,
-      alignItems: 'center',
-    },
-    buttonText: {
-      color: 'white',
-      fontWeight: '600',
-      fontSize: 17,
+      fontSize: 16,
+      marginTop: 4,
     },
     highlightCircle: {
       alignItems: 'center',
@@ -351,12 +331,6 @@ export default function ProfileScreen({navigate}: Props) {
       marginBottom: 1,
       backgroundColor: '#000',
     },
-    tabRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      paddingVertical: 8,
-      marginTop: 10,
-    },
     highlightBorder: {
       width: 92,
       height: 92,
@@ -369,32 +343,6 @@ export default function ProfileScreen({navigate}: Props) {
       height: 92,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: '#888',
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      paddingBottom: 12,
-    },
-    tagsContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'flex-start',
-      width: '100%',
-    },
-    tag: {
-      backgroundColor: theme.colors.surface,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      borderRadius: 18,
-      marginRight: 8,
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      shadowOffset: {width: 0, height: 1},
-      elevation: 2,
-      alignSelf: 'flex-start',
     },
     profileMenuItem: {
       flexDirection: 'row',
@@ -417,17 +365,6 @@ export default function ProfileScreen({navigate}: Props) {
     menuText: {
       fontSize: 17,
       fontWeight: '500',
-    },
-    editButton: {
-      backgroundColor: theme.colors.primary,
-      paddingVertical: 10,
-      borderRadius: tokens.borderRadius.md,
-      marginTop: 20,
-    },
-    editButtonText: {
-      color: '#fff',
-      textAlign: 'center',
-      fontWeight: '600',
     },
   });
 
@@ -517,8 +454,8 @@ export default function ProfileScreen({navigate}: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingRight: 8}}>
           {styleTags.map(tag => (
-            <View key={tag} style={styles.tag}>
-              <Text style={globalStyles.label}>#{tag}</Text>
+            <View key={tag} style={globalStyles.pill}>
+              <Text style={globalStyles.pillText}>#{tag}</Text>
             </View>
           ))}
         </ScrollView>
@@ -531,8 +468,8 @@ export default function ProfileScreen({navigate}: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingRight: 8}}>
           {favoriteBrands.map(brand => (
-            <View key={brand} style={styles.tag}>
-              <Text style={globalStyles.label}>{brand}</Text>
+            <View key={brand} style={globalStyles.pill}>
+              <Text style={globalStyles.pillText}>{brand}</Text>
             </View>
           ))}
         </ScrollView>

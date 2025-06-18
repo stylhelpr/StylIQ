@@ -45,11 +45,6 @@ export default function LifestyleScreen({navigate}: Props) {
       padding: 10,
       fontSize: 17,
     },
-    chipGroup: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: 4,
-    },
   });
 
   const [selected, setSelected] = useState<{[key: string]: string[]}>({});
@@ -111,7 +106,7 @@ export default function LifestyleScreen({navigate}: Props) {
                   .replace(/_/g, ' ')
                   .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
               </Text>
-              <View style={styles.chipGroup}>
+              <View style={globalStyles.pillContainer}>
                 {options.map(opt => (
                   <Chip
                     key={opt}

@@ -45,7 +45,7 @@ const BottomNavigation = ({
       alignSelf: 'center',
     },
     tabLabel: {
-      fontSize: 11,
+      fontSize: 10,
       color: theme.colors.foreground,
       marginTop: 3,
     },
@@ -63,7 +63,7 @@ const BottomNavigation = ({
       <>
         <Icon
           name={icon}
-          size={30}
+          size={27}
           color={isActive ? theme.colors.primary : theme.colors.foreground2}
         />
         <Text
