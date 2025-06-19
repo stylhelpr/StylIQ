@@ -374,7 +374,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       <View style={globalStyles.section}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Prompt input with mic */}
-          <View style={globalStyles.promptRow}>
+          <View style={[globalStyles.promptRow, {marginBottom: 20}]}>
             <TextInput
               placeholder="What are you dressing for?"
               placeholderTextColor={theme.colors.muted}

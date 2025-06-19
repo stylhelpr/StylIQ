@@ -341,69 +341,71 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       </Animated.View>
 
       {/* Video Banner with ambient parallax */}
-      <Animated.View
-        style={{
-          position: 'relative',
-          marginBottom: 20,
-          borderRadius: 15,
-          overflow: 'hidden',
-          transform: [
-            {
-              translateY: scrollY.interpolate({
-                inputRange: [0, 100],
-                outputRange: [0, -10],
-                extrapolate: 'clamp',
-              }),
-            },
-          ],
-          shadowColor: '#000',
-          shadowOffset: {width: 0, height: 6},
-          shadowOpacity: interpolatedShadowOpacity,
-          shadowRadius: 12,
-          elevation: 5,
-        }}>
-        <Video
-          source={require('../assets/images/free4.mp4')}
-          style={{width: '100%', height: 200}}
-          muted
-          repeat
-          resizeMode="cover"
-          rate={1.0}
-          ignoreSilentSwitch="obey"
-        />
+      <View style={globalStyles.section}>
         <Animated.View
           style={{
-            position: 'absolute',
-            bottom: 10,
-            left: 10,
-            right: 16,
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            padding: 12,
-            borderRadius: 16,
+            position: 'relative',
+            marginBottom: 20,
+            borderRadius: 15,
+            overflow: 'hidden',
             transform: [
               {
                 translateY: scrollY.interpolate({
                   inputRange: [0, 100],
-                  outputRange: [0, -4],
+                  outputRange: [0, -10],
                   extrapolate: 'clamp',
                 }),
               },
             ],
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: 6},
+            shadowOpacity: interpolatedShadowOpacity,
+            shadowRadius: 12,
+            elevation: 5,
           }}>
-          <Animatable.Text
-            animation="fadeInDown"
-            delay={200}
-            style={styles.bannerText}>
-            Discover Your Signature Look
-          </Animatable.Text>
-          <Animatable.Text
-            animation="fadeIn"
-            delay={400}
-            style={styles.bannerSubtext}>
-            Curated just for you this season.
-          </Animatable.Text>
+          <Video
+            source={require('../assets/images/free4.mp4')}
+            style={{width: '100%', height: 200}}
+            muted
+            repeat
+            resizeMode="cover"
+            rate={1.0}
+            ignoreSilentSwitch="obey"
+          />
+          <Animated.View
+            style={{
+              position: 'absolute',
+              bottom: 10,
+              left: 10,
+              right: 16,
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              padding: 12,
+              borderRadius: 16,
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: [0, -4],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            }}>
+            <Animatable.Text
+              animation="fadeInDown"
+              delay={200}
+              style={styles.bannerText}>
+              Discover Your Signature Look
+            </Animatable.Text>
+            <Animatable.Text
+              animation="fadeIn"
+              delay={400}
+              style={styles.bannerSubtext}>
+              Curated just for you this season.
+            </Animatable.Text>
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </View>
 
       {/* Weather Section */}
       <View style={globalStyles.section}>
@@ -539,16 +541,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       </Animatable.View>
 
-      <Text style={globalStyles.sectionTitle}>Quick Access</Text>
-      <View style={styles.tileRow}>
-        <AppleTouchFeedback
-          style={[globalStyles.buttonPrimary, {marginBottom: 12, width: 186}]}
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('Wardrobe')}>
-          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
-            Wardrobe
-          </Text>
-        </AppleTouchFeedback>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Quick Access</Text>
+        <View style={styles.tileRow}>
+          <AppleTouchFeedback
+            style={[globalStyles.buttonPrimary, {marginBottom: 12, width: 186}]}
+            hapticStyle="impactHeavy"
+            onPress={() => navigate('Wardrobe')}>
+            <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
+              Wardrobe
+            </Text>
+          </AppleTouchFeedback>
+        </View>
 
         <AppleTouchFeedback
           style={[globalStyles.buttonPrimary, {width: 186}]}
@@ -578,7 +582,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </AppleTouchFeedback>
       </View>
 
-      <View style={globalStyles.section}>
+      <View style={globalStyles.sectionScroll}>
         <Text style={globalStyles.sectionTitle}>Recommended Outfit</Text>
         <ScrollView
           horizontal
@@ -607,7 +611,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </ScrollView>
       </View>
 
-      <View style={globalStyles.section}>
+      <View style={globalStyles.sectionScroll}>
         <Text style={globalStyles.sectionTitle}>Saved Looks</Text>
         {savedLooksPreview.length === 0 ? (
           <Text style={{color: '#aaa', paddingLeft: 16, fontStyle: 'italic'}}>

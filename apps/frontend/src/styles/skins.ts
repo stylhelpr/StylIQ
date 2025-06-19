@@ -22,7 +22,7 @@ export const skins = {
       error: '#FF6B6B',
       success: '#4CAF50',
       warning: '#FFC107',
-      frostedGlass: 'rgba(255, 255, 255, 0.15)',
+      frostedGlass: 'rgb(0, 0, 0)',
       skeletonLoader: '#e6e3e3',
       button1: 'rgb(102, 0, 255)',
       button2: 'red',

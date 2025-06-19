@@ -447,7 +447,7 @@ export default function ProfileScreen({navigate}: Props) {
         </AppleTouchFeedback>
       </View>
 
-      <View style={globalStyles.section}>
+      <View style={globalStyles.sectionScroll}>
         <Text style={globalStyles.sectionTitle}>Style Tags</Text>
         <ScrollView
           horizontal
@@ -461,7 +461,7 @@ export default function ProfileScreen({navigate}: Props) {
         </ScrollView>
       </View>
 
-      <View style={globalStyles.section}>
+      <View style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Favorite Brands</Text>
         <ScrollView
           horizontal
@@ -476,7 +476,7 @@ export default function ProfileScreen({navigate}: Props) {
       </View>
 
       {/* Favorite Outfits */}
-      <View style={globalStyles.section}>
+      <View style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Favorite Outfits</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {storyHighlights.map((label, index) => (

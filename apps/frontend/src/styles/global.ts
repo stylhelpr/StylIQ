@@ -11,12 +11,17 @@ export const createGlobalStyles = (theme: Theme) =>
     container: {
       paddingTop: 24,
       paddingBottom: 60,
-      paddingHorizontal: 16,
     },
     section: {
-      marginBottom: 18,
+      marginBottom: 24,
+      paddingHorizontal: 20,
+    },
+    sectionScroll: {
+      marginBottom: 24,
+      paddingLeft: 20,
     },
     header: {
+      paddingLeft: 20,
       fontSize: 30,
       fontWeight: '700',
       color: theme.colors.primary,
@@ -39,6 +44,11 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '500',
       color: theme.colors.foreground,
     },
+    cardLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+    },
     subLabel: {
       fontSize: 13,
       fontWeight: '500',
@@ -53,7 +63,7 @@ export const createGlobalStyles = (theme: Theme) =>
     pill: {
       backgroundColor: theme.colors.surface,
       paddingHorizontal: 18,
-      paddingVertical: 8,
+      paddingVertical: 9,
       borderRadius: 18,
       marginRight: 8,
       shadowColor: '#000',
@@ -111,8 +121,8 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: '#eee',
     },
     image2: {
-      width: 170,
-      height: 100,
+      width: 165,
+      height: 95,
       borderTopLeftRadius: 12,
       borderTopRightRadius: 12,
       backgroundColor: theme.colors.surface,
@@ -123,7 +133,6 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: '#1a1a1a',
       borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 12,
-      marginBottom: 20,
       height: 48,
       width: '100%',
     },
