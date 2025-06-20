@@ -384,7 +384,7 @@ export default function ClosetScreen({navigate}: Props) {
             <Text style={[globalStyles.sectionTitle]}>{mainCategory}</Text>
 
             {Object.entries(subMap).map(([subCategory, items]) => (
-              <View key={subCategory} style={{marginBottom: 24}}>
+              <View key={subCategory}>
                 <Text style={[globalStyles.title]}>{subCategory}</Text>
 
                 <View style={[styles.gridContainer]}>

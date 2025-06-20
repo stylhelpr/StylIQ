@@ -65,7 +65,7 @@ const BottomNavigation = ({
       <>
         <Icon
           name={icon}
-          size={27}
+          size={icon === 'home' ? 27 : 27}
           style={{marginTop: -32}}
           color={isActive ? theme.colors.primary : theme.colors.foreground2}
         />
@@ -125,7 +125,7 @@ const BottomNavigation = ({
 
 export default BottomNavigation;
 
-///////////////
+/////////////
 
 // import React from 'react';
 // import {View, Text, StyleSheet, ViewStyle, TextStyle} from 'react-native';

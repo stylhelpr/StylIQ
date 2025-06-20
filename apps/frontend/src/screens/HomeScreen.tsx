@@ -224,11 +224,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       fontWeight: '600',
       color: '#fff',
     },
-    tileRow: {
+    quickAccessGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
-      marginBottom: 22,
+    },
+    quickAccessItem: {
+      width: '48.7%',
+    },
+    quickAccessButton: {
+      backgroundColor: theme.colors.button1,
+      borderRadius: tokens.borderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     outfitCard: {
       width: 92,
@@ -543,43 +551,25 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
       <View style={globalStyles.section}>
         <Text style={globalStyles.sectionTitle}>Quick Access</Text>
-        <View style={styles.tileRow}>
-          <AppleTouchFeedback
-            style={[globalStyles.buttonPrimary, {marginBottom: 12, width: 186}]}
-            hapticStyle="impactHeavy"
-            onPress={() => navigate('Wardrobe')}>
-            <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
-              Wardrobe
-            </Text>
-          </AppleTouchFeedback>
+        <View style={styles.quickAccessGrid}>
+          {[
+            {label: 'Wardrobe', screen: 'Wardrobe'},
+            {label: 'Add Item', screen: 'AddItem'},
+            {label: 'Style Me', screen: 'Outfit'},
+            {label: 'Try-On', screen: 'TryOnOverlay'},
+          ].map((btn, index) => (
+            <View
+              key={btn.screen}
+              style={[styles.quickAccessItem, index < 2 && {marginBottom: 12}]}>
+              <AppleTouchFeedback
+                style={globalStyles.buttonPrimary}
+                hapticStyle="impactHeavy"
+                onPress={() => navigate(btn.screen)}>
+                <Text style={globalStyles.buttonPrimaryText}>{btn.label}</Text>
+              </AppleTouchFeedback>
+            </View>
+          ))}
         </View>
-
-        <AppleTouchFeedback
-          style={[globalStyles.buttonPrimary, {width: 186}]}
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('AddItem')}>
-          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
-            Add Item
-          </Text>
-        </AppleTouchFeedback>
-
-        <AppleTouchFeedback
-          style={[globalStyles.buttonPrimary, {width: 186}]}
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('Outfit')}>
-          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
-            Style Me
-          </Text>
-        </AppleTouchFeedback>
-
-        <AppleTouchFeedback
-          style={[globalStyles.buttonPrimary, {width: 186}]}
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('TryOnOverlay')}>
-          <Text style={globalStyles.buttonPrimaryText} numberOfLines={1}>
-            Try-On
-          </Text>
-        </AppleTouchFeedback>
       </View>
 
       <View style={globalStyles.sectionScroll}>

@@ -130,7 +130,7 @@ export default function StyleProfileScreen({navigate}: Props) {
       </View>
 
       <ScrollView
-        contentContainerStyle={{paddingBottom: 100}}
+        contentContainerStyle={{paddingBottom: 100, paddingHorizontal: 20}}
         showsVerticalScrollIndicator={false}>
         {[
           ['Preferences', '👗 Style Preferences'],
@@ -173,7 +173,7 @@ export default function StyleProfileScreen({navigate}: Props) {
   );
 }
 
-///////////////
+////////////
 
 // import React from 'react';
 // import {
@@ -195,6 +195,7 @@ export default function StyleProfileScreen({navigate}: Props) {
 // import {useQuery} from '@tanstack/react-query';
 // import {API_BASE_URL} from '../config/api';
 // import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -206,6 +207,7 @@ export default function StyleProfileScreen({navigate}: Props) {
 //   const uuid = useUUID();
 //   const {theme} = useAppTheme();
 //   const colors = theme.colors;
+//   const globalStyles = useGlobalStyles();
 
 //   const {
 //     styleProfile,
@@ -249,45 +251,12 @@ export default function StyleProfileScreen({navigate}: Props) {
 //   let progress = 0;
 //   try {
 //     progress = useProfileProgress(styleProfile, wardrobe);
-//   } catch (e) {
-//     console.error('❌ useProfileProgress error:', e);
-//   }
+//   } catch (e) {}
 
 //   const styles = StyleSheet.create({
 //     screen: {
 //       flex: 1,
 //       backgroundColor: theme.colors.background,
-//     },
-//     container: {
-//       paddingTop: 24,
-//       paddingBottom: 60,
-//       paddingHorizontal: 16,
-//     },
-//     section: {
-//       marginBottom: 32,
-//     },
-//     header: {
-//       fontSize: 28,
-//       fontWeight: '600',
-//       color: theme.colors.primary,
-//     },
-//     sectionTitle: {
-//       fontSize: 17,
-//       fontWeight: '600',
-//       lineHeight: 24,
-//       color: theme.colors.foreground,
-//       paddingBottom: 12,
-//     },
-//     content: {
-//       paddingVertical: 12,
-//       paddingBottom: 60,
-//     },
-//     link: {
-//       fontSize: 16,
-//       paddingVertical: 12,
-//       color: colors.primary,
-//       borderBottomWidth: 1,
-//       borderBottomColor: colors.surface,
 //     },
 //     scrollFade: {
 //       position: 'absolute',
@@ -299,11 +268,8 @@ export default function StyleProfileScreen({navigate}: Props) {
 //     fadeBottom: {
 //       flex: 1,
 //     },
-//     progressContainer: {
-//       marginTop: 16,
-//     },
 //     progressLabel: {
-//       fontSize: 14,
+//       fontSize: 16,
 //       color: theme.colors.foreground,
 //       marginBottom: 4,
 //     },
@@ -320,28 +286,29 @@ export default function StyleProfileScreen({navigate}: Props) {
 //     },
 //   });
 
-//   console.log('🧪 StyleProfile fields: LOOOK HERE', styleProfile);
-
 //   return (
 //     <View
-//       style={[styles.container, {backgroundColor: theme.colors.background}]}>
-//       <Text style={[styles.header, {color: theme.colors.primary}]}>
+//       style={[
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}>
+//       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
 //         Style Profile
 //       </Text>
 //       <BackHeader title="" onBack={() => navigate('Profile')} />
 
-//       <View style={styles.section}>
-//         <View style={styles.progressContainer}>
-//           <Text style={styles.progressLabel}>
-//             Style Profile {progress}% complete
-//           </Text>
-//           <View style={styles.progressBar}>
-//             <View style={[styles.progressFill, {width: `${progress}%`}]} />
-//           </View>
+//       <View style={globalStyles.section}>
+//         <Text style={styles.progressLabel}>
+//           Style Profile {progress}% complete
+//         </Text>
+//         <View style={styles.progressBar}>
+//           <View style={[styles.progressFill, {width: `${progress}%`}]} />
 //         </View>
 //       </View>
 
-//       <ScrollView contentContainerStyle={styles.content}>
+//       <ScrollView
+//         contentContainerStyle={{paddingBottom: 100}}
+//         showsVerticalScrollIndicator={false}>
 //         {[
 //           ['Preferences', '👗 Style Preferences'],
 //           ['Measurements', '📏 Measurements'],
@@ -367,8 +334,8 @@ export default function StyleProfileScreen({navigate}: Props) {
 //             key={screen}
 //             onPress={() => navigate(screen)}
 //             hapticStyle="impactMedium"
-//             style={{marginBottom: 12}}>
-//             <Text style={styles.link}>{label}</Text>
+//             style={{paddingVertical: 10}}>
+//             <Text style={globalStyles.sectionTitle}>{label}</Text>
 //           </AppleTouchFeedback>
 //         ))}
 //       </ScrollView>

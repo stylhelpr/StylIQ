@@ -483,23 +483,25 @@ export default function SavedOutfitsScreen() {
             <TouchableOpacity
               key={key}
               onPress={() => setSortType(key)}
-              style={{
-                paddingHorizontal: 18,
-                paddingVertical: 8,
-                borderRadius: 20,
-                backgroundColor:
-                  sortType === key
-                    ? theme.colors.primary
-                    : theme.colors.surface,
-                marginRight: 7,
-                marginBottom: 8,
-              }}>
+              style={[
+                globalStyles.pillFixedWidth2,
+                {
+                  backgroundColor:
+                    sortType === key
+                      ? theme.colors.primary
+                      : theme.colors.surface,
+                  marginRight: 7,
+                  marginBottom: 8,
+                },
+              ]}>
               <Text
-                style={{
-                  color: sortType === key ? 'black' : theme.colors.foreground2,
-                  fontWeight: '500',
-                  fontSize: 14,
-                }}>
+                style={[
+                  globalStyles.pillTextFixedWidth2,
+                  {
+                    color:
+                      sortType === key ? 'black' : theme.colors.foreground2,
+                  },
+                ]}>
                 {label}
               </Text>
             </TouchableOpacity>

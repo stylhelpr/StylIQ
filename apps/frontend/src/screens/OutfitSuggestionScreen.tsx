@@ -390,27 +390,33 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           {/* Filter pills */}
           <View style={styles.chipsRow}>
             <TouchableOpacity
-              style={globalStyles.pill}
+              style={globalStyles.pillFixedWidth}
               onPress={() =>
                 setWeather(prev => (prev === 'hot' ? 'cold' : 'hot'))
               }>
-              <Text style={globalStyles.pillText}>Weather: {weather}</Text>
+              <Text style={globalStyles.pillTextFixedWidth}>
+                Weather: {weather}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.chip}
+              style={globalStyles.pillFixedWidth}
               onPress={() =>
                 setOccasion(prev => (prev === 'Casual' ? 'Formal' : 'Casual'))
               }>
-              <Text style={styles.chipText}>Occasion: {occasion}</Text>
+              <Text style={globalStyles.pillTextFixedWidth}>
+                Occasion: {occasion}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.chip}
+              style={globalStyles.pillFixedWidth}
               onPress={() =>
                 setStyle(prev => (prev === 'modern' ? 'retro' : 'modern'))
               }>
-              <Text style={styles.chipText}>Style: {style}</Text>
+              <Text style={globalStyles.pillTextFixedWidth}>
+                Style: {style}
+              </Text>
             </TouchableOpacity>
           </View>
 
