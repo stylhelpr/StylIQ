@@ -19,7 +19,7 @@ export const tokens = {
   borderRadius: {
     none: 0,
     sm: scale(2),
-    md: scale(12),
+    md: scale(10),
     lg: scale(16),
     xl: scale(24),
     '2xl': scale(32),

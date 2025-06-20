@@ -45,13 +45,13 @@ const BottomNavigation = ({
       paddingTop: 20,
     },
     tabLabel: {
-      fontSize: 10,
+      fontSize: 9,
       color: theme.colors.foreground,
       fontWeight: '300',
-      marginTop: 1,
+      marginTop: 0,
     },
     activeLabel: {
-      fontSize: 11,
+      fontSize: 10,
       color: theme.colors.primary,
       fontWeight: '400',
     },
@@ -65,7 +65,7 @@ const BottomNavigation = ({
       <>
         <Icon
           name={icon}
-          size={icon === 'home' ? 27 : 27}
+          size={icon === 'home' ? 26 : 26}
           style={{marginTop: -32}}
           color={isActive ? theme.colors.primary : theme.colors.foreground2}
         />

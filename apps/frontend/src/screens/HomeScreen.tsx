@@ -330,7 +330,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           borderRadius: 20,
           overflow: 'hidden',
         }}>
-        <View style={{padding: 16, alignItems: 'center'}}>
+        <View style={{alignItems: 'center'}}>
           <Text
             style={{
               fontSize: 17,

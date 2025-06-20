@@ -9,11 +9,11 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
     },
     container: {
-      paddingTop: 24,
+      paddingTop: 20,
       paddingBottom: 60,
     },
     section: {
-      marginBottom: 24,
+      marginBottom: 18,
       paddingHorizontal: 20,
     },
     sectionScroll: {
@@ -23,7 +23,7 @@ export const createGlobalStyles = (theme: Theme) =>
     header: {
       paddingLeft: 20,
       fontSize: 30,
-      fontWeight: '700',
+      fontWeight: '600',
       color: theme.colors.primary,
     },
     sectionTitle: {
@@ -128,7 +128,7 @@ export const createGlobalStyles = (theme: Theme) =>
       elevation: 2,
     },
     buttonPrimaryText: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '600',
       color: '#fff',
     },
@@ -146,7 +146,7 @@ export const createGlobalStyles = (theme: Theme) =>
       elevation: 2,
     },
     buttonSecondaryText: {
-      fontSize: 17,
+      fontSize: 14,
       fontWeight: '600',
       color: '#fff',
     },

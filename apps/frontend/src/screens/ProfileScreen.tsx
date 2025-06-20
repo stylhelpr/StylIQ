@@ -238,7 +238,7 @@ export default function ProfileScreen({navigate}: Props) {
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 20,
+      marginTop: 10,
     },
     settingsButton: {
       position: 'absolute',

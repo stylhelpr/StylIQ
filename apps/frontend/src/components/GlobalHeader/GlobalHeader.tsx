@@ -19,9 +19,9 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 
   const handleLogout = async () => {
     try {
-      await clearSession(); // logs out from Auth0
+      await clearSession();
       console.log('Logged out successfully');
-      navigate('Login'); // 👈 Navigate to your Login screen manually
+      navigate('Login');
     } catch (e) {
       console.error('Logout failed:', e);
     }
@@ -31,8 +31,8 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
     header: {
       width: '100%',
       paddingHorizontal: 16,
-      paddingTop: 52,
-      paddingBottom: 14,
+      paddingTop: 50,
+      paddingBottom: 16,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -40,23 +40,23 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
     iconCircle: {
       backgroundColor: theme.colors.surface,
       padding: 8,
-      marginLeft: 10,
+      marginLeft: 12,
       marginRight: 4,
       borderRadius: 24,
       alignItems: 'center',
       justifyContent: 'center',
     },
+    iconButton: {
+      marginLeft: 16,
+    },
     title: {
-      fontSize: 24,
+      fontSize: 26,
       fontWeight: '700',
       color: '#fff',
     },
     iconRow: {
       flexDirection: 'row',
       alignItems: 'center',
-    },
-    iconButton: {
-      marginLeft: 18,
     },
     avatar: {
       width: 23,
@@ -88,7 +88,7 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
           style={styles.iconButton}
           hapticStyle="impactLight"
           onPress={() => navigate('Search')}>
-          <Icon name="search" size={28} color={theme.colors.primary} />
+          <Icon name="search" size={30} color={theme.colors.primary} />
         </AppleTouchFeedback>
 
         <AppleTouchFeedback
@@ -109,7 +109,7 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
   );
 }
 
-/////////////////
+/////////
 
 // import React from 'react';
 // import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
@@ -118,6 +118,7 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 // import {useAppTheme} from '../../context/ThemeContext';
 // import {useAuth0} from 'react-native-auth0';
 // import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 
 // type Props = {
 //   navigate: (screen: Screen) => void;
@@ -131,9 +132,9 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 
 //   const handleLogout = async () => {
 //     try {
-//       await clearSession(); // logs out from Auth0
+//       await clearSession();
 //       console.log('Logged out successfully');
-//       navigate('Login'); // 👈 Navigate to your Login screen manually
+//       navigate('Login');
 //     } catch (e) {
 //       console.error('Logout failed:', e);
 //     }
@@ -185,31 +186,37 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
 //       <Text style={styles.title}>StylHelpr</Text>
 
 //       <View style={styles.iconRow}>
-//         <TouchableOpacity
+//         <AppleTouchFeedback
 //           style={styles.iconButton}
+//           hapticStyle="impactLight"
 //           onPress={() => navigate('Notifications')}>
 //           <Icon
 //             name="notifications-none"
 //             size={28}
 //             color={theme.colors.primary}
 //           />
-//         </TouchableOpacity>
+//         </AppleTouchFeedback>
 
-//         <TouchableOpacity
+//         <AppleTouchFeedback
 //           style={styles.iconButton}
+//           hapticStyle="impactLight"
 //           onPress={() => navigate('Search')}>
-//           <Icon name="search" size={28} color={theme.colors.primary} />
-//         </TouchableOpacity>
+//           <Icon name="search" size={34} color={theme.colors.primary} />
+//         </AppleTouchFeedback>
 
-//         <TouchableOpacity
+//         <AppleTouchFeedback
 //           style={styles.iconCircle}
+//           hapticStyle="impactLight"
 //           onPress={() => navigate('Profile')}>
 //           <MaterialIcons name="person" size={15} color={theme.colors.primary} />
-//         </TouchableOpacity>
+//         </AppleTouchFeedback>
 
-//         <TouchableOpacity style={styles.iconCircle} onPress={handleLogout}>
+//         <AppleTouchFeedback
+//           style={styles.iconCircle}
+//           hapticStyle="impactMedium"
+//           onPress={handleLogout}>
 //           <MaterialIcons name="logout" size={15} color={theme.colors.primary} />
-//         </TouchableOpacity>
+//         </AppleTouchFeedback>
 //       </View>
 //     </View>
 //   );
