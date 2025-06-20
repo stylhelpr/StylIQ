@@ -13,11 +13,11 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingBottom: 60,
     },
     section: {
-      marginBottom: 18,
+      marginBottom: 26,
       paddingHorizontal: 20,
     },
     sectionScroll: {
-      marginBottom: 24,
+      marginBottom: 26,
       paddingLeft: 20,
     },
     header: {
@@ -31,7 +31,7 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '600',
       lineHeight: 24,
       color: theme.colors.foreground,
-      marginBottom: 10,
+      marginBottom: 11,
     },
     title: {
       fontSize: 14,
