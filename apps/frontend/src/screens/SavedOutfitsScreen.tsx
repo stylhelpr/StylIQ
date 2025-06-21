@@ -314,7 +314,7 @@ export default function SavedOutfitsScreen() {
     card: {
       borderRadius: tokens.borderRadius.md,
       padding: 16,
-      marginBottom: 14,
+      marginBottom: 9,
       elevation: 2,
     },
     timestamp: {

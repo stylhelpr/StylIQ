@@ -129,39 +129,44 @@ export default function StyleProfileScreen({navigate}: Props) {
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{paddingBottom: 100, paddingHorizontal: 28}}
-        showsVerticalScrollIndicator={false}>
-        {[
-          ['Preferences', '👗 Style Preferences'],
-          ['Measurements', '📏 Measurements'],
-          ['BudgetAndBrands', '💰 Budget & Brands'],
-          ['Appearance', '🧍 Appearance'],
-          ['Lifestyle', '🌎 Lifestyle'],
-          ['BodyTypes', '📐 Body Type'],
-          ['Proportions', '📊 Body Proportions'],
-          ['FitPreferences', '🧵 Fit Preferences'],
-          ['FashionGoals', '🎯 Fashion Goals'],
-          ['Climate', '🌤️ Climate'],
-          ['HairColor', '💇 Hair Color'],
-          ['SkinTone', '🎨 Skin Tone'],
-          ['EyeColor', '👁️ Eye Color'],
-          ['ShoppingHabits', '🛍️ Shopping Habits'],
-          ['Activities', '🏃 Activities'],
-          ['PersonalityTraits', '🧠 Personality Traits'],
-          ['ColorPreferences', '🌈 Color Preferences'],
-          ['Undertone', '🫧 Undertone'],
-          ['StyleKeywords', '🪞 Style Keywords'],
-        ].map(([screen, label]) => (
-          <AppleTouchFeedback
-            key={screen}
-            onPress={() => navigate(screen)}
-            hapticStyle="impactMedium"
-            style={{marginBottom: 22}}>
-            <Text style={globalStyles.sectionTitle3}>{label}</Text>
-          </AppleTouchFeedback>
-        ))}
-      </ScrollView>
+      <View style={[globalStyles.section, {paddingBottom: 200}]}>
+        <ScrollView
+          contentContainerStyle={[
+            globalStyles.menuSection3,
+            {paddingHorizontal: 20},
+          ]}
+          showsVerticalScrollIndicator={false}>
+          {[
+            ['Preferences', '👗 Style Preferences'],
+            ['Measurements', '📏 Measurements'],
+            ['BudgetAndBrands', '💰 Budget & Brands'],
+            ['Appearance', '🧍 Appearance'],
+            ['Lifestyle', '🌎 Lifestyle'],
+            ['BodyTypes', '📐 Body Type'],
+            ['Proportions', '📊 Body Proportions'],
+            ['FitPreferences', '🧵 Fit Preferences'],
+            ['FashionGoals', '🎯 Fashion Goals'],
+            ['Climate', '🌤️ Climate'],
+            ['HairColor', '💇 Hair Color'],
+            ['SkinTone', '🎨 Skin Tone'],
+            ['EyeColor', '👁️ Eye Color'],
+            ['ShoppingHabits', '🛍️ Shopping Habits'],
+            ['Activities', '🏃 Activities'],
+            ['PersonalityTraits', '🧠 Personality Traits'],
+            ['ColorPreferences', '🌈 Color Preferences'],
+            ['Undertone', '🫧 Undertone'],
+            ['StyleKeywords', '🪞 Style Keywords'],
+          ].map(([screen, label]) => (
+            <AppleTouchFeedback
+              key={screen}
+              onPress={() => navigate(screen)}
+              hapticStyle="impactMedium"
+              style={[globalStyles.hrLine, {paddingVertical: 12}]}>
+              <Text style={globalStyles.sectionTitle3}>{label}</Text>
+            </AppleTouchFeedback>
+          ))}
+        </ScrollView>
+      </View>
 
       <View style={styles.scrollFade} pointerEvents="none">
         <LinearGradient

@@ -16,6 +16,9 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: 26,
       paddingHorizontal: 20,
     },
+    section2: {
+      marginBottom: 26,
+    },
     sectionScroll: {
       marginBottom: 26,
       paddingLeft: 20,
@@ -86,6 +89,37 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '500',
       marginTop: 2,
       color: theme.colors.foreground2,
+    },
+    menuContainer1: {
+      flexDirection: 'column',
+      justifyContent: 'center',
+      marginTop: 8,
+      marginBottom: 20,
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.md,
+      paddingHorizontal: 16,
+    },
+    menuSection1: {
+      flexDirection: 'column',
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 18,
+    },
+    menuSection2: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.md,
+      paddingHorizontal: 26,
+      paddingVertical: 18,
+    },
+    menuSection3: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.md,
+      paddingHorizontal: 26,
+    },
+    menuLabel: {
+      fontSize: 18,
+      fontWeight: '400',
+      color: theme.colors.foreground,
     },
     labelContainer: {
       paddingVertical: 8,
@@ -226,5 +260,9 @@ export const createGlobalStyles = (theme: Theme) =>
       flex: 1,
       color: 'white',
       fontSize: 16,
+    },
+    hrLine: {
+      borderBottomWidth: 1,
+      borderColor: 'rgba(74, 74, 74, 0.37)',
     },
   });
