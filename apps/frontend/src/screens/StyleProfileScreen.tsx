@@ -130,7 +130,7 @@ export default function StyleProfileScreen({navigate}: Props) {
       </View>
 
       <ScrollView
-        contentContainerStyle={{paddingBottom: 100, paddingHorizontal: 20}}
+        contentContainerStyle={{paddingBottom: 100, paddingHorizontal: 28}}
         showsVerticalScrollIndicator={false}>
         {[
           ['Preferences', '👗 Style Preferences'],
@@ -157,8 +157,8 @@ export default function StyleProfileScreen({navigate}: Props) {
             key={screen}
             onPress={() => navigate(screen)}
             hapticStyle="impactMedium"
-            style={{paddingVertical: 10}}>
-            <Text style={globalStyles.sectionTitle}>{label}</Text>
+            style={{marginBottom: 22}}>
+            <Text style={globalStyles.sectionTitle3}>{label}</Text>
           </AppleTouchFeedback>
         ))}
       </ScrollView>

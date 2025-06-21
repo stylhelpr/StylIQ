@@ -71,8 +71,9 @@ export default function ActivitiesScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Activities
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={globalStyles.sectionTitle}>
           What do you usually do during the week?
         </Text>

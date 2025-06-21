@@ -64,9 +64,8 @@ export default function AppearanceScreen({navigate}: Props) {
         Appearance
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         {Object.entries(fields).map(([category, options]) => (
           <View key={category}>
             <Text style={[globalStyles.sectionTitle, {color: colors.primary}]}>

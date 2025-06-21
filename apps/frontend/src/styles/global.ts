@@ -40,6 +40,13 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       marginBottom: 2,
     },
+    sectionTitle3: {
+      fontSize: 17,
+      fontWeight: '500',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 2,
+    },
     title: {
       fontSize: 14,
       fontWeight: '500',
@@ -51,6 +58,12 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '500',
       color: theme.colors.foreground,
       marginBottom: 12,
+    },
+    titleBold: {
+      fontSize: 19,
+      fontWeight: '800',
+      marginBottom: 4,
+      color: theme.colors.foreground,
     },
     label: {
       fontSize: 13,
@@ -79,6 +92,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: 12,
     },
     labelContainer2: {
+      paddingHorizontal: 12,
+    },
+    labelContainer3: {
+      paddingVertical: 6,
       paddingHorizontal: 12,
     },
     pillContainer: {
@@ -188,6 +205,12 @@ export const createGlobalStyles = (theme: Theme) =>
       height: 95,
       borderTopLeftRadius: 12,
       borderTopRightRadius: 12,
+      backgroundColor: theme.colors.surface,
+    },
+    image3: {
+      width: 165,
+      height: 95,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,
     },
     promptRow: {

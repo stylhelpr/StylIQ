@@ -70,9 +70,8 @@ export default function ColorPreferencesScreen({navigate}: Props) {
         Color Preferences
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Choose colors you like wearing:
         </Text>

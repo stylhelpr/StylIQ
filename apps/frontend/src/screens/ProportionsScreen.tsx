@@ -64,8 +64,9 @@ export default function ProportionsScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Body Proportions
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Describe your proportions for fit-accurate styling:
         </Text>

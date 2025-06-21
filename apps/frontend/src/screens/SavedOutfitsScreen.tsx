@@ -10,6 +10,7 @@ import {
   TextInput,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import ViewShot from 'react-native-view-shot';
@@ -312,19 +313,9 @@ export default function SavedOutfitsScreen() {
     },
     card: {
       borderRadius: tokens.borderRadius.md,
-      // padding: 12,
       padding: 16,
       marginBottom: 14,
       elevation: 2,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
-    name: {
-      fontSize: 18,
-      fontWeight: '800',
-      color: theme.colors.foreground,
     },
     timestamp: {
       fontSize: 12,
@@ -337,8 +328,8 @@ export default function SavedOutfitsScreen() {
     imageRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      marginTop: 6,
-      marginBottom: 6,
+      marginTop: 10,
+      marginBottom: 2,
     },
     notes: {
       marginTop: 8,
@@ -509,7 +500,9 @@ export default function SavedOutfitsScreen() {
         </View>
       </View>
 
-      <ScrollView style={globalStyles.section}>
+      <ScrollView
+        contentContainerStyle={{paddingBottom: 100}}
+        style={globalStyles.section}>
         {sortedOutfits.length === 0 ? (
           <Text style={{color: theme.colors.foreground, textAlign: 'center'}}>
             No saved outfits yet.
@@ -522,14 +515,11 @@ export default function SavedOutfitsScreen() {
               options={{format: 'png', quality: 0.9}}>
               <View
                 style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-                <View style={styles.headerRow}></View>
-
                 <View
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: 4,
                   }}>
                   <TouchableOpacity
                     onPress={() => {
@@ -537,7 +527,7 @@ export default function SavedOutfitsScreen() {
                       setEditedName(outfit.name || '');
                     }}
                     style={{flex: 1, marginRight: 12}}>
-                    <Text style={styles.name}>
+                    <Text style={globalStyles.titleBold}>
                       {outfit.name?.trim() || 'Unnamed Outfit'}
                     </Text>
                     {(outfit.createdAt || outfit.plannedDate) && (
@@ -581,9 +571,19 @@ export default function SavedOutfitsScreen() {
                           setCombinedOutfits,
                         )
                       }>
-                      <Text style={{fontSize: 18}}>
-                        {isFavorited(outfit.id, outfit.type) ? '❤️' : '🤍'}
-                      </Text>
+                      <MaterialIcons
+                        name={
+                          isFavorited(outfit.id, outfit.type)
+                            ? 'favorite'
+                            : 'favorite'
+                        }
+                        size={24}
+                        color={
+                          isFavorited(outfit.id, outfit.type)
+                            ? 'red'
+                            : theme.colors.foreground
+                        }
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
@@ -591,7 +591,11 @@ export default function SavedOutfitsScreen() {
                         setShowDeleteConfirm(true);
                       }}
                       style={{marginLeft: 10}}>
-                      <Text style={{fontSize: 18}}>🗑️</Text>
+                      <MaterialIcons
+                        name="delete"
+                        size={24}
+                        color={theme.colors.foreground}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -626,6 +630,7 @@ export default function SavedOutfitsScreen() {
                   style={{
                     flexDirection: 'row',
                     flexWrap: 'wrap',
+                    alignItems: 'center',
                     marginTop: 10,
                   }}>
                   <TouchableOpacity
@@ -635,27 +640,37 @@ export default function SavedOutfitsScreen() {
                     }}
                     style={{marginRight: 10}}>
                     <Text
-                      style={{color: theme.colors.primary, fontWeight: '600'}}>
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: '600',
+                        fontSize: 13,
+                      }}>
                       📅 Plan This Outfit
                     </Text>
                   </TouchableOpacity>
 
                   {outfit.plannedDate && (
                     <TouchableOpacity
-                      onPress={() => cancelPlannedOutfit(outfit.id)}>
+                      onPress={() => cancelPlannedOutfit(outfit.id)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingRight: 12,
+                      }}>
+                      <MaterialIcons name="close" size={26} color="red" />
                       <Text
                         style={{
-                          color: 'red',
+                          color: theme.colors.primary,
                           fontWeight: '600',
-                          paddingRight: 12,
                           fontSize: 14,
+                          marginLeft: 4,
                         }}>
-                        ❌ Cancel Plan
+                        Cancel Plan
                       </Text>
                     </TouchableOpacity>
                   )}
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     onPress={() => {
                       Alert.alert('Share feature coming soon');
                     }}>
@@ -663,7 +678,7 @@ export default function SavedOutfitsScreen() {
                       style={{color: theme.colors.primary, fontWeight: '600'}}>
                       🔗 Share Outfit
                     </Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                 </View>
 
                 {(outfit.tags || []).length > 0 && (
@@ -743,7 +758,7 @@ export default function SavedOutfitsScreen() {
             right: 0,
             bottom: 0,
             backgroundColor: '#000',
-            paddingBottom: 40,
+            paddingBottom: 180,
           }}>
           <DateTimePicker
             value={selectedTempDate || new Date()}
@@ -919,7 +934,7 @@ export default function SavedOutfitsScreen() {
   );
 }
 
-////////////
+/////////////////
 
 // import React, {useEffect, useRef, useState} from 'react';
 // import {
@@ -933,6 +948,7 @@ export default function SavedOutfitsScreen() {
 //   TextInput,
 // } from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 // import DateTimePicker from '@react-native-community/datetimepicker';
 // import ViewShot from 'react-native-view-shot';
@@ -940,6 +956,8 @@ export default function SavedOutfitsScreen() {
 // import {useFavorites} from '../hooks/useFavorites';
 // import {useUUID} from '../context/UUIDContext';
 // import {API_BASE_URL} from '../config/api';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
 
 // type SavedOutfit = {
 //   id: string;
@@ -969,6 +987,7 @@ export default function SavedOutfitsScreen() {
 //   >({});
 
 //   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
 //   const [combinedOutfits, setCombinedOutfits] = useState<SavedOutfit[]>([]);
 //   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
 //   const [editedName, setEditedName] = useState('');
@@ -992,7 +1011,6 @@ export default function SavedOutfitsScreen() {
 //   } = useFavorites(userId);
 
 //   const [selectedTempDate, setSelectedTempDate] = useState<Date | null>(null);
-
 //   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 //   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -1010,7 +1028,6 @@ export default function SavedOutfitsScreen() {
 //         console.error('❌ Error fetching scheduled outfits:', err);
 //       }
 //     };
-
 //     if (userId) fetchScheduled();
 //   }, [userId]);
 
@@ -1037,7 +1054,6 @@ export default function SavedOutfitsScreen() {
 //         scheduledRes.json(),
 //       ]);
 
-//       // 🔄 Build a map of outfit ID → scheduled date
 //       const scheduleMap: Record<string, string> = {};
 //       for (const s of scheduledData) {
 //         if (s.ai_outfit_id) {
@@ -1049,7 +1065,6 @@ export default function SavedOutfitsScreen() {
 
 //       const normalize = (o: any, isCustom: boolean): SavedOutfit => {
 //         const outfitId = o.id;
-
 //         return {
 //           id: outfitId,
 //           name: o.name || '',
@@ -1150,7 +1165,6 @@ export default function SavedOutfitsScreen() {
 //         ...aiData.map((o: any) => normalize(o, false)),
 //         ...customData.map((o: any) => normalize(o, true)),
 //       ];
-
 //       setCombinedOutfits(allOutfits);
 //     } catch (err) {
 //       console.error('❌ Failed to load outfits:', err);
@@ -1167,9 +1181,7 @@ export default function SavedOutfitsScreen() {
 //           outfit_id: outfitId,
 //         }),
 //       });
-
 //       if (!res.ok) throw new Error('Failed to cancel planned outfit');
-
 //       setCombinedOutfits(prev =>
 //         prev.map(o => (o.id === outfitId ? {...o, plannedDate: undefined} : o)),
 //       );
@@ -1182,14 +1194,11 @@ export default function SavedOutfitsScreen() {
 //   const handleDelete = async (id: string) => {
 //     const deleted = combinedOutfits.find(o => o.id === id);
 //     if (!deleted) return;
-
 //     try {
 //       const res = await fetch(`${API_BASE_URL}/outfit/${id}`, {
 //         method: 'DELETE',
 //       });
-
 //       if (!res.ok) throw new Error('Failed to delete from DB');
-
 //       const updated = combinedOutfits.filter(o => o.id !== id);
 //       setCombinedOutfits(updated);
 //       setLastDeletedOutfit(deleted);
@@ -1202,13 +1211,10 @@ export default function SavedOutfitsScreen() {
 
 //   const handleNameSave = async () => {
 //     if (!editingOutfitId || editedName.trim() === '') return;
-
 //     const outfit = combinedOutfits.find(o => o.id === editingOutfitId);
 //     if (!outfit) return;
-
 //     try {
 //       const table = outfit.type === 'custom' ? 'custom' : 'suggestions';
-
 //       const res = await fetch(
 //         `${API_BASE_URL}/outfit/${table}/${editingOutfitId}`,
 //         {
@@ -1217,11 +1223,9 @@ export default function SavedOutfitsScreen() {
 //           body: JSON.stringify({name: editedName.trim()}),
 //         },
 //       );
-
 //       if (!res.ok) {
 //         throw new Error('Failed to update outfit name');
 //       }
-
 //       const updated = combinedOutfits.map(o =>
 //         o.id === editingOutfitId ? {...o, name: editedName} : o,
 //       );
@@ -1234,15 +1238,9 @@ export default function SavedOutfitsScreen() {
 //     }
 //   };
 
-//   // useEffect(() => {
-//   //   if (userId) {
-//   //     loadOutfits();
-//   //   }
-//   // }, [userId]);
-
 //   useEffect(() => {
 //     if (userId && !favoritesLoading) {
-//       loadOutfits(); // ✅ always attempt to load outfits
+//       loadOutfits();
 //     }
 //   }, [userId, favoritesLoading]);
 
@@ -1251,41 +1249,11 @@ export default function SavedOutfitsScreen() {
 //       flex: 1,
 //       backgroundColor: theme.colors.background,
 //     },
-//     container: {
-//       paddingTop: 24,
-//       paddingBottom: 60,
-//       paddingHorizontal: 16,
-//     },
-//     section: {
-//       marginBottom: 20,
-//     },
-//     header: {
-//       fontSize: 28,
-//       fontWeight: '600',
-//       color: theme.colors.primary,
-//     },
-//     sectionTitle: {
-//       fontSize: 17,
-//       fontWeight: '600',
-//       lineHeight: 24,
-//       color: theme.colors.foreground,
-//       paddingBottom: 12,
-//     },
 //     card: {
-//       borderRadius: 12,
-//       padding: 12,
+//       borderRadius: tokens.borderRadius.md,
+//       padding: 16,
 //       marginBottom: 14,
 //       elevation: 2,
-//     },
-//     headerRow: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       marginBottom: 10,
-//     },
-//     name: {
-//       fontSize: 18,
-//       fontWeight: '800',
-//       color: theme.colors.foreground,
 //     },
 //     timestamp: {
 //       fontSize: 12,
@@ -1298,13 +1266,8 @@ export default function SavedOutfitsScreen() {
 //     imageRow: {
 //       flexDirection: 'row',
 //       flexWrap: 'wrap',
-//     },
-//     image: {
-//       width: 60,
-//       height: 60,
-//       borderRadius: 8,
-//       marginRight: 6,
-//       marginBottom: 6,
+//       marginTop: 10,
+//       marginBottom: 2,
 //     },
 //     notes: {
 //       marginTop: 8,
@@ -1328,7 +1291,7 @@ export default function SavedOutfitsScreen() {
 //     modalContent: {
 //       backgroundColor: theme.colors.surface,
 //       padding: 20,
-//       borderRadius: 10,
+//       borderRadius: tokens.borderRadius.md,
 //       width: '80%',
 //     },
 //     input: {
@@ -1372,11 +1335,9 @@ export default function SavedOutfitsScreen() {
 //     selectedDate: Date | undefined,
 //   ) => {
 //     setShowDatePicker(false);
-
 //     if (selectedDate && planningOutfitId) {
 //       const outfit = combinedOutfits.find(o => o.id === planningOutfitId);
 //       if (!outfit) return;
-
 //       try {
 //         const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
 //           method: 'POST',
@@ -1394,7 +1355,6 @@ export default function SavedOutfitsScreen() {
 //         const data = await res.json();
 //         console.log('✅ Scheduled outfit:', data);
 
-//         // ✅ Persist the planned date in local state
 //         const updated = combinedOutfits.map(o =>
 //           o.id === planningOutfitId
 //             ? {...o, plannedDate: selectedDate.toISOString()}
@@ -1404,7 +1364,6 @@ export default function SavedOutfitsScreen() {
 //       } catch (error) {
 //         console.error('❌ Error scheduling outfit:', error);
 //       }
-
 //       setPlanningOutfitId(null);
 //     }
 //   };
@@ -1424,19 +1383,23 @@ export default function SavedOutfitsScreen() {
 //   }, [favorites]);
 
 //   return (
-//     <>
-//       <Text style={styles.header}>Saved Outfit</Text>
+//     <View
+//       style={[
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}>
+//       <Text
+//         style={[
+//           globalStyles.header,
+//           globalStyles.section,
+//           {color: theme.colors.primary},
+//         ]}>
+//         Saved Outfits
+//       </Text>
+
 //       {/* 🔀 Sort/Filter Bar */}
-//       <View style={{paddingHorizontal: 16, marginBottom: 0, marginTop: 4}}>
-//         <Text
-//           style={{
-//             color: theme.colors.foreground,
-//             fontWeight: '600',
-//             fontSize: 15,
-//             marginBottom: 14,
-//           }}>
-//           Sort by:
-//         </Text>
+//       <View style={globalStyles.section}>
+//         <Text style={[globalStyles.label, {marginBottom: 12}]}>Sort by:</Text>
 //         <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
 //           {(
 //             [
@@ -1449,23 +1412,25 @@ export default function SavedOutfitsScreen() {
 //             <TouchableOpacity
 //               key={key}
 //               onPress={() => setSortType(key)}
-//               style={{
-//                 paddingHorizontal: 14,
-//                 paddingVertical: 7,
-//                 borderRadius: 20,
-//                 backgroundColor:
-//                   sortType === key
-//                     ? theme.colors.primary
-//                     : theme.colors.surface,
-//                 marginRight: 8,
-//                 marginBottom: 8,
-//               }}>
+//               style={[
+//                 globalStyles.pillFixedWidth2,
+//                 {
+//                   backgroundColor:
+//                     sortType === key
+//                       ? theme.colors.primary
+//                       : theme.colors.surface,
+//                   marginRight: 7,
+//                   marginBottom: 8,
+//                 },
+//               ]}>
 //               <Text
-//                 style={{
-//                   color: sortType === key ? 'black' : theme.colors.foreground2,
-//                   fontWeight: '500',
-//                   fontSize: 13,
-//                 }}>
+//                 style={[
+//                   globalStyles.pillTextFixedWidth2,
+//                   {
+//                     color:
+//                       sortType === key ? 'black' : theme.colors.foreground2,
+//                   },
+//                 ]}>
 //                 {label}
 //               </Text>
 //             </TouchableOpacity>
@@ -1473,9 +1438,7 @@ export default function SavedOutfitsScreen() {
 //         </View>
 //       </View>
 
-//       <ScrollView
-//         style={{backgroundColor: theme.colors.background}}
-//         contentContainerStyle={styles.container}>
+//       <ScrollView style={globalStyles.section}>
 //         {sortedOutfits.length === 0 ? (
 //           <Text style={{color: theme.colors.foreground, textAlign: 'center'}}>
 //             No saved outfits yet.
@@ -1488,14 +1451,11 @@ export default function SavedOutfitsScreen() {
 //               options={{format: 'png', quality: 0.9}}>
 //               <View
 //                 style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-//                 <View style={styles.headerRow}></View>
-
 //                 <View
 //                   style={{
 //                     flexDirection: 'row',
 //                     alignItems: 'center',
 //                     justifyContent: 'space-between',
-//                     marginBottom: 4,
 //                   }}>
 //                   <TouchableOpacity
 //                     onPress={() => {
@@ -1503,7 +1463,7 @@ export default function SavedOutfitsScreen() {
 //                       setEditedName(outfit.name || '');
 //                     }}
 //                     style={{flex: 1, marginRight: 12}}>
-//                     <Text style={styles.name}>
+//                     <Text style={globalStyles.titleBold}>
 //                       {outfit.name?.trim() || 'Unnamed Outfit'}
 //                     </Text>
 //                     {(outfit.createdAt || outfit.plannedDate) && (
@@ -1568,7 +1528,7 @@ export default function SavedOutfitsScreen() {
 //                       <Image
 //                         key={i.id}
 //                         source={{uri: i.image}}
-//                         style={styles.image}
+//                         style={[globalStyles.image1, {marginRight: 12}]}
 //                       />
 //                     ) : null,
 //                   )}
@@ -1599,7 +1559,7 @@ export default function SavedOutfitsScreen() {
 //                       setPlanningOutfitId(outfit.id);
 //                       setShowDatePicker(true);
 //                     }}
-//                     style={{marginRight: 16}}>
+//                     style={{marginRight: 10}}>
 //                     <Text
 //                       style={{color: theme.colors.primary, fontWeight: '600'}}>
 //                       📅 Plan This Outfit
@@ -1881,6 +1841,6 @@ export default function SavedOutfitsScreen() {
 //           )}
 //         </View>
 //       )}
-//     </>
+//     </View>
 //   );
 // }

@@ -120,9 +120,8 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
         Budget & Brands
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView style={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Your Monthly Style Budget:
         </Text>

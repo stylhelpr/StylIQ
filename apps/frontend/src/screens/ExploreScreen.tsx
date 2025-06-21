@@ -395,7 +395,7 @@ export default function ExploreScreen() {
                   {
                     color: theme.colors.foreground2,
                     textDecorationLine: 'underline',
-                    marginBottom: 2,
+                    marginBottom: 4,
                   },
                 ]}>
                 View Item
@@ -414,14 +414,12 @@ export default function ExploreScreen() {
           {mockClothingItems.slice(0, 15).map(item => (
             <View key={item.id} style={styles.card}>
               <Image source={{uri: item.image}} style={globalStyles.image2} />
-              <Text
-                style={[
-                  globalStyles.cardLabel,
-                  {marginTop: 6, marginBottom: 6, textAlign: 'center'},
-                  {color: theme.colors.foreground},
-                ]}
-                numberOfLines={1}>
-                {item.name}
+              <Text style={[globalStyles.labelContainer]}>
+                <Text
+                  style={[globalStyles.cardLabel, {textAlign: 'center'}]}
+                  numberOfLines={1}>
+                  {item.name}
+                </Text>
               </Text>
             </View>
           ))}

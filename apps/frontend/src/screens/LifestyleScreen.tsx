@@ -94,9 +94,8 @@ export default function LifestyleScreen({navigate}: Props) {
         Lifestyle
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         {Object.entries(categories).map(([category, options]) => (
           <View style={globalStyles.section}>
             <View key={category}>

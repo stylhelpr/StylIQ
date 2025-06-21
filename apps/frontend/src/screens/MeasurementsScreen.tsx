@@ -242,9 +242,9 @@ export default function MeasurementsScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Measurements
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
       <ScrollView style={[globalStyles.section]}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <View style={styles.unitRow}>
           <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
             Units: {unitPreference === 'imperial' ? 'in/lbs' : 'cm/kg'}

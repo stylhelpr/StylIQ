@@ -94,8 +94,9 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Shopping Habits
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
       <ScrollView style={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select what best describes your shopping behavior:
         </Text>

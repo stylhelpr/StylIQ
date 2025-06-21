@@ -78,10 +78,9 @@ export default function ClimateScreen({navigate}: Props) {
         Climate
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView>
         <View style={globalStyles.section}>
+          <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={[styles.subtitle, {color: colors.foreground}]}>
             What type of climate do you live in?
           </Text>

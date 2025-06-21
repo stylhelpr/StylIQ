@@ -68,8 +68,9 @@ export default function FitPreferencesScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Fit Preferences
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Choose your most comfortable and flattering fits:
         </Text>

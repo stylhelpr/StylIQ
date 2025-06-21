@@ -66,8 +66,8 @@ export default function HairColorScreen({navigate}: Props) {
         Hair Color
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select your current natural or styled hair color:
         </Text>

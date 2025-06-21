@@ -279,7 +279,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     weatherAdvice: {
       fontSize: 14,
       fontWeight: '600',
-      fontStyle: 'italic',
       color: '#ffd369',
       marginTop: 8,
     },

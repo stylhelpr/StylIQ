@@ -57,8 +57,8 @@ export default function EyeColorScreen({navigate}: Props) {
         Eye Color
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[styles.subtitle, {color: colors.foreground}]}>
           Select your natural eye color:
         </Text>

@@ -73,9 +73,8 @@ export default function SkinToneScreen({navigate}: Props) {
         Skin Tone
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select the tone that best matches your natural skin:
         </Text>

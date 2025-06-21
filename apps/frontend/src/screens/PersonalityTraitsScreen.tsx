@@ -71,8 +71,9 @@ export default function PersonalityTraitsScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Personality Traits
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+
       <ScrollView style={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Choose traits that reflect how you carry yourself:
         </Text>

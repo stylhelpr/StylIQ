@@ -61,9 +61,8 @@ export default function StyleKeywordsScreen({navigate}: Props) {
         Style Keywords
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle]}>
           Pick words that describe your overall style:
         </Text>

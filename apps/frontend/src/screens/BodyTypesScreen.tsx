@@ -71,9 +71,9 @@ export default function BodyTypeScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Body Type
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
       <ScrollView contentContainerStyle={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Pick the body type that most closely resembles your shape:
         </Text>

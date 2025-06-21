@@ -89,9 +89,9 @@ export default function FashionGoalsScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Fashion Goals
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 
       <View style={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={globalStyles.sectionTitle}>
           What are your style goals?
         </Text>

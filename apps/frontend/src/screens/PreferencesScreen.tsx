@@ -81,9 +81,8 @@ export default function PreferencesScreen({navigate}: Props) {
         Style Preferences
       </Text>
 
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-
       <ScrollView style={[globalStyles.section]}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
           Select the styles you’re most drawn to:
         </Text>
