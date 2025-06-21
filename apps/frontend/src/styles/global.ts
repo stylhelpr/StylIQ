@@ -27,14 +27,27 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.primary,
     },
     sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
+      fontSize: 18,
+      fontWeight: '700',
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 11,
     },
+    sectionTitle2: {
+      fontSize: 18,
+      fontWeight: '700',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 2,
+    },
     title: {
       fontSize: 14,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+      marginBottom: 12,
+    },
+    title2: {
+      fontSize: 13,
       fontWeight: '500',
       color: theme.colors.foreground,
       marginBottom: 12,
@@ -44,15 +57,29 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '500',
       color: theme.colors.foreground,
     },
-    cardLabel: {
+    subLabel: {
       fontSize: 12,
+      fontWeight: '500',
+      marginTop: 2,
+      color: theme.colors.foreground2,
+    },
+    cardLabel: {
+      fontSize: 13,
       fontWeight: '500',
       color: theme.colors.foreground,
     },
-    subLabel: {
-      fontSize: 13,
+    cardSubLabel: {
+      fontSize: 12,
       fontWeight: '500',
+      marginTop: 2,
       color: theme.colors.foreground2,
+    },
+    labelContainer: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    labelContainer2: {
+      paddingHorizontal: 12,
     },
     pillContainer: {
       flexDirection: 'row',

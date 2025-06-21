@@ -9,6 +9,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useAppTheme} from '../context/ThemeContext';
 import BackHeader from '../components/Backheader/Backheader';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 interface Notification {
   id: string;
@@ -24,32 +26,13 @@ export default function NotificationsScreen({navigate}: Props) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const colors = theme.colors;
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
       backgroundColor: theme.colors.background,
-    },
-    container: {
-      paddingTop: 24,
-      paddingBottom: 60,
-      paddingHorizontal: 16,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    header: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    sectionTitle: {
-      fontSize: 17,
-      fontWeight: '600',
-      lineHeight: 24,
-      color: theme.colors.foreground,
-      marginBottom: 12,
     },
     chipGroup: {
       flexDirection: 'row',
@@ -114,29 +97,34 @@ export default function NotificationsScreen({navigate}: Props) {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: theme.colors.background}]}>
-      <Text style={[styles.header, {color: theme.colors.primary}]}>
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Notifications
       </Text>
-      <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-      {notifications.length === 0 ? (
-        <Text style={{color: theme.colors.foreground2}}>
-          No notifications yet.
-        </Text>
-      ) : (
-        notifications.map(notification => (
-          <View
-            key={notification.id}
-            style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-            <Text style={[styles.message, {color: theme.colors.foreground}]}>
-              {notification.message}
-            </Text>
-            <Text style={{color: theme.colors.foreground2, fontSize: 12}}>
-              {notification.timestamp}
-            </Text>
-          </View>
-        ))
-      )}
+      <View style={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+        {notifications.length === 0 ? (
+          <Text style={{color: theme.colors.foreground2}}>
+            No notifications yet.
+          </Text>
+        ) : (
+          notifications.map(notification => (
+            <View
+              key={notification.id}
+              style={[styles.card, {backgroundColor: theme.colors.surface}]}>
+              <Text style={[styles.message, {color: theme.colors.foreground}]}>
+                {notification.message}
+              </Text>
+              <Text style={{color: theme.colors.foreground2, fontSize: 12}}>
+                {notification.timestamp}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }

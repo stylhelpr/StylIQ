@@ -353,10 +353,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
       {/* ℹ️ Text Overlay */}
       <View style={styles.overlay}>
-        <Text style={styles.itemName}>
-          {item?.name ?? `No ${label} selected`}
-        </Text>
-        <Text style={styles.whyText}>Why this {label}?</Text>
+        <View style={globalStyles.labelContainer2}>
+          <Text style={styles.itemName}>
+            {item?.name ?? `No ${label} selected`}
+          </Text>
+          <Text style={styles.whyText}>Why this {label}?</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -432,9 +434,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           </TouchableOpacity>
 
           {/* Suggested outfit */}
-          {/* <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
-            Your Outfit
-          </Text> */}
           {renderCard('Top', outfit.top, 'top')}
           {renderCard('Bottom', outfit.bottom, 'bottom')}
           {renderCard('Shoes', outfit.shoes, 'shoes')}

@@ -134,21 +134,12 @@ export default function ExploreScreen() {
       borderRadius: tokens.borderRadius.md,
     },
     AISuggestcard: {
-      padding: 12,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
-    },
-    suggestionText: {
-      fontSize: 14,
-      fontWeight: '500',
-      marginBottom: 10,
-      color: theme.colors.foreground,
     },
     suggestedImage: {
       width: '100%',
       height: 160,
-      borderRadius: tokens.borderRadius.md,
-      marginBottom: 10,
     },
     missingItem: {
       fontSize: 14,
@@ -188,8 +179,8 @@ export default function ExploreScreen() {
       fontSize: 12,
       color: '#777',
     },
-    gridLabelContainer: {
-      paddingVertical: 4,
+    labelContainer: {
+      paddingVertical: 8,
       paddingHorizontal: 12,
     },
     inspoCard: {
@@ -347,12 +338,10 @@ export default function ExploreScreen() {
                   )
                 }
               />
-              <Text
-                style={[
-                  globalStyles.cardLabel,
-                  {marginTop: 6, marginBottom: 6, textAlign: 'center'},
-                ]}>
-                {look.title}
+              <Text style={[globalStyles.labelContainer]}>
+                <Text style={[globalStyles.cardLabel, {textAlign: 'center'}]}>
+                  {look.title}
+                </Text>
               </Text>
             </AppleTouchFeedback>
           ))}
@@ -365,43 +354,54 @@ export default function ExploreScreen() {
           AI Suggests
         </Text>
         <View style={[styles.AISuggestcard]}>
-          <Text
-            style={[
-              globalStyles.label,
-              {marginBottom: 10, color: theme.colors.foreground},
-            ]}>
-            Pair your navy chinos with white sneakers and a denim overshirt.
-            Missing something?
-          </Text>
+          <View style={[styles.labelContainer]}>
+            <Text
+              style={[globalStyles.label, {color: theme.colors.foreground}]}>
+              Pair your navy chinos with white sneakers and a denim overshirt.
+              Missing something?
+            </Text>
+          </View>
           <Image
             source={{uri: missingItemSuggestion.image}}
             style={styles.suggestedImage}
           />
-          <Text
+          <View
             style={[
-              globalStyles.label,
-              {marginBottom: 8, color: theme.colors.foreground},
+              styles.labelContainer,
+              {
+                borderBottomLeftRadius: 12,
+                borderBottomRightRadius: 12,
+              },
             ]}>
-            Suggested: {missingItemSuggestion.name}
-          </Text>
-          <Text style={[styles.price, {color: theme.colors.foreground}]}>
-            {missingItemSuggestion.price}
-          </Text>
-          <AppleTouchFeedback
-            onPress={() =>
-              setWebUrl(
-                'https://www.ssense.com/en-us/men/product/acne-studios/green-bomber-jacket/1234567',
-              )
-            }
-            hapticStyle="impactLight">
             <Text
-              style={{
-                color: theme.colors.foreground,
-                textDecorationLine: 'underline',
-              }}>
-              View Item
+              style={[globalStyles.label, {color: theme.colors.foreground}]}>
+              Suggested: {missingItemSuggestion.name}
             </Text>
-          </AppleTouchFeedback>
+
+            <Text
+              style={[globalStyles.subLabel, {color: theme.colors.foreground}]}>
+              {missingItemSuggestion.price}
+            </Text>
+            <AppleTouchFeedback
+              onPress={() =>
+                setWebUrl(
+                  'https://www.ssense.com/en-us/men/product/acne-studios/green-bomber-jacket/1234567',
+                )
+              }
+              hapticStyle="impactLight">
+              <Text
+                style={[
+                  globalStyles.label,
+                  {
+                    color: theme.colors.foreground2,
+                    textDecorationLine: 'underline',
+                    marginBottom: 2,
+                  },
+                ]}>
+                View Item
+              </Text>
+            </AppleTouchFeedback>
+          </View>
         </View>
       </View>
 
@@ -452,11 +452,11 @@ export default function ExploreScreen() {
                   style={styles.gridImage}
                   resizeMode="cover"
                 />
-                <View style={styles.gridLabelContainer}>
-                  <Text style={globalStyles.label} numberOfLines={1}>
+                <View style={globalStyles.labelContainer}>
+                  <Text style={globalStyles.cardLabel} numberOfLines={1}>
                     {trend.title}
                   </Text>
-                  <Text style={globalStyles.subLabel} numberOfLines={1}>
+                  <Text style={globalStyles.cardSubLabel} numberOfLines={1}>
                     {trend.source}
                   </Text>
                 </View>

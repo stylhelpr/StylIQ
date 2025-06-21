@@ -312,14 +312,14 @@ export default function SavedOutfitsScreen() {
     },
     card: {
       borderRadius: tokens.borderRadius.md,
-      padding: 12,
+      // padding: 12,
+      padding: 16,
       marginBottom: 14,
       elevation: 2,
     },
     headerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 10,
     },
     name: {
       fontSize: 18,
@@ -470,7 +470,7 @@ export default function SavedOutfitsScreen() {
 
       {/* 🔀 Sort/Filter Bar */}
       <View style={globalStyles.section}>
-        <Text style={[globalStyles.label, {marginBottom: 14}]}>Sort by:</Text>
+        <Text style={[globalStyles.label, {marginBottom: 12}]}>Sort by:</Text>
         <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
           {(
             [

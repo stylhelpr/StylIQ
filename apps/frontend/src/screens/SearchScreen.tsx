@@ -163,19 +163,19 @@ export default function SearchScreen({navigate, goBack}) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Search
       </Text>
+      <View style={globalStyles.section}>
+        <AppleTouchFeedback
+          onPress={goBack}
+          hapticStyle="impactMedium"
+          style={{marginTop: 18}}>
+          <MaterialIcons
+            name="arrow-back"
+            size={24}
+            color={theme.colors.foreground}
+          />
+        </AppleTouchFeedback>
 
-      <AppleTouchFeedback
-        onPress={goBack}
-        hapticStyle="impactMedium"
-        style={{marginTop: 18}}>
-        <MaterialIcons
-          name="arrow-back"
-          size={24}
-          color={theme.colors.foreground}
-        />
-      </AppleTouchFeedback>
-
-      {/* <AppleTouchFeedback
+        {/* <AppleTouchFeedback
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         hapticStyle="impactLight"
@@ -185,93 +185,94 @@ export default function SearchScreen({navigate, goBack}) {
         </Text>
       </AppleTouchFeedback> */}
 
-      <TouchableOpacity
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={{alignSelf: 'center', marginBottom: 20}}>
-        <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
-          🎤 Hold to Voice Search
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.inputWrapper}>
-        <TextInput
-          placeholder="Search wardrobe, saved outfits..."
-          placeholderTextColor={theme.colors.foreground}
-          value={query}
-          onChangeText={setQuery}
-          style={[
-            styles.input,
-            {
-              color: theme.colors.foreground,
-              borderColor: theme.colors.foreground,
-              backgroundColor: theme.colors.surface,
-            },
-          ]}
-        />
-        {query.length > 0 && (
-          <AppleTouchFeedback
-            onPress={() => setQuery('')}
-            hapticStyle="impactLight"
-            style={styles.clearIcon}>
-            <MaterialIcons
-              name="close"
-              size={20}
-              color={theme.colors.foreground}
-            />
-          </AppleTouchFeedback>
-        )}
-      </View>
-
-      {filteredWardrobe.length > 0 && (
-        <Text style={styles.groupLabel}>👕 Wardrobe</Text>
-      )}
-      {filteredWardrobe.map(item => (
         <TouchableOpacity
-          key={item.id}
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.surface,
-            },
-          ]}
-          onPress={() => navigate('ItemDetail', {item})}>
-          <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
-            {item.name}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={{alignSelf: 'center', marginBottom: 20}}>
+          <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
+            🎤 Hold to Voice Search
           </Text>
         </TouchableOpacity>
-      ))}
 
-      {filteredOutfits.length > 0 && (
-        <Text style={styles.groupLabel}>📦 Saved Outfits</Text>
-      )}
-      {filteredOutfits.map((outfit: SavedOutfit) => (
-        <View
-          key={outfit.id}
-          style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-          <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
-            {outfit.name?.trim() || 'Unnamed Outfit'}
-          </Text>
-          <View style={{flexDirection: 'row', marginTop: 6}}>
-            {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
-              i?.image ? (
-                <Image
-                  key={i.id}
-                  source={{uri: i.image}}
-                  style={{width: 60, height: 60, borderRadius: 8}}
-                />
-              ) : null,
-            )}
-          </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Search wardrobe, saved outfits..."
+            placeholderTextColor={theme.colors.foreground}
+            value={query}
+            onChangeText={setQuery}
+            style={[
+              styles.input,
+              {
+                color: theme.colors.foreground,
+                borderColor: theme.colors.foreground,
+                backgroundColor: theme.colors.surface,
+              },
+            ]}
+          />
+          {query.length > 0 && (
+            <AppleTouchFeedback
+              onPress={() => setQuery('')}
+              hapticStyle="impactLight"
+              style={styles.clearIcon}>
+              <MaterialIcons
+                name="close"
+                size={20}
+                color={theme.colors.foreground}
+              />
+            </AppleTouchFeedback>
+          )}
         </View>
-      ))}
 
-      {filteredWardrobe.length === 0 && filteredOutfits.length === 0 && (
-        <Text style={{color: theme.colors.foreground, marginTop: 20}}>
-          No results found.
-        </Text>
-      )}
+        {filteredWardrobe.length > 0 && (
+          <Text style={styles.groupLabel}>👕 Wardrobe</Text>
+        )}
+        {filteredWardrobe.map(item => (
+          <TouchableOpacity
+            key={item.id}
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.surface,
+              },
+            ]}
+            onPress={() => navigate('ItemDetail', {item})}>
+            <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
+              {item.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+
+        {filteredOutfits.length > 0 && (
+          <Text style={styles.groupLabel}>📦 Saved Outfits</Text>
+        )}
+        {filteredOutfits.map((outfit: SavedOutfit) => (
+          <View
+            key={outfit.id}
+            style={[styles.card, {backgroundColor: theme.colors.surface}]}>
+            <Text style={{color: theme.colors.foreground, fontWeight: '500'}}>
+              {outfit.name?.trim() || 'Unnamed Outfit'}
+            </Text>
+            <View style={{flexDirection: 'row', marginTop: 6}}>
+              {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                i?.image ? (
+                  <Image
+                    key={i.id}
+                    source={{uri: i.image}}
+                    style={{width: 60, height: 60, borderRadius: 8}}
+                  />
+                ) : null,
+              )}
+            </View>
+          </View>
+        ))}
+
+        {filteredWardrobe.length === 0 && filteredOutfits.length === 0 && (
+          <Text style={{color: theme.colors.foreground, marginTop: 20}}>
+            No results found.
+          </Text>
+        )}
+      </View>
     </ScrollView>
   );
 }

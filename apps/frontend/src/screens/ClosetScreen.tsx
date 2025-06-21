@@ -227,7 +227,7 @@ export default function ClosetScreen({navigate}: Props) {
     },
     iconButton: {
       paddingHorizontal: 12,
-      paddingVertical: 9,
+      paddingVertical: 7,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.button1,
       elevation: 2,
@@ -259,18 +259,11 @@ export default function ClosetScreen({navigate}: Props) {
       fontSize: 12,
       color: '#777',
     },
-    gridLabelContainer: {
-      paddingVertical: 4,
-      paddingHorizontal: 12,
-    },
     image: {
       width: '100%',
       height: imageSize,
       borderTopLeftRadius: 10,
       borderTopRightRadius: 10,
-    },
-    labelContainer: {
-      padding: 8,
     },
     label: {
       fontSize: 13,
@@ -381,11 +374,11 @@ export default function ClosetScreen({navigate}: Props) {
       <ScrollView>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
           <View key={mainCategory} style={globalStyles.section}>
-            <Text style={[globalStyles.sectionTitle]}>{mainCategory}</Text>
+            <Text style={[globalStyles.sectionTitle2]}>{mainCategory}</Text>
 
             {Object.entries(subMap).map(([subCategory, items]) => (
               <View key={subCategory}>
-                <Text style={[globalStyles.title]}>{subCategory}</Text>
+                <Text style={[globalStyles.title2]}>{subCategory}</Text>
 
                 <View style={[styles.gridContainer]}>
                   {items.map(item => (
@@ -432,9 +425,11 @@ export default function ClosetScreen({navigate}: Props) {
                         </AppleTouchFeedback>
                       </View>
 
-                      <View style={styles.labelContainer}>
-                        <Text style={[globalStyles.label]}>{item.name}</Text>
-                        <Text style={[globalStyles.subLabel, {marginTop: 2}]}>
+                      <View style={globalStyles.labelContainer}>
+                        <Text style={[globalStyles.cardLabel]}>
+                          {item.name}
+                        </Text>
+                        <Text style={[globalStyles.cardSubLabel]}>
                           {subCategory}
                         </Text>
                       </View>

@@ -118,9 +118,9 @@ export default function StyleProfileScreen({navigate}: Props) {
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Style Profile
       </Text>
-      <BackHeader title="" onBack={() => navigate('Profile')} />
 
       <View style={globalStyles.section}>
+        <BackHeader title="" onBack={() => navigate('Profile')} />
         <Text style={styles.progressLabel}>
           Style Profile {progress}% complete
         </Text>

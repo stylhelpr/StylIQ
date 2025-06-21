@@ -210,7 +210,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       fontSize: 13,
       fontWeight: '400',
       color: theme.colors.foreground,
-      lineHeight: 22,
+      lineHeight: 20,
     },
     tryButton: {
       backgroundColor: theme.colors.button1,
@@ -246,7 +246,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     sectionWeather: {
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,
-      padding: 20,
+      padding: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -259,7 +259,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       fontSize: 16,
       fontWeight: '600',
       color: '#fff',
-      marginBottom: 2,
+      marginBottom: 4,
     },
     weatherDesc: {
       fontSize: 13,
@@ -539,7 +539,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             <AppleTouchFeedback
               hapticStyle="impactHeavy"
               onPress={() => navigate('Outfit', {look: 'editorial'})}>
-              <View style={[globalStyles.buttonPrimary, {marginTop: 20}]}>
+              <View
+                style={[
+                  globalStyles.buttonPrimary,
+                  {marginTop: 14, marginBottom: 6},
+                ]}>
                 <Text style={globalStyles.buttonPrimaryText}>
                   Try This Look
                 </Text>
