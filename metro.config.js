@@ -1,35 +1,10 @@
-// // metro.config.js
-// const { getDefaultConfig } = require('metro-config');
-// const { wrapWithReanimatedMetroConfig } = require('react-native-reanimated/metro-config');
-// const path = require('path');
-
-// const getConfig = async () => {
-//   const {
-//     resolver: { sourceExts, assetExts },
-//   } = await getDefaultConfig();
-
-//   return {
-//     projectRoot: __dirname,
-//     watchFolders: [path.resolve(__dirname)],
-//     resolver: {
-//       assetExts,
-//       sourceExts,
-//     },
-//     maxWorkers: 1,
-//   };
-// };
-
-// module.exports = wrapWithReanimatedMetroConfig(getConfig());
-
-//////////
-
 // metro.config.js
-const { getDefaultConfig } = require('metro-config');
+const {getDefaultConfig} = require('metro-config');
 const path = require('path');
 
 module.exports = (async () => {
   const {
-    resolver: { sourceExts, assetExts },
+    resolver: {sourceExts, assetExts},
   } = await getDefaultConfig();
 
   return {
@@ -42,18 +17,3 @@ module.exports = (async () => {
     maxWorkers: 1,
   };
 })();
-
-/////////
-
-// // metro.config.js
-// const { getDefaultConfig } = require('metro-config');
-
-// module.exports = (async () => {
-//   const defaultConfig = await getDefaultConfig();
-
-//   return {
-//     ...defaultConfig,
-//     maxWorkers: 1, // Prevent overwhelming file handles
-//     watchFolders: [__dirname],
-//   };
-// })();

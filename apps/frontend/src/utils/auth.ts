@@ -41,23 +41,3 @@ export const logout = async (): Promise<void> => {
     console.error('❌ Logout failed:', error);
   }
 };
-
-///////////////
-
-// // utils/auth.ts
-// import Auth0 from 'react-native-auth0';
-
-// const auth0 = new Auth0({
-//   domain: 'dev-xeaol4s5b2zd7wuz.us.auth0.com',
-//   clientId: '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5',
-// });
-
-// export const getAccessToken = async (): Promise<string> => {
-//   try {
-//     const credentials = await auth0.credentialsManager.getCredentials();
-//     return credentials.accessToken;
-//   } catch (error) {
-//     console.error('Failed to get Auth0 token:', error);
-//     throw error;
-//   }
-// };
