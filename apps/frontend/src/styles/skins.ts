@@ -16,7 +16,7 @@ export const skins = {
       muted: '#757575',
       input: '#EAEAEA',
       // surface: '#292929',
-      surface: 'rgb(28, 28, 28)',
+      surface: 'rgb(29, 29, 29)',
       surface2: 'rgb(103, 103, 103)',
       surfaceBorder: '#D1D5DB',
       inputBorder: '#676769',
