@@ -17,6 +17,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import {useAuth0} from 'react-native-auth0';
 import {useUUID} from '../context/UUIDContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 export default function AddItemScreen({
   navigate,
@@ -81,14 +82,9 @@ export default function AddItemScreen({
   const handleCancel = () => navigate('Closet');
 
   const styles = StyleSheet.create({
-    formSection: {
-      marginTop: 24,
-    },
-    label: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: theme.colors.foreground,
-      marginBottom: 6,
+    screen: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
     },
     input: {
       borderWidth: 1,
@@ -97,31 +93,7 @@ export default function AddItemScreen({
       padding: 12,
       fontSize: 16,
       color: theme.colors.foreground,
-      marginBottom: 18,
-    },
-    button: {
-      padding: 14,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginTop: 20,
-      backgroundColor: theme.colors.button1,
-    },
-    buttonText: {
-      fontWeight: 'bold',
-      fontSize: 16,
-      color: 'white',
-    },
-    cancelButton: {
-      backgroundColor: theme.colors.surface,
-      padding: 14,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginTop: 12,
-    },
-    cancelButtonText: {
-      color: theme.colors.foreground,
-      fontWeight: 'bold',
-      fontSize: 16,
+      marginBottom: 12,
     },
     imagePreview: {
       width: '100%',
@@ -133,12 +105,11 @@ export default function AddItemScreen({
   });
 
   return (
-    <ScrollView
-      style={globalStyles.container}
-      contentContainerStyle={{paddingBottom: 40}}
-      keyboardShouldPersistTaps="handled">
-      <Text style={globalStyles.sectionTitle}>Select Image</Text>
-      <ImagePickerGrid onSelectImage={setImageUri} selectedUri={imageUri} />
+    <ScrollView style={styles.screen} keyboardShouldPersistTaps="handled">
+      <View style={globalStyles.section3}>
+        <Text style={globalStyles.sectionTitle}>Select Image</Text>
+        <ImagePickerGrid onSelectImage={setImageUri} selectedUri={imageUri} />
+      </View>
 
       {imageUri && (
         <Image
@@ -148,8 +119,8 @@ export default function AddItemScreen({
         />
       )}
 
-      <View style={styles.formSection}>
-        <Text style={styles.label}>Nameasd</Text>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.title}>Nameasd</Text>
         <TextInput
           value={name}
           onChangeText={setName}
@@ -158,7 +129,7 @@ export default function AddItemScreen({
           placeholderTextColor={theme.colors.muted}
         />
 
-        <Text style={styles.label}>Category</Text>
+        <Text style={globalStyles.title}>Category</Text>
         <TextInput
           value={category}
           onChangeText={setCategory}
@@ -167,7 +138,7 @@ export default function AddItemScreen({
           placeholderTextColor={theme.colors.muted}
         />
 
-        <Text style={styles.label}>Color</Text>
+        <Text style={globalStyles.title}>Color</Text>
         <TextInput
           value={color}
           onChangeText={setColor}
@@ -176,7 +147,7 @@ export default function AddItemScreen({
           placeholderTextColor={theme.colors.muted}
         />
 
-        <Text style={styles.label}>Tags</Text>
+        <Text style={globalStyles.title}>Tags</Text>
         <TextInput
           value={tags}
           onChangeText={setTags}
@@ -184,22 +155,22 @@ export default function AddItemScreen({
           placeholder="Comma separated: casual, winter, linen"
           placeholderTextColor={theme.colors.muted}
         />
+
+        <AppleTouchFeedback
+          onPress={handleSave}
+          hapticStyle="impactMedium"
+          style={[globalStyles.buttonPrimary, {marginBottom: 20}]}
+          disabled={!imageUri || !name.trim()}>
+          <Text style={globalStyles.buttonPrimaryText}>Save Item</Text>
+        </AppleTouchFeedback>
+
+        <AppleTouchFeedback
+          onPress={handleCancel}
+          hapticStyle="impactLight"
+          style={globalStyles.buttonTertiary}>
+          <Text style={globalStyles.buttonPrimaryText}>Cancel</Text>
+        </AppleTouchFeedback>
       </View>
-
-      <AppleTouchFeedback
-        onPress={handleSave}
-        hapticStyle="impactMedium"
-        style={styles.button}
-        disabled={!imageUri || !name.trim()}>
-        <Text style={styles.buttonText}>Save Item</Text>
-      </AppleTouchFeedback>
-
-      <AppleTouchFeedback
-        onPress={handleCancel}
-        hapticStyle="impactLight"
-        style={styles.cancelButton}>
-        <Text style={styles.cancelButtonText}>Cancel</Text>
-      </AppleTouchFeedback>
     </ScrollView>
   );
 }

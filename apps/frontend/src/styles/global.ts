@@ -19,6 +19,11 @@ export const createGlobalStyles = (theme: Theme) =>
     section2: {
       marginBottom: 26,
     },
+    section3: {
+      paddingHorizontal: 20,
+      marginTop: 20,
+      marginBottom: 20,
+    },
     sectionScroll: {
       marginBottom: 26,
       paddingLeft: 20,
@@ -224,6 +229,24 @@ export const createGlobalStyles = (theme: Theme) =>
       elevation: 2,
     },
     buttonSecondaryText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#fff',
+    },
+    buttonTertiary: {
+      width: '100%',
+      backgroundColor: theme.colors.surface2,
+      borderRadius: tokens.borderRadius.md,
+      paddingVertical: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 1},
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    buttonTertiaryText: {
       fontSize: 14,
       fontWeight: '600',
       color: '#fff',

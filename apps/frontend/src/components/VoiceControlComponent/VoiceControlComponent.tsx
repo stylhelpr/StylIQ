@@ -10,15 +10,45 @@ import {
 import Voice from '@react-native-voice/voice';
 import Tts from 'react-native-tts';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
+import {useAppTheme} from '../../context/ThemeContext';
 
 type Props = {
   onPromptResult?: (text: string) => void;
 };
 
 const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [speech, setSpeech] = useState('');
   const [isPressed, setIsPressed] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+
+  const styles = StyleSheet.create({
+    container: {},
+    chatContainer: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    stylingCard: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.surface2,
+      borderRadius: 12,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    stylingCardPressed: {
+      backgroundColor: '#3366FF',
+    },
+    cardText: {
+      color: '#fff',
+      fontWeight: '500',
+      fontSize: 16,
+    },
+  });
 
   const onPromptResultRef = useRef(onPromptResult);
   useEffect(() => {
@@ -121,31 +151,6 @@ const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {},
-  chatContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  stylingCard: {
-    flexDirection: 'row',
-    backgroundColor: 'grey',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  stylingCardPressed: {
-    backgroundColor: '#3366FF',
-  },
-  cardText: {
-    color: '#fff',
-    fontWeight: '500',
-    fontSize: 16,
-  },
-});
 
 export default VoiceControlComponent;
 

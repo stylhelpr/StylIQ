@@ -20,6 +20,7 @@ import {
 import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
 
 type Props = {
   onSelectImage?: (uri: string) => void;
@@ -35,21 +36,6 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
     imagePickerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: 4,
-      marginBottom: 4,
-    },
-    imagePickerButton: {
-      flex: 1,
-      backgroundColor: theme.colors.button1,
-      paddingVertical: 6,
-      paddingHorizontal: 20,
-      borderRadius: 10,
-      alignItems: 'center',
-    },
-    imagePickerText: {
-      color: '#fff',
-      fontSize: 14,
-      fontWeight: '600',
     },
     grid: {
       flexDirection: 'row',
@@ -139,7 +125,7 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   };
 
   return (
-    <View style={globalStyles.container}>
+    <View style={{marginBottom: 20}}>
       <View style={styles.imagePickerRow}>
         {[
           {label: 'Take Photo', onPress: takePhoto},
@@ -150,8 +136,12 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
             key={label}
             onPress={onPress}
             hapticStyle="impactMedium"
-            style={[styles.imagePickerButton, buttonMarginStyle(i)]}>
-            <Text style={styles.imagePickerText}>{label}</Text>
+            style={[
+              globalStyles.buttonPrimary,
+              {width: 130},
+              buttonMarginStyle(i),
+            ]}>
+            <Text style={globalStyles.buttonPrimaryText}>{label}</Text>
           </AppleTouchFeedback>
         ))}
       </View>

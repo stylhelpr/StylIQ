@@ -17,7 +17,7 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: 'modernDark', // ✅ set your default here
+  mode: 'modernDark',
   theme: allThemes['modernDark'],
   toggleTheme: () => {},
   setSkin: () => {},
@@ -28,7 +28,7 @@ export const useAppTheme = () => useContext(ThemeContext);
 export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({
   children,
 }) => {
-  const [mode, setMode] = useState<ThemeType>('modernDark'); // ✅ default to modernDark
+  const [mode, setMode] = useState<ThemeType>('modernDark');
 
   const toggleTheme = () => {
     setMode(prev => (prev === 'modernDark' ? 'modernLight' : 'modernDark'));

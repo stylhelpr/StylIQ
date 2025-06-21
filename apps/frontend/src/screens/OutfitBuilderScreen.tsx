@@ -16,6 +16,7 @@ import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import {useQuery} from '@tanstack/react-query';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type WardrobeItem = {
   id: string;
@@ -131,17 +132,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    title: {
-      fontSize: 24,
-      fontWeight: '600',
-      color: theme.colors.primary,
-    },
-    subtitle: {
-      fontSize: 16,
-      marginTop: 16,
-      marginBottom: 6,
-      color: theme.colors.foreground,
-    },
     selectedRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -174,10 +164,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       position: 'relative',
     },
     itemImage: {
-      width: 85,
-      height: 85,
+      width: 92,
+      height: 92,
       margin: 4,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.md,
     },
     checkOverlay: {
       position: 'absolute',
@@ -269,113 +259,115 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
   return (
     <ScrollView style={globalStyles.container}>
-      <View style={globalStyles.section}>
+      <View style={globalStyles.sectionTitle}>
         <Text style={globalStyles.header}>Build Your Outfit</Text>
       </View>
 
-      <Text style={globalStyles.sectionTitle}>Selected Items:</Text>
-      <View style={styles.selectedRow}>
-        {selectedItems.map(item => (
-          <Image
-            key={item.id}
-            source={{uri: item.image_url}}
-            style={styles.selectedImage}
-          />
-        ))}
-      </View>
+      <View style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Selected Items:</Text>
+        <View style={styles.selectedRow}>
+          {selectedItems.map(item => (
+            <Image
+              key={item.id}
+              source={{uri: item.image_url}}
+              style={styles.selectedImage}
+            />
+          ))}
+        </View>
 
-      {selectedItems.length > 0 && (
+        {selectedItems.length > 0 && (
+          <TouchableOpacity
+            onPress={() => setSelectedItems([])}
+            style={styles.clearButton}>
+            <Text style={styles.clearButtonText}>Clear Selection</Text>
+          </TouchableOpacity>
+        )}
+
+        <Text style={globalStyles.title}>Tap items to add:</Text>
+        <View style={styles.grid}>
+          {wardrobe.map(item => {
+            const isSelected = selectedItems.some(i => i.id === item.id);
+            return (
+              <TouchableOpacity key={item.id} onPress={() => toggleItem(item)}>
+                <View style={styles.itemWrapper}>
+                  <Image
+                    source={{uri: item.image_url}}
+                    style={[
+                      styles.itemImage,
+                      isSelected && {borderColor: '#4ade80', borderWidth: 3},
+                    ]}
+                  />
+                  {isSelected && (
+                    <View style={styles.checkOverlay}>
+                      <Text style={styles.checkText}>✓</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <TouchableOpacity
-          onPress={() => setSelectedItems([])}
-          style={styles.clearButton}>
-          <Text style={styles.clearButtonText}>Clear Selection</Text>
+          style={[
+            styles.saveButton,
+            {backgroundColor: selectedItems.length ? '#405de6' : '#999'},
+          ]}
+          onPress={handleSave}
+          disabled={selectedItems.length === 0}>
+          <Text style={styles.saveText}>
+            {saved ? '✅ Outfit Saved' : 'Save Outfit'}
+          </Text>
         </TouchableOpacity>
-      )}
 
-      <Text style={styles.subtitle}>Tap items to add:</Text>
-      <View style={styles.grid}>
-        {wardrobe.map(item => {
-          const isSelected = selectedItems.some(i => i.id === item.id);
-          return (
-            <TouchableOpacity key={item.id} onPress={() => toggleItem(item)}>
-              <View style={styles.itemWrapper}>
-                <Image
-                  source={{uri: item.image_url}}
-                  style={[
-                    styles.itemImage,
-                    isSelected && {borderColor: '#4ade80', borderWidth: 3},
-                  ]}
-                />
-                {isSelected && (
-                  <View style={styles.checkOverlay}>
-                    <Text style={styles.checkText}>✓</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity
+          style={[styles.cancelButton, {backgroundColor: '#ccc'}]}
+          onPress={() => {
+            setSelectedItems([]);
+            setOutfitName('');
+            navigate('Wardrobe');
+          }}>
+          <Text style={[styles.cancelText, {color: '#000'}]}>Cancel</Text>
+        </TouchableOpacity>
+
+        <Modal visible={showNameModal} transparent animationType="fade">
+          <TouchableWithoutFeedback onPress={() => setShowNameModal(false)}>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+              }}>
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                    }}>
+                    Name Your Outfit
+                  </Text>
+
+                  <TextInput
+                    placeholder="Enter outfit name"
+                    placeholderTextColor={theme.colors.muted}
+                    value={outfitName}
+                    onChangeText={setOutfitName}
+                    style={styles.modalInput}
+                  />
+
+                  <TouchableOpacity
+                    onPress={finalizeSave}
+                    style={styles.modalButton}>
+                    <Text style={styles.modalButtonText}>Save Outfit</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
       </View>
-
-      <TouchableOpacity
-        style={[
-          styles.saveButton,
-          {backgroundColor: selectedItems.length ? '#405de6' : '#999'},
-        ]}
-        onPress={handleSave}
-        disabled={selectedItems.length === 0}>
-        <Text style={styles.saveText}>
-          {saved ? '✅ Outfit Saved' : 'Save Outfit'}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.cancelButton, {backgroundColor: '#ccc'}]}
-        onPress={() => {
-          setSelectedItems([]);
-          setOutfitName('');
-          navigate('Wardrobe');
-        }}>
-        <Text style={[styles.cancelText, {color: '#000'}]}>Cancel</Text>
-      </TouchableOpacity>
-
-      <Modal visible={showNameModal} transparent animationType="fade">
-        <TouchableWithoutFeedback onPress={() => setShowNameModal(false)}>
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.5)',
-            }}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '600',
-                    color: theme.colors.foreground,
-                  }}>
-                  Name Your Outfit
-                </Text>
-
-                <TextInput
-                  placeholder="Enter outfit name"
-                  placeholderTextColor={theme.colors.muted}
-                  value={outfitName}
-                  onChangeText={setOutfitName}
-                  style={styles.modalInput}
-                />
-
-                <TouchableOpacity
-                  onPress={finalizeSave}
-                  style={styles.modalButton}>
-                  <Text style={styles.modalButtonText}>Save Outfit</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </ScrollView>
   );
 }
