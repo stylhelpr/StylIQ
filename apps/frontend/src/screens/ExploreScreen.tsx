@@ -32,7 +32,7 @@ type TrendArticle = {
   link: string;
 };
 
-const ITEM_MARGIN = 10.5;
+const ITEM_MARGIN = 10.3;
 const MIN_ITEM_WIDTH = 175;
 const screenWidth = Dimensions.get('window').width;
 

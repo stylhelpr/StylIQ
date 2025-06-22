@@ -6,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
-import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -27,19 +26,7 @@ const activityOptions = [
 export default function ActivitiesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
-  const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string[]>([]);
-
-  const styles = StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    subtitle: {
-      fontSize: 17,
-      marginBottom: 15,
-    },
-  });
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
@@ -63,42 +50,59 @@ export default function ActivitiesScreen({navigate}: Props) {
   };
 
   return (
-    <View
-      style={[
-        globalStyles.container,
-        {backgroundColor: theme.colors.background},
-      ]}>
-      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
-        Activities
-      </Text>
-
-      <ScrollView contentContainerStyle={globalStyles.section4}>
-        <View style={globalStyles.backContainer}>
-          <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-          <Text style={globalStyles.backText}>Back</Text>
-        </View>
-        <Text style={globalStyles.sectionTitle4}>
+    <View style={styles.container}>
+      <BackHeader
+        title="Lifestyle Activities"
+        onBack={() => navigate('StyleProfileScreen')}
+      />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        style={{backgroundColor: colors.background}}>
+        <Text style={[styles.title, {color: colors.primary}]}>
+          Daily Activities
+        </Text>
+        <Text style={[styles.subtitle, {color: colors.foreground}]}>
           What do you usually do during the week?
         </Text>
-
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {activityOptions.map(option => (
-              <Chip
-                key={option}
-                label={option}
-                selected={selected.includes(option)}
-                onPress={() => toggleActivity(option)}
-              />
-            ))}
-          </View>
+        <View style={styles.chipGroup}>
+          {activityOptions.map(option => (
+            <Chip
+              key={option}
+              label={option}
+              selected={selected.includes(option)}
+              onPress={() => toggleActivity(option)}
+            />
+          ))}
         </View>
       </ScrollView>
     </View>
   );
 }
 
-///////////////
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  chipGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+});
+
+//////////
 
 // import React, {useState, useEffect} from 'react';
 // import {View, Text, StyleSheet, ScrollView} from 'react-native';
@@ -106,9 +110,6 @@ export default function ActivitiesScreen({navigate}: Props) {
 // import {Chip} from '../components/Chip/Chip';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import BackHeader from '../components/Backheader/Backheader';
-// import {useAuth0} from 'react-native-auth0';
-// import {useStyleProfile} from '../hooks/useStyleProfile';
-// import {useGlobalStyles} from '../styles/useGlobalStyles';
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -129,23 +130,8 @@ export default function ActivitiesScreen({navigate}: Props) {
 // export default function ActivitiesScreen({navigate}: Props) {
 //   const {theme} = useAppTheme();
 //   const colors = theme.colors;
-//   const globalStyles = useGlobalStyles();
+
 //   const [selected, setSelected] = useState<string[]>([]);
-
-//   const styles = StyleSheet.create({
-//     screen: {
-//       flex: 1,
-//       backgroundColor: theme.colors.background,
-//     },
-//     subtitle: {
-//       fontSize: 17,
-//       marginBottom: 15,
-//     },
-//   });
-
-//   const {user} = useAuth0();
-//   const userId = user?.sub || '';
-//   const {updateProfile} = useStyleProfile(userId);
 
 //   useEffect(() => {
 //     const load = async () => {
@@ -161,25 +147,24 @@ export default function ActivitiesScreen({navigate}: Props) {
 //       : [...selected, activity];
 //     setSelected(updated);
 //     await AsyncStorage.setItem('activities', JSON.stringify(updated));
-//     updateProfile('weekly_activities', updated); // sync to DB
 //   };
 
 //   return (
-//     <View
-//       style={[
-//         globalStyles.container,
-//         {backgroundColor: theme.colors.background},
-//       ]}>
-//       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
-//         Activities
-//       </Text>
-
-//       <ScrollView contentContainerStyle={globalStyles.section}>
-//         <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-//         <Text style={globalStyles.sectionTitle}>
+//     <View style={styles.container}>
+//       <BackHeader
+//         title="Lifestyle Activities"
+//         onBack={() => navigate('StyleProfileScreen')}
+//       />
+//       <ScrollView
+//         contentContainerStyle={styles.content}
+//         style={{backgroundColor: colors.background}}>
+//         <Text style={[styles.title, {color: colors.primary}]}>
+//           Daily Activities
+//         </Text>
+//         <Text style={[styles.subtitle, {color: colors.foreground}]}>
 //           What do you usually do during the week?
 //         </Text>
-//         <View style={globalStyles.pillContainer}>
+//         <View style={styles.chipGroup}>
 //           {activityOptions.map(option => (
 //             <Chip
 //               key={option}
@@ -193,3 +178,26 @@ export default function ActivitiesScreen({navigate}: Props) {
 //     </View>
 //   );
 // }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   content: {
+//     padding: 20,
+//   },
+//   title: {
+//     fontSize: 20,
+//     fontWeight: '700',
+//     marginBottom: 10,
+//   },
+//   subtitle: {
+//     fontSize: 16,
+//     marginBottom: 15,
+//   },
+//   chipGroup: {
+//     flexDirection: 'row',
+//     flexWrap: 'wrap',
+//     gap: 10,
+//   },
+// });

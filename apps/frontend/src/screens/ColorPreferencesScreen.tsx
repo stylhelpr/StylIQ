@@ -43,13 +43,17 @@ export default function ColorPreferencesScreen({navigate}: Props) {
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
-  const {updateProfile} = useStyleProfile(userId);
+  const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
   useEffect(() => {
-    AsyncStorage.getItem(COLOR_KEY).then(data => {
-      if (data) setSelected(JSON.parse(data));
-    });
-  }, []);
+    if (userId) refetch();
+  }, [userId, refetch]);
+
+  useEffect(() => {
+    if (styleProfile?.color_preferences?.length) {
+      setSelected(styleProfile.color_preferences);
+    }
+  }, [styleProfile]);
 
   const toggleColor = async (color: string) => {
     const updated = selected.includes(color)
@@ -75,6 +79,7 @@ export default function ColorPreferencesScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
+
         <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
           Choose colors you like wearing:
         </Text>
@@ -85,8 +90,8 @@ export default function ColorPreferencesScreen({navigate}: Props) {
               <Chip
                 key={color}
                 label={color}
-                onPress={() => toggleColor(color)}
                 selected={selected.includes(color)}
+                onPress={() => toggleColor(color)}
               />
             ))}
           </View>

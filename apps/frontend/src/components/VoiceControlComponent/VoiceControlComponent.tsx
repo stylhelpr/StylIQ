@@ -34,7 +34,7 @@ const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
     stylingCard: {
       flexDirection: 'row',
       backgroundColor: theme.colors.surface2,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       paddingVertical: 16,
       paddingHorizontal: 16,
       alignItems: 'center',

@@ -156,7 +156,6 @@ export default function StyleProfileScreen({navigate}: Props) {
             ['SkinTone', '🎨 Skin Tone'],
             ['EyeColor', '👁️ Eye Color'],
             ['ShoppingHabits', '🛍️ Shopping Habits'],
-            ['Activities', '🏃 Activities'],
             ['PersonalityTraits', '🧠 Personality Traits'],
             ['ColorPreferences', '🌈 Color Preferences'],
             ['Undertone', '🫧 Undertone'],

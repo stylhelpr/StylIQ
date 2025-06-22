@@ -91,6 +91,96 @@ const savedLooksPreview = [
     image:
       'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=600&q=80',
   },
+  {
+    id: 'look6',
+    name: 'Monochrome Layers',
+    image:
+      'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look7',
+    name: 'Tailored Casual',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look8',
+    name: 'Gallery Ready',
+    image:
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look9',
+    name: 'Warm Textures',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look10',
+    name: 'Sharp Street',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look11',
+    name: 'Monochrome Layers',
+    image:
+      'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look12',
+    name: 'Tailored Casual',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look13',
+    name: 'Gallery Ready',
+    image:
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look14',
+    name: 'Warm Textures',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look15',
+    name: 'Sharp Street',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look16',
+    name: 'Monochrome Layers',
+    image:
+      'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look17',
+    name: 'Tailored Casual',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look18',
+    name: 'Gallery Ready',
+    image:
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look19',
+    name: 'Warm Textures',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    id: 'look20',
+    name: 'Sharp Street',
+    image:
+      'https://images.unsplash.com/photo-1542068829-1115f7259450?auto=format&fit=crop&w=600&q=80',
+  },
 ];
 
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
@@ -215,7 +305,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     tryButton: {
       backgroundColor: theme.colors.button1,
       paddingVertical: 10,
-      borderRadius: tokens.borderRadius.md,
+      // borderRadius: tokens.borderRadius.md,
       marginTop: 14,
       alignItems: 'center',
     },
@@ -234,7 +324,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     quickAccessButton: {
       backgroundColor: theme.colors.button1,
-      borderRadius: tokens.borderRadius.md,
+      // borderRadius: tokens.borderRadius.md,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -556,7 +646,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         <Text style={globalStyles.sectionTitle}>Quick Access</Text>
         <View style={styles.quickAccessGrid}>
           {[
-            {label: 'Wardrobe', screen: 'Wardrobe'},
+            {label: 'Follow', screen: 'Wardrobe'},
             {label: 'Add Item', screen: 'AddItem'},
             {label: 'Style Me', screen: 'Outfit'},
             {label: 'Try-On', screen: 'TryOnOverlay'},
@@ -581,7 +671,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingRight: 8}}>
-          {wardrobe.slice(0, 5).map((item, idx) => (
+          {wardrobe.slice(0, 100).map((item, idx) => (
             <Animatable.View
               animation="fadeInUp"
               delay={100 * idx}
@@ -616,7 +706,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{paddingRight: 8}}>
-            {savedLooksPreview.slice(0, 5).map((look, index) => (
+            {savedLooksPreview.slice(0, 100).map((look, index) => (
               <Animatable.View
                 key={look.id}
                 animation="fadeInUp"

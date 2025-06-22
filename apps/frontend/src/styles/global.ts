@@ -232,7 +232,7 @@ export const createGlobalStyles = (theme: Theme) =>
       width: '100%',
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius.md,
-      paddingVertical: 10,
+      paddingVertical: 9,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -242,7 +242,7 @@ export const createGlobalStyles = (theme: Theme) =>
       elevation: 2,
     },
     buttonPrimaryText: {
-      fontSize: 14,
+      fontSize: 17,
       fontWeight: '600',
       color: '#fff',
     },

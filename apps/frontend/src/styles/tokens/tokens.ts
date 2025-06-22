@@ -16,15 +16,10 @@ export const tokens = {
     section: scale(64),
   },
 
-  borderRadius: {
-    none: 0,
-    sm: scale(2),
-    md: scale(10),
-    lg: scale(16),
-    xl: scale(24),
-    '2xl': scale(32),
-    full: 9999,
-    default: scale(8),
+  layout: {
+    pagePadding: scale(32),
+    sectionGap: scale(64),
+    cardPadding: scale(24),
   },
 
   fontSize: {
@@ -55,6 +50,17 @@ export const tokens = {
     heading: 'xl',
   },
 
+  borderRadius: {
+    none: 0,
+    sm: 4,
+    md: 9,
+    lg: 16,
+    xl: 24,
+    '2xl': 32,
+    full: 9999,
+    default: 8,
+  },
+
   fontWeight: {
     thin: '100',
     extraLight: '200',
@@ -83,12 +89,6 @@ export const tokens = {
     relaxed: 1.625,
     normal: 1.5,
     default: 1.6,
-  },
-
-  layout: {
-    pagePadding: scale(32),
-    sectionGap: scale(64),
-    cardPadding: scale(24),
   },
 
   shadows: {

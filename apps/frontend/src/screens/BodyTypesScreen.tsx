@@ -1,7 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackHeader from '../components/Backheader/Backheader';
 import {Chip} from '../components/Chip/Chip';
 import {useAuth0} from 'react-native-auth0';
@@ -41,25 +40,21 @@ export default function BodyTypeScreen({navigate}: Props) {
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
-  const {updateProfile} = useStyleProfile(userId);
+  const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
   useEffect(() => {
-    AsyncStorage.getItem('bodyType').then(data => {
-      if (data) setSelected(data);
-    });
-  }, []);
+    if (userId) refetch();
+  }, [userId, refetch]);
 
-  const handleSelect = async (label: string) => {
-    setSelected(label);
-
-    try {
-      await AsyncStorage.setItem('bodyType', label);
-      await updateProfile('body_type', label);
-      // Removed navigate here so screen stays open on selection
-    } catch (err) {
-      console.error('Failed to save body type:', err);
-      // Optionally show alert here
+  useEffect(() => {
+    if (styleProfile?.body_type) {
+      setSelected(styleProfile.body_type);
     }
+  }, [styleProfile]);
+
+  const handleSelect = (label: string) => {
+    setSelected(label);
+    updateProfile('body_type', label);
   };
 
   return (

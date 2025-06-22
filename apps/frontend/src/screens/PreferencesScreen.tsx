@@ -45,26 +45,13 @@ export default function PreferencesScreen({navigate}: Props) {
     }
   }, [userId, refetch]);
 
-  // Sync UI state with backend data whenever it arrives
+  // Sync UI state with backend data when it arrives
   useEffect(() => {
     if (
       styleProfile?.style_preferences &&
       Array.isArray(styleProfile.style_preferences)
     ) {
       setSelectedPrefs(styleProfile.style_preferences);
-
-      // Optional: sync to AsyncStorage cache
-      AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(styleProfile.style_preferences),
-      );
-    } else {
-      // Fallback: load from AsyncStorage cache if no backend data
-      AsyncStorage.getItem(STORAGE_KEY).then(stored => {
-        if (stored) {
-          setSelectedPrefs(JSON.parse(stored));
-        }
-      });
     }
   }, [styleProfile]);
 
@@ -112,6 +99,123 @@ export default function PreferencesScreen({navigate}: Props) {
     </View>
   );
 }
+
+//////////////
+
+// import React, {useEffect, useState} from 'react';
+// import {View, Text, StyleSheet, ScrollView} from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {Chip} from '../components/Chip/Chip';
+// import BackHeader from '../components/Backheader/Backheader';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useAuth0} from 'react-native-auth0';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// const STORAGE_KEY = 'style_preferences';
+
+// const preferences = [
+//   'Minimalist',
+//   'Streetwear',
+//   'Formal',
+//   'Luxury',
+//   'Bohemian',
+//   'Preppy',
+//   'Sporty',
+//   'Vintage',
+//   'Trendy',
+//   'Business Casual',
+// ];
+
+// export default function PreferencesScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const colors = theme.colors;
+//   const globalStyles = useGlobalStyles();
+
+//   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
+
+//   const {user} = useAuth0();
+//   const userId = user?.sub || '';
+//   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
+
+//   // Fetch fresh backend data on mount
+//   useEffect(() => {
+//     if (userId) {
+//       refetch();
+//     }
+//   }, [userId, refetch]);
+
+//   // Sync UI state with backend data whenever it arrives
+//   useEffect(() => {
+//     if (
+//       styleProfile?.style_preferences &&
+//       Array.isArray(styleProfile.style_preferences)
+//     ) {
+//       setSelectedPrefs(styleProfile.style_preferences);
+
+//       // Optional: sync to AsyncStorage cache
+//       AsyncStorage.setItem(
+//         STORAGE_KEY,
+//         JSON.stringify(styleProfile.style_preferences),
+//       );
+//     } else {
+//       // Fallback: load from AsyncStorage cache if no backend data
+//       AsyncStorage.getItem(STORAGE_KEY).then(stored => {
+//         if (stored) {
+//           setSelectedPrefs(JSON.parse(stored));
+//         }
+//       });
+//     }
+//   }, [styleProfile]);
+
+//   const togglePref = async (pref: string) => {
+//     const isSelected = selectedPrefs.includes(pref);
+//     const updated = isSelected
+//       ? selectedPrefs.filter(p => p !== pref)
+//       : [...selectedPrefs, pref];
+
+//     setSelectedPrefs(updated);
+//     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+//     updateProfile('style_preferences', updated);
+//   };
+
+//   return (
+//     <View
+//       style={[
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}>
+//       <ScrollView style={globalStyles.section}>
+//         <Text style={[globalStyles.header, {color: colors.primary}]}>
+//           Style Preferences
+//         </Text>
+//         <View style={globalStyles.backContainer}>
+//           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+//           <Text style={globalStyles.backText}>Back</Text>
+//         </View>
+//         <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+//           Select the styles you’re most drawn to:
+//         </Text>
+//         <View style={globalStyles.styleContainer1}>
+//           <View style={globalStyles.pillContainer}>
+//             {preferences.map(pref => (
+//               <Chip
+//                 key={pref}
+//                 label={pref}
+//                 selected={selectedPrefs.includes(pref)}
+//                 onPress={() => togglePref(pref)}
+//               />
+//             ))}
+//           </View>
+//         </View>
+//       </ScrollView>
+//     </View>
+//   );
+// }
 
 //////////////
 
