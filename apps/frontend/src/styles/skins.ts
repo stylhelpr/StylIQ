@@ -9,7 +9,7 @@ export const skins = {
       secondary: '#B0B0B0',
       // background: '#00050e',
       background: 'rgba(0, 0, 0, 1)',
-      foreground: 'rgb(236, 235, 235)',
+      foreground: 'rgb(235, 234, 234)',
       foreground2: 'rgb(153, 153, 153)',
       cardBackground: 'rgb(61, 61, 61)',
       header: '#1E1E1E',

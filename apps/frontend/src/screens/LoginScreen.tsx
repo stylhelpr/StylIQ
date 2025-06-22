@@ -99,7 +99,7 @@ export default function LoginScreen({
       textShadowRadius: 3,
     },
     faceIdButton: {
-      width: '25%',
+      width: '50%',
       paddingVertical: 14,
       borderRadius: 10,
       marginBottom: 20,
