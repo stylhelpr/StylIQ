@@ -105,7 +105,11 @@ export default function NotificationsScreen({navigate}: Props) {
         Notifications
       </Text>
       <View style={globalStyles.section}>
-        <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+        <View style={globalStyles.backContainer}>
+          <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+          <Text style={globalStyles.backText}>Back</Text>
+        </View>
+
         {notifications.length === 0 ? (
           <Text style={{color: theme.colors.foreground2}}>
             No notifications yet.

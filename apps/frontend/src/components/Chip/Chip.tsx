@@ -33,7 +33,7 @@ export const Chip = ({label, selected = false, onPress}: Props) => {
         globalStyles.pill,
         {
           marginBottom: 12,
-          backgroundColor: isSelected ? colors.primary : colors.surface,
+          backgroundColor: isSelected ? colors.primary : colors.background,
           borderColor: isSelected ? colors.primary : colors.surface,
         },
       ]}>

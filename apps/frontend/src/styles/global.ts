@@ -24,6 +24,9 @@ export const createGlobalStyles = (theme: Theme) =>
       marginTop: 20,
       marginBottom: 20,
     },
+    section4: {
+      paddingHorizontal: 20,
+    },
     sectionScroll: {
       marginBottom: 26,
       paddingLeft: 20,
@@ -32,6 +35,16 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingLeft: 20,
       fontSize: 30,
       fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    backContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      width: 100,
+    },
+    backText: {
+      fontSize: 18,
+      fontWeight: '300',
       color: theme.colors.primary,
     },
     sectionTitle: {
@@ -54,6 +67,24 @@ export const createGlobalStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 2,
+    },
+    sectionTitle4: {
+      fontSize: 17,
+      fontWeight: '400',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      // paddingLeft: 20,
+    },
+    styleContainer1: {
+      flexDirection: 'column',
+      justifyContent: 'center',
+      marginTop: 10,
+      marginBottom: 20,
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.md,
+      paddingTop: 16,
+      paddingHorizontal: 16,
+      paddingBottom: 4,
     },
     title: {
       fontSize: 14,

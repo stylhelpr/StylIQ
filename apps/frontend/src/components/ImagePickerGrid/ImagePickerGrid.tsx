@@ -35,7 +35,13 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   const styles = StyleSheet.create({
     imagePickerRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      width: '100%',
+    },
+    buttonWrapper: {
+      flex: 1,
+    },
+    buttonSpacer: {
+      width: 8,
     },
     grid: {
       flexDirection: 'row',
@@ -125,24 +131,25 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   };
 
   return (
-    <View style={{marginBottom: 20}}>
+    <View style={{marginBottom: 20, width: '100%'}}>
       <View style={styles.imagePickerRow}>
         {[
           {label: 'Take Photo', onPress: takePhoto},
           {label: 'Record Video', onPress: recordVideo},
           {label: 'Photo Library', onPress: pickFromGallery},
         ].map(({label, onPress}, i) => (
-          <AppleTouchFeedback
-            key={label}
-            onPress={onPress}
-            hapticStyle="impactMedium"
-            style={[
-              globalStyles.buttonPrimary,
-              {width: 130},
-              buttonMarginStyle(i),
-            ]}>
-            <Text style={globalStyles.buttonPrimaryText}>{label}</Text>
-          </AppleTouchFeedback>
+          <React.Fragment key={label}>
+            {i !== 0 && <View style={styles.buttonSpacer} />}
+            <View style={styles.buttonWrapper}>
+              <AppleTouchFeedback
+                onPress={onPress}
+                hapticStyle="impactMedium"
+                style={globalStyles.buttonPrimary} // no width/flex here
+              >
+                <Text style={globalStyles.buttonPrimaryText}>{label}</Text>
+              </AppleTouchFeedback>
+            </View>
+          </React.Fragment>
         ))}
       </View>
 

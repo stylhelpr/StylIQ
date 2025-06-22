@@ -18,6 +18,7 @@ import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import BackHeader from '../components/Backheader/Backheader';
 
 type SavedOutfit = {
   id: string;
@@ -164,16 +165,16 @@ export default function SearchScreen({navigate, goBack}) {
         Search
       </Text>
       <View style={globalStyles.section}>
-        <AppleTouchFeedback
-          onPress={goBack}
-          hapticStyle="impactMedium"
-          style={{marginTop: 18}}>
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color={theme.colors.foreground}
-          />
-        </AppleTouchFeedback>
+        <View style={[globalStyles.backContainer, {marginTop: 16}]}>
+          <AppleTouchFeedback onPress={goBack} hapticStyle="impactMedium">
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={theme.colors.foreground}
+            />
+          </AppleTouchFeedback>
+          <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
+        </View>
 
         {/* <AppleTouchFeedback
         onPressIn={handlePressIn}

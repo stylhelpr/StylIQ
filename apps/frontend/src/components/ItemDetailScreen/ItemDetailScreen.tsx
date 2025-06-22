@@ -145,13 +145,6 @@ export default function ItemDetailScreen({route, navigation}: Props) {
     saveButton: {
       backgroundColor: theme.colors.button1,
     },
-    deleteButton: {
-      backgroundColor: '#cc0000',
-      paddingVertical: 14,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginTop: 20,
-    },
   });
 
   return (
@@ -197,14 +190,17 @@ export default function ItemDetailScreen({route, navigation}: Props) {
           style={[
             globalStyles.buttonPrimary,
             styles.cancelButton,
-            {width: 190},
+            {width: '48%', flexShrink: 0, alignSelf: 'stretch'},
           ]}
           onPress={() => navigation.goBack()}>
           <Text style={globalStyles.buttonPrimaryText}>Cancel</Text>
         </Pressable>
 
         <Pressable
-          style={[globalStyles.buttonPrimary, {width: 190}]}
+          style={[
+            globalStyles.buttonPrimary,
+            {width: '48%', flexShrink: 0, alignSelf: 'stretch'},
+          ]}
           onPress={() => updateMutation.mutate()}>
           <Text style={globalStyles.buttonPrimaryText}>Save Changes</Text>
         </Pressable>
@@ -213,7 +209,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       <Pressable
         style={[
           globalStyles.buttonPrimary,
-          {backgroundColor: 'red', marginTop: 12},
+          {backgroundColor: 'red', marginTop: 16},
         ]}
         onPress={handleDelete}>
         <Text style={globalStyles.buttonPrimaryText}>Delete Item</Text>

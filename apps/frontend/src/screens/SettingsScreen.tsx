@@ -212,19 +212,27 @@ export default function SettingsScreen({navigate}: Props) {
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>
-      <Text style={[globalStyles.header, {color: theme.colors.primary}]}></Text>
-
+      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
+        Settings
+      </Text>
       <View style={globalStyles.section}>
-        <AppleTouchFeedback
-          onPress={() => navigate('Profile')}
-          hapticStyle="impactMedium"
-          style={{marginBottom: 6, alignSelf: 'flex-start'}}>
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color={colors.foreground}
-          />
-        </AppleTouchFeedback>
+        <View
+          style={[
+            globalStyles.backContainer,
+            {marginTop: 16, marginBottom: 36},
+          ]}>
+          <AppleTouchFeedback
+            onPress={() => navigate('Profile')}
+            hapticStyle="impactMedium"
+            style={{alignSelf: 'flex-start'}}>
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={colors.foreground}
+            />
+          </AppleTouchFeedback>
+          <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
+        </View>
 
         <View>
           {/* 🔔 Notifications */}
@@ -333,7 +341,11 @@ export default function SettingsScreen({navigate}: Props) {
           </View>
 
           {/* 📱 App Version */}
-          <Text style={[styles.version, {color: colors.foreground}]}>
+          <Text
+            style={[
+              globalStyles.title,
+              {marginTop: 8, textAlign: 'center', color: colors.foreground},
+            ]}>
             App Version: {appVersion}
           </Text>
 

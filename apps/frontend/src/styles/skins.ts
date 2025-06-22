@@ -18,7 +18,7 @@ export const skins = {
       // surface: '#292929',
       surface: 'rgb(29, 29, 29)',
       surface2: 'rgb(103, 103, 103)',
-      surfaceBorder: '#D1D5DB',
+      surfaceBorder: 'rgb(191, 0, 0)',
       inputBorder: '#676769',
       accents: '#676769',
       separator: '#434343',

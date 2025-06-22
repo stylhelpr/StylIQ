@@ -101,6 +101,7 @@ export default function StyleProfileScreen({navigate}: Props) {
       borderRadius: 4,
       backgroundColor: '#ccc',
       overflow: 'hidden',
+      marginTop: 8,
     },
     progressFill: {
       height: '100%',
@@ -120,7 +121,11 @@ export default function StyleProfileScreen({navigate}: Props) {
       </Text>
 
       <View style={globalStyles.section}>
-        <BackHeader title="" onBack={() => navigate('Profile')} />
+        <View style={globalStyles.backContainer}>
+          <BackHeader title="" onBack={() => navigate('Profile')} />
+          <Text style={globalStyles.backText}>Back</Text>
+        </View>
+
         <Text style={styles.progressLabel}>
           Style Profile {progress}% complete
         </Text>
@@ -161,7 +166,7 @@ export default function StyleProfileScreen({navigate}: Props) {
               key={screen}
               onPress={() => navigate(screen)}
               hapticStyle="impactMedium"
-              style={[globalStyles.hrLine, {paddingVertical: 12}]}>
+              style={[globalStyles.hrLine, {paddingVertical: 9}]}>
               <Text style={globalStyles.sectionTitle3}>{label}</Text>
             </AppleTouchFeedback>
           ))}
