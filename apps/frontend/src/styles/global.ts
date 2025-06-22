@@ -44,8 +44,8 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     backText: {
       fontSize: 18,
-      fontWeight: '300',
-      color: theme.colors.primary,
+      fontWeight: '500',
+      color: theme.colors.button3,
     },
     sectionTitle: {
       fontSize: 18,
@@ -109,6 +109,12 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '500',
       color: theme.colors.foreground,
     },
+    label2: {
+      fontSize: 13,
+      fontWeight: '500',
+      width: '25%',
+      color: theme.colors.foreground,
+    },
     subLabel: {
       fontSize: 12,
       fontWeight: '500',
@@ -168,6 +174,9 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: 6,
       paddingHorizontal: 12,
     },
+    labelContainer4: {
+      backgroundColor: 'red',
+    },
     pillContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -175,7 +184,8 @@ export const createGlobalStyles = (theme: Theme) =>
       width: '100%',
     },
     pill: {
-      backgroundColor: theme.colors.surface,
+      // backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.foreground,
       paddingHorizontal: 18,
       paddingVertical: 9,
       borderRadius: 18,
@@ -190,7 +200,8 @@ export const createGlobalStyles = (theme: Theme) =>
     pillText: {
       fontSize: 14,
       fontWeight: '500',
-      color: theme.colors.foreground,
+      // color: theme.colors.foreground,
+      color: theme.colors.background,
     },
     pillFixedWidth: {
       backgroundColor: theme.colors.surface,

@@ -225,11 +225,7 @@ export default function SettingsScreen({navigate}: Props) {
             onPress={() => navigate('Profile')}
             hapticStyle="impactMedium"
             style={{alignSelf: 'flex-start'}}>
-            <MaterialIcons
-              name="arrow-back"
-              size={24}
-              color={colors.foreground}
-            />
+            <MaterialIcons name="arrow-back" size={24} color={colors.button3} />
           </AppleTouchFeedback>
           <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
         </View>

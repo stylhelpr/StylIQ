@@ -646,7 +646,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         <Text style={globalStyles.sectionTitle}>Quick Access</Text>
         <View style={styles.quickAccessGrid}>
           {[
-            {label: 'Follow', screen: 'Wardrobe'},
+            {label: 'Play', screen: 'Wardrobe'},
             {label: 'Add Item', screen: 'AddItem'},
             {label: 'Style Me', screen: 'Outfit'},
             {label: 'Try-On', screen: 'TryOnOverlay'},

@@ -170,7 +170,7 @@ export default function SearchScreen({navigate, goBack}) {
             <MaterialIcons
               name="arrow-back"
               size={24}
-              color={theme.colors.foreground}
+              color={theme.colors.button3}
             />
           </AppleTouchFeedback>
           <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>

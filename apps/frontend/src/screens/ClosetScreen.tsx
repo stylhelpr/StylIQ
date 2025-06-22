@@ -239,7 +239,7 @@ export default function ClosetScreen({navigate}: Props) {
     },
     gridCard: {
       width: imageSize,
-      height: imageSize + 60,
+      // height: imageSize + 60,
       marginBottom: ITEM_MARGIN * 0.6,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,

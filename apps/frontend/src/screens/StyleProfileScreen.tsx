@@ -94,6 +94,7 @@ export default function StyleProfileScreen({navigate}: Props) {
     progressLabel: {
       fontSize: 16,
       color: theme.colors.foreground,
+      marginTop: 2,
       marginBottom: 4,
     },
     progressBar: {

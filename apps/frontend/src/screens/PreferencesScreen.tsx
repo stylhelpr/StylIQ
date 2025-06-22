@@ -72,10 +72,10 @@ export default function PreferencesScreen({navigate}: Props) {
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>
+      <Text style={[globalStyles.header, {color: colors.primary}]}>
+        Style Preferences
+      </Text>
       <ScrollView style={globalStyles.section}>
-        <Text style={[globalStyles.header, {color: colors.primary}]}>
-          Style Preferences
-        </Text>
         <View style={globalStyles.backContainer}>
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
