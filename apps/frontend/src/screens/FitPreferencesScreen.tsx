@@ -40,15 +40,22 @@ export default function FitPreferencesScreen({navigate}: Props) {
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
-  const {updateProfile} = useStyleProfile(userId);
+  const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
+  // Fetch fresh profile data on mount
   useEffect(() => {
-    const loadData = async () => {
-      const data = await AsyncStorage.getItem('fitPreferences');
-      if (data) setSelected(JSON.parse(data));
-    };
-    loadData();
-  }, []);
+    refetch();
+  }, [refetch]);
+
+  // Sync UI state with backend data when it arrives
+  useEffect(() => {
+    if (
+      styleProfile?.fit_preferences &&
+      Array.isArray(styleProfile.fit_preferences)
+    ) {
+      setSelected(styleProfile.fit_preferences);
+    }
+  }, [styleProfile]);
 
   const toggleSelection = async (label: string) => {
     const updated = selected.includes(label)
