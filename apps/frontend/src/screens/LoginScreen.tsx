@@ -11,6 +11,8 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
 import jwtDecode from 'jwt-decode';
 import Video from 'react-native-video';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 const windowHeight = Dimensions.get('window').height;
 
@@ -28,6 +30,7 @@ export default function LoginScreen({
   onLoginSuccess,
 }: Props) {
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const {authorize} = useAuth0();
 
   const styles = StyleSheet.create({
@@ -94,21 +97,6 @@ export default function LoginScreen({
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 8,
-      textShadowColor: 'rgba(0,0,0,0.7)',
-      textShadowOffset: {width: 0, height: 1},
-      textShadowRadius: 3,
-    },
-    faceIdButton: {
-      width: '50%',
-      paddingVertical: 14,
-      borderRadius: 10,
-      marginBottom: 20,
-      alignItems: 'center',
-    },
-    faceIdButtonText: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: '#fff',
       textShadowColor: 'rgba(0,0,0,0.7)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 3,
@@ -247,12 +235,12 @@ export default function LoginScreen({
 
         <TouchableOpacity
           style={[
-            styles.faceIdButton,
+            globalStyles.buttonHome,
             {backgroundColor: theme.colors.background},
           ]}
           onPress={onFaceIdLogin}
           activeOpacity={0.8}>
-          <Text style={styles.faceIdButtonText}>Face ID</Text>
+          <Text style={globalStyles.buttonHomeText}>Face ID</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleLogin}>

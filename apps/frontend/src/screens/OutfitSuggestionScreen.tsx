@@ -368,178 +368,188 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   };
 
   return (
-    <View style={[globalStyles.container]}>
-      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
-        Style Me
-      </Text>
+    <View
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <View style={globalStyles.sectionTitle}>
+        <Text
+          style={[
+            globalStyles.header,
+            {color: theme.colors.primary, marginBottom: 20},
+          ]}>
+          Explore
+        </Text>
 
-      <View style={globalStyles.section}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Prompt input with mic */}
-          <View style={[globalStyles.promptRow, {marginBottom: 20}]}>
-            <TextInput
-              placeholder="What are you dressing for?"
-              placeholderTextColor={theme.colors.muted}
-              style={globalStyles.promptInput}
-              value={lastSpeech}
-              onChangeText={setLastSpeech}
-            />
-            <TouchableOpacity onPress={handleVoiceStart}>
-              <MaterialIcons name="keyboard-voice" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
+        <View style={globalStyles.section}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {/* Prompt input with mic */}
+            <View style={[globalStyles.promptRow, {marginBottom: 20}]}>
+              <TextInput
+                placeholder="What are you dressing for?"
+                placeholderTextColor={theme.colors.muted}
+                style={globalStyles.promptInput}
+                value={lastSpeech}
+                onChangeText={setLastSpeech}
+              />
+              <TouchableOpacity onPress={handleVoiceStart}>
+                <MaterialIcons name="keyboard-voice" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
 
-          {/* Filter pills */}
-          <View style={styles.chipsRow}>
+            {/* Filter pills */}
+            <View style={styles.chipsRow}>
+              <TouchableOpacity
+                style={globalStyles.pillFixedWidth}
+                onPress={() =>
+                  setWeather(prev => (prev === 'hot' ? 'cold' : 'hot'))
+                }>
+                <Text style={globalStyles.pillTextFixedWidth}>
+                  Weather: {weather}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={globalStyles.pillFixedWidth}
+                onPress={() =>
+                  setOccasion(prev => (prev === 'Casual' ? 'Formal' : 'Casual'))
+                }>
+                <Text style={globalStyles.pillTextFixedWidth}>
+                  Occasion: {occasion}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={globalStyles.pillFixedWidth}
+                onPress={() =>
+                  setStyle(prev => (prev === 'modern' ? 'retro' : 'modern'))
+                }>
+                <Text style={globalStyles.pillTextFixedWidth}>
+                  Style: {style}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity
-              style={globalStyles.pillFixedWidth}
-              onPress={() =>
-                setWeather(prev => (prev === 'hot' ? 'cold' : 'hot'))
-              }>
-              <Text style={globalStyles.pillTextFixedWidth}>
-                Weather: {weather}
+              style={[
+                globalStyles.buttonPrimary,
+                {width: 186, marginBottom: 20, marginTop: 8},
+              ]}
+              onPress={handleGenerate}>
+              <Text style={[globalStyles.buttonPrimaryText]}>
+                Generate Outfit
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={globalStyles.pillFixedWidth}
-              onPress={() =>
-                setOccasion(prev => (prev === 'Casual' ? 'Formal' : 'Casual'))
-              }>
-              <Text style={globalStyles.pillTextFixedWidth}>
-                Occasion: {occasion}
-              </Text>
-            </TouchableOpacity>
+            {/* Suggested outfit */}
+            {renderCard('Top', outfit.top, 'top')}
+            {renderCard('Bottom', outfit.bottom, 'bottom')}
+            {renderCard('Shoes', outfit.shoes, 'shoes')}
 
-            <TouchableOpacity
-              style={globalStyles.pillFixedWidth}
-              onPress={() =>
-                setStyle(prev => (prev === 'modern' ? 'retro' : 'modern'))
-              }>
-              <Text style={globalStyles.pillTextFixedWidth}>
-                Style: {style}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {/* CTA row */}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[globalStyles.buttonPrimary, {width: 120}]}
+                onPress={() => setFeedbackModalVisible(true)}>
+                <Text style={globalStyles.buttonPrimaryText}>Rate Outfit</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              globalStyles.buttonPrimary,
-              {width: 186, marginBottom: 20, marginTop: 8},
-            ]}
-            onPress={handleGenerate}>
-            <Text style={[globalStyles.buttonPrimaryText]}>
-              Generate Outfit
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[globalStyles.buttonPrimary, {width: 120}]}
+                onPress={() =>
+                  navigate('TryOnOverlay', {
+                    outfit,
+                    userPhotoUri: Image.resolveAssetSource(
+                      require('../assets/images/full-body-temp1.png'),
+                    ).uri,
+                  })
+                }>
+                <Text style={globalStyles.buttonPrimaryText}>Try On</Text>
+              </TouchableOpacity>
 
-          {/* Suggested outfit */}
-          {renderCard('Top', outfit.top, 'top')}
-          {renderCard('Bottom', outfit.bottom, 'bottom')}
-          {renderCard('Shoes', outfit.shoes, 'shoes')}
+              <TouchableOpacity
+                style={[globalStyles.buttonPrimary, {width: 120}]}
+                onPress={() => {
+                  if (outfit.top && outfit.bottom && outfit.shoes) {
+                    setPendingSaveOutfit({
+                      top: outfit.top,
+                      bottom: outfit.bottom,
+                      shoes: outfit.shoes,
+                    });
+                    setShowNameModal(true);
+                  }
+                }}>
+                <Text style={globalStyles.buttonPrimaryText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
 
-          {/* CTA row */}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[globalStyles.buttonPrimary, {width: 120}]}
-              onPress={() => setFeedbackModalVisible(true)}>
-              <Text style={globalStyles.buttonPrimaryText}>Rate Outfit</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[globalStyles.buttonPrimary, {width: 120}]}
-              onPress={() =>
-                navigate('TryOnOverlay', {
-                  outfit,
-                  userPhotoUri: Image.resolveAssetSource(
-                    require('../assets/images/full-body-temp1.png'),
-                  ).uri,
-                })
-              }>
-              <Text style={globalStyles.buttonPrimaryText}>Try On</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[globalStyles.buttonPrimary, {width: 120}]}
-              onPress={() => {
-                if (outfit.top && outfit.bottom && outfit.shoes) {
-                  setPendingSaveOutfit({
-                    top: outfit.top,
-                    bottom: outfit.bottom,
-                    shoes: outfit.shoes,
-                  });
-                  setShowNameModal(true);
-                }
-              }}>
-              <Text style={globalStyles.buttonPrimaryText}>Save</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-
-        {/* Modals */}
-        <WhyPickedModal
-          visible={visibleModal === 'top'}
-          item={outfit.top}
-          reasons={reasons.top ?? []}
-          section="Top"
-          onClose={() => setVisibleModal(null)}
-        />
-        <WhyPickedModal
-          visible={visibleModal === 'bottom'}
-          item={outfit.bottom}
-          reasons={reasons.bottom ?? []}
-          section="Bottom"
-          onClose={() => setVisibleModal(null)}
-        />
-        <WhyPickedModal
-          visible={visibleModal === 'shoes'}
-          item={outfit.shoes}
-          reasons={reasons.shoes ?? []}
-          section="Shoes"
-          onClose={() => setVisibleModal(null)}
-        />
-        <OutfitFeedbackModal
-          visible={feedbackModalVisible}
-          onClose={() => setFeedbackModalVisible(false)}
-          feedbackData={feedbackData}
-          setFeedbackData={setFeedbackData}
-          toggleTag={toggleTag}
-          REASON_TAGS={REASON_TAGS}
-          theme={theme}
-        />
-        <OutfitNameModal
-          visible={showNameModal}
-          onClose={() => {
-            setShowNameModal(false);
-            setPendingSaveOutfit(null);
-          }}
-          onSave={async (name, date) => {
-            if (pendingSaveOutfit) {
-              const savedOutfit = {
-                id: Date.now().toString(),
-                name,
-                top: pendingSaveOutfit.top,
-                bottom: pendingSaveOutfit.bottom,
-                shoes: pendingSaveOutfit.shoes,
-                createdAt: new Date().toISOString(),
-                tags: feedbackData.tags,
-                notes: feedbackData.reason,
-                rating:
-                  feedbackData.feedback === 'like'
-                    ? 5
-                    : feedbackData.feedback === 'dislike'
-                    ? 2
-                    : undefined,
-                favorited: true,
-              };
-
-              await saveFavoriteOutfit(savedOutfit);
-              await saveOutfitToDate(date, savedOutfit);
+          {/* Modals */}
+          <WhyPickedModal
+            visible={visibleModal === 'top'}
+            item={outfit.top}
+            reasons={reasons.top ?? []}
+            section="Top"
+            onClose={() => setVisibleModal(null)}
+          />
+          <WhyPickedModal
+            visible={visibleModal === 'bottom'}
+            item={outfit.bottom}
+            reasons={reasons.bottom ?? []}
+            section="Bottom"
+            onClose={() => setVisibleModal(null)}
+          />
+          <WhyPickedModal
+            visible={visibleModal === 'shoes'}
+            item={outfit.shoes}
+            reasons={reasons.shoes ?? []}
+            section="Shoes"
+            onClose={() => setVisibleModal(null)}
+          />
+          <OutfitFeedbackModal
+            visible={feedbackModalVisible}
+            onClose={() => setFeedbackModalVisible(false)}
+            feedbackData={feedbackData}
+            setFeedbackData={setFeedbackData}
+            toggleTag={toggleTag}
+            REASON_TAGS={REASON_TAGS}
+            theme={theme}
+          />
+          <OutfitNameModal
+            visible={showNameModal}
+            onClose={() => {
               setShowNameModal(false);
               setPendingSaveOutfit(null);
-            }
-          }}
-        />
+            }}
+            onSave={async (name, date) => {
+              if (pendingSaveOutfit) {
+                const savedOutfit = {
+                  id: Date.now().toString(),
+                  name,
+                  top: pendingSaveOutfit.top,
+                  bottom: pendingSaveOutfit.bottom,
+                  shoes: pendingSaveOutfit.shoes,
+                  createdAt: new Date().toISOString(),
+                  tags: feedbackData.tags,
+                  notes: feedbackData.reason,
+                  rating:
+                    feedbackData.feedback === 'like'
+                      ? 5
+                      : feedbackData.feedback === 'dislike'
+                      ? 2
+                      : undefined,
+                  favorited: true,
+                };
+
+                await saveFavoriteOutfit(savedOutfit);
+                await saveOutfitToDate(date, savedOutfit);
+                setShowNameModal(false);
+                setPendingSaveOutfit(null);
+              }
+            }}
+          />
+        </View>
       </View>
     </View>
   );

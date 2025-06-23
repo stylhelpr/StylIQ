@@ -239,8 +239,25 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       textAlign: 'center',
     },
+    buttonHome: {
+      width: 160,
+      maxWidth: 270,
+      paddingVertical: 16,
+      borderRadius: tokens.borderRadius.md,
+      marginBottom: 20,
+      alignItems: 'center',
+    },
+    buttonHomeText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#fff',
+      textShadowColor: 'rgba(0,0,0,0.7)',
+      textShadowOffset: {width: 0, height: 1},
+      textShadowRadius: 3,
+    },
     buttonPrimary: {
-      width: '100%',
+      width: 160,
+      maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius.md,
       paddingVertical: 9,
@@ -253,8 +270,8 @@ export const createGlobalStyles = (theme: Theme) =>
       elevation: 2,
     },
     buttonPrimaryText: {
-      fontSize: 17,
-      fontWeight: '600',
+      fontSize: 16,
+      fontWeight: '500',
       color: '#fff',
     },
     buttonSecondary: {

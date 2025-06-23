@@ -343,7 +343,7 @@ export default function ClosetScreen({navigate}: Props) {
         <View style={[styles.buttonRow]}>
           <View style={{marginRight: 8}}>
             <AppleTouchFeedback
-              style={[globalStyles.buttonPrimary, {paddingHorizontal: 18}]}
+              style={[globalStyles.buttonPrimary]}
               hapticStyle="impactHeavy"
               onPress={() => navigate('OutfitBuilder')}>
               <Text style={globalStyles.buttonPrimaryText}>
