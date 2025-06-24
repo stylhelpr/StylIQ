@@ -8,10 +8,7 @@ export class GCSService {
 
   constructor() {
     this.storage = new Storage({
-      keyFilename: path.resolve(
-        process.cwd(),
-        'abstract-veld-461922-b6-445c10eb5530.json',
-      ),
+      keyFilename: path.resolve(process.cwd(), 'google-service.json'),
     });
   }
 

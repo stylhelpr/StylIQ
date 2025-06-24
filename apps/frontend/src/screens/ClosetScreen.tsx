@@ -96,6 +96,7 @@ type Props = {
 export default function ClosetScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+  const queryClient = useQueryClient();
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width,
   );
@@ -318,8 +319,6 @@ export default function ClosetScreen({navigate}: Props) {
     inferredCategory: {main: MainCategory; sub: Subcategory};
   };
 
-  const queryClient = useQueryClient();
-
   const favoriteMutation = useMutation({
     mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
       await fetch(`${BASE_URL}/favorite/${id}`, {
@@ -343,7 +342,7 @@ export default function ClosetScreen({navigate}: Props) {
         <View style={[styles.buttonRow]}>
           <View style={{marginRight: 8}}>
             <AppleTouchFeedback
-              style={[globalStyles.buttonPrimary]}
+              style={[globalStyles.buttonPrimary, {width: 380}]}
               hapticStyle="impactHeavy"
               onPress={() => navigate('OutfitBuilder')}>
               <Text style={globalStyles.buttonPrimaryText}>
@@ -486,10 +485,11 @@ export default function ClosetScreen({navigate}: Props) {
             style={{
               flex: 1,
               justifyContent: 'center',
+              alignItems: 'center',
               backgroundColor: 'rgba(0,0,0,0.3)',
             }}>
             <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
+              <View style={[styles.modalContent, {width: 400}]}>
                 {categories.map(cat => (
                   <TouchableOpacity
                     key={cat}
@@ -512,10 +512,11 @@ export default function ClosetScreen({navigate}: Props) {
             style={{
               flex: 1,
               justifyContent: 'center',
+              alignItems: 'center',
               backgroundColor: 'rgba(0,0,0,0.3)',
             }}>
             <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
+              <View style={[styles.modalContent, {width: 400}]}>
                 {sortOptions.map(opt => (
                   <TouchableOpacity
                     key={opt.value}
@@ -543,7 +544,7 @@ export default function ClosetScreen({navigate}: Props) {
                 backgroundColor: 'rgba(0,0,0,0.5)',
               }}>
               <TouchableWithoutFeedback>
-                <View style={[styles.modalContent, {width: '85%'}]}>
+                <View style={styles.modalContent}>
                   <TextInput
                     value={editedName}
                     onChangeText={setEditedName}

@@ -1,6 +1,12 @@
 import {StyleSheet} from 'react-native';
 import {tokens} from './tokens/tokens';
 import type {Theme} from '../context/ThemeContext';
+import {Dimensions} from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
+const isTablet = screenWidth >= 768;
+
+const responsivePadding = isTablet ? 38 : 20;
 
 export const createGlobalStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -11,25 +17,42 @@ export const createGlobalStyles = (theme: Theme) =>
     container: {
       paddingTop: 20,
       paddingBottom: 60,
+      width: '100%',
+      // maxWidth: 520,
+      alignSelf: 'center',
+      flexGrow: 1,
+    },
+    centeredSection: {
+      width: '100%',
+      maxWidth: 700,
+      alignSelf: 'center',
+    },
+    modalSection: {
+      width: '100%',
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: 20,
+      maxWidth: 520,
+      alignSelf: 'center',
+      borderRadius: 25,
     },
     section: {
       marginBottom: 26,
-      paddingHorizontal: 20,
+      paddingHorizontal: responsivePadding,
     },
     section2: {
       marginBottom: 26,
     },
     section3: {
-      paddingHorizontal: 20,
+      paddingHorizontal: responsivePadding,
       marginTop: 20,
       marginBottom: 20,
     },
     section4: {
-      paddingHorizontal: 20,
+      paddingHorizontal: responsivePadding,
     },
     sectionScroll: {
       marginBottom: 26,
-      paddingLeft: 20,
+      paddingLeft: responsivePadding,
     },
     header: {
       paddingLeft: 20,
@@ -184,7 +207,6 @@ export const createGlobalStyles = (theme: Theme) =>
       width: '100%',
     },
     pill: {
-      // backgroundColor: theme.colors.surface,
       backgroundColor: theme.colors.foreground,
       paddingHorizontal: 18,
       paddingVertical: 9,
@@ -200,7 +222,6 @@ export const createGlobalStyles = (theme: Theme) =>
     pillText: {
       fontSize: 14,
       fontWeight: '500',
-      // color: theme.colors.foreground,
       color: theme.colors.background,
     },
     pillFixedWidth: {
@@ -240,7 +261,7 @@ export const createGlobalStyles = (theme: Theme) =>
       textAlign: 'center',
     },
     buttonHome: {
-      width: 160,
+      width: '90%',
       maxWidth: 270,
       paddingVertical: 16,
       borderRadius: tokens.borderRadius.md,
@@ -256,7 +277,7 @@ export const createGlobalStyles = (theme: Theme) =>
       textShadowRadius: 3,
     },
     buttonPrimary: {
-      width: 160,
+      width: '90%',
       maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius.md,
@@ -275,7 +296,8 @@ export const createGlobalStyles = (theme: Theme) =>
       color: '#fff',
     },
     buttonSecondary: {
-      width: 186,
+      width: '90%',
+      maxWidth: 186,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius.md,
       paddingVertical: 13,
@@ -293,7 +315,8 @@ export const createGlobalStyles = (theme: Theme) =>
       color: '#fff',
     },
     buttonTertiary: {
-      width: '100%',
+      width: 90,
+      maxWidth: 186,
       backgroundColor: theme.colors.surface2,
       borderRadius: tokens.borderRadius.md,
       paddingVertical: 13,
