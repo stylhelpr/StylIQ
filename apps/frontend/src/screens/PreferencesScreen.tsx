@@ -86,7 +86,8 @@ export default function PreferencesScreen({navigate}: Props) {
             style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
             Select the styles you’re most drawn to:
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {preferences.map(pref => (
                 <Chip

@@ -159,9 +159,15 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
-      backgroundColor: theme.colors.surface,
       borderRadius: 25,
-      padding: 12,
+      padding: 11,
+      shadowOffset: {width: 0, height: 6},
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
+      backgroundColor: theme.colors.surface,
     },
     itemWrapper: {
       position: 'relative',
@@ -187,8 +193,8 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     saveButton: {
       width: 160,
       maxWidth: 160,
-      paddingVertical: 12,
-      borderRadius: tokens.borderRadius.md,
+      paddingVertical: 9,
+      borderRadius: tokens.borderRadius.sm,
       backgroundColor: theme.colors.button1,
       alignItems: 'center',
     },
@@ -200,8 +206,8 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     cancelButton: {
       width: 160,
       maxWidth: 160,
-      paddingVertical: 12,
-      borderRadius: tokens.borderRadius.md,
+      paddingVertical: 9,
+      borderRadius: tokens.borderRadius.sm,
       alignItems: 'center',
     },
     cancelText: {
@@ -272,13 +278,20 @@ export default function OutfitBuilderScreen({navigate}: Props) {
           <View
             style={[
               styles.selectedRow,
+
               {
-                backgroundColor: theme.colors.surface,
-                borderRadius: tokens.borderRadius.md,
-                paddingHorizontal: 8,
+                paddingHorizontal: 16,
                 paddingTop: 8,
                 paddingBottom: 2,
-                marginBottom: 8,
+                marginBottom: 14,
+                shadowOffset: {width: 0, height: 6},
+                shadowOpacity: 0.1,
+                shadowRadius: 12,
+                elevation: 5,
+                borderWidth: 1,
+                borderColor: theme.colors.surfaceBorder,
+                borderRadius: tokens.borderRadius.md,
+                backgroundColor: theme.colors.surface,
               },
             ]}>
             {selectedItems.map(item => (

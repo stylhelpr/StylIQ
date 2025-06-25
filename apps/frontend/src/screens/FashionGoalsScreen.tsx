@@ -61,7 +61,7 @@ export default function FashionGoalsScreen({navigate}: Props) {
       padding: 10,
       marginBottom: 15,
       fontSize: 17,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.input2,
       color: theme.colors.foreground,
     },
   });
@@ -86,7 +86,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
           <Text style={globalStyles.sectionTitle4}>
             What are your style goals?
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <TextInput
               style={[styles.input, {borderColor: theme.colors.inputBorder}]}
               value={goals}
@@ -99,7 +100,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
           <Text style={globalStyles.sectionTitle4}>
             How confident do you feel in your style?
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {['Very confident', 'Somewhat', 'Need help'].map(option => (
                 <Chip
@@ -115,7 +117,8 @@ export default function FashionGoalsScreen({navigate}: Props) {
           <Text style={globalStyles.sectionTitle4}>
             Do you prefer bold or subtle looks?
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {[
                 'Bold standout pieces',

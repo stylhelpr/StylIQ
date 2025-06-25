@@ -91,7 +91,11 @@ export default function AppearanceScreen({navigate}: Props) {
                   .replace(/_/g, ' ')
                   .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
               </Text>
-              <View style={globalStyles.styleContainer1}>
+              <View
+                style={[
+                  globalStyles.styleContainer1,
+                  globalStyles.cardStyles3,
+                ]}>
                 <View style={globalStyles.pillContainer}>
                   {options.map(option => (
                     <Chip

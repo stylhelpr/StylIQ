@@ -137,10 +137,11 @@ export default function StyleProfileScreen({navigate}: Props) {
         </View>
       </View>
 
-      <View style={[globalStyles.section, {paddingBottom: 230}]}>
+      <View style={[globalStyles.section, {paddingBottom: 290}]}>
         <ScrollView
           contentContainerStyle={[
             globalStyles.menuSection3,
+            globalStyles.cardStyles3,
             {
               paddingHorizontal: 20,
               width: '100%',

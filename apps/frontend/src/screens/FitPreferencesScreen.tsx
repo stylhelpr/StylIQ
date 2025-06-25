@@ -88,7 +88,8 @@ export default function FitPreferencesScreen({navigate}: Props) {
             Choose your most comfortable and flattering fits:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {options.map(option => (
                 <Chip

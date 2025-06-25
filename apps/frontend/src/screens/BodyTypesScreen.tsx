@@ -79,7 +79,8 @@ export default function BodyTypeScreen({navigate}: Props) {
             Pick the body type that most closely resembles your shape:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {bodyTypes.map(type => (
                 <Chip

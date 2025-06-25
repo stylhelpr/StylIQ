@@ -65,7 +65,7 @@ export default function MeasurementsScreen({navigate}: Props) {
       padding: 10,
       marginBottom: 15,
       fontSize: 17,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.input2,
     },
   });
 
@@ -218,7 +218,8 @@ export default function MeasurementsScreen({navigate}: Props) {
           </View>
 
           <View style={globalStyles.centeredSection}>
-            <View style={globalStyles.styleContainer1}>
+            <View
+              style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
               <View style={styles.unitRow}>
                 <View style={styles.unitTextContainer}>
                   <Text
@@ -250,7 +251,8 @@ export default function MeasurementsScreen({navigate}: Props) {
               Fill out your body measurements to tailor fit suggestions:
             </Text>
 
-            <View style={globalStyles.styleContainer1}>
+            <View
+              style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
               <Text
                 style={[
                   globalStyles.title,

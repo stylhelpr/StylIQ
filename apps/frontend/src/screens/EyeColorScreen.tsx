@@ -69,7 +69,8 @@ export default function EyeColorScreen({navigate}: Props) {
             Select your natural eye color:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {eyeColors.map(color => (
                 <Chip

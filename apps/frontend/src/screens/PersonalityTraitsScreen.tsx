@@ -86,7 +86,8 @@ export default function PersonalityTraitsScreen({navigate}: Props) {
             Choose traits that reflect how you carry yourself:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {traits.map(trait => (
                 <Chip

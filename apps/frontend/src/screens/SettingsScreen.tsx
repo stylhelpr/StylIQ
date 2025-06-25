@@ -240,7 +240,7 @@ export default function SettingsScreen({navigate}: Props) {
         <View style={globalStyles.centeredSection}>
           <View>
             {/* 🔔 Notifications */}
-            <View style={styles.enableRow}>
+            <View style={[styles.enableRow, globalStyles.cardStyles3]}>
               <Text
                 style={[globalStyles.menuLabel, {color: colors.foreground}]}>
                 Enable Notifications
@@ -262,6 +262,7 @@ export default function SettingsScreen({navigate}: Props) {
               <View
                 style={[
                   globalStyles.menuSection2,
+                  globalStyles.cardStyles3,
                   {backgroundColor: colors.surface},
                 ]}>
                 <AppleTouchFeedback
@@ -280,7 +281,8 @@ export default function SettingsScreen({navigate}: Props) {
             </View>
 
             <View>
-              <View style={globalStyles.menuContainer1}>
+              <View
+                style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
                 {/* Reset App Data */}
                 <AppleTouchFeedback
                   onPress={resetApp}

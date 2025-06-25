@@ -39,7 +39,7 @@ export default function LifestyleScreen({navigate}: Props) {
       borderRadius: 8,
       padding: 10,
       fontSize: 17,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.input2,
       marginBottom: 12,
     },
   });
@@ -110,7 +110,11 @@ export default function LifestyleScreen({navigate}: Props) {
                   .replace(/_/g, ' ')
                   .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
               </Text>
-              <View style={globalStyles.styleContainer1}>
+              <View
+                style={[
+                  globalStyles.styleContainer1,
+                  globalStyles.cardStyles3,
+                ]}>
                 <View style={globalStyles.pillContainer}>
                   {options.map(opt => (
                     <Chip
@@ -128,7 +132,8 @@ export default function LifestyleScreen({navigate}: Props) {
           <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
             Clothing Dislikes
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <TextInput
               placeholder="Ex: I hate turtlenecks and pleats"
               placeholderTextColor={colors.muted}

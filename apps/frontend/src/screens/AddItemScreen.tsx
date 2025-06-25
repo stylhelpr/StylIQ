@@ -90,6 +90,7 @@ export default function AddItemScreen({
       fontSize: 16,
       color: theme.colors.foreground,
       marginBottom: 12,
+      backgroundColor: theme.colors.input2,
     },
     imagePreview: {
       width: '100%',
@@ -110,10 +111,13 @@ export default function AddItemScreen({
     <ScrollView style={styles.screen} keyboardShouldPersistTaps="handled">
       <View style={globalStyles.modalSection3}>
         <View
-          style={{
-            backgroundColor: theme.colors.surface,
-            borderRadius: 25,
-          }}>
+          style={[
+            globalStyles.cardStyles3,
+            {
+              backgroundColor: theme.colors.surface,
+              borderRadius: 25,
+            },
+          ]}>
           <View style={globalStyles.section3}>
             <Text style={globalStyles.sectionTitle}>Select Image</Text>
             <ImagePickerGrid

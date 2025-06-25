@@ -330,7 +330,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     <TouchableOpacity
       onPress={() => setVisibleModal(section)}
       activeOpacity={0.9}
-      style={styles.cardOverlay}>
+      style={[styles.cardOverlay, globalStyles.cardStyles3]}>
       <Image
         source={
           item?.image

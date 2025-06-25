@@ -282,21 +282,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       fontWeight: '400',
       color: '#999',
     },
-    dailyLookCard: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: tokens.borderRadius.md,
-      padding: 16,
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 3,
-    },
     dailyLookText: {
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '400',
-      color: theme.colors.foreground,
-      lineHeight: 20,
+      color: theme.colors.foreground3,
+      lineHeight: 22,
     },
     tryButton: {
       backgroundColor: theme.colors.button1,
@@ -315,7 +305,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       minWidth: 140,
       maxWidth: 185,
       margin: 12,
-      // backgroundColor: 'yellow',
     },
     quickAccessGrid: {
       flexDirection: 'row',
@@ -333,16 +322,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       alignItems: 'center',
     },
     sectionWeather: {
-      borderRadius: tokens.borderRadius.md,
-      backgroundColor: theme.colors.surface,
-      padding: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: 10,
-      elevation: 3,
     },
     weatherCity: {
       fontSize: 16,
@@ -438,13 +420,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
       {/* Video Banner with ambient parallax */}
       <View style={globalStyles.section}>
-        {/* <View style={globalStyles.centeredSection}> */}
         <Animated.View
           style={{
-            position: 'relative',
-            marginBottom: 20,
-            borderRadius: 15,
             overflow: 'hidden',
+            shadowOffset: {width: 0, height: 6},
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 5,
+            borderWidth: 1,
+            borderColor: theme.colors.surfaceBorder,
+            borderRadius: tokens.borderRadius.md,
+            backgroundColor: theme.colors.surface,
             transform: [
               {
                 translateY: scrollY.interpolate({
@@ -454,15 +440,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 }),
               },
             ],
-            shadowColor: '#000',
-            shadowOffset: {width: 0, height: 6},
-            shadowOpacity: interpolatedShadowOpacity,
-            shadowRadius: 12,
-            elevation: 5,
           }}>
           <Video
             source={require('../assets/images/free4.mp4')}
-            style={{width: '100%', height: 200}}
+            style={{
+              width: '100%',
+              height: 200,
+            }}
             muted
             repeat
             resizeMode="cover"
@@ -503,39 +487,44 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </Animated.View>
         </Animated.View>
       </View>
-      {/* </View> */}
 
       {/* Weather Section */}
       <View style={globalStyles.section}>
-        {/* <View style={globalStyles.centeredSection}> */}
         <Text style={globalStyles.sectionTitle}>Weather</Text>
         {weather && (
-          <Animatable.View
-            animation="fadeInUp"
-            duration={600}
-            delay={100}
-            useNativeDriver
-            style={styles.sectionWeather}>
-            <View style={{flex: 1}}>
-              <Text style={styles.weatherCity}>{weather.celsius.name}</Text>
-              <Text style={styles.weatherDesc}>
-                {weather.celsius.weather[0].description}
-              </Text>
-              <Text style={styles.weatherAdvice}>
-                🌤️{' '}
-                {weather.fahrenheit.main.temp < 50
-                  ? 'It’s chilly — layer up.'
-                  : weather.fahrenheit.main.temp > 85
-                  ? 'Hot day — keep it light.'
-                  : 'Perfect weather — dress freely.'}
-              </Text>
-            </View>
-            <View style={styles.weatherTempContainer}>
-              <Text style={styles.weatherTemp}>
-                {Math.round(weather.fahrenheit.main.temp)}° F
-              </Text>
-            </View>
-          </Animatable.View>
+          <View style={globalStyles.cardStyles1}>
+            <Animatable.View
+              animation="fadeInUp"
+              duration={600}
+              delay={100}
+              useNativeDriver
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              {/* style={styles.sectionWeather}> */}
+              <View style={{flex: 1}}>
+                <Text style={styles.weatherCity}>{weather.celsius.name}</Text>
+                <Text style={styles.weatherDesc}>
+                  {weather.celsius.weather[0].description}
+                </Text>
+                <Text style={styles.weatherAdvice}>
+                  🌤️{' '}
+                  {weather.fahrenheit.main.temp < 50
+                    ? 'It’s chilly — layer up.'
+                    : weather.fahrenheit.main.temp > 85
+                    ? 'Hot day — keep it light.'
+                    : 'Perfect weather — dress freely.'}
+                </Text>
+              </View>
+              <View style={styles.weatherTempContainer}>
+                <Text style={styles.weatherTemp}>
+                  {Math.round(weather.fahrenheit.main.temp)}° F
+                </Text>
+              </View>
+            </Animatable.View>
+          </View>
         )}
       </View>
       {/* </View> */}
@@ -570,7 +559,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       )}
 
-      <View style={[globalStyles.section, {marginTop: 16, marginBottom: 32}]}>
+      <View style={[globalStyles.section, {marginTop: 12, marginBottom: 30}]}>
         <View
           style={{
             width: '100%',
@@ -613,7 +602,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             delay={400}
             duration={600}
             useNativeDriver
-            style={styles.dailyLookCard}>
+            style={globalStyles.cardStyles1}>
             <Text style={styles.dailyLookText}>
               Cream knit sweater layered over a sharp-collar shirt. Black
               tailored trousers. Chelsea boots. Effortlessly sharp.
@@ -658,20 +647,16 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <View style={globalStyles.centeredSection}>
         <View style={globalStyles.section}>
           <Text style={globalStyles.sectionTitle}>Quick Access</Text>
-          <View
-            style={[
-              globalStyles.centeredSection,
-              {
-                backgroundColor: theme.colors.surface,
-                borderRadius: tokens.borderRadius.md,
-              },
-            ]}>
+          <View style={[globalStyles.centeredSection]}>
             <View
               style={[
-                styles.quickAccessGrid,
+                globalStyles.cardStyles1,
                 {
                   padding: 10,
                   justifyContent: 'center',
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  width: '100%',
                 },
               ]}>
               {[
@@ -767,7 +752,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
       {/* /// NOTIFICATIONS SECTION /// */}
       <View style={globalStyles.centeredSection}>
-        <View style={[globalStyles.section, {marginTop: 28}]}>
+        <View style={[globalStyles.section, {marginTop: 4}]}>
           {/* <Text style={globalStyles.sectionTitle}>Notifications</Text> */}
           <TouchableOpacity
             onPress={async () => {
@@ -793,9 +778,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 flex: 1,
                 justifyContent: 'center',
                 alignItems: 'center',
-                // backgroundColor: theme.colors.surface,
-                // borderRadius: tokens.borderRadius.md,
-                // paddingVertical: 20,
               }}>
               <View style={[globalStyles.buttonPrimary]}>
                 <Text style={globalStyles.buttonPrimaryText}>

@@ -78,7 +78,8 @@ export default function HairColorScreen({navigate}: Props) {
             Select your current natural or styled hair color:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {hairColors.map(color => (
                 <Chip

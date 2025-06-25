@@ -514,6 +514,7 @@ export default function SavedOutfitsScreen() {
           </View>
         </View>
 
+        {/* CARD BELOW HERE */}
         <ScrollView
           contentContainerStyle={{
             paddingBottom: 100,
@@ -522,7 +523,7 @@ export default function SavedOutfitsScreen() {
           <View
             style={{
               width: '100%',
-              maxWidth: 7200,
+              maxWidth: 400,
               alignSelf: 'center',
             }}>
             {sortedOutfits.length === 0 ? (
@@ -539,6 +540,7 @@ export default function SavedOutfitsScreen() {
                   <View
                     style={[
                       styles.card,
+                      globalStyles.cardStyles2,
                       {backgroundColor: theme.colors.surface},
                     ]}>
                     <View

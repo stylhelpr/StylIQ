@@ -81,7 +81,8 @@ export default function StyleKeywordsScreen({navigate}: Props) {
         </Text>
 
         <View style={globalStyles.centeredSection}>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {options.map(option => (
                 <Chip

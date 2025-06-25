@@ -436,10 +436,15 @@ export default function ProfileScreen({navigate}: Props) {
         <View
           style={{
             alignItems: 'center',
-            backgroundColor: theme.colors.surface,
-            padding: 16,
-            borderWidth: 1,
-            borderRadius: tokens.borderRadius.md,
+            // backgroundColor: theme.colors.surface,
+            // padding: 16,
+            // shadowOffset: {width: 0, height: 6},
+            // shadowOpacity: 0.1,
+            // shadowRadius: 12,
+            // elevation: 5,
+            // borderWidth: 1,
+            // borderColor: theme.colors.surfaceBorder,
+            // borderRadius: tokens.borderRadius.md,
           }}>
           <AppleTouchFeedback
             style={[globalStyles.buttonPrimary, {width: 280}]}

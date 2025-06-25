@@ -45,7 +45,7 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
       padding: 10,
       fontSize: 16,
       marginBottom: 12,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.input2,
     },
   });
 
@@ -109,7 +109,8 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
             style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
             Your Monthly Style Budget:
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <TextInput
               placeholder="$ Amount"
               placeholderTextColor={colors.muted}
@@ -130,7 +131,8 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
             style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
             Your Favorite Brands:
           </Text>
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {allBrands.map(brand => (
                 <Chip

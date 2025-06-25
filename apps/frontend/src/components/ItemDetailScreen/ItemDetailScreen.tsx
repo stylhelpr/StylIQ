@@ -114,10 +114,6 @@ export default function ItemDetailScreen({route, navigation}: Props) {
   };
 
   const styles = StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
     image: {
       width: '100%',
       height: 320,
@@ -131,13 +127,14 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       marginBottom: 14,
       fontSize: 15,
       color: theme.colors.foreground,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.input2,
       borderWidth: 1,
       borderColor: theme.colors.inputBorder,
     },
     buttonRow: {
       flexDirection: 'row',
       justifyContent: 'space-evenly',
+      marginTop: 10,
     },
     cancelButton: {
       backgroundColor: theme.colors.surface2,
@@ -149,9 +146,14 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
   return (
     <ScrollView
-      style={[styles.screen, globalStyles.container, globalStyles.section]}
+      style={[globalStyles.screen, globalStyles.section]}
       showsVerticalScrollIndicator={false}>
-      <View style={[globalStyles.modalSection, {paddingVertical: 20}]}>
+      <View
+        style={[
+          globalStyles.modalSection,
+          globalStyles.cardStyles3,
+          {paddingVertical: 20},
+        ]}>
         {item?.image_url && (
           <Image source={{uri: item.image_url}} style={styles.image} />
         )}

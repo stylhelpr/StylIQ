@@ -78,7 +78,8 @@ export default function SkinToneScreen({navigate}: Props) {
             Select the tone that best matches your natural skin:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {skinTones.map(tone => (
                 <Chip

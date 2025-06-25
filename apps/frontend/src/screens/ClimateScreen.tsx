@@ -78,7 +78,8 @@ export default function ClimateScreen({navigate}: Props) {
               What type of climate do you live in?
             </Text>
 
-            <View style={globalStyles.styleContainer1}>
+            <View
+              style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
               <View style={globalStyles.pillContainer}>
                 {climateOptions.map(option => (
                   <Chip

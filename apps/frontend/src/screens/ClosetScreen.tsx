@@ -213,7 +213,7 @@ export default function ClosetScreen({navigate}: Props) {
     },
     button: {
       paddingVertical: 12,
-      borderRadius: tokens.borderRadius.md,
+      borderRadius: tokens.borderRadius.sm,
       alignItems: 'center',
     },
     buttonText: {
@@ -229,7 +229,7 @@ export default function ClosetScreen({navigate}: Props) {
     iconButton: {
       paddingHorizontal: 12,
       paddingVertical: 7,
-      borderRadius: tokens.borderRadius.md,
+      borderRadius: tokens.borderRadius.sm,
       backgroundColor: theme.colors.button1,
       elevation: 2,
     },

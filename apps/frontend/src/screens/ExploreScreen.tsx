@@ -136,6 +136,12 @@ export default function ExploreScreen() {
     AISuggestcard: {
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
+      shadowOffset: {width: 0, height: 6},
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
     },
     suggestedImage: {
       width: '100%',

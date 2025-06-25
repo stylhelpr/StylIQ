@@ -62,7 +62,7 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
       padding: 10,
       marginBottom: 15,
       fontSize: 17,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.input2,
     },
   });
 
@@ -109,7 +109,8 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
             Select what best describes your shopping behavior:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {habits.map(habit => (
                 <Chip
@@ -127,7 +128,8 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
             Additional Notes:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <TextInput
               placeholder="e.g., I like to splurge on jackets or shop seasonally."
               placeholderTextColor={colors.surface}

@@ -80,7 +80,8 @@ export default function ProportionsScreen({navigate}: Props) {
             Describe your proportions for fit-accurate styling:
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {proportions.map(prop => (
                 <Chip

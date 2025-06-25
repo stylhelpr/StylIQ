@@ -75,7 +75,8 @@ export default function UndertoneScreen({navigate}: Props) {
             What’s your skin’s undertone?
           </Text>
 
-          <View style={globalStyles.styleContainer1}>
+          <View
+            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
             <View style={globalStyles.pillContainer}>
               {options.map(option => (
                 <Chip
