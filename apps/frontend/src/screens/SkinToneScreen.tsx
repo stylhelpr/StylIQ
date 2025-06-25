@@ -72,20 +72,23 @@ export default function SkinToneScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Select the tone that best matches your natural skin:
-        </Text>
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Select the tone that best matches your natural skin:
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {skinTones.map(tone => (
-              <Chip
-                key={tone}
-                label={tone}
-                selected={selected === tone}
-                onPress={() => handleSelect(tone)}
-              />
-            ))}
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {skinTones.map(tone => (
+                <Chip
+                  key={tone}
+                  label={tone}
+                  selected={selected === tone}
+                  onPress={() => handleSelect(tone)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

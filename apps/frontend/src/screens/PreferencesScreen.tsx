@@ -80,19 +80,23 @@ export default function PreferencesScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Select the styles you’re most drawn to:
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {preferences.map(pref => (
-              <Chip
-                key={pref}
-                label={pref}
-                selected={selectedPrefs.includes(pref)}
-                onPress={() => togglePref(pref)}
-              />
-            ))}
+
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Select the styles you’re most drawn to:
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {preferences.map(pref => (
+                <Chip
+                  key={pref}
+                  label={pref}
+                  selected={selectedPrefs.includes(pref)}
+                  onPress={() => togglePref(pref)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

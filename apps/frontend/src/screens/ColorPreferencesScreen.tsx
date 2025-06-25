@@ -80,20 +80,23 @@ export default function ColorPreferencesScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Choose colors you like wearing:
-        </Text>
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Choose colors you like wearing:
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {COLORS.map(color => (
-              <Chip
-                key={color}
-                label={color}
-                selected={selected.includes(color)}
-                onPress={() => toggleColor(color)}
-              />
-            ))}
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {COLORS.map(color => (
+                <Chip
+                  key={color}
+                  label={color}
+                  selected={selected.includes(color)}
+                  onPress={() => toggleColor(color)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

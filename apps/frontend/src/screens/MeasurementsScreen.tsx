@@ -216,122 +216,125 @@ export default function MeasurementsScreen({navigate}: Props) {
             />
             <Text style={globalStyles.backText}>Back</Text>
           </View>
-          <View style={globalStyles.styleContainer1}>
-            <View style={styles.unitRow}>
-              <View style={styles.unitTextContainer}>
-                <Text
-                  style={[
-                    globalStyles.sectionTitle,
-                    {color: colors.foreground},
-                  ]}>
-                  Units: {unitPreference === 'imperial' ? 'in/lbs' : 'cm/kg'}
-                </Text>
-              </View>
-              <View style={styles.switchContainer}>
-                <AppleTouchFeedback
-                  onPress={toggleUnits}
-                  hapticStyle="impactLight">
-                  <Switch
-                    value={unitPreference === 'metric'}
-                    onValueChange={toggleUnits}
-                    pointerEvents="none"
-                  />
-                </AppleTouchFeedback>
+
+          <View style={globalStyles.centeredSection}>
+            <View style={globalStyles.styleContainer1}>
+              <View style={styles.unitRow}>
+                <View style={styles.unitTextContainer}>
+                  <Text
+                    style={[
+                      globalStyles.sectionTitle,
+                      {color: colors.foreground},
+                    ]}>
+                    Units: {unitPreference === 'imperial' ? 'in/lbs' : 'cm/kg'}
+                  </Text>
+                </View>
+                <View style={styles.switchContainer}>
+                  <AppleTouchFeedback
+                    onPress={toggleUnits}
+                    hapticStyle="impactLight">
+                    <Switch
+                      value={unitPreference === 'metric'}
+                      onValueChange={toggleUnits}
+                      pointerEvents="none"
+                    />
+                  </AppleTouchFeedback>
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        <View style={globalStyles.section}>
-          <Text
-            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-            Fill out your body measurements to tailor fit suggestions:
-          </Text>
-
-          <View style={globalStyles.styleContainer1}>
+          <View style={globalStyles.section5}>
             <Text
-              style={[
-                globalStyles.title,
-                {color: colors.foreground, marginBottom: 10},
-              ]}>
-              Height {unitPreference === 'imperial' ? '(ft/in)' : '(cm)'}
+              style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+              Fill out your body measurements to tailor fit suggestions:
             </Text>
 
-            {unitPreference === 'imperial' ? (
-              <View style={{flexDirection: 'row'}}>
-                <TextInput
-                  placeholder="ft"
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.input,
-                    {
-                      flex: 1,
-                      borderColor: theme.colors.inputBorder,
-                      color: colors.foreground,
-                    },
-                  ]}
-                  keyboardType="number-pad"
-                  value={feet}
-                  onChangeText={handleFeetChange}
-                />
-                <TextInput
-                  placeholder="in"
-                  placeholderTextColor={colors.muted}
-                  style={[
-                    styles.input,
-                    {
-                      flex: 1,
-                      borderColor: theme.colors.inputBorder,
-                      color: colors.foreground,
-                    },
-                  ]}
-                  keyboardType="number-pad"
-                  value={inches}
-                  onChangeText={handleInchesChange}
-                />
-              </View>
-            ) : (
-              <TextInput
-                placeholder="cm"
-                placeholderTextColor={colors.muted}
+            <View style={globalStyles.styleContainer1}>
+              <Text
                 style={[
-                  styles.input,
-                  {
-                    borderColor: theme.colors.inputBorder,
-                    color: colors.foreground,
-                  },
-                ]}
-                keyboardType="number-pad"
-                value={centimeters}
-                onChangeText={handleCentimetersChange}
-              />
-            )}
+                  globalStyles.title,
+                  {color: colors.foreground, marginBottom: 10},
+                ]}>
+                Height {unitPreference === 'imperial' ? '(ft/in)' : '(cm)'}
+              </Text>
 
-            {Object.keys(fieldMap).map(label => (
-              <TextInput
-                key={label}
-                placeholder={`${label} ${
-                  label === 'Shoe Size'
-                    ? ''
-                    : unitPreference === 'metric'
-                    ? '(cm)'
-                    : '(in)'
-                }`}
-                placeholderTextColor={colors.muted}
-                style={[
-                  styles.input,
-                  {
-                    borderColor: theme.colors.inputBorder,
-                    color: colors.foreground,
-                  },
-                ]}
-                keyboardType={
-                  label === 'Shoe Size' ? 'decimal-pad' : 'number-pad'
-                }
-                value={values[label] || ''}
-                onChangeText={val => handleChange(label, val)}
-              />
-            ))}
+              {unitPreference === 'imperial' ? (
+                <View style={{flexDirection: 'row'}}>
+                  <TextInput
+                    placeholder="ft"
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.input,
+                      {
+                        flex: 1,
+                        borderColor: theme.colors.inputBorder,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    keyboardType="number-pad"
+                    value={feet}
+                    onChangeText={handleFeetChange}
+                  />
+                  <TextInput
+                    placeholder="in"
+                    placeholderTextColor={colors.muted}
+                    style={[
+                      styles.input,
+                      {
+                        flex: 1,
+                        borderColor: theme.colors.inputBorder,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    keyboardType="number-pad"
+                    value={inches}
+                    onChangeText={handleInchesChange}
+                  />
+                </View>
+              ) : (
+                <TextInput
+                  placeholder="cm"
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: theme.colors.inputBorder,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  keyboardType="number-pad"
+                  value={centimeters}
+                  onChangeText={handleCentimetersChange}
+                />
+              )}
+
+              {Object.keys(fieldMap).map(label => (
+                <TextInput
+                  key={label}
+                  placeholder={`${label} ${
+                    label === 'Shoe Size'
+                      ? ''
+                      : unitPreference === 'metric'
+                      ? '(cm)'
+                      : '(in)'
+                  }`}
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: theme.colors.inputBorder,
+                      color: colors.foreground,
+                    },
+                  ]}
+                  keyboardType={
+                    label === 'Shoe Size' ? 'decimal-pad' : 'number-pad'
+                  }
+                  value={values[label] || ''}
+                  onChangeText={val => handleChange(label, val)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

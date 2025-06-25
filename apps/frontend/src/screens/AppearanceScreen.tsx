@@ -82,27 +82,30 @@ export default function AppearanceScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        {Object.entries(fields).map(([field, options]) => (
-          <View key={field}>
-            <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
-              {field
-                .replace(/_/g, ' ')
-                .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
-            </Text>
-            <View style={globalStyles.styleContainer1}>
-              <View style={globalStyles.pillContainer}>
-                {options.map(option => (
-                  <Chip
-                    key={option}
-                    label={option}
-                    selected={selectedValues[field] === option}
-                    onPress={() => handleSelect(field, option)}
-                  />
-                ))}
+        <View style={globalStyles.centeredSection}>
+          {Object.entries(fields).map(([field, options]) => (
+            <View key={field}>
+              <Text
+                style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
+                {field
+                  .replace(/_/g, ' ')
+                  .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
+              </Text>
+              <View style={globalStyles.styleContainer1}>
+                <View style={globalStyles.pillContainer}>
+                  {options.map(option => (
+                    <Chip
+                      key={option}
+                      label={option}
+                      selected={selectedValues[field] === option}
+                      onPress={() => handleSelect(field, option)}
+                    />
+                  ))}
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          ))}
+        </View>
       </ScrollView>
     </View>
   );

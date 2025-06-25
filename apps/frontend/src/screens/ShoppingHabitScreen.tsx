@@ -102,39 +102,47 @@ export default function ShoppingHabitsScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Select what best describes your shopping behavior:
-        </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {habits.map(habit => (
-              <Chip
-                key={habit}
-                label={habit}
-                selected={selected.includes(habit)}
-                onPress={() => toggleHabit(habit)}
-              />
-            ))}
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Select what best describes your shopping behavior:
+          </Text>
+
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {habits.map(habit => (
+                <Chip
+                  key={habit}
+                  label={habit}
+                  selected={selected.includes(habit)}
+                  onPress={() => toggleHabit(habit)}
+                />
+              ))}
+            </View>
           </View>
-        </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Additional Notes:
-        </Text>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Additional Notes:
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <TextInput
-            placeholder="e.g., I like to splurge on jackets or shop seasonally."
-            placeholderTextColor={colors.surface}
-            value={notes}
-            onChangeText={updateNotes}
-            multiline
-            style={[
-              styles.input,
-              {borderColor: theme.colors.inputBorder, color: colors.foreground},
-            ]}
-          />
+          <View style={globalStyles.styleContainer1}>
+            <TextInput
+              placeholder="e.g., I like to splurge on jackets or shop seasonally."
+              placeholderTextColor={colors.surface}
+              value={notes}
+              onChangeText={updateNotes}
+              multiline
+              style={[
+                styles.input,
+                {
+                  borderColor: theme.colors.inputBorder,
+                  color: colors.foreground,
+                },
+              ]}
+            />
+          </View>
         </View>
       </ScrollView>
     </View>

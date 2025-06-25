@@ -159,13 +159,16 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 25,
+      padding: 12,
     },
     itemWrapper: {
       position: 'relative',
     },
     itemImage: {
-      width: 92,
-      height: 92,
+      width: 86,
+      height: 86,
       margin: 4,
       borderRadius: tokens.borderRadius.md,
     },
@@ -263,10 +266,21 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       <View style={globalStyles.sectionTitle}>
         <Text style={globalStyles.header}>Build Your Outfit</Text>
       </View>
-      <View style={[globalStyles.modalSection]}>
+      <View style={[globalStyles.modalSection2]}>
         <View style={[globalStyles.section, {paddingTop: 20}]}>
           <Text style={globalStyles.sectionTitle}>Selected Items:</Text>
-          <View style={styles.selectedRow}>
+          <View
+            style={[
+              styles.selectedRow,
+              {
+                backgroundColor: theme.colors.surface,
+                borderRadius: tokens.borderRadius.md,
+                paddingHorizontal: 8,
+                paddingTop: 8,
+                paddingBottom: 2,
+                marginBottom: 8,
+              },
+            ]}>
             {selectedItems.map(item => (
               <Image
                 key={item.id}

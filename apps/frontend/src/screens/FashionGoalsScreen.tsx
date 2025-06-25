@@ -81,54 +81,55 @@ export default function FashionGoalsScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={globalStyles.sectionTitle4}>
-          What are your style goals?
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <TextInput
-            style={[styles.input, {borderColor: theme.colors.inputBorder}]}
-            value={goals}
-            onChangeText={text => handleSet('goals', text)}
-            placeholder="E.g., Upgrade wardrobe, try new looks"
-            placeholderTextColor={colors.muted}
-          />
-        </View>
-      </View>
 
-      <View style={globalStyles.section4}>
-        <Text style={globalStyles.sectionTitle4}>
-          How confident do you feel in your style?
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {['Very confident', 'Somewhat', 'Need help'].map(option => (
-              <Chip
-                key={option}
-                label={option}
-                selected={confidence === option}
-                onPress={() => handleSet('fashion_confidence', option)}
-              />
-            ))}
+        <View style={globalStyles.centeredSection}>
+          <Text style={globalStyles.sectionTitle4}>
+            What are your style goals?
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <TextInput
+              style={[styles.input, {borderColor: theme.colors.inputBorder}]}
+              value={goals}
+              onChangeText={text => handleSet('goals', text)}
+              placeholder="E.g., Upgrade wardrobe, try new looks"
+              placeholderTextColor={colors.muted}
+            />
           </View>
-        </View>
-      </View>
 
-      <View style={globalStyles.section4}>
-        <Text style={globalStyles.sectionTitle4}>
-          Do you prefer bold or subtle looks?
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {['Bold standout pieces', 'Neutral and subtle', 'Mix of both'].map(
-              option => (
+          <Text style={globalStyles.sectionTitle4}>
+            How confident do you feel in your style?
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {['Very confident', 'Somewhat', 'Need help'].map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={confidence === option}
+                  onPress={() => handleSet('fashion_confidence', option)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <Text style={globalStyles.sectionTitle4}>
+            Do you prefer bold or subtle looks?
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {[
+                'Bold standout pieces',
+                'Neutral and subtle',
+                'Mix of both',
+              ].map(option => (
                 <Chip
                   key={option}
                   label={option}
                   selected={boldness === option}
                   onPress={() => handleSet('fashion_boldness', option)}
                 />
-              ),
-            )}
+              ))}
+            </View>
           </View>
         </View>
       </View>

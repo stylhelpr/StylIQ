@@ -26,7 +26,6 @@ const VoiceControlComponent: React.FC<Props> = ({onPromptResult}) => {
   const [isRecording, setIsRecording] = useState(false);
 
   const styles = StyleSheet.create({
-    container: {},
     chatContainer: {
       flex: 1,
       justifyContent: 'center',

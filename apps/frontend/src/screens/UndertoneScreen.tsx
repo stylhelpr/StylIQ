@@ -69,20 +69,23 @@ export default function UndertoneScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          What’s your skin’s undertone?
-        </Text>
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            What’s your skin’s undertone?
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {options.map(option => (
-              <Chip
-                key={option}
-                label={option}
-                selected={selected === option}
-                onPress={() => handleSelect(option)}
-              />
-            ))}
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {options.map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={selected === option}
+                  onPress={() => handleSelect(option)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

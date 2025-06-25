@@ -16,22 +16,34 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     container: {
       paddingTop: 20,
-      paddingBottom: 60,
+      // paddingBottom: 60,
       width: '100%',
-      // maxWidth: 520,
       alignSelf: 'center',
       flexGrow: 1,
     },
     centeredSection: {
       width: '100%',
-      maxWidth: 700,
+      maxWidth: 720,
       alignSelf: 'center',
     },
     modalSection: {
       width: '100%',
       backgroundColor: theme.colors.surface,
       paddingHorizontal: 20,
-      maxWidth: 520,
+      maxWidth: 720,
+      alignSelf: 'center',
+      borderRadius: 25,
+    },
+    modalSection2: {
+      width: '100%',
+      maxWidth: 720,
+      alignSelf: 'center',
+      borderRadius: 25,
+    },
+    modalSection3: {
+      width: '100%',
+      paddingHorizontal: 20,
+      maxWidth: 720,
       alignSelf: 'center',
       borderRadius: 25,
     },
@@ -49,6 +61,13 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     section4: {
       paddingHorizontal: responsivePadding,
+    },
+    section5: {
+      width: '100%',
+      // paddingHorizontal: 20,
+      maxWidth: 720,
+      alignSelf: 'center',
+      borderRadius: 25,
     },
     sectionScroll: {
       marginBottom: 26,

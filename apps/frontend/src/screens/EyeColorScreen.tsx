@@ -62,20 +62,24 @@ export default function EyeColorScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Select your natural eye color:
-        </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {eyeColors.map(color => (
-              <Chip
-                key={color}
-                label={color}
-                selected={selected === color}
-                onPress={() => handleSelect(color)}
-              />
-            ))}
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Select your natural eye color:
+          </Text>
+
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {eyeColors.map(color => (
+                <Chip
+                  key={color}
+                  label={color}
+                  selected={selected === color}
+                  onPress={() => handleSelect(color)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

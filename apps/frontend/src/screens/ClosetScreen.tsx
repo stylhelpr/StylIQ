@@ -282,10 +282,12 @@ export default function ClosetScreen({navigate}: Props) {
       elevation: 6,
     },
     modalContent: {
+      padding: 24,
+      borderRadius: 12,
       backgroundColor: theme.colors.surface,
-      padding: 20,
-      borderRadius: tokens.borderRadius.md,
-      margin: 40,
+      width: '90%',
+      maxWidth: 720,
+      alignSelf: 'center',
     },
     modalOption: {
       paddingVertical: 12,
@@ -485,11 +487,10 @@ export default function ClosetScreen({navigate}: Props) {
             style={{
               flex: 1,
               justifyContent: 'center',
-              alignItems: 'center',
               backgroundColor: 'rgba(0,0,0,0.3)',
             }}>
             <TouchableWithoutFeedback>
-              <View style={[styles.modalContent, {width: 400}]}>
+              <View style={[styles.modalContent]}>
                 {categories.map(cat => (
                   <TouchableOpacity
                     key={cat}
@@ -512,11 +513,10 @@ export default function ClosetScreen({navigate}: Props) {
             style={{
               flex: 1,
               justifyContent: 'center',
-              alignItems: 'center',
               backgroundColor: 'rgba(0,0,0,0.3)',
             }}>
             <TouchableWithoutFeedback>
-              <View style={[styles.modalContent, {width: 400}]}>
+              <View style={[styles.modalContent]}>
                 {sortOptions.map(opt => (
                   <TouchableOpacity
                     key={opt.value}

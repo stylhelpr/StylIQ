@@ -103,39 +103,44 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Your Monthly Style Budget:
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <TextInput
-            placeholder="$ Amount"
-            placeholderTextColor={colors.muted}
-            style={[
-              styles.input,
-              {
-                borderColor: theme.colors.inputBorder,
-                color: colors.foreground,
-              },
-            ]}
-            keyboardType="numeric"
-            value={budgetInput}
-            onChangeText={handleBudgetChange}
-          />
-        </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Your Favorite Brands:
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {allBrands.map(brand => (
-              <Chip
-                key={brand}
-                label={brand}
-                selected={selectedBrands.includes(brand)}
-                onPress={selected => toggleBrand(brand, selected)}
-              />
-            ))}
+        <View style={globalStyles.section5}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Your Monthly Style Budget:
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <TextInput
+              placeholder="$ Amount"
+              placeholderTextColor={colors.muted}
+              style={[
+                styles.input,
+                {
+                  borderColor: theme.colors.inputBorder,
+                  color: colors.foreground,
+                },
+              ]}
+              keyboardType="numeric"
+              value={budgetInput}
+              onChangeText={handleBudgetChange}
+            />
+          </View>
+
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Your Favorite Brands:
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {allBrands.map(brand => (
+                <Chip
+                  key={brand}
+                  label={brand}
+                  selected={selectedBrands.includes(brand)}
+                  onPress={selected => toggleBrand(brand, selected)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

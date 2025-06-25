@@ -73,20 +73,23 @@ export default function BodyTypeScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Pick the body type that most closely resembles your shape:
-        </Text>
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Pick the body type that most closely resembles your shape:
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {bodyTypes.map(type => (
-              <Chip
-                key={type}
-                label={type}
-                selected={selected === type}
-                onPress={() => handleSelect(type)}
-              />
-            ))}
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {bodyTypes.map(type => (
+                <Chip
+                  key={type}
+                  label={type}
+                  selected={selected === type}
+                  onPress={() => handleSelect(type)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

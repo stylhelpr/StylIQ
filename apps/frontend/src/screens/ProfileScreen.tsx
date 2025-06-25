@@ -18,8 +18,10 @@ import {useStyleProfile} from '../hooks/useStyleProfile';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
-
 import type {Screen} from '../navigation/types';
+import {Dimensions} from 'react-native';
+
+const screenWidth = Dimensions.get('window').width;
 
 type Props = {
   navigate: (screen: string) => void;
@@ -270,11 +272,12 @@ export default function ProfileScreen({navigate}: Props) {
     },
     statsRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: screenWidth >= 768 ? 'flex-start' : 'space-between',
       flex: 1,
     },
     statBox: {
       alignItems: 'center',
+      marginRight: screenWidth >= 768 ? 32 : 0,
     },
     statNumber: {
       fontWeight: 'bold',
@@ -430,7 +433,14 @@ export default function ProfileScreen({navigate}: Props) {
       <View style={globalStyles.section}>
         <Text style={globalStyles.sectionTitle}>Style Profile</Text>
 
-        <View style={[globalStyles.centeredSection, {alignItems: 'center'}]}>
+        <View
+          style={{
+            alignItems: 'center',
+            backgroundColor: theme.colors.surface,
+            padding: 16,
+            borderWidth: 1,
+            borderRadius: tokens.borderRadius.md,
+          }}>
           <AppleTouchFeedback
             style={[globalStyles.buttonPrimary, {width: 280}]}
             onPress={() => navigate('StyleProfileScreen')}

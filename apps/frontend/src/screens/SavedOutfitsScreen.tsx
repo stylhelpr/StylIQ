@@ -461,479 +461,484 @@ export default function SavedOutfitsScreen() {
 
       {/* 🔀 Sort/Filter Bar */}
       <View style={globalStyles.section}>
-        <Text style={[globalStyles.label, {marginBottom: 12}]}>Sort by:</Text>
+        <View style={globalStyles.centeredSection}>
+          <Text style={[globalStyles.label, {marginBottom: 12}]}>Sort by:</Text>
 
-        <View
-          style={{
-            justifyContent: 'center',
+          <View
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingLeft: 5,
+              marginBottom: 20,
+            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                paddingVertical: 2,
+              }}>
+              {(
+                [
+                  {key: 'newest', label: 'Newest'},
+                  {key: 'favorites', label: 'Favorites'},
+                  {key: 'planned', label: 'Planned'},
+                  {key: 'stars', label: 'Rating'},
+                ] as const
+              ).map(({key, label}, idx) => (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => setSortType(key)}
+                  style={[
+                    globalStyles.pillFixedWidth2,
+                    {
+                      backgroundColor:
+                        sortType === key
+                          ? theme.colors.primary
+                          : theme.colors.surface,
+                      marginRight: 7,
+                    },
+                  ]}>
+                  <Text
+                    style={[
+                      globalStyles.pillTextFixedWidth2,
+                      {
+                        color:
+                          sortType === key ? 'black' : theme.colors.foreground2,
+                      },
+                    ]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={{
+            paddingBottom: 100,
             alignItems: 'center',
-            paddingLeft: 5,
           }}>
           <View
             style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              paddingVertical: 2,
+              width: '100%',
+              maxWidth: 7200,
+              alignSelf: 'center',
             }}>
-            {(
-              [
-                {key: 'newest', label: 'Newest'},
-                {key: 'favorites', label: 'Favorites'},
-                {key: 'planned', label: 'Planned'},
-                {key: 'stars', label: 'Rating'},
-              ] as const
-            ).map(({key, label}, idx) => (
-              <TouchableOpacity
-                key={key}
-                onPress={() => setSortType(key)}
-                style={[
-                  globalStyles.pillFixedWidth2,
-                  {
-                    backgroundColor:
-                      sortType === key
-                        ? theme.colors.primary
-                        : theme.colors.surface,
-                    marginRight: 7,
-                  },
-                ]}>
-                <Text
-                  style={[
-                    globalStyles.pillTextFixedWidth2,
-                    {
-                      color:
-                        sortType === key ? 'black' : theme.colors.foreground2,
-                    },
-                  ]}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: 100,
-          alignItems: 'center',
-        }}
-        style={[globalStyles.section]}>
-        <View
-          style={{
-            width: '100%',
-            maxWidth: 400,
-            alignSelf: 'center',
-          }}>
-          {sortedOutfits.length === 0 ? (
-            <Text style={{color: theme.colors.foreground, textAlign: 'center'}}>
-              No saved outfits yet.
-            </Text>
-          ) : (
-            sortedOutfits.map(outfit => (
-              <ViewShot
-                key={outfit.id + '_shot'}
-                ref={ref => (viewRefs.current[outfit.id] = ref)}
-                options={{format: 'png', quality: 0.9}}>
-                <View
-                  style={[
-                    styles.card,
-                    {backgroundColor: theme.colors.surface},
-                  ]}>
+            {sortedOutfits.length === 0 ? (
+              <Text
+                style={{color: theme.colors.foreground, textAlign: 'center'}}>
+                No saved outfits yet.
+              </Text>
+            ) : (
+              sortedOutfits.map(outfit => (
+                <ViewShot
+                  key={outfit.id + '_shot'}
+                  ref={ref => (viewRefs.current[outfit.id] = ref)}
+                  options={{format: 'png', quality: 0.9}}>
                   <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setEditingOutfitId(outfit.id);
-                        setEditedName(outfit.name || '');
-                      }}
-                      style={{flex: 1, marginRight: 12}}>
-                      <Text style={globalStyles.titleBold}>
-                        {outfit.name?.trim() || 'Unnamed Outfit'}
-                      </Text>
-                      {(outfit.createdAt || outfit.plannedDate) && (
-                        <View style={{marginTop: 4}}>
-                          {outfit.plannedDate && (
-                            <Text style={styles.timestamp}>
-                              Planned for:{' '}
-                              {new Date(outfit.plannedDate).toLocaleDateString(
-                                undefined,
-                                {
+                    style={[
+                      styles.card,
+                      {backgroundColor: theme.colors.surface},
+                    ]}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingOutfitId(outfit.id);
+                          setEditedName(outfit.name || '');
+                        }}
+                        style={{flex: 1, marginRight: 12}}>
+                        <Text style={globalStyles.titleBold}>
+                          {outfit.name?.trim() || 'Unnamed Outfit'}
+                        </Text>
+                        {(outfit.createdAt || outfit.plannedDate) && (
+                          <View style={{marginTop: 4}}>
+                            {outfit.plannedDate && (
+                              <Text style={styles.timestamp}>
+                                Planned for:{' '}
+                                {new Date(
+                                  outfit.plannedDate,
+                                ).toLocaleDateString(undefined, {
                                   month: 'short',
                                   day: 'numeric',
                                   year: 'numeric',
-                                },
-                              )}
-                            </Text>
-                          )}
-                          {outfit.createdAt && (
-                            <Text style={styles.timestamp}>
-                              {`Saved on ${new Date(
-                                outfit.createdAt,
-                              ).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}`}
-                            </Text>
-                          )}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          toggleFavorite(
-                            outfit.id,
-                            (outfit as any).type === 'custom'
-                              ? 'custom'
-                              : 'suggestion',
-                            setCombinedOutfits,
-                          )
-                        }>
-                        <MaterialIcons
-                          name={
-                            isFavorited(outfit.id, outfit.type)
-                              ? 'favorite'
-                              : 'favorite'
-                          }
-                          size={24}
-                          color={
-                            isFavorited(outfit.id, outfit.type)
-                              ? 'red'
-                              : theme.colors.foreground
-                          }
-                        />
+                                })}
+                              </Text>
+                            )}
+                            {outfit.createdAt && (
+                              <Text style={styles.timestamp}>
+                                {`Saved on ${new Date(
+                                  outfit.createdAt,
+                                ).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}`}
+                              </Text>
+                            )}
+                          </View>
+                        )}
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setPendingDeleteId(outfit.id);
-                          setShowDeleteConfirm(true);
-                        }}
-                        style={{marginLeft: 10}}>
-                        <MaterialIcons
-                          name="delete"
-                          size={24}
-                          color={theme.colors.foreground}
-                        />
-                      </TouchableOpacity>
+                      <View
+                        style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            toggleFavorite(
+                              outfit.id,
+                              (outfit as any).type === 'custom'
+                                ? 'custom'
+                                : 'suggestion',
+                              setCombinedOutfits,
+                            )
+                          }>
+                          <MaterialIcons
+                            name={
+                              isFavorited(outfit.id, outfit.type)
+                                ? 'favorite'
+                                : 'favorite'
+                            }
+                            size={24}
+                            color={
+                              isFavorited(outfit.id, outfit.type)
+                                ? 'red'
+                                : theme.colors.foreground
+                            }
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setPendingDeleteId(outfit.id);
+                            setShowDeleteConfirm(true);
+                          }}
+                          style={{marginLeft: 10}}>
+                          <MaterialIcons
+                            name="delete"
+                            size={24}
+                            color={theme.colors.foreground}
+                          />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
 
-                  <View style={styles.imageRow}>
-                    {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
-                      i?.image ? (
-                        <Image
-                          key={i.id}
-                          source={{uri: i.image}}
-                          style={[globalStyles.image1, {marginRight: 12}]}
-                        />
-                      ) : null,
+                    <View style={styles.imageRow}>
+                      {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                        i?.image ? (
+                          <Image
+                            key={i.id}
+                            source={{uri: i.image}}
+                            style={[globalStyles.image1, {marginRight: 12}]}
+                          />
+                        ) : null,
+                      )}
+                    </View>
+                    {outfit.notes?.trim() && (
+                      <Text style={styles.notes}>“{outfit.notes.trim()}”</Text>
                     )}
-                  </View>
-                  {outfit.notes?.trim() && (
-                    <Text style={styles.notes}>“{outfit.notes.trim()}”</Text>
-                  )}
 
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      marginTop: 10,
-                    }}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPlanningOutfitId(outfit.id);
-                        setShowDatePicker(true);
-                      }}
-                      style={{marginRight: 10}}>
-                      <Text
-                        style={{
-                          color: theme.colors.primary,
-                          fontWeight: '600',
-                          fontSize: 13,
-                        }}>
-                        📅 Plan This Outfit
-                      </Text>
-                    </TouchableOpacity>
-
-                    {outfit.plannedDate && (
-                      <TouchableOpacity
-                        onPress={() => cancelPlannedOutfit(outfit.id)}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingRight: 12,
-                        }}>
-                        <MaterialIcons name="close" size={26} color="red" />
-                        <Text
-                          style={{
-                            color: theme.colors.primary,
-                            fontWeight: '600',
-                            fontSize: 14,
-                            marginLeft: 4,
-                          }}>
-                          Cancel Plan
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {(outfit.tags || []).length > 0 && (
                     <View
                       style={{
                         flexDirection: 'row',
                         flexWrap: 'wrap',
-                        marginTop: 8,
+                        alignItems: 'center',
+                        marginTop: 10,
                       }}>
-                      {outfit.tags?.map(tag => (
-                        <View
-                          key={tag}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setPlanningOutfitId(outfit.id);
+                          setShowDatePicker(true);
+                        }}
+                        style={{marginRight: 10}}>
+                        <Text
                           style={{
-                            paddingHorizontal: 8,
-                            paddingVertical: 4,
-                            backgroundColor: theme.colors.surface,
-                            borderRadius: 16,
-                            marginRight: 6,
-                            marginBottom: 4,
+                            color: theme.colors.primary,
+                            fontWeight: '600',
+                            fontSize: 13,
                           }}>
+                          📅 Plan This Outfit
+                        </Text>
+                      </TouchableOpacity>
+
+                      {outfit.plannedDate && (
+                        <TouchableOpacity
+                          onPress={() => cancelPlannedOutfit(outfit.id)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingRight: 12,
+                          }}>
+                          <MaterialIcons name="close" size={26} color="red" />
                           <Text
                             style={{
-                              fontSize: 12,
-                              color: theme.colors.foreground,
+                              color: theme.colors.primary,
+                              fontWeight: '600',
+                              fontSize: 14,
+                              marginLeft: 4,
                             }}>
-                            #{tag}
+                            Cancel Plan
                           </Text>
-                        </View>
-                      ))}
+                        </TouchableOpacity>
+                      )}
                     </View>
-                  )}
-                </View>
-              </ViewShot>
-            ))
-          )}
-        </View>
-      </ScrollView>
 
-      {/* 📝 Edit Name Modal */}
-      {editingOutfitId && (
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={{color: theme.colors.foreground, fontWeight: '600'}}>
-              Edit Outfit Name
-            </Text>
-            <TextInput
-              value={editedName}
-              onChangeText={setEditedName}
-              placeholder="Enter new name"
-              placeholderTextColor="#888"
-              style={styles.input}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                onPress={() => {
-                  setEditingOutfitId(null);
-                  setEditedName('');
-                }}
-                style={{marginRight: 12}}>
-                <Text style={{color: '#999'}}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleNameSave}>
-                <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
-                  Save
-                </Text>
-              </TouchableOpacity>
+                    {(outfit.tags || []).length > 0 && (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          marginTop: 8,
+                        }}>
+                        {outfit.tags?.map(tag => (
+                          <View
+                            key={tag}
+                            style={{
+                              paddingHorizontal: 8,
+                              paddingVertical: 4,
+                              backgroundColor: theme.colors.surface,
+                              borderRadius: 16,
+                              marginRight: 6,
+                              marginBottom: 4,
+                            }}>
+                            <Text
+                              style={{
+                                fontSize: 12,
+                                color: theme.colors.foreground,
+                              }}>
+                              #{tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </ViewShot>
+              ))
+            )}
+          </View>
+        </ScrollView>
+
+        {/* 📝 Edit Name Modal */}
+        {editingOutfitId && (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={{color: theme.colors.foreground, fontWeight: '600'}}>
+                Edit Outfit Name
+              </Text>
+              <TextInput
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder="Enter new name"
+                placeholderTextColor="#888"
+                style={styles.input}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditingOutfitId(null);
+                    setEditedName('');
+                  }}
+                  style={{marginRight: 12}}>
+                  <Text style={{color: '#999'}}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleNameSave}>
+                  <Text
+                    style={{color: theme.colors.primary, fontWeight: '600'}}>
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )}
 
-      {/* 📅 Date Picker */}
-      {showDatePicker && planningOutfitId && (
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: '#000',
-            paddingBottom: 180,
-          }}>
-          <DateTimePicker
-            value={selectedTempDate || new Date()}
-            mode="date"
-            display="spinner"
-            themeVariant="dark"
-            onChange={(event, selectedDate) => {
-              if (selectedDate) {
-                setSelectedTempDate(
-                  new Date(selectedDate.setHours(0, 0, 0, 0)),
-                );
-              }
-            }}
-          />
-          <View style={{alignItems: 'center', marginTop: 12}}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#405de6',
-                paddingVertical: 8,
-                paddingHorizontal: 20,
-                borderRadius: 20,
-              }}
-              onPress={async () => {
-                if (selectedTempDate && planningOutfitId) {
-                  try {
-                    const selectedOutfit = combinedOutfits.find(
-                      o => o.id === planningOutfitId,
-                    );
-                    if (!selectedOutfit) {
-                      console.warn('⚠️ Outfit not found');
-                      return;
-                    }
-
-                    const outfit_type =
-                      (selectedOutfit as any).type === 'custom'
-                        ? 'custom'
-                        : 'ai';
-
-                    await fetch(`${API_BASE_URL}/scheduled-outfits`, {
-                      method: 'POST',
-                      headers: {'Content-Type': 'application/json'},
-                      body: JSON.stringify({
-                        user_id: userId,
-                        outfit_id: planningOutfitId,
-                        outfit_type,
-                        scheduled_for: selectedTempDate.toISOString(),
-                      }),
-                    });
-
-                    const updated = combinedOutfits.map(o =>
-                      o.id === planningOutfitId
-                        ? {...o, plannedDate: selectedTempDate.toISOString()}
-                        : o,
-                    );
-                    setCombinedOutfits(updated);
-                  } catch (err) {
-                    console.error('❌ Failed to schedule outfit:', err);
-                  }
-
-                  setShowDatePicker(false);
-                  setPlanningOutfitId(null);
-                }
-              }}>
-              <Text style={{color: 'white', fontWeight: '600'}}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* 🧼 Undo Toast */}
-      {lastDeletedOutfit && (
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 20,
-            left: 20,
-            right: 20,
-            backgroundColor: theme.colors.surface,
-            padding: 12,
-            borderRadius: 8,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-          <Text style={{color: theme.colors.foreground}}>Outfit deleted</Text>
-          <TouchableOpacity
-            onPress={async () => {
-              const updated = [...combinedOutfits, lastDeletedOutfit];
-              const manual = updated.filter(o => !o.favorited);
-              const favorites = updated.filter(o => o.favorited);
-              await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
-              await AsyncStorage.setItem(
-                FAVORITES_KEY,
-                JSON.stringify(favorites),
-              );
-              setCombinedOutfits(updated);
-              setLastDeletedOutfit(null);
-            }}>
-            <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
-              Undo
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {showDeleteConfirm && pendingDeleteId && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 20,
-          }}>
+        {/* 📅 Date Picker */}
+        {showDatePicker && planningOutfitId && (
           <View
             style={{
-              backgroundColor: theme.colors.surface,
-              padding: 24,
-              borderRadius: 12,
-              width: '100%',
-              maxWidth: 360,
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#000',
+              paddingBottom: 180,
             }}>
-            <Text
-              style={{
-                fontSize: 16,
-                color: theme.colors.foreground,
-                fontWeight: '600',
-                marginBottom: 12,
-              }}>
-              Delete this outfit?
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: theme.colors.foreground2,
-                marginBottom: 20,
-              }}>
-              This action cannot be undone.
-            </Text>
-            <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+            <DateTimePicker
+              value={selectedTempDate || new Date()}
+              mode="date"
+              display="spinner"
+              themeVariant="dark"
+              onChange={(event, selectedDate) => {
+                if (selectedDate) {
+                  setSelectedTempDate(
+                    new Date(selectedDate.setHours(0, 0, 0, 0)),
+                  );
+                }
+              }}
+            />
+            <View
+              style={{alignItems: 'center', marginTop: 12, marginBottom: 50}}>
               <TouchableOpacity
-                onPress={() => {
-                  setShowDeleteConfirm(false);
-                  setPendingDeleteId(null);
+                style={{
+                  backgroundColor: '#405de6',
+                  paddingVertical: 8,
+                  paddingHorizontal: 20,
+                  borderRadius: 20,
                 }}
-                style={{marginRight: 16}}>
-                <Text style={{color: theme.colors.foreground}}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  if (pendingDeleteId) handleDelete(pendingDeleteId);
-                  setShowDeleteConfirm(false);
-                  setPendingDeleteId(null);
+                onPress={async () => {
+                  if (selectedTempDate && planningOutfitId) {
+                    try {
+                      const selectedOutfit = combinedOutfits.find(
+                        o => o.id === planningOutfitId,
+                      );
+                      if (!selectedOutfit) {
+                        console.warn('⚠️ Outfit not found');
+                        return;
+                      }
+
+                      const outfit_type =
+                        (selectedOutfit as any).type === 'custom'
+                          ? 'custom'
+                          : 'ai';
+
+                      await fetch(`${API_BASE_URL}/scheduled-outfits`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                          user_id: userId,
+                          outfit_id: planningOutfitId,
+                          outfit_type,
+                          scheduled_for: selectedTempDate.toISOString(),
+                        }),
+                      });
+
+                      const updated = combinedOutfits.map(o =>
+                        o.id === planningOutfitId
+                          ? {...o, plannedDate: selectedTempDate.toISOString()}
+                          : o,
+                      );
+                      setCombinedOutfits(updated);
+                    } catch (err) {
+                      console.error('❌ Failed to schedule outfit:', err);
+                    }
+
+                    setShowDatePicker(false);
+                    setPlanningOutfitId(null);
+                  }
                 }}>
-                <Text style={{color: 'red', fontWeight: '600'}}>Delete</Text>
+                <Text style={{color: 'white', fontWeight: '600'}}>Done</Text>
               </TouchableOpacity>
             </View>
           </View>
-          {showDatePicker && (
-            <DateTimePicker
-              value={new Date()}
-              mode="date"
-              display="default"
-              onChange={handleDateSelected}
-            />
-          )}
-        </View>
-      )}
+        )}
+
+        {/* 🧼 Undo Toast */}
+        {lastDeletedOutfit && (
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 20,
+              left: 20,
+              right: 20,
+              backgroundColor: theme.colors.surface,
+              padding: 12,
+              borderRadius: 8,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+            <Text style={{color: theme.colors.foreground}}>Outfit deleted</Text>
+            <TouchableOpacity
+              onPress={async () => {
+                const updated = [...combinedOutfits, lastDeletedOutfit];
+                const manual = updated.filter(o => !o.favorited);
+                const favorites = updated.filter(o => o.favorited);
+                await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
+                await AsyncStorage.setItem(
+                  FAVORITES_KEY,
+                  JSON.stringify(favorites),
+                );
+                setCombinedOutfits(updated);
+                setLastDeletedOutfit(null);
+              }}>
+              <Text style={{color: theme.colors.primary, fontWeight: '600'}}>
+                Undo
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {showDeleteConfirm && pendingDeleteId && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 20,
+            }}>
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                padding: 24,
+                borderRadius: 12,
+                width: '100%',
+                maxWidth: 360,
+              }}>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: theme.colors.foreground,
+                  fontWeight: '600',
+                  marginBottom: 12,
+                }}>
+                Delete this outfit?
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: theme.colors.foreground2,
+                  marginBottom: 20,
+                }}>
+                This action cannot be undone.
+              </Text>
+              <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowDeleteConfirm(false);
+                    setPendingDeleteId(null);
+                  }}
+                  style={{marginRight: 16}}>
+                  <Text style={{color: theme.colors.foreground}}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (pendingDeleteId) handleDelete(pendingDeleteId);
+                    setShowDeleteConfirm(false);
+                    setPendingDeleteId(null);
+                  }}>
+                  <Text style={{color: 'red', fontWeight: '600'}}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {showDatePicker && (
+              <DateTimePicker
+                value={new Date()}
+                mode="date"
+                display="default"
+                onChange={handleDateSelected}
+              />
+            )}
+          </View>
+        )}
+      </View>
     </View>
   );
 }

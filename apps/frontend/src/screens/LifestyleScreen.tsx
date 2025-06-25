@@ -101,45 +101,48 @@ export default function LifestyleScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        {Object.entries(categories).map(([category, options]) => (
-          <View key={category}>
-            <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
-              {category
-                .replace(/_/g, ' ')
-                .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
-            </Text>
-            <View style={globalStyles.styleContainer1}>
-              <View style={globalStyles.pillContainer}>
-                {options.map(opt => (
-                  <Chip
-                    key={opt}
-                    label={opt}
-                    selected={selected[category]?.includes(opt)}
-                    onPress={() => toggleSelect(category, opt)}
-                  />
-                ))}
+        <View style={globalStyles.centeredSection}>
+          {Object.entries(categories).map(([category, options]) => (
+            <View key={category}>
+              <Text
+                style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
+                {category
+                  .replace(/_/g, ' ')
+                  .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
+              </Text>
+              <View style={globalStyles.styleContainer1}>
+                <View style={globalStyles.pillContainer}>
+                  {options.map(opt => (
+                    <Chip
+                      key={opt}
+                      label={opt}
+                      selected={selected[category]?.includes(opt)}
+                      onPress={() => toggleSelect(category, opt)}
+                    />
+                  ))}
+                </View>
               </View>
             </View>
-          </View>
-        ))}
+          ))}
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
-          Clothing Dislikes
-        </Text>
-        <View style={globalStyles.styleContainer1}>
-          <TextInput
-            placeholder="Ex: I hate turtlenecks and pleats"
-            placeholderTextColor={colors.muted}
-            value={dislikes}
-            onChangeText={handleDislikesChange}
-            style={[
-              styles.input,
-              {
-                borderColor: theme.colors.inputBorder,
-                color: colors.foreground,
-              },
-            ]}
-          />
+          <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
+            Clothing Dislikes
+          </Text>
+          <View style={globalStyles.styleContainer1}>
+            <TextInput
+              placeholder="Ex: I hate turtlenecks and pleats"
+              placeholderTextColor={colors.muted}
+              value={dislikes}
+              onChangeText={handleDislikesChange}
+              style={[
+                styles.input,
+                {
+                  borderColor: theme.colors.inputBorder,
+                  color: colors.foreground,
+                },
+              ]}
+            />
+          </View>
         </View>
       </ScrollView>
     </View>

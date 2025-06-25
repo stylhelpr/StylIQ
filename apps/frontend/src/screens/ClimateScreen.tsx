@@ -72,21 +72,23 @@ export default function ClimateScreen({navigate}: Props) {
             <Text style={globalStyles.backText}>Back</Text>
           </View>
 
-          <Text
-            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-            What type of climate do you live in?
-          </Text>
+          <View style={globalStyles.centeredSection}>
+            <Text
+              style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+              What type of climate do you live in?
+            </Text>
 
-          <View style={globalStyles.styleContainer1}>
-            <View style={globalStyles.pillContainer}>
-              {climateOptions.map(option => (
-                <Chip
-                  key={option}
-                  label={option}
-                  selected={selectedClimate === option}
-                  onPress={() => handleSelect(option)}
-                />
-              ))}
+            <View style={globalStyles.styleContainer1}>
+              <View style={globalStyles.pillContainer}>
+                {climateOptions.map(option => (
+                  <Chip
+                    key={option}
+                    label={option}
+                    selected={selectedClimate === option}
+                    onPress={() => handleSelect(option)}
+                  />
+                ))}
+              </View>
             </View>
           </View>
         </View>

@@ -74,20 +74,23 @@ export default function ProportionsScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Describe your proportions for fit-accurate styling:
-        </Text>
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Describe your proportions for fit-accurate styling:
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {proportions.map(prop => (
-              <Chip
-                key={prop}
-                label={prop}
-                selected={selected === prop}
-                onPress={() => handleSelect(prop)}
-              />
-            ))}
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {proportions.map(prop => (
+                <Chip
+                  key={prop}
+                  label={prop}
+                  selected={selected === prop}
+                  onPress={() => handleSelect(prop)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

@@ -108,79 +108,88 @@ export default function AddItemScreen({
 
   return (
     <ScrollView style={styles.screen} keyboardShouldPersistTaps="handled">
-      <View style={globalStyles.modalSection}>
-        <View style={globalStyles.section3}>
-          <Text style={globalStyles.sectionTitle}>Select Image</Text>
-          <ImagePickerGrid onSelectImage={setImageUri} selectedUri={imageUri} />
-        </View>
+      <View style={globalStyles.modalSection3}>
+        <View
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: 25,
+          }}>
+          <View style={globalStyles.section3}>
+            <Text style={globalStyles.sectionTitle}>Select Image</Text>
+            <ImagePickerGrid
+              onSelectImage={setImageUri}
+              selectedUri={imageUri}
+            />
+          </View>
 
-        {imageUri && (
-          <Image
-            source={{uri: imageUri}}
-            style={styles.imagePreview}
-            resizeMode="cover"
-          />
-        )}
+          {imageUri && (
+            <Image
+              source={{uri: imageUri}}
+              style={styles.imagePreview}
+              resizeMode="cover"
+            />
+          )}
 
-        <View style={globalStyles.section}>
-          <Text style={globalStyles.title}>Name</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-            placeholder="e.g. White Button-down"
-            placeholderTextColor={theme.colors.muted}
-          />
+          <View style={globalStyles.section}>
+            <Text style={globalStyles.title}>Name</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+              placeholder="e.g. White Button-down"
+              placeholderTextColor={theme.colors.muted}
+            />
 
-          <Text style={globalStyles.title}>Category</Text>
-          <TextInput
-            value={category}
-            onChangeText={setCategory}
-            style={styles.input}
-            placeholder="e.g. Shirt, Pants"
-            placeholderTextColor={theme.colors.muted}
-          />
+            <Text style={globalStyles.title}>Category</Text>
+            <TextInput
+              value={category}
+              onChangeText={setCategory}
+              style={styles.input}
+              placeholder="e.g. Shirt, Pants"
+              placeholderTextColor={theme.colors.muted}
+            />
 
-          <Text style={globalStyles.title}>Color</Text>
-          <TextInput
-            value={color}
-            onChangeText={setColor}
-            style={styles.input}
-            placeholder="e.g. Navy, White"
-            placeholderTextColor={theme.colors.muted}
-          />
+            <Text style={globalStyles.title}>Color</Text>
+            <TextInput
+              value={color}
+              onChangeText={setColor}
+              style={styles.input}
+              placeholder="e.g. Navy, White"
+              placeholderTextColor={theme.colors.muted}
+            />
 
-          <Text style={globalStyles.title}>Tags</Text>
-          <TextInput
-            value={tags}
-            onChangeText={setTags}
-            style={styles.input}
-            placeholder="Comma separated: casual, winter, linen"
-            placeholderTextColor={theme.colors.muted}
-          />
+            <Text style={globalStyles.title}>Tags</Text>
+            <TextInput
+              value={tags}
+              onChangeText={setTags}
+              style={styles.input}
+              placeholder="Comma separated: casual, winter, linen"
+              placeholderTextColor={theme.colors.muted}
+            />
 
-          <View style={styles.buttonSection}>
-            <AppleTouchFeedback
-              onPress={handleSave}
-              hapticStyle="impactMedium"
-              style={[globalStyles.buttonPrimary, {width: 160}]}
-              disabled={!imageUri || !name.trim()}>
-              <Text style={globalStyles.buttonPrimaryText}>Save Item</Text>
-            </AppleTouchFeedback>
+            <View style={styles.buttonSection}>
+              <AppleTouchFeedback
+                onPress={handleSave}
+                hapticStyle="impactMedium"
+                style={[globalStyles.buttonPrimary, {width: 160}]}
+                disabled={!imageUri || !name.trim()}>
+                <Text style={globalStyles.buttonPrimaryText}>Save Item</Text>
+              </AppleTouchFeedback>
 
-            <AppleTouchFeedback
-              onPress={handleCancel}
-              hapticStyle="impactLight"
-              style={[
-                globalStyles.buttonPrimary,
-                {
-                  marginLeft: 12,
-                  width: 160,
-                  backgroundColor: 'rgb(153, 153, 153)',
-                },
-              ]}>
-              <Text style={globalStyles.buttonPrimaryText}>Cancel</Text>
-            </AppleTouchFeedback>
+              <AppleTouchFeedback
+                onPress={handleCancel}
+                hapticStyle="impactLight"
+                style={[
+                  globalStyles.buttonPrimary,
+                  {
+                    marginLeft: 12,
+                    width: 160,
+                    backgroundColor: 'rgb(153, 153, 153)',
+                  },
+                ]}>
+                <Text style={globalStyles.buttonPrimaryText}>Cancel</Text>
+              </AppleTouchFeedback>
+            </View>
           </View>
         </View>
       </View>

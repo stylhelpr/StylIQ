@@ -144,7 +144,7 @@ export default function StyleProfileScreen({navigate}: Props) {
             {
               paddingHorizontal: 20,
               width: '100%',
-              maxWidth: 700,
+              maxWidth: 720,
               alignSelf: 'center',
             },
           ]}

@@ -72,20 +72,23 @@ export default function HairColorScreen({navigate}: Props) {
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Select your current natural or styled hair color:
-        </Text>
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Select your current natural or styled hair color:
+          </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {hairColors.map(color => (
-              <Chip
-                key={color}
-                label={color}
-                selected={selected === color}
-                onPress={() => handleSelect(color)}
-              />
-            ))}
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {hairColors.map(color => (
+                <Chip
+                  key={color}
+                  label={color}
+                  selected={selected === color}
+                  onPress={() => handleSelect(color)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

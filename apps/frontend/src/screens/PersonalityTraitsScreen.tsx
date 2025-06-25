@@ -79,20 +79,24 @@ export default function PersonalityTraitsScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Choose traits that reflect how you carry yourself:
-        </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {traits.map(trait => (
-              <Chip
-                key={trait}
-                label={trait}
-                selected={selected.includes(trait)}
-                onPress={() => toggleTrait(trait)}
-              />
-            ))}
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Choose traits that reflect how you carry yourself:
+          </Text>
+
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {traits.map(trait => (
+                <Chip
+                  key={trait}
+                  label={trait}
+                  selected={selected.includes(trait)}
+                  onPress={() => toggleTrait(trait)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

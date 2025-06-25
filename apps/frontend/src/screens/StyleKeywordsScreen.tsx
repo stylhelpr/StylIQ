@@ -80,16 +80,18 @@ export default function StyleKeywordsScreen({navigate}: Props) {
           Pick words that describe your overall style:
         </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {options.map(option => (
-              <Chip
-                key={option}
-                label={option}
-                selected={selected.includes(option)}
-                onPress={() => toggleKeyword(option)}
-              />
-            ))}
+        <View style={globalStyles.centeredSection}>
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {options.map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={selected.includes(option)}
+                  onPress={() => toggleKeyword(option)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

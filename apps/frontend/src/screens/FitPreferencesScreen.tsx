@@ -81,20 +81,24 @@ export default function FitPreferencesScreen({navigate}: Props) {
           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
           <Text style={globalStyles.backText}>Back</Text>
         </View>
-        <Text style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-          Choose your most comfortable and flattering fits:
-        </Text>
 
-        <View style={globalStyles.styleContainer1}>
-          <View style={globalStyles.pillContainer}>
-            {options.map(option => (
-              <Chip
-                key={option}
-                label={option}
-                selected={selected.includes(option)}
-                onPress={() => toggleSelection(option)}
-              />
-            ))}
+        <View style={globalStyles.centeredSection}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+            Choose your most comfortable and flattering fits:
+          </Text>
+
+          <View style={globalStyles.styleContainer1}>
+            <View style={globalStyles.pillContainer}>
+              {options.map(option => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={selected.includes(option)}
+                  onPress={() => toggleSelection(option)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

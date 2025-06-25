@@ -310,16 +310,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       color: '#fff',
     },
     quickAccessItem: {
-      width: '50%',
-      maxWidth: 230,
-      marginBottom: 12,
+      alignItems: 'center',
+      width: '40%',
+      minWidth: 140,
+      maxWidth: 185,
+      margin: 12,
+      // backgroundColor: 'yellow',
     },
     quickAccessGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'space-between',
       width: '100%',
-      alignSelf: 'center',
     },
     quickAccessButton: {
       backgroundColor: theme.colors.button1,
@@ -569,15 +570,20 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       )}
 
-      <View style={[globalStyles.section, {marginTop: 8}]}>
-        <View style={globalStyles.centeredSection}>
-          {/* <Text style={styles.aiTitle}>Ask AI Concierge</Text> */}
+      <View style={[globalStyles.section, {marginTop: 16, marginBottom: 32}]}>
+        <View
+          style={{
+            width: '100%',
+            maxWidth: 645,
+            alignSelf: 'center',
+          }}>
           <VoiceControlComponent
             onPromptResult={prompt => navigate('Outfit', {prompt})}
           />
         </View>
       </View>
 
+      {/* /// EDITORIAL LOOK SECTION /// */}
       <View style={globalStyles.centeredSection}>
         <Animatable.View
           animation="fadeInUp"
@@ -646,42 +652,50 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </Animatable.View>
         </Animatable.View>
       </View>
+      {/* ////// */}
 
-      <View style={[globalStyles.section]}>
-        <View style={[globalStyles.centeredSection]}>
+      {/* /// QUICK ACCESS SECTION /// */}
+      <View style={globalStyles.centeredSection}>
+        <View style={globalStyles.section}>
           <Text style={globalStyles.sectionTitle}>Quick Access</Text>
           <View
             style={[
-              styles.quickAccessGrid,
+              globalStyles.centeredSection,
               {
-                justifyContent: 'center',
-                alignItems: 'center',
-                // borderColor: theme.colors.inputBorder,
-                // borderRadius: 10,
-                // borderWidth: 1,
-                padding: 16,
+                backgroundColor: theme.colors.surface,
+                borderRadius: tokens.borderRadius.md,
               },
             ]}>
-            {[
-              {label: 'Wardrobe', screen: 'Wardrobe'},
-              {label: 'Add Item', screen: 'AddItem'},
-              {label: 'Style Me', screen: 'Outfit'},
-              {label: 'Try-On', screen: 'TryOnOverlay'},
-            ].map((btn, index) => (
-              <View key={btn.screen} style={[styles.quickAccessItem]}>
-                <AppleTouchFeedback
-                  style={[globalStyles.buttonPrimary]}
-                  hapticStyle="impactHeavy"
-                  onPress={() => navigate(btn.screen)}>
-                  <Text style={globalStyles.buttonPrimaryText}>
-                    {btn.label}
-                  </Text>
-                </AppleTouchFeedback>
-              </View>
-            ))}
+            <View
+              style={[
+                styles.quickAccessGrid,
+                {
+                  padding: 10,
+                  justifyContent: 'center',
+                },
+              ]}>
+              {[
+                {label: 'Wardrobe', screen: 'Wardrobe'},
+                {label: 'Add Item', screen: 'AddItem'},
+                {label: 'Style Me', screen: 'Outfit'},
+                {label: 'Try-On', screen: 'TryOnOverlay'},
+              ].map((btn, index) => (
+                <View key={btn.screen} style={styles.quickAccessItem}>
+                  <AppleTouchFeedback
+                    style={[globalStyles.buttonPrimary, {width: 160}]}
+                    hapticStyle="impactHeavy"
+                    onPress={() => navigate(btn.screen)}>
+                    <Text style={globalStyles.buttonPrimaryText}>
+                      {btn.label}
+                    </Text>
+                  </AppleTouchFeedback>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       </View>
+      {/* ////// */}
 
       <View style={globalStyles.sectionScroll}>
         <Text style={globalStyles.sectionTitle}>Recommended Outfit</Text>
@@ -751,9 +765,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         )}
       </View>
 
-      <View style={globalStyles.section}>
-        <View style={globalStyles.centeredSection}>
-          <Text style={globalStyles.sectionTitle}>Notifications</Text>
+      {/* /// NOTIFICATIONS SECTION /// */}
+      <View style={globalStyles.centeredSection}>
+        <View style={[globalStyles.section, {marginTop: 28}]}>
+          {/* <Text style={globalStyles.sectionTitle}>Notifications</Text> */}
           <TouchableOpacity
             onPress={async () => {
               const enabled = await AsyncStorage.getItem(
@@ -774,7 +789,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               }
             }}>
             <View
-              style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                // backgroundColor: theme.colors.surface,
+                // borderRadius: tokens.borderRadius.md,
+                // paddingVertical: 20,
+              }}>
               <View style={[globalStyles.buttonPrimary]}>
                 <Text style={globalStyles.buttonPrimaryText}>
                   Send Notification
@@ -784,6 +806,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </TouchableOpacity>
         </View>
       </View>
+      {/* ////// */}
     </Animated.ScrollView>
   );
 };
