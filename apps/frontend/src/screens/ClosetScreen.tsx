@@ -344,10 +344,23 @@ export default function ClosetScreen({navigate}: Props) {
         <View style={[styles.buttonRow]}>
           <View style={{marginRight: 8}}>
             <AppleTouchFeedback
-              style={[globalStyles.buttonPrimary, {width: 380}]}
+              style={[
+                globalStyles.buttonPrimary,
+                {
+                  paddingHorizontal: 28,
+
+                  minWidth: 210,
+                  alignSelf: 'center',
+                  flexShrink: 0,
+                },
+              ]}
               hapticStyle="impactHeavy"
               onPress={() => navigate('OutfitBuilder')}>
-              <Text style={globalStyles.buttonPrimaryText}>
+              <Text
+                style={globalStyles.buttonPrimaryText}
+                numberOfLines={1}
+                ellipsizeMode="clip"
+                adjustsFontSizeToFit={false}>
                 + Create New Outfit
               </Text>
             </AppleTouchFeedback>

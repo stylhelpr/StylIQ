@@ -262,37 +262,39 @@ export default function MeasurementsScreen({navigate}: Props) {
               </Text>
 
               {unitPreference === 'imperial' ? (
-                <View style={{flexDirection: 'row'}}>
-                  <TextInput
-                    placeholder="ft"
-                    placeholderTextColor={colors.muted}
-                    style={[
-                      styles.input,
-                      {
-                        flex: 1,
-                        borderColor: theme.colors.inputBorder,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    value={feet}
-                    onChangeText={handleFeetChange}
-                  />
-                  <TextInput
-                    placeholder="in"
-                    placeholderTextColor={colors.muted}
-                    style={[
-                      styles.input,
-                      {
-                        flex: 1,
-                        borderColor: theme.colors.inputBorder,
-                        color: colors.foreground,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    value={inches}
-                    onChangeText={handleInchesChange}
-                  />
+                <View style={{flexDirection: 'row', gap: 0}}>
+                  <View style={{flex: 1, marginRight: 10}}>
+                    <TextInput
+                      placeholder="ft"
+                      placeholderTextColor={colors.muted}
+                      style={[
+                        styles.input,
+                        {
+                          borderColor: theme.colors.inputBorder,
+                          color: colors.foreground,
+                        },
+                      ]}
+                      keyboardType="number-pad"
+                      value={feet}
+                      onChangeText={handleFeetChange}
+                    />
+                  </View>
+                  <View style={{flex: 1}}>
+                    <TextInput
+                      placeholder="in"
+                      placeholderTextColor={colors.muted}
+                      style={[
+                        styles.input,
+                        {
+                          borderColor: theme.colors.inputBorder,
+                          color: colors.foreground,
+                        },
+                      ]}
+                      keyboardType="number-pad"
+                      value={inches}
+                      onChangeText={handleInchesChange}
+                    />
+                  </View>
                 </View>
               ) : (
                 <TextInput
@@ -343,6 +345,354 @@ export default function MeasurementsScreen({navigate}: Props) {
     </View>
   );
 }
+
+/////////////////
+
+// import React, {useEffect, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TextInput,
+//   ScrollView,
+//   Alert,
+//   Switch,
+// } from 'react-native';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useAppTheme} from '../context/ThemeContext';
+// import BackHeader from '../components/Backheader/Backheader';
+// import {useAuth0} from 'react-native-auth0';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// const STORAGE_KEY = 'userMeasurements';
+
+// const fieldMap: Record<string, string> = {
+//   Weight: 'weight',
+//   Chest: 'chest',
+//   Waist: 'waist',
+//   Inseam: 'inseam',
+//   'Shoe Size': 'shoe_size',
+//   Hip: 'hip',
+//   'Shoulder Width': 'shoulder_width',
+// };
+
+// export default function MeasurementsScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const colors = theme.colors;
+//   const globalStyles = useGlobalStyles();
+//   const {user} = useAuth0();
+//   const userId = user?.sub || '';
+//   const {updateProfile, styleProfile} = useStyleProfile(userId);
+
+//   const styles = StyleSheet.create({
+//     screen: {
+//       flex: 1,
+//       backgroundColor: theme.colors.background,
+//     },
+//     unitRow: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//     },
+//     unitTextContainer: {
+//       flex: 1,
+//       justifyContent: 'center',
+//     },
+//     switchContainer: {
+//       justifyContent: 'center',
+//       marginBottom: 8,
+//     },
+//     input: {
+//       borderWidth: 1,
+//       borderRadius: tokens.borderRadius.md,
+//       padding: 10,
+//       marginBottom: 15,
+//       fontSize: 17,
+//       backgroundColor: theme.colors.input2,
+//     },
+//   });
+
+//   const [values, setValues] = useState<Record<string, string>>({});
+//   const [unitPreference, setUnitPreference] = useState<'imperial' | 'metric'>(
+//     'imperial',
+//   );
+
+//   const [feet, setFeet] = useState('');
+//   const [inches, setInches] = useState('');
+//   const [centimeters, setCentimeters] = useState('');
+//   const [heightCm, setHeightCm] = useState<number | null>(null);
+
+//   useEffect(() => {
+//     if (!styleProfile) return;
+
+//     const unit =
+//       styleProfile.unit_preference === 'metric' ? 'metric' : 'imperial';
+//     setUnitPreference(unit);
+
+//     const initialValues: Record<string, string> = {};
+//     for (const [label, field] of Object.entries(fieldMap)) {
+//       const value = styleProfile[field];
+//       if (value !== undefined && value !== null) {
+//         initialValues[label] = value.toString();
+//       }
+//     }
+//     setValues(initialValues);
+
+//     const cm = styleProfile.height;
+//     if (cm && typeof cm === 'number') {
+//       setHeightCm(cm);
+//       setCentimeters(cm.toString());
+//       const totalInches = Math.round(cm / 2.54);
+//       const ft = Math.floor(totalInches / 12);
+//       const inch = totalInches % 12;
+//       setFeet(ft.toString());
+//       setInches(inch.toString());
+//     }
+//   }, [styleProfile]);
+
+//   const handleChange = (label: string, input: string) => {
+//     const cleaned = input.replace(/[^0-9.]/g, '');
+//     const updated = {...values, [label]: cleaned};
+//     setValues(updated);
+
+//     const dbField = fieldMap[label];
+//     if (dbField) {
+//       const isDecimal = label === 'Shoe Size';
+//       const numericValue = isDecimal ? parseFloat(cleaned) : parseInt(cleaned);
+//       if (!isNaN(numericValue)) {
+//         updateProfile(dbField, numericValue);
+//       }
+//     }
+//   };
+
+//   const handleFeetChange = (val: string) => {
+//     const ft = val.replace(/[^0-9]/g, '');
+//     setFeet(ft);
+//     const inch = parseInt(inches || '0');
+//     const height = Math.round((parseInt(ft || '0') * 12 + inch) * 2.54);
+//     setHeightCm(height);
+//     setCentimeters(height.toString());
+//     updateProfile('height', height);
+//   };
+
+//   const handleInchesChange = (val: string) => {
+//     const inch = val.replace(/[^0-9]/g, '');
+//     setInches(inch);
+//     const ft = parseInt(feet || '0');
+//     const height = Math.round((ft * 12 + parseInt(inch || '0')) * 2.54);
+//     setHeightCm(height);
+//     setCentimeters(height.toString());
+//     updateProfile('height', height);
+//   };
+
+//   const handleCentimetersChange = (val: string) => {
+//     const cm = val.replace(/[^0-9]/g, '');
+//     setCentimeters(cm);
+//     const height = parseInt(cm || '0');
+//     setHeightCm(height);
+//     const totalInches = Math.round(height / 2.54);
+//     const ft = Math.floor(totalInches / 12);
+//     const inch = totalInches % 12;
+//     setFeet(ft.toString());
+//     setInches(inch.toString());
+//     updateProfile('height', height);
+//   };
+
+//   const toggleUnits = () => {
+//     const newUnit = unitPreference === 'imperial' ? 'metric' : 'imperial';
+//     const convertedValues: Record<string, string> = {...values};
+
+//     for (const label of Object.keys(fieldMap)) {
+//       const val = values[label];
+//       if (!val) continue;
+
+//       const numeric = parseFloat(val);
+//       if (isNaN(numeric)) continue;
+//       if (label === 'Shoe Size') continue;
+
+//       if (newUnit === 'metric') {
+//         convertedValues[label] =
+//           label === 'Weight'
+//             ? Math.round(numeric / 2.20462).toString()
+//             : Math.round(numeric * 2.54).toString();
+//       } else {
+//         convertedValues[label] =
+//           label === 'Weight'
+//             ? Math.round(numeric * 2.20462).toString()
+//             : Math.round(numeric / 2.54).toString();
+//       }
+//     }
+
+//     if (heightCm) {
+//       if (newUnit === 'metric') {
+//         setCentimeters(heightCm.toString());
+//       } else {
+//         const totalInches = Math.round(heightCm / 2.54);
+//         const ft = Math.floor(totalInches / 12);
+//         const inch = totalInches % 12;
+//         setFeet(ft.toString());
+//         setInches(inch.toString());
+//       }
+//     }
+
+//     setUnitPreference(newUnit);
+//     setValues(convertedValues);
+//     updateProfile('unit_preference', newUnit);
+//   };
+
+//   return (
+//     <View
+//       style={[
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}>
+//       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
+//         Measurements
+//       </Text>
+
+//       <ScrollView>
+//         <View style={globalStyles.section4}>
+//           <View style={globalStyles.backContainer}>
+//             <BackHeader
+//               title=""
+//               onBack={() => navigate('StyleProfileScreen')}
+//             />
+//             <Text style={globalStyles.backText}>Back</Text>
+//           </View>
+
+//           <View style={globalStyles.centeredSection}>
+//             <View
+//               style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+//               <View style={styles.unitRow}>
+//                 <View style={styles.unitTextContainer}>
+//                   <Text
+//                     style={[
+//                       globalStyles.sectionTitle,
+//                       {color: colors.foreground},
+//                     ]}>
+//                     Units: {unitPreference === 'imperial' ? 'in/lbs' : 'cm/kg'}
+//                   </Text>
+//                 </View>
+//                 <View style={styles.switchContainer}>
+//                   <AppleTouchFeedback
+//                     onPress={toggleUnits}
+//                     hapticStyle="impactLight">
+//                     <Switch
+//                       value={unitPreference === 'metric'}
+//                       onValueChange={toggleUnits}
+//                       pointerEvents="none"
+//                     />
+//                   </AppleTouchFeedback>
+//                 </View>
+//               </View>
+//             </View>
+//           </View>
+
+//           <View style={globalStyles.section5}>
+//             <Text
+//               style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+//               Fill out your body measurements to tailor fit suggestions:
+//             </Text>
+
+//             <View
+//               style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+//               <Text
+//                 style={[
+//                   globalStyles.title,
+//                   {color: colors.foreground, marginBottom: 10},
+//                 ]}>
+//                 Height {unitPreference === 'imperial' ? '(ft/in)' : '(cm)'}
+//               </Text>
+
+//               {unitPreference === 'imperial' ? (
+//                 <View style={{flexDirection: 'row'}}>
+//                   <TextInput
+//                     placeholder="ft"
+//                     placeholderTextColor={colors.muted}
+//                     style={[
+//                       styles.input,
+//                       {
+//                         flex: 1,
+//                         borderColor: theme.colors.inputBorder,
+//                         color: colors.foreground,
+//                       },
+//                     ]}
+//                     keyboardType="number-pad"
+//                     value={feet}
+//                     onChangeText={handleFeetChange}
+//                   />
+//                   <TextInput
+//                     placeholder="in"
+//                     placeholderTextColor={colors.muted}
+//                     style={[
+//                       styles.input,
+//                       {
+//                         flex: 1,
+//                         borderColor: theme.colors.inputBorder,
+//                         color: colors.foreground,
+//                       },
+//                     ]}
+//                     keyboardType="number-pad"
+//                     value={inches}
+//                     onChangeText={handleInchesChange}
+//                   />
+//                 </View>
+//               ) : (
+//                 <TextInput
+//                   placeholder="cm"
+//                   placeholderTextColor={colors.muted}
+//                   style={[
+//                     styles.input,
+//                     {
+//                       borderColor: theme.colors.inputBorder,
+//                       color: colors.foreground,
+//                     },
+//                   ]}
+//                   keyboardType="number-pad"
+//                   value={centimeters}
+//                   onChangeText={handleCentimetersChange}
+//                 />
+//               )}
+
+//               {Object.keys(fieldMap).map(label => (
+//                 <TextInput
+//                   key={label}
+//                   placeholder={`${label} ${
+//                     label === 'Shoe Size'
+//                       ? ''
+//                       : unitPreference === 'metric'
+//                       ? '(cm)'
+//                       : '(in)'
+//                   }`}
+//                   placeholderTextColor={colors.muted}
+//                   style={[
+//                     styles.input,
+//                     {
+//                       borderColor: theme.colors.inputBorder,
+//                       color: colors.foreground,
+//                     },
+//                   ]}
+//                   keyboardType={
+//                     label === 'Shoe Size' ? 'decimal-pad' : 'number-pad'
+//                   }
+//                   value={values[label] || ''}
+//                   onChangeText={val => handleChange(label, val)}
+//                 />
+//               ))}
+//             </View>
+//           </View>
+//         </View>
+//       </ScrollView>
+//     </View>
+//   );
+// }
 
 ////////////////
 

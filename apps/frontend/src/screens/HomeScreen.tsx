@@ -27,6 +27,7 @@ import {API_BASE_URL} from '../config/api';
 import Video from 'react-native-video';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import GlassCard from '../components/GlassCard/GlassCard';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -573,7 +574,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       </View>
 
       {/* /// EDITORIAL LOOK SECTION /// */}
-      <View style={globalStyles.centeredSection}>
+      <View style={[globalStyles.centeredSection]}>
         <Animatable.View
           animation="fadeInUp"
           delay={300}
@@ -752,7 +753,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
       {/* /// NOTIFICATIONS SECTION /// */}
       <View style={globalStyles.centeredSection}>
-        <View style={[globalStyles.section, {marginTop: 4}]}>
+        <View style={[globalStyles.section, {marginTop: 6}]}>
           {/* <Text style={globalStyles.sectionTitle}>Notifications</Text> */}
           <TouchableOpacity
             onPress={async () => {

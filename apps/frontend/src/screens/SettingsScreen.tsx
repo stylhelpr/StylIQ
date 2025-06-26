@@ -70,7 +70,7 @@ export default function SettingsScreen({navigate}: Props) {
       marginBottom: 30,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
-      paddingHorizontal: 24,
+      paddingHorizontal: 22,
       paddingVertical: 14,
     },
     modalOverlay: {

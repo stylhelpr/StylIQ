@@ -436,30 +436,40 @@ export default function ProfileScreen({navigate}: Props) {
         <View
           style={{
             alignItems: 'center',
-            // backgroundColor: theme.colors.surface,
-            // padding: 16,
-            // shadowOffset: {width: 0, height: 6},
-            // shadowOpacity: 0.1,
-            // shadowRadius: 12,
-            // elevation: 5,
-            // borderWidth: 1,
-            // borderColor: theme.colors.surfaceBorder,
-            // borderRadius: tokens.borderRadius.md,
           }}>
           <AppleTouchFeedback
-            style={[globalStyles.buttonPrimary, {width: 280}]}
             onPress={() => navigate('StyleProfileScreen')}
-            hapticStyle="impactMedium">
-            <View style={styles.menuRow}>
-              <Icon
-                name="person-outline"
-                size={22}
-                color={theme.colors.primary}
-              />
-              <Text style={[globalStyles.buttonPrimaryText]}>
-                Edit Style Profile
-              </Text>
-            </View>
+            hapticStyle="impactMedium"
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              minWidth: 200,
+              maxWidth: 300,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 2,
+              borderColor: theme.colors.button1,
+              borderRadius: 50,
+              backgroundColor: 'transparent',
+            }}>
+            <Icon
+              name="person-outline"
+              size={20}
+              color={theme.colors.primary}
+              style={{marginRight: 8}}
+            />
+            <Text
+              style={{
+                color: theme.colors.primary,
+                fontSize: 16,
+                fontWeight: '500',
+                flexShrink: 1,
+                textAlign: 'center',
+              }}
+              numberOfLines={1}>
+              Edit Style Profile
+            </Text>
           </AppleTouchFeedback>
         </View>
       </View>
