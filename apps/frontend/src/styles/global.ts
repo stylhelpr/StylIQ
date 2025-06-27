@@ -7,6 +7,9 @@ const screenWidth = Dimensions.get('window').width;
 const isTablet = screenWidth >= 768;
 
 const responsivePadding = isTablet ? 38 : 20;
+const sectionMarginBottom = isTablet ? 32 : 26;
+const image4Size = isTablet ? 160 : 110;
+const ouftiCardSize = isTablet ? 164 : 110;
 
 export const createGlobalStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -78,14 +81,22 @@ export const createGlobalStyles = (theme: Theme) =>
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xl,
     },
+    cardStyles4: {
+      // padding: 14,
+      shadowOffset: {width: 0, height: 6},
+      shadowOpacity: 0.1,
+      shadowRadius: 12,
+      elevation: 5,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
+      borderRadius: tokens.borderRadius.md,
+    },
     section: {
-      // marginBottom: 26,
-      marginBottom: 30,
+      marginBottom: sectionMarginBottom,
       paddingHorizontal: responsivePadding,
     },
     section2: {
-      // marginBottom: 26,
-      marginBottom: 30,
+      marginBottom: sectionMarginBottom,
     },
     section3: {
       paddingHorizontal: responsivePadding,
@@ -355,7 +366,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // },
     buttonPrimary: {
       width: '90%',
-      maxWidth: 160,
+      maxWidth: 150,
       backgroundColor: 'transparent',
       paddingVertical: 9,
       alignItems: 'center',
@@ -364,12 +375,12 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 12,
       elevation: 5,
-      borderWidth: 3,
       borderColor: theme.colors.button1,
       borderRadius: 50,
+      borderWidth: 2,
     },
     buttonPrimaryText: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '500',
       color: '#fff',
     },
@@ -429,6 +440,17 @@ export const createGlobalStyles = (theme: Theme) =>
       height: 95,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,
+    },
+    image4: {
+      width: image4Size,
+      height: image4Size,
+      borderRadius: tokens.borderRadius.md,
+      backgroundColor: '#eee',
+    },
+    outfitCard: {
+      width: ouftiCardSize,
+      marginRight: 12,
+      alignItems: 'flex-start',
     },
     promptRow: {
       flexDirection: 'row',

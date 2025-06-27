@@ -357,58 +357,66 @@ export default function ExploreScreen() {
       </View>
 
       <View style={globalStyles.section}>
-        <Text
-          style={[[globalStyles.sectionTitle], {color: theme.colors.primary}]}>
-          AI Suggests
-        </Text>
-        <View style={[styles.AISuggestcard]}>
-          <View style={[styles.labelContainer]}>
-            <Text
-              style={[globalStyles.label, {color: theme.colors.foreground}]}>
-              Pair your navy chinos with white sneakers and a denim overshirt.
-              Missing something?
-            </Text>
-          </View>
-          <Image
-            source={{uri: missingItemSuggestion.image}}
-            style={styles.suggestedImage}
-          />
-          <View
+        <View style={globalStyles.centeredSection}>
+          <Text
             style={[
-              styles.labelContainer,
-              {
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 12,
-              },
+              [globalStyles.sectionTitle],
+              {color: theme.colors.primary},
             ]}>
-            <Text
-              style={[globalStyles.label, {color: theme.colors.foreground}]}>
-              Suggested: {missingItemSuggestion.name}
-            </Text>
+            AI Suggests
+          </Text>
+          <View style={[styles.AISuggestcard, globalStyles.cardStyles4]}>
+            <View style={[styles.labelContainer]}>
+              <Text
+                style={[globalStyles.label, {color: theme.colors.foreground}]}>
+                Pair your navy chinos with white sneakers and a denim overshirt.
+                Missing something?
+              </Text>
+            </View>
+            <Image
+              source={{uri: missingItemSuggestion.image}}
+              style={styles.suggestedImage}
+            />
+            <View
+              style={[
+                styles.labelContainer,
+                {
+                  borderBottomLeftRadius: 12,
+                  borderBottomRightRadius: 12,
+                },
+              ]}>
+              <Text
+                style={[globalStyles.label, {color: theme.colors.foreground}]}>
+                Suggested: {missingItemSuggestion.name}
+              </Text>
 
-            <Text
-              style={[globalStyles.subLabel, {color: theme.colors.foreground}]}>
-              {missingItemSuggestion.price}
-            </Text>
-            <AppleTouchFeedback
-              onPress={() =>
-                setWebUrl(
-                  'https://www.ssense.com/en-us/men/product/acne-studios/green-bomber-jacket/1234567',
-                )
-              }
-              hapticStyle="impactLight">
               <Text
                 style={[
-                  globalStyles.label,
-                  {
-                    color: theme.colors.foreground2,
-                    textDecorationLine: 'underline',
-                    marginBottom: 4,
-                  },
+                  globalStyles.subLabel,
+                  {color: theme.colors.foreground},
                 ]}>
-                View Item
+                {missingItemSuggestion.price}
               </Text>
-            </AppleTouchFeedback>
+              <AppleTouchFeedback
+                onPress={() =>
+                  setWebUrl(
+                    'https://www.ssense.com/en-us/men/product/acne-studios/green-bomber-jacket/1234567',
+                  )
+                }
+                hapticStyle="impactLight">
+                <Text
+                  style={[
+                    globalStyles.label,
+                    {
+                      color: theme.colors.foreground2,
+                      textDecorationLine: 'underline',
+                      marginBottom: 4,
+                    },
+                  ]}>
+                  View Item
+                </Text>
+              </AppleTouchFeedback>
+            </View>
           </View>
         </View>
       </View>

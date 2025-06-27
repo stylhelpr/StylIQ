@@ -508,21 +508,15 @@ export default function ProfileScreen({navigate}: Props) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {storyHighlights.map((label, index) => (
             <View key={index}>
-              <View style={styles.highlightBorder}>
+              <View style={globalStyles.outfitCard}>
                 <Image
                   source={{
                     uri: profileImages[index % profileImages.length].uri,
                   }}
-                  style={styles.highlightImage}
+                  style={globalStyles.image4}
                 />
               </View>
-              <Text
-                style={[
-                  globalStyles.label,
-                  {marginTop: 6, textAlign: 'center'},
-                ]}>
-                {label}
-              </Text>
+              <Text style={[globalStyles.label, {marginTop: 6}]}>{label}</Text>
             </View>
           ))}
         </ScrollView>
