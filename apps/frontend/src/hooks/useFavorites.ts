@@ -2,11 +2,10 @@ import {useEffect, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import axios from 'axios';
 import {Platform} from 'react-native';
+import {LOCAL_IP} from '../config/localIP';
+import {PORT} from '../config/port';
 
 type FavoriteOutfit = {id: string; source: 'suggestion' | 'custom'};
-
-const LOCAL_IP = '192.168.0.106';
-const PORT = 3001;
 
 const BASE_URL =
   Platform.OS === 'android'

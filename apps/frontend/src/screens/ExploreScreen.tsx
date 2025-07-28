@@ -36,10 +36,16 @@ const ITEM_MARGIN = 10.3;
 const MIN_ITEM_WIDTH = 175;
 const screenWidth = Dimensions.get('window').width;
 
-const numColumns =
-  Math.floor(screenWidth / (MIN_ITEM_WIDTH + ITEM_MARGIN * 2)) || 1;
-const imageSize =
-  (screenWidth - ITEM_MARGIN * (numColumns * 2 + 1)) / numColumns;
+// const numColumns =
+//   Math.floor(screenWidth / (MIN_ITEM_WIDTH + ITEM_MARGIN * 2)) || 1;
+// const imageSize =
+//   (screenWidth - ITEM_MARGIN * (numColumns * 2 + 1)) / numColumns;
+
+const numColumns = Math.max(
+  2,
+  Math.floor(screenWidth / (MIN_ITEM_WIDTH + ITEM_MARGIN * 2)),
+);
+const imageSize = (screenWidth - ITEM_MARGIN * 3) / 2; // Always 2 per row
 
 const featuredLooks = [
   {
@@ -158,18 +164,35 @@ export default function ExploreScreen() {
       color: '#666',
       marginBottom: 6,
     },
+    // gridContainer: {
+    //   flexDirection: 'row',
+    //   flexWrap: 'wrap',
+    //   justifyContent: 'space-between',
+    // },
+    // gridCard: {
+    //   width: imageSize,
+    //   marginBottom: ITEM_MARGIN * 1.0,
+    //   borderRadius: tokens.borderRadius.md,
+    //   backgroundColor: theme.colors.surface,
+    //   overflow: 'hidden',
+    // },
     gridContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
+      paddingHorizontal: ITEM_MARGIN,
+      width: '100%',
+      alignSelf: 'center',
     },
     gridCard: {
       width: imageSize,
-      marginBottom: ITEM_MARGIN * 1.0,
+      marginBottom: ITEM_MARGIN,
+      marginRight: ITEM_MARGIN,
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
     },
+
     gridImage: {
       width: '100%',
       height: imageSize,

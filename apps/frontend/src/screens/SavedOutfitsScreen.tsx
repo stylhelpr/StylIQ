@@ -447,6 +447,7 @@ export default function SavedOutfitsScreen() {
   return (
     <View
       style={[
+        globalStyles.screen,
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>

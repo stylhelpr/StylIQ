@@ -9,14 +9,13 @@ import React, {
 import axios from 'axios';
 import {Platform} from 'react-native';
 import {getAccessToken} from '../utils/auth';
-
-const LOCAL_IP = '192.168.0.106'; // ⚠️ Ensure this matches your machine's local IP
-const LOCAL_PORT = 3001;
+import {LOCAL_IP} from '../config/localIP';
+import {PORT} from '../config/port';
 
 const API_BASE_URL =
   Platform.OS === 'ios'
-    ? `http://${LOCAL_IP}:${LOCAL_PORT}`
-    : `http://10.0.2.2:${LOCAL_PORT}`;
+    ? `http://${LOCAL_IP}:${PORT}`
+    : `http://10.0.2.2:${PORT}`;
 
 const UUIDContext = createContext<string | null>(null);
 

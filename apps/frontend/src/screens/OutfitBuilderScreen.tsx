@@ -17,6 +17,8 @@ import {API_BASE_URL} from '../config/api';
 import {useQuery} from '@tanstack/react-query';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import {LOCAL_IP} from '../config/localIP';
+import {PORT} from '../config/port';
 
 type WardrobeItem = {
   id: string;
@@ -31,8 +33,6 @@ type Props = {
 };
 
 export default function OutfitBuilderScreen({navigate}: Props) {
-  const LOCAL_IP = '192.168.0.106';
-  const PORT = 3001;
   const userId = useUUID();
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();

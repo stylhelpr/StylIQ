@@ -20,6 +20,8 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import type {Screen} from '../navigation/types';
 import {Dimensions} from 'react-native';
+import {LOCAL_IP} from '../config/localIP';
+import {PORT} from '../config/port';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -146,8 +148,6 @@ const profileImages = [
 ];
 
 export default function ProfileScreen({navigate}: Props) {
-  const LOCAL_IP = '192.168.0.106';
-  const PORT = 3001;
   const BASE_URL = `${API_BASE_URL}/wardrobe`;
 
   const userId = useUUID();

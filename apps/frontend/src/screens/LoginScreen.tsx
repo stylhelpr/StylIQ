@@ -171,7 +171,8 @@ export default function LoginScreen({
       const [first_name, ...lastParts] = name?.split(' ') || ['User'];
       const last_name = lastParts.join(' ');
 
-      const response = await fetch('http://192.168.0.106:3001/api/users/sync', {
+      // const response = await fetch('http://192.168.0.106:3001/api/users/sync', {
+      const response = await fetch('http://192.168.1.55:3001/api/users/sync', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({

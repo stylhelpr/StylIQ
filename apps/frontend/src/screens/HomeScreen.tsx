@@ -28,6 +28,8 @@ import Video from 'react-native-video';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import GlassCard from '../components/GlassCard/GlassCard';
+import {LOCAL_IP} from '../config/localIP';
+import {PORT} from '../config/port';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -206,8 +208,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
   const [firstName, setFirstName] = useState('');
 
-  const LOCAL_IP = '192.168.0.106';
-  const PORT = 3001;
   const BASE_URL = `${API_BASE_URL}/wardrobe`;
 
   useEffect(() => {

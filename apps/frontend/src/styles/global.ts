@@ -8,6 +8,10 @@ const isTablet = screenWidth >= 768;
 
 const responsivePadding = isTablet ? 38 : 20;
 const sectionMarginBottom = isTablet ? 32 : 26;
+const image1Width = isTablet ? 270 : 165;
+const image1Height = isTablet ? 150 : 95;
+const image2Width = isTablet ? 270 : 165;
+const image2Height = isTablet ? 150 : 95;
 const image4Size = isTablet ? 160 : 110;
 const ouftiCardSize = isTablet ? 164 : 110;
 
@@ -19,7 +23,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     container: {
       paddingTop: 20,
-      // paddingBottom: 60,
+      paddingBottom: 60,
       width: '100%',
       alignSelf: 'center',
       flexGrow: 1,
@@ -350,35 +354,35 @@ export const createGlobalStyles = (theme: Theme) =>
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 3,
     },
-    // buttonPrimary: {
-    //   width: '90%',
-    //   maxWidth: 160,
-    //   backgroundColor: theme.colors.button1,
-    //   borderRadius: tokens.borderRadius.sm,
-    //   paddingVertical: 9,
-    //   alignItems: 'center',
-    //   justifyContent: 'center',
-    //   shadowColor: '#000',
-    //   shadowOffset: {width: 0, height: 1},
-    //   shadowOpacity: 0.1,
-    //   shadowRadius: 4,
-    //   elevation: 2,
-    // },
     buttonPrimary: {
       width: '90%',
-      maxWidth: 150,
-      backgroundColor: 'transparent',
+      maxWidth: 160,
+      backgroundColor: theme.colors.button1,
+      borderRadius: tokens.borderRadius.sm,
       paddingVertical: 9,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowOffset: {width: 0, height: 6},
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 1},
       shadowOpacity: 0.1,
-      shadowRadius: 12,
-      elevation: 5,
-      borderColor: theme.colors.button1,
-      borderRadius: 50,
-      borderWidth: 2,
+      shadowRadius: 4,
+      elevation: 2,
     },
+    // buttonPrimary: {
+    //   width: '90%',
+    //   maxWidth: 150,
+    //   backgroundColor: 'transparent',
+    //   paddingVertical: 9,
+    //   alignItems: 'center',
+    //   justifyContent: 'center',
+    //   shadowOffset: {width: 0, height: 6},
+    //   shadowOpacity: 0.1,
+    //   shadowRadius: 12,
+    //   elevation: 5,
+    //   borderColor: theme.colors.button1,
+    //   borderRadius: 50,
+    //   borderWidth: 2,
+    // },
     buttonPrimaryText: {
       fontSize: 15,
       fontWeight: '500',
@@ -429,8 +433,8 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: '#eee',
     },
     image2: {
-      width: 165,
-      height: 95,
+      width: image2Width,
+      height: image2Height,
       borderTopLeftRadius: 12,
       borderTopRightRadius: 12,
       backgroundColor: theme.colors.surface,

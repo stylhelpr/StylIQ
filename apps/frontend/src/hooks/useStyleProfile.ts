@@ -1,9 +1,8 @@
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import axios from 'axios';
 import {Platform} from 'react-native';
-
-const LOCAL_IP = '192.168.0.106';
-const PORT = 3001;
+import {LOCAL_IP} from '../config/localIP';
+import {PORT} from '../config/port';
 
 const BASE_URL =
   Platform.OS === 'android'

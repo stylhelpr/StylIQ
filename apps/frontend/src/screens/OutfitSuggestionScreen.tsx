@@ -371,7 +371,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     <View
       style={[
         globalStyles.container,
-        {backgroundColor: theme.colors.background},
+        globalStyles.screen,
+        {backgroundColor: theme.colors.background, paddingBottom: 60},
       ]}>
       <View style={globalStyles.sectionTitle}>
         <Text
@@ -382,7 +383,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           Explore
         </Text>
 
-        <View style={[globalStyles.section, {paddingBottom: 100}]}>
+        <View style={[globalStyles.section]}>
           <View style={globalStyles.centeredSection}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
               {/* Prompt input with mic */}
@@ -463,7 +464,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   width: '100%',
                   maxWidth: 400,
                   alignSelf: 'center',
-                  marginTop: 12,
+                  marginTop: 2,
                 }}>
                 <TouchableOpacity
                   style={[globalStyles.buttonPrimary, {width: 120}]}
