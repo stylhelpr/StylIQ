@@ -34,7 +34,6 @@ AI-powered personal stylist and wardrobe assistant.
 ✅ MVP structure complete  
 ✅ Voice + wardrobe flow built  
 🚧 AI + onboarding logic in progress  
-🚀 Submitted to GitHub for Startups
 
 ## 👤 Contact
 
