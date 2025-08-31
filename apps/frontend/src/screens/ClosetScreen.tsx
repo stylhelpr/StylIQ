@@ -760,7 +760,7 @@ export default function ClosetScreen({navigate}: Props) {
     Dimensions.get('window').width,
   );
 
-  const LOCAL_IP = '192.168.0.106';
+  const LOCAL_IP = '192.168.0.81';
   const PORT = 3001;
   const BASE_URL = `${API_BASE_URL}/wardrobe`;
 
