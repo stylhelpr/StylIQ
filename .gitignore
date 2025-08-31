@@ -78,6 +78,7 @@ buck-out/
 apps/backend-nest/*.json
 
 google-service.json
+stylhelpr-prod-12ff0cbcc3ed.json
 *.key
 *.pem
 *.p12

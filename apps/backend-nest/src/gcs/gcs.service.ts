@@ -8,12 +8,15 @@ export class GCSService {
 
   constructor() {
     this.storage = new Storage({
-      keyFilename: path.resolve(process.cwd(), 'google-service.json'),
+      keyFilename: path.resolve(
+        process.cwd(),
+        'stylhelpr-prod-12ff0cbcc3ed.json',
+      ),
     });
   }
 
   async generateSignedUploadUrl(fileName: string, contentType: string) {
-    const bucketName = 'stylhelpr-dev-bucket';
+    const bucketName = 'stylhelpr-prod-bucket';
     const bucket = this.storage.bucket(bucketName);
     const file = bucket.file(fileName);
 

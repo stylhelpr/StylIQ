@@ -12,7 +12,7 @@ const pool = new Pool({
 @Injectable()
 export class UploadService {
   private storage = new Storage();
-  private bucketName = 'stylhelpr-dev-bucket';
+  private bucketName = 'stylhelpr-prod-bucket';
 
   async generatePresignedUrl(userId: string, originalFilename: string) {
     const folderPrefix = userId.slice(0, 2);
