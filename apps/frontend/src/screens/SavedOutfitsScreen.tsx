@@ -40,7 +40,6 @@ const CLOSET_KEY = 'savedOutfits';
 const FAVORITES_KEY = 'favoriteOutfits';
 
 export default function SavedOutfitsScreen() {
-  const PORT = 3001;
   const userId = useUUID();
 
   if (!userId) return null;

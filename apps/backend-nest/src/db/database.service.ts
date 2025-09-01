@@ -1,5 +1,4 @@
 // src/db/database.service.ts
-
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 
@@ -22,8 +21,6 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
           rejectUnauthorized: false,
         },
       });
-
-      // Test the connection
       await this.pool.query('SELECT 1');
       console.log('✅ PostgreSQL connection established.');
     } catch (err) {

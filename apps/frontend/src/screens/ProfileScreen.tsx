@@ -20,8 +20,6 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import type {Screen} from '../navigation/types';
 import {Dimensions} from 'react-native';
-import {LOCAL_IP} from '../config/localIP';
-import {PORT} from '../config/port';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -148,8 +146,6 @@ const profileImages = [
 ];
 
 export default function ProfileScreen({navigate}: Props) {
-  const BASE_URL = `${API_BASE_URL}/wardrobe`;
-
   const userId = useUUID();
 
   const {theme} = useAppTheme();
@@ -160,16 +156,6 @@ export default function ProfileScreen({navigate}: Props) {
   const favoriteBrands = styleProfile?.preferred_brands || [];
   const styleTags = styleProfile?.style_keywords || [];
   console.log('📦 styleProfile:', styleProfile);
-
-  // const {data: userProfile} = useQuery({
-  //   enabled: !!userId,
-  //   queryKey: ['userProfile', userId],
-  //   queryFn: async () => {
-  //     const res = await fetch(`${API_BASE_URL}/users/${userId}`);
-  //     if (!res.ok) throw new Error('Failed to fetch user profile');
-  //     return res.json();
-  //   },
-  // });
 
   const {data: userProfile} = useQuery<UserProfile>({
     enabled: !!userId,

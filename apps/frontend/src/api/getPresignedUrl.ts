@@ -1,18 +1,13 @@
 // apps/frontend/api/getPresignedUrl.ts
-
 import axios from 'axios';
-import {Platform} from 'react-native';
-import {LOCAL_IP} from '../config/localIP';
-import {PORT} from '../config/port';
+import {API_BASE_URL} from '../config/api';
 
-const BASE_URL =
-  Platform.OS === 'android'
-    ? `http://10.0.2.2:${PORT}/api/upload`
-    : `http://${LOCAL_IP}:${PORT}/api/upload`;
-
-// ✅ No contentType passed, matches backend
 export const getPresignedUrl = async (userId: string, filename: string) => {
-  const response = await axios.get(`${BASE_URL}/presign`, {
+  if (!userId || !/^[0-9a-fA-F\-]{36}$/.test(userId)) {
+    throw new Error(`❌ Invalid or missing UUID: ${userId}`);
+  }
+
+  const response = await axios.get(`${API_BASE_URL}/upload/presign`, {
     params: {
       userId,
       filename,
@@ -21,6 +16,32 @@ export const getPresignedUrl = async (userId: string, filename: string) => {
 
   return response.data;
 };
+
+/////////////
+
+// // apps/frontend/api/getPresignedUrl.ts
+
+// import axios from 'axios';
+// import {Platform} from 'react-native';
+// import {LOCAL_IP} from '../config/localIP';
+// import {PORT} from '../config/port';
+
+// const BASE_URL =
+//   Platform.OS === 'android'
+//     ? `http://10.0.2.2:${PORT}/api/upload`
+//     : `http://${LOCAL_IP}:${PORT}/api/upload`;
+
+// // ✅ No contentType passed, matches backend
+// export const getPresignedUrl = async (userId: string, filename: string) => {
+//   const response = await axios.get(`${BASE_URL}/presign`, {
+//     params: {
+//       userId,
+//       filename,
+//     },
+//   });
+
+//   return response.data;
+// };
 
 /////////
 
