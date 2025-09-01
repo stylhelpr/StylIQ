@@ -12,6 +12,10 @@
     "dev": "concurrently \"npm run backend\" \"cd apps/frontend && npm run start\" \"cd apps/frontend && npm run ios\""
   },
   "dependencies": {
+    "@google-cloud/pubsub": "^5.2.0",
+    "@google-cloud/storage": "^7.17.0",
+    "@google-cloud/vertexai": "^1.10.0",
+    "@pinecone-database/pinecone": "^6.1.2",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-camera-roll/camera-roll": "^7.10.0",
     "@react-native-community/blur": "^4.4.1",
