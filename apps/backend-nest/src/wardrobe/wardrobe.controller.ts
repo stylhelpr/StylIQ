@@ -63,6 +63,20 @@ export class WardrobeController {
   ) {
     return this.service.searchHybrid(b.user_id, b.q, b.gcs_uri, b.topK);
   }
+
+  // -------------------
+  // GENERATE OUTFITS (AI Stylist)
+  // -------------------
+  @Post('outfits')
+  generateOutfits(
+    @Body() body: { user_id: string; query: string; topK?: number },
+  ) {
+    return this.service.generateOutfits(
+      body.user_id,
+      body.query,
+      body.topK || 5,
+    );
+  }
 }
 
 /////////////////

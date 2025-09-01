@@ -212,6 +212,42 @@ export class WardrobeService {
     const parts = url.split('/');
     return decodeURIComponent(parts[parts.length - 1].split('?')[0]);
   }
+
+  async generateOutfits(userId: string, query: string, topK: number) {
+    try {
+      // 1. Get wardrobe matches from Pinecone
+      const queryVec = await this.vertex.embedText(query);
+      const matches = await queryUserNs({
+        userId,
+        vector: queryVec,
+        topK,
+      });
+
+      // 2. Build a simple prompt for Gemini-2.5-Flash
+      const wardrobeItems = matches
+        .map((m) => m.metadata?.name || '')
+        .join(', ');
+      const prompt = `
+      You are a world-class fashion stylist. 
+      Based on these wardrobe items: ${wardrobeItems}
+      and the request: "${query}"
+      suggest 2-3 complete outfits.
+      Respond with JSON like:
+      [
+        { "title": "Smart Casual Evening", "items": ["White Oxford Shirt", "Navy Trousers", "Loafers"], "reasoning": "Balanced look for warm LA evenings" },
+        ...
+      ]
+    `;
+
+      // 3. Call Gemini-2.5-Flash
+      const response = await this.vertex.generateOutfits(prompt);
+
+      return { outfits: response };
+    } catch (err: any) {
+      console.error('❌ Error in generateOutfits:', err.message, err.stack);
+      throw err;
+    }
+  }
 }
 
 ///////////////
