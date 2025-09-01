@@ -9,7 +9,6 @@ import { StyleProfileModule } from './style-profile/style.profile.module';
 import { OutfitModule } from './outfit/outfit.module';
 import { AiModule } from './ai/ai.module';
 import { UploadModule } from './upload/upload.module';
-import { PineconeModule } from './pinecone/pinecone.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CustomOutfitModule } from './custom-outfit/custom-outfit.module';
 import { ScheduledOutfitModule } from './scheduled-outfit/scheduled-outfit.module';
@@ -32,7 +31,6 @@ import { AppService } from './app.service';
     OutfitModule,
     AiModule,
     UploadModule,
-    PineconeModule,
     NotificationsModule,
     CustomOutfitModule,
     ScheduledOutfitModule,
