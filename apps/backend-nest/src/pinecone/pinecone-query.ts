@@ -1,7 +1,17 @@
 import { index } from './pineconeUtils';
 
+// Allow optional metadata filters (e.g., category = "Shoes")
 export type PCFilter = Record<string, any>;
 
+/**
+ * Query Pinecone for a single vector (text OR image) in a user's namespace.
+ *
+ * @param params.userId - UUID of the user (namespace in Pinecone)
+ * @param params.vector - embedding vector to search against
+ * @param params.topK - how many matches to return (default: 20)
+ * @param params.filter - optional metadata filter (e.g., { color: "navy" })
+ * @param params.includeMetadata - whether to return item metadata (default: true)
+ */
 export async function queryUserNs(params: {
   userId: string;
   vector: number[];
@@ -10,8 +20,11 @@ export async function queryUserNs(params: {
   includeMetadata?: boolean;
 }) {
   const { userId, vector, topK = 20, filter, includeMetadata = true } = params;
+
+  // Each user gets their own namespace in Pinecone so items don't overlap
   const ns = index.namespace(userId);
 
+  // Run Pinecone query
   const res = await ns.query({
     vector,
     topK,
@@ -19,9 +32,17 @@ export async function queryUserNs(params: {
     includeMetadata,
   });
 
+  // Always return an array (avoid null/undefined)
   return res.matches || [];
 }
 
+/**
+ * Hybrid query: runs both imageVec and textVec against Pinecone
+ * and combines the results using Reciprocal Rank Fusion (RRF).
+ *
+ * This way, if you pass both text ("white shirt") and image (shirt photo),
+ * you get results ranked by both signals.
+ */
 export async function hybridQueryUserNs(params: {
   userId: string;
   imageVec?: number[];
@@ -30,10 +51,12 @@ export async function hybridQueryUserNs(params: {
   filter?: PCFilter;
 }) {
   const { userId, imageVec, textVec, topK = 20, filter } = params;
+
   if (!imageVec && !textVec) throw new Error('Need at least one vector');
 
   const ns = index.namespace(userId);
 
+  // Run both queries in parallel
   const [imageRes, textRes] = await Promise.all([
     imageVec
       ? ns.query({ vector: imageVec, topK, filter, includeMetadata: true })
@@ -43,9 +66,14 @@ export async function hybridQueryUserNs(params: {
       : Promise.resolve({ matches: [] }),
   ]);
 
+  // Fuse results: key = item.id, score = combined rank score
   const fuse: Record<string, { score: number; meta?: any }> = {};
-  const rrf = (rank: number) => 1 / (60 + rank); // reciprocal-rank fusion
 
+  // Reciprocal Rank Fusion scoring function
+  // Lower rank (better match) → higher contribution
+  const rrf = (rank: number) => 1 / (60 + rank);
+
+  // Merge results from both queries
   [imageRes.matches || [], textRes.matches || []].forEach((list) => {
     list.forEach((m, i) => {
       const key = m.id!;
@@ -54,13 +82,14 @@ export async function hybridQueryUserNs(params: {
     });
   });
 
+  // Sort by fused score, return topK matches
   return Object.entries(fuse)
     .sort((a, b) => b[1].score - a[1].score)
     .slice(0, topK)
     .map(([id, v]) => ({ id, score: v.score, metadata: v.meta }));
 }
 
-///////////////
+//////////////////////
 
 // import { index } from './pineconeUtils';
 
@@ -75,7 +104,14 @@ export async function hybridQueryUserNs(params: {
 // }) {
 //   const { userId, vector, topK = 20, filter, includeMetadata = true } = params;
 //   const ns = index.namespace(userId);
-//   const res = await ns.query({ vector, topK, filter, includeMetadata });
+
+//   const res = await ns.query({
+//     vector,
+//     topK,
+//     filter,
+//     includeMetadata,
+//   });
+
 //   return res.matches || [];
 // }
 
@@ -90,6 +126,7 @@ export async function hybridQueryUserNs(params: {
 //   if (!imageVec && !textVec) throw new Error('Need at least one vector');
 
 //   const ns = index.namespace(userId);
+
 //   const [imageRes, textRes] = await Promise.all([
 //     imageVec
 //       ? ns.query({ vector: imageVec, topK, filter, includeMetadata: true })
@@ -100,7 +137,7 @@ export async function hybridQueryUserNs(params: {
 //   ]);
 
 //   const fuse: Record<string, { score: number; meta?: any }> = {};
-//   const rrf = (rank: number) => 1 / (60 + rank);
+//   const rrf = (rank: number) => 1 / (60 + rank); // reciprocal-rank fusion
 
 //   [imageRes.matches || [], textRes.matches || []].forEach((list) => {
 //     list.forEach((m, i) => {
@@ -114,47 +151,4 @@ export async function hybridQueryUserNs(params: {
 //     .sort((a, b) => b[1].score - a[1].score)
 //     .slice(0, topK)
 //     .map(([id, v]) => ({ id, score: v.score, metadata: v.meta }));
-// }
-
-///////////////
-
-// // apps/backend-nest/src/pinecone/query.ts
-// import { index } from './pineconeUtils';
-
-// /**
-//  * Query items for a specific user namespace
-//  */
-// export async function queryUserNs(userId: string, queryVec: number[]) {
-//   const ns = index.namespace(userId);
-
-//   const res = await ns.query({
-//     topK: 20,
-//     vector: queryVec,
-//     filter: {
-//       // example filters — adjust to your metadata schema
-//       dressCode: { $in: ['smart casual'] },
-//       season: { $in: ['summer'] },
-//     },
-//     includeMetadata: true,
-//   });
-
-//   return res.matches;
-// }
-
-// /**
-//  * Query shared index with userId filter
-//  */
-// export async function queryShared(userId: string, queryVec: number[]) {
-//   const res = await index.query({
-//     topK: 20,
-//     vector: queryVec,
-//     filter: {
-//       userId, // only return this user's items
-//       dressCode: { $in: ['smart casual'] },
-//       season: { $in: ['summer'] },
-//     },
-//     includeMetadata: true,
-//   });
-
-//   return res.matches;
 // }

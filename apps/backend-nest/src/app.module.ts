@@ -24,7 +24,7 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    AuthModule, // ✅ REQUIRED for /auth/profile route to exist
+    AuthModule,
     UsersModule,
     WardrobeModule,
     StyleProfileModule,
