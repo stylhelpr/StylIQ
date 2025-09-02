@@ -14,6 +14,26 @@ export async function postWardrobeItem({
   size,
   brand,
   tags,
+  pattern,
+  pattern_scale,
+  seasonality,
+  layering,
+  dominant_hex,
+  palette_hex,
+  color_family,
+  thermal_rating,
+  breathability,
+  rain_ok,
+  wind_ok,
+  size_system,
+  measurements,
+  care_symbols,
+  wash_temp_c,
+  dry_clean,
+  iron_ok,
+  wear_count,
+  last_worn_at,
+  rotation_priority,
 }: {
   userId: string;
   image_url: string;
@@ -28,6 +48,26 @@ export async function postWardrobeItem({
   size?: string;
   brand?: string;
   tags: string[];
+  pattern?: string;
+  pattern_scale?: number;
+  seasonality?: string;
+  layering?: string;
+  dominant_hex?: string;
+  palette_hex?: string[];
+  color_family?: string;
+  thermal_rating?: number;
+  breathability?: number;
+  rain_ok?: boolean;
+  wind_ok?: boolean;
+  size_system?: string;
+  measurements?: Record<string, any>;
+  care_symbols?: string[];
+  wash_temp_c?: number;
+  dry_clean?: boolean;
+  iron_ok?: boolean;
+  wear_count?: number;
+  last_worn_at?: string;
+  rotation_priority?: number;
 }) {
   const payload = {
     user_id: userId,
@@ -42,10 +82,30 @@ export async function postWardrobeItem({
     fit: fit ?? null,
     size: size ?? null,
     brand: brand ?? null,
+    tags,
+    pattern: pattern?.toUpperCase(),
+    pattern_scale: pattern_scale ?? null,
+    seasonality: seasonality?.toUpperCase(),
+    layering: layering?.toUpperCase(),
+    dominant_hex: dominant_hex ?? null,
+    palette_hex: palette_hex ?? null,
+    color_family: color_family ?? null,
+    thermal_rating: thermal_rating ?? null,
+    breathability: breathability ?? null,
+    rain_ok: rain_ok ?? null,
+    wind_ok: wind_ok ?? null,
+    size_system: size_system ?? null,
+    measurements: measurements ?? null,
+    care_symbols: care_symbols ?? null,
+    wash_temp_c: wash_temp_c ?? null,
+    dry_clean: dry_clean ?? null,
+    iron_ok: iron_ok ?? null,
+    wear_count: wear_count ?? null,
+    last_worn_at: last_worn_at ?? null,
+    rotation_priority: rotation_priority ?? null,
     metadata: {},
     width: null,
     height: null,
-    tags,
   };
 
   const r = await fetch(`${API_BASE_URL}/wardrobe`, {
@@ -53,9 +113,71 @@ export async function postWardrobeItem({
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload),
   });
+
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
+
+///////////////
+
+// import {API_BASE_URL} from '../config/api';
+
+// export async function postWardrobeItem({
+//   userId,
+//   image_url,
+//   objectKey,
+//   gsutilUri,
+//   name,
+//   category,
+//   color,
+//   subcategory,
+//   material,
+//   fit,
+//   size,
+//   brand,
+//   tags,
+// }: {
+//   userId: string;
+//   image_url: string;
+//   objectKey: string;
+//   gsutilUri: string;
+//   name: string;
+//   category: string;
+//   color: string;
+//   subcategory?: string;
+//   material?: string;
+//   fit?: string;
+//   size?: string;
+//   brand?: string;
+//   tags: string[];
+// }) {
+//   const payload = {
+//     user_id: userId,
+//     image_url,
+//     object_key: objectKey,
+//     gsutil_uri: gsutilUri,
+//     name,
+//     main_category: category,
+//     subcategory: subcategory ?? null,
+//     color,
+//     material: material ?? null,
+//     fit: fit ?? null,
+//     size: size ?? null,
+//     brand: brand ?? null,
+//     metadata: {},
+//     width: null,
+//     height: null,
+//     tags,
+//   };
+
+//   const r = await fetch(`${API_BASE_URL}/wardrobe`, {
+//     method: 'POST',
+//     headers: {'Content-Type': 'application/json'},
+//     body: JSON.stringify(payload),
+//   });
+//   if (!r.ok) throw new Error(await r.text());
+//   return r.json();
+// }
 
 //////////////
 
