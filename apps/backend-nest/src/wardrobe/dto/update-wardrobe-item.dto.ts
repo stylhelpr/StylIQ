@@ -11,4 +11,5 @@ export class UpdateWardrobeItemDto {
   width?: number;
   height?: number;
   tags?: string[];
+  gsutil_uri?: string; // 👈 add this
 }

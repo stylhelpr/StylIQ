@@ -2,7 +2,11 @@
 import axios from 'axios';
 import {API_BASE_URL} from '../config/api';
 
-export const getPresignedUrl = async (userId: string, filename: string) => {
+export const getPresignedUrl = async (
+  userId: string,
+  filename: string,
+  contentType: string, // 👈 pass through the MIME
+) => {
   if (!userId || !/^[0-9a-fA-F\-]{36}$/.test(userId)) {
     throw new Error(`❌ Invalid or missing UUID: ${userId}`);
   }
@@ -11,11 +15,33 @@ export const getPresignedUrl = async (userId: string, filename: string) => {
     params: {
       userId,
       filename,
+      contentType, // 👈 send to backend
     },
   });
 
   return response.data;
 };
+
+///////////////
+
+// // apps/frontend/api/getPresignedUrl.ts
+// import axios from 'axios';
+// import {API_BASE_URL} from '../config/api';
+
+// export const getPresignedUrl = async (userId: string, filename: string) => {
+//   if (!userId || !/^[0-9a-fA-F\-]{36}$/.test(userId)) {
+//     throw new Error(`❌ Invalid or missing UUID: ${userId}`);
+//   }
+
+//   const response = await axios.get(`${API_BASE_URL}/upload/presign`, {
+//     params: {
+//       userId,
+//       filename,
+//     },
+//   });
+
+//   return response.data;
+// };
 
 /////////////
 

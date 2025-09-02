@@ -10,6 +10,7 @@ export type WardrobeItem = {
   fit: string;
   color: string;
   size: string;
+  brand: string; // ✅ NEW
   notes: string;
   tags?: string[];
   favorite?: boolean;
