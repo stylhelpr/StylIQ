@@ -1,7 +1,6 @@
 // postWardrobeItem.ts
 import {API_BASE_URL} from '../config/api';
 
-// Legacy numeric -> new text enum mapping (only if a number is still passed)
 const patternScaleNumToText = (v?: number) =>
   v === undefined || v === null
     ? undefined
@@ -12,14 +11,24 @@ const patternScaleNumToText = (v?: number) =>
     : 'bold';
 
 type CreateArgs = {
-  userId: string;
+  // accept both camel & snake from callers
+  userId?: string;
+  user_id?: string;
+
   image_url: string;
+
   objectKey?: string;
-  gsutilUri: string;
+  object_key?: string;
+
+  gsutilUri?: string;
+  gsutil_uri?: string;
+
   name?: string;
 
-  // old names you already had
-  category: string; // -> main_category
+  // category name can arrive as either of these
+  category?: string; // <- old/camel
+  main_category?: string; // <- your screen sends this
+
   subcategory?: string;
   color?: string;
   material?: string;
@@ -28,8 +37,7 @@ type CreateArgs = {
   brand?: string;
   tags?: string[];
 
-  // visuals
-  pattern?: string; // you were uppercasing this
+  pattern?: string;
   pattern_scale?: number | 'subtle' | 'medium' | 'bold';
   seasonality?: string; // SS/FW/ALL_SEASON
   layering?: string; // BASE/MID/SHELL/ACCENT
@@ -39,7 +47,6 @@ type CreateArgs = {
   color_temp?: 'Warm' | 'Cool' | 'Neutral';
   contrast_profile?: 'Low' | 'Medium' | 'High';
 
-  // climate
   thermal_rating?: number;
   breathability?: number;
   rain_ok?: boolean;
@@ -48,28 +55,24 @@ type CreateArgs = {
   climate_sweetspot_f_min?: number;
   climate_sweetspot_f_max?: number;
 
-  // sizing
   size_system?: 'US' | 'EU' | 'UK' | 'alpha' | string;
   measurements?: Record<string, number>;
   size_label?: string;
   width?: number | null;
   height?: number | null;
 
-  // care
   care_symbols?: string[];
   wash_temp_c?: number;
   dry_clean?: boolean;
   iron_ok?: boolean;
 
-  // usage
   wear_count?: number;
-  last_worn_at?: string; // ISO8601
-  rotation_priority?: -1 | 0 | 1 | number;
+  last_worn_at?: string;
+  rotation_priority?: number;
 
-  // extras
   seasonality_arr?: string[];
-  constraints?: string[];
-  purchase_date?: string; // ISO8601
+  constraints?: string | string[]; // DB is TEXT
+  purchase_date?: string;
   purchase_price?: number;
   retailer?: string;
   country_of_origin?: string;
@@ -77,17 +80,14 @@ type CreateArgs = {
   defects_notes?: string;
   style_descriptors?: string[];
 
-  // ✅ added
   styleArchetypes?: string[];
   occasionTags?: string[];
 
-  // AI
   ai_title?: string;
   ai_description?: string;
   ai_key_attributes?: string[];
   ai_confidence?: number;
 
-  // pairing & feedback
   goes_with_ids?: string[];
   avoid_with_ids?: string[];
   user_rating?: number;
@@ -99,203 +99,460 @@ type CreateArgs = {
   }[];
   disliked_features?: string[];
 
-  // UI-only tucked into metadata
   notes?: string;
   favorite?: boolean;
 };
 
+const isUuid = (s: any) =>
+  typeof s === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    s,
+  );
+
 export async function postWardrobeItem(args: CreateArgs) {
-  const {
-    userId,
-    image_url,
-    objectKey,
-    gsutilUri,
-    name,
+  // ---- Compat shims
+  const user_id = args.userId ?? args.user_id;
+  const object_key = args.objectKey ?? args.object_key;
+  const gsutil_uri = args.gsutilUri ?? args.gsutil_uri;
+  const main_category = args.main_category ?? args.category; // <-- FIX
 
-    category,
-    subcategory,
-    color,
-    material,
-    fit,
-    size,
-    brand,
-    tags,
+  if (!isUuid(user_id)) {
+    throw new Error('Missing or invalid user_id; cannot create wardrobe item.');
+  }
+  if (!main_category || !String(main_category).trim()) {
+    throw new Error('Missing main_category (category) — it is required.');
+  }
 
-    pattern,
-    pattern_scale,
-    seasonality,
-    layering,
-    dominant_hex,
-    palette_hex,
-    color_family,
-    color_temp,
-    contrast_profile,
-
-    thermal_rating,
-    breathability,
-    rain_ok,
-    wind_ok,
-    waterproof_rating,
-    climate_sweetspot_f_min,
-    climate_sweetspot_f_max,
-
-    size_system,
-    measurements,
-    size_label,
-    width,
-    height,
-
-    care_symbols,
-    wash_temp_c,
-    dry_clean,
-    iron_ok,
-
-    wear_count,
-    last_worn_at,
-    rotation_priority,
-
-    seasonality_arr,
-    constraints,
-    purchase_date,
-    purchase_price,
-    retailer,
-    country_of_origin,
-    condition,
-    defects_notes,
-    style_descriptors,
-
-    styleArchetypes,
-    occasionTags,
-
-    ai_title,
-    ai_description,
-    ai_key_attributes,
-    ai_confidence,
-
-    goes_with_ids,
-    avoid_with_ids,
-    user_rating,
-    fit_confidence,
-    outfit_feedback,
-    disliked_features,
-
-    notes,
-    favorite,
-  } = args;
-
-  // Normalize as before
-  const normPattern = pattern ? pattern.toUpperCase() : undefined;
-  const normSeasonality = seasonality ? seasonality.toUpperCase() : undefined;
-  const normLayering = layering ? layering.toUpperCase() : undefined;
+  // Normalize like before
+  const normPattern = args.pattern ? args.pattern.toUpperCase() : undefined;
+  const normSeasonality = args.seasonality
+    ? args.seasonality.toUpperCase()
+    : undefined;
+  const normLayering = args.layering ? args.layering.toUpperCase() : undefined;
   const normPatternScale =
-    typeof pattern_scale === 'number'
-      ? patternScaleNumToText(pattern_scale)
-      : pattern_scale;
+    typeof args.pattern_scale === 'number'
+      ? patternScaleNumToText(args.pattern_scale)
+      : args.pattern_scale;
+
+  // DB expects TEXT for constraints
+  const constraintsText =
+    typeof args.constraints === 'string'
+      ? args.constraints
+      : Array.isArray(args.constraints)
+      ? JSON.stringify(args.constraints)
+      : undefined;
 
   const dto: Record<string, any> = {
-    user_id: userId,
-    image_url,
-    gsutil_uri: gsutilUri,
-    object_key: objectKey,
-    name,
+    user_id,
+    image_url: args.image_url,
+    gsutil_uri,
+    object_key,
+    name: args.name,
 
     // base
-    main_category: category,
-    subcategory,
-    color,
-    material,
-    fit,
-    size,
-    brand,
-    tags,
+    main_category, // <-- now always provided
+    subcategory: args.subcategory,
+    color: args.color,
+    material: args.material,
+    fit: args.fit,
+    size: args.size,
+    brand: args.brand,
+    tags: args.tags,
 
     // visuals
     pattern: normPattern,
     pattern_scale: normPatternScale,
     seasonality: normSeasonality,
     layering: normLayering,
-    dominant_hex,
-    palette_hex,
-    color_family,
-    color_temp,
-    contrast_profile,
+    dominant_hex: args.dominant_hex,
+    palette_hex: args.palette_hex,
+    color_family: args.color_family,
+    color_temp: args.color_temp,
+    contrast_profile: args.contrast_profile,
 
     // climate
-    thermal_rating,
-    breathability,
-    rain_ok,
-    wind_ok,
-    waterproof_rating,
-    climate_sweetspot_f_min,
-    climate_sweetspot_f_max,
+    thermal_rating: args.thermal_rating,
+    breathability: args.breathability,
+    rain_ok: args.rain_ok,
+    wind_ok: args.wind_ok,
+    waterproof_rating: args.waterproof_rating,
+    climate_sweetspot_f_min: args.climate_sweetspot_f_min,
+    climate_sweetspot_f_max: args.climate_sweetspot_f_max,
 
     // sizing
-    size_system,
-    measurements,
-    size_label,
-    width: width ?? undefined,
-    height: height ?? undefined,
+    size_system: args.size_system,
+    measurements: args.measurements,
+    size_label: args.size_label,
+    width: args.width ?? undefined,
+    height: args.height ?? undefined,
 
     // care
-    care_symbols,
-    wash_temp_c,
-    dry_clean,
-    iron_ok,
+    care_symbols: args.care_symbols,
+    wash_temp_c: args.wash_temp_c,
+    dry_clean: args.dry_clean,
+    iron_ok: args.iron_ok,
 
     // usage
-    wear_count,
-    last_worn_at,
-    rotation_priority,
+    wear_count: args.wear_count,
+    last_worn_at: args.last_worn_at,
+    rotation_priority: args.rotation_priority,
 
     // extras
-    seasonality_arr,
-    constraints,
-    purchase_date,
-    purchase_price,
-    retailer,
-    country_of_origin,
-    condition,
-    defects_notes,
-    style_descriptors,
+    seasonality_arr: args.seasonality_arr,
+    constraints: constraintsText,
+    purchase_date: args.purchase_date,
+    purchase_price: args.purchase_price,
+    retailer: args.retailer,
+    country_of_origin: args.country_of_origin,
+    condition: args.condition,
+    defects_notes: args.defects_notes,
+    style_descriptors: args.style_descriptors,
 
-    style_archetypes: styleArchetypes,
-    occasion_tags: occasionTags,
+    style_archetypes: args.styleArchetypes,
+    occasion_tags: args.occasionTags,
 
     // AI
-    ai_title,
-    ai_description,
-    ai_key_attributes,
-    ai_confidence,
+    ai_title: args.ai_title,
+    ai_description: args.ai_description,
+    ai_key_attributes: args.ai_key_attributes,
+    ai_confidence: args.ai_confidence,
 
     // pairing & feedback
-    goes_with_ids,
-    avoid_with_ids,
-    user_rating,
-    fit_confidence,
-    outfit_feedback,
-    disliked_features,
+    goes_with_ids: args.goes_with_ids,
+    avoid_with_ids: args.avoid_with_ids,
+    user_rating: args.user_rating,
+    fit_confidence: args.fit_confidence,
+    outfit_feedback: args.outfit_feedback,
+    disliked_features: args.disliked_features,
 
-    // UI-only in metadata
+    // UI-only metadata
     metadata:
-      notes !== undefined || favorite !== undefined
+      args.notes !== undefined || args.favorite !== undefined
         ? {
-            ...(notes !== undefined ? {notes} : {}),
-            ...(favorite !== undefined ? {favorite} : {}),
+            ...(args.notes !== undefined ? {notes: args.notes} : {}),
+            ...(args.favorite !== undefined ? {favorite: args.favorite} : {}),
           }
         : undefined,
   };
 
+  // remove undefineds
   Object.keys(dto).forEach(k => dto[k] === undefined && delete dto[k]);
 
-  const r = await fetch(`${API_BASE_URL}/wardrobe`, {
+  const res = await fetch(`${API_BASE_URL}/wardrobe`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(dto),
   });
 
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(
+      `wardrobe create failed (${res.status}): ${text || res.statusText}`,
+    );
+  }
+  return res.json();
 }
+
+/////////////////
+
+// // postWardrobeItem.ts
+// import {API_BASE_URL} from '../config/api';
+
+// // Legacy numeric -> new text enum mapping (only if a number is still passed)
+// const patternScaleNumToText = (v?: number) =>
+//   v === undefined || v === null
+//     ? undefined
+//     : v <= 0
+//     ? 'subtle'
+//     : v === 1
+//     ? 'medium'
+//     : 'bold';
+
+// type CreateArgs = {
+//   userId: string;
+//   image_url: string;
+//   objectKey?: string;
+//   gsutilUri: string;
+//   name?: string;
+
+//   // old names you already had
+//   category: string; // -> main_category
+//   subcategory?: string;
+//   color?: string;
+//   material?: string;
+//   fit?: string;
+//   size?: string;
+//   brand?: string;
+//   tags?: string[];
+
+//   // visuals
+//   pattern?: string; // you were uppercasing this
+//   pattern_scale?: number | 'subtle' | 'medium' | 'bold';
+//   seasonality?: string; // SS/FW/ALL_SEASON
+//   layering?: string; // BASE/MID/SHELL/ACCENT
+//   dominant_hex?: string;
+//   palette_hex?: string[];
+//   color_family?: string;
+//   color_temp?: 'Warm' | 'Cool' | 'Neutral';
+//   contrast_profile?: 'Low' | 'Medium' | 'High';
+
+//   // climate
+//   thermal_rating?: number;
+//   breathability?: number;
+//   rain_ok?: boolean;
+//   wind_ok?: boolean;
+//   waterproof_rating?: string;
+//   climate_sweetspot_f_min?: number;
+//   climate_sweetspot_f_max?: number;
+
+//   // sizing
+//   size_system?: 'US' | 'EU' | 'UK' | 'alpha' | string;
+//   measurements?: Record<string, number>;
+//   size_label?: string;
+//   width?: number | null;
+//   height?: number | null;
+
+//   // care
+//   care_symbols?: string[];
+//   wash_temp_c?: number;
+//   dry_clean?: boolean;
+//   iron_ok?: boolean;
+
+//   // usage
+//   wear_count?: number;
+//   last_worn_at?: string; // ISO8601
+//   rotation_priority?: -1 | 0 | 1 | number;
+
+//   // extras
+//   seasonality_arr?: string[];
+//   constraints?: string[];
+//   purchase_date?: string; // ISO8601
+//   purchase_price?: number;
+//   retailer?: string;
+//   country_of_origin?: string;
+//   condition?: string;
+//   defects_notes?: string;
+//   style_descriptors?: string[];
+
+//   // ✅ added
+//   styleArchetypes?: string[];
+//   occasionTags?: string[];
+
+//   // AI
+//   ai_title?: string;
+//   ai_description?: string;
+//   ai_key_attributes?: string[];
+//   ai_confidence?: number;
+
+//   // pairing & feedback
+//   goes_with_ids?: string[];
+//   avoid_with_ids?: string[];
+//   user_rating?: number;
+//   fit_confidence?: number;
+//   outfit_feedback?: {
+//     outfit_id: string;
+//     liked: boolean;
+//     reason_codes?: string[];
+//   }[];
+//   disliked_features?: string[];
+
+//   // UI-only tucked into metadata
+//   notes?: string;
+//   favorite?: boolean;
+// };
+
+// export async function postWardrobeItem(args: CreateArgs) {
+//   const {
+//     userId,
+//     image_url,
+//     objectKey,
+//     gsutilUri,
+//     name,
+
+//     category,
+//     subcategory,
+//     color,
+//     material,
+//     fit,
+//     size,
+//     brand,
+//     tags,
+
+//     pattern,
+//     pattern_scale,
+//     seasonality,
+//     layering,
+//     dominant_hex,
+//     palette_hex,
+//     color_family,
+//     color_temp,
+//     contrast_profile,
+
+//     thermal_rating,
+//     breathability,
+//     rain_ok,
+//     wind_ok,
+//     waterproof_rating,
+//     climate_sweetspot_f_min,
+//     climate_sweetspot_f_max,
+
+//     size_system,
+//     measurements,
+//     size_label,
+//     width,
+//     height,
+
+//     care_symbols,
+//     wash_temp_c,
+//     dry_clean,
+//     iron_ok,
+
+//     wear_count,
+//     last_worn_at,
+//     rotation_priority,
+
+//     seasonality_arr,
+//     constraints,
+//     purchase_date,
+//     purchase_price,
+//     retailer,
+//     country_of_origin,
+//     condition,
+//     defects_notes,
+//     style_descriptors,
+
+//     styleArchetypes,
+//     occasionTags,
+
+//     ai_title,
+//     ai_description,
+//     ai_key_attributes,
+//     ai_confidence,
+
+//     goes_with_ids,
+//     avoid_with_ids,
+//     user_rating,
+//     fit_confidence,
+//     outfit_feedback,
+//     disliked_features,
+
+//     notes,
+//     favorite,
+//   } = args;
+
+//   // Normalize as before
+//   const normPattern = pattern ? pattern.toUpperCase() : undefined;
+//   const normSeasonality = seasonality ? seasonality.toUpperCase() : undefined;
+//   const normLayering = layering ? layering.toUpperCase() : undefined;
+//   const normPatternScale =
+//     typeof pattern_scale === 'number'
+//       ? patternScaleNumToText(pattern_scale)
+//       : pattern_scale;
+
+//   const dto: Record<string, any> = {
+//     user_id: userId,
+//     image_url,
+//     gsutil_uri: gsutilUri,
+//     object_key: objectKey,
+//     name,
+
+//     // base
+//     main_category: category,
+//     subcategory,
+//     color,
+//     material,
+//     fit,
+//     size,
+//     brand,
+//     tags,
+
+//     // visuals
+//     pattern: normPattern,
+//     pattern_scale: normPatternScale,
+//     seasonality: normSeasonality,
+//     layering: normLayering,
+//     dominant_hex,
+//     palette_hex,
+//     color_family,
+//     color_temp,
+//     contrast_profile,
+
+//     // climate
+//     thermal_rating,
+//     breathability,
+//     rain_ok,
+//     wind_ok,
+//     waterproof_rating,
+//     climate_sweetspot_f_min,
+//     climate_sweetspot_f_max,
+
+//     // sizing
+//     size_system,
+//     measurements,
+//     size_label,
+//     width: width ?? undefined,
+//     height: height ?? undefined,
+
+//     // care
+//     care_symbols,
+//     wash_temp_c,
+//     dry_clean,
+//     iron_ok,
+
+//     // usage
+//     wear_count,
+//     last_worn_at,
+//     rotation_priority,
+
+//     // extras
+//     seasonality_arr,
+//     constraints,
+//     purchase_date,
+//     purchase_price,
+//     retailer,
+//     country_of_origin,
+//     condition,
+//     defects_notes,
+//     style_descriptors,
+
+//     style_archetypes: styleArchetypes,
+//     occasion_tags: occasionTags,
+
+//     // AI
+//     ai_title,
+//     ai_description,
+//     ai_key_attributes,
+//     ai_confidence,
+
+//     // pairing & feedback
+//     goes_with_ids,
+//     avoid_with_ids,
+//     user_rating,
+//     fit_confidence,
+//     outfit_feedback,
+//     disliked_features,
+
+//     // UI-only in metadata
+//     metadata:
+//       notes !== undefined || favorite !== undefined
+//         ? {
+//             ...(notes !== undefined ? {notes} : {}),
+//             ...(favorite !== undefined ? {favorite} : {}),
+//           }
+//         : undefined,
+//   };
+
+//   Object.keys(dto).forEach(k => dto[k] === undefined && delete dto[k]);
+
+//   const r = await fetch(`${API_BASE_URL}/wardrobe`, {
+//     method: 'POST',
+//     headers: {'Content-Type': 'application/json'},
+//     body: JSON.stringify(dto),
+//   });
+
+//   if (!r.ok) throw new Error(await r.text());
+//   return r.json();
+// }
 
 //////////////////
 
