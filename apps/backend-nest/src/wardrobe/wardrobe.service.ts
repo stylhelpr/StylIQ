@@ -177,14 +177,21 @@ export class WardrobeService {
   // ─────────────────────────────────────────────────────────────────────────────
 
   /** Minimal signals pulled from the natural-language query */
+  // WardrobeService.parseConstraints – add negative flags
   private parseConstraints(q: string) {
     const s = (q || '').toLowerCase();
-
     const want = (w: string | RegExp) =>
       typeof w === 'string' ? s.includes(w) : w.test(s);
 
+    // NEW: simple “no/without/exclude …” helpers
+    const no = (re: RegExp) => re.test(s);
+    const exclLoafers = no(/\b(no|without|exclude|avoid)\s+loafers?\b/);
+    const exclSneakers = no(/\b(no|without|exclude|avoid)\s+sneakers?\b/);
+    const exclBoots = no(/\b(no|without|exclude|avoid)\s+boots?\b/);
+    const exclBrown = no(/\b(no|without|exclude|avoid)\s+brown\b/);
+
     const colorWanted =
-      (want('brown') && 'Brown') ||
+      (want('brown') && !exclBrown && 'Brown') ||
       (want('navy') && 'Navy') ||
       (want('blue') && 'Blue') ||
       (want('black') && 'Black') ||
@@ -197,13 +204,16 @@ export class WardrobeService {
       undefined;
 
     return {
-      wantsLoafers: want('loafer'),
-      wantsSneakers: want('sneaker'),
-      wantsBoots: want('boot'),
+      wantsLoafers: want('loafer') && !exclLoafers,
+      wantsSneakers: want('sneaker') && !exclSneakers,
+      wantsBoots: want('boot') && !exclBoots,
       wantsBlazer: want('blazer') || want('sport coat') || want('sportcoat'),
-
-      colorWanted, // e.g., "Brown", "Blue"
-      dressWanted, // e.g., "BusinessCasual"
+      excludeLoafers: exclLoafers,
+      excludeSneakers: exclSneakers,
+      excludeBoots: exclBoots,
+      excludeBrown: exclBrown,
+      colorWanted,
+      dressWanted,
       wantsBrown: colorWanted === 'Brown',
     };
   }
@@ -215,13 +225,13 @@ export class WardrobeService {
   /** Simple numeric score; higher sorts earlier */
   // keep your CatalogItem type from earlier reply
 
+  // WardrobeService.scoreItemForConstraints – penalize excluded things
   private scoreItemForConstraints(
     item: CatalogItem,
     c: ReturnType<WardrobeService['parseConstraints']>,
     baseBias: number,
   ) {
     let score = baseBias;
-
     const cat = this.text(item.main_category);
     const sub = this.text(item.subcategory);
     const shoe = this.text(item.shoe_style);
@@ -231,7 +241,15 @@ export class WardrobeService {
     ).toLowerCase();
     const f = Number(item.formality_score ?? NaN);
 
-    // Shoes intent
+    // Exclusions first
+    if (c.excludeLoafers && (sub === 'Loafers' || shoe === 'Loafer'))
+      score -= 50;
+    if (c.excludeSneakers && (sub === 'Sneakers' || shoe === 'Sneaker'))
+      score -= 40;
+    if (c.excludeBoots && (sub === 'Boots' || shoe === 'Boot')) score -= 40;
+    if (c.excludeBrown && color.includes('brown')) score -= 12;
+
+    // …existing positive intent scoring unchanged
     if (c.wantsLoafers) {
       if (sub === 'Loafers' || shoe === 'Loafer') score += 50;
       if (c.wantsBrown && color.includes('brown')) score += 10;
@@ -242,33 +260,26 @@ export class WardrobeService {
       score += 35;
     if (c.wantsBoots && (sub === 'Boots' || shoe === 'Boot')) score += 35;
 
-    // Blazer intent (prefer blazer/sport coat; penalize other outerwear like trench)
     if (c.wantsBlazer) {
       if (sub === 'Blazer' || sub === 'Sport Coat') {
         score += 40;
         if (c.colorWanted === 'Blue' && color.includes('blue')) score += 12;
-      } else if (cat === 'Outerwear') {
-        score -= 12; // trench/coat downrank when blazer is asked
-      }
+      } else if (cat === 'Outerwear') score -= 12;
     }
 
-    // Color preference (general)
     if (c.colorWanted && color.includes(c.colorWanted.toLowerCase()))
       score += 10;
 
-    // Dress-code fit
     if (c.dressWanted) {
       if (dress === c.dressWanted) score += 10;
       if (c.dressWanted === 'BusinessCasual' && sub === 'Sneakers') score -= 8;
       if (c.dressWanted === 'BusinessCasual' && sub === 'Jeans') score -= 6;
     }
 
-    // Formality sweet spot for BusinessCasual ~7
     if (c.dressWanted === 'BusinessCasual' && Number.isFinite(f)) {
       const dist = Math.abs(f - 7);
       score += Math.max(0, 10 - 3 * dist);
     }
-
     return score;
   }
 
@@ -285,36 +296,56 @@ export class WardrobeService {
     const c = this.parseConstraints(q);
     const items = [...(outfit.items || [])];
 
+    const ql = (q || '').toLowerCase();
+    const excludeLoafers = /\b(no|without|exclude|avoid)\s+loafers?\b/.test(ql);
+    const excludeSneakers = /\b(no|without|exclude|avoid)\s+sneakers?\b/.test(
+      ql,
+    );
+    const excludeBoots = /\b(no|without|exclude|avoid)\s+boots?\b/.test(ql);
+    const excludeBrown = /\b(no|without|exclude|avoid)\s+brown\b/.test(ql);
+    const userExcludedAllShoes =
+      excludeLoafers && excludeSneakers && excludeBoots;
+    const modelSaysNoFootwear =
+      /\b(no suitable .*footwear|no appropriate .*footwear|footwear.*unavailable|no .*shoe)/i.test(
+        outfit.missing || '',
+      );
+
     const appendMissing = (msg: string) => {
       outfit.missing = outfit.missing ? outfit.missing : msg;
     };
 
-    const isLoafer = (x: CatalogItem) =>
-      (x.main_category === 'Shoes' ||
-        (x.subcategory ?? '').toLowerCase().includes('loafer')) &&
-      ((x.subcategory ?? '') === 'Loafers' ||
-        (x.shoe_style ?? '') === 'Loafer');
+    const subOf = (x: CatalogItem) => (x.subcategory ?? '').toLowerCase();
+    const styleOf = (x: CatalogItem) => (x.shoe_style ?? '').toLowerCase();
 
+    const isLoafer = (x: CatalogItem) => {
+      const sub = subOf(x);
+      const st = styleOf(x);
+      return sub.includes('loafer') || st.includes('loafer');
+    };
+    const isSneaker = (x: CatalogItem) => {
+      const sub = subOf(x);
+      const st = styleOf(x);
+      return sub.includes('sneaker') || st.includes('sneaker');
+    };
+    const isBoot = (x: CatalogItem) => {
+      const sub = subOf(x);
+      const st = styleOf(x);
+      return sub.includes('boot') || st.includes('boot');
+    };
     const isFootwear = (x: CatalogItem) => {
-      const sub = (x.subcategory ?? '').toLowerCase();
+      const sub = subOf(x);
       return (
         x.main_category === 'Shoes' ||
         [
           'loafer',
-          'loafers',
           'sneaker',
-          'sneakers',
           'boot',
-          'boots',
           'heel',
-          'heels',
           'pump',
           'oxford',
           'derby',
           'dress shoe',
-          'dress shoes',
           'sandal',
-          'sandals',
         ].some((k) => sub.includes(k))
       );
     };
@@ -372,8 +403,8 @@ export class WardrobeService {
 
     // Prefer non-jeans for BusinessCasual bottoms
     const preferBottoms = (A: CatalogItem, B: CatalogItem) => {
-      const aJeans = (A.subcategory ?? '').toLowerCase() === 'jeans';
-      const bJeans = (B.subcategory ?? '').toLowerCase() === 'jeans';
+      const aJeans = subOf(A) === 'jeans';
+      const bJeans = subOf(B) === 'jeans';
       if (c.dressWanted === 'BusinessCasual') {
         if (aJeans && !bJeans) return 1;
         if (bJeans && !aJeans) return -1;
@@ -381,15 +412,27 @@ export class WardrobeService {
       return (A.index ?? 999) - (B.index ?? 999);
     };
 
-    // Shoes preference: loafers first if requested; then brown if requested
+    // Shoes preference: loafers first if requested; then brown if requested; avoid excluded
+    const isExcludedShoe = (x: CatalogItem) =>
+      (excludeLoafers && isLoafer(x)) ||
+      (excludeSneakers && isSneaker(x)) ||
+      (excludeBoots && isBoot(x)) ||
+      (excludeBrown && isBrownish(x));
+
     const preferShoes = (A: CatalogItem, B: CatalogItem) => {
+      const aExcluded = isExcludedShoe(A);
+      const bExcluded = isExcludedShoe(B);
+      if (aExcluded !== bExcluded) return aExcluded ? 1 : -1;
+
       const aLoafer = isLoafer(A),
         bLoafer = isLoafer(B);
-      if (c.wantsLoafers && aLoafer !== bLoafer) return aLoafer ? -1 : 1;
+      if (c.wantsLoafers && !excludeLoafers && aLoafer !== bLoafer)
+        return aLoafer ? -1 : 1;
 
       const aBrown = isBrownish(A),
         bBrown = isBrownish(B);
-      if (c.wantsBrown && aBrown !== bBrown) return aBrown ? -1 : 1;
+      if (c.wantsBrown && !excludeBrown && aBrown !== bBrown)
+        return aBrown ? -1 : 1;
 
       return (A.index ?? 999) - (B.index ?? 999);
     };
@@ -422,45 +465,48 @@ export class WardrobeService {
 
     if (!hasBottom) {
       const bottom = pickBest(
-        (x) =>
-          x.main_category === 'Bottoms' &&
-          (x.subcategory ?? '').toLowerCase() !== 'shorts',
+        (x) => x.main_category === 'Bottoms' && subOf(x) !== 'shorts',
         preferBottoms,
       );
       if (bottom) items.push(bottom);
       else appendMissing('Dress trousers');
     }
 
-    // Enforce loafers + brown if requested; otherwise ensure some shoes
+    // Footwear rules
     const currentlyHasLoafer = items.some(isLoafer);
-    if (c.wantsLoafers) {
+
+    if (userExcludedAllShoes || modelSaysNoFootwear) {
+      // Respect explicit/model footwear exclusion
+      if (!hasFootwear) appendMissing('Footwear');
+    } else if (c.wantsLoafers && !excludeLoafers) {
       if (!currentlyHasLoafer) {
         const loafer =
-          (c.wantsBrown && pickBest((x) => isLoafer(x) && isBrownish(x))) ||
-          pickBest(isLoafer);
+          (c.wantsBrown &&
+            !excludeBrown &&
+            pickBest((x) => isLoafer(x) && isBrownish(x))) ||
+          pickBest((x) => isLoafer(x));
         if (loafer) {
-          // replace any footwear or append
           const idx = items.findIndex(isFootwear);
           if (idx >= 0) items[idx] = loafer;
           else items.push(loafer);
-          if (c.wantsBrown && !isBrownish(loafer))
+          if (c.wantsBrown && !excludeBrown && !isBrownish(loafer))
             appendMissing('Brown loafers');
         } else {
-          // no loafers at all → prefer brown shoes if available
-          const brownShoe = pickBest(
-            (x) => isFootwear(x) && isBrownish(x),
+          // fallback to any non-excluded shoe
+          const alt = pickBest(
+            (x) => isFootwear(x) && !isExcludedShoe(x),
             preferShoes,
           );
-          const anyShoe = brownShoe ?? pickBest(isFootwear, preferShoes);
-          if (anyShoe) {
+          if (alt) {
             const idx = items.findIndex(isFootwear);
-            if (idx >= 0) items[idx] = anyShoe;
-            else items.push(anyShoe);
+            if (idx >= 0) items[idx] = alt;
+            else items.push(alt);
           }
-          appendMissing(c.wantsBrown ? 'Brown loafers' : 'Loafers');
+          appendMissing(
+            c.wantsBrown && !excludeBrown ? 'Brown loafers' : 'Loafers',
+          );
         }
-      } else if (c.wantsBrown) {
-        // Swap to brown loafers if current loafer isn’t brown
+      } else if (c.wantsBrown && !excludeBrown) {
         const idx = items.findIndex(isLoafer);
         if (idx >= 0 && !isBrownish(items[idx])) {
           const brownLoafer = pickBest((x) => isLoafer(x) && isBrownish(x));
@@ -469,9 +515,12 @@ export class WardrobeService {
         }
       }
     } else if (!hasFootwear) {
-      const shoe = pickBest(isFootwear, preferShoes);
+      const shoe = pickBest(
+        (x) => isFootwear(x) && !isExcludedShoe(x),
+        preferShoes,
+      );
       if (shoe) items.push(shoe);
-      else appendMissing('Dress shoes');
+      else appendMissing('Footwear');
     }
 
     return { ...outfit, items };
