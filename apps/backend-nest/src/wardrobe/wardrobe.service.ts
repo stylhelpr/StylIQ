@@ -16,6 +16,23 @@ const pool = new Pool({
 
 const storage = new Storage();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Catalog typing + coercion helpers
+// ─────────────────────────────────────────────────────────────────────────────
+type CatalogItem = {
+  index: number;
+  id: string;
+  label: string;
+  image_url?: string;
+  main_category?: string;
+  subcategory?: string;
+  color?: string;
+  color_family?: string;
+  shoe_style?: string;
+  dress_code?: string;
+  formality_score?: number;
+};
+
 @Injectable()
 export class WardrobeService {
   constructor(private readonly vertex: VertexService) {}
@@ -47,6 +64,17 @@ export class WardrobeService {
     'SHELL',
     'ACCENT',
   ];
+
+  private asStr(v: any): string | undefined {
+    if (v === undefined || v === null) return undefined;
+    const s = String(v).trim();
+    return s ? s : undefined;
+  }
+  private asNum(v: any): number | undefined {
+    if (v === undefined || v === null) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Normalizers for enum-ish columns
@@ -86,6 +114,433 @@ export class WardrobeService {
       other: 'OTHER',
     };
     return map[s] ?? undefined;
+  }
+
+  // Treat obvious subcategories as authoritative for main_category
+  private coerceMainCategoryFromSub(
+    rawMain?: string,
+    sub?: string,
+  ): string | undefined {
+    const main = (rawMain ?? '').trim();
+    const s = (sub ?? '').toLowerCase();
+
+    const isOuter = [
+      'blazer',
+      'sport coat',
+      'sportcoat',
+      'suit jacket',
+      'jacket',
+      'coat',
+      'parka',
+      'trench',
+      'overcoat',
+      'topcoat',
+    ].some((k) => s.includes(k));
+    if (isOuter) return 'Outerwear';
+
+    const isShoe = [
+      'loafer',
+      'loafers',
+      'sneaker',
+      'sneakers',
+      'boot',
+      'boots',
+      'heel',
+      'heels',
+      'pump',
+      'oxford',
+      'derby',
+      'dress shoe',
+      'dress shoes',
+      'sandal',
+      'sandals',
+    ].some((k) => s.includes(k));
+    if (isShoe) return 'Shoes';
+
+    const isAccessory = [
+      'belt',
+      'hat',
+      'scarf',
+      'tie',
+      'watch',
+      'sunglasses',
+      'bag',
+      'briefcase',
+    ].some((k) => s.includes(k));
+    if (isAccessory) return 'Accessories';
+
+    return main || undefined;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Constraint parsing + rerank helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Minimal signals pulled from the natural-language query */
+  private parseConstraints(q: string) {
+    const s = (q || '').toLowerCase();
+
+    const want = (w: string | RegExp) =>
+      typeof w === 'string' ? s.includes(w) : w.test(s);
+
+    const colorWanted =
+      (want('brown') && 'Brown') ||
+      (want('navy') && 'Navy') ||
+      (want('blue') && 'Blue') ||
+      (want('black') && 'Black') ||
+      undefined;
+
+    const dressWanted =
+      (want(/business\s*casual/) && 'BusinessCasual') ||
+      (want(/smart\s*casual/) && 'SmartCasual') ||
+      (want(/\bcasual\b/) && 'Casual') ||
+      undefined;
+
+    return {
+      wantsLoafers: want('loafer'),
+      wantsSneakers: want('sneaker'),
+      wantsBoots: want('boot'),
+      wantsBlazer: want('blazer') || want('sport coat') || want('sportcoat'),
+
+      colorWanted, // e.g., "Brown", "Blue"
+      dressWanted, // e.g., "BusinessCasual"
+      wantsBrown: colorWanted === 'Brown',
+    };
+  }
+
+  private text(val: any) {
+    return (val ?? '').toString().trim();
+  }
+
+  /** Simple numeric score; higher sorts earlier */
+  // keep your CatalogItem type from earlier reply
+
+  private scoreItemForConstraints(
+    item: CatalogItem,
+    c: ReturnType<WardrobeService['parseConstraints']>,
+    baseBias: number,
+  ) {
+    let score = baseBias;
+
+    const cat = this.text(item.main_category);
+    const sub = this.text(item.subcategory);
+    const shoe = this.text(item.shoe_style);
+    const dress = this.text(item.dress_code);
+    const color = (
+      this.text(item.color) || this.text(item.color_family)
+    ).toLowerCase();
+    const f = Number(item.formality_score ?? NaN);
+
+    // Shoes intent
+    if (c.wantsLoafers) {
+      if (sub === 'Loafers' || shoe === 'Loafer') score += 50;
+      if (c.wantsBrown && color.includes('brown')) score += 10;
+      if (cat === 'Shoes' && !(sub === 'Loafers' || shoe === 'Loafer'))
+        score -= 15;
+    }
+    if (c.wantsSneakers && (sub === 'Sneakers' || shoe === 'Sneaker'))
+      score += 35;
+    if (c.wantsBoots && (sub === 'Boots' || shoe === 'Boot')) score += 35;
+
+    // Blazer intent (prefer blazer/sport coat; penalize other outerwear like trench)
+    if (c.wantsBlazer) {
+      if (sub === 'Blazer' || sub === 'Sport Coat') {
+        score += 40;
+        if (c.colorWanted === 'Blue' && color.includes('blue')) score += 12;
+      } else if (cat === 'Outerwear') {
+        score -= 12; // trench/coat downrank when blazer is asked
+      }
+    }
+
+    // Color preference (general)
+    if (c.colorWanted && color.includes(c.colorWanted.toLowerCase()))
+      score += 10;
+
+    // Dress-code fit
+    if (c.dressWanted) {
+      if (dress === c.dressWanted) score += 10;
+      if (c.dressWanted === 'BusinessCasual' && sub === 'Sneakers') score -= 8;
+      if (c.dressWanted === 'BusinessCasual' && sub === 'Jeans') score -= 6;
+    }
+
+    // Formality sweet spot for BusinessCasual ~7
+    if (c.dressWanted === 'BusinessCasual' && Number.isFinite(f)) {
+      const dist = Math.abs(f - 7);
+      score += Math.max(0, 10 - 3 * dist);
+    }
+
+    return score;
+  }
+
+  private finalizeOutfitSlots(
+    outfit: {
+      title: string;
+      items: CatalogItem[];
+      why: string;
+      missing?: string;
+    },
+    catalog: CatalogItem[],
+    q: string,
+  ) {
+    const c = this.parseConstraints(q);
+    const items = [...(outfit.items || [])];
+
+    const appendMissing = (msg: string) => {
+      outfit.missing = outfit.missing ? outfit.missing : msg;
+    };
+
+    const isLoafer = (x: CatalogItem) =>
+      (x.main_category === 'Shoes' ||
+        (x.subcategory ?? '').toLowerCase().includes('loafer')) &&
+      ((x.subcategory ?? '') === 'Loafers' ||
+        (x.shoe_style ?? '') === 'Loafer');
+
+    const isFootwear = (x: CatalogItem) => {
+      const sub = (x.subcategory ?? '').toLowerCase();
+      return (
+        x.main_category === 'Shoes' ||
+        [
+          'loafer',
+          'loafers',
+          'sneaker',
+          'sneakers',
+          'boot',
+          'boots',
+          'heel',
+          'heels',
+          'pump',
+          'oxford',
+          'derby',
+          'dress shoe',
+          'dress shoes',
+          'sandal',
+          'sandals',
+        ].some((k) => sub.includes(k))
+      );
+    };
+
+    const isBrownish = (x: CatalogItem) => {
+      const a = (x.color ?? '').toLowerCase();
+      const b = (x.color_family ?? '').toLowerCase();
+      return (
+        a.includes('brown') ||
+        b === 'brown' ||
+        a.includes('tan') ||
+        a.includes('cognac')
+      );
+    };
+
+    // Keep at most one outerwear; prefer blazer/sport coat when asked
+    const outers = items
+      .map((it, i) => ({ it, i }))
+      .filter(({ it }) => it.main_category === 'Outerwear');
+    if (outers.length > 1) {
+      outers.sort((a, b) => {
+        const ap =
+          a.it.subcategory === 'Blazer' || a.it.subcategory === 'Sport Coat'
+            ? 0
+            : 1;
+        const bp =
+          b.it.subcategory === 'Blazer' || b.it.subcategory === 'Sport Coat'
+            ? 0
+            : 1;
+        return ap - bp || (a.it.index ?? 999) - (b.it.index ?? 999);
+      });
+      const keep = outers[0].i;
+      for (let k = outers.length - 1; k >= 0; k--) {
+        if (outers[k].i !== keep) items.splice(outers[k].i, 1);
+      }
+    }
+
+    // Generic prune helper
+    const pruneToOne = (
+      pred: (x: CatalogItem) => boolean,
+      prefer?: (A: CatalogItem, B: CatalogItem) => number,
+    ) => {
+      const matches = items
+        .map((it, i) => ({ it, i }))
+        .filter(({ it }) => pred(it));
+      if (matches.length <= 1) return;
+      matches.sort((a, b) =>
+        prefer ? prefer(a.it, b.it) : (a.it.index ?? 999) - (b.it.index ?? 999),
+      );
+      const keep = matches[0].i;
+      for (let k = matches.length - 1; k >= 0; k--) {
+        if (matches[k].i !== keep) items.splice(matches[k].i, 1);
+      }
+    };
+
+    // Prefer non-jeans for BusinessCasual bottoms
+    const preferBottoms = (A: CatalogItem, B: CatalogItem) => {
+      const aJeans = (A.subcategory ?? '').toLowerCase() === 'jeans';
+      const bJeans = (B.subcategory ?? '').toLowerCase() === 'jeans';
+      if (c.dressWanted === 'BusinessCasual') {
+        if (aJeans && !bJeans) return 1;
+        if (bJeans && !aJeans) return -1;
+      }
+      return (A.index ?? 999) - (B.index ?? 999);
+    };
+
+    // Shoes preference: loafers first if requested; then brown if requested
+    const preferShoes = (A: CatalogItem, B: CatalogItem) => {
+      const aLoafer = isLoafer(A),
+        bLoafer = isLoafer(B);
+      if (c.wantsLoafers && aLoafer !== bLoafer) return aLoafer ? -1 : 1;
+
+      const aBrown = isBrownish(A),
+        bBrown = isBrownish(B);
+      if (c.wantsBrown && aBrown !== bBrown) return aBrown ? -1 : 1;
+
+      return (A.index ?? 999) - (B.index ?? 999);
+    };
+
+    // Prune to one Top, one Bottom, one pair of Shoes (recognizing mis-typed footwear)
+    pruneToOne((x) => x.main_category === 'Tops');
+    pruneToOne((x) => x.main_category === 'Bottoms', preferBottoms);
+    pruneToOne((x) => isFootwear(x), preferShoes);
+
+    // Ensure required slots exist
+    const hasTop = items.some((x) => x.main_category === 'Tops');
+    const hasBottom = items.some((x) => x.main_category === 'Bottoms');
+    const hasFootwear = items.some((x) => isFootwear(x));
+
+    const pickBest = (
+      pred: (x: CatalogItem) => boolean,
+      prefer?: (A: CatalogItem, B: CatalogItem) => number,
+    ) => {
+      const pool = catalog.filter(pred);
+      if (!pool.length) return undefined;
+      if (!prefer) return pool[0];
+      return pool.slice().sort(prefer)[0];
+    };
+
+    if (!hasTop) {
+      const top = pickBest((x) => x.main_category === 'Tops');
+      if (top) items.push(top);
+      else appendMissing('A shirt');
+    }
+
+    if (!hasBottom) {
+      const bottom = pickBest(
+        (x) =>
+          x.main_category === 'Bottoms' &&
+          (x.subcategory ?? '').toLowerCase() !== 'shorts',
+        preferBottoms,
+      );
+      if (bottom) items.push(bottom);
+      else appendMissing('Dress trousers');
+    }
+
+    // Enforce loafers + brown if requested; otherwise ensure some shoes
+    const currentlyHasLoafer = items.some(isLoafer);
+    if (c.wantsLoafers) {
+      if (!currentlyHasLoafer) {
+        const loafer =
+          (c.wantsBrown && pickBest((x) => isLoafer(x) && isBrownish(x))) ||
+          pickBest(isLoafer);
+        if (loafer) {
+          // replace any footwear or append
+          const idx = items.findIndex(isFootwear);
+          if (idx >= 0) items[idx] = loafer;
+          else items.push(loafer);
+          if (c.wantsBrown && !isBrownish(loafer))
+            appendMissing('Brown loafers');
+        } else {
+          // no loafers at all → prefer brown shoes if available
+          const brownShoe = pickBest(
+            (x) => isFootwear(x) && isBrownish(x),
+            preferShoes,
+          );
+          const anyShoe = brownShoe ?? pickBest(isFootwear, preferShoes);
+          if (anyShoe) {
+            const idx = items.findIndex(isFootwear);
+            if (idx >= 0) items[idx] = anyShoe;
+            else items.push(anyShoe);
+          }
+          appendMissing(c.wantsBrown ? 'Brown loafers' : 'Loafers');
+        }
+      } else if (c.wantsBrown) {
+        // Swap to brown loafers if current loafer isn’t brown
+        const idx = items.findIndex(isLoafer);
+        if (idx >= 0 && !isBrownish(items[idx])) {
+          const brownLoafer = pickBest((x) => isLoafer(x) && isBrownish(x));
+          if (brownLoafer) items[idx] = brownLoafer;
+          else appendMissing('Brown loafers');
+        }
+      }
+    } else if (!hasFootwear) {
+      const shoe = pickBest(isFootwear, preferShoes);
+      if (shoe) items.push(shoe);
+      else appendMissing('Dress shoes');
+    }
+
+    return { ...outfit, items };
+  }
+
+  private rerankCatalog(catalog: CatalogItem[], q: string): CatalogItem[] {
+    const c = this.parseConstraints(q);
+
+    // Keep Pinecone order as a tiny bias
+    const scored = catalog.map((item, i) => ({
+      item,
+      score: this.scoreItemForConstraints(item, c, (catalog.length - i) * 0.01),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+
+    // Re-index to match the new order for the LLM prompt
+    return scored.map((s, i) => ({ ...s.item, index: i + 1 }));
+  }
+
+  /** Enforce specific constraints post-LLM (e.g., must be loafers if asked) */
+  private enforceConstraintsOnOutfits(
+    outfits: Array<{
+      title: string;
+      items: any[];
+      why: string;
+      missing?: string;
+    }>,
+    catalog: Array<any>,
+    q: string,
+  ) {
+    const c = this.parseConstraints(q);
+    if (!c.wantsLoafers) return outfits;
+
+    const bestLoafer = catalog.find(
+      (x) =>
+        x.main_category === 'Shoes' &&
+        (x.subcategory === 'Loafers' || x.shoe_style === 'Loafer'),
+    );
+
+    return outfits.map((o) => {
+      const hasLoafer = (o.items || []).some(
+        (x: any) =>
+          x?.main_category === 'Shoes' &&
+          (x?.subcategory === 'Loafers' || x?.shoe_style === 'Loafer'),
+      );
+
+      if (hasLoafer) return o;
+
+      if (bestLoafer) {
+        // Replace any non-loafer shoes, otherwise append loafers
+        const idx = (o.items || []).findIndex(
+          (x: any) => x?.main_category === 'Shoes',
+        );
+        if (idx >= 0) {
+          const newItems = [...o.items];
+          newItems[idx] = bestLoafer;
+          return { ...o, items: newItems };
+        }
+        return { ...o, items: [...(o.items || []), bestLoafer] };
+      }
+
+      // No loafers exist → declare missing
+      const missingMsg = 'Brown loafers';
+      return {
+        ...o,
+        missing: o.missing ? o.missing : missingMsg,
+      };
+    });
   }
 
   // optional helpers for other text-enums (DB columns are TEXT, but normalize anyway)
@@ -147,52 +602,74 @@ export class WardrobeService {
         topK,
         includeMetadata: true,
       });
-
       // Build a stable catalog we can map back from indices → items
-      const catalog = matches.map((m, i) => {
+      const catalog: CatalogItem[] = matches.map((m, i) => {
         const { id } = this.normalizePineconeId(m.id as string);
-        const meta = m.metadata || {};
+        const meta: any = m.metadata || {};
+
+        // ⬇️ NEW: coerce main_category from subcategory
+        const sub_raw = this.asStr(meta.subcategory ?? meta.subCategory);
+        const main_raw = this.asStr(meta.main_category ?? meta.mainCategory);
+        const main_fix = this.coerceMainCategoryFromSub(main_raw, sub_raw);
+
         return {
           index: i + 1,
           id,
           label: this.summarizeItem(meta),
-          image_url: meta.image_url,
-          main_category: meta.main_category ?? meta.mainCategory,
-          subcategory: meta.subcategory ?? meta.subCategory,
-          color: meta.color ?? meta.color_family,
+
+          image_url: this.asStr(meta.image_url ?? meta.imageUrl),
+          main_category: main_fix, // ⬅️ use coerced value
+          subcategory: sub_raw,
+          color: this.asStr(meta.color ?? meta.color_family),
+          color_family: this.asStr(meta.color_family),
+          shoe_style: this.asStr(meta.shoe_style),
+          dress_code: this.asStr(meta.dress_code ?? meta.dressCode),
+
+          formality_score: this.asNum(meta.formality_score),
         };
       });
 
-      const catalogLines = catalog
+      // Rerank catalog using query-aware constraints
+      const reranked = this.rerankCatalog(catalog, query);
+
+      // Build lines for the prompt based on reranked order
+      const catalogLines = reranked
         .map((c) => `${c.index}. ${c.label}`)
         .join('\n');
+      const constraints = this.parseConstraints(query);
+      const constraintsLine = JSON.stringify(constraints);
 
       const prompt = `
-You are a world-class personal stylist.
+        You are a world-class personal stylist.
 
-Catalog (use ONLY these items by index or label as provided):
-${catalogLines}
+        Catalog (use ONLY these items by index as provided):
+        ${catalogLines}
 
-User request: "${query}"
+        User request: "${query}"
+        Parsed constraints (for your guidance): ${constraintsLine}
 
-Rules:
-- Build 2–3 complete outfits ONLY from the catalog.
-- Return the outfit "items" as an array of **catalog items only** (no notes).
-- If a crucial piece is missing, put it in a separate "missing" field (string).
-- JSON only. No code fences. No commentary.
+        Rules (must follow):
+        - Build 2–3 complete outfits ONLY from the catalog by numeric index.
+        - HONOR explicit constraints in the request:
+          • If the user mentions "loafers", at least one outfit must use a catalog item with subcategory "Loafers" or shoe_style "Loafer"; if none exist, note it in "missing".
+          • Prefer dress_code ≈ the user's intent (e.g., BusinessCasual for “business casual”) and formality_score around 6–8 for BusinessCasual.
+          • Prefer color matches when the user calls them out (e.g., brown loafers when “brown loafers” is requested).
+        - Keep coherent slots (normally: 1 shoes, 1 bottom, 1 shirt; outerwear optional; accessories optional).
+        - The "items" array MUST be numeric indices from the catalog (no free text).
+        - If a crucial piece is unavailable, set "missing" to a short note.
 
-Respond in STRICT JSON:
-{
-  "outfits": [
-    {
-      "title": "string",
-      "items": ["exact item strings from the catalog"],
-      "why": "one sentence",
-      "missing": "optional short note if something is missing"
-    }
-  ]
-}
-`;
+        Respond in STRICT JSON only (no markdown, no code fences):
+        {
+          "outfits": [
+            {
+              "title": "string",
+              "items": [1,2,3],
+              "why": "one sentence",
+              "missing": "optional short note"
+            }
+          ]
+          }
+`.trim();
 
       // Call your Vertex helper (returns LLM raw text)
       const raw = await this.vertex.generateReasonedOutfit(prompt);
@@ -204,20 +681,37 @@ Respond in STRICT JSON:
 
       const parsed = this.extractStrictJson(text);
 
-      // Map numeric indices back to concrete items
-      const byIndex = new Map<number, (typeof catalog)[number]>();
+      // We'll map indices → items using the reranked list
+      const byIndex = new Map<number, (typeof reranked)[number]>();
+      reranked.forEach((c) => byIndex.set(c.index, c));
       catalog.forEach((c) => byIndex.set(c.index, c));
 
-      const outfits = (parsed.outfits || []).map((o: any) => ({
+      // after building `outfits` from parsed JSON:
+      let outfits = (parsed.outfits || []).map((o: any) => ({
         title: String(o.title ?? 'Outfit'),
         items: Array.isArray(o.items)
-          ? o.items
-              .map((idx: number) => byIndex.get(Number(idx)))
-              .filter(Boolean)
+          ? (o.items
+              .map((it: any) => {
+                if (typeof it === 'number') return byIndex.get(it);
+                if (typeof it === 'string') {
+                  const n = Number(it.trim());
+                  if (!Number.isNaN(n)) return byIndex.get(n);
+                  return catalog.find(
+                    (c) => c.label.toLowerCase() === it.toLowerCase(),
+                  );
+                }
+                return undefined;
+              })
+              .filter(Boolean) as CatalogItem[])
           : [],
         why: String(o.why ?? ''),
         missing: o.missing ? String(o.missing) : undefined,
       }));
+
+      // ✅ clamp/clean each outfit with your finalizeOutfitSlots
+      outfits = outfits.map((o) =>
+        this.finalizeOutfitSlots(o, reranked, query),
+      );
 
       return { outfits };
     } catch (err: any) {
@@ -421,11 +915,11 @@ Respond in STRICT JSON:
     sub?: string | null,
     layering?: string | null,
   ): CreateWardrobeItemDto['main_category'] {
-    const normalized = this.normalizeMainCategory(rawMain); // your existing map
+    const normalized = this.normalizeMainCategory(rawMain);
     const s = (sub ?? '').toLowerCase();
     const lay = (layering ?? '').toUpperCase();
 
-    // Subcategory implies outerwear → force it
+    // Force OUTERWEAR when sub clearly implies it
     if (
       [
         'blazer',
@@ -441,6 +935,43 @@ Respond in STRICT JSON:
       ].some((k) => s.includes(k))
     )
       return 'Outerwear';
+
+    // ✅ NEW: force SHOES when sub implies footwear
+    if (
+      [
+        'loafer',
+        'loafers',
+        'sneaker',
+        'sneakers',
+        'boot',
+        'boots',
+        'heel',
+        'heels',
+        'pump',
+        'oxford',
+        'derby',
+        'dress shoe',
+        'dress shoes',
+        'sandal',
+        'sandals',
+      ].some((k) => s.includes(k))
+    )
+      return 'Shoes';
+
+    // ✅ NEW: force ACCESSORIES when sub implies accessory
+    if (
+      [
+        'belt',
+        'hat',
+        'scarf',
+        'tie',
+        'watch',
+        'sunglasses',
+        'bag',
+        'briefcase',
+      ].some((k) => s.includes(k))
+    )
+      return 'Accessories';
 
     // Shell layers are not "Tops"
     if (normalized === 'Tops' && lay === 'SHELL') return 'Outerwear';
@@ -1371,7 +1902,7 @@ Respond in STRICT JSON:
   }
 }
 
-//////////////////////
+///////////////////
 
 // // apps/backend-nest/src/wardrobe/wardrobe.service.ts
 // import { Injectable } from '@nestjs/common';
@@ -1545,14 +2076,14 @@ Respond in STRICT JSON:
 //       const prompt = `
 // You are a world-class personal stylist.
 
-// Catalog (use ONLY these items by index or label as provided):
+// Catalog (each line is "index. label"):
 // ${catalogLines}
 
 // User request: "${query}"
 
 // Rules:
 // - Build 2–3 complete outfits ONLY from the catalog.
-// - Return the outfit "items" as an array of **catalog items only** (no notes).
+// - Return "items" as an array of INTEGER indices (e.g., [2,7,11]). No strings.
 // - If a crucial piece is missing, put it in a separate "missing" field (string).
 // - JSON only. No code fences. No commentary.
 
@@ -1561,9 +2092,9 @@ Respond in STRICT JSON:
 //   "outfits": [
 //     {
 //       "title": "string",
-//       "items": ["exact item strings from the catalog"],
+//       "items": [1,2,3],
 //       "why": "one sentence",
-//       "missing": "optional short note if something is missing"
+//       "missing": "optional string"
 //     }
 //   ]
 // }
@@ -1587,7 +2118,17 @@ Respond in STRICT JSON:
 //         title: String(o.title ?? 'Outfit'),
 //         items: Array.isArray(o.items)
 //           ? o.items
-//               .map((idx: number) => byIndex.get(Number(idx)))
+//               .map((it: any) => {
+//                 if (typeof it === 'number') return byIndex.get(it);
+//                 if (typeof it === 'string') {
+//                   const n = Number(it.trim());
+//                   if (!Number.isNaN(n)) return byIndex.get(n);
+//                   return catalog.find(
+//                     (c) => c.label.toLowerCase() === it.toLowerCase(),
+//                   );
+//                 }
+//                 return undefined;
+//               })
 //               .filter(Boolean)
 //           : [],
 //         why: String(o.why ?? ''),
@@ -1791,6 +2332,38 @@ Respond in STRICT JSON:
 //     return map[s] ?? 'Tops';
 //   }
 
+//   private resolveMainCategory(
+//     rawMain?: string | null,
+//     sub?: string | null,
+//     layering?: string | null,
+//   ): CreateWardrobeItemDto['main_category'] {
+//     const normalized = this.normalizeMainCategory(rawMain); // your existing map
+//     const s = (sub ?? '').toLowerCase();
+//     const lay = (layering ?? '').toUpperCase();
+
+//     // Subcategory implies outerwear → force it
+//     if (
+//       [
+//         'blazer',
+//         'sport coat',
+//         'sportcoat',
+//         'suit jacket',
+//         'jacket',
+//         'coat',
+//         'parka',
+//         'trench',
+//         'overcoat',
+//         'topcoat',
+//       ].some((k) => s.includes(k))
+//     )
+//       return 'Outerwear';
+
+//     // Shell layers are not "Tops"
+//     if (normalized === 'Tops' && lay === 'SHELL') return 'Outerwear';
+
+//     return normalized;
+//   }
+
 //   private normalizePatternScaleDto(
 //     val?: string | null,
 //   ): CreateWardrobeItemDto['pattern_scale'] | undefined {
@@ -1989,13 +2562,23 @@ Respond in STRICT JSON:
 
 //     const name = pick<string>('name') ?? draft?.ai_title ?? 'Wardrobe Item';
 
+//     const rawSub =
+//       pick<string>('subcategory') ??
+//       draft?.subcategory ??
+//       (draft as any)?.subCategory;
+//     const layeringRaw = pick<string>('layering') ?? draft?.layering;
+
 //     // Normalize to exact DTO unions
 //     const rawMain =
 //       (base as any).main_category ??
 //       (draft?.main_category as string | undefined) ??
 //       (draft?.category as string | undefined);
+
 //     const main_category: CreateWardrobeItemDto['main_category'] =
-//       this.normalizeMainCategory(rawMain);
+//       this.resolveMainCategory(rawMain, rawSub, layeringRaw);
+
+//     // later, when you set `layering` (typed union), use layeringRaw:
+//     const layering = this.normalizeLayeringDto(layeringRaw);
 
 //     const pattern_scale = this.normalizePatternScaleDto(
 //       pick<string>('pattern_scale') ?? draft?.pattern_scale,
@@ -2003,10 +2586,6 @@ Respond in STRICT JSON:
 
 //     const seasonality = this.normalizeSeasonalityDto(
 //       pick<string>('seasonality') ?? draft?.seasonality,
-//     );
-
-//     const layering = this.normalizeLayeringDto(
-//       pick<string>('layering') ?? draft?.layering,
 //     );
 
 //     // ensure tags is string[]
@@ -2308,30 +2887,6 @@ Respond in STRICT JSON:
 //     const gcs = dto.gsutil_uri ?? item.gsutil_uri;
 //     if (gcs) imageVec = await this.vertex.embedImage(gcs);
 
-//     // ⬇️ Include rich attributes so search quality is high
-//     // const textVec = await this.vertex.embedText(
-//     //   [
-//     //     item.name,
-//     //     item.main_category,
-//     //     item.subcategory,
-//     //     item.color,
-//     //     item.color_family,
-//     //     item.material,
-//     //     item.fit,
-//     //     item.size,
-//     //     item.brand,
-//     //     item.pattern,
-//     //     item.pattern_scale,
-//     //     item.seasonality,
-//     //     item.layering,
-//     //     item.dress_code,
-//     //     Array.isArray(item.occasion_tags) ? item.occasion_tags.join(' ') : '',
-//     //     Array.isArray(item.tags) ? item.tags.join(' ') : '',
-//     //     item.anchor_role,
-//     //   ]
-//     //     .filter(Boolean)
-//     //     .join(' '),
-//     // );
 //     const textVec = await this.vertex.embedText(
 //       [
 //         item.name,
