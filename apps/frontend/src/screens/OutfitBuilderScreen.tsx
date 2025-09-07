@@ -1,3 +1,4 @@
+// apps/mobile/src/screens/OutfitBuilderScreen.tsx
 import React, {useState} from 'react';
 import {
   View,
@@ -18,6 +19,9 @@ import {useQuery} from '@tanstack/react-query';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 
+// ─────────────────────────────────────────────────────────────
+// Types for items coming from the wardrobe API
+// ─────────────────────────────────────────────────────────────
 type WardrobeItem = {
   id: string;
   image_url: string;
@@ -31,16 +35,24 @@ type Props = {
 };
 
 export default function OutfitBuilderScreen({navigate}: Props) {
+  // 🔐 per-user namespace used by backend to fetch wardrobe
   const userId = useUUID();
+
+  // 🎨 theme + shared styles
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
+  // 🧠 local UI state for the builder
   const [selectedItems, setSelectedItems] = useState<WardrobeItem[]>([]);
   const [showNameModal, setShowNameModal] = useState(false);
   const [outfitName, setOutfitName] = useState('');
   const [saved, setSaved] = useState(false);
 
-  // Keep /api intact; only use this to resolve RELATIVE paths
+  // ─────────────────────────────────────────────────────────────
+  // Ensure image URLs work whether backend returns absolute or relative paths
+  // - If the URL already starts with http(s), pass it through.
+  // - Otherwise, prefix with API_BASE_URL to form a valid absolute URL.
+  // ─────────────────────────────────────────────────────────────
   const resolveUri = (u?: string) => {
     if (!u) return '';
     if (/^https?:\/\//i.test(u)) return u;
@@ -49,6 +61,11 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     return `${base}/${path}`;
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Fetch wardrobe items for this user
+  // - Uses React Query for caching, loading, error states.
+  // - Endpoint returns an array of items.
+  // ─────────────────────────────────────────────────────────────
   const {
     data: wardrobe = [],
     isLoading,
@@ -63,12 +80,17 @@ export default function OutfitBuilderScreen({navigate}: Props) {
           `Failed to fetch wardrobe: ${res.status} ${res.statusText}`,
         );
       const json = await res.json();
+      // Some backends wrap data; normalize to an array
       return Array.isArray(json) ? json : json?.items ?? [];
     },
-    enabled: !!userId,
-    staleTime: 30_000,
+    enabled: !!userId, // only run when we have a user
+    staleTime: 30_000, // cache for 30s to reduce flicker
   });
 
+  // ─────────────────────────────────────────────────────────────
+  // Toggle an item in or out of the current selection
+  // - This lets the user build an outfit manually from the grid.
+  // ─────────────────────────────────────────────────────────────
   const toggleItem = (item: WardrobeItem) => {
     setSelectedItems(prev =>
       prev.some(i => i.id === item.id)
@@ -77,11 +99,20 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     );
   };
 
+  // Open the name modal once there is something to save
   const handleSave = () => {
     if (selectedItems.length === 0) return;
     setShowNameModal(true);
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Persist the custom outfit:
+  // 1) Build a default outfit name if user didn't type one.
+  // 2) Split selected items into slots (top/bottom/shoes/accessories).
+  // 3) POST to /custom-outfits to create the outfit.
+  // 4) Optionally favorite the outfit via /outfit/favorite.
+  // 5) Navigate to SavedOutfits upon success.
+  // ─────────────────────────────────────────────────────────────
   const finalizeSave = async () => {
     if (selectedItems.length === 0) return;
 
@@ -93,6 +124,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
         minute: '2-digit',
       })}`;
 
+    // Slot candidates based on main_category
     const top = selectedItems.find(i => i.main_category === 'Tops');
     const bottom = selectedItems.find(i => i.main_category === 'Bottoms');
     const shoes = selectedItems.find(i => i.main_category === 'Shoes');
@@ -100,29 +132,31 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       i => i.main_category === 'Accessories',
     );
 
-    // const thumbnail = selectedItems[0]?.image_url || null;
+    // Use the first selected image as thumbnail (if any)
     const thumbnail = selectedItems[0]?.image_url ?? '';
 
     try {
+      // Create the custom outfit record
       const res = await fetch(`${API_BASE_URL}/custom-outfits`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           user_id: userId,
-          prompt: 'manual',
+          prompt: 'manual', // marks this as user-assembled
           name,
           top_id: top?.id,
           bottom_id: bottom?.id,
           shoes_id: shoes?.id,
           accessory_ids: accessories.map(i => i.id),
-          location: null,
-          weather_data: null,
+          location: null, // reserved for future contextual features
+          weather_data: null, // reserved for future contextual features
           thumbnail_url: thumbnail,
         }),
       });
 
       const newOutfit = await res.json();
 
+      // Immediately favorite the outfit (optional UX choice)
       await fetch(`${API_BASE_URL}/outfit/favorite`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -141,6 +175,9 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     }
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Styles
+  // ─────────────────────────────────────────────────────────────
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
@@ -260,6 +297,9 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
   });
 
+  // ─────────────────────────────────────────────────────────────
+  // Loading & error states (from React Query)
+  // ─────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <View
@@ -287,6 +327,13 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Main UI:
+  // - Shows a horizontal list of currently selected items (with thumbnails).
+  // - Grid of all wardrobe items to tap and select/deselect.
+  // - Save/Cancel actions.
+  // - "Name Outfit" modal before persisting to backend.
+  // ─────────────────────────────────────────────────────────────
   return (
     <ScrollView style={globalStyles.container}>
       <View style={globalStyles.sectionTitle}>
@@ -297,6 +344,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
         <View style={[globalStyles.section, {paddingTop: 20}]}>
           <Text style={globalStyles.sectionTitle}>Selected Items:</Text>
 
+          {/* Selected thumbnails */}
           <View
             style={[
               styles.selectedRow,
@@ -325,6 +373,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
             ))}
           </View>
 
+          {/* Clear selection */}
           {selectedItems.length > 0 && (
             <TouchableOpacity
               onPress={() => setSelectedItems([])}
@@ -335,6 +384,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
           <Text style={globalStyles.title}>Tap items to add:</Text>
 
+          {/* Grid of wardrobe items */}
           {wardrobe.length === 0 ? (
             <View style={{padding: 16}}>
               <Text style={{color: theme.colors.muted}}>
@@ -358,7 +408,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                         style={[
                           styles.itemImage,
                           isSelected && {
-                            borderColor: '#4ade80',
+                            borderColor: '#4ade80', // green highlight when selected
                             borderWidth: 3,
                           },
                         ]}
@@ -383,6 +433,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
             </View>
           )}
 
+          {/* Save / Cancel actions */}
           <View
             style={{
               flexDirection: 'row',
@@ -410,12 +461,13 @@ export default function OutfitBuilderScreen({navigate}: Props) {
               onPress={() => {
                 setSelectedItems([]);
                 setOutfitName('');
-                navigate('Wardrobe');
+                navigate('Wardrobe'); // back to Closet view
               }}>
               <Text style={[styles.cancelText, {color: '#000'}]}>Cancel</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Name Outfit modal */}
           <Modal visible={showNameModal} transparent animationType="fade">
             <TouchableWithoutFeedback onPress={() => setShowNameModal(false)}>
               <View
@@ -459,7 +511,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   );
 }
 
-//////////////////
+///////////////
 
 // import React, {useState} from 'react';
 // import {
