@@ -179,6 +179,30 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     });
   };
 
+  // JUST FOR TESTING DO NOT USE
+  //   const handleGenerate = () => {
+  //   if (!userId) return;
+
+  //   // FORCE a weather context that must produce non-zero scores
+  //   const testWx = {
+  //     tempF: 40,
+  //     precipitation: 'rain' as const,
+  //     windMph: 20,
+  //     locationName: 'Test',
+  //   };
+
+  //   console.log(
+  //     '🔄 Generating outfit with useWeather:',
+  //     useWeather,
+  //     'wx=',
+  //     testWx,
+  //   );
+  //   regenerate(builtQuery, {
+  //     useWeather: true,
+  //     weather: testWx,
+  //   });
+  // };
+
   // ──────────────────────────────────────────────────────────────
   // Extract the three cards
   // ──────────────────────────────────────────────────────────────
