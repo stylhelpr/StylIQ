@@ -1,5 +1,3 @@
-// apps/mobile/src/hooks/useOutfitApi.ts
-
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {API_BASE_URL} from '../config/api';
 
@@ -43,12 +41,21 @@ type WeatherContext = {
   locationName?: string;
 };
 
+type UserStylePayload = {
+  preferredColors?: string[];
+  avoidColors?: string[];
+  preferredCategories?: string[];
+  avoidSubcategories?: string[];
+  favoriteBrands?: string[];
+  dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
+};
+
 type GenerateOptions = {
   topK?: number;
   useWeather?: boolean;
   weather?: WeatherContext;
-  // style_profile?: {...}
-  // weights?: {...}
+  styleProfile?: any; // raw profile from useStyleProfile(); we map it below
+  // weights?: {...} // optional future use
 };
 
 function resolveUri(u?: string) {
@@ -81,6 +88,47 @@ export function apiItemToUI(
   };
 }
 
+// ──────────────────────────────────────────────────────────────
+// Minimal, no-assumption mapper from your DB shape → backend UserStyle
+// Uses only fields that are present in your style_profile table today:
+//   - favorite_colors → preferredColors
+//   - preferred_brands → favoriteBrands
+// Everything else left undefined.
+// Accepts string[] or comma/pipe separated string.
+// ──────────────────────────────────────────────────────────────
+function toStringArray(x: any): string[] | undefined {
+  if (!x && x !== '') return undefined;
+  if (Array.isArray(x)) {
+    const arr = x
+      .map(String)
+      .map(s => s.trim())
+      .filter(Boolean);
+    return arr.length ? arr : undefined;
+  }
+  const s = String(x).trim();
+  if (!s) return undefined;
+  const arr = s
+    .split(/[,|]/g)
+    .map(t => t.trim())
+    .filter(Boolean);
+  return arr.length ? arr : undefined;
+}
+
+function mapStyleProfileToUserStyle(raw: any): UserStylePayload | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+
+  const preferredColors = toStringArray(raw.favorite_colors);
+  const favoriteBrands = toStringArray(raw.preferred_brands);
+
+  // Only include keys that actually have values
+  const out: UserStylePayload = {};
+  if (preferredColors) out.preferredColors = preferredColors;
+  if (favoriteBrands) out.favoriteBrands = favoriteBrands;
+
+  // If nothing mapped, return undefined so we don't send noise
+  return Object.keys(out).length ? out : undefined;
+}
+
 export function useOutfitApi(userId?: string) {
   const [outfits, setOutfits] = useState<OutfitApi[]>([]);
   const [selected, setSelected] = useState(0);
@@ -100,6 +148,7 @@ export function useOutfitApi(userId?: string) {
    *  - user_id, query, topK
    *  - useWeather (boolean)
    *  - weather (object; ignored by server when useWeather=false)
+   *  - style_profile (mapped from raw style profile)
    */
   const regenerate = useCallback(
     async (query: string, opts?: GenerateOptions) => {
@@ -113,18 +162,28 @@ export function useOutfitApi(userId?: string) {
         const ac = new AbortController();
         abortRef.current = ac;
 
-        const body = {
+        const style_payload = mapStyleProfileToUserStyle(
+          opts?.styleProfile ?? undefined,
+        );
+
+        const body: any = {
           user_id: userId,
           query,
           topK: opts?.topK ?? 20,
           useWeather: opts?.useWeather ?? true,
           weather: opts?.weather,
-          // style_profile: opts?.style_profile,
-          // weights: opts?.weights,
         };
 
-        // helpful debug
-        console.log('POST /wardrobe/outfits →', body);
+        if (style_payload) {
+          body.style_profile = style_payload;
+        }
+
+        // Debug to verify we're sending style:
+        console.log('POST /wardrobe/outfits →', {
+          ...body,
+          // avoid logging full weather payload spam
+          weather: body.weather ? '[sent]' : undefined,
+        });
 
         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
           method: 'POST',
@@ -192,237 +251,14 @@ export function pickTopOrOuter(items?: OutfitApiItem[]) {
   );
 }
 
-///////////////////
-
-// // apps/mobile/src/hooks/useOutfitApi.ts
+////////////////////
 
 // import {useCallback, useEffect, useRef, useState} from 'react';
 // import {API_BASE_URL} from '../config/api';
 
 // /**
 //  * Shape of an item returned by the backend "outfits" endpoint.
-//  * (These map closely to Pinecone metadata + server-side rerank output.)
 //  */
-// export type OutfitApiItem = {
-//   index: number; // position inside the server's reranked catalog
-//   id: string; // wardrobe item id (DB id)
-//   label: string; // human-readable summary line built on the server
-//   image_url?: string; // absolute or relative URL to the item's image
-//   main_category?: string; // Tops | Bottoms | Shoes | Outerwear | ...
-//   subcategory?: string; // e.g. "Chinos", "Loafers", "Blazer"
-//   color?: string;
-//   color_family?: string;
-//   shoe_style?: string;
-//   dress_code?: string;
-//   formality_score?: number;
-// };
-
-// /**
-//  * One outfit suggestion from the backend.
-//  * - items: subset of the reranked catalog the LLM picked for this look
-//  * - why: a short rationale from the model
-//  * - missing: optional note when a crucial slot doesn't exist in your closet
-//  */
-// export type OutfitApi = {
-//   title: string;
-//   items: OutfitApiItem[];
-//   why: string;
-//   missing?: string;
-// };
-
-// /**
-//  * Minimal UI-facing item used by the Explore screen cards.
-//  * We keep only what the cards need to render quickly.
-//  */
-// export type WardrobeItem = {
-//   id: string;
-//   image: string; // normalized, always absolute http(s) URL for <Image>
-//   name: string; // friendly display name
-//   mainCategory?: string;
-//   subCategory?: string;
-//   color?: string;
-// };
-
-// /**
-//  * Turn relative or malformed image paths into an absolute URL your <Image> can load.
-//  * - If it's already http(s), pass through.
-//  * - If it's relative, prefix with API_BASE_URL.
-//  */
-// function resolveUri(u?: string) {
-//   if (!u) return '';
-//   if (/^https?:\/\//i.test(u)) return u;
-//   const base = API_BASE_URL.replace(/\/+$/, '');
-//   const path = u.replace(/^\/+/, '');
-//   return `${base}/${path}`;
-// }
-
-// /**
-//  * Convert a server OutfitApiItem into the lightweight WardrobeItem your UI needs.
-//  * - Derives a stable display name:
-//  *   1) before the em dash in `label`, or
-//  *   2) before a hyphen dash, or
-//  *   3) subcategory, main_category, or fallback "Item".
-//  * - Ensures image is an absolute URL via resolveUri.
-//  */
-// export function apiItemToUI(
-//   item?: OutfitApiItem | null,
-// ): WardrobeItem | undefined {
-//   if (!item) return undefined;
-
-//   const head = item.label ?? '';
-
-//   // Name extraction is defensive: it supports both "—" and "-" separators.
-//   const name =
-//     head.split(' — ')[0]?.trim() ||
-//     head.split(' - ')[0]?.trim() ||
-//     item.subcategory ||
-//     item.main_category ||
-//     'Item';
-
-//   return {
-//     id: item.id,
-//     image: resolveUri(item.image_url),
-//     name,
-//     mainCategory: item.main_category,
-//     subCategory: item.subcategory,
-//     color: item.color ?? item.color_family,
-//   };
-// }
-
-// /**
-//  * useOutfitApi
-//  * -------------
-//  * React hook that:
-//  *  - Calls your backend to generate outfit suggestions (via `regenerate`)
-//  *  - Tracks loading/error state
-//  *  - Holds a list of outfits and the currently selected one
-//  *  - Provides helpers to move to next/previous suggestion
-//  *
-//  * Usage:
-//  *   const { current, loading, error, regenerate } = useOutfitApi(userId);
-//  *   regenerate("business casual navy blazer");
-//  */
-// export function useOutfitApi(userId?: string) {
-//   const [outfits, setOutfits] = useState<OutfitApi[]>([]); // latest suggestions batch
-//   const [selected, setSelected] = useState(0); // index into `outfits`
-//   const [loading, setLoading] = useState(false);
-//   const [err, setErr] = useState<string | null>(null);
-
-//   // Keep a reference to the current request so we can cancel it if a new one starts
-//   const abortRef = useRef<AbortController | null>(null);
-
-//   // On unmount, abort any in-flight request to avoid setting state on an unmounted component
-//   useEffect(() => {
-//     return () => abortRef.current?.abort();
-//   }, []);
-
-//   /**
-//    * regenerate(query, topK?)
-//    * ------------------------
-//    * Posts { user_id, query, topK } to /wardrobe/outfits
-//    * - Cancels a previous call if one is in-flight (prevents race conditions)
-//    * - Sets loading spinner and clears old errors
-//    * - On success, saves outfits and resets selected index to 0
-//    */
-//   const regenerate = useCallback(
-//     async (query: string, topK = 25) => {
-//       if (!userId) return; // guard: do nothing without a user
-
-//       setLoading(true);
-//       setErr(null);
-
-//       try {
-//         // Cancel any existing call before starting a new one
-//         abortRef.current?.abort();
-//         const ac = new AbortController();
-//         abortRef.current = ac;
-
-//         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
-//           method: 'POST',
-//           headers: {
-//             'Content-Type': 'application/json',
-//             Accept: 'application/json',
-//           },
-//           body: JSON.stringify({user_id: userId, query, topK}),
-//           signal: ac.signal,
-//         });
-
-//         if (!res.ok) {
-//           throw new Error(`HTTP ${res.status} ${res.statusText}`);
-//         }
-
-//         // Expecting { outfits: OutfitApi[] }
-//         const json = await res.json();
-//         const arr: OutfitApi[] = Array.isArray(json?.outfits)
-//           ? json.outfits
-//           : [];
-
-//         setOutfits(arr);
-//         setSelected(0); // always show the first suggestion in the new batch
-//       } catch (e: any) {
-//         // Ignore aborts (they’re intentional), surface all other errors
-//         if (e?.name !== 'AbortError') {
-//           setErr(e?.message || 'Failed to fetch outfits');
-//         }
-//       } finally {
-//         // Release the abort controller and stop the spinner
-//         abortRef.current = null;
-//         setLoading(false);
-//       }
-//     },
-//     [userId],
-//   );
-
-//   // Convenience: the currently selected outfit (or undefined)
-//   const current = outfits[selected];
-
-//   // Helpers to move selection inside the current batch
-//   const selectNext = () =>
-//     setSelected(s => Math.min(s + 1, Math.max(0, outfits.length - 1)));
-//   const selectPrev = () => setSelected(s => Math.max(s - 1, 0));
-
-//   return {
-//     outfits, // full batch from the backend
-//     current, // the outfit the UI should render
-//     selected, // index into `outfits`
-//     setSelected, // allow the UI to jump to a specific card
-//     loading, // spinner state
-//     error: err, // error message (if any)
-//     regenerate, // trigger a new backend call with a query
-//     selectNext, // move cursor forward
-//     selectPrev, // move cursor backward
-//   };
-// }
-
-// /**
-//  * Utility: pick the first item in an outfit by main_category.
-//  * Useful for quickly pulling "Tops", "Bottoms", "Shoes" for the 3 cards.
-//  */
-// export function pickFirstByCategory(
-//   items: OutfitApiItem[] | undefined,
-//   cat: string,
-// ) {
-//   if (!items?.length) return undefined;
-//   return items.find(i => i.main_category === cat);
-// }
-
-// /**
-//  * Utility: prefer a Top, but fall back to Outerwear if no Top selected.
-//  * Handy for UIs that always want to show "something" in the Top card.
-//  */
-// export function pickTopOrOuter(items?: OutfitApiItem[]) {
-//   return (
-//     pickFirstByCategory(items, 'Tops') ??
-//     pickFirstByCategory(items, 'Outerwear')
-//   );
-// }
-
-//////////////////
-
-// // apps/mobile/src/hooks/useOutfitApi.ts
-// import {useCallback, useEffect, useRef, useState} from 'react';
-// import {API_BASE_URL} from '../config/api';
-
 // export type OutfitApiItem = {
 //   index: number;
 //   id: string;
@@ -453,6 +289,52 @@ export function pickTopOrOuter(items?: OutfitApiItem[]) {
 //   color?: string;
 // };
 
+// type WeatherContext = {
+//   tempF: number;
+//   precipitation?: 'none' | 'rain' | 'snow';
+//   windMph?: number;
+//   locationName?: string;
+// };
+
+// /** Backend UserStyle shape (do not change without backend update) */
+// type UserStyle = {
+//   preferredColors?: string[];
+//   avoidColors?: string[];
+//   preferredCategories?: string[];
+//   avoidSubcategories?: string[];
+//   favoriteBrands?: string[];
+//   dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
+// };
+
+// /** Safe mapper: only uses fields we know you persist today */
+// function mapStyleProfileToUserStyle(
+//   styleProfile: any | undefined,
+// ): UserStyle | undefined {
+//   if (!styleProfile) return undefined;
+
+//   const arr = (v: any) =>
+//     Array.isArray(v) ? v.map(x => String(x)).filter(Boolean) : undefined;
+
+//   const preferredColors = arr(styleProfile.favorite_colors);
+//   const avoidSubcategories = arr(styleProfile.disliked_styles);
+//   const favoriteBrands = arr(styleProfile.preferred_brands);
+
+//   const out: UserStyle = {};
+//   if (preferredColors?.length) out.preferredColors = preferredColors;
+//   if (avoidSubcategories?.length) out.avoidSubcategories = avoidSubcategories;
+//   if (favoriteBrands?.length) out.favoriteBrands = favoriteBrands;
+
+//   return Object.keys(out).length ? out : undefined;
+// }
+
+// type GenerateOptions = {
+//   topK?: number;
+//   useWeather?: boolean;
+//   weather?: WeatherContext;
+//   styleProfile?: any; // raw style_profile object from your API
+//   // weights?: {...} // if you want to expose server weights later
+// };
+
 // function resolveUri(u?: string) {
 //   if (!u) return '';
 //   if (/^https?:\/\//i.test(u)) return u;
@@ -465,9 +347,7 @@ export function pickTopOrOuter(items?: OutfitApiItem[]) {
 //   item?: OutfitApiItem | null,
 // ): WardrobeItem | undefined {
 //   if (!item) return undefined;
-
 //   const head = item.label ?? '';
-//   // Defensive name extraction (supports em dash and plain dash)
 //   const name =
 //     head.split(' — ')[0]?.trim() ||
 //     head.split(' - ')[0]?.trim() ||
@@ -490,24 +370,47 @@ export function pickTopOrOuter(items?: OutfitApiItem[]) {
 //   const [selected, setSelected] = useState(0);
 //   const [loading, setLoading] = useState(false);
 //   const [err, setErr] = useState<string | null>(null);
+
 //   const abortRef = useRef<AbortController | null>(null);
 
-//   // Abort any in-flight request on unmount
 //   useEffect(() => {
 //     return () => abortRef.current?.abort();
 //   }, []);
 
+//   /**
+//    * regenerate(query, opts?)
+//    * ------------------------
+//    * Posts to /wardrobe/outfits with:
+//    *  - user_id, query, topK
+//    *  - useWeather (boolean)
+//    *  - weather (object; ignored by server when useWeather=false)
+//    *  - style_profile (mapped from styleProfile)
+//    */
 //   const regenerate = useCallback(
-//     async (query: string, topK = 25) => {
+//     async (query: string, opts?: GenerateOptions) => {
 //       if (!userId) return;
+
 //       setLoading(true);
 //       setErr(null);
 
 //       try {
-//         // cancel any previous call
 //         abortRef.current?.abort();
 //         const ac = new AbortController();
 //         abortRef.current = ac;
+
+//         const body: any = {
+//           user_id: userId,
+//           query,
+//           topK: opts?.topK ?? 20,
+//           useWeather: opts?.useWeather ?? true, // caller should pass explicitly from UI
+//           weather: opts?.weather,
+//         };
+
+//         const mappedStyle = mapStyleProfileToUserStyle(opts?.styleProfile);
+//         if (mappedStyle) body.style_profile = mappedStyle;
+
+//         // helpful debug
+//         console.log('POST /wardrobe/outfits →', body);
 
 //         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
 //           method: 'POST',
@@ -515,7 +418,7 @@ export function pickTopOrOuter(items?: OutfitApiItem[]) {
 //             'Content-Type': 'application/json',
 //             Accept: 'application/json',
 //           },
-//           body: JSON.stringify({user_id: userId, query, topK}),
+//           body: JSON.stringify(body),
 //           signal: ac.signal,
 //         });
 
@@ -543,7 +446,6 @@ export function pickTopOrOuter(items?: OutfitApiItem[]) {
 //   );
 
 //   const current = outfits[selected];
-
 //   const selectNext = () =>
 //     setSelected(s => Math.min(s + 1, Math.max(0, outfits.length - 1)));
 //   const selectPrev = () => setSelected(s => Math.max(s - 1, 0));
