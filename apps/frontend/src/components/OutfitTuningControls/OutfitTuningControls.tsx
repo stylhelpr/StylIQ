@@ -1,29 +1,19 @@
-// apps/mobile/src/components/OutfitTuningControls/OutfitTuningControls.tsx
 import React, {useState} from 'react';
 import {View, TouchableOpacity, Text, StyleSheet, Switch} from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import {useAppTheme} from '../../context/ThemeContext';
 
 type Props = {
-  // Current selected values coming from parent screen
-  weather: string;
+  weather: string; // 'auto' | 'hot' | 'cold' | 'rainy'
   occasion: string;
   style: string;
-
-  // Callbacks to push changes up to the parent (controlled inputs)
   onChangeWeather: (value: string) => void;
   onChangeOccasion: (value: string) => void;
   onChangeStyle: (value: string) => void;
-
-  // Weather toggle
   useWeather: boolean;
   onToggleWeather: (enabled: boolean) => void;
-
-  // Trigger a backend re-generation using the current filters
   onRegenerate: () => void;
-
-  // Optional: disable the CTA while a request is in-flight
-  onGenerate?: () => void; // kept for compatibility
+  onGenerate?: () => void;
   isGenerating?: boolean;
 };
 
@@ -41,17 +31,19 @@ export default function OutfitTuningControls({
 }: Props) {
   const {theme} = useAppTheme();
 
-  // Local UI state to open/close each dropdown menu.
   const [openWeather, setOpenWeather] = useState(false);
   const [openOccasion, setOpenOccasion] = useState(false);
   const [openStyle, setOpenStyle] = useState(false);
 
-  // Option lists
+  // Show/Hide the simple weather options
+  const [showOverride, setShowOverride] = useState(false);
+
+  // Plain-English options
   const weatherOptions = [
-    {label: 'Any', value: 'Any'},
-    {label: 'Hot', value: 'hot'},
-    {label: 'Cold', value: 'cold'},
-    {label: 'Rainy', value: 'rainy'},
+    {label: 'Use My Location (Auto)', value: 'auto'},
+    {label: "It's Hot", value: 'hot'},
+    {label: "It's Cold", value: 'cold'},
+    {label: "It's Rainy", value: 'rainy'},
   ];
 
   const occasionOptions = [
@@ -70,7 +62,6 @@ export default function OutfitTuningControls({
     {label: 'Classic', value: 'classic'},
   ];
 
-  // Layout styles
   const styles = StyleSheet.create({
     container: {
       width: '100%',
@@ -78,6 +69,14 @@ export default function OutfitTuningControls({
       paddingHorizontal: 20,
       gap: 12,
     },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    subtleLink: {paddingVertical: 6, paddingHorizontal: 8, borderRadius: 6},
+    subtleLinkText: {fontSize: 13, fontWeight: '600', opacity: 0.9},
+    smallNote: {marginTop: 4, fontSize: 12, opacity: 0.8},
     button: {
       height: 48,
       borderRadius: 8,
@@ -85,44 +84,22 @@ export default function OutfitTuningControls({
       alignItems: 'center',
       marginTop: 16,
     },
-    buttonText: {
-      fontSize: 16,
-      fontWeight: '600',
-    },
+    buttonText: {fontSize: 16, fontWeight: '600'},
   });
+
+  const weatherDisabled = !useWeather;
 
   return (
     <View style={styles.container}>
-      {/* WEATHER */}
-      <View style={{zIndex: 3000, marginBottom: 12}}>
-        <DropDownPicker
-          open={openWeather}
-          setOpen={(v: boolean) => {
-            setOpenWeather(v);
-            if (v) {
-              setOpenOccasion(false);
-              setOpenStyle(false);
-            }
-          }}
-          value={weather}
-          setValue={val => onChangeWeather(val as unknown as string)}
-          items={weatherOptions}
-          placeholder="Select Weather"
-          listMode="SCROLLVIEW"
-          style={{backgroundColor: theme.colors.surface}}
-          textStyle={{color: theme.colors.foreground}}
-          dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
-        />
-        {/* Weather toggle */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginTop: 8,
-          }}>
+      {/* WEATHER TOGGLE + CHANGE/HIDE WEATHER */}
+      <View style={[styles.row, {marginBottom: 4}]}>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
           <Switch
             value={useWeather}
-            onValueChange={onToggleWeather}
+            onValueChange={enabled => {
+              onToggleWeather(enabled);
+              if (!enabled) setShowOverride(false); // hide when off
+            }}
             trackColor={{false: '#767577', true: '#405de6'}}
             thumbColor={useWeather ? '#fff' : '#f4f3f4'}
           />
@@ -130,7 +107,74 @@ export default function OutfitTuningControls({
             Use Weather
           </Text>
         </View>
+
+        <TouchableOpacity
+          disabled={weatherDisabled}
+          onPress={() => setShowOverride(s => !s)}
+          style={[
+            styles.subtleLink,
+            {
+              opacity: weatherDisabled ? 0.0 : 1,
+              backgroundColor: isGenerating ? '#7a88ff' : '#405de6',
+              borderRadius: 20,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+            },
+          ]}
+          activeOpacity={0.8}>
+          <Text
+            style={[
+              styles.subtleLinkText,
+              {
+                color: '#fff',
+              },
+            ]}>
+            {showOverride ? 'Hide Weather Options' : 'Choose Weather Options'}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Tiny clarity note when OFF */}
+      {/* {!useWeather && (
+        <Text style={[styles.smallNote, {color: theme.colors.muted}]}>
+          Weather is off — outfits ignore weather.
+        </Text>
+      )} */}
+
+      {/* WEATHER OPTIONS (hidden by default) */}
+      {showOverride && (
+        <View
+          style={{
+            zIndex: 3000,
+            marginBottom: 12,
+            opacity: weatherDisabled ? 0.5 : 1,
+          }}>
+          <DropDownPicker
+            open={openWeather}
+            setOpen={(v: boolean) => {
+              setOpenWeather(v);
+              if (v) {
+                setOpenOccasion(false);
+                setOpenStyle(false);
+              }
+            }}
+            value={weather}
+            setValue={val => onChangeWeather(val as unknown as string)}
+            items={weatherOptions}
+            placeholder={
+              useWeather ? 'Choose weather option' : 'Weather (disabled)'
+            }
+            listMode="SCROLLVIEW"
+            style={{backgroundColor: theme.colors.surface}}
+            textStyle={{color: theme.colors.foreground}}
+            dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+            disabled={weatherDisabled}
+          />
+          <Text style={{marginTop: 6, fontSize: 12, color: theme.colors.muted}}>
+            Default uses your current location automatically.
+          </Text>
+        </View>
+      )}
 
       {/* OCCASION */}
       <View style={{zIndex: 2000, marginBottom: 12}}>
@@ -194,6 +238,456 @@ export default function OutfitTuningControls({
     </View>
   );
 }
+
+////////////////
+
+// import React, {useState} from 'react';
+// import {View, TouchableOpacity, Text, StyleSheet, Switch} from 'react-native';
+// import DropDownPicker from 'react-native-dropdown-picker';
+// import {useAppTheme} from '../../context/ThemeContext';
+
+// type Props = {
+//   // Current selected values coming from parent screen
+//   weather: string; // expects 'auto' | 'hot' | 'cold' | 'rainy'
+//   occasion: string;
+//   style: string;
+
+//   // Callbacks to push changes up to the parent (controlled inputs)
+//   onChangeWeather: (value: string) => void;
+//   onChangeOccasion: (value: string) => void;
+//   onChangeStyle: (value: string) => void;
+
+//   // Weather toggle
+//   useWeather: boolean;
+//   onToggleWeather: (enabled: boolean) => void;
+
+//   // Trigger a backend re-generation using the current filters
+//   onRegenerate: () => void;
+
+//   // Optional: disable the CTA while a request is in-flight
+//   onGenerate?: () => void; // kept for compatibility
+//   isGenerating?: boolean;
+// };
+
+// export default function OutfitTuningControls({
+//   weather,
+//   occasion,
+//   style,
+//   onChangeWeather,
+//   onChangeOccasion,
+//   onChangeStyle,
+//   onRegenerate,
+//   useWeather,
+//   onToggleWeather,
+//   isGenerating = false,
+// }: Props) {
+//   const {theme} = useAppTheme();
+
+//   // Local UI state to open/close each dropdown menu.
+//   const [openWeather, setOpenWeather] = useState(false);
+//   const [openOccasion, setOpenOccasion] = useState(false);
+//   const [openStyle, setOpenStyle] = useState(false);
+
+//   // Show/Hide the override controls
+//   const [showOverride, setShowOverride] = useState(false);
+
+//   // Option lists
+//   const weatherOptions = [
+//     {label: 'Auto (Live)', value: 'auto'},
+//     {label: 'Hot', value: 'hot'},
+//     {label: 'Cold', value: 'cold'},
+//     {label: 'Rainy', value: 'rainy'},
+//   ];
+
+//   const occasionOptions = [
+//     {label: 'Any', value: 'Any'},
+//     {label: 'Casual', value: 'Casual'},
+//     {label: 'Formal', value: 'Formal'},
+//     {label: 'Business', value: 'Business'},
+//     {label: 'Vacation', value: 'Vacation'},
+//   ];
+
+//   const styleOptions = [
+//     {label: 'Any', value: 'Any'},
+//     {label: 'Modern', value: 'modern'},
+//     {label: 'Minimalist', value: 'minimalist'},
+//     {label: 'Streetwear', value: 'streetwear'},
+//     {label: 'Classic', value: 'classic'},
+//   ];
+
+//   // Layout styles
+//   const styles = StyleSheet.create({
+//     container: {
+//       width: '100%',
+//       marginBottom: 20,
+//       paddingHorizontal: 20,
+//       gap: 12,
+//     },
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//     },
+//     subtleLink: {
+//       paddingVertical: 6,
+//       paddingHorizontal: 8,
+//       borderRadius: 6,
+//     },
+//     subtleLinkText: {
+//       fontSize: 13,
+//       fontWeight: '600',
+//       opacity: 0.9,
+//     },
+//     button: {
+//       height: 48,
+//       borderRadius: 8,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       marginTop: 16,
+//     },
+//     buttonText: {
+//       fontSize: 16,
+//       fontWeight: '600',
+//     },
+//   });
+
+//   const weatherDisabled = !useWeather;
+
+//   return (
+//     <View style={styles.container}>
+//       {/* WEATHER TOGGLE + PLAN/OVERRIDE */}
+//       <View style={[styles.row, {marginBottom: 6}]}>
+//         <View style={{flexDirection: 'row', alignItems: 'center'}}>
+//           <Switch
+//             value={useWeather}
+//             onValueChange={enabled => {
+//               onToggleWeather(enabled);
+//               // If turning OFF, hide override UI to reduce confusion
+//               if (!enabled) setShowOverride(false);
+//             }}
+//             trackColor={{false: '#767577', true: '#405de6'}}
+//             thumbColor={useWeather ? '#fff' : '#f4f3f4'}
+//           />
+//           <Text style={{marginLeft: 8, color: theme.colors.foreground}}>
+//             Use Weather
+//           </Text>
+//         </View>
+
+//         <TouchableOpacity
+//           disabled={weatherDisabled}
+//           onPress={() => setShowOverride(s => !s)}
+//           style={[
+//             styles.subtleLink,
+//             {
+//               opacity: weatherDisabled ? 0.5 : 1,
+//               backgroundColor: theme.colors.surface,
+//             },
+//           ]}
+//           activeOpacity={0.8}>
+//           <Text style={[styles.subtleLinkText, {color: theme.colors.primary}]}>
+//             {showOverride ? 'Hide Override' : 'Plan / Override'}
+//           </Text>
+//         </TouchableOpacity>
+//       </View>
+
+//       {/* WEATHER OVERRIDE (hidden by default) */}
+//       {showOverride && (
+//         <View
+//           style={{
+//             zIndex: 3000,
+//             marginBottom: 12,
+//             opacity: weatherDisabled ? 0.5 : 1,
+//           }}>
+//           <DropDownPicker
+//             open={openWeather}
+//             setOpen={(v: boolean) => {
+//               setOpenWeather(v);
+//               if (v) {
+//                 setOpenOccasion(false);
+//                 setOpenStyle(false);
+//               }
+//             }}
+//             value={weather}
+//             setValue={val => onChangeWeather(val as unknown as string)}
+//             items={weatherOptions}
+//             placeholder={
+//               useWeather ? 'Weather (Auto / Override)' : 'Weather (disabled)'
+//             }
+//             listMode="SCROLLVIEW"
+//             style={{backgroundColor: theme.colors.surface}}
+//             textStyle={{color: theme.colors.foreground}}
+//             dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+//             disabled={weatherDisabled}
+//           />
+//           {/* Tiny hint */}
+//           <Text style={{marginTop: 6, fontSize: 12, color: theme.colors.muted}}>
+//             Auto uses real weather for your current location/time. Override for
+//             travel or planning.
+//           </Text>
+//         </View>
+//       )}
+
+//       {/* OCCASION */}
+//       <View style={{zIndex: 2000, marginBottom: 12}}>
+//         <DropDownPicker
+//           open={openOccasion}
+//           setOpen={(v: boolean) => {
+//             setOpenOccasion(v);
+//             if (v) {
+//               setOpenWeather(false);
+//               setOpenStyle(false);
+//             }
+//           }}
+//           value={occasion}
+//           setValue={val => onChangeOccasion(val as unknown as string)}
+//           items={occasionOptions}
+//           placeholder="Select Occasion"
+//           listMode="SCROLLVIEW"
+//           style={{backgroundColor: theme.colors.surface}}
+//           textStyle={{color: theme.colors.foreground}}
+//           dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+//         />
+//       </View>
+
+//       {/* STYLE */}
+//       <View style={{zIndex: 1000, marginBottom: 12}}>
+//         <DropDownPicker
+//           open={openStyle}
+//           setOpen={(v: boolean) => {
+//             setOpenStyle(v);
+//             if (v) {
+//               setOpenWeather(false);
+//               setOpenOccasion(false);
+//             }
+//           }}
+//           value={style}
+//           setValue={val => onChangeStyle(val as unknown as string)}
+//           items={styleOptions}
+//           placeholder="Select Style"
+//           listMode="SCROLLVIEW"
+//           style={{backgroundColor: theme.colors.surface}}
+//           textStyle={{color: theme.colors.foreground}}
+//           dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+//         />
+//       </View>
+
+//       {/* Generate CTA */}
+//       <TouchableOpacity
+//         style={[
+//           styles.button,
+//           {
+//             backgroundColor: isGenerating ? '#7a88ff' : '#405de6',
+//             opacity: isGenerating ? 0.7 : 1,
+//           },
+//         ]}
+//         onPress={onRegenerate}
+//         disabled={isGenerating}>
+//         <Text style={[styles.buttonText, {color: '#fff'}]}>
+//           {isGenerating ? 'Generating…' : 'Generate Outfit'}
+//         </Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+// }
+
+///////////////////////
+
+// // apps/mobile/src/components/OutfitTuningControls/OutfitTuningControls.tsx
+// import React, {useState} from 'react';
+// import {View, TouchableOpacity, Text, StyleSheet, Switch} from 'react-native';
+// import DropDownPicker from 'react-native-dropdown-picker';
+// import {useAppTheme} from '../../context/ThemeContext';
+
+// type Props = {
+//   // Current selected values coming from parent screen
+//   weather: string;
+//   occasion: string;
+//   style: string;
+
+//   // Callbacks to push changes up to the parent (controlled inputs)
+//   onChangeWeather: (value: string) => void;
+//   onChangeOccasion: (value: string) => void;
+//   onChangeStyle: (value: string) => void;
+
+//   // Weather toggle
+//   useWeather: boolean;
+//   onToggleWeather: (enabled: boolean) => void;
+
+//   // Trigger a backend re-generation using the current filters
+//   onRegenerate: () => void;
+
+//   // Optional: disable the CTA while a request is in-flight
+//   onGenerate?: () => void; // kept for compatibility
+//   isGenerating?: boolean;
+// };
+
+// export default function OutfitTuningControls({
+//   weather,
+//   occasion,
+//   style,
+//   onChangeWeather,
+//   onChangeOccasion,
+//   onChangeStyle,
+//   onRegenerate,
+//   useWeather,
+//   onToggleWeather,
+//   isGenerating = false,
+// }: Props) {
+//   const {theme} = useAppTheme();
+
+//   // Local UI state to open/close each dropdown menu.
+//   const [openWeather, setOpenWeather] = useState(false);
+//   const [openOccasion, setOpenOccasion] = useState(false);
+//   const [openStyle, setOpenStyle] = useState(false);
+
+//   // Option lists
+//   const weatherOptions = [
+//     {label: 'Any', value: 'Any'},
+//     {label: 'Hot', value: 'hot'},
+//     {label: 'Cold', value: 'cold'},
+//     {label: 'Rainy', value: 'rainy'},
+//   ];
+
+//   const occasionOptions = [
+//     {label: 'Any', value: 'Any'},
+//     {label: 'Casual', value: 'Casual'},
+//     {label: 'Formal', value: 'Formal'},
+//     {label: 'Business', value: 'Business'},
+//     {label: 'Vacation', value: 'Vacation'},
+//   ];
+
+//   const styleOptions = [
+//     {label: 'Any', value: 'Any'},
+//     {label: 'Modern', value: 'modern'},
+//     {label: 'Minimalist', value: 'minimalist'},
+//     {label: 'Streetwear', value: 'streetwear'},
+//     {label: 'Classic', value: 'classic'},
+//   ];
+
+//   // Layout styles
+//   const styles = StyleSheet.create({
+//     container: {
+//       width: '100%',
+//       marginBottom: 20,
+//       paddingHorizontal: 20,
+//       gap: 12,
+//     },
+//     button: {
+//       height: 48,
+//       borderRadius: 8,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       marginTop: 16,
+//     },
+//     buttonText: {
+//       fontSize: 16,
+//       fontWeight: '600',
+//     },
+//   });
+
+//   return (
+//     <View style={styles.container}>
+//       {/* WEATHER */}
+//       <View style={{zIndex: 3000, marginBottom: 12}}>
+//         <DropDownPicker
+//           open={openWeather}
+//           setOpen={(v: boolean) => {
+//             setOpenWeather(v);
+//             if (v) {
+//               setOpenOccasion(false);
+//               setOpenStyle(false);
+//             }
+//           }}
+//           value={weather}
+//           setValue={val => onChangeWeather(val as unknown as string)}
+//           items={weatherOptions}
+//           placeholder="Select Weather"
+//           listMode="SCROLLVIEW"
+//           style={{backgroundColor: theme.colors.surface}}
+//           textStyle={{color: theme.colors.foreground}}
+//           dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+//         />
+//         {/* Weather toggle */}
+//         <View
+//           style={{
+//             flexDirection: 'row',
+//             alignItems: 'center',
+//             marginTop: 8,
+//           }}>
+//           <Switch
+//             value={useWeather}
+//             onValueChange={onToggleWeather}
+//             trackColor={{false: '#767577', true: '#405de6'}}
+//             thumbColor={useWeather ? '#fff' : '#f4f3f4'}
+//           />
+//           <Text style={{marginLeft: 8, color: theme.colors.foreground}}>
+//             Use Weather
+//           </Text>
+//         </View>
+//       </View>
+
+//       {/* OCCASION */}
+//       <View style={{zIndex: 2000, marginBottom: 12}}>
+//         <DropDownPicker
+//           open={openOccasion}
+//           setOpen={(v: boolean) => {
+//             setOpenOccasion(v);
+//             if (v) {
+//               setOpenWeather(false);
+//               setOpenStyle(false);
+//             }
+//           }}
+//           value={occasion}
+//           setValue={val => onChangeOccasion(val as unknown as string)}
+//           items={occasionOptions}
+//           placeholder="Select Occasion"
+//           listMode="SCROLLVIEW"
+//           style={{backgroundColor: theme.colors.surface}}
+//           textStyle={{color: theme.colors.foreground}}
+//           dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+//         />
+//       </View>
+
+//       {/* STYLE */}
+//       <View style={{zIndex: 1000, marginBottom: 12}}>
+//         <DropDownPicker
+//           open={openStyle}
+//           setOpen={(v: boolean) => {
+//             setOpenStyle(v);
+//             if (v) {
+//               setOpenWeather(false);
+//               setOpenOccasion(false);
+//             }
+//           }}
+//           value={style}
+//           setValue={val => onChangeStyle(val as unknown as string)}
+//           items={styleOptions}
+//           placeholder="Select Style"
+//           listMode="SCROLLVIEW"
+//           style={{backgroundColor: theme.colors.surface}}
+//           textStyle={{color: theme.colors.foreground}}
+//           dropDownContainerStyle={{backgroundColor: theme.colors.surface}}
+//         />
+//       </View>
+
+//       {/* Generate CTA */}
+//       <TouchableOpacity
+//         style={[
+//           styles.button,
+//           {
+//             backgroundColor: isGenerating ? '#7a88ff' : '#405de6',
+//             opacity: isGenerating ? 0.7 : 1,
+//           },
+//         ]}
+//         onPress={onRegenerate}
+//         disabled={isGenerating}>
+//         <Text style={[styles.buttonText, {color: '#fff'}]}>
+//           {isGenerating ? 'Generating…' : 'Generate Outfit'}
+//         </Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+// }
 
 /////////////////
 
