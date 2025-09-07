@@ -286,6 +286,7 @@ export class WardrobeService {
       userStyle?: UserStyle;
       weather?: WeatherContext;
       weights?: ContextWeights;
+      useWeather?: boolean; // 👈 ADD THIS
     },
   ) {
     try {
@@ -333,14 +334,22 @@ export class WardrobeService {
         };
       });
 
+      console.log(
+        '[SERVICE] useWeather=',
+        opts?.useWeather,
+        'weather=',
+        opts?.weather,
+      );
+
       // 3) Context-aware rerank (constraints + user style + weather)
       const reranked = rerankCatalogWithContext(
         catalog,
         parseConstraints(query),
         {
           userStyle: opts?.userStyle,
-          weather: opts?.weather,
+          weather: opts?.weather, // ✅ only weather, no useWeather
           weights: opts?.weights ?? DEFAULT_CONTEXT_WEIGHTS,
+          useWeather: opts?.useWeather, // 👈 FORWARD IT
         },
       );
 
