@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Switch, // ⬅️ added
 } from 'react-native';
 import WhyPickedModal from '../components/WhyPickedModal/WhyPickedModal';
 import {useAppTheme} from '../context/ThemeContext';
@@ -29,7 +28,7 @@ import {
   pickFirstByCategory,
 } from '../hooks/useOutfitApi';
 
-// ⬇️ auth + style profile
+// ⬇️ NEW: bring in auth id + style profile
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 
@@ -40,8 +39,8 @@ type Props = {navigate: (screen: string, params?: any) => void};
 
 export default function OutfitSuggestionScreen({navigate}: Props) {
   const userId = useUUID();
-  const {user} = useAuth0();
-  const {styleProfile} = useStyleProfile(user?.sub || '');
+  const {user} = useAuth0(); // ← auth0 sub for style profile
+  const {styleProfile} = useStyleProfile(user?.sub || ''); // ← raw profile object
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
@@ -53,7 +52,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   >(null);
   const [lastSpeech, setLastSpeech] = useState('');
 
-  // Weather
+  // Weather + filters
   const [weather, setWeather] = useState<'hot' | 'cold' | 'rainy' | 'auto'>(
     'auto',
   );
@@ -63,7 +62,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   // Weather toggle (default OFF)
   const [useWeather, setUseWeather] = useState<boolean>(false);
 
-  // ⬇️ NEW: Style prefs toggle (ON by default)
+  // NEW: Style profile toggle (default ON)
   const [useStylePrefs, setUseStylePrefs] = useState<boolean>(true);
 
   // Live weather context when useWeather && weather==='auto'
@@ -221,7 +220,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     const parts: string[] = [];
     if (occasion !== 'Any') parts.push(occasion);
     if (style !== 'Any') parts.push(style);
+
+    // Only inject human text for weather if user explicitly picked an override
     if (useWeather && weather !== 'auto') parts.push(`${weather} weather`);
+
     if (lastSpeech.trim().length) parts.push(lastSpeech.trim());
     return parts.join(' ').trim() || 'smart casual, balanced neutrals';
   }, [occasion, style, weather, lastSpeech, useWeather]);
@@ -250,7 +252,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           windMph: 12,
           locationName: 'Local' as const,
         };
-      default:
+      default: // 'auto'
         return {
           tempF: 68,
           precipitation: 'none' as const,
@@ -266,6 +268,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const handleGenerate = () => {
     if (!userId) return;
 
+    // Weather payload decision
     const wxToSend = useWeather
       ? weather === 'auto'
         ? liveWeatherCtx ?? {
@@ -286,18 +289,18 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       weather,
       'liveReady=',
       !!liveWeatherCtx,
-      'styleProfile=',
-      !!styleProfile,
       'useStylePrefs=',
       useStylePrefs,
+      'styleProfilePresent=',
+      !!styleProfile,
     );
 
     regenerate(builtQuery, {
       topK: 25,
       useWeather,
       weather: wxToSend,
-      styleProfile,
-      useStyle: useStylePrefs, // ⬅️ SEND THE TOGGLE
+      // Only send style profile if toggle is ON
+      styleProfile: useStylePrefs ? styleProfile : undefined,
     });
   };
 
@@ -469,7 +472,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 </TouchableOpacity>
               </View>
 
-              {/* Controls */}
+              {/* Controls (now also has Use Style Profile toggle) */}
               <OutfitTuningControls
                 weather={weather}
                 occasion={occasion}
@@ -479,28 +482,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 onChangeStyle={setStyle}
                 useWeather={useWeather}
                 onToggleWeather={setUseWeather}
+                // NEW: wire the style profile toggle
+                useStylePrefs={useStylePrefs}
+                onToggleStylePrefs={setUseStylePrefs}
                 onRegenerate={handleGenerate}
                 isGenerating={loading || liveWxLoading}
               />
-
-              {/* ⬇️ STYLE PREFS TOGGLE (visible always; make it dev-only if you want with __DEV__) */}
-              <View
-                style={{
-                  width: '100%',
-                  maxWidth: 400,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
-                }}>
-                <Text style={{color: theme.colors.muted}}>
-                  Style prefs influence
-                </Text>
-                <Switch
-                  value={useStylePrefs}
-                  onValueChange={setUseStylePrefs}
-                />
-              </View>
 
               {/* Live weather hint only when in Auto mode */}
               {useWeather && weather === 'auto' && (
