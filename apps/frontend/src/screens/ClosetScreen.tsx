@@ -542,6 +542,7 @@ export default function ClosetScreen({navigate}: Props) {
         </TouchableWithoutFeedback>
       </Modal>
 
+      {/* AddItemScreen Modal */}
       {selectedItemToEdit && (
         <Modal visible={showEditModal} transparent animationType="slide">
           <TouchableWithoutFeedback onPress={() => setShowEditModal(false)}>

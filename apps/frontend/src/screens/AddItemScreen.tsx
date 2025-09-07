@@ -18,8 +18,6 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import {useAuth0} from 'react-native-auth0';
 import {useUUID} from '../context/UUIDContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
-
-// ⬇️ NEW: AI endpoints
 import {analyzeImage, autoCreateWithAI} from '../api/analyzeImage';
 
 // --- input normalizers ---
