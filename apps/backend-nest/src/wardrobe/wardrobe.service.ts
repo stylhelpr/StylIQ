@@ -265,8 +265,10 @@ export class WardrobeService {
         includeMetadata: true,
       });
 
+      // ─────────────────────────────────────────────
       // 2) Build catalog
-      const catalog: CatalogItem[] = matches.map((m, i) => {
+      // ─────────────────────────────────────────────
+      let catalog: CatalogItem[] = matches.map((m, i) => {
         const { id } = this.normalizePineconeId(m.id as string);
         const meta: any = m.metadata || {};
         const sub_raw = this.asStr(meta.subcategory ?? meta.subCategory);
@@ -297,25 +299,37 @@ export class WardrobeService {
         };
       });
 
-      console.log(
-        '[SERVICE] useWeather=',
-        opts?.useWeather,
-        'weather=',
-        opts?.weather,
-      );
+      // 🔎 DEBUG
+      const effectiveGender =
+        (opts?.userStyle?.genderPresentation ?? 'male').toLowerCase() ===
+        'female'
+          ? 'female'
+          : 'male';
+      console.log('[DEBUG] effectiveGender =', effectiveGender);
+
+      // 🚫 Hard filter heels for non-female users BEFORE reranking/LLM
+      if (effectiveGender !== 'female') {
+        catalog = catalog.filter((c) => {
+          const sub = (c.subcategory ?? '').toLowerCase();
+          const shoe = (c.shoe_style ?? '').toLowerCase();
+          const label = (c.label ?? '').toLowerCase();
+          return !(
+            sub.includes('heel') ||
+            shoe.includes('heel') ||
+            label.includes('heel')
+          );
+        });
+      }
 
       // 3) Rerank with context
       const baseConstraints = parseConstraints(query);
 
-      // 🔑 inject user gender so scoring.ts can hard-filter heels
       const constraints = {
         ...baseConstraints,
-        userGender: opts?.userStyle?.genderPresentation
-          ? (opts.userStyle.genderPresentation.toLowerCase() as
-              | 'male'
-              | 'female')
-          : undefined,
+        userGender: effectiveGender as 'male' | 'female',
       };
+
+      console.log('[DEBUG] constraints.userGender =', constraints.userGender);
 
       const reranked = rerankCatalogWithContext(catalog, constraints, {
         userStyle: opts?.userStyle,
