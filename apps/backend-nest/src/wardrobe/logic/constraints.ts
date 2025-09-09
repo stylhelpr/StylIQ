@@ -11,7 +11,6 @@ export type ParsedConstraints = {
   colorWanted?: 'Brown' | 'Navy' | 'Blue' | 'Black';
   dressWanted?: 'BusinessCasual' | 'SmartCasual' | 'Casual';
   wantsBrown: boolean;
-  userGender?: 'male' | 'female';
 };
 
 export function parseConstraints(q: string): ParsedConstraints {

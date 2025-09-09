@@ -45,7 +45,6 @@ type UserStylePayload = {
   avoidSubcategories?: string[];
   favoriteBrands?: string[];
   dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
-  genderPresentation?: 'male' | 'female';
 };
 
 type Weights = {
@@ -117,21 +116,6 @@ function mapStyleProfileToUserStyle(raw: any): UserStylePayload | undefined {
   const out: UserStylePayload = {};
   if (preferredColors) out.preferredColors = preferredColors;
   if (favoriteBrands) out.favoriteBrands = favoriteBrands;
-
-  // 👇 Accept multiple keys coming from DB/API
-  const rawGender =
-    raw.genderPresentation ??
-    raw.gender_presentation ??
-    raw.gender ??
-    raw.sex ??
-    raw.preferred_gender ??
-    raw.preferredGender;
-
-  if (rawGender) {
-    const g = String(rawGender).toLowerCase();
-    if (g.startsWith('m')) out.genderPresentation = 'male';
-    if (g.startsWith('f')) out.genderPresentation = 'female';
-  }
 
   return Object.keys(out).length ? out : undefined;
 }

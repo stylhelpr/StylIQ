@@ -77,17 +77,6 @@ export function scoreItemForConstraints(
   const label = (item.label ?? '').toLowerCase();
   const f = Number(item.formality_score ?? NaN);
 
-  // 🚫 HARD FILTER: remove heels for male users
-  if ((c as any).userGender === 'male') {
-    if (
-      sub.includes('heel') ||
-      shoe.includes('heel') ||
-      label.includes('heel')
-    ) {
-      return -9999; // kill the score completely
-    }
-  }
-
   // hard negatives
   if ((c as any).excludeLoafers && (sub === 'loafers' || shoe === 'loafer'))
     score -= 50;

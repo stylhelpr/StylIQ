@@ -7,7 +7,6 @@ export type UserStyle = {
   avoidSubcategories?: string[];
   favoriteBrands?: string[];
   dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
-  genderPresentation?: 'male' | 'female';
 };
 
 export type StyleWeights = {
