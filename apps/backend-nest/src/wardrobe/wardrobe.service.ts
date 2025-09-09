@@ -530,7 +530,7 @@ export class WardrobeService {
       const disableFeedback = !clientWantsFeedback || envDisable;
 
       console.log('[FEEDBACK] useFeedback (client):', opts?.useFeedback);
-      console.log('[FEEDBACK] DISABLE_FEEDBACK (env):', envDisable);
+      // console.log('[FEEDBACK] DISABLE_FEEDBACK (env):', envDisable);
       // console.log('[FEEDBACK] Effective disableFeedback =', disableFeedback);
 
       if (!disableFeedback) {
