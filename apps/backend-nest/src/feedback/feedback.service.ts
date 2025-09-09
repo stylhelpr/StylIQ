@@ -1,3 +1,5 @@
+// apps/backend-nest/src/feedback/feedback.service.ts
+
 import { Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import { RateFeedbackDto } from './dto/rate-feedback.dto';
@@ -10,25 +12,32 @@ const pool = new Pool({
 @Injectable()
 export class FeedbackService {
   async rate(dto: RateFeedbackDto) {
-    const { user_id, outfit_id, rating, notes, item_ids = [] } = dto;
+    const { user_id, outfit_id, rating, notes, item_ids = [], outfit } = dto;
     const numeric = rating === 'like' ? 1 : -1;
 
-    // main feedback table
+    // main feedback table (now includes outfit_json)
     await pool.query(
       `CREATE TABLE IF NOT EXISTS outfit_feedback(
-     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-     user_id UUID NOT NULL,
-     outfit_id UUID NOT NULL,
-     rating INT CHECK (rating IN (1, -1)),
-     notes TEXT,
-     created_at TIMESTAMPTZ DEFAULT now()
-   );`,
+         id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+         user_id UUID NOT NULL,
+         outfit_id UUID NOT NULL,
+         rating INT CHECK (rating IN (1, -1)),
+         notes TEXT,
+         outfit_json JSONB,
+         created_at TIMESTAMPTZ DEFAULT now()
+       );`,
     );
 
     await pool.query(
-      `INSERT INTO outfit_feedback (user_id, outfit_id, rating, notes)
-   VALUES ($1::uuid,$2::uuid,$3,$4);`,
-      [user_id, outfit_id, numeric, notes ?? null],
+      `INSERT INTO outfit_feedback (user_id, outfit_id, rating, notes, outfit_json)
+       VALUES ($1::uuid,$2::uuid,$3,$4,$5::jsonb);`,
+      [
+        user_id,
+        outfit_id,
+        numeric,
+        notes ?? null,
+        outfit ? JSON.stringify(outfit) : null,
+      ],
     );
 
     // per-item preferences
@@ -56,6 +65,67 @@ export class FeedbackService {
     return { ok: true };
   }
 }
+
+////////////////
+
+// import { Injectable } from '@nestjs/common';
+// import { Pool } from 'pg';
+// import { RateFeedbackDto } from './dto/rate-feedback.dto';
+
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: { rejectUnauthorized: false },
+// });
+
+// @Injectable()
+// export class FeedbackService {
+//   async rate(dto: RateFeedbackDto) {
+//     const { user_id, outfit_id, rating, notes, item_ids = [] } = dto;
+//     const numeric = rating === 'like' ? 1 : -1;
+
+//     // main feedback table
+//     await pool.query(
+//       `CREATE TABLE IF NOT EXISTS outfit_feedback(
+//      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+//      user_id UUID NOT NULL,
+//      outfit_id UUID NOT NULL,
+//      rating INT CHECK (rating IN (1, -1)),
+//      notes TEXT,
+//      created_at TIMESTAMPTZ DEFAULT now()
+//    );`,
+//     );
+
+//     await pool.query(
+//       `INSERT INTO outfit_feedback (user_id, outfit_id, rating, notes)
+//    VALUES ($1::uuid,$2::uuid,$3,$4);`,
+//       [user_id, outfit_id, numeric, notes ?? null],
+//     );
+
+//     // per-item preferences
+//     await pool.query(
+//       `CREATE TABLE IF NOT EXISTS user_pref_item(
+//          user_id TEXT NOT NULL,
+//          item_id TEXT NOT NULL,
+//          score REAL NOT NULL DEFAULT 0,
+//          updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+//          PRIMARY KEY (user_id, item_id)
+//        );`,
+//     );
+
+//     for (const id of item_ids) {
+//       await pool.query(
+//         `INSERT INTO user_pref_item (user_id, item_id, score)
+//          VALUES ($1,$2,$3)
+//          ON CONFLICT (user_id, item_id) DO UPDATE
+//            SET score = LEAST(5, GREATEST(-5, user_pref_item.score + $3)),
+//                updated_at = now();`,
+//         [user_id, id, numeric * 2],
+//       );
+//     }
+
+//     return { ok: true };
+//   }
+// }
 
 ///////////////
 
