@@ -16,9 +16,8 @@ import { FeedbackModule } from './feedback/feedback.module';
 import { SearchLogsModule } from './search-logs/search-logs.module';
 import { UserSubscriptionsModule } from './user-subscriptions/user-subscriptions.module';
 import { OutfitFavoritesModule } from './outfit-favorites/outfit-favorites.module';
-
+import { SavedLookModule } from './saved-looks/saved-look.module';
 import { GCSModule } from './gcs/gcs.module';
-
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -40,6 +39,7 @@ import { AppService } from './app.service';
     SearchLogsModule,
     UserSubscriptionsModule,
     OutfitFavoritesModule,
+    SavedLookModule,
   ],
   controllers: [AppController],
   providers: [AppService, DatabaseService],
