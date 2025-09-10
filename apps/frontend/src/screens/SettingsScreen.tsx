@@ -369,6 +369,15 @@ export default function SettingsScreen({navigate}: Props) {
               App Version: {appVersion}
             </Text>
 
+            <AppleTouchFeedback
+              onPress={() => navigate('Onboarding')}
+              hapticStyle="impactMedium"
+              style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+              <Text style={[globalStyles.menuLabel, {color: colors.primary}]}>
+                Onboarding
+              </Text>
+            </AppleTouchFeedback>
+
             {/* Theme Modal */}
             <Modal visible={modalVisible} animationType="slide" transparent>
               <TouchableOpacity
@@ -420,7 +429,7 @@ export default function SettingsScreen({navigate}: Props) {
   );
 }
 
-/////////////////
+/////////////////////
 
 // import React, {useState, useEffect} from 'react';
 // import {
@@ -494,7 +503,7 @@ export default function SettingsScreen({navigate}: Props) {
 //       marginBottom: 30,
 //       backgroundColor: theme.colors.surface,
 //       borderRadius: tokens.borderRadius.md,
-//       paddingHorizontal: 24,
+//       paddingHorizontal: 22,
 //       paddingVertical: 14,
 //     },
 //     modalOverlay: {
@@ -503,7 +512,13 @@ export default function SettingsScreen({navigate}: Props) {
 //       padding: 24,
 //       backgroundColor: 'rgba(0,0,0,0.5)',
 //     },
-//     modalContent: {borderRadius: 12, padding: 16},
+//     modalContent: {
+//       borderRadius: 12,
+//       padding: 16,
+//       width: '100%',
+//       maxWidth: 720,
+//       alignSelf: 'center',
+//     },
 //     optionRow: {
 //       flexDirection: 'row',
 //       alignItems: 'center',
@@ -639,6 +654,7 @@ export default function SettingsScreen({navigate}: Props) {
 //       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
 //         Settings
 //       </Text>
+
 //       <View style={globalStyles.section}>
 //         <View
 //           style={[
@@ -654,163 +670,183 @@ export default function SettingsScreen({navigate}: Props) {
 //           <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
 //         </View>
 
-//         <View>
-//           {/* 🔔 Notifications */}
-//           <View style={styles.enableRow}>
-//             <Text style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-//               Enable Notifications
-//             </Text>
-//             <Switch
-//               value={notificationsEnabled}
-//               onValueChange={handleToggleNotifications}
-//             />
-//           </View>
-
-//           <View style={globalStyles.section2}>
-//             {/* 🎨 Theme */}
-//             <Text
-//               style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
-//               App Color Theme
-//             </Text>
-
-//             {/* Theme selection */}
-//             <View
-//               style={[
-//                 globalStyles.menuSection2,
-//                 {backgroundColor: colors.surface},
-//               ]}>
-//               <AppleTouchFeedback
-//                 onPress={() => setModalVisible(true)}
-//                 hapticStyle="impactMedium"
-//                 style={[{backgroundColor: colors.surface}]}>
-//                 <Text
-//                   style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-//                   {currentLabel}
-//                 </Text>
-//               </AppleTouchFeedback>
-//             </View>
-//           </View>
-
+//         <View style={globalStyles.centeredSection}>
 //           <View>
-//             <View style={globalStyles.menuContainer1}>
-//               {/* Reset App Data */}
-//               <AppleTouchFeedback
-//                 onPress={resetApp}
-//                 hapticStyle="impactHeavy"
-//                 style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-//                 <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
-//                   Reset App Data
-//                 </Text>
-//               </AppleTouchFeedback>
-
-//               {/* Delete My Data */}
-//               <AppleTouchFeedback
-//                 onPress={handleDeleteAccount}
-//                 hapticStyle="impactHeavy"
-//                 style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-//                 <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
-//                   Delete My Data
-//                 </Text>
-//               </AppleTouchFeedback>
-
-//               {/* Privacy Policy */}
-//               <AppleTouchFeedback
-//                 onPress={() => Linking.openURL('https://styliq.app/privacy')}
-//                 hapticStyle="impactLight"
-//                 style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-//                 <Text
-//                   style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-//                   Privacy Policy
-//                 </Text>
-//               </AppleTouchFeedback>
-
-//               {/* FAQ & Help */}
-//               <AppleTouchFeedback
-//                 onPress={() => Linking.openURL('https://styliq.app/faq')}
-//                 hapticStyle="impactLight"
-//                 style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-//                 <Text
-//                   style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-//                   FAQ & Help
-//                 </Text>
-//               </AppleTouchFeedback>
-
-//               {/* Send Feedback */}
-//               <AppleTouchFeedback
-//                 onPress={handleSendFeedback}
-//                 hapticStyle="impactMedium"
-//                 style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-//                 <Text style={[globalStyles.menuLabel, {color: colors.primary}]}>
-//                   Send Feedback
-//                 </Text>
-//               </AppleTouchFeedback>
-
-//               {/* Open Source Licenses */}
-//               <AppleTouchFeedback
-//                 onPress={() => {
-//                   /* add logic if needed */
-//                 }}
-//                 hapticStyle="impactLight"
-//                 style={[globalStyles.menuSection1]}>
-//                 <Text
-//                   style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-//                   Open Source Licenses
-//                 </Text>
-//               </AppleTouchFeedback>
+//             {/* 🔔 Notifications */}
+//             <View style={[styles.enableRow, globalStyles.cardStyles3]}>
+//               <Text
+//                 style={[globalStyles.menuLabel, {color: colors.foreground}]}>
+//                 Enable Notifications
+//               </Text>
+//               <Switch
+//                 value={notificationsEnabled}
+//                 onValueChange={handleToggleNotifications}
+//               />
 //             </View>
-//           </View>
 
-//           {/* 📱 App Version */}
-//           <Text
-//             style={[
-//               globalStyles.title,
-//               {marginTop: 8, textAlign: 'center', color: colors.foreground},
-//             ]}>
-//             App Version: {appVersion}
-//           </Text>
+//             <View style={globalStyles.section2}>
+//               {/* 🎨 Theme */}
+//               <Text
+//                 style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+//                 App Color Theme
+//               </Text>
 
-//           {/* Theme Modal */}
-//           <Modal visible={modalVisible} animationType="slide" transparent>
-//             <TouchableOpacity
-//               style={styles.modalOverlay}
-//               activeOpacity={1}
-//               onPressOut={() => setModalVisible(false)}>
+//               {/* Theme selection */}
 //               <View
 //                 style={[
-//                   styles.modalContent,
+//                   globalStyles.menuSection2,
+//                   globalStyles.cardStyles3,
 //                   {backgroundColor: colors.surface},
 //                 ]}>
-//                 {skinOptions.map(option => (
-//                   <TouchableOpacity
-//                     key={option.key}
-//                     onPress={() => handleSkinSelect(option.key as ThemeType)}
+//                 <AppleTouchFeedback
+//                   onPress={() => setModalVisible(true)}
+//                   hapticStyle="impactMedium"
+//                   style={[{backgroundColor: colors.surface}]}>
+//                   <Text
 //                     style={[
-//                       styles.optionRow,
-//                       {
-//                         backgroundColor:
-//                           mode === option.key ? colors.primary : 'transparent',
-//                       },
+//                       globalStyles.menuLabel,
+//                       {color: colors.foreground},
 //                     ]}>
-//                     <View
-//                       style={[
-//                         styles.colorSwatch,
-//                         {backgroundColor: option.color},
-//                       ]}
-//                     />
-//                     <Text
-//                       style={{
-//                         color:
-//                           mode === option.key
-//                             ? colors.background
-//                             : colors.foreground,
-//                       }}>
-//                       {option.label}
-//                     </Text>
-//                   </TouchableOpacity>
-//                 ))}
+//                     {currentLabel}
+//                   </Text>
+//                 </AppleTouchFeedback>
 //               </View>
-//             </TouchableOpacity>
-//           </Modal>
+//             </View>
+
+//             <View>
+//               <View
+//                 style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
+//                 {/* Reset App Data */}
+//                 <AppleTouchFeedback
+//                   onPress={resetApp}
+//                   hapticStyle="impactHeavy"
+//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
+//                     Reset App Data
+//                   </Text>
+//                 </AppleTouchFeedback>
+
+//                 {/* Delete My Data */}
+//                 <AppleTouchFeedback
+//                   onPress={handleDeleteAccount}
+//                   hapticStyle="impactHeavy"
+//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
+//                     Delete My Data
+//                   </Text>
+//                 </AppleTouchFeedback>
+
+//                 {/* Privacy Policy */}
+//                 <AppleTouchFeedback
+//                   onPress={() => Linking.openURL('https://styliq.app/privacy')}
+//                   hapticStyle="impactLight"
+//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.menuLabel,
+//                       {color: colors.foreground},
+//                     ]}>
+//                     Privacy Policy
+//                   </Text>
+//                 </AppleTouchFeedback>
+
+//                 {/* FAQ & Help */}
+//                 <AppleTouchFeedback
+//                   onPress={() => Linking.openURL('https://styliq.app/faq')}
+//                   hapticStyle="impactLight"
+//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.menuLabel,
+//                       {color: colors.foreground},
+//                     ]}>
+//                     FAQ & Help
+//                   </Text>
+//                 </AppleTouchFeedback>
+
+//                 {/* Send Feedback */}
+//                 <AppleTouchFeedback
+//                   onPress={handleSendFeedback}
+//                   hapticStyle="impactMedium"
+//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   <Text
+//                     style={[globalStyles.menuLabel, {color: colors.primary}]}>
+//                     Send Feedback
+//                   </Text>
+//                 </AppleTouchFeedback>
+
+//                 {/* Open Source Licenses */}
+//                 <AppleTouchFeedback
+//                   onPress={() => {
+//                     /* add logic if needed */
+//                   }}
+//                   hapticStyle="impactLight"
+//                   style={[globalStyles.menuSection1]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.menuLabel,
+//                       {color: colors.foreground},
+//                     ]}>
+//                     Open Source Licenses
+//                   </Text>
+//                 </AppleTouchFeedback>
+//               </View>
+//             </View>
+
+//             {/* 📱 App Version */}
+//             <Text
+//               style={[
+//                 globalStyles.title,
+//                 {marginTop: 8, textAlign: 'center', color: colors.foreground},
+//               ]}>
+//               App Version: {appVersion}
+//             </Text>
+
+//             {/* Theme Modal */}
+//             <Modal visible={modalVisible} animationType="slide" transparent>
+//               <TouchableOpacity
+//                 style={styles.modalOverlay}
+//                 activeOpacity={1}
+//                 onPressOut={() => setModalVisible(false)}>
+//                 <View
+//                   style={[
+//                     styles.modalContent,
+//                     {backgroundColor: colors.surface},
+//                   ]}>
+//                   {skinOptions.map(option => (
+//                     <TouchableOpacity
+//                       key={option.key}
+//                       onPress={() => handleSkinSelect(option.key as ThemeType)}
+//                       style={[
+//                         styles.optionRow,
+//                         {
+//                           backgroundColor:
+//                             mode === option.key
+//                               ? colors.primary
+//                               : 'transparent',
+//                         },
+//                       ]}>
+//                       <View
+//                         style={[
+//                           styles.colorSwatch,
+//                           {backgroundColor: option.color},
+//                         ]}
+//                       />
+//                       <Text
+//                         style={{
+//                           color:
+//                             mode === option.key
+//                               ? colors.background
+//                               : colors.foreground,
+//                         }}>
+//                         {option.label}
+//                       </Text>
+//                     </TouchableOpacity>
+//                   ))}
+//                 </View>
+//               </TouchableOpacity>
+//             </Modal>
+//           </View>
 //         </View>
 //       </View>
 //     </ScrollView>
