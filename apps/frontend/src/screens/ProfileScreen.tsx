@@ -154,7 +154,7 @@ export default function ProfileScreen({navigate}: Props) {
   const auth0Sub = user?.sub;
   const {styleProfile} = useStyleProfile(auth0Sub || '');
   const favoriteBrands = styleProfile?.preferred_brands || [];
-  const styleTags = styleProfile?.style_keywords || [];
+  const styleTags = styleProfile?.style_preferences || [];
   console.log('📦 styleProfile:', styleProfile);
 
   const {data: userProfile} = useQuery<UserProfile>({
@@ -482,7 +482,7 @@ export default function ProfileScreen({navigate}: Props) {
           contentContainerStyle={{paddingRight: 8}}>
           {favoriteBrands.map(brand => (
             <View key={brand} style={globalStyles.pill}>
-              <Text style={globalStyles.pillText}>{brand}</Text>
+              <Text style={globalStyles.pillText}>#{brand}</Text>
             </View>
           ))}
         </ScrollView>
@@ -511,7 +511,7 @@ export default function ProfileScreen({navigate}: Props) {
   );
 }
 
-//////////////////
+///////////////
 
 // import React from 'react';
 // import {
@@ -533,8 +533,10 @@ export default function ProfileScreen({navigate}: Props) {
 // import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
 // import {tokens} from '../styles/tokens/tokens';
-
 // import type {Screen} from '../navigation/types';
+// import {Dimensions} from 'react-native';
+
+// const screenWidth = Dimensions.get('window').width;
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -659,10 +661,6 @@ export default function ProfileScreen({navigate}: Props) {
 // ];
 
 // export default function ProfileScreen({navigate}: Props) {
-//   const LOCAL_IP = '192.168.0.106';
-//   const PORT = 3001;
-//   const BASE_URL = `${API_BASE_URL}/wardrobe`;
-
 //   const userId = useUUID();
 
 //   const {theme} = useAppTheme();
@@ -673,16 +671,6 @@ export default function ProfileScreen({navigate}: Props) {
 //   const favoriteBrands = styleProfile?.preferred_brands || [];
 //   const styleTags = styleProfile?.style_keywords || [];
 //   console.log('📦 styleProfile:', styleProfile);
-
-//   // const {data: userProfile} = useQuery({
-//   //   enabled: !!userId,
-//   //   queryKey: ['userProfile', userId],
-//   //   queryFn: async () => {
-//   //     const res = await fetch(`${API_BASE_URL}/users/${userId}`);
-//   //     if (!res.ok) throw new Error('Failed to fetch user profile');
-//   //     return res.json();
-//   //   },
-//   // });
 
 //   const {data: userProfile} = useQuery<UserProfile>({
 //     enabled: !!userId,
@@ -785,11 +773,12 @@ export default function ProfileScreen({navigate}: Props) {
 //     },
 //     statsRow: {
 //       flexDirection: 'row',
-//       justifyContent: 'space-between',
+//       justifyContent: screenWidth >= 768 ? 'flex-start' : 'space-between',
 //       flex: 1,
 //     },
 //     statBox: {
 //       alignItems: 'center',
+//       marginRight: screenWidth >= 768 ? 32 : 0,
 //     },
 //     statNumber: {
 //       fontWeight: 'bold',
@@ -945,21 +934,45 @@ export default function ProfileScreen({navigate}: Props) {
 //       <View style={globalStyles.section}>
 //         <Text style={globalStyles.sectionTitle}>Style Profile</Text>
 
-//         <AppleTouchFeedback
-//           style={globalStyles.buttonPrimary}
-//           onPress={() => navigate('StyleProfileScreen')}
-//           hapticStyle="impactMedium">
-//           <View style={styles.menuRow}>
+//         <View
+//           style={{
+//             alignItems: 'center',
+//           }}>
+//           <AppleTouchFeedback
+//             onPress={() => navigate('StyleProfileScreen')}
+//             hapticStyle="impactMedium"
+//             style={{
+//               paddingHorizontal: 16,
+//               paddingVertical: 12,
+//               minWidth: 200,
+//               maxWidth: 300,
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               borderWidth: 2,
+//               borderColor: theme.colors.button1,
+//               borderRadius: 50,
+//               backgroundColor: 'transparent',
+//             }}>
 //             <Icon
 //               name="person-outline"
-//               size={22}
+//               size={20}
 //               color={theme.colors.primary}
+//               style={{marginRight: 8}}
 //             />
-//             <Text style={[globalStyles.buttonPrimaryText]}>
+//             <Text
+//               style={{
+//                 color: theme.colors.primary,
+//                 fontSize: 16,
+//                 fontWeight: '500',
+//                 flexShrink: 1,
+//                 textAlign: 'center',
+//               }}
+//               numberOfLines={1}>
 //               Edit Style Profile
 //             </Text>
-//           </View>
-//         </AppleTouchFeedback>
+//           </AppleTouchFeedback>
+//         </View>
 //       </View>
 
 //       <View style={globalStyles.sectionScroll}>
@@ -996,21 +1009,15 @@ export default function ProfileScreen({navigate}: Props) {
 //         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
 //           {storyHighlights.map((label, index) => (
 //             <View key={index}>
-//               <View style={styles.highlightBorder}>
+//               <View style={globalStyles.outfitCard}>
 //                 <Image
 //                   source={{
 //                     uri: profileImages[index % profileImages.length].uri,
 //                   }}
-//                   style={styles.highlightImage}
+//                   style={globalStyles.image4}
 //                 />
 //               </View>
-//               <Text
-//                 style={[
-//                   globalStyles.label,
-//                   {marginTop: 6, textAlign: 'center'},
-//                 ]}>
-//                 {label}
-//               </Text>
+//               <Text style={[globalStyles.label, {marginTop: 6}]}>{label}</Text>
 //             </View>
 //           ))}
 //         </ScrollView>
