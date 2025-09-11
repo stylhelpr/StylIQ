@@ -506,9 +506,13 @@ export class WardrobeService {
     },
   ) {
     try {
+      const lockedIds =
+        (opts as any)?.lockedItemIds ?? (opts as any)?.locked_item_ids ?? [];
+      console.log('[CTRL] lockedIds =', lockedIds);
       // ── Session & refinement handling ───────────────────────────
       const sessionId = opts?.sessionId?.trim();
       const refinement = (opts?.refinementPrompt ?? '').trim();
+      console.log('[CTRL] lockedItemIds =', opts?.lockedItemIds);
 
       let baseQuery = query;
       if (sessionId) {
@@ -648,13 +652,13 @@ export class WardrobeService {
       });
 
       // ── NEW: mark locked items
-      if (opts?.lockedItemIds?.length) {
+      if (lockedIds.length) {
         for (const item of catalog) {
-          if (opts.lockedItemIds.includes(item.id)) {
+          if (lockedIds.includes(item.id)) {
             (item as any).__locked = true;
           }
         }
-        console.log('🔒 Locked items marked:', opts.lockedItemIds);
+        console.log('🔒 Locked items marked:', lockedIds);
       }
 
       // Style Agent hard filters
@@ -841,14 +845,14 @@ export class WardrobeService {
       }
 
       // ── NEW: Hard lock items so they always stay in outfits
-      if (opts?.lockedItemIds?.length) {
+      if (lockedIds.length) {
         reranked = reranked.map((item) =>
-          opts.lockedItemIds!.includes(item.id)
+          lockedIds.includes(item.id)
             ? { ...item, __locked: true, rerankScore: Number.MAX_SAFE_INTEGER }
             : item,
         );
 
-        console.log('🔒 Locked items enforced:', opts.lockedItemIds);
+        console.log('🔒 Locked items enforced:', lockedIds);
       }
 
       // ── Build working catalog with locked first
@@ -901,7 +905,7 @@ export class WardrobeService {
       }));
 
       // inject locked items into every outfit
-      if (opts?.lockedItemIds?.length) {
+      if (lockedIds.length) {
         outfits = outfits.map((o) => {
           const existingIds = new Set(o.items.map((it) => it?.id));
           const lockedItems = workingCatalog.filter(

@@ -412,10 +412,26 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
   const handleRefine = (refinement: string) => {
     if (!userId || !sessionId) return;
+
+    // ✅ Get currently displayed items
+    const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
+      ? (current as any).outfits[0].items
+      : Array.isArray((current as any)?.items)
+      ? (current as any).items
+      : [];
+
+    const lockedIds = rawItems
+      .map((it: any) => it?.id)
+      .filter(
+        (id: any): id is string => typeof id === 'string' && id.length > 0,
+      );
+
+    console.log('🔒 Sending lockedItemIds:', lockedIds);
+
     regenerate(builtQuery, {
       topK: 25,
       sessionId,
-      refinementPrompt: refinement, // 👈 fix name
+      refinementPrompt: refinement,
       useWeather,
       weather: useWeather ? chipWeatherContext : undefined,
       styleProfile: useStylePrefs ? styleProfile : undefined,
@@ -423,13 +439,40 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       weights,
       useFeedback,
       styleAgent,
-
-      // 🔒 keep current picks locked
-      lockedItemIds: [top?.id, bottom?.id, shoes?.id].filter(
-        (id): id is string => Boolean(id),
-      ),
+      lockedItemIds: lockedIds, // ✅ now it will not be undefined
     });
   };
+
+  // const handleRefine = (refinement: string) => {
+  //   if (!userId || !sessionId) return;
+
+  //   // ✅ dig into current.outfits[0].items
+  //   const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
+  //     ? (current as any).outfits[0].items
+  //     : Array.isArray((current as any)?.items)
+  //     ? (current as any).items
+  //     : [];
+
+  //   const lockedIds: string[] = rawItems
+  //     .map((it: any) => it?.id)
+  //     .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+  //   console.log('🔒 Sending locked IDs:', lockedIds);
+
+  //   regenerate(builtQuery, {
+  //     topK: 25,
+  //     sessionId,
+  //     refinementPrompt: refinement,
+  //     useWeather,
+  //     weather: useWeather ? chipWeatherContext : undefined,
+  //     styleProfile: useStylePrefs ? styleProfile : undefined,
+  //     useStyle: useStylePrefs,
+  //     weights,
+  //     useFeedback,
+  //     styleAgent,
+  //     lockedItemIds: lockedIds, // ✅ now actually gets sent
+  //   });
+  // };
 
   const reasons = {
     top: current?.why ? [current.why] : [],
