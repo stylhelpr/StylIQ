@@ -411,6 +411,14 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const shoes = apiItemToUI(shoesApi);
 
   const handleRefine = (refinement: string) => {
+    console.log('HEEEELOOOOOOOOOOOOOOOOOOOOOOOOOO');
+    console.log(
+      '🟢 handleRefine called — userId:',
+      userId,
+      'sessionId:',
+      sessionId,
+    );
+
     if (!userId || !sessionId) return;
 
     // ✅ Get currently displayed items
@@ -427,6 +435,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       );
 
     console.log('🔒 Sending lockedItemIds:', lockedIds);
+    console.log('POOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOP');
 
     regenerate(builtQuery, {
       topK: 25,
