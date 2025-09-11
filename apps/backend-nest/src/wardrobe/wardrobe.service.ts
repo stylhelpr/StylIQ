@@ -25,6 +25,7 @@ import { enforceConstraintsOnOutfits } from './logic/enforce';
 import { buildOutfitPrompt } from './prompts/outfitPrompt';
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
+import { STYLE_AGENTS } from './logic/style-agents';
 
 // NEW: feedback filters
 import {
@@ -96,24 +97,6 @@ type WeightsShort = {
 };
 type AnyWeights = WeightsLong | WeightsShort;
 
-const STYLE_AGENTS: Record<string, UserStyle> = {
-  agent1: {
-    preferredColors: ['Navy', 'Gray', 'White'],
-    favoriteBrands: ['Eton', 'Ferragamo'],
-    dressBias: 'Business', // 👈 capitalized, valid
-  },
-  agent2: {
-    preferredColors: ['Black', 'Earth Tones'],
-    favoriteBrands: ['Amiri', 'Gucci'],
-    dressBias: 'Casual', // 👈 valid
-  },
-  agent3: {
-    preferredColors: ['Beige', 'Brown', 'Olive'],
-    favoriteBrands: ['Burberry', 'Ralph Lauren'],
-    dressBias: 'SmartCasual', // 👈 valid
-  },
-};
-
 function toLongWeights(w: AnyWeights): WeightsLong {
   if ('styleWeight' in w) return { ...w };
   return {
@@ -123,8 +106,27 @@ function toLongWeights(w: AnyWeights): WeightsLong {
     feedbackWeight: w.feedback,
   };
 }
+// function fromLongWeights(longW: WeightsLong, like: AnyWeights): AnyWeights {
+//   if ('styleWeight' in like) return { ...longW };
+//   return {
+//     constraints: longW.constraintsWeight,
+//     style: longW.styleWeight,
+//     weather: longW.weatherWeight,
+//     feedback: longW.feedbackWeight,
+//   };
+// }
+
 function fromLongWeights(longW: WeightsLong, like: AnyWeights): AnyWeights {
-  if ('styleWeight' in like) return { ...longW };
+  if ('styleWeight' in like) {
+    // Convert frontend shape → short shape
+    return {
+      constraints: like.constraintsWeight ?? longW.constraintsWeight,
+      style: like.styleWeight ?? longW.styleWeight,
+      weather: like.weatherWeight ?? longW.weatherWeight,
+      feedback: like.feedbackWeight ?? longW.feedbackWeight,
+    };
+  }
+  // Already in short shape → just normalize from long
   return {
     constraints: longW.constraintsWeight,
     style: longW.styleWeight,
@@ -535,8 +537,72 @@ export class WardrobeService {
         };
       });
 
-      // 3) Contextual pre-filters (gym / black tie / beach / wedding / upscale)
-      catalog = applyContextualFilters(query, catalog, { minKeep: 6 });
+      if (opts?.styleAgent && STYLE_AGENTS[opts.styleAgent]) {
+        const agent = STYLE_AGENTS[opts.styleAgent];
+
+        catalog = catalog.filter((c) => {
+          const brand = (c.brand ?? '').toLowerCase();
+          const color = (c.color ?? '').toLowerCase();
+          const dress = (c.dress_code ?? '').toLowerCase();
+          const sub = (c.subcategory ?? '').toLowerCase();
+
+          // basic positive matches
+          const matchesBrand = agent.favoriteBrands?.some((b) =>
+            brand.includes(b.toLowerCase()),
+          );
+          const matchesColor = agent.preferredColors?.some((col) =>
+            color.includes(col.toLowerCase()),
+          );
+          const matchesDress = agent.dressBias
+            ? dress.includes(agent.dressBias.toLowerCase())
+            : false;
+
+          // agent2: explicitly ban business/smart-casual staples
+          const banned =
+            /\b(blazer|dress shirt|loafers?|oxfords?|derbys?|tux|formal)\b/i.test(
+              sub,
+            );
+
+          return (matchesBrand || matchesColor || matchesDress) && !banned;
+        });
+
+        console.log(
+          `🎯 Hard-filtered catalog for ${opts.styleAgent}:`,
+          catalog.length,
+          'items kept',
+        );
+      }
+
+      if (opts?.styleAgent === 'agent2') {
+        catalog = catalog.filter((c) => {
+          const sub = (c.subcategory ?? '').toLowerCase();
+          const main = (c.main_category ?? '').toLowerCase();
+          const dress = (c.dress_code ?? '').toLowerCase();
+
+          // 🚫 Explicit bans for Edgy Streetwear
+          const banned =
+            /\b(blazer|sport coat|dress shirt|oxfords?|derbys?|loafers?|dress shoes?|belt)\b/i.test(
+              sub,
+            ) ||
+            dress.includes('business') ||
+            dress.includes('formal');
+
+          return !banned;
+        });
+
+        console.log(
+          `🎯 Agent2 negative filter applied: ${catalog.length} items left`,
+        );
+      }
+
+      // 3) Contextual pre-filters — only if no styleAgent
+      if (opts?.styleAgent) {
+        console.log(
+          '🎨 Style agent override, skipping contextual filters + constraints',
+        );
+      } else {
+        catalog = applyContextualFilters(query, catalog, { minKeep: 6 });
+      }
 
       // 3b) Apply user feedback (dislikes/bans) before reranking/LLM
       let feedbackRows: any[] = [];
@@ -658,14 +724,33 @@ export class WardrobeService {
       );
 
       // 4) Proceed to rerank with enriched (or empty) userPrefs
-      const reranked = rerankCatalogWithContext(catalog, constraints, {
-        // userStyle: opts?.userStyle,
-        userStyle: effectiveStyle,
-        weather: opts?.weather,
-        weights: tunedWeights,
-        useWeather: opts?.useWeather,
-        userPrefs, // ✅ real prefs or {} if disabled
-      });
+
+      let reranked: CatalogItem[]; // 👈 FIX: declare it once
+
+      if (opts?.styleAgent && STYLE_AGENTS[opts.styleAgent]) {
+        console.log('🎨 StyleAgent mode → style-only rerank');
+
+        const longW = toLongWeights(tunedWeights);
+
+        reranked = rerankCatalogWithContext(catalog, {} as any, {
+          userStyle: STYLE_AGENTS[opts.styleAgent],
+          weights: {
+            constraintsWeight: 0, // 🚫 kill constraints
+            styleWeight: longW.styleWeight ?? 1.0, // ✅ safe access
+            weatherWeight: opts.useWeather ? (longW.weatherWeight ?? 0.8) : 0,
+            feedbackWeight: 0, // 🚫 ignore feedback
+          },
+          useWeather: opts.useWeather,
+        });
+      } else {
+        reranked = rerankCatalogWithContext(catalog, constraints, {
+          userStyle: effectiveStyle,
+          weather: opts?.weather,
+          weights: tunedWeights,
+          useWeather: opts?.useWeather,
+          userPrefs,
+        });
+      }
 
       // 4) Build prompt
       const catalogLines = reranked

@@ -188,6 +188,7 @@ export default function OutfitTuningControls({
 
   const setWeights = (next: Partial<Weights>) => {
     const merged = {...w, ...next};
+    console.log('🎚️ Slider updated →', merged); // 👈 log here
     onChangeWeights?.(merged);
   };
 
