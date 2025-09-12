@@ -730,6 +730,100 @@ export class WardrobeService {
         includeMetadata: true,
       });
 
+      // ── Inject any explicitly requested color+slot items not in matches ─────────
+      const mustHaves: {
+        color: string;
+        slot: 'shoes' | 'bottoms' | 'tops';
+        name: string;
+      }[] = [];
+
+      // crude color+slot intent detection
+      if (/\bblack\b/i.test(refinement) && /\bloafers?\b/i.test(refinement)) {
+        mustHaves.push({
+          color: 'black',
+          slot: 'shoes',
+          name: 'black loafers',
+        });
+      }
+      if (/\bbrown\b/i.test(refinement) && /\bshorts?\b/i.test(refinement)) {
+        mustHaves.push({
+          color: 'brown',
+          slot: 'bottoms',
+          name: 'brown shorts',
+        });
+      }
+      // add more color+slot combos as needed
+
+      if (mustHaves.length) {
+        const { rows } = await pool.query(
+          `SELECT * FROM wardrobe_items 
+     WHERE user_id = $1
+       AND main_category ILIKE ANY($2)
+       AND color ILIKE ANY($3)
+     LIMIT 10`,
+          [
+            userId,
+            mustHaves.map((m) =>
+              m.slot === 'shoes'
+                ? 'Shoes'
+                : m.slot === 'bottoms'
+                  ? 'Bottoms'
+                  : 'Tops',
+            ),
+            mustHaves.map((m) => `%${m.color}%`),
+          ],
+        );
+
+        const seen = new Set(
+          matches.map((m) => this.normalizePineconeId(m.id as string).id),
+        );
+
+        for (const r of rows) {
+          // ✅ Force inject even if seen already
+          if (seen.has(r.id)) {
+            console.log('⚡ Overriding seen for must-have:', r.name);
+          } else {
+            seen.add(r.id);
+          }
+
+          // ✅ Normalize categories
+          let main = 'Shoes';
+          let sub = 'Loafers';
+
+          // ✅ Inject as Pinecone-style match with unique ID + forceKeep
+          matches.unshift({
+            id: `${r.id}:forced_loafers`, // ⚡ unique ID → bypass dedupe
+            score: 999, // ⚡ float to top
+            values: new Array(512).fill(0), // ⚡ required so rerank accepts it
+            metadata: {
+              id: r.id,
+              name: r.name,
+              label: r.name,
+              image_url: r.image_url,
+              main_category: main,
+              subcategory: sub,
+              color: r.color,
+              color_family: r.color_family,
+              brand: r.brand,
+              dress_code: r.dress_code,
+              formality_score: r.formality_score,
+              forceKeep: true, // ⚡ survive style filters
+            },
+          });
+        }
+
+        console.log(
+          '🧩 Injected must-have loafers into matches:',
+          matches
+            .filter(
+              (m) =>
+                String(m.metadata?.subcategory ?? '').toLowerCase() ===
+                'loafers',
+            )
+            .map((m) => m.metadata?.name),
+        );
+      }
+
       // ── 1b) Targeted retrieval boosts for requested items ───────
       // Pull a smaller batch per requested term and merge to front.
       const extraFetches: Array<{
@@ -828,12 +922,23 @@ export class WardrobeService {
         console.log('🔒 Locked items marked:', lockedIds);
       }
 
+      // ⛓ Mark locked loafers to always survive filtering
+      for (const item of catalog) {
+        if (
+          (item as any).__locked &&
+          /\bloafers?\b/i.test(item.subcategory ?? '')
+        ) {
+          (item as any).forceKeep = true;
+        }
+      }
+
       // Style Agent hard filters
       if (opts?.styleAgent && STYLE_AGENTS[opts.styleAgent]) {
         const agent = STYLE_AGENTS[opts.styleAgent];
 
         catalog = catalog.filter((c) => {
-          if ((c as any).__locked) return true; // keep locked items
+          // if ((c as any).__locked || (c as any).forceKeep) return true; // ⛓ allow
+          if ((c as any).forceKeep) return true;
           const brand = (c.brand ?? '').toLowerCase();
           const color = (c.color ?? '').toLowerCase();
           const dress = (c.dress_code ?? '').toLowerCase();
@@ -849,11 +954,16 @@ export class WardrobeService {
             ? dress.includes(agent.dressBias.toLowerCase())
             : false;
 
-          const banned =
-            /\b(blazer|dress shirt|loafers?|oxfords?|derbys?|tux|formal)\b/i.test(
-              sub,
-            );
+          // const banned =
+          //   /\b(blazer|dress shirt|loafers?|oxfords?|derbys?|tux|formal)\b/i.test(
+          //     sub,
+          //   );
 
+          // ⚡ Allow locked items and loafers to bypass banning
+          const banned =
+            /\b(blazer|dress shirt|oxfords?|derbys?|tux|formal)\b/i.test(sub);
+
+          if ((c as any).__locked || /\bloafers?\b/i.test(sub)) return true;
           return (matchesBrand || matchesColor || matchesDress) && !banned;
         });
 
@@ -866,7 +976,8 @@ export class WardrobeService {
 
       if (opts?.styleAgent === 'agent2') {
         catalog = catalog.filter((c) => {
-          if ((c as any).__locked) return true; // keep locked items
+          // if ((c as any).__locked || (c as any).forceKeep) return true; // ⛓ allow
+          if ((c as any).forceKeep) return true;
           const sub = (c.subcategory ?? '').toLowerCase();
           const dress = (c.dress_code ?? '').toLowerCase();
           const banned =
@@ -888,24 +999,29 @@ export class WardrobeService {
           '🎨 Style agent override, skipping contextual filters + constraints',
         );
       } else {
-        catalog = applyContextualFilters(effectiveQuery, catalog, {
-          minKeep: 6,
-        });
-        // keep a copy of locked items before filtering
-        const lockedMap = new Map(
-          catalog.filter((c: any) => c.__locked).map((c) => [c.id, c]),
+        // ⚡ Keep a copy of locked/forceKeep items before filtering
+        const keepMap = new Map(
+          catalog
+            .filter((c: any) => c.__locked || c.forceKeep)
+            .map((c) => [c.id, c]),
         );
+
+        // Apply contextual filters
         catalog = applyContextualFilters(effectiveQuery, catalog, {
           minKeep: 6,
         });
-        // restore any missing locked items
-        for (const [id, item] of lockedMap.entries()) {
+
+        // 🔒 Restore any locked/forceKeep items that got filtered out
+        for (const [id, item] of keepMap.entries()) {
           if (!catalog.some((c) => c.id === id)) {
-            catalog.unshift(item); // put back at the front
+            catalog.unshift(item);
           }
         }
-        if (lockedMap.size) {
-          console.log('🔒 Restored locked items after contextual filters');
+
+        if (keepMap.size) {
+          console.log(
+            '🔒 Restored locked/forceKeep items after contextual filters',
+          );
         }
       }
 
