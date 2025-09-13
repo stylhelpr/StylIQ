@@ -585,7 +585,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               {/* Prompt input with mic */}
               <View style={[globalStyles.promptRow, {marginBottom: 12}]}>
                 <TextInput
-                  placeholder="What kind of an outfit are you wanting??"
+                  placeholder="What kind of an outfit are you looking for?"
                   placeholderTextColor={theme.colors.muted}
                   style={globalStyles.promptInput}
                   value={lastSpeech}
