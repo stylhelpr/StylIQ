@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {View, StyleSheet, TouchableOpacity, Text} from 'react-native';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -164,12 +165,33 @@ const RootNavigator = () => {
     toggleFavorite: toggleOutfitFavorite,
   } = useSavedOutfits();
 
+  const routeAfterLogin = async () => {
+    try {
+      const [[, logged], [, onboarded]] = await AsyncStorage.multiGet([
+        'auth_logged_in',
+        'onboarding_complete',
+      ]);
+      if (logged === 'true') {
+        setCurrentScreen(onboarded === 'true' ? 'Home' : 'Onboarding');
+      } else {
+        setCurrentScreen('Login');
+      }
+    } catch {
+      // If anything is weird, fall back to Home
+      setCurrentScreen('Home');
+    }
+  };
+
+  useEffect(() => {
+    routeAfterLogin();
+  }, []);
+
   const renderScreen = () => {
     switch (currentScreen) {
       case 'Login':
         return (
           <LoginScreen
-            onLoginSuccess={() => navigate('Home')}
+            onLoginSuccess={routeAfterLogin}
             email={''}
             onGoogleLogin={() => {}}
             onPasswordLogin={() => {}}
@@ -184,7 +206,7 @@ const RootNavigator = () => {
                     'com.stylhelpr.stylhelpr.auth0://dev-xeaol4s5b2zd7wuz.us.auth0.com/ios/com.stylhelpr.stylhelpr/callback';
 
                   await authorize({redirectUrl});
-                  navigate('Home');
+                  await routeAfterLogin();
                 } else {
                   console.log('Face ID cancelled');
                 }
@@ -312,14 +334,16 @@ const RootNavigator = () => {
         <View style={styles.screen}>{renderScreen()}</View>
       </LayoutWrapper>
 
-      <BottomNavigation current={currentScreen} navigate={navigate} />
+      {currentScreen !== 'Login' && currentScreen !== 'Onboarding' ? (
+        <BottomNavigation current={currentScreen} navigate={navigate} />
+      ) : null}
     </View>
   );
 };
 
 export default RootNavigator;
 
-//////////////////
+////////////////////
 
 // import React, {useState} from 'react';
 // import {View, StyleSheet, TouchableOpacity, Text} from 'react-native';
@@ -361,7 +385,7 @@ export default RootNavigator;
 // import NotificationsScreen from '../screens/NotificationsScreen';
 // import UndertoneScreen from '../screens/UndertoneScreen';
 // import StyleKeywordsScreen from '../screens/StyleKeywordsScreen';
-// import SignupScreen from '../screens/SignupScreen';
+// import OnboardingScreen from '../screens/OnboardingScreen';
 
 // import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 // import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -599,6 +623,8 @@ export default RootNavigator;
 //         return <UndertoneScreen navigate={navigate} />;
 //       case 'StyleKeywords':
 //         return <StyleKeywordsScreen navigate={navigate} />;
+//       case 'Onboarding':
+//         return <OnboardingScreen navigate={navigate} />;
 //       case 'ItemDetail':
 //         return (
 //           <ItemDetailScreen
