@@ -100,17 +100,18 @@ const BottomNavigation = ({
           onPress={() => navigate('Outfit')}
           isActive={current === 'Outfit'}
         />
-        <TabButton
-          icon="explore"
-          label="Explore"
-          onPress={() => navigate('Explore')}
-          isActive={current === 'Explore'}
-        />
+
         <TabButton
           icon="checkroom"
           label="Outfits"
           onPress={() => navigate('SavedOutfits')}
           isActive={current === 'SavedOutfits'}
+        />
+        <TabButton
+          icon="explore"
+          label="Explore"
+          onPress={() => navigate('Explore')}
+          isActive={current === 'Explore'}
         />
         {/* <TabButton
           icon="event-note"

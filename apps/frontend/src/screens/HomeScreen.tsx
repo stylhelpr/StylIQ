@@ -637,7 +637,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               }}>
               <AppleTouchFeedback
                 hapticStyle="impactHeavy"
-                onPress={() => navigate('Outfit', {look: 'editorial'})}>
+                onPress={() => navigate('Explore', {look: 'editorial'})}>
                 <View
                   style={[
                     globalStyles.buttonPrimary,

@@ -211,16 +211,16 @@ export default function OutfitTuningControls({
 
   const weatherOptions = [
     {label: 'Use My Location (Auto)', value: 'auto'},
-    {label: "It's Hot", value: 'hot'},
-    {label: "It's Cold", value: 'cold'},
-    {label: "It's Rainy", value: 'rainy'},
+    {label: 'Hot Weather', value: 'hot'},
+    {label: 'Cold Weather', value: 'cold'},
+    {label: 'Rainy Weather', value: 'rainy'},
   ];
 
   const styleAgentOptions = [
-    {label: 'None (use my style)', value: null},
-    {label: 'Agent 1 — The Classicist', value: 'agent1'},
-    {label: 'Agent 2 — The Minimalist', value: 'agent2'},
-    {label: 'Agent 3 — The Trendsetter', value: 'agent3'},
+    {label: 'None (Use My Style Preferences)', value: null},
+    {label: 'Stylist 1 — The Classicist', value: 'agent1'},
+    {label: 'Stylist 2 — Rebel Streetwear', value: 'agent2'},
+    {label: 'Stylist 3 — Heritage', value: 'agent3'},
   ];
 
   const S = StyleSheet.create({

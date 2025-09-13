@@ -459,10 +459,8 @@ export default function ProfileScreen({navigate}: Props) {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              borderWidth: 2,
-              borderColor: theme.colors.button1,
               borderRadius: 50,
-              backgroundColor: 'transparent',
+              backgroundColor: theme.colors.button1,
             }}>
             <Icon
               name="person-outline"
