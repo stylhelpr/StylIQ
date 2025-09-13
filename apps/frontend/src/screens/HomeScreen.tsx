@@ -833,7 +833,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
 export default HomeScreen;
 
-////////////////
+///////////////////
 
 // import React, {useEffect, useState, useRef} from 'react';
 // import {
@@ -866,6 +866,7 @@ export default HomeScreen;
 // import {tokens} from '../styles/tokens/tokens';
 // import GlassCard from '../components/GlassCard/GlassCard';
 // import SaveLookModal from '../components/SavedLookModal/SavedLookModal';
+// import SavedLookPreviewModal from '../components/SavedLookModal/SavedLookPreviewModal';
 
 // type Props = {
 //   navigate: (screen: string, params?: any) => void;
@@ -1044,6 +1045,8 @@ export default HomeScreen;
 
 //   const [firstName, setFirstName] = useState('');
 //   const [saveModalVisible, setSaveModalVisible] = useState(false);
+//   const [previewVisible, setPreviewVisible] = useState(false);
+//   const [selectedLook, setSelectedLook] = useState<any | null>(null);
 
 //   useEffect(() => {
 //     const fetchFirstName = async () => {
@@ -1576,13 +1579,20 @@ export default HomeScreen;
 //                 useNativeDriver
 //                 style={globalStyles.outfitCard}>
 //                 <TouchableOpacity
-//                   onPress={() => navigate('SavedOutfits')}
+//                   onPress={() => {
+//                     setSelectedLook(look);
+//                     setPreviewVisible(true);
+//                   }}
 //                   style={{alignItems: 'center'}}>
 //                   <Image
 //                     source={{uri: look.image_url}}
 //                     style={globalStyles.image4}
 //                     resizeMode="cover"
 //                   />
+//                   {/* <Image
+//                     source={{uri: look.image_url}}
+//                     style={[globalStyles.image4, {resizeMode: 'contain'}]}
+//                   /> */}
 //                   <Text
 //                     style={[globalStyles.label, {marginTop: 6}]}
 //                     numberOfLines={1}>
@@ -1607,6 +1617,12 @@ export default HomeScreen;
 //       <SaveLookModal
 //         visible={saveModalVisible}
 //         onClose={() => setSaveModalVisible(false)}
+//       />
+
+//       <SavedLookPreviewModal
+//         visible={previewVisible}
+//         look={selectedLook}
+//         onClose={() => setPreviewVisible(false)}
 //       />
 
 //       {/* /// NOTIFICATIONS SECTION /// */}
