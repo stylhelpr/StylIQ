@@ -9,25 +9,10 @@ export type Article = {
   source: string;
   image?: string;
   summary?: string;
-  publishedAt?: string; // ISO
+  publishedAt?: string;
 };
 
-type Source = {name: string; url: string};
-
-const SOURCES: Source[] = [
-  // ✅ Official RSS pages
-  {name: 'The Cut', url: 'https://feeds.feedburner.com/nymag/fashion'}, // from NYMag’s RSS hub
-  {name: 'Fashionista', url: 'https://fashionista.com/.rss/excerpt'}, // feedspot lists this path
-  {
-    name: 'Fibre2Fashion',
-    url: 'https://feeds.feedburner.com/fibre2fashion/fashion-news',
-  },
-  // Common “WP-style” feeds (work well; toggle off if any issues)
-  {name: 'Highsnobiety', url: 'https://www.highsnobiety.com/feed'},
-  {name: 'Hypebeast', url: 'https://hypebeast.com/feed'},
-  // Vogue UK provides a feed endpoint
-  {name: 'Vogue UK', url: 'https://www.vogue.co.uk/feed/rss'},
-];
+export type Source = {name: string; url: string};
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -41,12 +26,10 @@ function getFirst<T>(val: any): T | undefined {
 }
 
 function extractImageFromItem(item: any): string | undefined {
-  // Support <media:content url="...">, <enclosure url="...">, content:encoded <img>, or description <img>
   const media = item['media:content'] || item['media:thumbnail'];
   if (media?.url) return media.url;
   const enclosure = item.enclosure;
   if (enclosure?.url) return enclosure.url;
-
   const html = (item['content:encoded'] || item.description || '') as string;
   const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
   return match?.[1];
@@ -81,7 +64,6 @@ function normalizeItem(raw: any, sourceName: string): Article | null {
 async function fetchFeed(src: Source): Promise<Article[]> {
   const res = await fetch(src.url, {
     headers: {
-      // some feeds prefer a UA
       'User-Agent':
         'StylHelpr-FashionFeed/1.0 (+https://stylhelpr.com; React Native RSS fetcher)',
       Accept: 'application/rss+xml, application/xml, text/xml, */*',
@@ -90,7 +72,6 @@ async function fetchFeed(src: Source): Promise<Article[]> {
   const text = await res.text();
   const xml = parser.parse(text);
 
-  // supports both RSS 2.0 and Atom layouts
   const channel = xml?.rss?.channel || xml?.feed;
   if (!channel) return [];
 
@@ -111,8 +92,6 @@ function buildTrending(articles: Article[], windowHours = 72): string[] {
   for (const a of articles) {
     if (a.publishedAt && dayjs(a.publishedAt).isBefore(cutoff)) continue;
     const text = `${a.title} ${a.summary ?? ''}`.toLowerCase();
-
-    // quick keyword candidates (strip punctuation)
     const words = text
       .replace(/[^a-z0-9\s-]/g, ' ')
       .split(/\s+/)
@@ -146,25 +125,17 @@ function buildTrending(articles: Article[], windowHours = 72): string[] {
           ].includes(w),
       );
 
-    // prefer multi-word “key phrases” we care about
     const phrases = [];
-    const nyfw = /(nyfw|new\s+york\s+fashion\s+week)/i.test(text);
-    const pfw = /(pfw|paris\s+fashion\s+week)/i.test(text);
-    const lfw = /(lfw|london\s+fashion\s+week)/i.test(text);
-    const mfw = /(mfw|milan\s+fashion\s+week)/i.test(text);
+    if (/(nyfw|new\s+york\s+fashion\s+week)/i.test(text)) phrases.push('NYFW');
+    if (/(pfw|paris\s+fashion\s+week)/i.test(text))
+      phrases.push('Paris Fashion Week');
+    if (/(lfw|london\s+fashion\s+week)/i.test(text))
+      phrases.push('London Fashion Week');
+    if (/(mfw|milan\s+fashion\s+week)/i.test(text))
+      phrases.push('Milan Fashion Week');
 
-    if (nyfw) phrases.push('NYFW');
-    if (pfw) phrases.push('Paris Fashion Week');
-    if (lfw) phrases.push('London Fashion Week');
-    if (mfw) phrases.push('Milan Fashion Week');
-
-    // top words
-    for (const w of words.slice(0, 25)) {
-      tally.set(w, (tally.get(w) ?? 0) + 1);
-    }
-    for (const p of phrases) {
-      tally.set(p, (tally.get(p) ?? 0) + 3); // boost phrases
-    }
+    for (const w of words.slice(0, 25)) tally.set(w, (tally.get(w) ?? 0) + 1);
+    for (const p of phrases) tally.set(p, (tally.get(p) ?? 0) + 3);
   }
 
   return [...tally.entries()]
@@ -173,7 +144,7 @@ function buildTrending(articles: Article[], windowHours = 72): string[] {
     .map(([k]) => k);
 }
 
-export function useFashionFeeds() {
+export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -183,7 +154,7 @@ export function useFashionFeeds() {
     setError(null);
     setLoading(true);
     try {
-      const batches = await Promise.all(SOURCES.map(fetchFeed));
+      const batches = await Promise.all(sources.map(fetchFeed));
       const merged = [...batches.flat()]
         .filter(a => !!a.title && !!a.link)
         .reduce<Article[]>((acc, cur) => {
@@ -203,11 +174,10 @@ export function useFashionFeeds() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [JSON.stringify(sources)]);
 
   const refresh = useCallback(() => load(), [load]);
 
-  // simple client-side pagination (20 per “page”)
   const pageSize = 20;
   const paged = useMemo(
     () => articles.slice(0, pageRef.current * pageSize),
@@ -220,7 +190,7 @@ export function useFashionFeeds() {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, opts?.userId]);
 
   const trending = useMemo(() => buildTrending(articles, 72), [articles]);
 
@@ -235,9 +205,8 @@ export function useFashionFeeds() {
   };
 }
 
-///////////////////
+/////////////////
 
-// // apps/mobile/src/hooks/useFashionFeeds.ts
 // import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 // import {XMLParser} from 'fast-xml-parser';
 // import dayjs from 'dayjs';
@@ -252,7 +221,22 @@ export function useFashionFeeds() {
 //   publishedAt?: string; // ISO
 // };
 
-// export type SimpleSource = {name: string; url: string}; // expects only enabled sources
+// type Source = {name: string; url: string};
+
+// const SOURCES: Source[] = [
+//   // ✅ Official RSS pages
+//   {name: 'The Cut', url: 'https://feeds.feedburner.com/nymag/fashion'}, // from NYMag’s RSS hub
+//   {name: 'Fashionista', url: 'https://fashionista.com/.rss/excerpt'}, // feedspot lists this path
+//   {
+//     name: 'Fibre2Fashion',
+//     url: 'https://feeds.feedburner.com/fibre2fashion/fashion-news',
+//   },
+//   // Common “WP-style” feeds (work well; toggle off if any issues)
+//   {name: 'Highsnobiety', url: 'https://www.highsnobiety.com/feed'},
+//   {name: 'Hypebeast', url: 'https://hypebeast.com/feed'},
+//   // Vogue UK provides a feed endpoint
+//   {name: 'Vogue UK', url: 'https://www.vogue.co.uk/feed/rss'},
+// ];
 
 // const parser = new XMLParser({
 //   ignoreAttributes: false,
@@ -266,6 +250,7 @@ export function useFashionFeeds() {
 // }
 
 // function extractImageFromItem(item: any): string | undefined {
+//   // Support <media:content url="...">, <enclosure url="...">, content:encoded <img>, or description <img>
 //   const media = item['media:content'] || item['media:thumbnail'];
 //   if (media?.url) return media.url;
 //   const enclosure = item.enclosure;
@@ -302,21 +287,25 @@ export function useFashionFeeds() {
 //   };
 // }
 
-// async function fetchFeed(src: SimpleSource): Promise<Article[]> {
+// async function fetchFeed(src: Source): Promise<Article[]> {
 //   const res = await fetch(src.url, {
 //     headers: {
-//       'User-Agent': 'StylHelpr-FashionFeed/1.0 (React Native)',
+//       // some feeds prefer a UA
+//       'User-Agent':
+//         'StylHelpr-FashionFeed/1.0 (+https://stylhelpr.com; React Native RSS fetcher)',
 //       Accept: 'application/rss+xml, application/xml, text/xml, */*',
 //     },
 //   });
 //   const text = await res.text();
 //   const xml = parser.parse(text);
 
+//   // supports both RSS 2.0 and Atom layouts
 //   const channel = xml?.rss?.channel || xml?.feed;
 //   if (!channel) return [];
 
 //   const items = channel.item || channel.entry || [];
 //   const list: Article[] = [];
+
 //   for (const raw of items) {
 //     const a = normalizeItem(raw, src.name);
 //     if (a) list.push(a);
@@ -332,6 +321,7 @@ export function useFashionFeeds() {
 //     if (a.publishedAt && dayjs(a.publishedAt).isBefore(cutoff)) continue;
 //     const text = `${a.title} ${a.summary ?? ''}`.toLowerCase();
 
+//     // quick keyword candidates (strip punctuation)
 //     const words = text
 //       .replace(/[^a-z0-9\s-]/g, ' ')
 //       .split(/\s+/)
@@ -365,6 +355,7 @@ export function useFashionFeeds() {
 //           ].includes(w),
 //       );
 
+//     // prefer multi-word “key phrases” we care about
 //     const phrases = [];
 //     const nyfw = /(nyfw|new\s+york\s+fashion\s+week)/i.test(text);
 //     const pfw = /(pfw|paris\s+fashion\s+week)/i.test(text);
@@ -376,8 +367,13 @@ export function useFashionFeeds() {
 //     if (lfw) phrases.push('London Fashion Week');
 //     if (mfw) phrases.push('Milan Fashion Week');
 
-//     for (const w of words.slice(0, 25)) tally.set(w, (tally.get(w) ?? 0) + 1);
-//     for (const p of phrases) tally.set(p, (tally.get(p) ?? 0) + 3);
+//     // top words
+//     for (const w of words.slice(0, 25)) {
+//       tally.set(w, (tally.get(w) ?? 0) + 1);
+//     }
+//     for (const p of phrases) {
+//       tally.set(p, (tally.get(p) ?? 0) + 3); // boost phrases
+//     }
 //   }
 
 //   return [...tally.entries()]
@@ -386,11 +382,7 @@ export function useFashionFeeds() {
 //     .map(([k]) => k);
 // }
 
-// /**
-//  * Pass in the user's enabled sources.
-//  * If `sources` is empty, hook returns empty feed (and no errors).
-//  */
-// export function useFashionFeeds(sources: SimpleSource[]) {
+// export function useFashionFeeds() {
 //   const [articles, setArticles] = useState<Article[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState<string | null>(null);
@@ -400,12 +392,7 @@ export function useFashionFeeds() {
 //     setError(null);
 //     setLoading(true);
 //     try {
-//       if (!sources?.length) {
-//         setArticles([]);
-//         pageRef.current = 1;
-//         return;
-//       }
-//       const batches = await Promise.all(sources.map(fetchFeed));
+//       const batches = await Promise.all(SOURCES.map(fetchFeed));
 //       const merged = [...batches.flat()]
 //         .filter(a => !!a.title && !!a.link)
 //         .reduce<Article[]>((acc, cur) => {
@@ -425,10 +412,11 @@ export function useFashionFeeds() {
 //     } finally {
 //       setLoading(false);
 //     }
-//   }, [sources]);
+//   }, []);
 
 //   const refresh = useCallback(() => load(), [load]);
 
+//   // simple client-side pagination (20 per “page”)
 //   const pageSize = 20;
 //   const paged = useMemo(
 //     () => articles.slice(0, pageRef.current * pageSize),
