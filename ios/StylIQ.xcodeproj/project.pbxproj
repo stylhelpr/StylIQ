@@ -14,7 +14,7 @@
 		5DCBF842198D9673EEC202A1 /* libPods-StylIQ-StylIQTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 072947B2755D5320E8889C38 /* libPods-StylIQ-StylIQTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		BAC60185A98CD9E800DE8A60 /* libPods-StylIQ.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A38C74E90293F4F53B2DE398 /* libPods-StylIQ.a */; };
-		C2FBA1132DE5095000924EC9 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C2FBA1122DE5095000924EC9 /* GoogleService-Info.plist */; };
+		C27CD6202E776F2F00EFDA95 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C27CD61F2E776F2F00EFDA95 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,8 +42,8 @@
 		7FBF75511EEA5EC29D34F482 /* Pods-StylIQ.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = StylIQ/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A38C74E90293F4F53B2DE398 /* libPods-StylIQ.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-StylIQ.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C27CD61F2E776F2F00EFDA95 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		C2B048092DE5028A003F0FFE /* StylIQ.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = StylIQ.entitlements; path = StylIQ/StylIQ.entitlements; sourceTree = "<group>"; };
-		C2FBA1122DE5095000924EC9 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		D3510A2AD9CB3C930949EEB3 /* Pods-StylIQ-StylIQTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ-StylIQTests.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests.debug.xcconfig"; sourceTree = "<group>"; };
 		E3B92100443644498F7BD50D /* Pods-StylIQ.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.release.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -89,7 +89,7 @@
 		13B07FAE1A68108700A75B9A /* StylIQ */ = {
 			isa = PBXGroup;
 			children = (
-				C2FBA1122DE5095000924EC9 /* GoogleService-Info.plist */,
+				C27CD61F2E776F2F00EFDA95 /* GoogleService-Info.plist */,
 				C2B048092DE5028A003F0FFE /* StylIQ.entitlements */,
 				13B07FAF1A68108700A75B9A /* AppDelegate.h */,
 				13B07FB01A68108700A75B9A /* AppDelegate.mm */,
@@ -251,7 +251,7 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
-				C2FBA1132DE5095000924EC9 /* GoogleService-Info.plist in Resources */,
+				C27CD6202E776F2F00EFDA95 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -95,16 +95,16 @@ const BottomNavigation = ({
           isActive={current === 'Explore'}
         />
         <TabButton
-          icon="style"
-          label="Wardrobe"
-          onPress={() => navigate('Wardrobe')}
-          isActive={current === 'Closet'}
-        />
-        <TabButton
           icon="auto-awesome"
           label="Style Me"
           onPress={() => navigate('Outfit')}
           isActive={current === 'Outfit'}
+        />
+        <TabButton
+          icon="style"
+          label="Wardrobe"
+          onPress={() => navigate('Wardrobe')}
+          isActive={current === 'Closet'}
         />
 
         <TabButton

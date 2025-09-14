@@ -62,17 +62,18 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.12)',
+    marginLeft: 4,
   },
   chipActive: {
     backgroundColor: 'rgba(255,255,255,0.18)',
     borderColor: 'rgba(255,255,255,0.32)',
   },
-  label: {color: '#f01515ff', fontWeight: '600'},
-  labelActive: {color: '#fff'},
+  label: {color: '#ff0000ff', fontWeight: '600'},
+  labelActive: {color: '#ffffffff'},
   moreChip: {backgroundColor: 'rgba(255,255,255,0.12)'},
 });
 
