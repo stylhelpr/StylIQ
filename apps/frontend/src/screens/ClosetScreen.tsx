@@ -443,9 +443,11 @@ export default function ClosetScreen({navigate}: Props) {
                             })
                           }>
                           <MaterialIcons
-                            name={item.favorite ? 'star' : 'star-border'}
+                            name="favorite"
                             size={22}
-                            color={item.favorite ? '#FFD700' : '#999'} // gold yellow when true
+                            color={
+                              item.favorite ? 'red' : theme.colors.inputBorder
+                            }
                           />
                         </AppleTouchFeedback>
                       </View>
@@ -690,7 +692,7 @@ export default function ClosetScreen({navigate}: Props) {
   );
 }
 
-////////////////////
+///////////////////
 
 // import React, {useState, useEffect, useMemo} from 'react';
 // import {
@@ -1063,7 +1065,7 @@ export default function ClosetScreen({navigate}: Props) {
 //                 numberOfLines={1}
 //                 ellipsizeMode="clip"
 //                 adjustsFontSizeToFit={false}>
-//                 + Create New Outfit
+//                 + Build An Outfit
 //               </Text>
 //             </AppleTouchFeedback>
 //           </View>
@@ -1194,8 +1196,18 @@ export default function ClosetScreen({navigate}: Props) {
 
 //       <AppleTouchFeedback
 //         style={{...styles.fab, marginRight: 16}}
+//         // style={[
+//         //   globalStyles.buttonPrimary,
+//         //   {
+//         //     paddingHorizontal: 28,
+//         //     minWidth: 210,
+//         //     alignSelf: 'center',
+//         //     flexShrink: 0,
+//         //   },
+//         // ]}
 //         onPress={() => navigate('AddItem')}>
-//         <MaterialIcons name="add" size={28} color="#fff" />
+//         <Text style={{color: 'white', fontWeight: '600'}}>Add Clothes +</Text>
+//         {/* <MaterialIcons name="add" size={28} color="#fff" /> */}
 //       </AppleTouchFeedback>
 
 //       {/* Filter Modal */}
