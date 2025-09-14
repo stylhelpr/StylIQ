@@ -89,6 +89,12 @@ const BottomNavigation = ({
           isActive={current === 'Home'}
         />
         <TabButton
+          icon="explore"
+          label="Fashion News"
+          onPress={() => navigate('Explore')}
+          isActive={current === 'Explore'}
+        />
+        <TabButton
           icon="style"
           label="Wardrobe"
           onPress={() => navigate('Wardrobe')}
@@ -106,18 +112,6 @@ const BottomNavigation = ({
           label="Saved Outfits"
           onPress={() => navigate('SavedOutfits')}
           isActive={current === 'SavedOutfits'}
-        />
-        {/* <TabButton
-          icon="event-note"
-          label="Planner"
-          onPress={() => navigate('Planner')}
-          isActive={current === 'Planner'}
-        /> */}
-        <TabButton
-          icon="explore"
-          label="Fashion News"
-          onPress={() => navigate('Explore')}
-          isActive={current === 'Explore'}
         />
       </View>
     </SafeAreaView>

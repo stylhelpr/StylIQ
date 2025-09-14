@@ -261,7 +261,7 @@ export default function OutfitPlannerScreen() {
                 padding: 20,
                 maxHeight: '100%',
                 width: 'auto', // let width fit content
-                minWidth: 240, // optional: enforce a comfortable min width
+                minWidth: 400, // optional: enforce a comfortable min width
                 alignSelf: 'center', // center horizontally
               }}>
               <Text
