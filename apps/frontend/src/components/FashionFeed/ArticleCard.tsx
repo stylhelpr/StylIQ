@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   source: {
-    color: 'rgba(255, 15, 15, 1)',
+    color: 'rgba(255, 247, 15, 1)',
     fontSize: 13,
     fontWeight: '600',
   },

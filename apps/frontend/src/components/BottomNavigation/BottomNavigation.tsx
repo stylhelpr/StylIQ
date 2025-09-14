@@ -103,7 +103,7 @@ const BottomNavigation = ({
 
         <TabButton
           icon="checkroom"
-          label="Outfits"
+          label="Saved Outfits"
           onPress={() => navigate('SavedOutfits')}
           isActive={current === 'SavedOutfits'}
         />
