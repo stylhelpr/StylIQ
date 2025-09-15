@@ -1,3 +1,4 @@
+// apps/backend-nest/src/notifications/notifications.controller.ts
 import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 
@@ -6,61 +7,214 @@ export class NotificationsController {
   constructor(private readonly service: NotificationsService) {}
 
   @Post('register')
-  async register(
-    @Body()
-    body: {
-      user_id: string;
-      platform: 'ios' | 'android';
-      token?: string;
-      device_token?: string;
-      sender_id?: string;
-      project_id?: string;
-    },
-  ) {
+  register(@Body() body: any) {
     return this.service.registerToken(body);
   }
 
   @Post('preferences')
-  upsertPrefs(
-    @Body()
-    body: {
-      user_id: string;
-      push_enabled?: boolean;
-      following_realtime?: boolean;
-      brands_realtime?: boolean;
-      breaking_realtime?: boolean;
-      digest_hour?: number;
-    },
-  ) {
+  upsertPrefs(@Body() body: any) {
     return this.service.upsertPreferences(body);
   }
 
+  @Get('preferences/get')
+  getPrefs(@Query('user_id') user_id: string) {
+    return this.service.getPreferences(user_id);
+  }
+
+  // ── Follows ──────────────────────────────────────────────
+  @Get('follows')
+  getFollows(@Query('user_id') user_id: string) {
+    return this.service.getFollows(user_id);
+  }
+
+  @Post('follow')
+  follow(@Body() body: { user_id: string; source: string }) {
+    return this.service.follow(body.user_id, body.source);
+  }
+
+  @Post('unfollow')
+  unfollow(@Body() body: { user_id: string; source: string }) {
+    return this.service.unfollow(body.user_id, body.source);
+  }
+
+  // ── Test / debug ─────────────────────────────────────────
   @Post('test')
-  async sendTest(
-    @Body()
-    body: {
-      user_id: string;
-      title: string;
-      body: string;
-      data?: Record<string, string>;
-    },
-  ) {
+  async sendTest(@Body() body: any) {
+    const { user_id, title, body: msgBody, data } = body;
     console.log('📤 /test called with', body);
+
     const res = await this.service.sendPushToUser(
-      body.user_id,
-      body.title,
-      body.body,
-      body.data,
+      user_id,
+      title,
+      msgBody,
+      data,
     );
     console.log(`📦 test push attempted, sent=${res.sent}`);
     return { sent: res.sent, detail: res.detail ?? [] };
   }
 
   @Get('debug')
-  async debug(@Query('user_id') user_id?: string) {
+  debug(@Query('user_id') user_id?: string) {
     return this.service.debug(user_id);
   }
+
+  // Optional manual trigger to prove the full flow:
+  @Post('notify/source-article')
+  notifySource(
+    @Body()
+    body: {
+      source: string;
+      title: string;
+      url?: string;
+      image?: string;
+    },
+  ) {
+    return this.service.notifyFollowersOfSourceArticle(body);
+  }
 }
+
+///////////////////
+
+// // apps/backend-nest/src/notifications/notifications.controller.ts
+// import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+// import { NotificationsService } from './notifications.service';
+
+// @Controller('notifications')
+// export class NotificationsController {
+//   constructor(private readonly service: NotificationsService) {}
+
+//   @Post('register')
+//   register(@Body() body: any) {
+//     return this.service.registerToken(body);
+//   }
+
+//   @Post('preferences')
+//   upsertPrefs(@Body() body: any) {
+//     return this.service.upsertPreferences(body);
+//   }
+
+//   @Get('preferences/get')
+//   getPrefs(@Query('user_id') user_id: string) {
+//     return this.service.getPreferences(user_id);
+//   }
+
+//   // ── Follows ──────────────────────────────────────────────
+//   @Get('follows')
+//   getFollows(@Query('user_id') user_id: string) {
+//     return this.service.getFollows(user_id);
+//   }
+
+//   @Post('follow')
+//   follow(@Body() body: { user_id: string; source: string }) {
+//     return this.service.follow(body.user_id, body.source);
+//   }
+
+//   @Post('unfollow')
+//   unfollow(@Body() body: { user_id: string; source: string }) {
+//     return this.service.unfollow(body.user_id, body.source);
+//   }
+
+//   // ── Test / debug ─────────────────────────────────────────
+//   @Post('test')
+//   async sendTest(@Body() body: any) {
+//     const { user_id, title, body: msgBody, data } = body;
+//     console.log('📤 /test called with', body);
+
+//     const res = await this.service.sendPushToUser(
+//       user_id,
+//       title,
+//       msgBody,
+//       data,
+//     );
+//     console.log(`📦 test push attempted, sent=${res.sent}`);
+//     return { sent: res.sent, detail: res.detail ?? [] };
+//   }
+
+//   @Get('debug')
+//   debug(@Query('user_id') user_id?: string) {
+//     return this.service.debug(user_id);
+//   }
+
+//   // Optional manual trigger to prove the full flow:
+//   @Post('notify/source-article')
+//   notifySource(
+//     @Body()
+//     body: {
+//       source: string;
+//       title: string;
+//       url?: string;
+//       image?: string;
+//     },
+//   ) {
+//     return this.service.notifyFollowersOfSourceArticle(body);
+//   }
+// }
+
+////////////////
+
+// import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+// import { NotificationsService } from './notifications.service';
+
+// @Controller('notifications')
+// export class NotificationsController {
+//   constructor(private readonly service: NotificationsService) {}
+
+//   @Post('register')
+//   async register(
+//     @Body()
+//     body: {
+//       user_id: string;
+//       platform: 'ios' | 'android';
+//       token?: string;
+//       device_token?: string;
+//       sender_id?: string;
+//       project_id?: string;
+//     },
+//   ) {
+//     return this.service.registerToken(body);
+//   }
+
+//   @Post('preferences')
+//   upsertPrefs(
+//     @Body()
+//     body: {
+//       user_id: string;
+//       push_enabled?: boolean;
+//       following_realtime?: boolean;
+//       brands_realtime?: boolean;
+//       breaking_realtime?: boolean;
+//       digest_hour?: number;
+//     },
+//   ) {
+//     return this.service.upsertPreferences(body);
+//   }
+
+//   @Post('test')
+//   async sendTest(
+//     @Body()
+//     body: {
+//       user_id: string;
+//       title: string;
+//       body: string;
+//       data?: Record<string, string>;
+//     },
+//   ) {
+//     console.log('📤 /test called with', body);
+//     const res = await this.service.sendPushToUser(
+//       body.user_id,
+//       body.title,
+//       body.body,
+//       body.data,
+//     );
+//     console.log(`📦 test push attempted, sent=${res.sent}`);
+//     return { sent: res.sent, detail: res.detail ?? [] };
+//   }
+
+//   @Get('debug')
+//   async debug(@Query('user_id') user_id?: string) {
+//     return this.service.debug(user_id);
+//   }
+// }
 
 //////////////////////
 
