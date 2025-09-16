@@ -41,6 +41,7 @@ import UndertoneScreen from '../screens/UndertoneScreen';
 import StyleKeywordsScreen from '../screens/StyleKeywordsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PersonalInformationScreen from '../screens/PersonalInformationScreen';
+import AiStylistChatScreen from '../screens/AiStyleChatScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -94,6 +95,7 @@ type Screen =
   | 'StyleKeywords'
   | 'Onboarding'
   | 'PersonalInformation'
+  | 'AiStylistChatScreen'
   | 'Planner';
 
 const RootNavigator = () => {
@@ -270,6 +272,8 @@ const RootNavigator = () => {
         return <LifestyleScreen navigate={navigate} />;
       case 'ShoppingHabits':
         return <ShoppingHabitScreen navigate={navigate} />;
+      case 'AiStylistChatScreen':
+        return <AiStylistChatScreen navigate={navigate} />;
       case 'Activities':
         return <ActivitiesScreen navigate={navigate} />;
       case 'BodyTypes':

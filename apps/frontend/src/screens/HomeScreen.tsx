@@ -676,9 +676,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 },
               ]}>
               {[
-                {label: 'Wardrobe', screen: 'Wardrobe'},
-                {label: 'Add Item', screen: 'AddItem'},
+                {label: 'Ai Chat', screen: 'AiStylistChatScreen'},
                 {label: 'Style Me', screen: 'Outfit'},
+                {label: 'Wardrobe', screen: 'Wardrobe'},
+                {label: 'Add Clothes', screen: 'AddItem'},
+
                 {label: 'Profile', screen: 'Profile'},
               ].map((btn, index) => (
                 <View key={btn.screen} style={styles.quickAccessItem}>
