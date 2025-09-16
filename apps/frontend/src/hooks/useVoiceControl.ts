@@ -1,22 +1,26 @@
+// apps/mobile/src/hooks/useVoiceControl.ts
 import {useEffect, useRef, useState} from 'react';
 import Voice, {
   SpeechErrorEvent,
   SpeechResultsEvent,
   SpeechStartEvent,
 } from '@react-native-voice/voice';
-import {
-  PermissionsAndroid,
-  Platform,
-  NativeModules,
-  NativeEventEmitter,
-} from 'react-native';
+import {PermissionsAndroid, Platform, NativeModules} from 'react-native';
 import Tts from 'react-native-tts';
 
 const DEBUG = true;
 const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
 
-// RN-Voice iOS native bridge
-const {RCTVoice} = NativeModules as {
+type MaybeAVAudioSession = {
+  setCategory?: (cat: string) => Promise<void> | void;
+  setMode?: (mode: string) => Promise<void> | void;
+  setActive?: (active: boolean) => Promise<void> | void;
+  setPreferredSampleRate?: (rate: number) => Promise<void> | void;
+  setPreferredInputNumberOfChannels?: (ch: number) => Promise<void> | void;
+  overrideOutputAudioPort?: (port: 'none' | 'speaker') => Promise<void> | void;
+};
+const {AVAudioSession, RCTVoice} = NativeModules as {
+  AVAudioSession?: MaybeAVAudioSession;
   RCTVoice?: {setupAudioSession?: () => Promise<void> | void};
 };
 
@@ -26,14 +30,15 @@ export const useVoiceControl = () => {
 
   const finalRef = useRef('');
   const commitTimer = useRef<NodeJS.Timeout | null>(null);
+  const hasRetriedRef = useRef(false);
 
   const requestMic = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
         {
-          title: 'Mic Permission',
-          message: 'We need microphone access for voice search.',
+          title: 'Microphone Permission',
+          message: 'We need microphone access for voice input.',
           buttonPositive: 'OK',
         },
       );
@@ -50,9 +55,56 @@ export const useVoiceControl = () => {
     if (commitTimer.current) clearTimeout(commitTimer.current);
   };
 
+  const armIOSAudioSession = async () => {
+    if (Platform.OS !== 'ios') return;
+    try {
+      if (AVAudioSession?.setActive) {
+        log('AVAudioSession.setActive(false) to reset');
+        await AVAudioSession.setActive(false);
+      }
+
+      if (AVAudioSession?.setCategory) {
+        log('AVAudioSession.setCategory(PlayAndRecord)');
+        await AVAudioSession.setCategory('PlayAndRecord');
+      }
+      if (AVAudioSession?.setMode) {
+        log('AVAudioSession.setMode(Measurement)');
+        await AVAudioSession.setMode('Measurement');
+      }
+      if (AVAudioSession?.setPreferredSampleRate) {
+        log('AVAudioSession.setPreferredSampleRate(44100)');
+        await AVAudioSession.setPreferredSampleRate(44100);
+      }
+      if (AVAudioSession?.setPreferredInputNumberOfChannels) {
+        log('AVAudioSession.setPreferredInputNumberOfChannels(1)');
+        await AVAudioSession.setPreferredInputNumberOfChannels(1);
+      }
+      if (AVAudioSession?.overrideOutputAudioPort) {
+        try {
+          await AVAudioSession.overrideOutputAudioPort('none');
+          log('Forced built-in mic route');
+        } catch (err) {
+          log('overrideOutputAudioPort error', err);
+        }
+      }
+      if (AVAudioSession?.setActive) {
+        log('AVAudioSession.setActive(true)');
+        await AVAudioSession.setActive(true);
+      }
+
+      if (RCTVoice?.setupAudioSession) {
+        log('RCTVoice.setupAudioSession()');
+        await RCTVoice.setupAudioSession();
+      }
+
+      await delay(500); // give iOS time to rebuild route
+    } catch (err) {
+      log('armIOSAudioSession error', err);
+    }
+  };
+
   const startListening = async () => {
     log('startListening()');
-
     if (!(await requestMic())) {
       log('Mic permission denied');
       return;
@@ -60,23 +112,15 @@ export const useVoiceControl = () => {
 
     try {
       await Tts.stop();
-      await new Promise(res => setTimeout(res, 200));
+      await delay(120);
 
-      // 💥 iOS: force valid session
-      if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
-        try {
-          log('Calling RCTVoice.setupAudioSession()');
-          await RCTVoice.setupAudioSession();
-          log('Audio session armed');
-        } catch (err) {
-          log('setupAudioSession error', err);
-        }
-      }
+      await armIOSAudioSession();
 
       await Voice.cancel();
-
       finalRef.current = '';
       setSpeech('');
+      hasRetriedRef.current = false;
+
       log('Voice.start…');
       await Voice.start('en-US');
       setIsRecording(true);
@@ -113,51 +157,243 @@ export const useVoiceControl = () => {
         log('TTS init error', e);
       }
 
-      // ⚡ Pre-arm audio session on iOS just once at mount
-      if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
-        try {
-          await RCTVoice.setupAudioSession();
-          log('Pre-armed audio session');
-        } catch (err) {
-          log('setupAudioSession at mount error', err);
-        }
+      if (Platform.OS === 'ios') {
+        await armIOSAudioSession();
+        log('Pre-armed iOS audio session');
       }
     })();
 
     Voice.onSpeechStart = (e: SpeechStartEvent) => log('onSpeechStart', e);
+
     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
       log('onSpeechResults', e.value);
       const text = e.value?.[0] || '';
       finalRef.current = text;
       setSpeech(text);
     };
+
     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
       log('onSpeechPartialResults', e.value);
       const text = e.value?.[0] || '';
       finalRef.current = text;
       setSpeech(text);
     };
+
     Voice.onSpeechEnd = () => {
       log('onSpeechEnd');
       setIsRecording(false);
       commitIfAny('onSpeechEnd');
     };
-    Voice.onSpeechError = (e: SpeechErrorEvent) => {
+
+    Voice.onSpeechError = async (e: SpeechErrorEvent) => {
       log('onSpeechError', e);
       setIsRecording(false);
+
+      const code = (e as any)?.error?.code;
+      const msg = String((e as any)?.error?.message || '');
+      const isIOSFormatError =
+        Platform.OS === 'ios' &&
+        code === 'start_recording' &&
+        msg.includes('IsFormatSampleRateAndChannelCountValid');
+
+      if (isIOSFormatError && !hasRetriedRef.current) {
+        hasRetriedRef.current = true;
+        log('Retrying once after iOS format error…');
+        try {
+          await armIOSAudioSession();
+          await Voice.cancel();
+          await delay(80);
+          await Voice.start('en-US');
+          setIsRecording(true);
+          log('Voice.start OK (after retry)');
+          return;
+        } catch (retryErr) {
+          log('Retry start failed', retryErr);
+        }
+      }
+
       commitIfAny('onSpeechError');
     };
 
     log('Listeners attached');
     return () => {
       log('Unmount: removing listeners');
-      Voice.destroy().then(Voice.removeAllListeners);
+      try {
+        Voice.destroy().then(Voice.removeAllListeners);
+      } catch {}
       if (commitTimer.current) clearTimeout(commitTimer.current);
     };
   }, []);
 
   return {speech, isRecording, startListening, stopListening};
 };
+
+function delay(ms: number) {
+  return new Promise(res => setTimeout(res, ms));
+}
+
+///////////////////
+
+// import {useEffect, useRef, useState} from 'react';
+// import Voice, {
+//   SpeechErrorEvent,
+//   SpeechResultsEvent,
+//   SpeechStartEvent,
+// } from '@react-native-voice/voice';
+// import {
+//   PermissionsAndroid,
+//   Platform,
+//   NativeModules,
+//   NativeEventEmitter,
+// } from 'react-native';
+// import Tts from 'react-native-tts';
+
+// const DEBUG = true;
+// const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
+
+// // RN-Voice iOS native bridge
+// const {RCTVoice} = NativeModules as {
+//   RCTVoice?: {setupAudioSession?: () => Promise<void> | void};
+// };
+
+// export const useVoiceControl = () => {
+//   const [speech, setSpeech] = useState('');
+//   const [isRecording, setIsRecording] = useState(false);
+
+//   const finalRef = useRef('');
+//   const commitTimer = useRef<NodeJS.Timeout | null>(null);
+
+//   const requestMic = async () => {
+//     if (Platform.OS === 'android') {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+//         {
+//           title: 'Mic Permission',
+//           message: 'We need microphone access for voice search.',
+//           buttonPositive: 'OK',
+//         },
+//       );
+//       return granted === PermissionsAndroid.RESULTS.GRANTED;
+//     }
+//     return true;
+//   };
+
+//   const commitIfAny = (from: string) => {
+//     const text = finalRef.current.trim();
+//     log('commitIfAny(', from, ') =>', text);
+//     if (text) setSpeech(text);
+//     finalRef.current = '';
+//     if (commitTimer.current) clearTimeout(commitTimer.current);
+//   };
+
+//   const startListening = async () => {
+//     log('startListening()');
+
+//     if (!(await requestMic())) {
+//       log('Mic permission denied');
+//       return;
+//     }
+
+//     try {
+//       await Tts.stop();
+//       await new Promise(res => setTimeout(res, 200));
+
+//       // 💥 iOS: force valid session
+//       if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
+//         try {
+//           log('Calling RCTVoice.setupAudioSession()');
+//           await RCTVoice.setupAudioSession();
+//           log('Audio session armed');
+//         } catch (err) {
+//           log('setupAudioSession error', err);
+//         }
+//       }
+
+//       await Voice.cancel();
+
+//       finalRef.current = '';
+//       setSpeech('');
+//       log('Voice.start…');
+//       await Voice.start('en-US');
+//       setIsRecording(true);
+//       log('Voice.start OK');
+//     } catch (err) {
+//       log('Voice.start ERROR', err);
+//       setIsRecording(false);
+//     }
+//   };
+
+//   const stopListening = async () => {
+//     log('stopListening()');
+//     try {
+//       await Voice.stop();
+//       commitTimer.current = setTimeout(() => commitIfAny('fallback'), 700);
+//     } catch (err) {
+//       log('Voice.stop ERROR', err);
+//       commitIfAny('stopError');
+//     } finally {
+//       setIsRecording(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         await Tts.getInitStatus();
+//         await Tts.setDefaultLanguage('en-US');
+//         if (Platform.OS === 'ios') {
+//           // @ts-ignore
+//           Tts.setIgnoreSilentSwitch?.('ignore');
+//         }
+//       } catch (e) {
+//         log('TTS init error', e);
+//       }
+
+//       // ⚡ Pre-arm audio session on iOS just once at mount
+//       if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
+//         try {
+//           await RCTVoice.setupAudioSession();
+//           log('Pre-armed audio session');
+//         } catch (err) {
+//           log('setupAudioSession at mount error', err);
+//         }
+//       }
+//     })();
+
+//     Voice.onSpeechStart = (e: SpeechStartEvent) => log('onSpeechStart', e);
+//     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+//       log('onSpeechResults', e.value);
+//       const text = e.value?.[0] || '';
+//       finalRef.current = text;
+//       setSpeech(text);
+//     };
+//     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
+//       log('onSpeechPartialResults', e.value);
+//       const text = e.value?.[0] || '';
+//       finalRef.current = text;
+//       setSpeech(text);
+//     };
+//     Voice.onSpeechEnd = () => {
+//       log('onSpeechEnd');
+//       setIsRecording(false);
+//       commitIfAny('onSpeechEnd');
+//     };
+//     Voice.onSpeechError = (e: SpeechErrorEvent) => {
+//       log('onSpeechError', e);
+//       setIsRecording(false);
+//       commitIfAny('onSpeechError');
+//     };
+
+//     log('Listeners attached');
+//     return () => {
+//       log('Unmount: removing listeners');
+//       Voice.destroy().then(Voice.removeAllListeners);
+//       if (commitTimer.current) clearTimeout(commitTimer.current);
+//     };
+//   }, []);
+
+//   return {speech, isRecording, startListening, stopListening};
+// };
 
 ///////////////////
 
