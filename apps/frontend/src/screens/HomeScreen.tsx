@@ -589,15 +589,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       )}
 
-      <View style={[globalStyles.section, {marginTop: 12, marginBottom: 30}]}>
+      {/* <View style={[globalStyles.section, {marginTop: 12, marginBottom: 30}]}>
         <View
           style={{
             width: '100%',
             maxWidth: 645,
             alignSelf: 'center',
-          }}>
-          {/* 🎤 Hold to Talk Button */}
-          <TouchableOpacity
+          }}> */}
+      {/* 🎤 Hold to Talk Button */}
+      {/* <TouchableOpacity
             onPressIn={() => {
               console.log('[HomeScreen] PressIn -> startListening()');
               didNavigateRef.current = false;
@@ -633,10 +633,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             <Text style={{color: '#fff', fontWeight: '600', fontSize: 16}}>
               {isRecording ? '🎤 Listening…' : '🎤 Hold to Talk'}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          {/* 📝 Live Text Input */}
-          <TextInput
+      {/* 📝 Live Text Input */}
+      {/* <TextInput
             placeholder="Your voice prompt will appear here..."
             placeholderTextColor={theme.colors.foreground}
             value={query}
@@ -657,7 +657,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             }}
           />
         </View>
-      </View>
+      </View> */}
 
       {/* /// QUICK ACCESS SECTION /// */}
       <View style={globalStyles.centeredSection}>
@@ -680,6 +680,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 {label: 'Style Me', screen: 'Outfit'},
                 {label: 'Wardrobe', screen: 'Wardrobe'},
                 {label: 'Add Clothes', screen: 'AddItem'},
+                {label: 'Fashion News', screen: 'Explore'},
 
                 {label: 'Profile', screen: 'Profile'},
               ].map((btn, index) => (

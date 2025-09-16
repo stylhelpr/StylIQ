@@ -66,17 +66,6 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
         <AppleTouchFeedback
           style={styles.iconButton}
           hapticStyle="impactLight"
-          onPress={() => navigate('AiStylistChatScreen')}>
-          <MaterialIcons
-            name="smart-toy"
-            size={28}
-            color={theme.colors.primary}
-          />
-        </AppleTouchFeedback>
-
-        <AppleTouchFeedback
-          style={styles.iconButton}
-          hapticStyle="impactLight"
           onPress={() => navigate('Notifications')}>
           <Icon
             name="notifications-none"
@@ -90,6 +79,13 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
           hapticStyle="impactLight"
           onPress={() => navigate('Search')}>
           <Icon name="search" size={34} color={theme.colors.primary} />
+        </AppleTouchFeedback>
+
+        <AppleTouchFeedback
+          style={styles.iconButton}
+          hapticStyle="impactLight"
+          onPress={() => navigate('AiStylistChatScreen')}>
+          <MaterialIcons name="smart-toy" size={28} color="rgb(102, 0, 255)" />
         </AppleTouchFeedback>
 
         {/* ⬇️ NEW: Planner */}
