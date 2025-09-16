@@ -1,0 +1,12064 @@
+import React, {useEffect, useMemo, useState} from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  Platform,
+} from 'react-native';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+dayjs.extend(relativeTime);
+
+import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+import ArticleCard from '../components/FashionFeed/ArticleCard';
+import TrendChips from '../components/FashionFeed/TrendChips';
+import ReaderModal from '../components/FashionFeed/ReaderModal';
+import {useFashionFeeds} from '../hooks/useFashionFeeds';
+import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+import {useUUID} from '../context/UUIDContext';
+import {API_BASE_URL} from '../config/api';
+import {initializeNotifications} from '../utils/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
+import {useAppTheme} from '../context/ThemeContext';
+import messaging from '@react-native-firebase/messaging';
+import PushNotification from 'react-native-push-notification';
+import {addNotification} from '../storage/notifications';
+
+type Tab = 'For You' | 'Following';
+
+type Chip = {
+  id: string;
+  label: string;
+  type: 'personal' | 'trending' | 'context' | 'source';
+  filter: {topics?: string[]; sources?: string[]; constraints?: any};
+};
+
+export default function ExploreScreen() {
+  const userId = useUUID() ?? '';
+
+  const {
+    sources,
+    enabled,
+    loading: sourcesLoading,
+    addSource,
+    toggleSource,
+    removeSource,
+    renameSource,
+    resetToDefaults,
+  } = useFeedSources({userId});
+
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+
+  // ───────── Tabs control which feeds we pull ─────────
+  const [tab, setTab] = useState<Tab>('For You');
+  const feedsForTab = tab === 'Following' ? enabled : sources;
+
+  const [newName, setNewName] = useState('');
+  const [newUrl, setNewUrl] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const {articles, loading, refresh} = useFashionFeeds(
+    feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+    {userId},
+  );
+
+  // ───────── Notifications: follows + preferences ─────────
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [followingRealtime, setFollowingRealtime] = useState(false);
+  const [brandsRealtime, setBrandsRealtime] = useState(false);
+  const [breakingRealtime, setBreakingRealtime] = useState(true);
+  const [digestHour, setDigestHour] = useState<number>(8);
+  const [prefsLoaded, setPrefsLoaded] = useState(false); // gate init
+
+  // === OPEN FROM NOTIFICATION -> open Reader ===
+  const [openUrl, setOpenUrl] = useState<string | undefined>();
+  const [openTitle, setOpenTitle] = useState<string | undefined>();
+  const openFromNotification = (data: any) => {
+    if (!data) return;
+    if (data.type === 'article' && data.url) {
+      setTab('For You');
+      setOpenUrl(data.url);
+      setOpenTitle(data.title || data.source || '');
+    }
+    if (data.type === 'test') {
+      setTab('For You');
+    }
+  };
+
+  const sendLocalTestNotification = async () => {
+    const title = 'Inbox test';
+    const message = 'This should appear in Notifications.';
+    const deeplink = 'myapp://news/123'; // optional
+
+    // save to your in-app inbox (what the Notifications screen reads)
+    await addNotification(userId, {
+      title,
+      message,
+      deeplink,
+      category: 'news',
+      data: {type: 'test'},
+    });
+
+    // (optional) show an OS banner so you also see a toast
+    try {
+      PushNotification.localNotification({
+        channelId: 'style-channel',
+        title,
+        message,
+        playSound: true,
+        soundName: 'default',
+      });
+    } catch {}
+  };
+
+  // Listeners to handle push taps / foreground messages
+  useEffect(() => {
+    // App in background → user taps the push
+    const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+      if (msg?.data) openFromNotification(msg.data);
+    });
+
+    // App was quit → opened from a push
+    messaging()
+      .getInitialNotification()
+      .then(msg => {
+        if (msg?.data) openFromNotification(msg.data);
+      });
+
+    // App in foreground → play chime via local notification (+ optional prompt)
+    const unsubForeground = messaging().onMessage(async msg => {
+      const d = msg?.data || {};
+
+      // Make a local notification so iOS/Android will play a sound in-foreground
+      try {
+        PushNotification.localNotification({
+          channelId: 'style-channel', // must match created channel
+          title: msg.notification?.title ?? d.source ?? 'Fashion Feed',
+          message: msg.notification?.body ?? d.title ?? 'New article',
+          playSound: true,
+          soundName: 'default',
+          userInfo: d, // if you later handle taps via PushNotification.configure
+        });
+      } catch (e) {
+        console.log('⚠️ localNotification error', e);
+      }
+
+      // Optional: keep the in-app prompt so users can open immediately
+      if (d?.type === 'article' && d?.url) {
+        Alert.alert(
+          msg.notification?.title ?? 'Fashion Feed',
+          msg.notification?.body ?? 'New article',
+          [
+            {text: 'Later', style: 'cancel'},
+            {text: 'Read now', onPress: () => openFromNotification(d)},
+          ],
+        );
+      }
+    });
+
+    return () => {
+      unsubOpened();
+      unsubForeground();
+    };
+  }, []);
+
+  // Register once, only after prefs loaded and push is ON
+  useEffect(() => {
+    (async () => {
+      if (!userId || !prefsLoaded) return;
+      await AsyncStorage.setItem(
+        'notificationsEnabled',
+        pushEnabled ? 'true' : 'false',
+      );
+      if (pushEnabled) {
+        await initializeNotifications(userId); // requests perms, gets token, registers
+        console.log('✅ Push initialized & token registration attempted');
+      } else {
+        console.log('🔕 Push disabled locally');
+      }
+    })();
+  }, [userId, prefsLoaded, pushEnabled]);
+
+  // Load follows
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+            userId,
+          )}`,
+        );
+        const json = await res.json();
+        const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+        setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+      } catch (e) {
+        console.log('⚠️ load follows failed', e);
+      }
+    })();
+  }, [userId]);
+
+  // Load preferences (and mirror the local flag so initialize can run)
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+            userId,
+          )}`,
+        ).catch(() => null);
+
+        const json =
+          (await res?.json().catch(() => null)) ??
+          (await (
+            await fetch(`${API_BASE_URL}/notifications/preferences`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({user_id: userId}),
+            })
+          ).json());
+
+        if (json) {
+          const pe = json.push_enabled ?? true;
+          setPushEnabled(pe);
+          setFollowingRealtime(json.following_realtime ?? false);
+          setBrandsRealtime(json.brands_realtime ?? false);
+          setBreakingRealtime(json.breaking_realtime ?? true);
+          setDigestHour(Number(json.digest_hour ?? 8));
+
+          await AsyncStorage.setItem(
+            'notificationsEnabled',
+            pe ? 'true' : 'false',
+          );
+        }
+      } catch (e) {
+        console.log('⚠️ load prefs failed', e);
+      } finally {
+        setPrefsLoaded(true); // allow init effect to run
+      }
+    })();
+  }, [userId]);
+
+  const savePrefs = async (
+    overrides?: Partial<{
+      push_enabled: boolean;
+      following_realtime: boolean;
+      brands_realtime: boolean;
+      breaking_realtime: boolean;
+      digest_hour: number;
+    }>,
+  ) => {
+    try {
+      const payload = {
+        user_id: userId,
+        push_enabled: pushEnabled,
+        following_realtime: followingRealtime,
+        brands_realtime: brandsRealtime,
+        breaking_realtime: breakingRealtime,
+        digest_hour: digestHour,
+        ...(overrides ?? {}),
+      };
+      await fetch(`${API_BASE_URL}/notifications/preferences`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.log('⚠️ save prefs failed', e);
+    }
+  };
+
+  const followSource = async (name: string) => {
+    const key = name.toLowerCase();
+    setFollowingSet(prev => new Set([...prev, key])); // optimistic
+    try {
+      await fetch(`${API_BASE_URL}/notifications/follow`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, source: name}),
+      });
+    } catch (e) {
+      // revert on error
+      setFollowingSet(prev => {
+        const copy = new Set(prev);
+        copy.delete(key);
+        return copy;
+      });
+    }
+  };
+
+  const unfollowSource = async (name: string) => {
+    const key = name.toLowerCase();
+    setFollowingSet(prev => {
+      const copy = new Set(prev);
+      copy.delete(key);
+      return copy;
+    }); // optimistic
+    try {
+      await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, source: name}),
+      });
+    } catch (e) {
+      // revert on error
+      setFollowingSet(prev => new Set([...prev, key]));
+    }
+  };
+
+  // ───────── Personal chips ─────────
+  const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+        const json = await res.json();
+        setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+      } catch {
+        setWardrobeBrands([]);
+      }
+    })();
+  }, [userId]);
+
+  // ───────── Trending chips ─────────
+  const trendingKeywords = useMemo(() => {
+    if (!articles?.length) return [];
+    const wordCounts: Record<string, number> = {};
+    for (const a of articles) {
+      const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+      text.split(/\W+/).forEach(w => {
+        if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+      });
+    }
+    return Object.entries(wordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([w]) => w)
+      .slice(0, 10);
+  }, [articles]);
+
+  // ───────── Context chips ─────────
+  const [weather, setWeather] = useState('hot');
+  useEffect(() => {
+    setWeather('hot'); // placeholder; swap with real weather call
+  }, []);
+
+  // ───────── Combine chips ─────────
+  const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [chips, setChips] = useState<Chip[]>([]);
+  useEffect(() => {
+    const personal = wardrobeBrands
+      .filter(b => chipAllowlist[b] !== false)
+      .slice(0, 6)
+      .map(b => ({
+        id: 'brand-' + b.toLowerCase(),
+        label: b,
+        type: 'personal' as const,
+        filter: {topics: [b.toLowerCase()]},
+      }));
+
+    const trending = trendingKeywords.map(t => ({
+      id: 'trend-' + t.toLowerCase(),
+      label: t,
+      type: 'trending' as const,
+      filter: {topics: [t]},
+    }));
+
+    const context = [
+      {
+        id: 'ctx-weather',
+        label: `Weather: ${weather}`,
+        type: 'context' as const,
+        filter: {constraints: {weather}},
+      },
+    ];
+
+    const sourceChips: Chip[] = enabled.map(es => ({
+      id: 'src-' + es.name.toLowerCase(),
+      label: es.name,
+      type: 'source',
+      filter: {sources: [es.name]},
+    }));
+
+    setChips([...sourceChips, ...personal, ...trending, ...context]);
+  }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+  const [brandSearch, setBrandSearch] = useState('');
+
+  // active chip selection
+  const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+  const activeFilter =
+    chips.find(
+      c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+    )?.filter ?? null;
+
+  // ───────── HERO + LIST BY TAB ─────────
+  const articlesChrono = useMemo(
+    () =>
+      [...articles].sort(
+        (a, b) =>
+          (dayjs(b.publishedAt).valueOf() || 0) -
+          (dayjs(a.publishedAt).valueOf() || 0),
+      ),
+    [articles],
+  );
+
+  const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+  const restBase = useMemo(() => {
+    if (tab === 'Following') {
+      return articlesChrono.slice(1);
+    }
+    return articles.length > 1 ? articles.slice(1) : [];
+  }, [tab, articles, articlesChrono]);
+
+  const filteredForYou = useMemo(() => {
+    if (!activeFilter) return restBase;
+
+    const hasTopics = !!activeFilter.topics?.length;
+    const hasSources = !!activeFilter.sources?.length;
+
+    return restBase.filter(a => {
+      const sourceOk = !hasSources
+        ? true
+        : activeFilter.sources!.some(
+            src => src.toLowerCase() === a.source.toLowerCase(),
+          );
+
+      const topicOk = !hasTopics
+        ? true
+        : [a.title, a.source, a.summary].some(x =>
+            activeFilter.topics!.some(t =>
+              (x || '').toLowerCase().includes(t.toLowerCase()),
+            ),
+          );
+
+      return sourceOk && topicOk;
+    });
+  }, [restBase, activeFilter]);
+
+  const list = tab === 'For You' ? filteredForYou : restBase;
+
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+  // === Send a REAL article push for testing (kept for dev) ===
+  const sendTestPush = async () => {
+    try {
+      const candidate = hero || list?.[0];
+      const data = {
+        type: 'article',
+        article_id: String(candidate?.id ?? Date.now()),
+        url: candidate?.link ?? 'https://www.vogue.com/',
+        title: candidate?.title ?? 'Fashion test article',
+        source: candidate?.source ?? 'Fashion Feed',
+      };
+
+      const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: userId,
+          title: data.source,
+          body: data.title,
+          data,
+        }),
+      });
+      const json = await res.json();
+      Alert.alert(
+        'Push sent',
+        `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+      );
+    } catch (e) {
+      Alert.alert('Push failed', String(e));
+    }
+  };
+
+  return (
+    <View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading || sourcesLoading}
+            onRefresh={refresh}
+            tintColor="#fff"
+          />
+        }
+        contentContainerStyle={{paddingBottom: 32}}>
+        <View style={globalStyles.sectionTitle}>
+          <Text style={globalStyles.header}>Fashion News</Text>
+        </View>
+
+        <View style={styles.topBar}>
+          <Segmented tab={tab} onChange={setTab} />
+          <TouchableOpacity
+            onPress={() => setMenuOpen(true)}
+            style={styles.iconBtn}
+            accessibilityLabel="Manage">
+            <Text style={styles.iconBtnText}>⋯</Text>
+          </TouchableOpacity>
+        </View>
+
+        {hero && (
+          <FeaturedHero
+            title={hero.title}
+            source={hero.source}
+            image={hero.image}
+            onPress={() => {
+              setOpenUrl(hero.link);
+              setOpenTitle(hero.title);
+            }}
+          />
+        )}
+
+        {tab === 'For You' && (
+          <TrendChips
+            items={chips.map(c => c.label)}
+            selected={activeChipLabel}
+            onTap={label =>
+              setActiveChipLabel(prev =>
+                prev?.toLowerCase() === label.toLowerCase() ? null : label,
+              )
+            }
+            onMore={() => setManageBrandsOpen(true)}
+          />
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {tab === 'For You' ? 'Recommended for you' : 'Following'}
+          </Text>
+        </View>
+
+        <View style={[{paddingHorizontal: 16}]}>
+          {list.map(item => (
+            <ArticleCard
+              key={item.id}
+              title={item.title}
+              source={item.source}
+              image={item.image}
+              time={
+                item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+              }
+              onPress={() => {
+                setOpenUrl(item.link);
+                setOpenTitle(item.title);
+              }}
+            />
+          ))}
+        </View>
+
+        {tab === 'For You' && wardrobeBrands.length === 0 && (
+          <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+            <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+              No wardrobe brands detected yet. Add items to your wardrobe to
+              unlock personalized brand chips.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      <ReaderModal
+        visible={!!openUrl}
+        url={openUrl}
+        title={openTitle}
+        onClose={() => setOpenUrl(undefined)}
+      />
+
+      {/* Feeds modal */}
+      <Modal
+        visible={manageOpen}
+        animationType="slide"
+        onRequestClose={() => setManageOpen(false)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Feeds</Text>
+            <TouchableOpacity onPress={() => setManageOpen(false)}>
+              <Text style={styles.done}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+            {sources.map((src: FeedSource) => {
+              const notifyOn = followingSet.has(src.name.toLowerCase());
+              return (
+                <View key={src.id} style={styles.sourceRow}>
+                  <View style={{flex: 1}}>
+                    <TextInput
+                      defaultValue={src.name}
+                      placeholder="Name"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      onEndEditing={e =>
+                        renameSource(src.id, e.nativeEvent.text)
+                      }
+                      style={styles.sourceName}
+                    />
+                    <Text style={styles.sourceUrl} numberOfLines={1}>
+                      {src.url}
+                    </Text>
+                  </View>
+
+                  {/* Read toggle (in-app feed) */}
+                  <View style={{alignItems: 'center', marginRight: 10}}>
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontSize: 11,
+                        marginBottom: 2,
+                      }}>
+                      Read
+                    </Text>
+                    <Switch
+                      value={!!src.enabled}
+                      onValueChange={v => toggleSource(src.id, v)}
+                      trackColor={{
+                        false: 'rgba(255,255,255,0.18)',
+                        true: '#0A84FF',
+                      }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+
+                  {/* Notify toggle (push) */}
+                  <View style={{alignItems: 'center', marginRight: 10}}>
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontSize: 11,
+                        marginBottom: 2,
+                      }}>
+                      Notify
+                    </Text>
+                    <Switch
+                      value={notifyOn}
+                      onValueChange={v =>
+                        v ? followSource(src.name) : unfollowSource(src.name)
+                      }
+                      trackColor={{
+                        false: 'rgba(255,255,255,0.18)',
+                        true: '#0A84FF',
+                      }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => removeSource(src.id)}
+                    style={styles.removeBtn}>
+                    <Text style={styles.removeText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+
+            <View style={styles.addBox}>
+              <Text style={styles.addTitle}>Add Feed</Text>
+              {!!addError && <Text style={styles.addError}>{addError}</Text>}
+              <TextInput
+                value={newName}
+                onChangeText={setNewName}
+                placeholder="Display name (optional)"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={styles.input}
+              />
+              <TextInput
+                value={newUrl}
+                onChangeText={setNewUrl}
+                placeholder="Feed URL (https://…)"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  setAddError(null);
+                  try {
+                    addSource(newName, newUrl);
+                    setNewName('');
+                    setNewUrl('');
+                  } catch (e: any) {
+                    setAddError(e?.message ?? 'Could not add feed');
+                  }
+                }}
+                style={styles.addBtn}>
+                <Text style={styles.addBtnText}>Add Feed</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={resetToDefaults}
+                style={styles.resetBtn}>
+                <Text style={styles.resetText}>Reset to Defaults</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Brands modal */}
+      <Modal
+        visible={manageBrandsOpen}
+        animationType="slide"
+        onRequestClose={() => setManageBrandsOpen(false)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Brands</Text>
+            <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+              <Text style={styles.done}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{padding: 12}}>
+            <TextInput
+              value={brandSearch}
+              onChangeText={setBrandSearch}
+              placeholder="Search your wardrobe brands…"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              style={styles.input}
+            />
+          </View>
+          <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+            {wardrobeBrands.length === 0 ? (
+              <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+                <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+                  No brands found yet. Add items to your wardrobe (with a brand)
+                  and they’ll show up here as chips you can toggle.
+                </Text>
+              </View>
+            ) : (
+              Array.from(
+                new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+              )
+                .filter(
+                  b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+                )
+                .map(brand => {
+                  const show = chipAllowlist[brand] !== false;
+                  return (
+                    <View key={brand} style={styles.sourceRow}>
+                      <View style={{flex: 1}}>
+                        <Text style={styles.sourceName}>{brand}</Text>
+                      </View>
+                      <Text style={{color: '#fff', marginRight: 8}}>
+                        Visible
+                      </Text>
+                      <Switch
+                        value={show}
+                        onValueChange={v =>
+                          setChipAllowlist(prev => ({...prev, [brand]: v}))
+                        }
+                        trackColor={{
+                          false: 'rgba(255,255,255,0.18)',
+                          true: '#0A84FF',
+                        }}
+                        thumbColor="#fff"
+                      />
+                    </View>
+                  );
+                })
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}>
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuOpen(false)}>
+          <View style={styles.menuSheet}>
+            <Text style={styles.menuTitle}>Manage</Text>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuOpen(false);
+                setNotifOpen(true);
+              }}>
+              <Text style={styles.menuItemText}>Notifications</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuOpen(false);
+                setManageBrandsOpen(true);
+              }}>
+              <Text style={styles.menuItemText}>Brands</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuOpen(false);
+                setManageOpen(true);
+              }}>
+              <Text style={styles.menuItemText}>Feeds</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Notifications prefs modal */}
+      <Modal
+        visible={notifOpen}
+        animationType="slide"
+        onRequestClose={() => setNotifOpen(false)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Notifications</Text>
+            <TouchableOpacity onPress={() => setNotifOpen(false)}>
+              <Text style={styles.done}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+            <RowToggle
+              label="Enable Push"
+              value={pushEnabled}
+              onChange={async v => {
+                setPushEnabled(v);
+                await AsyncStorage.setItem(
+                  'notificationsEnabled',
+                  v ? 'true' : 'false',
+                );
+                savePrefs({push_enabled: v});
+                // init handled by effect after prefsLoaded
+              }}
+            />
+            <RowToggle
+              label="Realtime for Following"
+              value={followingRealtime}
+              onChange={v => {
+                setFollowingRealtime(v);
+                savePrefs({following_realtime: v});
+              }}
+            />
+            <RowToggle
+              label="Realtime for Brands (For You)"
+              value={brandsRealtime}
+              onChange={v => {
+                setBrandsRealtime(v);
+                savePrefs({brands_realtime: v});
+              }}
+            />
+            <RowToggle
+              label="Breaking Fashion News"
+              value={breakingRealtime}
+              onChange={v => {
+                setBreakingRealtime(v);
+                savePrefs({breaking_realtime: v});
+              }}
+            />
+
+            <View style={{gap: 6}}>
+              <Text style={{color: '#fff', fontWeight: '700'}}>
+                Daily Digest Hour (0–23)
+              </Text>
+              <TextInput
+                value={String(digestHour)}
+                onChangeText={txt => {
+                  const n = Math.max(0, Math.min(23, Number(txt) || 0));
+                  setDigestHour(n);
+                }}
+                onEndEditing={() => savePrefs({digest_hour: digestHour})}
+                keyboardType="number-pad"
+                placeholder="8"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                style={styles.input}
+              />
+            </View>
+
+            {/* <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+              <Text style={styles.addBtnText}>Send Test Push</Text>
+            </TouchableOpacity> */}
+
+            {/* <TouchableOpacity
+              onPress={sendLocalTestNotification}
+              style={styles.addBtn}>
+              <Text style={styles.addBtnText}>Send Test Push</Text>
+            </TouchableOpacity> */}
+          </ScrollView>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+function RowToggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <View style={styles.rowToggle}>
+      <Text style={styles.rowToggleLabel}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+        thumbColor="#fff"
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {flex: 1, backgroundColor: '#000'},
+  sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+  removeBtn: {
+    marginLeft: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  removeText: {
+    color: 'rgba(255, 255, 255, 1)',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  addBox: {padding: 16, gap: 8},
+  addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+  addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+  addBtn: {
+    marginTop: 8,
+    backgroundColor: '#6f00ffff',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  addBtnText: {color: '#fff', fontWeight: '800'},
+  resetBtn: {
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+  topBar: {
+    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+    backgroundColor: '#000',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconBtn: {
+    marginLeft: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(89, 0, 255, 1)',
+  },
+  iconBtnText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 20,
+    lineHeight: 20,
+    marginTop: -2,
+  },
+
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  menuSheet: {
+    marginTop: 60,
+    marginRight: 12,
+    width: 200,
+    backgroundColor: '#111',
+    borderRadius: 12,
+    paddingVertical: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 8},
+    elevation: 8,
+  },
+  menuTitle: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  menuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  menuItemText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  manageBtn: {
+    marginLeft: 'auto',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(89, 0, 255, 1)',
+  },
+  manageText: {color: '#ffffffff', fontWeight: '700'},
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#000',
+  },
+  sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+  modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+  modalHeader: {
+    height: 48,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+  done: {color: '#5900ffff', fontWeight: '700'},
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  sourceName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    padding: 0,
+    marginBottom: 2,
+  },
+  input: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#fff',
+  },
+  rowToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+});
+
+function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+  return (
+    <View style={seg.root}>
+      {(['For You', 'Following'] as Tab[]).map(t => {
+        const active = t === tab;
+        return (
+          <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+            <Text
+              onPress={() => onChange(t)}
+              style={[seg.itemText, active && seg.itemTextActive]}>
+              {t}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const seg = StyleSheet.create({
+  root: {
+    height: 36,
+    backgroundColor: 'rgba(73, 73, 73, 1)',
+    borderRadius: 10,
+    padding: 3,
+    flexDirection: 'row',
+    flex: 1,
+    maxWidth: 280,
+  },
+  itemWrap: {
+    flex: 1,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemActive: {backgroundColor: '#111213'},
+  itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+  itemTextActive: {color: '#fff'},
+});
+
+/////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+// import messaging from '@react-native-firebase/messaging';
+// import PushNotification from 'react-native-push-notification';
+// import {addNotification} from '../storage/notifications';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+//   const [menuOpen, setMenuOpen] = useState(false);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+//   const [prefsLoaded, setPrefsLoaded] = useState(false); // gate init
+
+//   // === OPEN FROM NOTIFICATION -> open Reader ===
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const openFromNotification = (data: any) => {
+//     if (!data) return;
+//     if (data.type === 'article' && data.url) {
+//       setTab('For You');
+//       setOpenUrl(data.url);
+//       setOpenTitle(data.title || data.source || '');
+//     }
+//     if (data.type === 'test') {
+//       setTab('For You');
+//     }
+//   };
+
+//   const sendLocalTestNotification = async () => {
+//     const title = 'Inbox test';
+//     const message = 'This should appear in Notifications.';
+//     const deeplink = 'myapp://news/123'; // optional
+
+//     // save to your in-app inbox (what the Notifications screen reads)
+//     await addNotification(userId, {
+//       title,
+//       message,
+//       deeplink,
+//       category: 'news',
+//       data: {type: 'test'},
+//     });
+
+//     // (optional) show an OS banner so you also see a toast
+//     try {
+//       PushNotification.localNotification({
+//         channelId: 'style-channel',
+//         title,
+//         message,
+//         playSound: true,
+//         soundName: 'default',
+//       });
+//     } catch {}
+//   };
+
+//   // Listeners to handle push taps / foreground messages
+//   useEffect(() => {
+//     // App in background → user taps the push
+//     const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+//       if (msg?.data) openFromNotification(msg.data);
+//     });
+
+//     // App was quit → opened from a push
+//     messaging()
+//       .getInitialNotification()
+//       .then(msg => {
+//         if (msg?.data) openFromNotification(msg.data);
+//       });
+
+//     // App in foreground → play chime via local notification (+ optional prompt)
+//     const unsubForeground = messaging().onMessage(async msg => {
+//       const d = msg?.data || {};
+
+//       // Make a local notification so iOS/Android will play a sound in-foreground
+//       try {
+//         PushNotification.localNotification({
+//           channelId: 'style-channel', // must match created channel
+//           title: msg.notification?.title ?? d.source ?? 'Fashion Feed',
+//           message: msg.notification?.body ?? d.title ?? 'New article',
+//           playSound: true,
+//           soundName: 'default',
+//           userInfo: d, // if you later handle taps via PushNotification.configure
+//         });
+//       } catch (e) {
+//         console.log('⚠️ localNotification error', e);
+//       }
+
+//       // Optional: keep the in-app prompt so users can open immediately
+//       if (d?.type === 'article' && d?.url) {
+//         Alert.alert(
+//           msg.notification?.title ?? 'Fashion Feed',
+//           msg.notification?.body ?? 'New article',
+//           [
+//             {text: 'Later', style: 'cancel'},
+//             {text: 'Read now', onPress: () => openFromNotification(d)},
+//           ],
+//         );
+//       }
+//     });
+
+//     return () => {
+//       unsubOpened();
+//       unsubForeground();
+//     };
+//   }, []);
+
+//   // Register once, only after prefs loaded and push is ON
+//   useEffect(() => {
+//     (async () => {
+//       if (!userId || !prefsLoaded) return;
+//       await AsyncStorage.setItem(
+//         'notificationsEnabled',
+//         pushEnabled ? 'true' : 'false',
+//       );
+//       if (pushEnabled) {
+//         await initializeNotifications(userId); // requests perms, gets token, registers
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         console.log('🔕 Push disabled locally');
+//       }
+//     })();
+//   }, [userId, prefsLoaded, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       } finally {
+//         setPrefsLoaded(true); // allow init effect to run
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   // === Send a REAL article push for testing (kept for dev) ===
+//   const sendTestPush = async () => {
+//     try {
+//       const candidate = hero || list?.[0];
+//       const data = {
+//         type: 'article',
+//         article_id: String(candidate?.id ?? Date.now()),
+//         url: candidate?.link ?? 'https://www.vogue.com/',
+//         title: candidate?.title ?? 'Fashion test article',
+//         source: candidate?.source ?? 'Fashion Feed',
+//       };
+
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title: data.source,
+//           body: data.title,
+//           data,
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fashion News</Text>
+//         </View>
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setMenuOpen(true)}
+//             style={styles.iconBtn}
+//             accessibilityLabel="Manage">
+//             <Text style={styles.iconBtnText}>⋯</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Visible
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       <Modal
+//         visible={menuOpen}
+//         transparent
+//         animationType="fade"
+//         onRequestClose={() => setMenuOpen(false)}>
+//         <TouchableOpacity
+//           style={styles.menuBackdrop}
+//           activeOpacity={1}
+//           onPress={() => setMenuOpen(false)}>
+//           <View style={styles.menuSheet}>
+//             <Text style={styles.menuTitle}>Manage</Text>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setNotifOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Notifications</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageBrandsOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Brands</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Feeds</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </TouchableOpacity>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 // init handled by effect after prefsLoaded
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             {/* <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity> */}
+
+//             <TouchableOpacity
+//               onPress={sendLocalTestNotification}
+//               style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   iconBtn: {
+//     marginLeft: 8,
+//     width: 36,
+//     height: 36,
+//     borderRadius: 10,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   iconBtnText: {
+//     color: '#fff',
+//     fontWeight: '900',
+//     fontSize: 20,
+//     lineHeight: 20,
+//     marginTop: -2,
+//   },
+
+//   menuBackdrop: {
+//     flex: 1,
+//     backgroundColor: 'rgba(0,0,0,0.4)',
+//     justifyContent: 'flex-start',
+//     alignItems: 'flex-end',
+//   },
+//   menuSheet: {
+//     marginTop: 60,
+//     marginRight: 12,
+//     width: 200,
+//     backgroundColor: '#111',
+//     borderRadius: 12,
+//     paddingVertical: 8,
+//     borderWidth: StyleSheet.hairlineWidth,
+//     borderColor: 'rgba(255,255,255,0.12)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.35,
+//     shadowRadius: 10,
+//     shadowOffset: {width: 0, height: 8},
+//     elevation: 8,
+//   },
+//   menuTitle: {
+//     color: 'rgba(255,255,255,0.7)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//   },
+//   menuItem: {
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//   },
+//   menuItemText: {
+//     color: '#fff',
+//     fontWeight: '700',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+///////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+// import messaging from '@react-native-firebase/messaging';
+// import PushNotification from 'react-native-push-notification';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+//   const [menuOpen, setMenuOpen] = useState(false);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+//   const [prefsLoaded, setPrefsLoaded] = useState(false); // gate init
+
+//   // === OPEN FROM NOTIFICATION -> open Reader ===
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const openFromNotification = (data: any) => {
+//     if (!data) return;
+//     if (data.type === 'article' && data.url) {
+//       setTab('For You');
+//       setOpenUrl(data.url);
+//       setOpenTitle(data.title || data.source || '');
+//     }
+//     if (data.type === 'test') {
+//       setTab('For You');
+//     }
+//   };
+
+//   // Listeners to handle push taps / foreground messages
+//   useEffect(() => {
+//     // App in background → user taps the push
+//     const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+//       if (msg?.data) openFromNotification(msg.data);
+//     });
+
+//     // App was quit → opened from a push
+//     messaging()
+//       .getInitialNotification()
+//       .then(msg => {
+//         if (msg?.data) openFromNotification(msg.data);
+//       });
+
+//     // App in foreground → play chime via local notification (+ optional prompt)
+//     const unsubForeground = messaging().onMessage(async msg => {
+//       const d = msg?.data || {};
+
+//       // Make a local notification so iOS/Android will play a sound in-foreground
+//       try {
+//         PushNotification.localNotification({
+//           channelId: 'style-channel', // must match created channel
+//           title: msg.notification?.title ?? d.source ?? 'Fashion Feed',
+//           message: msg.notification?.body ?? d.title ?? 'New article',
+//           playSound: true,
+//           soundName: 'default',
+//           userInfo: d, // if you later handle taps via PushNotification.configure
+//         });
+//       } catch (e) {
+//         console.log('⚠️ localNotification error', e);
+//       }
+
+//       // Optional: keep the in-app prompt so users can open immediately
+//       if (d?.type === 'article' && d?.url) {
+//         Alert.alert(
+//           msg.notification?.title ?? 'Fashion Feed',
+//           msg.notification?.body ?? 'New article',
+//           [
+//             {text: 'Later', style: 'cancel'},
+//             {text: 'Read now', onPress: () => openFromNotification(d)},
+//           ],
+//         );
+//       }
+//     });
+
+//     return () => {
+//       unsubOpened();
+//       unsubForeground();
+//     };
+//   }, []);
+
+//   // Register once, only after prefs loaded and push is ON
+//   useEffect(() => {
+//     (async () => {
+//       if (!userId || !prefsLoaded) return;
+//       await AsyncStorage.setItem(
+//         'notificationsEnabled',
+//         pushEnabled ? 'true' : 'false',
+//       );
+//       if (pushEnabled) {
+//         await initializeNotifications(userId); // requests perms, gets token, registers
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         console.log('🔕 Push disabled locally');
+//       }
+//     })();
+//   }, [userId, prefsLoaded, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       } finally {
+//         setPrefsLoaded(true); // allow init effect to run
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   // === Send a REAL article push for testing (kept for dev) ===
+//   const sendTestPush = async () => {
+//     try {
+//       const candidate = hero || list?.[0];
+//       const data = {
+//         type: 'article',
+//         article_id: String(candidate?.id ?? Date.now()),
+//         url: candidate?.link ?? 'https://www.vogue.com/',
+//         title: candidate?.title ?? 'Fashion test article',
+//         source: candidate?.source ?? 'Fashion Feed',
+//       };
+
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title: data.source,
+//           body: data.title,
+//           data,
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fashion News</Text>
+//         </View>
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setMenuOpen(true)}
+//             style={styles.iconBtn}
+//             accessibilityLabel="Manage">
+//             <Text style={styles.iconBtnText}>⋯</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Visible
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       <Modal
+//         visible={menuOpen}
+//         transparent
+//         animationType="fade"
+//         onRequestClose={() => setMenuOpen(false)}>
+//         <TouchableOpacity
+//           style={styles.menuBackdrop}
+//           activeOpacity={1}
+//           onPress={() => setMenuOpen(false)}>
+//           <View style={styles.menuSheet}>
+//             <Text style={styles.menuTitle}>Manage</Text>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setNotifOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Notifications</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageBrandsOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Brands</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Feeds</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </TouchableOpacity>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 // init handled by effect after prefsLoaded
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   iconBtn: {
+//     marginLeft: 8,
+//     width: 36,
+//     height: 36,
+//     borderRadius: 10,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   iconBtnText: {
+//     color: '#fff',
+//     fontWeight: '900',
+//     fontSize: 20,
+//     lineHeight: 20,
+//     marginTop: -2,
+//   },
+
+//   menuBackdrop: {
+//     flex: 1,
+//     backgroundColor: 'rgba(0,0,0,0.4)',
+//     justifyContent: 'flex-start',
+//     alignItems: 'flex-end',
+//   },
+//   menuSheet: {
+//     marginTop: 60,
+//     marginRight: 12,
+//     width: 200,
+//     backgroundColor: '#111',
+//     borderRadius: 12,
+//     paddingVertical: 8,
+//     borderWidth: StyleSheet.hairlineWidth,
+//     borderColor: 'rgba(255,255,255,0.12)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.35,
+//     shadowRadius: 10,
+//     shadowOffset: {width: 0, height: 8},
+//     elevation: 8,
+//   },
+//   menuTitle: {
+//     color: 'rgba(255,255,255,0.7)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//   },
+//   menuItem: {
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//   },
+//   menuItemText: {
+//     color: '#fff',
+//     fontWeight: '700',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+///////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+//   Pressable,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+// import messaging from '@react-native-firebase/messaging';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+//   const [menuOpen, setMenuOpen] = useState(false);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+//   const [prefsLoaded, setPrefsLoaded] = useState(false); // gate init
+
+//   // === OPEN FROM NOTIFICATION -> open Reader ===
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const openFromNotification = (data: any) => {
+//     if (!data) return;
+//     if (data.type === 'article' && data.url) {
+//       setTab('For You');
+//       setOpenUrl(data.url);
+//       setOpenTitle(data.title || data.source || '');
+//     }
+//     if (data.type === 'test') {
+//       setTab('For You');
+//     }
+//   };
+
+//   // Listeners to handle push taps / foreground messages
+//   useEffect(() => {
+//     // App in background → user taps the push
+//     const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+//       if (msg?.data) openFromNotification(msg.data);
+//     });
+
+//     // App was quit → opened from a push
+//     messaging()
+//       .getInitialNotification()
+//       .then(msg => {
+//         if (msg?.data) openFromNotification(msg.data);
+//       });
+
+//     // App in foreground → quick prompt
+//     const unsubForeground = messaging().onMessage(async msg => {
+//       const d = msg?.data;
+//       if (d?.type === 'article' && d?.url) {
+//         Alert.alert(
+//           msg.notification?.title ?? 'Fashion Feed',
+//           msg.notification?.body ?? 'New article',
+//           [
+//             {text: 'Later', style: 'cancel'},
+//             {text: 'Read now', onPress: () => openFromNotification(d)},
+//           ],
+//         );
+//       }
+//     });
+
+//     return () => {
+//       unsubOpened();
+//       unsubForeground();
+//     };
+//   }, []);
+
+//   // Register once, only after prefs loaded and push is ON
+//   useEffect(() => {
+//     (async () => {
+//       if (!userId || !prefsLoaded) return;
+//       await AsyncStorage.setItem(
+//         'notificationsEnabled',
+//         pushEnabled ? 'true' : 'false',
+//       );
+//       if (pushEnabled) {
+//         await initializeNotifications(userId); // requests perms, gets token, registers
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         console.log('🔕 Push disabled locally');
+//       }
+//     })();
+//   }, [userId, prefsLoaded, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       } finally {
+//         setPrefsLoaded(true); // allow init effect to run
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   // === Send a REAL article push for testing ===
+//   const sendTestPush = async () => {
+//     try {
+//       const candidate = hero || list?.[0];
+//       const data = {
+//         type: 'article',
+//         article_id: String(candidate?.id ?? Date.now()),
+//         url: candidate?.link ?? 'https://www.vogue.com/',
+//         title: candidate?.title ?? 'Fashion test article',
+//         source: candidate?.source ?? 'Fashion Feed',
+//       };
+
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title: data.source,
+//           body: data.title,
+//           data,
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fahion News</Text>
+//         </View>
+
+//         {/* <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View> */}
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setMenuOpen(true)}
+//             style={styles.iconBtn}
+//             accessibilityLabel="Manage">
+//             <Text style={styles.iconBtnText}>⋯</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       <Modal
+//         visible={menuOpen}
+//         transparent
+//         animationType="fade"
+//         onRequestClose={() => setMenuOpen(false)}>
+//         <TouchableOpacity
+//           style={styles.menuBackdrop}
+//           activeOpacity={1}
+//           onPress={() => setMenuOpen(false)}>
+//           <View style={styles.menuSheet}>
+//             <Text style={styles.menuTitle}>Manage</Text>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setNotifOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Notifications</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageBrandsOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Brands</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Feeds</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </TouchableOpacity>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 // init handled by effect after prefsLoaded
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+//             {/*
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity> */}
+
+//             {/* {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )} */}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   iconBtn: {
+//     marginLeft: 8,
+//     width: 36,
+//     height: 36,
+//     borderRadius: 10,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   iconBtnText: {
+//     color: '#fff',
+//     fontWeight: '900',
+//     fontSize: 20,
+//     lineHeight: 20,
+//     marginTop: -2,
+//   },
+
+//   menuBackdrop: {
+//     flex: 1,
+//     backgroundColor: 'rgba(0,0,0,0.4)',
+//     justifyContent: 'flex-start',
+//     alignItems: 'flex-end',
+//   },
+//   menuSheet: {
+//     marginTop: 60,
+//     marginRight: 12,
+//     width: 200,
+//     backgroundColor: '#111',
+//     borderRadius: 12,
+//     paddingVertical: 8,
+//     borderWidth: StyleSheet.hairlineWidth,
+//     borderColor: 'rgba(255,255,255,0.12)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.35,
+//     shadowRadius: 10,
+//     shadowOffset: {width: 0, height: 8},
+//     elevation: 8,
+//   },
+//   menuTitle: {
+//     color: 'rgba(255,255,255,0.7)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//   },
+//   menuItem: {
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//   },
+//   menuItemText: {
+//     color: '#fff',
+//     fontWeight: '700',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+/////////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+//   Pressable,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+// import messaging from '@react-native-firebase/messaging';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+//   const [menuOpen, setMenuOpen] = useState(false);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+//   const [prefsLoaded, setPrefsLoaded] = useState(false); // gate init
+
+//   // === OPEN FROM NOTIFICATION -> open Reader ===
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const openFromNotification = (data: any) => {
+//     if (!data) return;
+//     if (data.type === 'article' && data.url) {
+//       setTab('For You');
+//       setOpenUrl(data.url);
+//       setOpenTitle(data.title || data.source || '');
+//     }
+//     if (data.type === 'test') {
+//       setTab('For You');
+//     }
+//   };
+
+//   // Listeners to handle push taps / foreground messages
+//   useEffect(() => {
+//     // App in background → user taps the push
+//     const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+//       if (msg?.data) openFromNotification(msg.data);
+//     });
+
+//     // App was quit → opened from a push
+//     messaging()
+//       .getInitialNotification()
+//       .then(msg => {
+//         if (msg?.data) openFromNotification(msg.data);
+//       });
+
+//     // App in foreground → quick prompt
+//     const unsubForeground = messaging().onMessage(async msg => {
+//       const d = msg?.data;
+//       if (d?.type === 'article' && d?.url) {
+//         Alert.alert(
+//           msg.notification?.title ?? 'Fashion Feed',
+//           msg.notification?.body ?? 'New article',
+//           [
+//             {text: 'Later', style: 'cancel'},
+//             {text: 'Read now', onPress: () => openFromNotification(d)},
+//           ],
+//         );
+//       }
+//     });
+
+//     return () => {
+//       unsubOpened();
+//       unsubForeground();
+//     };
+//   }, []);
+
+//   // Register once, only after prefs loaded and push is ON
+//   useEffect(() => {
+//     (async () => {
+//       if (!userId || !prefsLoaded) return;
+//       await AsyncStorage.setItem(
+//         'notificationsEnabled',
+//         pushEnabled ? 'true' : 'false',
+//       );
+//       if (pushEnabled) {
+//         await initializeNotifications(userId); // requests perms, gets token, registers
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         console.log('🔕 Push disabled locally');
+//       }
+//     })();
+//   }, [userId, prefsLoaded, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       } finally {
+//         setPrefsLoaded(true); // allow init effect to run
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   // === Send a REAL article push for testing ===
+//   const sendTestPush = async () => {
+//     try {
+//       const candidate = hero || list?.[0];
+//       const data = {
+//         type: 'article',
+//         article_id: String(candidate?.id ?? Date.now()),
+//         url: candidate?.link ?? 'https://www.vogue.com/',
+//         title: candidate?.title ?? 'Fashion test article',
+//         source: candidate?.source ?? 'Fashion Feed',
+//       };
+
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title: data.source,
+//           body: data.title,
+//           data,
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fahion News</Text>
+//         </View>
+
+//         {/* <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View> */}
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setMenuOpen(true)}
+//             style={styles.iconBtn}
+//             accessibilityLabel="Manage">
+//             <Text style={styles.iconBtnText}>⋯</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       <Modal
+//         visible={menuOpen}
+//         transparent
+//         animationType="fade"
+//         onRequestClose={() => setMenuOpen(false)}>
+//         <TouchableOpacity
+//           style={styles.menuBackdrop}
+//           activeOpacity={1}
+//           onPress={() => setMenuOpen(false)}>
+//           <View style={styles.menuSheet}>
+//             <Text style={styles.menuTitle}>Manage</Text>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setNotifOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Notifications</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageBrandsOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Brands</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={styles.menuItem}
+//               onPress={() => {
+//                 setMenuOpen(false);
+//                 setManageOpen(true);
+//               }}>
+//               <Text style={styles.menuItemText}>Feeds</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </TouchableOpacity>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 // init handled by effect after prefsLoaded
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+//             {/*
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity> */}
+
+//             {/* {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )} */}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   iconBtn: {
+//     marginLeft: 8,
+//     width: 36,
+//     height: 36,
+//     borderRadius: 10,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   iconBtnText: {
+//     color: '#fff',
+//     fontWeight: '900',
+//     fontSize: 20,
+//     lineHeight: 20,
+//     marginTop: -2,
+//   },
+
+//   menuBackdrop: {
+//     flex: 1,
+//     backgroundColor: 'rgba(0,0,0,0.4)',
+//     justifyContent: 'flex-start',
+//     alignItems: 'flex-end',
+//   },
+//   menuSheet: {
+//     marginTop: 60,
+//     marginRight: 12,
+//     width: 200,
+//     backgroundColor: '#111',
+//     borderRadius: 12,
+//     paddingVertical: 8,
+//     borderWidth: StyleSheet.hairlineWidth,
+//     borderColor: 'rgba(255,255,255,0.12)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.35,
+//     shadowRadius: 10,
+//     shadowOffset: {width: 0, height: 8},
+//     elevation: 8,
+//   },
+//   menuTitle: {
+//     color: 'rgba(255,255,255,0.7)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//   },
+//   menuItem: {
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//   },
+//   menuItemText: {
+//     color: '#fff',
+//     fontWeight: '700',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+//////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+// import messaging from '@react-native-firebase/messaging';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+
+//   // === OPEN FROM NOTIFICATION -> open Reader ===
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const openFromNotification = (data: any) => {
+//     if (!data) return;
+//     if (data.type === 'article' && data.url) {
+//       setTab('For You');
+//       setOpenUrl(data.url);
+//       setOpenTitle(data.title || data.source || '');
+//     }
+//     if (data.type === 'test') {
+//       setTab('For You');
+//     }
+//   };
+
+//   // Listeners to handle push taps / foreground messages
+//   useEffect(() => {
+//     // App in background → user taps the push
+//     const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+//       if (msg?.data) openFromNotification(msg.data);
+//     });
+
+//     // App was quit → opened from a push
+//     messaging()
+//       .getInitialNotification()
+//       .then(msg => {
+//         if (msg?.data) openFromNotification(msg.data);
+//       });
+
+//     // App in foreground → quick prompt
+//     const unsubForeground = messaging().onMessage(async msg => {
+//       const d = msg?.data;
+//       if (d?.type === 'article' && d?.url) {
+//         Alert.alert(
+//           msg.notification?.title ?? 'Fashion Feed',
+//           msg.notification?.body ?? 'New article',
+//           [
+//             {text: 'Later', style: 'cancel'},
+//             {text: 'Read now', onPress: () => openFromNotification(d)},
+//           ],
+//         );
+//       }
+//     });
+
+//     return () => {
+//       unsubOpened();
+//       unsubForeground();
+//     };
+//   }, []);
+
+//   // ✅ Ensure local flag + device registration actually happen
+//   const ensureRegisteredIfEnabled = async () => {
+//     if (!userId) return;
+//     try {
+//       if (pushEnabled) {
+//         await AsyncStorage.setItem('notificationsEnabled', 'true');
+//         await initializeNotifications(userId); // requests perms, gets FCM token, registers to backend
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         await AsyncStorage.setItem('notificationsEnabled', 'false');
+//         console.log('🔕 Push disabled locally');
+//       }
+//     } catch (e) {
+//       console.log('⚠️ init notifications failed', e);
+//     }
+//   };
+
+//   // When userId appears OR pushEnabled changes, keep local flag + registration in sync
+//   useEffect(() => {
+//     ensureRegisteredIfEnabled();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [userId, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           // mirror to AsyncStorage so initializeNotifications won't bail
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   // === Send a REAL article push for testing ===
+//   const sendTestPush = async () => {
+//     try {
+//       const candidate = hero || list?.[0];
+//       const data = {
+//         type: 'article',
+//         article_id: String(candidate?.id ?? Date.now()),
+//         url: candidate?.link ?? 'https://www.vogue.com/',
+//         title: candidate?.title ?? 'Fashion test article',
+//         source: candidate?.source ?? 'Fashion Feed',
+//       };
+
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title: data.source,
+//           body: data.title,
+//           data, // IMPORTANT
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fahion News</Text>
+//         </View>
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 if (v) {
+//                   // re-run init so we register the token right away
+//                   initializeNotifications(userId);
+//                 }
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+
+//             {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+//////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+// import messaging from '@react-native-firebase/messaging';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+
+//   // ADD inside ExploreScreen component
+//   useEffect(() => {
+//     // App in background → user taps the push
+//     const unsubOpened = messaging().onNotificationOpenedApp(msg => {
+//       if (msg?.data) openFromNotification(msg.data);
+//     });
+
+//     // App was quit → opened from a push
+//     messaging()
+//       .getInitialNotification()
+//       .then(msg => {
+//         if (msg?.data) openFromNotification(msg.data);
+//       });
+
+//     // App in foreground → show quick prompt (iOS shows no banner)
+//     const unsubForeground = messaging().onMessage(async msg => {
+//       const d = msg?.data;
+//       if (d?.type === 'article' && d?.url) {
+//         Alert.alert(
+//           msg.notification?.title ?? 'Fashion Feed',
+//           msg.notification?.body ?? 'New article',
+//           [
+//             {text: 'Later', style: 'cancel'},
+//             {text: 'Read now', onPress: () => openFromNotification(d)},
+//           ],
+//         );
+//       }
+//     });
+
+//     return () => {
+//       unsubOpened();
+//       unsubForeground();
+//     };
+//   }, []);
+
+//   // ✅ Ensure local flag + device registration actually happen
+//   const ensureRegisteredIfEnabled = async () => {
+//     if (!userId) return;
+//     try {
+//       if (pushEnabled) {
+//         await AsyncStorage.setItem('notificationsEnabled', 'true');
+//         await initializeNotifications(userId); // requests perms, gets FCM token, registers to backend
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         await AsyncStorage.setItem('notificationsEnabled', 'false');
+//         console.log('🔕 Push disabled locally');
+//       }
+//     } catch (e) {
+//       console.log('⚠️ init notifications failed', e);
+//     }
+//   };
+
+//   // When userId appears OR pushEnabled changes, keep local flag + registration in sync
+//   useEffect(() => {
+//     ensureRegisteredIfEnabled();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [userId, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           // mirror to AsyncStorage so initializeNotifications won't bail
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   const sendTestPush = async () => {
+//     try {
+//       const title = 'Fashion Feed';
+//       const body = 'Test push — you are set up!';
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title,
+//           body,
+//           data: {type: 'test', screen: 'Explore'},
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   // ADD inside ExploreScreen component (top-level, before return)
+//   const openFromNotification = (data: any) => {
+//     if (!data) return;
+//     // server should send: { type:'article', url, title, source, ... }
+//     if (data.type === 'article' && data.url) {
+//       setTab('For You');
+//       setOpenUrl(data.url);
+//       setOpenTitle(data.title || data.source || '');
+//     }
+//     // your existing /test payload uses { type:'test' }
+//     if (data.type === 'test') {
+//       setTab('For You');
+//     }
+//   };
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fahion News</Text>
+//         </View>
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 if (v) {
+//                   // re-run init so we register the token right away
+//                   initializeNotifications(userId);
+//                 }
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+
+//             {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+////////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useAppTheme} from '../context/ThemeContext';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+
+//   // ✅ Ensure local flag + device registration actually happen
+//   const ensureRegisteredIfEnabled = async () => {
+//     if (!userId) return;
+//     try {
+//       if (pushEnabled) {
+//         await AsyncStorage.setItem('notificationsEnabled', 'true');
+//         await initializeNotifications(userId); // requests perms, gets FCM token, registers to backend
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         await AsyncStorage.setItem('notificationsEnabled', 'false');
+//         console.log('🔕 Push disabled locally');
+//       }
+//     } catch (e) {
+//       console.log('⚠️ init notifications failed', e);
+//     }
+//   };
+
+//   // When userId appears OR pushEnabled changes, keep local flag + registration in sync
+//   useEffect(() => {
+//     ensureRegisteredIfEnabled();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [userId, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           // mirror to AsyncStorage so initializeNotifications won't bail
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   const sendTestPush = async () => {
+//     try {
+//       const title = 'Fashion Feed';
+//       const body = 'Test push — you are set up!';
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title,
+//           body,
+//           data: {type: 'test', screen: 'Explore'},
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   return (
+//     <View>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={globalStyles.sectionTitle}>
+//           <Text style={globalStyles.header}>Fahion News</Text>
+//         </View>
+
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         <View style={[{paddingHorizontal: 16}]}>
+//           {list.map(item => (
+//             <ArticleCard
+//               key={item.id}
+//               title={item.title}
+//               source={item.source}
+//               image={item.image}
+//               time={
+//                 item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//               }
+//               onPress={() => {
+//                 setOpenUrl(item.link);
+//                 setOpenTitle(item.title);
+//               }}
+//             />
+//           ))}
+//         </View>
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 11,
+//                         marginBottom: 2,
+//                       }}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 );
+//                 savePrefs({push_enabled: v});
+//                 if (v) {
+//                   // re-run init so we register the token right away
+//                   initializeNotifications(userId);
+//                 }
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+
+//             {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+//////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+
+//   // ✅ Ensure local flag + device registration actually happen
+//   const ensureRegisteredIfEnabled = async () => {
+//     if (!userId) return;
+//     try {
+//       if (pushEnabled) {
+//         await AsyncStorage.setItem('notificationsEnabled', 'true');
+//         await initializeNotifications(userId); // requests perms, gets FCM token, registers to backend
+//         console.log('✅ Push initialized & token registration attempted');
+//       } else {
+//         await AsyncStorage.setItem('notificationsEnabled', 'false');
+//         console.log('🔕 Push disabled locally');
+//       }
+//     } catch (e) {
+//       console.log('⚠️ init notifications failed', e);
+//     }
+//   };
+
+//   // When userId appears OR pushEnabled changes, keep local flag + registration in sync
+//   useEffect(() => {
+//     ensureRegisteredIfEnabled();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [userId, pushEnabled]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences (and mirror the local flag so initialize can run)
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           const pe = json.push_enabled ?? true;
+//           setPushEnabled(pe);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+
+//           // mirror to AsyncStorage so initializeNotifications won't bail
+//           await AsyncStorage.setItem(
+//             'notificationsEnabled',
+//             pe ? 'true' : 'false',
+//           );
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   const sendTestPush = async () => {
+//     try {
+//       const title = 'Fashion Feed';
+//       const body = 'Test push — you are set up!';
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title,
+//           body,
+//           data: {type: 'test', screen: 'Explore'},
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   return (
+//     <View style={styles.container}>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         {list.map(item => (
+//           <ArticleCard
+//             key={item.id}
+//             title={item.title}
+//             source={item.source}
+//             image={item.image}
+//             time={
+//               item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//             }
+//             onPress={() => {
+//               setOpenUrl(item.link);
+//               setOpenTitle(item.title);
+//             }}
+//           />
+//         ))}
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{color: '#fff', fontSize: 11, marginBottom: 2}}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{color: '#fff', fontSize: 11, marginBottom: 2}}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={async v => {
+//                 setPushEnabled(v);
+//                 await AsyncStorage.setItem(
+//                   'notificationsEnabled',
+//                   v ? 'true' : 'false',
+//                 ); // keep local gate in sync
+//                 savePrefs({push_enabled: v});
+//                 if (v) {
+//                   await ensureRegisteredIfEnabled(); // triggers FCM token + backend register
+//                   Alert.alert('Push Enabled', 'Device registered for push.');
+//                 }
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+
+//             {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+/////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+//   Alert,
+//   Platform,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {initializeNotifications} from '../utils/notificationService';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   // ───────── Tabs control which feeds we pull ─────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+//     {userId},
+//   );
+
+//   // ───────── Notifications: follows + preferences ─────────
+//   const [notifOpen, setNotifOpen] = useState(false);
+//   const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
+//   const [pushEnabled, setPushEnabled] = useState(true);
+//   const [followingRealtime, setFollowingRealtime] = useState(false);
+//   const [brandsRealtime, setBrandsRealtime] = useState(false);
+//   const [breakingRealtime, setBreakingRealtime] = useState(true);
+//   const [digestHour, setDigestHour] = useState<number>(8);
+
+//   useEffect(() => {
+//     if (userId) {
+//       initializeNotifications(userId);
+//     }
+//   }, [userId]);
+
+//   // Load follows
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         );
+//         const json = await res.json();
+//         const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
+//         setFollowingSet(new Set(list.map(s => s.toLowerCase())));
+//       } catch (e) {
+//         console.log('⚠️ load follows failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Load preferences
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
+//             userId,
+//           )}`,
+//         ).catch(() => null);
+
+//         const json =
+//           (await res?.json().catch(() => null)) ??
+//           (await (
+//             await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//               method: 'POST',
+//               headers: {'Content-Type': 'application/json'},
+//               body: JSON.stringify({user_id: userId}),
+//             })
+//           ).json());
+
+//         if (json) {
+//           setPushEnabled(json.push_enabled ?? true);
+//           setFollowingRealtime(json.following_realtime ?? false);
+//           setBrandsRealtime(json.brands_realtime ?? false);
+//           setBreakingRealtime(json.breaking_realtime ?? true);
+//           setDigestHour(Number(json.digest_hour ?? 8));
+//         }
+//       } catch (e) {
+//         console.log('⚠️ load prefs failed', e);
+//       }
+//     })();
+//   }, [userId]);
+
+//   const savePrefs = async (
+//     overrides?: Partial<{
+//       push_enabled: boolean;
+//       following_realtime: boolean;
+//       brands_realtime: boolean;
+//       breaking_realtime: boolean;
+//       digest_hour: number;
+//     }>,
+//   ) => {
+//     try {
+//       const payload = {
+//         user_id: userId,
+//         push_enabled: pushEnabled,
+//         following_realtime: followingRealtime,
+//         brands_realtime: brandsRealtime,
+//         breaking_realtime: breakingRealtime,
+//         digest_hour: digestHour,
+//         ...(overrides ?? {}),
+//       };
+//       await fetch(`${API_BASE_URL}/notifications/preferences`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify(payload),
+//       });
+//     } catch (e) {
+//       console.log('⚠️ save prefs failed', e);
+//     }
+//   };
+
+//   const followSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => new Set([...prev, key])); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/follow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => {
+//         const copy = new Set(prev);
+//         copy.delete(key);
+//         return copy;
+//       });
+//     }
+//   };
+
+//   const unfollowSource = async (name: string) => {
+//     const key = name.toLowerCase();
+//     setFollowingSet(prev => {
+//       const copy = new Set(prev);
+//       copy.delete(key);
+//       return copy;
+//     }); // optimistic
+//     try {
+//       await fetch(`${API_BASE_URL}/notifications/unfollow`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({user_id: userId, source: name}),
+//       });
+//     } catch (e) {
+//       // revert on error
+//       setFollowingSet(prev => new Set([...prev, key]));
+//     }
+//   };
+
+//   const sendTestPush = async () => {
+//     try {
+//       const title = 'Fashion Feed';
+//       const body = 'Test push — you are set up!';
+//       const res = await fetch(`${API_BASE_URL}/notifications/test`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           user_id: userId,
+//           title,
+//           body,
+//           data: {type: 'test', screen: 'Explore'},
+//         }),
+//       });
+//       const json = await res.json();
+//       Alert.alert(
+//         'Push sent',
+//         `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+//       );
+//     } catch (e) {
+//       Alert.alert('Push failed', String(e));
+//     }
+//   };
+
+//   // ───────── Personal chips ─────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ───────── Trending chips ─────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ───────── Context chips ─────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     setWeather('hot'); // placeholder; swap with real weather call
+//   }, []);
+
+//   // ───────── Combine chips ─────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(es => ({
+//       id: 'src-' + es.name.toLowerCase(),
+//       label: es.name,
+//       type: 'source',
+//       filter: {sources: [es.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ───────── HERO + LIST BY TAB ─────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             src => src.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   return (
+//     <View style={styles.container}>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setNotifOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Notifications</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={[styles.manageBtn, {marginLeft: 8}]}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         {list.map(item => (
+//           <ArticleCard
+//             key={item.id}
+//             title={item.title}
+//             source={item.source}
+//             image={item.image}
+//             time={
+//               item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//             }
+//             onPress={() => {
+//               setOpenUrl(item.link);
+//               setOpenTitle(item.title);
+//             }}
+//           />
+//         ))}
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((src: FeedSource) => {
+//               const notifyOn = followingSet.has(src.name.toLowerCase());
+//               return (
+//                 <View key={src.id} style={styles.sourceRow}>
+//                   <View style={{flex: 1}}>
+//                     <TextInput
+//                       defaultValue={src.name}
+//                       placeholder="Name"
+//                       placeholderTextColor="rgba(255,255,255,0.4)"
+//                       onEndEditing={e =>
+//                         renameSource(src.id, e.nativeEvent.text)
+//                       }
+//                       style={styles.sourceName}
+//                     />
+//                     <Text style={styles.sourceUrl} numberOfLines={1}>
+//                       {src.url}
+//                     </Text>
+//                   </View>
+
+//                   {/* Read toggle (in-app feed) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{color: '#fff', fontSize: 11, marginBottom: 2}}>
+//                       Read
+//                     </Text>
+//                     <Switch
+//                       value={!!src.enabled}
+//                       onValueChange={v => toggleSource(src.id, v)}
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   {/* Notify toggle (push) */}
+//                   <View style={{alignItems: 'center', marginRight: 10}}>
+//                     <Text
+//                       style={{color: '#fff', fontSize: 11, marginBottom: 2}}>
+//                       Notify
+//                     </Text>
+//                     <Switch
+//                       value={notifyOn}
+//                       onValueChange={v =>
+//                         v ? followSource(src.name) : unfollowSource(src.name)
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+
+//                   <TouchableOpacity
+//                     onPress={() => removeSource(src.id)}
+//                     style={styles.removeBtn}>
+//                     <Text style={styles.removeText}>Remove</Text>
+//                   </TouchableOpacity>
+//                 </View>
+//               );
+//             })}
+
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Notifications prefs modal */}
+//       <Modal
+//         visible={notifOpen}
+//         animationType="slide"
+//         onRequestClose={() => setNotifOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Notifications</Text>
+//             <TouchableOpacity onPress={() => setNotifOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           <ScrollView contentContainerStyle={{padding: 16, gap: 14}}>
+//             <RowToggle
+//               label="Enable Push"
+//               value={pushEnabled}
+//               onChange={v => {
+//                 setPushEnabled(v);
+//                 savePrefs({push_enabled: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Following"
+//               value={followingRealtime}
+//               onChange={v => {
+//                 setFollowingRealtime(v);
+//                 savePrefs({following_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Realtime for Brands (For You)"
+//               value={brandsRealtime}
+//               onChange={v => {
+//                 setBrandsRealtime(v);
+//                 savePrefs({brands_realtime: v});
+//               }}
+//             />
+//             <RowToggle
+//               label="Breaking Fashion News"
+//               value={breakingRealtime}
+//               onChange={v => {
+//                 setBreakingRealtime(v);
+//                 savePrefs({breaking_realtime: v});
+//               }}
+//             />
+
+//             <View style={{gap: 6}}>
+//               <Text style={{color: '#fff', fontWeight: '700'}}>
+//                 Daily Digest Hour (0–23)
+//               </Text>
+//               <TextInput
+//                 value={String(digestHour)}
+//                 onChangeText={txt => {
+//                   const n = Math.max(0, Math.min(23, Number(txt) || 0));
+//                   setDigestHour(n);
+//                 }}
+//                 onEndEditing={() => savePrefs({digest_hour: digestHour})}
+//                 keyboardType="number-pad"
+//                 placeholder="8"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//             </View>
+
+//             <TouchableOpacity onPress={sendTestPush} style={styles.addBtn}>
+//               <Text style={styles.addBtnText}>Send Test Push</Text>
+//             </TouchableOpacity>
+
+//             {Platform.OS === 'ios' && (
+//               <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//                 Tip: Make sure notifications are allowed for this app in iOS
+//                 Settings.
+//               </Text>
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// function RowToggle({
+//   label,
+//   value,
+//   onChange,
+// }: {
+//   label: string;
+//   value: boolean;
+//   onChange: (v: boolean) => void;
+// }) {
+//   return (
+//     <View style={styles.rowToggle}>
+//       <Text style={styles.rowToggleLabel}>{label}</Text>
+//       <Switch
+//         value={value}
+//         onValueChange={onChange}
+//         trackColor={{false: 'rgba(255,255,255,0.18)', true: '#0A84FF'}}
+//         thumbColor="#fff"
+//       />
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+//   rowToggle: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     paddingHorizontal: 12,
+//     paddingVertical: 12,
+//     borderRadius: 10,
+//   },
+//   rowToggleLabel: {color: '#fff', fontSize: 14, fontWeight: '700'},
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 280,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+//////////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   // ──────────────── TABS (drives which feeds we pull + how we render) ────────────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(s => ({name: s.name, url: s.url})),
+//     {userId},
+//   );
+
+//   // ──────────────── PERSONAL CHIPS ────────────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ──────────────── TRENDING CHIPS ────────────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ──────────────── CONTEXT CHIPS ────────────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     // TODO: Replace with real weather API call
+//     setWeather('hot');
+//   }, []);
+
+//   // ──────────────── COMBINE CHIPS ────────────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       .filter(b => chipAllowlist[b] !== false) // default ON unless explicitly false
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(s => ({
+//       id: 'src-' + s.name.toLowerCase(),
+//       label: s.name,
+//       type: 'source',
+//       filter: {sources: [s.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection (store the label so TrendChips can highlight it)
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ──────────────── HERO + LIST BY TAB ────────────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             s => s.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   // final list that renders under the hero
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   return (
+//     <View style={styles.container}>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginRight: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={styles.manageBtn}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         {list.map(item => (
+//           <ArticleCard
+//             key={item.id}
+//             title={item.title}
+//             source={item.source}
+//             image={item.image}
+//             time={
+//               item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//             }
+//             onPress={() => {
+//               setOpenUrl(item.link);
+//               setOpenTitle(item.title);
+//             }}
+//           />
+//         ))}
+
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((s: FeedSource) => (
+//               <View key={s.id} style={styles.sourceRow}>
+//                 <View style={{flex: 1}}>
+//                   <TextInput
+//                     defaultValue={s.name}
+//                     placeholder="Name"
+//                     placeholderTextColor="rgba(255,255,255,0.4)"
+//                     onEndEditing={e => renameSource(s.id, e.nativeEvent.text)}
+//                     style={styles.sourceName}
+//                   />
+//                   <Text style={styles.sourceUrl} numberOfLines={1}>
+//                     {s.url}
+//                   </Text>
+//                 </View>
+//                 <Switch
+//                   value={!!s.enabled}
+//                   onValueChange={async v => {
+//                     // local state toggle
+//                     toggleSource(s.id, v);
+
+//                     // persist follow state
+//                     try {
+//                       await fetch(`${API_BASE_URL}/follows/toggle`, {
+//                         method: 'POST',
+//                         headers: {'Content-Type': 'application/json'},
+//                         body: JSON.stringify({
+//                           user_id: userId,
+//                           kind: 'source',
+//                           value: s.name,
+//                           enabled: v,
+//                         }),
+//                       });
+
+//                       // if enabling a follow, make sure realtime "Following" notifs are on
+//                       if (v) {
+//                         await fetch(
+//                           `${API_BASE_URL}/notifications/preferences`,
+//                           {
+//                             method: 'POST',
+//                             headers: {'Content-Type': 'application/json'},
+//                             body: JSON.stringify({
+//                               user_id: userId,
+//                               push_enabled: true,
+//                               following_realtime: true,
+//                             }),
+//                           },
+//                         );
+//                       }
+//                     } catch (err) {
+//                       console.warn('Failed to persist follow toggle', err);
+//                     }
+//                   }}
+//                   trackColor={{
+//                     false: 'rgba(255,255,255,0.18)',
+//                     true: '#0A84FF',
+//                   }}
+//                   thumbColor="#fff"
+//                 />
+//                 <TouchableOpacity
+//                   onPress={() => removeSource(s.id)}
+//                   style={styles.removeBtn}>
+//                   <Text style={styles.removeText}>Remove</Text>
+//                 </TouchableOpacity>
+//               </View>
+//             ))}
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   // default ON unless explicitly set to false
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 240,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+////////////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   // ──────────────── TABS (drives which feeds we pull + how we render) ────────────────
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const feedsForTab = tab === 'Following' ? enabled : sources;
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     feedsForTab.map(s => ({name: s.name, url: s.url})),
+//     {userId},
+//   );
+
+//   // ──────────────── PERSONAL CHIPS ────────────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ──────────────── TRENDING CHIPS ────────────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ──────────────── CONTEXT CHIPS ────────────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     // TODO: Replace with real weather API call
+//     setWeather('hot');
+//   }, []);
+
+//   // ──────────────── COMBINE CHIPS ────────────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       // default ON unless explicitly false in allowlist
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(s => ({
+//       id: 'src-' + s.name.toLowerCase(),
+//       label: s.name,
+//       type: 'source',
+//       filter: {sources: [s.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection (store the label so TrendChips can highlight it)
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   // ──────────────── HERO + LIST BY TAB ────────────────
+//   const articlesChrono = useMemo(
+//     () =>
+//       [...articles].sort(
+//         (a, b) =>
+//           (dayjs(b.publishedAt).valueOf() || 0) -
+//           (dayjs(a.publishedAt).valueOf() || 0),
+//       ),
+//     [articles],
+//   );
+
+//   const hero = tab === 'Following' ? articlesChrono[0] : articles[0];
+
+//   const restBase = useMemo(() => {
+//     if (tab === 'Following') {
+//       return articlesChrono.slice(1);
+//     }
+//     return articles.length > 1 ? articles.slice(1) : [];
+//   }, [tab, articles, articlesChrono]);
+
+//   const filteredForYou = useMemo(() => {
+//     if (!activeFilter) return restBase;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     return restBase.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             s => s.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [restBase, activeFilter]);
+
+//   // final list that renders under the hero
+//   const list = tab === 'For You' ? filteredForYou : restBase;
+
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   return (
+//     <View style={styles.container}>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginRight: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={styles.manageBtn}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         {tab === 'For You' && (
+//           <TrendChips
+//             items={chips.map(c => c.label)}
+//             selected={activeChipLabel}
+//             onTap={label =>
+//               setActiveChipLabel(prev =>
+//                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//               )
+//             }
+//             onMore={() => setManageBrandsOpen(true)}
+//           />
+//         )}
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>
+//             {tab === 'For You' ? 'Recommended for you' : 'Following'}
+//           </Text>
+//         </View>
+
+//         {list.map(item => (
+//           <ArticleCard
+//             key={item.id}
+//             title={item.title}
+//             source={item.source}
+//             image={item.image}
+//             time={
+//               item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//             }
+//             onPress={() => {
+//               setOpenUrl(item.link);
+//               setOpenTitle(item.title);
+//             }}
+//           />
+//         ))}
+
+//         {/* Empty state for Brands modal if no brands come back */}
+//         {/* (The modal itself is below; this is just a gentle hint on the main screen) */}
+//         {tab === 'For You' && wardrobeBrands.length === 0 && (
+//           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+//             <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 12}}>
+//               No wardrobe brands detected yet. Add items to your wardrobe to
+//               unlock personalized brand chips.
+//             </Text>
+//           </View>
+//         )}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((s: FeedSource) => (
+//               <View key={s.id} style={styles.sourceRow}>
+//                 <View style={{flex: 1}}>
+//                   <TextInput
+//                     defaultValue={s.name}
+//                     placeholder="Name"
+//                     placeholderTextColor="rgba(255,255,255,0.4)"
+//                     onEndEditing={e => renameSource(s.id, e.nativeEvent.text)}
+//                     style={styles.sourceName}
+//                   />
+//                   <Text style={styles.sourceUrl} numberOfLines={1}>
+//                     {s.url}
+//                   </Text>
+//                 </View>
+//                 <Switch
+//                   value={!!s.enabled}
+//                   onValueChange={v => toggleSource(s.id, v)}
+//                   trackColor={{
+//                     false: 'rgba(255,255,255,0.18)',
+//                     true: '#0A84FF',
+//                   }}
+//                   thumbColor="#fff"
+//                 />
+//                 <TouchableOpacity
+//                   onPress={() => removeSource(s.id)}
+//                   style={styles.removeBtn}>
+//                   <Text style={styles.removeText}>Remove</Text>
+//                 </TouchableOpacity>
+//               </View>
+//             ))}
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* Brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {wardrobeBrands.length === 0 ? (
+//               <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+//                 <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+//                   No brands found yet. Add items to your wardrobe (with a brand)
+//                   and they’ll show up here as chips you can toggle.
+//                 </Text>
+//               </View>
+//             ) : (
+//               Array.from(
+//                 new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//               )
+//                 .filter(
+//                   b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//                 )
+//                 .map(brand => {
+//                   // default ON unless explicitly set to false
+//                   const show = chipAllowlist[brand] !== false;
+//                   return (
+//                     <View key={brand} style={styles.sourceRow}>
+//                       <View style={{flex: 1}}>
+//                         <Text style={styles.sourceName}>{brand}</Text>
+//                       </View>
+//                       <Text style={{color: '#fff', marginRight: 8}}>
+//                         Show as Chip
+//                       </Text>
+//                       <Switch
+//                         value={show}
+//                         onValueChange={v =>
+//                           setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                         }
+//                         trackColor={{
+//                           false: 'rgba(255,255,255,0.18)',
+//                           true: '#0A84FF',
+//                         }}
+//                         thumbColor="#fff"
+//                       />
+//                     </View>
+//                   );
+//                 })
+//             )}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 240,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
+
+/////////////////////
+
+// import React, {useEffect, useMemo, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   StyleSheet,
+//   RefreshControl,
+//   Modal,
+//   TextInput,
+//   TouchableOpacity,
+//   Switch,
+// } from 'react-native';
+// import dayjs from 'dayjs';
+// import relativeTime from 'dayjs/plugin/relativeTime';
+// dayjs.extend(relativeTime);
+
+// import FeaturedHero from '../components/FashionFeed/FeaturedHero';
+// import ArticleCard from '../components/FashionFeed/ArticleCard';
+// import TrendChips from '../components/FashionFeed/TrendChips';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import {useFashionFeeds} from '../hooks/useFashionFeeds';
+// import {useFeedSources, FeedSource} from '../hooks/useFeedSources';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+
+// type Tab = 'For You' | 'Following';
+
+// type Chip = {
+//   id: string;
+//   label: string;
+//   type: 'personal' | 'trending' | 'context' | 'source';
+//   filter: {topics?: string[]; sources?: string[]; constraints?: any};
+// };
+
+// export default function ExploreScreen() {
+//   const userId = useUUID() ?? '';
+
+//   const {
+//     sources,
+//     enabled,
+//     loading: sourcesLoading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//   } = useFeedSources({userId});
+
+//   const [newName, setNewName] = useState('');
+//   const [newUrl, setNewUrl] = useState('');
+//   const [addError, setAddError] = useState<string | null>(null);
+
+//   const {articles, loading, refresh} = useFashionFeeds(
+//     enabled.map(s => ({name: s.name, url: s.url})),
+//     {userId},
+//   );
+
+//   // ──────────────── PERSONAL CHIPS ────────────────
+//   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//         const json = await res.json();
+//         setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
+//       } catch {
+//         setWardrobeBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ──────────────── TRENDING CHIPS ────────────────
+//   const trendingKeywords = useMemo(() => {
+//     if (!articles?.length) return [];
+//     const wordCounts: Record<string, number> = {};
+//     for (const a of articles) {
+//       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();
+//       text.split(/\W+/).forEach(w => {
+//         if (w.length > 3) wordCounts[w] = (wordCounts[w] ?? 0) + 1;
+//       });
+//     }
+//     return Object.entries(wordCounts)
+//       .sort((a, b) => b[1] - a[1])
+//       .map(([w]) => w)
+//       .slice(0, 10);
+//   }, [articles]);
+
+//   // ──────────────── CONTEXT CHIPS ────────────────
+//   const [weather, setWeather] = useState('hot');
+//   useEffect(() => {
+//     // TODO: Replace with real weather API call
+//     setWeather('hot');
+//   }, []);
+
+//   // ──────────────── COMBINE CHIPS ────────────────
+//   const [chipAllowlist, setChipAllowlist] = useState<Record<string, boolean>>(
+//     {},
+//   );
+//   const [chips, setChips] = useState<Chip[]>([]);
+//   useEffect(() => {
+//     const personal = wardrobeBrands
+//       // default ON unless explicitly false in allowlist
+//       .filter(b => chipAllowlist[b] !== false)
+//       .slice(0, 6)
+//       .map(b => ({
+//         id: 'brand-' + b.toLowerCase(),
+//         label: b,
+//         type: 'personal' as const,
+//         filter: {topics: [b.toLowerCase()]},
+//       }));
+
+//     const trending = trendingKeywords.map(t => ({
+//       id: 'trend-' + t.toLowerCase(),
+//       label: t,
+//       type: 'trending' as const,
+//       filter: {topics: [t]},
+//     }));
+
+//     const context = [
+//       {
+//         id: 'ctx-weather',
+//         label: `Weather: ${weather}`,
+//         type: 'context' as const,
+//         filter: {constraints: {weather}},
+//       },
+//     ];
+
+//     const sourceChips: Chip[] = enabled.map(s => ({
+//       id: 'src-' + s.name.toLowerCase(),
+//       label: s.name,
+//       type: 'source',
+//       filter: {sources: [s.name]},
+//     }));
+
+//     setChips([...sourceChips, ...personal, ...trending, ...context]);
+//   }, [wardrobeBrands, trendingKeywords, weather, enabled, chipAllowlist]);
+
+//   // useEffect(() => {
+//   //   (async () => {
+//   //     try {
+//   //       const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+//   //       const json = await res.json();
+//   //       const list = Array.isArray(json?.brands) ? json.brands : [];
+//   //       // ✅ fallback if empty
+//   //       setWardrobeBrands(
+//   //         list.length > 0 ? list : ['Nike', 'Prada', 'Zara', 'Gucci'],
+//   //       );
+//   //     } catch {
+//   //       setWardrobeBrands(['Nike', 'Prada', 'Zara', 'Gucci']);
+//   //     }
+//   //   })();
+//   // }, [userId]);
+
+//   const [brandSearch, setBrandSearch] = useState('');
+
+//   // active chip selection (store the label so TrendChips can highlight it)
+//   const [activeChipLabel, setActiveChipLabel] = useState<string | null>(null);
+//   const activeFilter =
+//     chips.find(
+//       c => c.label.toLowerCase() === (activeChipLabel ?? '').toLowerCase(),
+//     )?.filter ?? null;
+
+//   const hero = articles[0];
+//   const rest = useMemo(
+//     () => (articles.length > 1 ? articles.slice(1) : []),
+//     [articles],
+//   );
+
+//   const filtered = useMemo(() => {
+//     if (!activeFilter) return rest;
+
+//     const hasTopics = !!activeFilter.topics?.length;
+//     const hasSources = !!activeFilter.sources?.length;
+
+//     // if source filter is present, respect it (acts as an AND with topics if both exist)
+//     return rest.filter(a => {
+//       const sourceOk = !hasSources
+//         ? true
+//         : activeFilter.sources!.some(
+//             s => s.toLowerCase() === a.source.toLowerCase(),
+//           );
+
+//       const topicOk = !hasTopics
+//         ? true
+//         : [a.title, a.source, a.summary].some(x =>
+//             activeFilter.topics!.some(t =>
+//               (x || '').toLowerCase().includes(t.toLowerCase()),
+//             ),
+//           );
+
+//       return sourceOk && topicOk;
+//     });
+//   }, [rest, activeFilter]);
+
+//   const [tab, setTab] = useState<Tab>('For You');
+//   const [openUrl, setOpenUrl] = useState<string | undefined>();
+//   const [openTitle, setOpenTitle] = useState<string | undefined>();
+//   const [manageOpen, setManageOpen] = useState(false);
+//   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
+
+//   return (
+//     <View style={styles.container}>
+//       <ScrollView
+//         showsVerticalScrollIndicator={false}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={loading || sourcesLoading}
+//             onRefresh={refresh}
+//             tintColor="#fff"
+//           />
+//         }
+//         contentContainerStyle={{paddingBottom: 32}}>
+//         <View style={styles.topBar}>
+//           <Segmented tab={tab} onChange={setTab} />
+//           <TouchableOpacity
+//             onPress={() => setManageBrandsOpen(true)}
+//             style={[styles.manageBtn, {marginRight: 8}]}>
+//             <Text style={styles.manageText}>Brands</Text>
+//           </TouchableOpacity>
+//           <TouchableOpacity
+//             onPress={() => setManageOpen(true)}
+//             style={styles.manageBtn}>
+//             <Text style={styles.manageText}>Feeds</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         {hero && (
+//           <FeaturedHero
+//             title={hero.title}
+//             source={hero.source}
+//             image={hero.image}
+//             onPress={() => {
+//               setOpenUrl(hero.link);
+//               setOpenTitle(hero.title);
+//             }}
+//           />
+//         )}
+
+//         <TrendChips
+//           items={chips.map(c => c.label)}
+//           selected={activeChipLabel}
+//           onTap={label =>
+//             setActiveChipLabel(prev =>
+//               prev?.toLowerCase() === label.toLowerCase() ? null : label,
+//             )
+//           }
+//           onMore={() => setManageBrandsOpen(true)}
+//         />
+
+//         <View style={styles.sectionHeader}>
+//           <Text style={styles.sectionTitle}>Fashion News</Text>
+//         </View>
+
+//         {filtered.map(item => (
+//           <ArticleCard
+//             key={item.id}
+//             title={item.title}
+//             source={item.source}
+//             image={item.image}
+//             time={
+//               item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+//             }
+//             onPress={() => {
+//               setOpenUrl(item.link);
+//               setOpenTitle(item.title);
+//             }}
+//           />
+//         ))}
+//       </ScrollView>
+
+//       <ReaderModal
+//         visible={!!openUrl}
+//         url={openUrl}
+//         title={openTitle}
+//         onClose={() => setOpenUrl(undefined)}
+//       />
+
+//       {/* existing Feeds modal */}
+//       <Modal
+//         visible={manageOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Feeds</Text>
+//             <TouchableOpacity onPress={() => setManageOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {sources.map((s: FeedSource) => (
+//               <View key={s.id} style={styles.sourceRow}>
+//                 <View style={{flex: 1}}>
+//                   <TextInput
+//                     defaultValue={s.name}
+//                     placeholder="Name"
+//                     placeholderTextColor="rgba(255,255,255,0.4)"
+//                     onEndEditing={e => renameSource(s.id, e.nativeEvent.text)}
+//                     style={styles.sourceName}
+//                   />
+//                   <Text style={styles.sourceUrl} numberOfLines={1}>
+//                     {s.url}
+//                   </Text>
+//                 </View>
+//                 <Switch
+//                   value={!!s.enabled}
+//                   onValueChange={v => toggleSource(s.id, v)}
+//                   trackColor={{
+//                     false: 'rgba(255,255,255,0.18)',
+//                     true: '#0A84FF',
+//                   }}
+//                   thumbColor="#fff"
+//                 />
+//                 <TouchableOpacity
+//                   onPress={() => removeSource(s.id)}
+//                   style={styles.removeBtn}>
+//                   <Text style={styles.removeText}>Remove</Text>
+//                 </TouchableOpacity>
+//               </View>
+//             ))}
+//             <View style={styles.addBox}>
+//               <Text style={styles.addTitle}>Add Feed</Text>
+//               {!!addError && <Text style={styles.addError}>{addError}</Text>}
+//               <TextInput
+//                 value={newName}
+//                 onChangeText={setNewName}
+//                 placeholder="Display name (optional)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 style={styles.input}
+//               />
+//               <TextInput
+//                 value={newUrl}
+//                 onChangeText={setNewUrl}
+//                 placeholder="Feed URL (https://…)"
+//                 placeholderTextColor="rgba(255,255,255,0.4)"
+//                 autoCapitalize="none"
+//                 autoCorrect={false}
+//                 style={styles.input}
+//               />
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setAddError(null);
+//                   try {
+//                     addSource(newName, newUrl);
+//                     setNewName('');
+//                     setNewUrl('');
+//                   } catch (e: any) {
+//                     setAddError(e?.message ?? 'Could not add feed');
+//                   }
+//                 }}
+//                 style={styles.addBtn}>
+//                 <Text style={styles.addBtnText}>Add Feed</Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={resetToDefaults}
+//                 style={styles.resetBtn}>
+//                 <Text style={styles.resetText}>Reset to Defaults</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </Modal>
+
+//       {/* brands modal */}
+//       <Modal
+//         visible={manageBrandsOpen}
+//         animationType="slide"
+//         onRequestClose={() => setManageBrandsOpen(false)}>
+//         <View style={styles.modalRoot}>
+//           <View style={styles.modalHeader}>
+//             <Text style={styles.modalTitle}>Brands</Text>
+//             <TouchableOpacity onPress={() => setManageBrandsOpen(false)}>
+//               <Text style={styles.done}>Done</Text>
+//             </TouchableOpacity>
+//           </View>
+//           <View style={{padding: 12}}>
+//             <TextInput
+//               value={brandSearch}
+//               onChangeText={setBrandSearch}
+//               placeholder="Search your wardrobe brands…"
+//               placeholderTextColor="rgba(255,255,255,0.4)"
+//               style={styles.input}
+//             />
+//           </View>
+//           <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+//             {Array.from(
+//               new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+//             )
+//               .filter(
+//                 b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+//               )
+//               .map(brand => {
+//                 // default ON unless explicitly set to false
+//                 const show = chipAllowlist[brand] !== false;
+//                 return (
+//                   <View key={brand} style={styles.sourceRow}>
+//                     <View style={{flex: 1}}>
+//                       <Text style={styles.sourceName}>{brand}</Text>
+//                     </View>
+//                     <Text style={{color: '#fff', marginRight: 8}}>
+//                       Show as Chip
+//                     </Text>
+//                     <Switch
+//                       value={show}
+//                       onValueChange={v =>
+//                         setChipAllowlist(prev => ({...prev, [brand]: v}))
+//                       }
+//                       trackColor={{
+//                         false: 'rgba(255,255,255,0.18)',
+//                         true: '#0A84FF',
+//                       }}
+//                       thumbColor="#fff"
+//                     />
+//                   </View>
+//                 );
+//               })}
+//           </ScrollView>
+//         </View>
+//       </Modal>
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+//   removeBtn: {
+//     marginLeft: 6,
+//     paddingHorizontal: 10,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//   },
+//   removeText: {
+//     color: 'rgba(255, 255, 255, 1)',
+//     fontWeight: '700',
+//     fontSize: 12,
+//   },
+//   addBox: {padding: 16, gap: 8},
+//   addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+//   addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
+//   addBtn: {
+//     marginTop: 8,
+//     backgroundColor: '#6f00ffff',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   addBtnText: {color: '#fff', fontWeight: '800'},
+//   resetBtn: {
+//     marginTop: 8,
+//     backgroundColor: 'rgba(255,255,255,0.08)',
+//     borderRadius: 10,
+//     paddingVertical: 10,
+//     alignItems: 'center',
+//   },
+//   resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+//   topBar: {
+//     paddingTop: 8,
+//     paddingHorizontal: 16,
+//     paddingBottom: 6,
+//     backgroundColor: '#000',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//   },
+//   manageBtn: {
+//     marginLeft: 'auto',
+//     paddingHorizontal: 12,
+//     paddingVertical: 6,
+//     borderRadius: 8,
+//     backgroundColor: 'rgba(89, 0, 255, 1)',
+//   },
+//   manageText: {color: '#ffffffff', fontWeight: '700'},
+//   sectionHeader: {
+//     paddingHorizontal: 16,
+//     paddingVertical: 8,
+//     backgroundColor: '#000',
+//   },
+//   sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
+//   modalRoot: {flex: 1, backgroundColor: '#000', marginTop: 80},
+//   modalHeader: {
+//     height: 48,
+//     borderBottomColor: 'rgba(255,255,255,0.1)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//     paddingHorizontal: 12,
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
+//   },
+//   modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+//   done: {color: '#5900ffff', fontWeight: '700'},
+//   sourceRow: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     borderBottomColor: 'rgba(255,255,255,0.06)',
+//     borderBottomWidth: StyleSheet.hairlineWidth,
+//   },
+//   sourceName: {
+//     color: '#fff',
+//     fontSize: 16,
+//     fontWeight: '700',
+//     padding: 0,
+//     marginBottom: 2,
+//   },
+//   input: {
+//     backgroundColor: 'rgba(255,255,255,0.06)',
+//     borderRadius: 10,
+//     paddingHorizontal: 12,
+//     paddingVertical: 10,
+//     color: '#fff',
+//   },
+// });
+
+// function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
+//   return (
+//     <View style={seg.root}>
+//       {(['For You', 'Following'] as Tab[]).map(t => {
+//         const active = t === tab;
+//         return (
+//           <View key={t} style={[seg.itemWrap, active && seg.itemActive]}>
+//             <Text
+//               onPress={() => onChange(t)}
+//               style={[seg.itemText, active && seg.itemTextActive]}>
+//               {t}
+//             </Text>
+//           </View>
+//         );
+//       })}
+//     </View>
+//   );
+// }
+
+// const seg = StyleSheet.create({
+//   root: {
+//     height: 36,
+//     backgroundColor: 'rgba(73, 73, 73, 1)',
+//     borderRadius: 10,
+//     padding: 3,
+//     flexDirection: 'row',
+//     flex: 1,
+//     maxWidth: 240,
+//   },
+//   itemWrap: {
+//     flex: 1,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   itemActive: {backgroundColor: '#111213'},
+//   itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
+//   itemTextActive: {color: '#fff'},
+// });
