@@ -498,8 +498,8 @@ function makeStyles(theme: any) {
     suggestionChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 14,
-      paddingVertical: 14,
+      paddingHorizontal: 15,
+      paddingVertical: 15,
       borderRadius: 14,
       backgroundColor: 'rgba(33, 33, 33, 1)',
       color: 'rgba(255, 255, 255, 1)',
@@ -516,18 +516,17 @@ function makeStyles(theme: any) {
     },
     inputBarWrap: {
       paddingHorizontal: 10,
-      paddingBottom: Platform.OS === 'ios' ? 12 : 10,
-      paddingTop: 2,
+      paddingBottom: Platform.OS === 'ios' ? 8 : 10,
+      paddingTop: 18,
     },
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',
-      backgroundColor: 'rgb(48, 48, 48)',
+      // borderWidth: 0.2,
+      backgroundColor: 'rgba(32, 32, 32, 1)',
       borderRadius: 18,
       paddingHorizontal: 8,
       paddingVertical: 6,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.22)',
     },
     leftIcon: {
       width: 30,

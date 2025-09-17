@@ -96,8 +96,8 @@ export default function SearchScreen({navigate, goBack}) {
       // space for mic (right:44) + clear (right:12)
       paddingRight: 88,
       marginTop: 22,
-      borderWidth: 0.3,
-      borderColor: 'rgba(255, 255, 255, 0.22)',
+      backgroundColor: 'rgba(32, 32, 32, 1)',
+      // borderWidth: 0.2,
     },
     micWrap: {
       position: 'absolute',
