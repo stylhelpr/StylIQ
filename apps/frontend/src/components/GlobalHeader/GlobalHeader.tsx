@@ -85,12 +85,12 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
           style={styles.iconButton}
           hapticStyle="impactLight"
           onPress={() => navigate('AiStylistChatScreen')}>
-          <MaterialIcons name="smart-toy" size={28} color="rgb(102, 0, 255)" />
+          <MaterialIcons name="smart-toy" size={32} color="rgb(102, 0, 255)" />
         </AppleTouchFeedback>
 
         {/* ⬇️ NEW: Planner */}
         <AppleTouchFeedback
-          style={styles.iconButton}
+          style={[styles.iconButton, {marginRight: 6}]}
           hapticStyle="impactLight"
           onPress={() => navigate('Planner')}>
           <Icon name="event-note" size={28} color={theme.colors.primary} />
