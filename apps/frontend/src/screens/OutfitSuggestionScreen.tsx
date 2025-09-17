@@ -593,7 +593,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     paddingHorizontal: 14,
                     paddingVertical: 8,
                     borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 1)',
+                    borderColor: 'rgba(255, 255, 255, 0.22)',
                   },
                 ]}>
                 <TextInput
