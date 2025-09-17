@@ -522,9 +522,10 @@ function makeStyles(theme: any) {
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',
-      // borderWidth: 0.2,
-      backgroundColor: 'rgba(32, 32, 32, 1)',
-      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(48, 48, 48, 1)',
+      backgroundColor: 'rgba(35, 35, 35, 1)',
+      borderRadius: 25,
       paddingHorizontal: 8,
       paddingVertical: 6,
     },
