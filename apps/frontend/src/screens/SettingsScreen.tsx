@@ -344,7 +344,7 @@ export default function SettingsScreen({navigate}: Props) {
                       globalStyles.menuLabel,
                       {color: colors.foreground},
                     ]}>
-                    Personal Information
+                    Profile Information
                   </Text>
                 </AppleTouchFeedback>
 
