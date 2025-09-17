@@ -1,3 +1,5 @@
+//BELOW HERE IS LOGIC TO KEEP FOR BATCH UPLOAD ITEMS - KEEP VERSION 1
+
 import React, {useState} from 'react';
 import {
   View,
@@ -20,14 +22,18 @@ import {
 import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
-import {tokens} from '../../styles/tokens/tokens';
 
 type Props = {
   onSelectImage?: (uri: string) => void;
+  onSelectImages?: (uris: string[]) => void; // ➕ batch support
   selectedUri?: string | null;
 };
 
-export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
+export default function ImagePickerGrid({
+  onSelectImage,
+  onSelectImages,
+  selectedUri,
+}: Props) {
   const [photos, setPhotos] = useState<Asset[]>([]);
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -38,15 +44,7 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       justifyContent: 'space-between',
       width: '100%',
     },
-    buttonWrapper: {
-      flex: 1,
-      marginHorizontal: 4,
-      maxWidth: 180,
-      minWidth: 100,
-    },
-    buttonSpacer: {
-      width: 8,
-    },
+    buttonWrapper: {flex: 1, marginHorizontal: 4, maxWidth: 180, minWidth: 100},
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -68,10 +66,6 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       backgroundColor: '#eee',
     },
   });
-
-  // Add marginRight to all buttons except the last
-  const buttonMarginStyle = (index: number) =>
-    index !== 2 ? {marginRight: 8} : undefined;
 
   const requestAndroidPermissions = async () => {
     if (Platform.OS !== 'android') return true;
@@ -106,9 +100,8 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
     const result = await launchCamera(options);
     if (result.assets?.length) {
       setPhotos(curr => [...curr, ...result.assets!]);
-      if (onSelectImage && result.assets[0].uri) {
-        onSelectImage(result.assets[0].uri);
-      }
+      const first = result.assets[0]?.uri;
+      if (first) onSelectImage?.(first); // single from camera
     }
   };
 
@@ -116,14 +109,19 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
     const options: ImageLibraryOptions = {
       mediaType: 'photo',
       quality: 1,
-      selectionLimit: 0,
+      selectionLimit: 0, // ➕ allow multi-select
       includeBase64: false,
     };
     const result = await launchImageLibrary(options);
     if (result.assets?.length) {
       setPhotos(curr => [...curr, ...result.assets!]);
-      if (onSelectImage && result.assets[0].uri) {
-        onSelectImage(result.assets[0].uri);
+      const uris = result.assets
+        .map(a => a.uri)
+        .filter((u): u is string => !!u);
+      if (uris.length > 1 && onSelectImages) {
+        onSelectImages(uris); // ➕ send all selected
+      } else if (uris[0]) {
+        onSelectImage?.(uris[0]); // fallback to single
       }
     }
   };
@@ -137,9 +135,7 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       saveToPhotos: true,
     };
     const result = await launchCamera(options);
-    if (result.assets?.length) {
-      setPhotos(curr => [...curr, ...result.assets!]);
-    }
+    if (result.assets?.length) setPhotos(curr => [...curr, ...result.assets!]);
   };
 
   return (
@@ -164,11 +160,11 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
       {!selectedUri && (
         <ScrollView contentContainerStyle={styles.grid}>
           {photos
-            .filter((photo): photo is Asset & {uri: string} => !!photo.uri)
+            .filter((p): p is Asset & {uri: string} => !!p.uri)
             .map((photo, idx) => (
               <TouchableOpacity
                 key={photo.uri + idx}
-                onPress={() => onSelectImage?.(photo.uri)}>
+                onPress={() => onSelectImage?.(photo.uri!)}>
                 <Image
                   source={{uri: photo.uri}}
                   style={styles.thumbnail}
@@ -182,7 +178,9 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
   );
 }
 
-///////////////////
+/////////////////////
+
+//BELOW HERE IS LOGIC TO KEEP FOR SINGLE UPLOAD ITEMS - KEEP VERSION 1
 
 // import React, {useState} from 'react';
 // import {
@@ -221,10 +219,14 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //   const styles = StyleSheet.create({
 //     imagePickerRow: {
 //       flexDirection: 'row',
+//       justifyContent: 'space-between',
 //       width: '100%',
 //     },
 //     buttonWrapper: {
 //       flex: 1,
+//       marginHorizontal: 4,
+//       maxWidth: 180,
+//       minWidth: 100,
 //     },
 //     buttonSpacer: {
 //       width: 8,
@@ -233,6 +235,14 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //       flexDirection: 'row',
 //       flexWrap: 'wrap',
 //       justifyContent: 'flex-start',
+//     },
+//     buttonPrimary: {
+//       paddingVertical: 9,
+//       paddingHorizontal: 5,
+//       borderRadius: 8,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       backgroundColor: theme.colors.button1,
 //     },
 //     thumbnail: {
 //       width: 100,
@@ -323,18 +333,15 @@ export default function ImagePickerGrid({onSelectImage, selectedUri}: Props) {
 //           {label: 'Take Photo', onPress: takePhoto},
 //           {label: 'Record Video', onPress: recordVideo},
 //           {label: 'Photo Library', onPress: pickFromGallery},
-//         ].map(({label, onPress}, i) => (
-//           <React.Fragment key={label}>
-//             {i !== 0 && <View style={styles.buttonSpacer} />}
-//             <View style={styles.buttonWrapper}>
-//               <AppleTouchFeedback
-//                 onPress={onPress}
-//                 hapticStyle="impactMedium"
-//                 style={globalStyles.buttonPrimary}>
-//                 <Text style={globalStyles.buttonPrimaryText}>{label}</Text>
-//               </AppleTouchFeedback>
-//             </View>
-//           </React.Fragment>
+//         ].map(({label, onPress}) => (
+//           <View key={label} style={styles.buttonWrapper}>
+//             <AppleTouchFeedback
+//               onPress={onPress}
+//               hapticStyle="impactMedium"
+//               style={styles.buttonPrimary}>
+//               <Text style={globalStyles.buttonPrimaryText}>{label}</Text>
+//             </AppleTouchFeedback>
+//           </View>
 //         ))}
 //       </View>
 

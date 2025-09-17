@@ -89,15 +89,15 @@ export default function SearchScreen({navigate, goBack}) {
     inputWrapper: {position: 'relative', marginBottom: 16},
     input: {
       height: 50,
-
-      borderRadius: 18,
       paddingHorizontal: 14,
       fontSize: 16,
       // space for mic (right:44) + clear (right:12)
       paddingRight: 88,
       marginTop: 22,
-      backgroundColor: 'rgba(32, 32, 32, 1)',
-      // borderWidth: 0.2,
+      borderWidth: 0.1,
+      borderColor: 'rgba(48, 48, 48, 1)',
+      backgroundColor: 'rgba(35, 35, 35, 1)',
+      borderRadius: 25,
     },
     micWrap: {
       position: 'absolute',

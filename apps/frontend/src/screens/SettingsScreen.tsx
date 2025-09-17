@@ -260,7 +260,7 @@ export default function SettingsScreen({navigate}: Props) {
             <View style={[globalStyles.section2, {marginTop: 8}]}>
               <Text
                 style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
-                Customize Home
+                Customize Home Screen
               </Text>
 
               <View
