@@ -588,12 +588,11 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   globalStyles.promptRow,
                   {
                     marginBottom: 12,
-                    backgroundColor: 'rgb(48, 48, 48)',
                     borderRadius: 18,
                     paddingHorizontal: 14,
                     paddingVertical: 8,
-                    borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.22)',
+                    //  borderWidth: 0.2,
+                    backgroundColor: 'rgba(32, 32, 32, 1)',
                   },
                 ]}>
                 <TextInput
