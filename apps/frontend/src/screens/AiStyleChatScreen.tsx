@@ -24,6 +24,9 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {API_BASE_URL} from '../config/api';
 import {useVoiceControl} from '../hooks/useVoiceControl';
+import {DeviceEventEmitter} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {sendHandoff} from '../utils/handoffMailbox';
 
 type Role = 'user' | 'assistant' | 'system';
 
@@ -34,6 +37,11 @@ type Message = {
   createdAt: number;
 };
 
+type Props = {navigate: (screen: string, params?: any) => void};
+
+const HANDOFF_EVENT = 'outfit.handoff';
+const HANDOFF_KEY = 'handoff.outfit';
+
 const SUGGESTIONS_DEFAULT = [
   'Build a smart-casual look for 75°F',
   'What should I wear to a gallery opening?',
@@ -41,7 +49,7 @@ const SUGGESTIONS_DEFAULT = [
   'Refine that last look for “business creative”',
 ];
 
-export default function AiStylistChatScreen() {
+export default function AiStylistChatScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
@@ -180,6 +188,30 @@ export default function AiStylistChatScreen() {
 
   const handleSuggestion = useCallback((s: string) => setInput(s), []);
 
+  // ──────────────────────────────────────────────────────────────
+  // New: derive last actionable prompt and hand-off to Outfit screen
+  // ──────────────────────────────────────────────────────────────
+  const lastActionablePrompt = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === 'user' && m.text.trim()) return m.text.trim();
+    }
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === 'assistant' && m.text.trim()) return m.text.trim();
+    }
+    return input.trim();
+  }, [messages, input]);
+
+  const sendToOutfit = useCallback((prompt: string) => {
+    const clean = (prompt || '').trim();
+    if (!clean) return;
+    const payload = {seedPrompt: clean, autogenerate: true, ts: Date.now()};
+    console.log('➡️ handoff -> outfit', payload);
+    sendHandoff(payload);
+    requestAnimationFrame(() => navigate('Outfit'));
+  }, []);
+
   return (
     <SafeAreaView
       style={[globalStyles.screen]}
@@ -202,6 +234,23 @@ export default function AiStylistChatScreen() {
               onPress={scrollToBottom}>
               <MaterialIcons
                 name="refresh"
+                size={22}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          </AppleTouchFeedback>
+
+          {/* Send to Outfit */}
+          <AppleTouchFeedback type="impactLight">
+            <TouchableOpacity
+              style={[
+                themed.iconButton,
+                {marginLeft: 6, opacity: lastActionablePrompt ? 1 : 0.4},
+              ]}
+              onPress={() => sendToOutfit(lastActionablePrompt)}
+              disabled={!lastActionablePrompt}>
+              <MaterialIcons
+                name="checkroom"
                 size={22}
                 color={theme.colors.primary}
               />
@@ -428,7 +477,7 @@ async function callAiChatAPI(
 
 /** Utils */
 function rotate<T>(arr: T[]): T[] {
-  if (arr.length < 2) return arr;
+  if (arr.length < 2) return;
   const [head, ...rest] = arr;
   return [...rest, head];
 }
