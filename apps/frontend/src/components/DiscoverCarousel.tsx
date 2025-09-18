@@ -21,7 +21,7 @@ type Product = {
 };
 
 const DiscoverCarousel: React.FC = () => {
-  const userId = useUUID(); // ✅ internal id used everywhere else
+  const userId = useUUID();
   const [ready, setReady] = useState(false);
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
 
 export default DiscoverCarousel;
 
-////////////////////////
+///////////////////
 
 // import React, {useEffect, useState} from 'react';
 // import {
@@ -131,7 +131,7 @@ export default DiscoverCarousel;
 //   StyleSheet,
 // } from 'react-native';
 // import {API_BASE_URL} from '../config/api';
-// import {useAuth0} from 'react-native-auth0';
+// import {useUUID} from '../context/UUIDContext';
 
 // type Product = {
 //   id: string;
@@ -143,34 +143,27 @@ export default DiscoverCarousel;
 // };
 
 // const DiscoverCarousel: React.FC = () => {
+//   const userId = useUUID(); // ✅ internal id used everywhere else
 //   const [ready, setReady] = useState(false);
 //   const [recommended, setRecommended] = useState<Product[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState<string | null>(null);
 
-//   const {user, isLoading: authLoading} = useAuth0?.() || {user: undefined};
-//   const auth0Sub = user?.sub;
-
-//   // ✅ Delay mounting to avoid blank on first cold start
 //   useEffect(() => {
-//     const t = setTimeout(() => setReady(true), 500);
+//     const t = setTimeout(() => setReady(true), 300);
 //     return () => clearTimeout(t);
 //   }, []);
 
 //   useEffect(() => {
-//     if (!ready) return;
-//     // We always include some auth0Sub so backend won’t 401 during cold start
-//     const load = async () => {
+//     if (!ready || !userId) return;
+//     (async () => {
 //       setLoading(true);
 //       try {
-//         const sub = user?.sub || 'public';
 //         const resp = await fetch(
-//           `${API_BASE_URL}/discover?auth0Sub=${encodeURIComponent(sub)}`,
+//           `${API_BASE_URL}/discover/${encodeURIComponent(userId)}`,
 //         );
-//         if (!resp.ok)
-//           throw new Error(`Failed to fetch recommendations (${resp.status})`);
+//         if (!resp.ok) throw new Error(`Failed (${resp.status})`);
 //         const data = await resp.json();
-
 //         const items: Product[] = data
 //           .map((p: any) => ({
 //             id: String(p.id),
@@ -181,21 +174,19 @@ export default DiscoverCarousel;
 //             category: p.category,
 //           }))
 //           .filter(p => p.image_url?.startsWith('http'));
-
 //         setRecommended(items);
 //         setError(null);
 //       } catch (e: any) {
-//         console.error('❌ discover error', e);
 //         setError(e.message || 'Failed to load');
 //       } finally {
 //         setLoading(false);
 //       }
-//     };
-//     load();
-//   }, [ready, user?.sub]); // drop authLoading from deps
+//     })();
+//   }, [ready, userId]);
 
 //   if (!ready || loading) return <Text style={{padding: 16}}>Loading…</Text>;
-//   if (error) return <Text style={{padding: 16}}>{error}</Text>;
+//   if (error && recommended.length === 0)
+//     return <Text style={{padding: 16}}>{error}</Text>;
 
 //   return (
 //     <View style={styles.container}>
@@ -210,12 +201,9 @@ export default DiscoverCarousel;
 //               style={styles.card}
 //               onPress={() => Linking.openURL(item.link || '#')}>
 //               <Image
-//                 source={{
-//                   uri:
-//                     item.image_url ||
-//                     'https://placehold.co/300x400?text=No+Image',
-//                 }}
+//                 source={{uri: item.image_url}}
 //                 style={styles.image}
+//                 resizeMode="cover"
 //                 onError={() => console.warn('⚠️ image failed', item.image_url)}
 //               />
 //               <Text style={styles.title} numberOfLines={1}>
@@ -245,11 +233,7 @@ export default DiscoverCarousel;
 //     backgroundColor: '#f7f7f7',
 //     overflow: 'hidden',
 //   },
-//   image: {
-//     width: '100%',
-//     height: 180,
-//     backgroundColor: '#ddd',
-//   },
+//   image: {width: '100%', height: 180, backgroundColor: '#ddd'},
 //   title: {fontSize: 14, fontWeight: '500', marginHorizontal: 8, marginTop: 6},
 //   brand: {fontSize: 12, color: '#666', marginHorizontal: 8, marginBottom: 8},
 // });
