@@ -1,0 +1,257 @@
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  Linking,
+  StyleSheet,
+} from 'react-native';
+import {API_BASE_URL} from '../config/api';
+import {useUUID} from '../context/UUIDContext';
+
+type Product = {
+  id: string;
+  title: string;
+  brand: string;
+  image_url: string;
+  link: string;
+  category: string;
+};
+
+const DiscoverCarousel: React.FC = () => {
+  const userId = useUUID(); // ✅ internal id used everywhere else
+  const [ready, setReady] = useState(false);
+  const [recommended, setRecommended] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 300);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !userId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const resp = await fetch(
+          `${API_BASE_URL}/discover/${encodeURIComponent(userId)}`,
+        );
+        if (!resp.ok) throw new Error(`Failed (${resp.status})`);
+        const data = await resp.json();
+        const items: Product[] = data
+          .map((p: any) => ({
+            id: String(p.id),
+            title: p.title,
+            brand: p.brand,
+            image_url: p.image_url,
+            link: p.link,
+            category: p.category,
+          }))
+          .filter(p => p.image_url?.startsWith('http'));
+        setRecommended(items);
+        setError(null);
+      } catch (e: any) {
+        setError(e.message || 'Failed to load');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [ready, userId]);
+
+  if (!ready || loading) return <Text style={{padding: 16}}>Loading…</Text>;
+  if (error && recommended.length === 0)
+    return <Text style={{padding: 16}}>{error}</Text>;
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.heading}>Discover Picks For You</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {recommended.length === 0 ? (
+          <Text style={{padding: 16, color: '#666'}}>No picks found</Text>
+        ) : (
+          recommended.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.card}
+              onPress={() => Linking.openURL(item.link || '#')}>
+              <Image
+                source={{uri: item.image_url}}
+                style={styles.image}
+                resizeMode="cover"
+                onError={() => console.warn('⚠️ image failed', item.image_url)}
+              />
+              <Text style={styles.title} numberOfLines={1}>
+                {item.title || 'Untitled'}
+              </Text>
+              <Text style={styles.brand}>{item.brand || 'Brand'}</Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {marginTop: 24},
+  heading: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  card: {
+    width: 160,
+    marginHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#f7f7f7',
+    overflow: 'hidden',
+  },
+  image: {width: '100%', height: 180, backgroundColor: '#ddd'},
+  title: {fontSize: 14, fontWeight: '500', marginHorizontal: 8, marginTop: 6},
+  brand: {fontSize: 12, color: '#666', marginHorizontal: 8, marginBottom: 8},
+});
+
+export default DiscoverCarousel;
+
+////////////////////////
+
+// import React, {useEffect, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   Image,
+//   ScrollView,
+//   TouchableOpacity,
+//   Linking,
+//   StyleSheet,
+// } from 'react-native';
+// import {API_BASE_URL} from '../config/api';
+// import {useAuth0} from 'react-native-auth0';
+
+// type Product = {
+//   id: string;
+//   title: string;
+//   brand: string;
+//   image_url: string;
+//   link: string;
+//   category: string;
+// };
+
+// const DiscoverCarousel: React.FC = () => {
+//   const [ready, setReady] = useState(false);
+//   const [recommended, setRecommended] = useState<Product[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<string | null>(null);
+
+//   const {user, isLoading: authLoading} = useAuth0?.() || {user: undefined};
+//   const auth0Sub = user?.sub;
+
+//   // ✅ Delay mounting to avoid blank on first cold start
+//   useEffect(() => {
+//     const t = setTimeout(() => setReady(true), 500);
+//     return () => clearTimeout(t);
+//   }, []);
+
+//   useEffect(() => {
+//     if (!ready) return;
+//     // We always include some auth0Sub so backend won’t 401 during cold start
+//     const load = async () => {
+//       setLoading(true);
+//       try {
+//         const sub = user?.sub || 'public';
+//         const resp = await fetch(
+//           `${API_BASE_URL}/discover?auth0Sub=${encodeURIComponent(sub)}`,
+//         );
+//         if (!resp.ok)
+//           throw new Error(`Failed to fetch recommendations (${resp.status})`);
+//         const data = await resp.json();
+
+//         const items: Product[] = data
+//           .map((p: any) => ({
+//             id: String(p.id),
+//             title: p.title,
+//             brand: p.brand,
+//             image_url: p.image_url,
+//             link: p.link,
+//             category: p.category,
+//           }))
+//           .filter(p => p.image_url?.startsWith('http'));
+
+//         setRecommended(items);
+//         setError(null);
+//       } catch (e: any) {
+//         console.error('❌ discover error', e);
+//         setError(e.message || 'Failed to load');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     load();
+//   }, [ready, user?.sub]); // drop authLoading from deps
+
+//   if (!ready || loading) return <Text style={{padding: 16}}>Loading…</Text>;
+//   if (error) return <Text style={{padding: 16}}>{error}</Text>;
+
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.heading}>Discover Picks For You</Text>
+//       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+//         {recommended.length === 0 ? (
+//           <Text style={{padding: 16, color: '#666'}}>No picks found</Text>
+//         ) : (
+//           recommended.map(item => (
+//             <TouchableOpacity
+//               key={item.id}
+//               style={styles.card}
+//               onPress={() => Linking.openURL(item.link || '#')}>
+//               <Image
+//                 source={{
+//                   uri:
+//                     item.image_url ||
+//                     'https://placehold.co/300x400?text=No+Image',
+//                 }}
+//                 style={styles.image}
+//                 onError={() => console.warn('⚠️ image failed', item.image_url)}
+//               />
+//               <Text style={styles.title} numberOfLines={1}>
+//                 {item.title || 'Untitled'}
+//               </Text>
+//               <Text style={styles.brand}>{item.brand || 'Brand'}</Text>
+//             </TouchableOpacity>
+//           ))
+//         )}
+//       </ScrollView>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {marginTop: 24},
+//   heading: {
+//     fontSize: 18,
+//     fontWeight: '600',
+//     marginBottom: 12,
+//     paddingHorizontal: 16,
+//   },
+//   card: {
+//     width: 160,
+//     marginHorizontal: 8,
+//     borderRadius: 12,
+//     backgroundColor: '#f7f7f7',
+//     overflow: 'hidden',
+//   },
+//   image: {
+//     width: '100%',
+//     height: 180,
+//     backgroundColor: '#ddd',
+//   },
+//   title: {fontSize: 14, fontWeight: '500', marginHorizontal: 8, marginTop: 6},
+//   brand: {fontSize: 12, color: '#666', marginHorizontal: 8, marginBottom: 8},
+// });
+
+// export default DiscoverCarousel;
