@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import {API_BASE_URL} from '../config/api';
 import {useUUID} from '../context/UUIDContext';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
+import {useAppTheme} from '../context/ThemeContext';
 
 type Product = {
   id: string;
@@ -26,6 +29,8 @@ const DiscoverCarousel: React.FC = () => {
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 300);
@@ -67,53 +72,62 @@ const DiscoverCarousel: React.FC = () => {
     return <Text style={{padding: 16}}>{error}</Text>;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Discover Picks For You</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {recommended.length === 0 ? (
-          <Text style={{padding: 16, color: '#666'}}>No picks found</Text>
-        ) : (
-          recommended.map(item => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.card}
-              onPress={() => Linking.openURL(item.link || '#')}>
-              <Image
-                source={{uri: item.image_url}}
-                style={styles.image}
-                resizeMode="cover"
-                onError={() => console.warn('⚠️ image failed', item.image_url)}
-              />
-              <Text style={styles.title} numberOfLines={1}>
-                {item.title || 'Untitled'}
-              </Text>
-              <Text style={styles.brand}>{item.brand || 'Brand'}</Text>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
-    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {recommended.length === 0 ? (
+        <Text style={{padding: 16, color: '#666'}}>No picks found</Text>
+      ) : (
+        recommended.map(item => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.card}
+            onPress={() => Linking.openURL(item.link || '#')}>
+            <Image
+              source={{uri: item.image_url}}
+              style={styles.image}
+              //   style={globalStyles.image4}
+              resizeMode="cover"
+              onError={() => console.warn('⚠️ image failed', item.image_url)}
+            />
+            <Text style={styles.title} numberOfLines={1}>
+              {item.title || 'Untitled'}
+            </Text>
+            <Text style={styles.brand}>{item.brand || 'Brand'}</Text>
+          </TouchableOpacity>
+        ))
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {marginTop: 24},
-  heading: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-  },
   card: {
     width: 160,
     marginHorizontal: 8,
     borderRadius: 12,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: '#1e1e1eff',
     overflow: 'hidden',
   },
-  image: {width: '100%', height: 180, backgroundColor: '#ddd'},
-  title: {fontSize: 14, fontWeight: '500', marginHorizontal: 8, marginTop: 6},
-  brand: {fontSize: 12, color: '#666', marginHorizontal: 8, marginBottom: 8},
+  image: {
+    width: '100%',
+    // height: 180,
+    height: 120,
+    backgroundColor: 'rgba(44, 44, 44, 1)',
+  },
+  title: {
+    color: 'rgba(235, 235, 235, 1)',
+    fontSize: 14,
+    fontWeight: '600',
+    marginHorizontal: 8,
+    marginTop: 6,
+  },
+  brand: {
+    fontSize: 12,
+    color: 'rgba(120, 120, 120, 1)',
+    marginHorizontal: 8,
+    marginBottom: 8,
+    marginTop: 4,
+    fontWeight: '500',
+  },
 });
 
 export default DiscoverCarousel;

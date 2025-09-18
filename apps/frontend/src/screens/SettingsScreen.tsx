@@ -270,6 +270,7 @@ export default function SettingsScreen({navigate}: Props) {
                     ['weather', 'Weather'],
                     ['locationMap', 'Location Map'],
                     ['quickAccess', 'Quick Access'],
+                    ['recommendedItems', 'Recommended Items'],
                     ['savedLooks', 'Saved Looks'],
                   ] as const
                 ).map(([key, label], idx, arr) => (
