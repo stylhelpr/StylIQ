@@ -499,6 +499,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </View>
       )}
 
+      {prefs.recommendedItems && (
+        <View style={globalStyles.section}>
+          <Text style={[globalStyles.sectionTitle2, {marginBottom: 10}]}>
+            Recommended Items
+          </Text>
+          <DiscoverCarousel />
+        </View>
+      )}
+
       {/* // 2) Saved Looks */}
       {prefs.savedLooks && (
         <View style={globalStyles.sectionScroll}>
@@ -566,7 +575,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         look={selectedLook}
         onClose={() => setPreviewVisible(false)}
       />
-      <DiscoverCarousel />
     </Animated.ScrollView>
   );
 };
