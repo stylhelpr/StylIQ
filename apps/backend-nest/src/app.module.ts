@@ -23,6 +23,7 @@ import { GCSModule } from './gcs/gcs.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FeedSourcesModule } from './feed-sources/feed-sources.module';
+import { DiscoverModule } from './services/discover.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -51,6 +52,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     OutfitFavoritesModule,
     SavedLookModule,
     FeedSourcesModule,
+    DiscoverModule,
   ],
   controllers: [AppController],
   providers: [
