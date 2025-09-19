@@ -666,7 +666,19 @@ export class WardrobeService {
       weights?: ContextWeights;
       useWeather?: boolean;
       useFeedback?: boolean;
-      styleAgent?: 'agent1' | 'agent2' | 'agent3';
+      styleAgent?:
+        | 'agent1'
+        | 'agent2'
+        | 'agent3'
+        | 'agent4'
+        | 'agent5'
+        | 'agent6'
+        | 'agent7'
+        | 'agent8'
+        | 'agent9'
+        | 'agent10'
+        | 'agent11'
+        | 'agent12';
       sessionId?: string;
       refinementPrompt?: string;
       lockedItemIds?: string[]; // 👇 ADD THIS
@@ -927,6 +939,9 @@ export class WardrobeService {
         };
       });
 
+      // 👇 ADD THIS
+      const catalogPreAgent = [...catalog];
+
       if (refinement) {
         const prevLockedIds = Array.isArray(lockedIds) ? lockedIds.slice() : [];
         const { keepSlots, replaceSlots, additionsBySlot } =
@@ -1026,32 +1041,60 @@ export class WardrobeService {
         );
       }
 
-      // Style Agent 2
+      // Style Agent 2 (Minimal Luxe)
+      // BEFORE: banned blazer/sport coat/loafers/dress shirt/belt → too aggressive
       if (opts?.styleAgent === 'agent2') {
         catalog = catalog.filter((c) => {
-          // if ((c as any).__locked || (c as any).forceKeep) return true; // ⛓ allow
           if ((c as any).forceKeep) return true;
+
           const sub = (c.subcategory ?? '').toLowerCase();
-          const dress = (c.dress_code ?? '').toLowerCase();
-          const banned =
-            /\b(blazer|sport coat|dress shirt|oxfords?|derbys?|loafers?|dress shoes?|belt)\b/i.test(
-              sub,
-            ) ||
-            dress.includes('business') ||
-            dress.includes('formal');
+          const lbl = (c.label ?? '').toLowerCase();
+          const colorTxt = (c.color ?? c.color_family ?? '').toLowerCase();
+
+          // ban loud/flashy rather than tailoring basics
+          const loudPrint =
+            /\b(hawaiian|graphic\s*tee|camo|logo|distressed)\b/i.test(sub) ||
+            /\b(hawaiian|graphic|logo)\b/i.test(lbl);
+
+          const neonOrHighSat =
+            /\b(neon|magenta|lime|bright|high\s*saturation|multi-?color)\b/i.test(
+              lbl + ' ' + colorTxt,
+            );
+
+          // keep tailoring + neutrals; drop only loud/flashy items
+          const banned = loudPrint || neonOrHighSat;
           return !banned;
         });
+
         console.log(
-          `🎯 Agent2 negative filter applied: ${catalog.length} items left`,
+          `🎯 Agent2 refined filter applied: ${catalog.length} items left (loud prints & neon removed)`,
         );
       }
 
-      // 3) Contextual pre-filters — skip if styleAgent, else use effectiveQuery
-      if (opts?.styleAgent) {
-        console.log(
-          '🎨 Style agent override, skipping contextual filters + constraints',
-        );
-      } else {
+      // Agent12: Editorial Classic
+      if (opts?.styleAgent === 'agent12') {
+        catalog = catalog.filter((c) => {
+          if ((c as any).forceKeep) return true;
+
+          const sub = (c.subcategory ?? '').toLowerCase();
+          const txt =
+            `${c.label ?? ''} ${c.color ?? c.color_family ?? ''}`.toLowerCase();
+
+          const loudPrint = /\b(hawaiian|graphic\s*tee|logo|distressed)\b/.test(
+            txt,
+          );
+          const sporty =
+            /\b(windbreaker|hoodie|athletic|sneaker)\b/.test(sub) &&
+            !/\bloafer|oxford/.test(sub);
+          const neon = /\b(neon|magenta|lime|bright|multi-?color)\b/.test(txt);
+
+          return !(loudPrint || sporty || neon);
+        });
+        console.log(`🎯 Agent12 refined filter: ${catalog.length} items left`);
+      }
+
+      // 3) Contextual pre-filters — ALWAYS apply (even with styleAgent)
+      {
         // ⚡ Keep a copy of locked/forceKeep items before filtering
         const keepMap = new Map(
           catalog
@@ -1061,7 +1104,7 @@ export class WardrobeService {
 
         console.log('🎨 Pre-contextual filter catalog count:', catalog.length);
 
-        // Apply contextual filters
+        // Apply contextual filters on the effective query
         catalog = applyContextualFilters(effectiveQuery, catalog, {
           minKeep: 6,
         });
@@ -1134,6 +1177,31 @@ export class WardrobeService {
         }
       }
 
+      // 3d) Safety valve if agent filtering became too tight
+      if (opts?.styleAgent) {
+        const MIN_AGENT_KEEP = 18;
+        if (catalog.length < MIN_AGENT_KEEP) {
+          console.log(
+            `🛟 Agent filter too tight (${catalog.length}); softening to ${MIN_AGENT_KEEP}+ using pre-agent pool + feedback rules.`,
+          );
+          // Rebuild from the broader pre-agent set, then re-apply feedback bans softly
+          catalog = applyFeedbackFilters([...catalogPreAgent], feedbackRules, {
+            minKeep: MIN_AGENT_KEEP,
+            softenWhenBelow: true,
+          });
+
+          // Ensure locked/forceKeep items are still present
+          const keepMap2 = new Map(
+            catalogPreAgent
+              .filter((c: any) => c.__locked || c.forceKeep)
+              .map((c) => [c.id, c]),
+          );
+          for (const [id, item] of keepMap2.entries()) {
+            if (!catalog.some((c) => c.id === id)) catalog.unshift(item);
+          }
+        }
+      }
+
       // Upscale clamp based on effective query
       const needUpscale =
         /\b(upscale|smart\s*casual|business|formal|dressy|rooftop)\b/i.test(
@@ -1179,17 +1247,15 @@ export class WardrobeService {
       // 4) Rerank
       let reranked: CatalogItem[];
       if (opts?.styleAgent && STYLE_AGENTS[opts.styleAgent]) {
-        console.log('🎨 StyleAgent mode → style-only rerank');
-        const longW2 = toLongWeights(tunedWeights);
-        reranked = rerankCatalogWithContext(catalog, {} as any, {
+        console.log(
+          '🎨 StyleAgent mode → blended rerank (keeps constraints & feedback)',
+        );
+        reranked = rerankCatalogWithContext(catalog, constraints, {
           userStyle: STYLE_AGENTS[opts.styleAgent],
-          weights: {
-            constraintsWeight: 0,
-            styleWeight: longW2.styleWeight ?? 1.0,
-            weatherWeight: opts.useWeather ? (longW2.weatherWeight ?? 0.8) : 0,
-            feedbackWeight: 0,
-          },
-          useWeather: opts.useWeather,
+          weather: opts?.weather,
+          weights: tunedWeights, // keep your computed weights as-is
+          useWeather: opts?.useWeather,
+          userPrefs, // preserve feedback nudges
         });
       } else {
         reranked = rerankCatalogWithContext(catalog, constraints, {
@@ -2680,7 +2746,7 @@ ${lockedLines}
   }
 }
 
-/////////////////
+///////////////////
 
 // // // apps/backend-nest/src/wardrobe/wardrobe.service.ts
 
@@ -5001,6 +5067,29 @@ ${lockedLines}
 //       [userId],
 //     );
 //     return result.rows.map((r) => this.toCamel(r));
+//   }
+
+//   // 👉 NEW: return distinct, nicely-cased brand names for a user
+//   async getWardrobeBrands(userId: string): Promise<{ brands: string[] }> {
+//     const { rows } = await pool.query(
+//       `
+//       SELECT DISTINCT ON (LOWER(TRIM(brand)))
+//              TRIM(brand) AS brand
+//       FROM wardrobe_items
+//       WHERE user_id = $1
+//         AND brand IS NOT NULL
+//         AND TRIM(brand) <> ''
+//       ORDER BY LOWER(TRIM(brand)) ASC, brand ASC
+//       `,
+//       [userId],
+//     );
+
+//     const brands = rows
+//       .map((r: any) => String(r.brand))
+//       .filter(Boolean)
+//       .sort((a: string, b: string) => a.localeCompare(b));
+
+//     return { brands };
 //   }
 
 //   // UPDATE
