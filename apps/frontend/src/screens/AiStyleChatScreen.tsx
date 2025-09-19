@@ -346,7 +346,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
         </ScrollView>
 
         {/* Suggestions */}
-        <Animatable.View
+        {/* <Animatable.View
           animation="fadeInUp"
           delay={60}
           style={themed.suggestionRow}>
@@ -362,17 +362,13 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 <TouchableOpacity
                   onPress={() => handleSuggestion(item)}
                   style={themed.suggestionChip}>
-                  {/* <MaterialIcons
-                    name="auto-awesome"
-                    size={14}
-                    color={theme.colors.primary}
-                  /> */}
+          
                   <Text style={themed.suggestionText}>{item}</Text>
                 </TouchableOpacity>
               </AppleTouchFeedback>
             ))}
           </ScrollView>
-        </Animatable.View>
+        </Animatable.View> */}
 
         {/* Send to Outfit */}
         <View
@@ -649,16 +645,16 @@ function makeStyles(theme: any) {
       paddingHorizontal: 10,
       paddingBottom: Platform.OS === 'ios' ? 8 : 10,
       paddingTop: 18,
+      marginBottom: 4,
     },
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',
       borderWidth: 1,
-      borderColor: 'rgba(48, 48, 48, 1)',
+      borderColor: 'rgba(65, 65, 65, 1)',
       backgroundColor: 'rgba(35, 35, 35, 1)',
-      borderRadius: 25,
+      borderRadius: 20,
       paddingHorizontal: 8,
-      paddingVertical: 6,
     },
     leftIcon: {
       width: 30,
@@ -669,18 +665,18 @@ function makeStyles(theme: any) {
     },
     rightIcon: {
       width: 30,
-      height: 36,
+      height: 32,
       alignItems: 'center',
       justifyContent: 'center',
       marginLeft: 4,
     },
     input: {
       flex: 1,
-      minHeight: 36,
+      minHeight: 35,
       maxHeight: 140,
       color: 'white',
       paddingHorizontal: 8,
-      paddingTop: 6,
+      paddingTop: 7,
       paddingBottom: 6,
       fontSize: 16,
     },
