@@ -1,6 +1,11 @@
 // apps/backend-nest/src/wardrobe/logic/style.ts
 
-// apps/backend-nest/src/wardrobe/logic/style.ts
+// ───────────────────────────────────────────────────────────────
+// Types
+// ───────────────────────────────────────────────────────────────
+export type FitLevel = 'slim' | 'regular' | 'relaxed' | 'boxy';
+export type BottomsFit = 'skinny' | 'slim' | 'straight' | 'wide';
+export type ContrastTarget = 'low' | 'medium' | 'high';
 
 export type UserStyle = {
   // 🎨 Color preferences
@@ -39,6 +44,52 @@ export type UserStyle = {
   shoppingHabits?: string[]; // ✅ always array
   budgetLevel?: number; // e.g. 500, 1000
   confidence?: string; // e.g. "Very confident"
+
+  // 🆕 Silhouette / fit
+  topsFit?: FitLevel;
+  bottomsFit?: BottomsFit;
+  risePreference?: 'low' | 'mid' | 'high';
+  trouserBreak?: 'none' | 'slight' | 'full';
+  outerShoulder?: 'soft' | 'natural' | 'structured';
+
+  // 🆕 Fabric / texture
+  preferredFabrics?: string[];
+  avoidFabrics?: string[];
+  textureLevel?: 'low' | 'medium' | 'high';
+
+  // 🆕 Pattern
+  patternScale?: 'none' | 'micro' | 'medium' | 'bold';
+  patternMaxCountPerOutfit?: number;
+
+  // 🆕 Color logic
+  palette?: { base?: string[]; accents?: string[]; metallic?: string[] };
+  contrastTarget?: ContrastTarget;
+  saturationTolerance?: 'low' | 'medium' | 'high';
+
+  // 🆕 Pairing heuristics
+  mustPair?: Record<string, string[]>; // subcat → must include one of…
+  avoidPair?: Record<string, string[]>; // subcat → must NOT include any of…
+  structureBalance?: boolean; // require 1 structured piece w/ streetwear
+  layerTolerance?: 'none' | 'light' | 'heavy';
+
+  // 🆕 Footwear & accessories nuance
+  footwearLast?: 'sleek' | 'round' | 'chunky';
+  beltRequiredWhen?: 'never' | 'dress shoes' | 'always';
+  jewelryTolerance?: 'none' | 'minimal' | 'statement';
+
+  // 🆕 Occasion / risk
+  occasionWeights?: Partial<
+    Record<'work' | 'gala' | 'weekend' | 'travel' | 'date' | 'wedding', number>
+  >;
+  riskAppetite?: 'low' | 'medium' | 'high';
+  logoTolerance?: 'none' | 'discreet' | 'loud';
+
+  // 🆕 Body/comfort & shopping gaps
+  emphasize?: string[];
+  deEmphasize?: string[];
+  mobilityNeed?: 'low' | 'medium' | 'high';
+  allowSubstitutions?: boolean;
+  canonicalGrailList?: string[];
 };
 
 export type StyleWeights = {
@@ -50,6 +101,13 @@ export type StyleWeights = {
   dressMatch: number; // reward for matching dress bias
   dressProximity: number; // reward for being close
   dressPenalty: number; // penalty for being far off
+
+  // 🆕 extras (optional usage; low values so legacy behavior dominates)
+  fitMatch?: number; // tops/bottoms fit alignment
+  fabricMatch?: number; // preferred fabrics
+  fabricAvoid?: number; // avoid fabrics
+  patternScaleMatch?: number; // micro/medium/bold alignment
+  contrastBonus?: number; // proximity to contrast target
 };
 
 export const DEFAULT_STYLE_WEIGHTS: StyleWeights = {
@@ -61,9 +119,16 @@ export const DEFAULT_STYLE_WEIGHTS: StyleWeights = {
   dressMatch: 6,
   dressProximity: 3,
   dressPenalty: 6,
+
+  // 🆕 gentle defaults
+  fitMatch: 2,
+  fabricMatch: 2,
+  fabricAvoid: 3,
+  patternScaleMatch: 1,
+  contrastBonus: 2,
 };
 
-type Item = {
+export type Item = {
   main_category?: string;
   subcategory?: string;
   brand?: string;
@@ -71,8 +136,25 @@ type Item = {
   color_family?: string;
   dress_code?: string;
   label?: string;
+
+  // 🆕 optional fields (use if present)
+  fabric?: string; // "worsted wool", "cashmere", "jersey", …
+  pattern?: 'none' | 'micro' | 'medium' | 'bold';
+  fit?:
+    | 'slim'
+    | 'regular'
+    | 'relaxed'
+    | 'boxy'
+    | 'skinny'
+    | 'straight'
+    | 'wide';
+  structure?: 'soft' | 'natural' | 'structured';
+  last_shape?: 'sleek' | 'round' | 'chunky'; // footwear last
 };
 
+// ───────────────────────────────────────────────────────────────
+// Helpers
+// ───────────────────────────────────────────────────────────────
 const t = (s: any) => (s ?? '').toString().trim().toLowerCase();
 const STYLE_DEBUG = !!process.env.STYLE_DEBUG;
 
@@ -92,6 +174,31 @@ const DRESS_RANK: Record<string, number> = {
   formal: 6,
 };
 
+/** Rough contrast bucket if you don't have LAB—good enough for nudging */
+export function roughContrastBucketFromColors(
+  colors: string[],
+): 'low' | 'medium' | 'high' {
+  const c = colors.map(t);
+  const hasBlack = c.some((x) => x.includes('black'));
+  const hasWhite = c.some((x) => x.includes('white') || x.includes('ivory'));
+  if (hasBlack && hasWhite) return 'high';
+  const darks = c.filter((x) =>
+    /(black|charcoal|navy|dark|ink)/.test(x),
+  ).length;
+  const lights = c.filter((x) =>
+    /(white|ivory|beige|cream|light|stone)/.test(x),
+  ).length;
+  if (Math.abs(darks - lights) <= 1) return 'medium';
+  return 'low';
+}
+
+// ───────────────────────────────────────────────────────────────
+/**
+ * Scores a single item for a UserStyle.
+ * Returns a normalized score in [0,1].
+ * Backward-compatible: if new style fields are absent, extra signals are ignored.
+ */
+// ───────────────────────────────────────────────────────────────
 export function scoreItemForStyle(
   item: Item,
   style: UserStyle | undefined,
@@ -173,15 +280,96 @@ export function scoreItemForStyle(
         rawScore += W.dressMatch;
         reasons.push(`+${W.dressMatch} dressMatch:${dress}`);
       } else if (dist === 1) {
-        rawScore += W.dressProximity;
-        maxPossible += W.dressProximity;
-        reasons.push(`+${W.dressProximity} dressProximity:${dress}`);
+        const prox = W.dressProximity ?? 0;
+        rawScore += prox;
+        maxPossible += prox;
+        reasons.push(`+${prox} dressProximity:${dress}`);
       } else if (dist >= 3) {
-        rawScore -= W.dressPenalty;
-        maxPossible += W.dressPenalty;
-        reasons.push(`-${W.dressPenalty} dressPenalty:${dress}`);
+        const pen = W.dressPenalty ?? 0;
+        rawScore -= pen;
+        maxPossible += pen;
+        reasons.push(`-${pen} dressPenalty:${dress}`);
       }
     }
+  }
+
+  // ── NEW OPTIONAL SIGNALS ──────────────────────────────────────
+  const fabric = t(item.fabric);
+  const pattern = (item.pattern ?? 'none').toLowerCase() as
+    | 'none'
+    | 'micro'
+    | 'medium'
+    | 'bold';
+  const fit = t(item.fit);
+  const structure = t(item.structure);
+  const lastShape = t(item.last_shape);
+
+  // Fit alignment (simple but effective)
+  if (W.fitMatch) {
+    if (
+      style.topsFit &&
+      item.main_category &&
+      t(item.main_category) === 'tops' &&
+      fit === style.topsFit
+    ) {
+      maxPossible += W.fitMatch;
+      rawScore += W.fitMatch;
+      reasons.push(`+${W.fitMatch} fitMatch:tops=${fit}`);
+    }
+    if (
+      style.bottomsFit &&
+      item.main_category &&
+      t(item.main_category) === 'bottoms' &&
+      fit === style.bottomsFit
+    ) {
+      maxPossible += W.fitMatch;
+      rawScore += W.fitMatch;
+      reasons.push(`+${W.fitMatch} fitMatch:bottoms=${fit}`);
+    }
+  }
+
+  // Fabric preferences
+  if (fabric) {
+    if (
+      W.fabricMatch &&
+      style.preferredFabrics?.some((f) => fabric.includes(t(f)))
+    ) {
+      maxPossible += W.fabricMatch;
+      rawScore += W.fabricMatch;
+      reasons.push(`+${W.fabricMatch} fabricMatch:${fabric}`);
+    }
+    if (
+      W.fabricAvoid &&
+      style.avoidFabrics?.some((f) => fabric.includes(t(f)))
+    ) {
+      maxPossible += W.fabricAvoid;
+      rawScore -= W.fabricAvoid;
+      reasons.push(`-${W.fabricAvoid} fabricAvoid:${fabric}`);
+    }
+  }
+
+  // Pattern scale alignment
+  if (W.patternScaleMatch && style.patternScale) {
+    const target = style.patternScale;
+    if (pattern === target) {
+      maxPossible += W.patternScaleMatch;
+      rawScore += W.patternScaleMatch;
+      reasons.push(`+${W.patternScaleMatch} patternScale:${pattern}`);
+    }
+  }
+
+  // Footwear last alignment (tiny nudge)
+  if (lastShape && style.footwearLast && lastShape === style.footwearLast) {
+    rawScore += 0.5;
+    maxPossible += 0.5;
+    reasons.push(`+0.5 footwearLast:${lastShape}`);
+  }
+
+  // Outer structure alignment (tiny nudge)
+  if (structure && style.outerShoulder && structure === style.outerShoulder) {
+    rawScore += 0.5;
+    maxPossible += 0.5;
+    reasons.push(`+0.5 structure:${structure}`);
   }
 
   // Normalize: map rawScore into [0,1]
@@ -200,24 +388,154 @@ export function scoreItemForStyle(
     console.log(
       `[STYLE] ${label} raw=${rawScore.toFixed(2)} norm=${norm.toFixed(
         2,
-      )} max=${maxPossible} (${reasons.join(', ') || 'no-op'})`,
+      )} max=${maxPossible}`,
     );
   }
 
   return norm;
 }
 
-//////////////////
+// ───────────────────────────────────────────────────────────────
+// Outfit-level helpers (guardrails; optional to use)
+// ───────────────────────────────────────────────────────────────
+export type OutfitValidationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason:
+        | 'avoidPair'
+        | 'mustPair'
+        | 'patternMax'
+        | 'structureBalance'
+        | 'beltRule';
+    };
+
+export function validateOutfit(
+  items: Item[],
+  style?: UserStyle,
+): OutfitValidationResult {
+  if (!style) return { ok: true };
+
+  const subs = items.map((i) => t(i.subcategory)).filter(Boolean);
+  const map: Record<string, number> = {};
+  subs.forEach((s) => (map[s] = (map[s] ?? 0) + 1));
+
+  // avoidPair: any forbidden pairing present?
+  if (style.avoidPair) {
+    for (const [a, badList] of Object.entries(style.avoidPair)) {
+      const aLc = t(a);
+      if (!map[aLc]) continue;
+      for (const b of badList) {
+        if (map[t(b)]) return { ok: false, reason: 'avoidPair' };
+      }
+    }
+  }
+
+  // mustPair: if A is present, at least one of list must be present
+  if (style.mustPair) {
+    for (const [a, mustList] of Object.entries(style.mustPair)) {
+      const aLc = t(a);
+      if (!map[aLc]) continue;
+      const satisfied = mustList.some((m) => map[t(m)]);
+      if (!satisfied) return { ok: false, reason: 'mustPair' };
+    }
+  }
+
+  // patternMaxCountPerOutfit
+  const patterned = items.filter(
+    (i) => (i.pattern ?? 'none') !== 'none',
+  ).length;
+  const maxPat = style.patternMaxCountPerOutfit ?? Infinity;
+  if (patterned > maxPat) return { ok: false, reason: 'patternMax' };
+
+  // structureBalance: if streetwear present, require at least one structured piece
+  if (style.structureBalance) {
+    const hasStreet = subs.some((s) => ['hoodie', 'graphic tee'].includes(s));
+    if (hasStreet) {
+      const hasStructured =
+        items.some((i) => i.structure === 'structured') ||
+        subs.some((s) => s === 'blazer' || s === 'sport coat');
+      if (!hasStructured) return { ok: false, reason: 'structureBalance' };
+    }
+  }
+
+  // beltRequiredWhen
+  if (
+    style.beltRequiredWhen === 'always' ||
+    style.beltRequiredWhen === 'dress shoes'
+  ) {
+    const hasDressShoes =
+      subs.includes('dress shoes') ||
+      subs.includes('oxfords') ||
+      subs.includes('loafers');
+    const hasBelt = subs.includes('belt');
+    if (
+      (style.beltRequiredWhen === 'always' && !hasBelt) ||
+      (style.beltRequiredWhen === 'dress shoes' && hasDressShoes && !hasBelt)
+    ) {
+      return { ok: false, reason: 'beltRule' };
+    }
+  }
+
+  return { ok: true };
+}
+
+/** Optional: outfit contrast distance (use with contrastTarget for a small bonus) */
+export function contrastDistanceToTarget(
+  items: Item[],
+  target: ContrastTarget = 'medium',
+): number {
+  const colors = items
+    .map((i) => i.color || i.color_family)
+    .filter(Boolean) as string[];
+  const bucket = roughContrastBucketFromColors(colors);
+  const rank = { low: 0, medium: 1, high: 2 } as const;
+  return -Math.abs(rank[bucket] - rank[target]); // 0 best, -1, -2 worse
+}
+
+/////////////////////////
+
+// // apps/backend-nest/src/wardrobe/logic/style.ts
 
 // // apps/backend-nest/src/wardrobe/logic/style.ts
 
 // export type UserStyle = {
+//   // 🎨 Color preferences
 //   preferredColors?: string[];
 //   avoidColors?: string[];
+
+//   // 👕 Categories
 //   preferredCategories?: string[];
 //   avoidSubcategories?: string[];
+
+//   // 🏷️ Brands
 //   favoriteBrands?: string[];
-//   dressBias?: 'Casual' | 'SmartCasual' | 'BusinessCasual' | 'Business';
+
+//   // 👔 Dress code orientation
+//   dressBias?:
+//     | 'UltraCasual'
+//     | 'Casual'
+//     | 'SmartCasual'
+//     | 'BusinessCasual'
+//     | 'Business'
+//     | 'Formal';
+
+//   // ✨ Extended fields for stylist agents & DB parity
+//   name?: string;
+//   styleKeywords?: string[];
+//   personalityTraits?: string[];
+//   lifestyle?: string[]; // ✅ always array
+//   climate?: string;
+//   bodyType?: string;
+//   proportions?: string;
+//   skinTone?: string;
+//   undertone?: string;
+//   hairColor?: string;
+//   eyeColor?: string;
+//   fashionGoals?: string[]; // ✅ always array
+//   shoppingHabits?: string[]; // ✅ always array
+//   budgetLevel?: number; // e.g. 500, 1000
+//   confidence?: string; // e.g. "Very confident"
 // };
 
 // export type StyleWeights = {
