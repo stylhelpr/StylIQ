@@ -462,7 +462,7 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: '#1a1a1a',
       borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 12,
-      height: 48,
+      // height: 38,
       width: '100%',
     },
     promptInput: {

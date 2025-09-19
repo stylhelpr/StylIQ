@@ -88,21 +88,21 @@ export default function SearchScreen({navigate, goBack}) {
     screen: {flex: 1, backgroundColor: theme.colors.background},
     inputWrapper: {position: 'relative', marginBottom: 16},
     input: {
-      height: 50,
+      height: 40,
       paddingHorizontal: 14,
       fontSize: 16,
       // space for mic (right:44) + clear (right:12)
       paddingRight: 88,
       marginTop: 22,
-      borderWidth: 0.1,
-      borderColor: 'rgba(48, 48, 48, 1)',
+      borderWidth: 0.17,
+      borderColor: 'rgba(37, 37, 37, 1)',
       backgroundColor: 'rgba(35, 35, 35, 1)',
-      borderRadius: 25,
+      borderRadius: 20,
     },
     micWrap: {
       position: 'absolute',
       right: 44,
-      top: 8, // centers 22px icon in 48px input
+      top: 5, // centers 22px icon in 48px input
       zIndex: 2, // iOS
       elevation: 2, // Android
       // let input still get touches outside the icon bounds
