@@ -35,7 +35,7 @@ const DiscoverCarousel: React.FC = () => {
   const styles = StyleSheet.create({
     card: {
       width: 160,
-      marginHorizontal: 8,
+      marginRight: 12,
       borderRadius: 12,
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
