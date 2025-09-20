@@ -380,7 +380,7 @@ export default function ClosetScreen({navigate}: Props) {
             onPress={() => setShowFilter(true)}>
             <MaterialIcons
               name="filter-list"
-              size={24}
+              size={29}
               color={theme.colors.primary}
             />
           </AppleTouchFeedback>
@@ -389,7 +389,7 @@ export default function ClosetScreen({navigate}: Props) {
             style={{...styles.iconButton}}
             hapticStyle="impactLight"
             onPress={() => setShowSort(true)}>
-            <MaterialIcons name="sort" size={24} color={theme.colors.primary} />
+            <MaterialIcons name="sort" size={29} color={theme.colors.primary} />
           </AppleTouchFeedback>
         </View>
       </View>
@@ -409,7 +409,13 @@ export default function ClosetScreen({navigate}: Props) {
                   {items.map(item => (
                     <AppleTouchFeedback
                       key={item.id}
-                      style={styles.gridCard}
+                      style={[
+                        styles.gridCard,
+                        {
+                          borderColor: theme.colors.surfaceBorder,
+                          borderWidth: 1,
+                        },
+                      ]}
                       hapticStyle="impactLight"
                       onPress={() =>
                         navigate('ItemDetail', {itemId: item.id, item})
@@ -417,8 +423,8 @@ export default function ClosetScreen({navigate}: Props) {
                       onLongPress={() => {
                         setEditedName(item.name ?? '');
                         setEditedColor(item.color ?? '');
-                        setSelectedItemToEdit(item); // ✅ open correct item
-                        setShowEditModal(true); // ✅ show modal
+                        setSelectedItemToEdit(item);
+                        setShowEditModal(true);
                       }}>
                       <Image
                         source={{uri: item.image_url}}

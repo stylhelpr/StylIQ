@@ -253,6 +253,8 @@ export default function SettingsScreen({navigate}: Props) {
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleToggleNotifications}
+                trackColor={{false: colors.muted, true: theme.colors.button1}}
+                ios_backgroundColor={colors.muted}
               />
             </View>
 
@@ -297,6 +299,11 @@ export default function SettingsScreen({navigate}: Props) {
                       onValueChange={v =>
                         setVisible(key as keyof typeof prefs, v)
                       }
+                      trackColor={{
+                        false: colors.muted,
+                        true: theme.colors.button1,
+                      }}
+                      ios_backgroundColor={colors.muted}
                     />
                   </View>
                 ))}
@@ -486,8 +493,9 @@ export default function SettingsScreen({navigate}: Props) {
   );
 }
 
-////////////////
+///////////////////
 
+// // apps/mobile/src/screens/SettingsScreen.tsx
 // import React, {useState, useEffect} from 'react';
 // import {
 //   View,
@@ -507,14 +515,15 @@ export default function SettingsScreen({navigate}: Props) {
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 // import PushNotification from 'react-native-push-notification';
 // import DeviceInfo from 'react-native-device-info';
-// import BackHeader from '../components/Backheader/Backheader';
+// // import BackHeader from '../components/Backheader/Backheader'; // (unused)
 // import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
 // import {tokens} from '../styles/tokens/tokens';
+// import {useHomePrefs} from '../hooks/useHomePrefs';
 
 // type Props = {
-//   navigation: any;
+//   navigate: (screen: string, params?: any) => void;
 // };
 
 // const skinOptions: {
@@ -547,6 +556,9 @@ export default function SettingsScreen({navigate}: Props) {
 //   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 //   const [appVersion, setAppVersion] = useState('');
 //   const colors = theme.colors;
+
+//   // 👇 Home visibility preferences (Weather, Map, Quick Access, Saved Looks)
+//   const {prefs, setVisible} = useHomePrefs();
 
 //   const styles = StyleSheet.create({
 //     screen: {
@@ -642,9 +654,9 @@ export default function SettingsScreen({navigate}: Props) {
 //   const handleSkinSelect = (skin: ThemeType | 'system') => {
 //     if (skin === 'system') {
 //       const fallback = systemScheme === 'dark' ? 'dark' : 'light';
-//       setSkin(fallback);
+//       setSkin(fallback as ThemeType);
 //     } else {
-//       setSkin(skin);
+//       setSkin(skin as ThemeType);
 //     }
 //     setModalVisible(false);
 //   };
@@ -741,6 +753,53 @@ export default function SettingsScreen({navigate}: Props) {
 //               />
 //             </View>
 
+//             {/* 🎛 Customize Home — toggle Home sections */}
+//             <View style={[globalStyles.section2, {marginTop: 8}]}>
+//               <Text
+//                 style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+//                 Customize Home Screen
+//               </Text>
+
+//               <View
+//                 style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
+//                 {(
+//                   [
+//                     ['weather', 'Weather'],
+//                     ['locationMap', 'Location Map'],
+//                     ['quickAccess', 'Quick Access'],
+//                     ['recommendedItems', 'Recommended Items'],
+//                     ['savedLooks', 'Saved Looks'],
+//                   ] as const
+//                 ).map(([key, label], idx, arr) => (
+//                   <View
+//                     key={key}
+//                     style={[
+//                       globalStyles.menuSection1,
+//                       idx < arr.length - 1 && globalStyles.hrLine,
+//                       {
+//                         flexDirection: 'row',
+//                         justifyContent: 'space-between',
+//                         alignItems: 'center',
+//                       },
+//                     ]}>
+//                     <Text
+//                       style={[
+//                         globalStyles.menuLabel,
+//                         {color: colors.foreground},
+//                       ]}>
+//                       {label}
+//                     </Text>
+//                     <Switch
+//                       value={(prefs as any)[key]}
+//                       onValueChange={v =>
+//                         setVisible(key as keyof typeof prefs, v)
+//                       }
+//                     />
+//                   </View>
+//                 ))}
+//               </View>
+//             </View>
+
 //             <View style={globalStyles.section2}>
 //               {/* 🎨 Theme */}
 //               <Text
@@ -783,7 +842,7 @@ export default function SettingsScreen({navigate}: Props) {
 //                       globalStyles.menuLabel,
 //                       {color: colors.foreground},
 //                     ]}>
-//                     Personal Information
+//                     Profile Information
 //                   </Text>
 //                 </AppleTouchFeedback>
 

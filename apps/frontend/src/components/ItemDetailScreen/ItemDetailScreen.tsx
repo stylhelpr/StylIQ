@@ -1024,14 +1024,19 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
         <View style={styles.buttonRow}>
           <Pressable
-            style={[useGlobalStyles().buttonPrimary]}
+            style={[useGlobalStyles().buttonPrimary, {width: 150}]}
             onPress={() => updateMutation.mutate()}>
             <Text style={useGlobalStyles().buttonPrimaryText}>
               Save Changes
             </Text>
           </Pressable>
           <Pressable
-            style={[useGlobalStyles().buttonPrimary, styles.cancelButton]}
+            style={[
+              useGlobalStyles().buttonPrimary,
+              styles.cancelButton,
+              ,
+              {width: 150},
+            ]}
             onPress={() => navigation.goBack()}>
             <Text style={useGlobalStyles().buttonPrimaryText}>Cancel</Text>
           </Pressable>
@@ -1041,7 +1046,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
           <Pressable
             style={[
               useGlobalStyles().buttonPrimary,
-              {backgroundColor: 'red', marginTop: 16},
+              {backgroundColor: 'red', marginTop: 16, width: 150},
             ]}
             onPress={handleDelete}>
             <Text style={useGlobalStyles().buttonPrimaryText}>Delete Item</Text>

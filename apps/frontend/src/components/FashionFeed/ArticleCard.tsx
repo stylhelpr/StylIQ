@@ -1,5 +1,8 @@
 import React from 'react';
 import {View, Text, Image, TouchableOpacity, StyleSheet} from 'react-native';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
+import {useAppTheme} from '../../context/ThemeContext';
 
 type Props = {
   title: string;
@@ -16,6 +19,59 @@ export default function ArticleCard({
   image,
   time,
 }: Props) {
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+
+  const styles = StyleSheet.create({
+    row: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: '#1b1b1bff',
+      // backgroundColor: theme.colors.surface,
+      // borderBottomWidth: StyleSheet.hairlineWidth,
+      // borderBottomColor: 'rgba(255,255,255,0.06)',
+      marginBottom: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    meta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    source: {
+      color: 'rgba(255, 255, 255, 1)',
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    dot: {marginHorizontal: 6, color: 'rgba(255,255,255,0.35)'},
+    time: {color: 'rgba(255,255,255,0.5)', fontSize: 12},
+    content: {
+      flexDirection: 'row',
+    },
+    title: {
+      flex: 1,
+      color: '#fff',
+      fontSize: 17,
+      lineHeight: 22,
+      fontWeight: '700',
+      marginRight: 20, // ⬅️ adds breathing room from the image
+    },
+    image: {
+      width: 120,
+      height: 120,
+      borderRadius: 10,
+      marginTop: -20,
+    },
+    imagePlaceholder: {
+      width: 120,
+      height: 120,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+      marginTop: -20,
+    },
+  });
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.row}>
       <View style={styles.meta}>
@@ -37,54 +93,6 @@ export default function ArticleCard({
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#1b1b1bff',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-    marginBottom: 12,
-    borderRadius: 12,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  source: {
-    color: 'rgba(255, 255, 255, 1)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  dot: {marginHorizontal: 6, color: 'rgba(255,255,255,0.35)'},
-  time: {color: 'rgba(255,255,255,0.5)', fontSize: 12},
-  content: {
-    flexDirection: 'row',
-  },
-  title: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '700',
-    marginRight: 20, // ⬅️ adds breathing room from the image
-  },
-  image: {
-    width: 120,
-    height: 120,
-    borderRadius: 10,
-    marginTop: -20,
-  },
-  imagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    marginTop: -20,
-  },
-});
 
 ////////////////////
 

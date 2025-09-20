@@ -6,6 +6,8 @@ import {useAppTheme} from '../../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
 import type {Screen} from '../../navigation/types';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: Screen) => void;
@@ -14,6 +16,7 @@ type Props = {
 
 export default function GlobalHeader({navigate, showSettings = false}: Props) {
   const {theme} = useAppTheme();
+  const {user} = useAuth0();
   const {clearSession} = useAuth0();
 
   const handleLogout = async () => {
@@ -85,7 +88,11 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
           style={styles.iconButton}
           hapticStyle="impactLight"
           onPress={() => navigate('AiStylistChatScreen')}>
-          <MaterialIcons name="smart-toy" size={32} color="rgb(102, 0, 255)" />
+          <MaterialIcons
+            name="smart-toy"
+            size={32}
+            color="rgba(102, 0, 197, 1)"
+          />
         </AppleTouchFeedback>
 
         {/* ⬇️ NEW: Planner */}

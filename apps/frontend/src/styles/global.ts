@@ -7,7 +7,7 @@ const screenWidth = Dimensions.get('window').width;
 const isTablet = screenWidth >= 768;
 
 const responsivePadding = isTablet ? 38 : 20;
-const sectionMarginBottom = isTablet ? 32 : 26;
+const sectionMarginBottom = isTablet ? 32 : 22;
 const image1Width = isTablet ? 270 : 165;
 const image1Height = isTablet ? 150 : 95;
 const image2Width = isTablet ? 270 : 165;
@@ -138,13 +138,6 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '500',
       color: theme.colors.button3,
     },
-    // sectionTitle: {
-    //   fontSize: 18,
-    //   fontWeight: '700',
-    //   lineHeight: 24,
-    //   color: theme.colors.foreground,
-    //   marginBottom: 11,
-    // },
     sectionTitle: {
       fontSize: 18,
       fontWeight: '700',
@@ -180,7 +173,7 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: 20,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
-      paddingTop: 20,
+      paddingTop: 2,
       paddingHorizontal: 16,
       paddingBottom: 8,
     },
@@ -286,14 +279,18 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: 18,
       paddingVertical: 9,
       borderRadius: 18,
-      marginRight: 8,
-      alignSelf: 'flex-start',
-      shadowOffset: {width: 0, height: 6},
-      shadowOpacity: 0.1,
-      shadowRadius: 12,
-      elevation: 5,
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder,
+      marginRight: 8,
+    },
+    pill2: {
+      paddingHorizontal: 18,
+      paddingVertical: 9,
+      backgroundColor: 'rgba(255, 255, 255, 0.14)',
+      borderRadius: 18,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(255,255,255,0.12)',
+      marginRight: 8,
     },
     pillText: {
       fontSize: 14,
@@ -354,12 +351,31 @@ export const createGlobalStyles = (theme: Theme) =>
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 3,
     },
+    // buttonPrimary: {
+    //   width: '90%',
+    //   maxWidth: 160,
+    //   backgroundColor: theme.colors.button1,
+    //   borderRadius: tokens.borderRadius['2xl'],
+    //   paddingVertical: 11,
+    //   alignItems: 'center',
+    //   justifyContent: 'center',
+    //   shadowColor: '#000',
+    //   shadowOffset: {width: 0, height: 1},
+    //   shadowOpacity: 0.1,
+    //   shadowRadius: 4,
+    //   elevation: 2,
+    // },
+    // buttonPrimaryText: {
+    //   fontSize: 13,
+    //   fontWeight: '500',
+    //   color: '#fff',
+    // },
     buttonPrimary: {
-      width: '90%',
-      maxWidth: 160,
+      // width: '90%',
+      // maxWidth: 160,
       backgroundColor: theme.colors.button1,
-      borderRadius: tokens.borderRadius.sm,
-      paddingVertical: 9,
+      borderRadius: tokens.borderRadius['2xl'],
+      paddingVertical: 14,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -368,24 +384,9 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowRadius: 4,
       elevation: 2,
     },
-    // buttonPrimary: {
-    //   width: '90%',
-    //   maxWidth: 150,
-    //   backgroundColor: 'transparent',
-    //   paddingVertical: 9,
-    //   alignItems: 'center',
-    //   justifyContent: 'center',
-    //   shadowOffset: {width: 0, height: 6},
-    //   shadowOpacity: 0.1,
-    //   shadowRadius: 12,
-    //   elevation: 5,
-    //   borderColor: theme.colors.button1,
-    //   borderRadius: 50,
-    //   borderWidth: 2,
-    // },
     buttonPrimaryText: {
-      fontSize: 15,
-      fontWeight: '500',
+      fontSize: 14,
+      fontWeight: '600',
       color: '#fff',
     },
     buttonSecondary: {

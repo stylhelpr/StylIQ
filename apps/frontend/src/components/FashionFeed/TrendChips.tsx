@@ -1,6 +1,9 @@
 // apps/mobile/src/components/FashionFeed/TrendChips.tsx
 import React from 'react';
 import {ScrollView, Text, View, StyleSheet, Pressable} from 'react-native';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
+import {useAppTheme} from '../../context/ThemeContext';
 
 type Props = {
   items: string[];
@@ -22,6 +25,30 @@ export default function TrendChips({
   const visible = items.slice(0, maxVisible);
   const overflow = Math.max(items.length - visible.length, 0);
 
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+
+  const styles = StyleSheet.create({
+    wrap: {paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#000'},
+    row: {gap: 8, paddingHorizontal: 4, alignItems: 'center'},
+    chip: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.14)',
+      borderRadius: 18,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(255,255,255,0.12)',
+      marginLeft: 4,
+    },
+    chipActive: {
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderColor: 'rgba(255,255,255,0.32)',
+    },
+    label: {color: '#ff0000ff', fontWeight: '600'},
+    labelActive: {color: '#ffffffff'},
+    moreChip: {backgroundColor: 'rgba(255,255,255,0.12)'},
+  });
+
   return (
     <View style={styles.wrap}>
       <ScrollView
@@ -34,7 +61,8 @@ export default function TrendChips({
             <Pressable
               key={term}
               onPress={() => onTap?.(term)}
-              style={[styles.chip, isActive && styles.chipActive]}
+              // style={[styles.chip, isActive && styles.chipActive]}
+              style={[globalStyles.pill2, isActive && styles.chipActive]}
               android_ripple={{color: 'rgba(255,255,255,0.1)'}}>
               <Text style={[styles.label, isActive && styles.labelActive]}>
                 {term}
@@ -55,27 +83,6 @@ export default function TrendChips({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#000'},
-  row: {gap: 8, paddingHorizontal: 4, alignItems: 'center'},
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
-    marginLeft: 4,
-  },
-  chipActive: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderColor: 'rgba(255,255,255,0.32)',
-  },
-  label: {color: '#ff0000ff', fontWeight: '600'},
-  labelActive: {color: '#ffffffff'},
-  moreChip: {backgroundColor: 'rgba(255,255,255,0.12)'},
-});
 
 ///////////////////
 
