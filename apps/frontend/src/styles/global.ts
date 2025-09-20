@@ -7,7 +7,7 @@ const screenWidth = Dimensions.get('window').width;
 const isTablet = screenWidth >= 768;
 
 const responsivePadding = isTablet ? 38 : 20;
-const sectionMarginBottom = isTablet ? 32 : 22;
+const sectionMarginBottom = isTablet ? 32 : 24;
 const image1Width = isTablet ? 270 : 165;
 const image1Height = isTablet ? 150 : 95;
 const image2Width = isTablet ? 270 : 165;
@@ -143,7 +143,7 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '700',
       lineHeight: 24,
       color: theme.colors.foreground,
-      marginBottom: 10,
+      marginBottom: 8,
     },
     sectionTitle2: {
       fontSize: 18,
@@ -470,7 +470,6 @@ export const createGlobalStyles = (theme: Theme) =>
       flex: 1,
       color: theme.colors.foreground,
       fontSize: 16,
-      backgroundColor: theme.colors.surface3,
     },
     hrLine: {
       borderBottomWidth: 1,

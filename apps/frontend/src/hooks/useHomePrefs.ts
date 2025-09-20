@@ -5,6 +5,7 @@ export type HomePrefs = {
   weather: boolean;
   locationMap: boolean;
   quickAccess: boolean;
+  topFashionStories: boolean;
   recommendedItems: boolean;
   savedLooks: boolean;
 };
@@ -14,6 +15,7 @@ const DEFAULT_PREFS: HomePrefs = {
   weather: true,
   locationMap: true,
   quickAccess: true,
+  topFashionStories: true,
   recommendedItems: true,
   savedLooks: true,
 };
