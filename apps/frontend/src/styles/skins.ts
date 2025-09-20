@@ -23,7 +23,7 @@ export const skins = {
       surface2: 'rgba(18, 18, 18, 1)',
       surface3: 'rgba(31, 34, 43, 1)',
       // surfaceBorder: '#414141ff',
-      surfaceBorder: '#2b2b2bff',
+      surfaceBorder: '#3b3b3bff',
       inputBorder: '#676769',
       accents: '#676769',
       separator: '#434343',
