@@ -32,7 +32,7 @@ import {useVoiceControl} from '../hooks/useVoiceControl';
 // removed unused TextInput
 import LiveLocationMap from '../components/LiveLocationMap/LiveLocationMap';
 import {useHomePrefs} from '../hooks/useHomePrefs';
-import DiscoverCarousel from '../components/DiscoverCarousel';
+import DiscoverCarousel from '../components/DiscoverCarousel/DiscoverCarousel';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -447,7 +447,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {prefs.locationMap && (
         <View style={globalStyles.section}>
           <Text style={globalStyles.sectionTitle}>Your Location</Text>
-          <View style={[globalStyles.cardStyles1, {padding: 0}]}>
+          <View
+            style={[
+              globalStyles.cardStyles1,
+              {
+                padding: 1,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: 1,
+              },
+            ]}>
             <LiveLocationMap
               height={220}
               useCustomPin={false}
@@ -535,11 +543,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       setPreviewVisible(true);
                     }}
                     style={{alignItems: 'center'}}>
-                    <Image
-                      source={{uri: look.image_url}}
-                      style={globalStyles.image4}
-                      resizeMode="cover"
-                    />
+                    <View>
+                      <Image
+                        source={{uri: look.image_url}}
+                        style={[
+                          globalStyles.image4,
+                          {
+                            borderColor: theme.colors.surfaceBorder,
+                            borderWidth: 1,
+                          },
+                        ]}
+                        resizeMode="cover"
+                      />
+                    </View>
                     <Text
                       style={[globalStyles.label, {marginTop: 6}]}
                       numberOfLines={1}>
@@ -557,10 +573,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {prefs.savedLooks && (
         <View style={{alignItems: 'center'}}>
           <AppleTouchFeedback
-            style={[globalStyles.buttonPrimary, {width: 160}]}
+            style={[globalStyles.buttonPrimary, {width: 125}]}
             hapticStyle="impactHeavy"
             onPress={() => setSaveModalVisible(true)}>
-            <Text style={globalStyles.buttonPrimaryText}>Add A Look</Text>
+            <Text style={globalStyles.buttonPrimaryText}>Add Look</Text>
           </AppleTouchFeedback>
         </View>
       )}

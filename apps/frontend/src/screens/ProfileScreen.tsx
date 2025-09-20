@@ -544,7 +544,10 @@ export default function ProfileScreen({navigate}: Props) {
                 }}>
                 <Image
                   source={{uri: look.image_url}}
-                  style={globalStyles.image4}
+                  style={[
+                    globalStyles.image4,
+                    {borderWidth: 1, borderColor: theme.colors.surfaceBorder},
+                  ]}
                 />
                 <Text
                   style={[globalStyles.label, {marginTop: 6}]}

@@ -8,11 +8,11 @@ import {
   Linking,
   StyleSheet,
 } from 'react-native';
-import {API_BASE_URL} from '../config/api';
-import {useUUID} from '../context/UUIDContext';
-import {useGlobalStyles} from '../styles/useGlobalStyles';
-import {tokens} from '../styles/tokens/tokens';
-import {useAppTheme} from '../context/ThemeContext';
+import {API_BASE_URL} from '../../config/api';
+import {useUUID} from '../../context/UUIDContext';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
+import {useAppTheme} from '../../context/ThemeContext';
 
 type Product = {
   id: string;
@@ -31,6 +31,39 @@ const DiscoverCarousel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  const styles = StyleSheet.create({
+    card: {
+      width: 160,
+      marginHorizontal: 8,
+      borderRadius: 12,
+      backgroundColor: '#191919ff',
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    image: {
+      width: '100%',
+      // height: 180,
+      height: 120,
+      backgroundColor: 'rgba(32, 32, 32, 1)',
+    },
+    title: {
+      color: 'rgba(235, 235, 235, 1)',
+      fontSize: 14,
+      fontWeight: '600',
+      marginHorizontal: 8,
+      marginTop: 6,
+    },
+    brand: {
+      fontSize: 12,
+      color: 'rgba(120, 120, 120, 1)',
+      marginHorizontal: 8,
+      marginBottom: 8,
+      marginTop: 4,
+      fontWeight: '500',
+    },
+  });
 
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 300);
@@ -98,37 +131,6 @@ const DiscoverCarousel: React.FC = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    width: 160,
-    marginHorizontal: 8,
-    borderRadius: 12,
-    backgroundColor: '#1e1e1eff',
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    // height: 180,
-    height: 120,
-    backgroundColor: 'rgba(44, 44, 44, 1)',
-  },
-  title: {
-    color: 'rgba(235, 235, 235, 1)',
-    fontSize: 14,
-    fontWeight: '600',
-    marginHorizontal: 8,
-    marginTop: 6,
-  },
-  brand: {
-    fontSize: 12,
-    color: 'rgba(120, 120, 120, 1)',
-    marginHorizontal: 8,
-    marginBottom: 8,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-});
 
 export default DiscoverCarousel;
 

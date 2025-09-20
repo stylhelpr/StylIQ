@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import {useUUID} from '../context/UUIDContext';
 import {useAppTheme} from '../context/ThemeContext';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 import {
   loadNotifications,
   markRead,
@@ -25,12 +27,67 @@ export default function NotificationsScreen({
 }: {
   navigate: (screen: string) => void;
 }) {
-  const userId = useUUID() ?? '';
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+
+  const userId = useUUID() ?? '';
+
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  const styles = StyleSheet.create({
+    screen: {flex: 1},
+    nav: {
+      paddingTop: 10,
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    title: {fontSize: 22, fontWeight: '800'},
+    actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
+    actionBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: theme.colors.surface2,
+      marginRight: 6,
+    },
+    actionDanger: {backgroundColor: 'rgba(255,59,48,0.22)'},
+    actionText: {color: '#fff', fontWeight: '700', fontSize: 12},
+    filters: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 16,
+      marginBottom: 8,
+    },
+    pill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(45, 45, 45, 1)',
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(255,255,255,0.12)',
+    },
+    pillActive: {
+      backgroundColor: 'rgba(99, 101, 241, 1)',
+      borderColor: 'rgba(99,102,241,0.45)',
+    },
+    pillText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+    pillTextActive: {color: '#fff'},
+    center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+    empty: {paddingHorizontal: 16, paddingTop: 40},
+    emptyBig: {
+      color: '#fff',
+      fontWeight: '800',
+      fontSize: 18,
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    emptySub: {color: 'rgba(255,255,255,0.7)', textAlign: 'center'},
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,8 +130,12 @@ export default function NotificationsScreen({
               await clearAll(userId);
               await load();
             }}
-            style={[styles.actionBtn, styles.actionDanger]}>
-            <Text style={styles.actionText}>Clear</Text>
+            style={[
+              styles.actionBtn,
+              styles.actionDanger,
+              {backgroundColor: theme.colors.error},
+            ]}>
+            <Text style={{color: theme.colors.primary}}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -87,7 +148,11 @@ export default function NotificationsScreen({
             <TouchableOpacity
               key={f}
               onPress={() => setFilter(f)}
-              style={[styles.pill, active && styles.pillActive]}>
+              style={[
+                styles.pill,
+                active && styles.pillActive,
+                {marginRight: 6},
+              ]}>
               <Text style={[styles.pillText, active && styles.pillTextActive]}>
                 {f === 'all' ? 'All' : 'Unread'}
               </Text>
@@ -145,57 +210,6 @@ export default function NotificationsScreen({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {flex: 1},
-  nav: {
-    paddingTop: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  title: {fontSize: 22, fontWeight: '800'},
-  actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
-  actionBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  actionDanger: {backgroundColor: 'rgba(255,59,48,0.22)'},
-  actionText: {color: '#fff', fontWeight: '700', fontSize: 12},
-  filters: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  pillActive: {
-    backgroundColor: 'rgba(99,102,241,0.25)',
-    borderColor: 'rgba(99,102,241,0.45)',
-  },
-  pillText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
-  pillTextActive: {color: '#fff'},
-  center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
-  empty: {paddingHorizontal: 16, paddingTop: 40},
-  emptyBig: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 18,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  emptySub: {color: 'rgba(255,255,255,0.7)', textAlign: 'center'},
-});
 
 ///////////////////
 
@@ -397,140 +411,3 @@ const styles = StyleSheet.create({
 //   },
 //   emptySub: {color: 'rgba(255,255,255,0.7)', textAlign: 'center'},
 // });
-
-///////////////////
-
-// import React, {useEffect, useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   ScrollView,
-//   ActivityIndicator,
-// } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import {useAppTheme} from '../context/ThemeContext';
-// import BackHeader from '../components/Backheader/Backheader';
-// import {useGlobalStyles} from '../styles/useGlobalStyles';
-// import {tokens} from '../styles/tokens/tokens';
-
-// interface Notification {
-//   id: string;
-//   message: string;
-//   timestamp: string;
-// }
-
-// type Props = {
-//   navigate: (screen: string) => void;
-// };
-
-// export default function NotificationsScreen({navigate}: Props) {
-//   const [notifications, setNotifications] = useState<Notification[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const {theme} = useAppTheme();
-//   const globalStyles = useGlobalStyles();
-//   const colors = theme.colors;
-
-//   const styles = StyleSheet.create({
-//     screen: {
-//       flex: 1,
-//       backgroundColor: theme.colors.background,
-//     },
-//     chipGroup: {
-//       flexDirection: 'row',
-//       flexWrap: 'wrap',
-//       marginTop: 4,
-//     },
-//     input: {
-//       borderWidth: 1,
-//       borderColor: colors.surface,
-//       borderRadius: 8,
-//       paddingVertical: 8,
-//       paddingHorizontal: 12,
-//       fontSize: 16,
-//       color: colors.foreground,
-//     },
-//     center: {
-//       flex: 1,
-//       justifyContent: 'center',
-//       alignItems: 'center',
-//     },
-//     card: {
-//       borderRadius: 12,
-//       padding: 12,
-//       marginBottom: 12,
-//       shadowColor: '#000',
-//       shadowOpacity: 0.1,
-//       shadowRadius: 4,
-//       elevation: 2,
-//     },
-//     message: {
-//       fontSize: 16,
-//       marginBottom: 4,
-//     },
-//     chipRow: {flexDirection: 'row', flexWrap: 'wrap', marginTop: 4},
-//   });
-
-//   useEffect(() => {
-//     const fetchNotifications = async () => {
-//       try {
-//         const raw = await AsyncStorage.getItem('notifications');
-//         if (raw) {
-//           const parsed = JSON.parse(raw);
-//           setNotifications(parsed);
-//         }
-//       } catch (err) {
-//         console.error('Failed to load notifications:', err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchNotifications();
-//   }, []);
-
-//   if (loading) {
-//     return (
-//       <View style={[styles.center, {backgroundColor: theme.colors.background}]}>
-//         <ActivityIndicator color={theme.colors.primary} size="large" />
-//       </View>
-//     );
-//   }
-
-//   return (
-//     <ScrollView
-//       style={[
-//         globalStyles.container,
-//         {backgroundColor: theme.colors.background},
-//       ]}>
-//       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
-//         Notifications
-//       </Text>
-//       <View style={globalStyles.section}>
-//         <View style={globalStyles.backContainer}>
-//           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-//           <Text style={globalStyles.backText}>Back</Text>
-//         </View>
-
-//         {notifications.length === 0 ? (
-//           <Text style={{color: theme.colors.foreground2}}>
-//             No notifications yet.
-//           </Text>
-//         ) : (
-//           notifications.map(notification => (
-//             <View
-//               key={notification.id}
-//               style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-//               <Text style={[styles.message, {color: theme.colors.foreground}]}>
-//                 {notification.message}
-//               </Text>
-//               <Text style={{color: theme.colors.foreground2, fontSize: 12}}>
-//                 {notification.timestamp}
-//               </Text>
-//             </View>
-//           ))
-//         )}
-//       </View>
-//     </ScrollView>
-//   );
-// }
