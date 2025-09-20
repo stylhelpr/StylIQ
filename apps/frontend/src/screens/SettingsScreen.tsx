@@ -72,7 +72,7 @@ export default function SettingsScreen({navigate}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 30,
+      marginBottom: 20,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 22,
@@ -243,7 +243,12 @@ export default function SettingsScreen({navigate}: Props) {
         </View>
 
         <View style={globalStyles.centeredSection}>
-          <View>
+          <View style={[globalStyles.section2]}>
+            <Text
+              style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+              Notifications
+            </Text>
+
             {/* 🔔 Notifications */}
             <View style={[styles.enableRow, globalStyles.cardStyles3]}>
               <Text
@@ -259,9 +264,12 @@ export default function SettingsScreen({navigate}: Props) {
             </View>
 
             {/* 🎛 Customize Home — toggle Home sections */}
-            <View style={[globalStyles.section2, {marginTop: 8}]}>
+            <View style={[globalStyles.section2]}>
               <Text
-                style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+                style={[
+                  globalStyles.sectionTitle2,
+                  {color: colors.foreground},
+                ]}>
                 Customize Home Screen
               </Text>
 
@@ -340,6 +348,13 @@ export default function SettingsScreen({navigate}: Props) {
             </View>
 
             <View>
+              <Text
+                style={[
+                  globalStyles.sectionTitle2,
+                  {color: colors.foreground},
+                ]}>
+                Profile and Data
+              </Text>
               <View
                 style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
                 {/* Personal Information */}
