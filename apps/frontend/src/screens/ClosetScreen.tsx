@@ -417,7 +417,7 @@ export default function ClosetScreen({navigate}: Props) {
                         styles.gridCard,
                         {
                           borderColor: theme.colors.surfaceBorder,
-                          borderWidth: 1,
+                          borderWidth: tokens.borderWidth.md,
                         },
                       ]}
                       hapticStyle="impactLight"

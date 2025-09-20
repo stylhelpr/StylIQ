@@ -56,7 +56,7 @@ export default function FashionGoalsScreen({navigate}: Props) {
       backgroundColor: theme.colors.background,
     },
     input: {
-      borderWidth: 1,
+      borderWidth: tokens.borderWidth.hairline,
       borderRadius: tokens.borderRadius.md,
       padding: 10,
       marginBottom: 15,
@@ -87,7 +87,11 @@ export default function FashionGoalsScreen({navigate}: Props) {
             What are your style goals?
           </Text>
           <View
-            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+            style={[
+              globalStyles.styleContainer1,
+              globalStyles.cardStyles3,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
             <TextInput
               style={[styles.input, {borderColor: theme.colors.inputBorder}]}
               value={goals}
@@ -101,7 +105,11 @@ export default function FashionGoalsScreen({navigate}: Props) {
             How confident do you feel in your style?
           </Text>
           <View
-            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+            style={[
+              globalStyles.styleContainer1,
+              globalStyles.cardStyles3,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
             <View style={globalStyles.pillContainer}>
               {['Very confident', 'Somewhat', 'Need help'].map(option => (
                 <Chip
@@ -118,7 +126,11 @@ export default function FashionGoalsScreen({navigate}: Props) {
             Do you prefer bold or subtle looks?
           </Text>
           <View
-            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+            style={[
+              globalStyles.styleContainer1,
+              globalStyles.cardStyles3,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
             <View style={globalStyles.pillContainer}>
               {[
                 'Bold standout pieces',

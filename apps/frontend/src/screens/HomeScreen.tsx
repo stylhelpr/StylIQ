@@ -311,7 +311,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             shadowOpacity: 0.1,
             shadowRadius: 12,
             elevation: 5,
-            borderWidth: 1,
+            borderWidth: tokens.borderWidth.md,
             borderColor: theme.colors.surfaceBorder,
             borderRadius: tokens.borderRadius.md,
             backgroundColor: theme.colors.surface,
@@ -453,7 +453,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               {
                 padding: 1,
                 borderColor: theme.colors.surfaceBorder,
-                borderWidth: 1,
               },
             ]}>
             <LiveLocationMap
@@ -550,7 +549,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           globalStyles.image4,
                           {
                             borderColor: theme.colors.surfaceBorder,
-                            borderWidth: 1,
+                            borderWidth: tokens.borderWidth.md,
                           },
                         ]}
                         resizeMode="cover"

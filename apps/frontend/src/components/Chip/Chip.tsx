@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {TouchableOpacity, Text, StyleSheet} from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
 
 type Props = {
   label: string;
@@ -33,7 +34,9 @@ export const Chip = ({label, selected = false, onPress}: Props) => {
         globalStyles.pill,
         {
           marginBottom: 12,
-          backgroundColor: isSelected ? colors.primary : colors.cardBackground,
+          backgroundColor: isSelected
+            ? theme.colors.foreground
+            : theme.colors.pillDark2,
           borderColor: isSelected ? colors.primary : colors.surface,
         },
       ]}>

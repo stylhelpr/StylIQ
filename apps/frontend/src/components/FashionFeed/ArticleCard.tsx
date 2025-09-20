@@ -27,12 +27,9 @@ export default function ArticleCard({
       paddingVertical: 12,
       paddingHorizontal: 16,
       backgroundColor: theme.colors.surface,
-      // backgroundColor: theme.colors.surface,
-      // borderBottomWidth: StyleSheet.hairlineWidth,
-      // borderBottomColor: 'rgba(255,255,255,0.06)',
       marginBottom: 12,
       borderRadius: 12,
-      borderWidth: 1,
+      borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
     },
     meta: {

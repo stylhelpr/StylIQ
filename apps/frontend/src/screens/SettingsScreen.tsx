@@ -104,7 +104,7 @@ export default function SettingsScreen({navigate}: Props) {
       height: 16,
       borderRadius: 4,
       marginRight: 10,
-      borderWidth: 1,
+      borderWidth: tokens.borderWidth.md,
       borderColor: '#ccc',
     },
     version: {
@@ -250,7 +250,12 @@ export default function SettingsScreen({navigate}: Props) {
             </Text>
 
             {/* 🔔 Notifications */}
-            <View style={[styles.enableRow, globalStyles.cardStyles3]}>
+            <View
+              style={[
+                styles.enableRow,
+                globalStyles.cardStyles3,
+                {borderWidth: tokens.borderWidth.md},
+              ]}>
               <Text
                 style={[globalStyles.menuLabel, {color: colors.foreground}]}>
                 Enable Notifications
@@ -274,7 +279,11 @@ export default function SettingsScreen({navigate}: Props) {
               </Text>
 
               <View
-                style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
+                style={[
+                  globalStyles.menuContainer1,
+                  globalStyles.cardStyles3,
+                  {borderWidth: tokens.borderWidth.md},
+                ]}>
                 {(
                   [
                     ['weather', 'Weather'],
@@ -330,7 +339,10 @@ export default function SettingsScreen({navigate}: Props) {
                 style={[
                   globalStyles.menuSection2,
                   globalStyles.cardStyles3,
-                  {backgroundColor: colors.surface},
+                  {
+                    backgroundColor: colors.surface,
+                    borderWidth: tokens.borderWidth.md,
+                  },
                 ]}>
                 <AppleTouchFeedback
                   onPress={() => setModalVisible(true)}
@@ -356,8 +368,12 @@ export default function SettingsScreen({navigate}: Props) {
                 Profile and Data
               </Text>
               <View
-                style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
-                {/* Personal Information */}
+                style={[
+                  globalStyles.menuContainer1,
+                  globalStyles.cardStyles3,
+                  {borderWidth: tokens.borderWidth.md},
+                ]}>
+                {/* Profile Information */}
                 <AppleTouchFeedback
                   onPress={() => navigate('PersonalInformation')}
                   hapticStyle="impactLight"

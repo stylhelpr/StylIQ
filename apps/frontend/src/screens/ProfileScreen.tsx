@@ -270,7 +270,7 @@ export default function ProfileScreen({navigate}: Props) {
       width: 100,
       height: 100,
       borderRadius: 50,
-      borderWidth: 3,
+      borderWidth: tokens.borderWidth.xl,
       borderColor: theme.colors.surfaceBorder,
       alignItems: 'center',
       justifyContent: 'center',
@@ -546,7 +546,10 @@ export default function ProfileScreen({navigate}: Props) {
                   source={{uri: look.image_url}}
                   style={[
                     globalStyles.image4,
-                    {borderWidth: 1, borderColor: theme.colors.surfaceBorder},
+                    {
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.surfaceBorder,
+                    },
                   ]}
                 />
                 <Text

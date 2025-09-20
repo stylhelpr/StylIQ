@@ -7,6 +7,7 @@ import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import currency from 'currency.js';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -40,7 +41,7 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
       marginBottom: 10,
     },
     input: {
-      borderWidth: 1,
+      borderWidth: tokens.borderWidth.hairline,
       borderRadius: 8,
       padding: 10,
       fontSize: 16,
@@ -132,7 +133,11 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
             Your Favorite Brands:
           </Text>
           <View
-            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+            style={[
+              globalStyles.styleContainer1,
+              globalStyles.cardStyles3,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
             <View style={globalStyles.pillContainer}>
               {allBrands.map(brand => (
                 <Chip

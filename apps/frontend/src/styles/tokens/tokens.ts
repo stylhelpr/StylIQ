@@ -61,6 +61,16 @@ export const tokens = {
     default: 8,
   },
 
+  borderWidth: {
+    none: 0,
+    hairline: 0.5,
+    sm: 0.75,
+    md: 1.0,
+    lg: 1.5,
+    xl: 2.0,
+    '2xl': 2.5,
+  },
+
   fontWeight: {
     thin: '100',
     extraLight: '200',

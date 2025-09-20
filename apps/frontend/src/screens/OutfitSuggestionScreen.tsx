@@ -637,9 +637,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     marginBottom: 12,
                     paddingHorizontal: 14,
                     paddingVertical: 7,
-                    borderWidth: 1,
+                    borderWidth: tokens.borderWidth.hairline,
                     borderColor: theme.colors.surfaceBorder,
-                    backgroundColor: theme.colors.surface,
+                    backgroundColor: theme.colors.surface3,
                     borderRadius: 20,
                   },
                 ]}>

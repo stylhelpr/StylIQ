@@ -374,7 +374,7 @@ export default function SavedOutfitsScreen() {
       borderRadius: 28,
       padding: 20,
       marginBottom: 20,
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
       shadowColor: '#000',
       shadowOpacity: 0.2,
@@ -546,7 +546,7 @@ export default function SavedOutfitsScreen() {
                       backgroundColor:
                         sortType === key
                           ? theme.colors.primary
-                          : theme.colors.surface,
+                          : theme.colors.pillDark2,
                       marginRight: 7,
                     },
                   ]}>
