@@ -375,7 +375,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius['2xl'],
-      paddingVertical: 11,
+      paddingVertical: 12,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',

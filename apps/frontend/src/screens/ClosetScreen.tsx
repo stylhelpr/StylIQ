@@ -380,7 +380,7 @@ export default function ClosetScreen({navigate}: Props) {
             onPress={() => setShowFilter(true)}>
             <MaterialIcons
               name="filter-list"
-              size={29}
+              size={28}
               color={theme.colors.foreground}
             />
           </AppleTouchFeedback>
@@ -391,7 +391,7 @@ export default function ClosetScreen({navigate}: Props) {
             onPress={() => setShowSort(true)}>
             <MaterialIcons
               name="sort"
-              size={29}
+              size={28}
               color={theme.colors.foreground}
             />
           </AppleTouchFeedback>
@@ -511,16 +511,10 @@ export default function ClosetScreen({navigate}: Props) {
       </ScrollView>
 
       <AppleTouchFeedback
-        style={{...styles.fab, marginRight: 16}}
-        // style={[
-        //   globalStyles.buttonPrimary,
-        //   {
-        //     paddingHorizontal: 28,
-        //     minWidth: 210,
-        //     alignSelf: 'center',
-        //     flexShrink: 0,
-        //   },
-        // ]}
+        style={[
+          globalStyles.buttonPrimary,
+          {...styles.fab, marginRight: 16, width: 127},
+        ]}
         onPress={() => navigate('AddItem')}>
         <Text style={{color: theme.colors.foreground, fontWeight: '600'}}>
           Add Clothes +

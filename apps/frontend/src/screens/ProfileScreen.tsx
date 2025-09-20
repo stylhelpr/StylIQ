@@ -355,17 +355,15 @@ export default function ProfileScreen({navigate}: Props) {
           <AppleTouchFeedback
             onPress={() => navigate('StyleProfileScreen')}
             hapticStyle="impactMedium"
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              minWidth: 200,
-              maxWidth: 300,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 50,
-              backgroundColor: theme.colors.button1,
-            }}>
+            style={[
+              globalStyles.buttonPrimary,
+              {
+                minWidth: 200,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            ]}>
             <Icon
               name="person-outline"
               size={20}
