@@ -132,7 +132,7 @@ export default function ExploreScreen() {
       backgroundColor: '#111',
       borderRadius: 12,
       paddingVertical: 8,
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: tokens.borderWidth.hairline,
       borderColor: 'rgba(255,255,255,0.12)',
       shadowColor: '#000',
       shadowOpacity: 0.35,

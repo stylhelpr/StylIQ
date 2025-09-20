@@ -6,6 +6,7 @@ import {Chip} from '../components/Chip/Chip';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -80,7 +81,11 @@ export default function BodyTypeScreen({navigate}: Props) {
           </Text>
 
           <View
-            style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+            style={[
+              globalStyles.styleContainer1,
+              globalStyles.cardStyles3,
+              {borderWidth: tokens.borderWidth.md},
+            ]}>
             <View style={globalStyles.pillContainer}>
               {bodyTypes.map(type => (
                 <Chip

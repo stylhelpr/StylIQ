@@ -19,6 +19,7 @@ import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {useVoiceControl} from '../hooks/useVoiceControl';
+import {tokens} from '../styles/tokens/tokens';
 
 type SavedOutfit = {
   id: string;
@@ -91,12 +92,11 @@ export default function SearchScreen({navigate, goBack}) {
       height: 40,
       paddingHorizontal: 14,
       fontSize: 16,
-      // space for mic (right:44) + clear (right:12)
       paddingRight: 88,
       marginTop: 22,
-      borderWidth: 0.17,
+      borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.surface3,
       borderRadius: 20,
     },
     micWrap: {
@@ -120,7 +120,6 @@ export default function SearchScreen({navigate, goBack}) {
     card: {
       padding: 14,
       borderRadius: 12,
-      borderWidth: 1,
       marginBottom: 12,
     },
     groupLabel: {
@@ -219,14 +218,7 @@ export default function SearchScreen({navigate, goBack}) {
                 // SEARCH LOGIC UNTOUCHED
                 setQuery(text);
               }}
-              style={[
-                styles.input,
-                {
-                  color: theme.colors.foreground,
-                  borderColor: theme.colors.foreground,
-                  backgroundColor: 'rgb(48, 48, 48)',
-                },
-              ]}
+              style={styles.input}
             />
 
             {/* 🎙️ Mic INSIDE the input (press-and-hold) */}
@@ -275,7 +267,8 @@ export default function SearchScreen({navigate, goBack}) {
                 styles.card,
                 {
                   backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.surface,
+                  borderColor: theme.colors.surfaceBorder,
+                  borderWidth: tokens.borderWidth.hairline,
                 },
               ]}
               onPress={() => navigate('ItemDetail', {item})}>

@@ -60,7 +60,7 @@ export default function MeasurementsScreen({navigate}: Props) {
       marginBottom: 8,
     },
     input: {
-      borderWidth: 1,
+      borderWidth: tokens.borderWidth.hairline,
       borderRadius: tokens.borderRadius.md,
       padding: 10,
       marginBottom: 15,
@@ -219,7 +219,11 @@ export default function MeasurementsScreen({navigate}: Props) {
 
           <View style={globalStyles.centeredSection}>
             <View
-              style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+              style={[
+                globalStyles.styleContainer1,
+                globalStyles.cardStyles3,
+                {borderWidth: tokens.borderWidth.hairline},
+              ]}>
               <View style={styles.unitRow}>
                 <View style={styles.unitTextContainer}>
                   <Text

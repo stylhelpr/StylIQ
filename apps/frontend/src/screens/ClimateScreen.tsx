@@ -6,6 +6,7 @@ import BackHeader from '../components/Backheader/Backheader';
 import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -79,7 +80,11 @@ export default function ClimateScreen({navigate}: Props) {
             </Text>
 
             <View
-              style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+              style={[
+                globalStyles.styleContainer1,
+                globalStyles.cardStyles3,
+                {borderWidth: tokens.borderWidth.md},
+              ]}>
               <View style={globalStyles.pillContainer}>
                 {climateOptions.map(option => (
                   <Chip
