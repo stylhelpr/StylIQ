@@ -1097,8 +1097,8 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
       justifyContent: 'center',
     },
     itemActive: {backgroundColor: '#111213'},
-    itemText: {color: 'rgba(255,255,255,0.75)', fontWeight: '700'},
-    itemTextActive: {color: '#fff'},
+    itemText: {color: theme.colors.foreground3, fontWeight: '700'},
+    itemTextActive: {color: theme.colors.foreground},
   });
 
   return (

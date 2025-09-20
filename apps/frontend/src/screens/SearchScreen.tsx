@@ -95,8 +95,8 @@ export default function SearchScreen({navigate, goBack}) {
       paddingRight: 88,
       marginTop: 22,
       borderWidth: 0.17,
-      borderColor: 'rgba(37, 37, 37, 1)',
-      backgroundColor: 'rgba(35, 35, 35, 1)',
+      borderColor: theme.colors.surfaceBorder,
+      backgroundColor: theme.colors.surface,
       borderRadius: 20,
     },
     micWrap: {
@@ -128,7 +128,7 @@ export default function SearchScreen({navigate, goBack}) {
       marginBottom: 6,
       fontSize: 16,
       fontWeight: '600',
-      color: '#999',
+      color: theme.colors.foreground2,
     },
   });
 
@@ -193,7 +193,7 @@ export default function SearchScreen({navigate, goBack}) {
       ]}
       keyboardShouldPersistTaps="handled"
       scrollEnabled={!isHolding}>
-      <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
+      <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
         Search
       </Text>
       <View style={globalStyles.section}>
@@ -222,7 +222,7 @@ export default function SearchScreen({navigate, goBack}) {
               style={[
                 styles.input,
                 {
-                  color: theme.colors.input,
+                  color: theme.colors.foreground,
                   borderColor: theme.colors.foreground,
                   backgroundColor: 'rgb(48, 48, 48)',
                 },

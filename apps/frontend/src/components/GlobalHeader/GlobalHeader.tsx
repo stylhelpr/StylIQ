@@ -50,7 +50,7 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
     title: {
       fontSize: 24,
       fontWeight: '700',
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     iconRow: {
       flexDirection: 'row',
@@ -91,7 +91,8 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
           <MaterialIcons
             name="smart-toy"
             size={32}
-            color="rgba(102, 0, 197, 1)"
+            // color="rgba(102, 0, 197, 1)"
+            color={theme.colors.button1}
           />
         </AppleTouchFeedback>
 

@@ -524,12 +524,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       position: 'absolute',
       top: 10,
       left: 10,
-      backgroundColor: 'rgba(0,0,0,0.9)',
+      backgroundColor: theme.colors.surface3,
       paddingVertical: 4,
       paddingHorizontal: 10,
       borderRadius: 999,
     },
-    itemName: {fontSize: 15, fontWeight: '600', color: 'white'},
+    itemName: {fontSize: 15, fontWeight: '600', color: theme.colors.foreground},
     whyText: {fontSize: 13, color: '#4a90e2', marginTop: 2},
   });
 
@@ -597,7 +597,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         <Text
           style={[
             globalStyles.header,
-            {color: theme.colors.primary, marginBottom: 20},
+            {color: theme.colors.foreground, marginBottom: 20},
           ]}>
           Style Me
         </Text>
@@ -613,7 +613,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             style={{
               textAlign: 'center',
               fontSize: 16,
-              color: 'white',
+              color: theme.colors.foreground,
               fontWeight: '400',
             }}>
             "Let's create an outfit! - Just tell me what you want and press
@@ -638,15 +638,18 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     paddingHorizontal: 14,
                     paddingVertical: 7,
                     borderWidth: 1,
-                    borderColor: 'rgba(67, 67, 67, 1)',
-                    backgroundColor: 'rgba(35, 35, 35, 1)',
+                    borderColor: theme.colors.surfaceBorder,
+                    backgroundColor: theme.colors.surface,
                     borderRadius: 20,
                   },
                 ]}>
                 <TextInput
                   placeholder="What kind of an outfit are you looking for?"
                   placeholderTextColor={theme.colors.muted}
-                  style={globalStyles.promptInput}
+                  style={[
+                    globalStyles.promptInput,
+                    {color: theme.colors.foreground},
+                  ]}
                   value={lastSpeech}
                   onChangeText={setLastSpeech}
                 />

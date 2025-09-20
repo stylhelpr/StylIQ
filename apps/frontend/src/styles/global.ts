@@ -126,7 +126,7 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingLeft: 20,
       fontSize: 30,
       fontWeight: '600',
-      color: theme.colors.primary,
+      color: theme.colors.foreground,
     },
     backContainer: {
       flexDirection: 'row',
@@ -173,7 +173,7 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: 20,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
-      paddingTop: 2,
+      paddingTop: 18,
       paddingHorizontal: 16,
       paddingBottom: 8,
     },
@@ -375,7 +375,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius['2xl'],
-      paddingVertical: 12,
+      paddingVertical: 11,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -387,7 +387,7 @@ export const createGlobalStyles = (theme: Theme) =>
     buttonPrimaryText: {
       fontSize: 15,
       fontWeight: '600',
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     buttonSecondary: {
       width: '90%',

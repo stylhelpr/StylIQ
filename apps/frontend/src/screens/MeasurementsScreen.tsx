@@ -238,6 +238,7 @@ export default function MeasurementsScreen({navigate}: Props) {
                       value={unitPreference === 'metric'}
                       onValueChange={toggleUnits}
                       pointerEvents="none"
+                      trackColor={{false: colors.muted, true: colors.button1}}
                     />
                   </AppleTouchFeedback>
                 </View>

@@ -309,7 +309,7 @@ export default function ClosetScreen({navigate}: Props) {
       height: imageSize,
       borderTopLeftRadius: 10,
       borderTopRightRadius: 10,
-      backgroundColor: '#e5e5e5',
+      backgroundColor: theme.colors.foreground,
     },
     label: {
       fontSize: 13,
@@ -339,7 +339,7 @@ export default function ClosetScreen({navigate}: Props) {
       color: theme.colors.foreground,
     },
     tryOnButtonText: {
-      color: 'white',
+      color: theme.colors.foreground,
       fontSize: 14,
       fontWeight: '500',
     },
@@ -381,7 +381,7 @@ export default function ClosetScreen({navigate}: Props) {
             <MaterialIcons
               name="filter-list"
               size={29}
-              color={theme.colors.primary}
+              color={theme.colors.foreground}
             />
           </AppleTouchFeedback>
 
@@ -389,7 +389,11 @@ export default function ClosetScreen({navigate}: Props) {
             style={{...styles.iconButton}}
             hapticStyle="impactLight"
             onPress={() => setShowSort(true)}>
-            <MaterialIcons name="sort" size={29} color={theme.colors.primary} />
+            <MaterialIcons
+              name="sort"
+              size={29}
+              color={theme.colors.foreground}
+            />
           </AppleTouchFeedback>
         </View>
       </View>
@@ -518,7 +522,9 @@ export default function ClosetScreen({navigate}: Props) {
         //   },
         // ]}
         onPress={() => navigate('AddItem')}>
-        <Text style={{color: 'white', fontWeight: '600'}}>Add Clothes +</Text>
+        <Text style={{color: theme.colors.foreground, fontWeight: '600'}}>
+          Add Clothes +
+        </Text>
         {/* <MaterialIcons name="add" size={28} color="#fff" /> */}
       </AppleTouchFeedback>
 

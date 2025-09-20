@@ -218,7 +218,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       alignSelf: 'flex-end',
       padding: 8,
       marginTop: 4,
-      backgroundColor: '#ddd',
+      backgroundColor: theme.colors.foreground,
       borderRadius: 8,
       paddingVertical: 6,
     },
@@ -264,7 +264,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       backgroundColor: theme.colors.button1,
       alignItems: 'center',
     },
-    saveText: {fontSize: 16, fontWeight: '600', color: '#fff'},
+    saveText: {fontSize: 16, fontWeight: '600', color: theme.colors.foreground},
     cancelButton: {
       width: 160,
       paddingVertical: 9,
@@ -424,7 +424,11 @@ export default function OutfitBuilderScreen({navigate}: Props) {
             <TouchableOpacity
               style={[
                 styles.saveButton,
-                {backgroundColor: selectedItems.length ? '#405de6' : '#999'},
+                {
+                  backgroundColor: selectedItems.length
+                    ? theme.colors.button1
+                    : '#999',
+                },
               ]}
               onPress={handleSave}
               disabled={selectedItems.length === 0}>
