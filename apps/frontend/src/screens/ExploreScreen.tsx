@@ -94,7 +94,7 @@ export default function ExploreScreen() {
     },
     resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
     topBar: {
-      paddingTop: 8,
+      paddingTop: 14,
       paddingHorizontal: 16,
       paddingBottom: 6,
       backgroundColor: '#000',

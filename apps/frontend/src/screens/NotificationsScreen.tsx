@@ -40,11 +40,10 @@ export default function NotificationsScreen({
   const styles = StyleSheet.create({
     screen: {flex: 1},
     nav: {
-      paddingTop: 10,
-      paddingHorizontal: 16,
       paddingBottom: 8,
       flexDirection: 'row',
       alignItems: 'center',
+      marginBottom: 18,
     },
     title: {fontSize: 22, fontWeight: '800'},
     actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
@@ -110,12 +109,10 @@ export default function NotificationsScreen({
   const filtered = filter === 'unread' ? items.filter(n => !n.read) : items;
 
   return (
-    <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
+    <View style={[styles.screen, globalStyles.container]}>
       {/* Header */}
       <View style={styles.nav}>
-        <Text style={[styles.title, {color: theme.colors.primary}]}>
-          Notifications
-        </Text>
+        <Text style={globalStyles.header}>Notifications</Text>
         <View style={styles.actions}>
           <TouchableOpacity
             onPress={async () => {
