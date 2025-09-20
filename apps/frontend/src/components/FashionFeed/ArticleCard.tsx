@@ -26,7 +26,7 @@ export default function ArticleCard({
     row: {
       paddingVertical: 12,
       paddingHorizontal: 16,
-      backgroundColor: '#1b1b1bff',
+      backgroundColor: theme.colors.surface,
       // backgroundColor: theme.colors.surface,
       // borderBottomWidth: StyleSheet.hairlineWidth,
       // borderBottomColor: 'rgba(255,255,255,0.06)',
@@ -41,22 +41,22 @@ export default function ArticleCard({
       marginBottom: 6,
     },
     source: {
-      color: 'rgba(255, 255, 255, 1)',
+      color: theme.colors.foreground3,
       fontSize: 13,
       fontWeight: '600',
     },
     dot: {marginHorizontal: 6, color: 'rgba(255,255,255,0.35)'},
-    time: {color: 'rgba(255,255,255,0.5)', fontSize: 12},
+    time: {color: theme.colors.foreground2, fontSize: 12},
     content: {
       flexDirection: 'row',
     },
     title: {
       flex: 1,
-      color: '#fff',
+      color: theme.colors.foreground,
       fontSize: 17,
       lineHeight: 22,
       fontWeight: '700',
-      marginRight: 20, // ⬅️ adds breathing room from the image
+      marginRight: 20,
     },
     image: {
       width: 120,

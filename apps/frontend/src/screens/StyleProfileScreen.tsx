@@ -19,6 +19,7 @@ import {useAuth0} from 'react-native-auth0';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import type {WardrobeItem} from '../types/wardrobe';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -45,7 +46,7 @@ export default function StyleProfileScreen({navigate}: Props) {
       fontSize: 16,
       textAlign: 'left',
       marginTop: 4,
-      color: '#999',
+      color: theme.colors.foreground3,
     },
     progressBar: {
       height: 8,
@@ -61,10 +62,10 @@ export default function StyleProfileScreen({navigate}: Props) {
       borderRadius: 4,
     },
     settingsGroup: {
-      backgroundColor: '#1c1c1e',
+      backgroundColor: theme.colors.surface,
       borderRadius: 12,
       marginTop: 16,
-      borderColor: '#2c2c2e',
+      borderColor: theme.colors.surfaceBorder,
       borderWidth: 1,
       overflow: 'hidden',
     },
@@ -109,7 +110,7 @@ export default function StyleProfileScreen({navigate}: Props) {
     },
     label: {
       fontSize: 17,
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     spacer: {
       flex: 1,
@@ -182,7 +183,7 @@ export default function StyleProfileScreen({navigate}: Props) {
   return (
     <View
       style={[globalStyles.container, {backgroundColor: colors.background}]}>
-      <Text style={[globalStyles.header, {color: colors.primary}]}>
+      <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
         Style Profile
       </Text>
 

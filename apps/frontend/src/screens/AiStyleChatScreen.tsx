@@ -21,6 +21,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import dayjs from 'dayjs';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {API_BASE_URL} from '../config/api';
 import {useVoiceControl} from '../hooks/useVoiceControl';
@@ -53,6 +54,150 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
+
+  /** Styles */
+  function makeStyles() {
+    const {theme} = useAppTheme();
+
+    return StyleSheet.create({
+      safeArea: {
+        backgroundColor: theme.colors.surface,
+        flex: 1,
+      },
+      header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingTop: 2,
+        paddingBottom: 8,
+        color: theme.colors.foreground,
+        marginTop: -38,
+      },
+      ctaPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: theme.colors.button1,
+        marginLeft: 6,
+        maxWidth: 280,
+        marginTop: 8,
+      },
+      ctaText: {
+        color: theme.colors.foreground,
+        fontSize: 13,
+        fontWeight: '700',
+      },
+      headerLeft: {flexDirection: 'row', alignItems: 'center'},
+      presenceDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+      },
+      headerRight: {flexDirection: 'row', alignItems: 'center', gap: 4},
+      iconButton: {
+        padding: 8,
+        borderRadius: 10,
+        backgroundColor: theme.colors.surface,
+      },
+      messagesWrap: {
+        flex: 1,
+        minHeight: 120,
+      },
+      listContent: {
+        paddingHorizontal: 12,
+        paddingBottom: 6,
+        gap: 10,
+      },
+      typingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        marginHorizontal: 12,
+        marginBottom: 8,
+        borderRadius: 14,
+        backgroundColor: 'rgb(48, 48, 48)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.surfaceBorder,
+        gap: 8,
+      },
+      typingText: {color: theme.colors.surface, fontSize: 13},
+      suggestionRow: {
+        paddingVertical: 6,
+      },
+      suggestionContent: {paddingHorizontal: 12, columnGap: 8},
+      suggestionChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 15,
+        paddingVertical: 15,
+        borderRadius: 14,
+        backgroundColor: theme.colors.surface,
+        color: theme.colors.foreground,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgb(48, 48, 48)',
+        maxWidth: 260,
+        gap: 6,
+        marginRight: 8,
+      },
+      suggestionText: {
+        color: theme.colors.foreground,
+        fontSize: 14,
+        fontWeight: '600',
+      },
+      inputBarWrap: {
+        paddingHorizontal: 10,
+        paddingBottom: Platform.OS === 'ios' ? 8 : 10,
+        paddingTop: 18,
+        marginBottom: 4,
+      },
+      inputBar: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        borderWidth: 1,
+        borderColor: theme.colors.surfaceBorder,
+        backgroundColor: 'rgba(35, 35, 35, 1)',
+        borderRadius: 20,
+        paddingHorizontal: 8,
+      },
+      leftIcon: {
+        width: 30,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 4,
+      },
+      rightIcon: {
+        width: 30,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 4,
+      },
+      input: {
+        flex: 1,
+        minHeight: 35,
+        maxHeight: 140,
+        color: theme.colors.foreground,
+        paddingHorizontal: 8,
+        paddingTop: 7,
+        paddingBottom: 6,
+        fontSize: 16,
+      },
+      sendButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 6,
+        backgroundColor: theme.colors.surface,
+      },
+    });
+  }
 
   const [messages, setMessages] = useState<Message[]>(() => [
     {
@@ -288,7 +433,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
               <MaterialIcons
                 name="refresh"
                 size={22}
-                color={theme.colors.primary}
+                color={theme.colors.foreground}
               />
             </TouchableOpacity>
           </AppleTouchFeedback>
@@ -519,148 +664,6 @@ function rotate<T>(arr: T[]): T[] {
   return [...rest, head];
 }
 
-/** Styles */
-function makeStyles(theme: any) {
-  return StyleSheet.create({
-    safeArea: {
-      backgroundColor: theme.colors.appBackground,
-      flex: 1,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingTop: 2,
-      paddingBottom: 8,
-      color: 'white',
-      marginTop: -38,
-    },
-    ctaPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 12,
-      height: 34,
-      borderRadius: 10,
-      backgroundColor: 'rgba(85, 0, 255, 1)',
-      marginLeft: 6,
-      maxWidth: 280,
-      marginTop: 8,
-    },
-    ctaText: {
-      color: theme.colors.primary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    headerLeft: {flexDirection: 'row', alignItems: 'center'},
-    presenceDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-    },
-    headerRight: {flexDirection: 'row', alignItems: 'center', gap: 4},
-    iconButton: {
-      padding: 8,
-      borderRadius: 10,
-      backgroundColor: 'rgb(48, 48, 48)',
-    },
-    messagesWrap: {
-      flex: 1,
-      minHeight: 120,
-    },
-    listContent: {
-      paddingHorizontal: 12,
-      paddingBottom: 6,
-      gap: 10,
-    },
-    typingContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      marginHorizontal: 12,
-      marginBottom: 8,
-      borderRadius: 14,
-      backgroundColor: 'rgb(48, 48, 48)',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgb(48, 48, 48)',
-      gap: 8,
-    },
-    typingText: {color: 'white', fontSize: 13},
-    suggestionRow: {
-      paddingVertical: 6,
-    },
-    suggestionContent: {paddingHorizontal: 12, columnGap: 8},
-    suggestionChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 15,
-      paddingVertical: 15,
-      borderRadius: 14,
-      backgroundColor: 'rgba(33, 33, 33, 1)',
-      color: 'rgba(255, 255, 255, 1)',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgb(48, 48, 48)',
-      maxWidth: 260,
-      gap: 6,
-      marginRight: 8,
-    },
-    suggestionText: {
-      color: 'rgba(255, 255, 255, 1)',
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    inputBarWrap: {
-      paddingHorizontal: 10,
-      paddingBottom: Platform.OS === 'ios' ? 8 : 10,
-      paddingTop: 18,
-      marginBottom: 4,
-    },
-    inputBar: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      borderWidth: 1,
-      borderColor: 'rgba(62, 62, 62, 1)',
-      backgroundColor: 'rgba(35, 35, 35, 1)',
-      borderRadius: 20,
-      paddingHorizontal: 8,
-    },
-    leftIcon: {
-      width: 30,
-      height: 36,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 4,
-    },
-    rightIcon: {
-      width: 30,
-      height: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: 4,
-    },
-    input: {
-      flex: 1,
-      minHeight: 35,
-      maxHeight: 140,
-      color: 'white',
-      paddingHorizontal: 8,
-      paddingTop: 7,
-      paddingBottom: 6,
-      fontSize: 16,
-    },
-    sendButton: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: 6,
-      backgroundColor: 'rgb(48, 48, 48)',
-    },
-  });
-}
-
 function stylesUserBubble(theme: any) {
   return StyleSheet.create({
     row: {
@@ -679,12 +682,12 @@ function stylesUserBubble(theme: any) {
       marginRight: 8,
     },
     text: {
-      color: '#fff',
+      color: theme.colors.foreground,
       fontSize: 16,
       lineHeight: 22,
     },
     time: {
-      color: 'rgba(255, 255, 255, 1)',
+      color: theme.colors.foreground3,
       fontSize: 11,
       marginTop: 4,
       textAlign: 'right',
@@ -694,11 +697,11 @@ function stylesUserBubble(theme: any) {
       width: 30,
       height: 30,
       borderRadius: 15,
-      backgroundColor: 'rgb(48, 48, 48)',
+      backgroundColor: theme.colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    userInitialsText: {fontSize: 10, color: 'white'},
+    userInitialsText: {fontSize: 10, color: theme.colors.foreground},
   });
 }
 
@@ -716,7 +719,7 @@ function stylesAssistantBubble(theme: any) {
       width: 30,
       height: 30,
       borderRadius: 15,
-      backgroundColor: 'rgb(48, 48, 48)',
+      backgroundColor: theme.colors.surface,
     },
     bubble: {
       maxWidth: '82%',
@@ -725,11 +728,11 @@ function stylesAssistantBubble(theme: any) {
       paddingVertical: 10,
       borderRadius: 16,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgb(48, 48, 48)',
+      borderColor: theme.colors.surfaceborder,
       marginLeft: 8,
     },
     text: {
-      color: 'white',
+      color: theme.colors.foreground,
       fontSize: 16,
       lineHeight: 22,
     },

@@ -37,7 +37,7 @@ const DiscoverCarousel: React.FC = () => {
       width: 160,
       marginHorizontal: 8,
       borderRadius: 12,
-      backgroundColor: '#191919ff',
+      backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder,
@@ -46,10 +46,12 @@ const DiscoverCarousel: React.FC = () => {
       width: '100%',
       // height: 180,
       height: 120,
-      backgroundColor: 'rgba(32, 32, 32, 1)',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderBottomColor: theme.colors.surfaceBorder,
     },
     title: {
-      color: 'rgba(235, 235, 235, 1)',
+      color: theme.colors.foreground,
       fontSize: 14,
       fontWeight: '600',
       marginHorizontal: 8,
@@ -57,7 +59,7 @@ const DiscoverCarousel: React.FC = () => {
     },
     brand: {
       fontSize: 12,
-      color: 'rgba(120, 120, 120, 1)',
+      color: theme.colors.foreground2,
       marginHorizontal: 8,
       marginBottom: 8,
       marginTop: 4,
@@ -117,7 +119,6 @@ const DiscoverCarousel: React.FC = () => {
             <Image
               source={{uri: item.image_url}}
               style={styles.image}
-              //   style={globalStyles.image4}
               resizeMode="cover"
               onError={() => console.warn('⚠️ image failed', item.image_url)}
             />

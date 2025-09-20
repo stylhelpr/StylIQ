@@ -148,12 +148,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     bannerText: {
       fontSize: 17,
       fontWeight: '600',
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     bannerSubtext: {
       fontSize: 13,
       fontWeight: '400',
-      color: '#ddd',
+      color: theme.colors.foreground,
       marginTop: 4,
     },
     bodyText: {
@@ -164,7 +164,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     subtext: {
       fontSize: 13,
       fontWeight: '400',
-      color: '#999',
+      color: theme.colors.foreground,
     },
     dailyLookText: {
       fontSize: 14,
@@ -208,12 +208,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     weatherCity: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#fff',
+      color: theme.colors.foreground,
       marginBottom: 4,
     },
     weatherDesc: {
       fontSize: 13,
-      color: '#ccc',
+      color: theme.colors.foreground2,
     },
     weatherTempContainer: {
       backgroundColor: theme.colors.button1,
@@ -224,7 +224,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     weatherTemp: {
       fontSize: 28,
       fontWeight: '800',
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     weatherAdvice: {
       fontSize: 14,
@@ -282,7 +282,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             flex: 1,
             fontSize: 17,
             fontWeight: '800',
-            color: '#fff',
+            color: theme.colors.foreground,
             textShadowColor: 'rgba(0,0,0,0.6)',
             textShadowOffset: {width: 0, height: 1},
             textShadowRadius: 2,
@@ -298,7 +298,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           onPress={() => navigate('Settings')}
           hapticStyle="impactLight"
           style={{padding: 6, marginLeft: 10}}>
-          <Icon name="tune" size={22} color={theme.colors.button3} />
+          <Icon name="tune" size={22} color={theme.colors.button1} />
         </AppleTouchFeedback>
       </View>
 

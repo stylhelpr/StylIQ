@@ -271,7 +271,7 @@ export default function ProfileScreen({navigate}: Props) {
       height: 100,
       borderRadius: 50,
       borderWidth: 3,
-      borderColor: 'grey',
+      borderColor: theme.colors.surfaceBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -293,23 +293,23 @@ export default function ProfileScreen({navigate}: Props) {
     statNumber: {
       fontWeight: 'bold',
       fontSize: 17,
-      color: 'white',
+      color: theme.colors.foreground2,
     },
     statLabel: {
       fontSize: 14,
-      color: '#bbb',
+      color: theme.colors.foreground3,
       fontWeight: '600',
     },
     bioContainer: {
       marginTop: 8,
     },
     nameText: {
-      color: 'white',
+      color: theme.colors.foreground,
       fontWeight: '700',
       fontSize: 17,
     },
     bioText: {
-      color: 'white',
+      color: theme.colors.foreground2,
       fontSize: 16,
       marginTop: 4,
       lineHeight: 18,

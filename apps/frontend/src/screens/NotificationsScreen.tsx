@@ -54,8 +54,12 @@ export default function NotificationsScreen({
       backgroundColor: theme.colors.surface2,
       marginRight: 6,
     },
-    actionDanger: {backgroundColor: 'rgba(255,59,48,0.22)'},
-    actionText: {color: '#fff', fontWeight: '700', fontSize: 12},
+    actionDanger: {backgroundColor: theme.colors.error},
+    actionText: {
+      color: theme.colors.foreground,
+      fontWeight: '700',
+      fontSize: 12,
+    },
     filters: {
       flexDirection: 'row',
       gap: 8,
@@ -66,26 +70,26 @@ export default function NotificationsScreen({
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(45, 45, 45, 1)',
+      backgroundColor: theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderColor: theme.colors.surfaceBorder,
     },
     pillActive: {
       backgroundColor: 'rgba(99, 101, 241, 1)',
       borderColor: 'rgba(99,102,241,0.45)',
     },
-    pillText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
-    pillTextActive: {color: '#fff'},
+    pillText: {color: theme.colors.foreground, fontWeight: '700'},
+    pillTextActive: {color: theme.colors.foreground},
     center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
     empty: {paddingHorizontal: 16, paddingTop: 40},
     emptyBig: {
-      color: '#fff',
+      color: theme.colors.foreground,
       fontWeight: '800',
       fontSize: 18,
       marginBottom: 6,
       textAlign: 'center',
     },
-    emptySub: {color: 'rgba(255,255,255,0.7)', textAlign: 'center'},
+    emptySub: {color: theme.colors.muted, textAlign: 'center'},
   });
 
   const load = useCallback(async () => {
@@ -132,7 +136,7 @@ export default function NotificationsScreen({
               styles.actionDanger,
               {backgroundColor: theme.colors.error},
             ]}>
-            <Text style={{color: theme.colors.primary}}>Clear</Text>
+            <Text style={{color: theme.colors.foreground}}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>

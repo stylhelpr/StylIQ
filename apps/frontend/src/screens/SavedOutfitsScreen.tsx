@@ -370,12 +370,12 @@ export default function SavedOutfitsScreen() {
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
     card: {
-      backgroundColor: 'rgba(255,255,255,0.06)',
+      backgroundColor: theme.colors.surface,
       borderRadius: 28,
       padding: 20,
       marginBottom: 20,
       borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgba(255,255,255,0.15)',
+      borderColor: theme.colors.surfaceBorder,
       shadowColor: '#000',
       shadowOpacity: 0.2,
       shadowOffset: {width: 0, height: 12},
@@ -385,7 +385,7 @@ export default function SavedOutfitsScreen() {
     },
     timestamp: {
       fontSize: 12,
-      color: 'rgba(255,255,255,0.4)',
+      color: theme.colors.foreground3,
       marginTop: 4,
       marginBottom: 8,
       fontWeight: '500',
@@ -403,12 +403,12 @@ export default function SavedOutfitsScreen() {
       width: 80,
       height: 80,
       borderRadius: 18,
-      backgroundColor: '#1a1a1a',
+      backgroundColor: theme.colors.surface3,
     },
     notes: {
       marginTop: 12,
       fontStyle: 'italic',
-      color: 'rgba(255,255,255,0.6)',
+      color: theme.colors.foreground3,
       fontSize: 14,
       lineHeight: 20,
     },
@@ -432,7 +432,7 @@ export default function SavedOutfitsScreen() {
     input: {
       marginTop: 12,
       borderBottomWidth: 1,
-      borderBottomColor: '#ccc',
+      borderBottomColor: theme.colors.surfaceBorder,
       paddingVertical: 6,
       color: theme.colors.foreground,
     },
@@ -614,7 +614,7 @@ export default function SavedOutfitsScreen() {
                                   {
                                     fontSize: 13,
                                     fontWeight: '600',
-                                    color: 'rgba(255,255,255,0.75)',
+                                    color: theme.colors.foreground2,
                                     marginBottom: 2,
                                   },
                                 ]}>
@@ -635,7 +635,7 @@ export default function SavedOutfitsScreen() {
                                   styles.timestamp,
                                   {
                                     fontSize: 12,
-                                    color: 'rgba(255,255,255,0.45)',
+                                    color: theme.colors.foreground3,
                                     letterSpacing: 0.2,
                                   },
                                 ]}>
@@ -731,7 +731,7 @@ export default function SavedOutfitsScreen() {
                         style={{marginRight: 10}}>
                         <Text
                           style={{
-                            color: theme.colors.primary,
+                            color: theme.colors.foreground,
                             fontWeight: '600',
                             fontSize: 13,
                           }}>
@@ -750,7 +750,7 @@ export default function SavedOutfitsScreen() {
                           <MaterialIcons name="close" size={26} color="red" />
                           <Text
                             style={{
-                              color: theme.colors.primary,
+                              color: theme.colors.foreground,
                               fontWeight: '600',
                               fontSize: 13,
                             }}>
