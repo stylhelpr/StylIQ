@@ -402,23 +402,41 @@ export default function SettingsScreen({navigate}: Props) {
                 <AppleTouchFeedback
                   onPress={handleDeleteAccount}
                   hapticStyle="impactHeavy"
-                  style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+                  style={[globalStyles.menuSection1]}>
                   <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
                     Delete My Data
                   </Text>
                 </AppleTouchFeedback>
+              </View>
+            </View>
 
-                {/* Privacy Policy */}
+            {/* ───────── Help & Support (Apple-style placement) ───────── */}
+            <View style={[globalStyles.section2]}>
+              <Text
+                style={[
+                  globalStyles.sectionTitle2,
+                  {color: colors.foreground, marginTop: 24},
+                ]}>
+                Help & Support
+              </Text>
+
+              <View
+                style={[
+                  globalStyles.menuContainer1,
+                  globalStyles.cardStyles3,
+                  {borderWidth: tokens.borderWidth.md},
+                ]}>
+                {/* Contact Support */}
                 <AppleTouchFeedback
-                  onPress={() => Linking.openURL('https://styliq.app/privacy')}
-                  hapticStyle="impactLight"
+                  onPress={() => navigate('ContactScreen')}
+                  hapticStyle="impactMedium"
                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                   <Text
                     style={[
                       globalStyles.menuLabel,
                       {color: colors.foreground},
                     ]}>
-                    Privacy Policy
+                    Contact Support
                   </Text>
                 </AppleTouchFeedback>
 
@@ -438,12 +456,72 @@ export default function SettingsScreen({navigate}: Props) {
 
                 {/* Send Feedback */}
                 <AppleTouchFeedback
-                  onPress={handleSendFeedback}
+                  onPress={() => navigate('FeedbackScreen')}
                   hapticStyle="impactMedium"
                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                   <Text
                     style={[globalStyles.menuLabel, {color: colors.primary}]}>
                     Send Feedback
+                  </Text>
+                </AppleTouchFeedback>
+
+                {/* About StylHelpr */}
+                <AppleTouchFeedback
+                  onPress={() => navigate('AboutScreen')}
+                  hapticStyle="impactLight"
+                  style={[globalStyles.menuSection1]}>
+                  <Text
+                    style={[
+                      globalStyles.menuLabel,
+                      {color: colors.foreground},
+                    ]}>
+                    About StylHelpr
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </View>
+
+            {/* ───────── Legal ───────── */}
+            <View style={[globalStyles.section2]}>
+              <Text
+                style={[
+                  globalStyles.sectionTitle2,
+                  {color: colors.foreground, marginTop: 24},
+                ]}>
+                Legal
+              </Text>
+
+              <View
+                style={[
+                  globalStyles.menuContainer1,
+                  globalStyles.cardStyles3,
+                  {borderWidth: tokens.borderWidth.md},
+                ]}>
+                {/* Privacy Policy */}
+                <AppleTouchFeedback
+                  onPress={() => Linking.openURL('https://styliq.app/privacy')}
+                  hapticStyle="impactLight"
+                  style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+                  <Text
+                    style={[
+                      globalStyles.menuLabel,
+                      {color: colors.foreground},
+                    ]}>
+                    Privacy Policy
+                  </Text>
+                </AppleTouchFeedback>
+
+                {/* Terms of Service */}
+                <AppleTouchFeedback
+                  onPress={() => Linking.openURL('https://styliq.app/terms')}
+                  hapticStyle="impactLight"
+                  style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+                  <Text
+                    style={[
+                      globalStyles.menuLabel,
+                      {color: colors.foreground},
+                    ]}>
+                    Terms of Service
                   </Text>
                 </AppleTouchFeedback>
 
@@ -601,7 +679,7 @@ export default function SettingsScreen({navigate}: Props) {
 //       flexDirection: 'row',
 //       justifyContent: 'space-between',
 //       alignItems: 'center',
-//       marginBottom: 30,
+//       marginBottom: 20,
 //       backgroundColor: theme.colors.surface,
 //       borderRadius: tokens.borderRadius.md,
 //       paddingHorizontal: 22,
@@ -633,7 +711,7 @@ export default function SettingsScreen({navigate}: Props) {
 //       height: 16,
 //       borderRadius: 4,
 //       marginRight: 10,
-//       borderWidth: 1,
+//       borderWidth: tokens.borderWidth.md,
 //       borderColor: '#ccc',
 //     },
 //     version: {
@@ -772,9 +850,19 @@ export default function SettingsScreen({navigate}: Props) {
 //         </View>
 
 //         <View style={globalStyles.centeredSection}>
-//           <View>
+//           <View style={[globalStyles.section2]}>
+//             <Text
+//               style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+//               Notifications
+//             </Text>
+
 //             {/* 🔔 Notifications */}
-//             <View style={[styles.enableRow, globalStyles.cardStyles3]}>
+//             <View
+//               style={[
+//                 styles.enableRow,
+//                 globalStyles.cardStyles3,
+//                 {borderWidth: tokens.borderWidth.md},
+//               ]}>
 //               <Text
 //                 style={[globalStyles.menuLabel, {color: colors.foreground}]}>
 //                 Enable Notifications
@@ -782,23 +870,33 @@ export default function SettingsScreen({navigate}: Props) {
 //               <Switch
 //                 value={notificationsEnabled}
 //                 onValueChange={handleToggleNotifications}
+//                 trackColor={{false: colors.muted, true: theme.colors.button1}}
+//                 ios_backgroundColor={colors.muted}
 //               />
 //             </View>
 
 //             {/* 🎛 Customize Home — toggle Home sections */}
-//             <View style={[globalStyles.section2, {marginTop: 8}]}>
+//             <View style={[globalStyles.section2]}>
 //               <Text
-//                 style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+//                 style={[
+//                   globalStyles.sectionTitle2,
+//                   {color: colors.foreground},
+//                 ]}>
 //                 Customize Home Screen
 //               </Text>
 
 //               <View
-//                 style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
+//                 style={[
+//                   globalStyles.menuContainer1,
+//                   globalStyles.cardStyles3,
+//                   {borderWidth: tokens.borderWidth.md},
+//                 ]}>
 //                 {(
 //                   [
 //                     ['weather', 'Weather'],
 //                     ['locationMap', 'Location Map'],
 //                     ['quickAccess', 'Quick Access'],
+//                     ['topFashionStories', 'Top Fashion Stories'],
 //                     ['recommendedItems', 'Recommended Items'],
 //                     ['savedLooks', 'Saved Looks'],
 //                   ] as const
@@ -826,6 +924,11 @@ export default function SettingsScreen({navigate}: Props) {
 //                       onValueChange={v =>
 //                         setVisible(key as keyof typeof prefs, v)
 //                       }
+//                       trackColor={{
+//                         false: colors.muted,
+//                         true: theme.colors.button1,
+//                       }}
+//                       ios_backgroundColor={colors.muted}
 //                     />
 //                   </View>
 //                 ))}
@@ -844,7 +947,10 @@ export default function SettingsScreen({navigate}: Props) {
 //                 style={[
 //                   globalStyles.menuSection2,
 //                   globalStyles.cardStyles3,
-//                   {backgroundColor: colors.surface},
+//                   {
+//                     backgroundColor: colors.surface,
+//                     borderWidth: tokens.borderWidth.md,
+//                   },
 //                 ]}>
 //                 <AppleTouchFeedback
 //                   onPress={() => setModalVisible(true)}
@@ -862,9 +968,20 @@ export default function SettingsScreen({navigate}: Props) {
 //             </View>
 
 //             <View>
+//               <Text
+//                 style={[
+//                   globalStyles.sectionTitle2,
+//                   {color: colors.foreground},
+//                 ]}>
+//                 Profile and Data
+//               </Text>
 //               <View
-//                 style={[globalStyles.menuContainer1, globalStyles.cardStyles3]}>
-//                 {/* Personal Information */}
+//                 style={[
+//                   globalStyles.menuContainer1,
+//                   globalStyles.cardStyles3,
+//                   {borderWidth: tokens.borderWidth.md},
+//                 ]}>
+//                 {/* Profile Information */}
 //                 <AppleTouchFeedback
 //                   onPress={() => navigate('PersonalInformation')}
 //                   hapticStyle="impactLight"
@@ -892,23 +1009,41 @@ export default function SettingsScreen({navigate}: Props) {
 //                 <AppleTouchFeedback
 //                   onPress={handleDeleteAccount}
 //                   hapticStyle="impactHeavy"
-//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   style={[globalStyles.menuSection1]}>
 //                   <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
 //                     Delete My Data
 //                   </Text>
 //                 </AppleTouchFeedback>
+//               </View>
+//             </View>
 
-//                 {/* Privacy Policy */}
+//             {/* ───────── Help & Support (Apple-style placement) ───────── */}
+//             <View style={[globalStyles.section2]}>
+//               <Text
+//                 style={[
+//                   globalStyles.sectionTitle2,
+//                   {color: colors.foreground, marginTop: 24},
+//                 ]}>
+//                 Help & Support
+//               </Text>
+
+//               <View
+//                 style={[
+//                   globalStyles.menuContainer1,
+//                   globalStyles.cardStyles3,
+//                   {borderWidth: tokens.borderWidth.md},
+//                 ]}>
+//                 {/* Contact Support */}
 //                 <AppleTouchFeedback
-//                   onPress={() => Linking.openURL('https://styliq.app/privacy')}
-//                   hapticStyle="impactLight"
+//                   onPress={() => navigate('ContactScreen')}
+//                   hapticStyle="impactMedium"
 //                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
 //                   <Text
 //                     style={[
 //                       globalStyles.menuLabel,
 //                       {color: colors.foreground},
 //                     ]}>
-//                     Privacy Policy
+//                     Contact Support
 //                   </Text>
 //                 </AppleTouchFeedback>
 
@@ -928,12 +1063,58 @@ export default function SettingsScreen({navigate}: Props) {
 
 //                 {/* Send Feedback */}
 //                 <AppleTouchFeedback
-//                   onPress={handleSendFeedback}
-//                   hapticStyle="impactMedium"
+//                   onPress={() => navigate('FeedbackScreen')}
+//                   hapticStyle="impactLight"
 //                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
 //                   <Text
 //                     style={[globalStyles.menuLabel, {color: colors.primary}]}>
 //                     Send Feedback
+//                   </Text>
+//                 </AppleTouchFeedback>
+
+//                 {/* About StylHelpr */}
+//                 <AppleTouchFeedback
+//                   onPress={() => navigate('AboutScreen')}
+//                   hapticStyle="impactLight"
+//                   style={[globalStyles.menuSection1]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.menuLabel,
+//                       {color: colors.foreground},
+//                     ]}>
+//                     About StylHelpr
+//                   </Text>
+//                 </AppleTouchFeedback>
+//               </View>
+//             </View>
+
+//             {/* ───────── Legal ───────── */}
+//             <View style={[globalStyles.section2]}>
+//               <Text
+//                 style={[
+//                   globalStyles.sectionTitle2,
+//                   {color: colors.foreground, marginTop: 24},
+//                 ]}>
+//                 Legal
+//               </Text>
+
+//               <View
+//                 style={[
+//                   globalStyles.menuContainer1,
+//                   globalStyles.cardStyles3,
+//                   {borderWidth: tokens.borderWidth.md},
+//                 ]}>
+//                 {/* Privacy Policy */}
+//                 <AppleTouchFeedback
+//                   onPress={() => Linking.openURL('https://styliq.app/privacy')}
+//                   hapticStyle="impactLight"
+//                   style={[globalStyles.menuSection1, globalStyles.hrLine]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.menuLabel,
+//                       {color: colors.foreground},
+//                     ]}>
+//                     Privacy Policy
 //                   </Text>
 //                 </AppleTouchFeedback>
 

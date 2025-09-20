@@ -42,6 +42,9 @@ import StyleKeywordsScreen from '../screens/StyleKeywordsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PersonalInformationScreen from '../screens/PersonalInformationScreen';
 import AiStylistChatScreen from '../screens/AiStyleChatScreen';
+import ContactScreen from '../screens/ContactScreen';
+import AboutScreen from '../screens/AboutScreen';
+import FeedbackScreen from '../screens/FeedBackScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -95,6 +98,9 @@ type Screen =
   | 'StyleKeywords'
   | 'Onboarding'
   | 'PersonalInformation'
+  | 'ContactScreen'
+  | 'AboutScreen'
+  | 'FeedbackScreen'
   | 'AiStylistChatScreen'
   | 'Planner';
 
@@ -267,7 +273,13 @@ const RootNavigator = () => {
       case 'BudgetAndBrands':
         return <BudgetAndBrandsScreen navigate={navigate} />;
       case 'Appearance':
-        return <AppearanceScreen navigate={navigate} />;
+        return <ContactScreen navigate={navigate} />;
+      case 'ContactScreen':
+        return <ContactScreen navigate={navigate} />;
+      case 'FeedbackScreen':
+        return <FeedbackScreen navigate={navigate} />;
+      case 'AboutScreen':
+        return <AboutScreen navigate={navigate} />;
       case 'Lifestyle':
         return <LifestyleScreen navigate={navigate} />;
       case 'ShoppingHabits':
