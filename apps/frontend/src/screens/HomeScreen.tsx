@@ -258,7 +258,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
   return (
     <Animated.ScrollView
-      style={globalStyles.screen}
+      style={[globalStyles.screen]}
       contentContainerStyle={globalStyles.container}
       scrollEventThrottle={16}
       onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {

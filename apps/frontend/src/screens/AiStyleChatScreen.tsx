@@ -172,19 +172,18 @@ export default function AiStylistChatScreen({navigate}: Props) {
       },
       rightIcon: {
         width: 30,
-        height: 32,
+        height: 38,
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 4,
       },
       input: {
         flex: 1,
-        minHeight: 35,
-        maxHeight: 140,
+        height: 40,
         color: theme.colors.foreground,
         paddingHorizontal: 8,
-        paddingTop: 7,
-        paddingBottom: 6,
+        paddingTop: 10,
+        // paddingBottom: 6,
         fontSize: 16,
       },
       sendButton: {
@@ -195,6 +194,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
         justifyContent: 'center',
         marginLeft: 6,
         backgroundColor: theme.colors.surface,
+        marginBottom: 3,
       },
     });
   }

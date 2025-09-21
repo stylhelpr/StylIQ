@@ -17,7 +17,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {tokens} from '../styles/tokens/tokens';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {API_BASE_URL} from '../config/api'; // e.g. http://192.168.1.55:3001/api
+import {API_BASE_URL} from '../config/api';
 
 export default function ContactScreen({navigate}: any) {
   const {theme} = useAppTheme();
@@ -47,11 +47,12 @@ export default function ContactScreen({navigate}: any) {
       marginBottom: 6,
     },
     input: {
-      borderWidth: 1,
       borderRadius: 10,
       padding: 14,
       fontSize: 16,
       backgroundColor: theme.colors.surface3,
+      borderWidth: tokens.borderWidth.md,
+      borderColor: theme.colors.surfaceBorder,
       marginBottom: 10,
     },
     textarea: {
@@ -119,173 +120,154 @@ export default function ContactScreen({navigate}: any) {
   };
 
   return (
-    <SafeAreaView style={[globalStyles.screen]}>
-      <KeyboardAvoidingView
-        style={{flex: 1}}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
-        <ScrollView
-          style={[globalStyles.container]}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
-          {/* Back */}
+    <ScrollView
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}
+      keyboardShouldPersistTaps="handled">
+      <Text style={globalStyles.header}>Contact Us</Text>
+
+      <View style={globalStyles.section}>
+        <View style={[globalStyles.backContainer, {marginTop: 16}]}>
+          <AppleTouchFeedback
+            onPress={() => navigate('Settings')}
+            hapticStyle="impactMedium"
+            style={{alignSelf: 'flex-start'}}>
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={theme.colors.button3}
+            />
+          </AppleTouchFeedback>
+          <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
+        </View>
+
+        {/* Form Card */}
+        <ScrollView style={[globalStyles.screen, globalStyles.container]}>
+          {/* Name */}
           <View
-            style={[
-              globalStyles.backContainer,
-              {marginTop: 16, marginBottom: 24},
-            ]}>
-            <AppleTouchFeedback
-              onPress={() => navigate('Settings')}
-              hapticStyle="impactMedium"
-              style={{alignSelf: 'flex-start'}}>
-              <MaterialIcons
-                name="arrow-back"
-                size={24}
-                color={colors.button3}
-              />
-            </AppleTouchFeedback>
-            <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
+            style={[styles.formCard, {backgroundColor: theme.colors.surface}]}>
+            {/* Subject */}
+            <Text style={[styles.label, {color: theme.colors.foreground}]}>
+              Name
+            </Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={[
+                styles.input,
+                {
+                  color: theme.colors.foreground,
+                },
+              ]}
+              placeholder="Your full name"
+              placeholderTextColor={theme.colors.muted}
+            />
+
+            {/* Email */}
+            <Text style={[styles.label, {color: colors.foreground}]}>
+              Email
+            </Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              style={[
+                styles.input,
+                {
+                  color: theme.colors.foreground,
+                },
+              ]}
+              placeholder="you@domain.com"
+              placeholderTextColor={colors.muted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            {/* Topic */}
+            <Text style={[styles.label, {color: colors.foreground}]}>
+              Topic (optional)
+            </Text>
+            <TextInput
+              value={topic}
+              onChangeText={setTopic}
+              style={[
+                styles.input,
+                {
+                  color: theme.colors.foreground,
+                },
+              ]}
+              placeholder="Bug report, feedback, feature request…"
+              placeholderTextColor={colors.muted}
+            />
+
+            {/* Message */}
+            <Text style={[styles.label, {color: colors.foreground}]}>
+              Message
+            </Text>
+            <TextInput
+              value={message}
+              onChangeText={setMessage}
+              style={[
+                styles.input,
+                styles.textarea,
+                {
+                  color: theme.colors.foreground,
+                },
+              ]}
+              placeholder="How can we help?"
+              placeholderTextColor={colors.muted}
+              multiline
+              textAlignVertical="top"
+            />
           </View>
 
-          {/* Title */}
-          <Text style={globalStyles.header}>Contact Us</Text>
-
-          {/* Form Card */}
-
-          <ScrollView style={[globalStyles.screen, globalStyles.container]}>
-            {/* Name */}
-            <View
+          {/* Primary Action */}
+          <View style={styles.buttonRow}>
+            <AppleTouchFeedback
+              onPress={!disabled ? submit : () => {}}
+              hapticStyle="impactMedium"
               style={[
-                styles.formCard,
-                {backgroundColor: theme.colors.surface},
-              ]}>
-              {/* Subject */}
-              <Text style={[styles.label, {color: theme.colors.foreground}]}>
-                Name
-              </Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                style={[
-                  styles.input,
-                  {
-                    color: theme.colors.foreground,
-                    borderColor: theme.colors.surfaceBorder,
-                  },
-                ]}
-                placeholder="Your full name"
-                placeholderTextColor={theme.colors.muted}
-              />
-
-              {/* Email */}
-              <Text style={[styles.label, {color: colors.foreground}]}>
-                Email
-              </Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                style={[
-                  styles.input,
-                  {
-                    color: theme.colors.foreground,
-                    borderColor: theme.colors.surfaceBorder,
-                  },
-                ]}
-                placeholder="you@domain.com"
-                placeholderTextColor={colors.muted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-
-              {/* Topic */}
-              <Text style={[styles.label, {color: colors.foreground}]}>
-                Topic (optional)
-              </Text>
-              <TextInput
-                value={topic}
-                onChangeText={setTopic}
-                style={[
-                  styles.input,
-                  {
-                    color: theme.colors.foreground,
-                    borderColor: theme.colors.surfaceBorder,
-                  },
-                ]}
-                placeholder="Bug report, feedback, feature request…"
-                placeholderTextColor={colors.muted}
-              />
-
-              {/* Message */}
-              <Text style={[styles.label, {color: colors.foreground}]}>
-                Message
-              </Text>
-              <TextInput
-                value={message}
-                onChangeText={setMessage}
-                style={[
-                  styles.input,
-                  styles.textarea,
-                  {
-                    color: theme.colors.foreground,
-                    borderColor: theme.colors.surfaceBorder,
-                  },
-                ]}
-                placeholder="How can we help?"
-                placeholderTextColor={colors.muted}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
-
-            {/* Primary Action */}
-            <View style={styles.buttonRow}>
-              <AppleTouchFeedback
-                onPress={!disabled ? submit : () => {}}
-                hapticStyle="impactMedium"
-                style={[
-                  globalStyles.buttonPrimary,
-                  styles.primaryBtn,
-                  {
-                    opacity: disabled ? 0.5 : 1,
-                    marginTop: 22,
-                    marginBottom: 22,
-                  },
-                ]}>
-                {sending ? (
-                  <ActivityIndicator color={colors.background} />
-                ) : (
-                  <Text style={globalStyles.buttonPrimaryText}>
-                    Send Message
-                  </Text>
-                )}
-              </AppleTouchFeedback>
-            </View>
-
-            {/* Tip Banner */}
-            <View
-              style={[
-                styles.tipCard,
+                globalStyles.buttonPrimary,
+                styles.primaryBtn,
                 {
-                  backgroundColor: 'rgba(20,20,20,1)',
-                  borderColor: 'rgba(200,200,200,0.2)',
+                  opacity: disabled ? 0.5 : 1,
+                  marginTop: 22,
+                  marginBottom: 22,
                 },
               ]}>
-              <View style={[styles.tipIcon]}>
-                <MaterialIcons
-                  name="help-outline"
-                  size={16}
-                  color={colors.primary}
-                />
-              </View>
-              <Text style={[styles.tipText, {color: colors.foreground}]}>
-                Tip: Include screenshots or steps to reproduce if you’re
-                reporting a bug.
-              </Text>
+              {sending ? (
+                <ActivityIndicator color={colors.background} />
+              ) : (
+                <Text style={globalStyles.buttonPrimaryText}>Send Message</Text>
+              )}
+            </AppleTouchFeedback>
+          </View>
+
+          {/* Tip Banner */}
+          <View
+            style={[
+              styles.tipCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.surfaceBorder,
+              },
+            ]}>
+            <View style={[styles.tipIcon]}>
+              <MaterialIcons
+                name="help-outline"
+                size={16}
+                color={colors.primary}
+              />
             </View>
-          </ScrollView>
+            <Text style={[styles.tipText, {color: colors.foreground}]}>
+              Tip: Include screenshots or steps to reproduce if you’re reporting
+              a bug.
+            </Text>
+          </View>
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </View>
+    </ScrollView>
   );
 }
 

@@ -60,31 +60,36 @@ export default function ExploreScreen() {
   const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
-    container: {flex: 1, backgroundColor: '#000'},
-    sourceUrl: {color: 'rgba(255,255,255,0.6)', fontSize: 12, maxWidth: 240},
+    container: {flex: 1, backgroundColor: theme.colors.background},
+    sourceUrl: {color: theme.colors.foreground, fontSize: 12, maxWidth: 240},
     removeBtn: {
       marginLeft: 6,
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 8,
-      backgroundColor: 'rgba(255,255,255,0.06)',
+      backgroundColor: theme.colors.surface,
     },
     removeText: {
-      color: 'rgba(255, 255, 255, 1)',
+      color: theme.colors.foreground,
       fontWeight: '700',
       fontSize: 12,
     },
     addBox: {padding: 16, gap: 8},
-    addTitle: {color: '#fff', fontWeight: '800', fontSize: 16, marginBottom: 4},
+    addTitle: {
+      color: theme.colors.foreground,
+      fontWeight: '800',
+      fontSize: 16,
+      marginBottom: 4,
+    },
     addError: {color: '#FF453A', fontSize: 12, marginBottom: 2},
     addBtn: {
       marginTop: 8,
-      backgroundColor: '#6f00ffff',
+      backgroundColor: theme.colors.button1,
       borderRadius: 10,
       paddingVertical: 10,
       alignItems: 'center',
     },
-    addBtnText: {color: '#fff', fontWeight: '800'},
+    addBtnText: {color: theme.colors.foreground, fontWeight: '800'},
     resetBtn: {
       marginTop: 8,
       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -97,7 +102,7 @@ export default function ExploreScreen() {
       paddingTop: 14,
       paddingHorizontal: 16,
       paddingBottom: 6,
-      backgroundColor: '#000',
+      backgroundColor: theme.colors.background,
       flexDirection: 'row',
       alignItems: 'center',
     },
@@ -162,11 +167,11 @@ export default function ExploreScreen() {
       borderRadius: 8,
       backgroundColor: 'rgba(89, 0, 255, 1)',
     },
-    manageText: {color: '#ffffffff', fontWeight: '700'},
+    manageText: {color: theme.colors.foreground, fontWeight: '700'},
     sectionHeader: {
       paddingHorizontal: 16,
       paddingVertical: 8,
-      backgroundColor: '#000',
+      backgroundColor: theme.colors.background,
     },
     // sectionTitle: {color: '#6600ffff', fontWeight: '800', fontSize: 20},
     sectionTitle: {
@@ -184,7 +189,11 @@ export default function ExploreScreen() {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    modalTitle: {color: '#fff', fontWeight: '800', fontSize: 18},
+    modalTitle: {
+      color: theme.colors.foreground,
+      fontWeight: '800',
+      fontSize: 18,
+    },
     done: {color: '#5900ffff', fontWeight: '700'},
     sourceRow: {
       flexDirection: 'row',
@@ -196,7 +205,7 @@ export default function ExploreScreen() {
       borderBottomWidth: StyleSheet.hairlineWidth,
     },
     sourceName: {
-      color: '#fff',
+      color: theme.colors.foreground,
       fontSize: 16,
       fontWeight: '700',
       padding: 0,
@@ -207,7 +216,7 @@ export default function ExploreScreen() {
       borderRadius: 10,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     rowToggle: {
       flexDirection: 'row',
@@ -663,7 +672,10 @@ export default function ExploreScreen() {
             tintColor="#fff"
           />
         }
-        contentContainerStyle={[globalStyles.container]}>
+        contentContainerStyle={[
+          globalStyles.container,
+          {backgroundColor: theme.colors.background},
+        ]}>
         <View style={globalStyles.sectionTitle}>
           <Text style={globalStyles.header}>Fashion News</Text>
         </View>
@@ -1083,7 +1095,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
   const seg = StyleSheet.create({
     root: {
       height: 36,
-      backgroundColor: 'rgba(73, 73, 73, 1)',
+      backgroundColor: theme.colors.surface,
       borderRadius: 10,
       padding: 3,
       flexDirection: 'row',
@@ -1096,7 +1108,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    itemActive: {backgroundColor: '#111213'},
+    itemActive: {backgroundColor: theme.colors.surface},
     itemText: {color: theme.colors.foreground3, fontWeight: '700'},
     itemTextActive: {color: theme.colors.foreground},
   });

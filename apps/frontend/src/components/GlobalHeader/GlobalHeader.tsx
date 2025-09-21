@@ -37,9 +37,10 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      backgroundColor: theme.colors.background,
     },
     iconCircle: {
-      backgroundColor: 'rgb(47, 47, 47)',
+      backgroundColor: theme.colors.surface3,
       padding: 8,
       marginLeft: 10,
       marginRight: 4,

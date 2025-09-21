@@ -29,9 +29,9 @@ const BottomNavigation = ({
   }>({
     navBar: {
       flexDirection: 'row',
-      backgroundColor: theme.colors.frostedGlass,
+      backgroundColor: theme.colors.background,
       borderTopWidth: 1,
-      borderTopColor: 'rgba(168, 168, 168, 0.19)',
+      borderTopColor: theme.colors.surfaceBorder,
       height: 47,
       justifyContent: 'space-around',
       alignItems: 'center',

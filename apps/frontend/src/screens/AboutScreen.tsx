@@ -16,8 +16,9 @@ import {tokens} from '../styles/tokens/tokens';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const APP_NAME = 'StylHelpr';
-const APP_TAGLINE = 'Your AI stylist — outfits that actually fit your life.';
-const VERSION = 'v0.9.0'; // replace with your build/version source
+const APP_TAGLINE =
+  'Your Personal AI Concierge — Outfits that actually fit your life.';
+const VERSION = 'v0.9.0';
 
 export default function AboutScreen({navigate}: any) {
   const {theme} = useAppTheme();
@@ -40,6 +41,7 @@ export default function AboutScreen({navigate}: any) {
       fontWeight: '700',
       letterSpacing: 0.2,
       textAlign: 'center',
+      marginBottom: 12,
     },
     subtitle: {fontSize: 15, textAlign: 'center', opacity: 0.9},
     version: {fontSize: 12, marginTop: -2},
@@ -72,114 +74,146 @@ export default function AboutScreen({navigate}: any) {
   const openURL = (url: string) => Linking.openURL(url).catch(() => {});
 
   return (
-    <SafeAreaView
-      style={[globalStyles.screen, {backgroundColor: colors.background}]}>
-      <ScrollView
-        style={[globalStyles.container, {backgroundColor: colors.background}]}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled">
-        {/* Back */}
-        <View
-          style={[
-            globalStyles.backContainer,
-            {marginTop: 16, marginBottom: 24},
-          ]}>
+    <ScrollView
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}
+      keyboardShouldPersistTaps="handled">
+      <Text style={globalStyles.header}>About</Text>
+
+      <View style={globalStyles.section}>
+        <View style={[globalStyles.backContainer, {marginTop: 16}]}>
           <AppleTouchFeedback
             onPress={() => navigate('Settings')}
             hapticStyle="impactMedium"
             style={{alignSelf: 'flex-start'}}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.button3} />
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={theme.colors.button3}
+            />
           </AppleTouchFeedback>
           <Text style={[globalStyles.backText, {marginLeft: 12}]}>Back</Text>
         </View>
 
-        {/* Title / Hero */}
-        <View style={styles.header}>
+        {/* Form Card */}
+        <ScrollView style={[globalStyles.screen, globalStyles.container]}>
+          {/* Title / Hero */}
+          <View style={styles.header}>
+            {/* <View
+              style={[
+                styles.logoBadge,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.surfaceBorder,
+                },
+              ]}>
+              <MaterialIcons
+                name="styler"
+                size={26}
+                color={theme.colors.foreground}
+              />
+            </View> */}
+            <Text style={[styles.title, {color: theme.colors.foreground}]}>
+              {APP_NAME}
+            </Text>
+            <Text style={[styles.subtitle, {color: colors.foreground}]}>
+              {APP_TAGLINE}
+            </Text>
+            {/* <Text style={[styles.version, {color: theme.colors.foreground}]}>
+              {VERSION}
+            </Text> */}
+          </View>
+
+          {/* What it does */}
           <View
             style={[
-              styles.logoBadge,
+              styles.card,
               {
                 backgroundColor: theme.colors.surface,
+                borderWidth: tokens.borderWidth.md,
                 borderColor: theme.colors.surfaceBorder,
               },
             ]}>
-            <MaterialIcons
-              name="styler"
-              size={26}
-              color={theme.colors.foreground}
-            />
+            <Text style={[styles.cardTitle, {color: theme.colors.foreground}]}>
+              What it does
+            </Text>
+            <Text style={[styles.cardBody, {color: theme.colors.foreground}]}>
+              Photograph your wardrobe, get intelligent outfit suggestions for
+              any event or weather, and discover gaps with tailored
+              recommendations.
+            </Text>
           </View>
-          <Text style={[styles.title, {color: theme.colors.foreground}]}>
-            {APP_NAME}
-          </Text>
-          <Text style={[styles.subtitle, {color: colors.foreground}]}>
-            {APP_TAGLINE}
-          </Text>
-          <Text style={[styles.version, {color: theme.colors.foreground}]}>
-            {VERSION}
-          </Text>
-        </View>
 
-        {/* What it does */}
-        <View style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-          <Text style={[styles.cardTitle, {color: theme.colors.foreground}]}>
-            What it does
-          </Text>
-          <Text style={[styles.cardBody, {color: theme.colors.foreground}]}>
-            Photograph your wardrobe, get intelligent outfit suggestions for any
-            event or weather, and discover gaps with tailored recommendations.
-          </Text>
-        </View>
+          {/* Privacy & Data */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderWidth: tokens.borderWidth.md,
+                borderColor: theme.colors.surfaceBorder,
+              },
+            ]}>
+            <Text style={[styles.cardTitle, {color: theme.colors.foreground}]}>
+              Privacy & Data
+            </Text>
+            <Text style={[styles.cardBody, {color: theme.colors.foreground}]}>
+              We store wardrobe data and preference settings to personalize
+              results. You can request export or deletion anytime.
+            </Text>
 
-        {/* Privacy & Data */}
-        <View style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-          <Text style={[styles.cardTitle, {color: theme.colors.foreground}]}>
-            Privacy & Data
-          </Text>
-          <Text style={[styles.cardBody, {color: theme.colors.foreground}]}>
-            We store wardrobe data and preference settings to personalize
-            results. You can request export or deletion anytime.
-          </Text>
-
-          <View style={styles.linkRow}>
-            <TouchableOpacity
-              onPress={() => openURL('https://stylhelpr.com/privacy')}>
-              <Text style={[styles.link, {color: theme.colors.foreground2}]}>
-                Privacy Policy
-              </Text>
-            </TouchableOpacity>
-            <Text style={{color: theme.colors.foreground2}}> • </Text>
-            <TouchableOpacity
-              onPress={() => openURL('https://stylhelpr.com/terms')}>
-              <Text style={[styles.link, {color: theme.colors.foreground2}]}>
-                Terms of Service
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.linkRow}>
+              <TouchableOpacity
+                onPress={() => openURL('https://stylhelpr.com/privacy')}>
+                <Text style={[styles.link, {color: theme.colors.foreground2}]}>
+                  Privacy Policy
+                </Text>
+              </TouchableOpacity>
+              <Text style={{color: theme.colors.foreground2}}> • </Text>
+              <TouchableOpacity
+                onPress={() => openURL('https://stylhelpr.com/terms')}>
+                <Text style={[styles.link, {color: theme.colors.foreground2}]}>
+                  Terms of Service
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        {/* Credits */}
-        <View style={[styles.card, {backgroundColor: theme.colors.surface}]}>
-          <Text style={[styles.cardTitle, {color: theme.colors.foreground}]}>
-            Credits
-          </Text>
-          <Text style={[styles.cardBody, {color: theme.colors.foreground}]}>
-            Built with React Native, NestJS + Fastify, Vertex AI, and Pinecone.
-            Designed for a premium, dark-mode experience.
-          </Text>
-        </View>
+          {/* Credits */}
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderWidth: tokens.borderWidth.md,
+                borderColor: theme.colors.surfaceBorder,
+              },
+            ]}>
+            <Text style={[styles.cardTitle, {color: theme.colors.foreground}]}>
+              Credits
+            </Text>
+            <Text style={[styles.cardBody, {color: theme.colors.foreground}]}>
+              Built with React Native, NestJS + Fastify, Vertex AI, and
+              Pinecone. Designed for a premium, dark-mode experience.
+            </Text>
+          </View>
 
-        {/* Contact Support button */}
-        <View style={styles.footer}>
-          <AppleTouchFeedback
-            onPress={() => openURL('mailto:support@stylhelpr.com')}
-            hapticStyle="impactMedium"
-            style={[globalStyles.buttonPrimary, styles.primaryBtn]}>
-            <Text style={globalStyles.buttonPrimaryText}>Contact Support</Text>
-          </AppleTouchFeedback>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          {/* Contact Support button */}
+          <View style={styles.footer}>
+            <AppleTouchFeedback
+              onPress={() => openURL('mailto:support@stylhelpr.com')}
+              hapticStyle="impactMedium"
+              style={[globalStyles.buttonPrimary, styles.primaryBtn]}>
+              <Text style={globalStyles.buttonPrimaryText}>
+                Contact Support
+              </Text>
+            </AppleTouchFeedback>
+          </View>
+        </ScrollView>
+      </View>
+    </ScrollView>
   );
 }
 

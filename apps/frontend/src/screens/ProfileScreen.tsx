@@ -316,7 +316,7 @@ export default function ProfileScreen({navigate}: Props) {
         style={styles.settingsButton}
         onPress={() => navigate('Settings')}
         hapticStyle="impactMedium">
-        <Icon name="settings" size={24} color="#405de6" />
+        <Icon name="settings" size={24} color={theme.colors.button1} />
       </AppleTouchFeedback>
 
       {/* Header Row */}

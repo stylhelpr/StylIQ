@@ -219,6 +219,7 @@ export default function StyleProfileScreen({navigate}: Props) {
                       styles.settingsItem,
                       isFirst && styles.firstItem,
                       isLast && styles.lastItem,
+                      {backgroundColor: theme.colors.surface},
                     ]}>
                     <View style={styles.row}>
                       <LinearGradient

@@ -29,7 +29,11 @@ export default function TrendChips({
   const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
-    wrap: {paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#000'},
+    wrap: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.background,
+    },
     row: {gap: 8, paddingHorizontal: 4, alignItems: 'center'},
     chip: {
       paddingHorizontal: 12,
@@ -37,7 +41,7 @@ export default function TrendChips({
       backgroundColor: theme.colors.pillDark2,
       borderRadius: 18,
       borderWidth: tokens.borderWidth.hairline,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderColor: theme.colors.surfaceBorder,
       marginLeft: 4,
     },
     chipActive: {

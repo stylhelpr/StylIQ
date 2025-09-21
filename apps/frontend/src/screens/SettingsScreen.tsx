@@ -34,7 +34,6 @@ const skinOptions: {
   label: string;
   color: string;
 }[] = [
-  {key: 'system', label: 'System Default', color: '#888888'},
   {key: 'modernDark', label: 'Modern Dark', color: '#00050e'},
   {key: 'modernDark2', label: 'Modern Dark 2', color: '#121212'},
   {key: 'modernLight', label: 'Modern Light', color: '#f5f5f5'},
@@ -486,7 +485,7 @@ export default function SettingsScreen({navigate}: Props) {
               <Text
                 style={[
                   globalStyles.sectionTitle2,
-                  {color: colors.foreground, marginTop: 24},
+                  {color: colors.foreground},
                 ]}>
                 Legal
               </Text>

@@ -36,7 +36,7 @@ const DiscoverCarousel: React.FC = () => {
     card: {
       width: 160,
       marginRight: 12,
-      borderRadius: 12,
+      borderRadius: 20,
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
       borderWidth: tokens.borderWidth.md,
@@ -44,10 +44,8 @@ const DiscoverCarousel: React.FC = () => {
     },
     image: {
       width: '100%',
-      // height: 180,
       height: 120,
       backgroundColor: theme.colors.surface,
-      borderWidth: tokens.borderWidth.md,
       borderBottomColor: theme.colors.surfaceBorder,
     },
     title: {

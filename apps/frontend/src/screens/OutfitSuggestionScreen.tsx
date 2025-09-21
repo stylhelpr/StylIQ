@@ -634,9 +634,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 style={[
                   globalStyles.promptRow,
                   {
+                    height: 40,
                     marginBottom: 12,
                     paddingHorizontal: 14,
-                    paddingVertical: 7,
                     borderWidth: tokens.borderWidth.hairline,
                     borderColor: theme.colors.surfaceBorder,
                     backgroundColor: theme.colors.surface3,
