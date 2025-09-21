@@ -493,13 +493,18 @@ export default function AiStylistChatScreen({navigate}: Props) {
         {/* Send to Outfit */}
         <View
           pointerEvents={canSendToOutfit ? 'auto' : 'none'}
-          style={{justifyContent: 'center', alignItems: 'center'}}>
+          style={{
+            justifyContent: 'center',
+            alignItems: 'center',
+            // borderTopWidth: theme.borderWidth.hairline,
+            // borderTopColor: theme.colors.surfaceBorder,
+          }}>
           <AppleTouchFeedback type="impactLight">
             <TouchableOpacity
               style={[
                 globalStyles.buttonPrimary,
                 {opacity: canSendToOutfit ? 1 : 0.4},
-                {width: 240},
+                {width: 240, marginTop: 12},
               ]}
               onPress={sendToOutfitSafe}
               disabled={!canSendToOutfit}
@@ -676,6 +681,8 @@ function stylesUserBubble(theme: any) {
     bubble: {
       maxWidth: '78%',
       backgroundColor: 'rgba(0, 119, 255, 1)',
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceborder,
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 16,
@@ -712,7 +719,7 @@ function stylesAssistantBubble(theme: any) {
       alignItems: 'flex-end',
       justifyContent: 'flex-start',
       gap: 8,
-      marginVertical: 6,
+      marginVertical: 8,
     },
     avatarWrap: {width: 30, height: 30},
     avatar: {
@@ -723,7 +730,7 @@ function stylesAssistantBubble(theme: any) {
     },
     bubble: {
       maxWidth: '82%',
-      backgroundColor: 'rgba(39, 39, 39, 1)',
+      backgroundColor: theme.colors.surface3,
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 20,

@@ -58,7 +58,7 @@ export const createGlobalStyles = (theme: Theme) =>
       padding: 16,
       shadowOffset: {width: 0, height: 6},
       shadowOpacity: 0.1,
-      shadowRadius: 12,
+      // shadowRadius: 12,
       elevation: 5,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,

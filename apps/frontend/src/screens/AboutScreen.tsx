@@ -203,7 +203,7 @@ export default function AboutScreen({navigate}: any) {
           {/* Contact Support button */}
           <View style={styles.footer}>
             <AppleTouchFeedback
-              onPress={() => openURL('mailto:support@stylhelpr.com')}
+              onPress={() => openURL('mailto:mike@stylhelpr.com')}
               hapticStyle="impactMedium"
               style={[globalStyles.buttonPrimary, styles.primaryBtn]}>
               <Text style={globalStyles.buttonPrimaryText}>

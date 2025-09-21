@@ -113,11 +113,10 @@ export default function ExploreScreen() {
       borderRadius: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      // backgroundColor: 'rgba(89, 0, 255, 1)',
       backgroundColor: theme.colors.button1,
     },
     iconBtnText: {
-      color: '#fff',
+      color: theme.colors.foreground,
       fontWeight: '900',
       fontSize: 20,
       lineHeight: 20,
@@ -137,8 +136,8 @@ export default function ExploreScreen() {
       backgroundColor: '#111',
       borderRadius: 12,
       paddingVertical: 8,
-      borderWidth: tokens.borderWidth.hairline,
-      borderColor: 'rgba(255,255,255,0.12)',
+      borderWidth: tokens.borderWidth.md,
+      borderColor: theme.colors.surfaceBorder,
       shadowColor: '#000',
       shadowOpacity: 0.35,
       shadowRadius: 10,
@@ -1095,7 +1094,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
   const seg = StyleSheet.create({
     root: {
       height: 36,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: 'rgba(73, 73, 73, 1)',
       borderRadius: 10,
       padding: 3,
       flexDirection: 'row',
@@ -1108,7 +1107,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    itemActive: {backgroundColor: theme.colors.surface},
+    itemActive: {backgroundColor: theme.colors.background},
     itemText: {color: theme.colors.foreground3, fontWeight: '700'},
     itemTextActive: {color: theme.colors.foreground},
   });

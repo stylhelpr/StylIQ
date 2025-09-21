@@ -37,6 +37,13 @@ export default function NotificationsScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
+  const BUTTON = globalStyles.buttonPrimary;
+  const BUTTON_TEXT = globalStyles.buttonPrimaryText;
+  const activePillBg = (theme.colors.pillDark1 ??
+    theme.colors.primary) as string;
+  const activePillBorder = (theme.colors.surfaceBorder ??
+    theme.colors.surfaceBorder) as string;
+
   const styles = StyleSheet.create({
     screen: {flex: 1},
     nav: {
@@ -47,39 +54,36 @@ export default function NotificationsScreen({
     },
     title: {fontSize: 22, fontWeight: '800'},
     actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
+
     actionBtn: {
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 10,
-      backgroundColor: theme.colors.surface2,
-      marginRight: 6,
+      paddingHorizontal: tokens.spacing.md,
+      paddingVertical: tokens.spacing.sm,
+      marginRight: 8,
     },
-    actionDanger: {backgroundColor: theme.colors.error},
-    actionText: {
-      color: theme.colors.foreground,
-      fontWeight: '700',
-      fontSize: 12,
+    actionDanger: {
+      backgroundColor: theme.colors.error,
+      borderColor: theme.colors.error ?? theme.colors.error,
     },
+
     filters: {
       flexDirection: 'row',
       gap: 8,
       paddingHorizontal: 16,
       marginBottom: 8,
     },
+
     pill: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: tokens.spacing.md,
+      paddingVertical: tokens.spacing.sm,
       borderRadius: 999,
-      backgroundColor: theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.surfaceBorder,
     },
     pillActive: {
-      backgroundColor: 'rgba(99, 101, 241, 1)',
-      borderColor: 'rgba(99,102,241,0.45)',
+      backgroundColor: activePillBg,
+      borderColor: activePillBorder,
     },
-    pillText: {color: theme.colors.foreground, fontWeight: '700'},
-    pillTextActive: {color: theme.colors.foreground},
+
     center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
     empty: {paddingHorizontal: 16, paddingTop: 40},
     emptyBig: {
@@ -128,20 +132,17 @@ export default function NotificationsScreen({
               await markAllRead(userId);
               await load();
             }}
-            style={styles.actionBtn}>
-            <Text style={styles.actionText}>Mark All</Text>
+            style={[BUTTON, styles.actionBtn]}>
+            <Text style={BUTTON_TEXT}>Mark All</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={async () => {
               await clearAll(userId);
               await load();
             }}
-            style={[
-              styles.actionBtn,
-              styles.actionDanger,
-              {backgroundColor: theme.colors.error},
-            ]}>
-            <Text style={{color: theme.colors.foreground}}>Clear</Text>
+            style={[BUTTON, styles.actionBtn, styles.actionDanger]}>
+            <Text style={BUTTON_TEXT}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -155,13 +156,12 @@ export default function NotificationsScreen({
               key={f}
               onPress={() => setFilter(f)}
               style={[
+                BUTTON,
                 styles.pill,
                 active && styles.pillActive,
-                {marginRight: 6},
+                {marginRight: 8},
               ]}>
-              <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                {f === 'all' ? 'All' : 'Unread'}
-              </Text>
+              <Text style={BUTTON_TEXT}>{f === 'all' ? 'All' : 'Unread'}</Text>
             </TouchableOpacity>
           );
         })}
@@ -178,7 +178,7 @@ export default function NotificationsScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#fff"
+              tintColor={theme.colors.primary}
             />
           }
           contentContainerStyle={{padding: 16, paddingBottom: 32}}
@@ -217,7 +217,7 @@ export default function NotificationsScreen({
   );
 }
 
-///////////////////
+//////////////
 
 // import React, {useEffect, useState, useCallback} from 'react';
 // import {
@@ -232,6 +232,8 @@ export default function NotificationsScreen({
 // } from 'react-native';
 // import {useUUID} from '../context/UUIDContext';
 // import {useAppTheme} from '../context/ThemeContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
 // import {
 //   loadNotifications,
 //   markRead,
@@ -246,12 +248,70 @@ export default function NotificationsScreen({
 // }: {
 //   navigate: (screen: string) => void;
 // }) {
-//   const userId = useUUID() ?? '';
 //   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   const userId = useUUID() ?? '';
+
 //   const [items, setItems] = useState<AppNotification[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [refreshing, setRefreshing] = useState(false);
 //   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+//   const styles = StyleSheet.create({
+//     screen: {flex: 1},
+//     nav: {
+//       paddingBottom: 8,
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       marginBottom: 18,
+//     },
+//     title: {fontSize: 22, fontWeight: '800'},
+//     actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
+//     actionBtn: {
+//       paddingHorizontal: 12,
+//       paddingVertical: 8,
+//       borderRadius: 20,
+//       backgroundColor: theme.colors.surface3,
+//       marginRight: 6,
+//     },
+//     actionDanger: {backgroundColor: theme.colors.error},
+//     actionText: {
+//       color: theme.colors.foreground,
+//       fontWeight: '700',
+//       fontSize: 12,
+//     },
+//     filters: {
+//       flexDirection: 'row',
+//       gap: 8,
+//       paddingHorizontal: 16,
+//       marginBottom: 8,
+//     },
+//     pill: {
+//       paddingHorizontal: 12,
+//       paddingVertical: 6,
+//       borderRadius: 999,
+//       backgroundColor: theme.colors.surface3,
+//       borderWidth: StyleSheet.hairlineWidth,
+//       borderColor: theme.colors.surfaceBorder,
+//     },
+//     pillActive: {
+//       backgroundColor: 'rgba(99, 101, 241, 1)',
+//       borderColor: 'rgba(99,102,241,0.45)',
+//     },
+//     pillText: {color: theme.colors.foreground, fontWeight: '700'},
+//     pillTextActive: {color: theme.colors.foreground},
+//     center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+//     empty: {paddingHorizontal: 16, paddingTop: 40},
+//     emptyBig: {
+//       color: theme.colors.foreground,
+//       fontWeight: '800',
+//       fontSize: 18,
+//       marginBottom: 6,
+//       textAlign: 'center',
+//     },
+//     emptySub: {color: theme.colors.muted, textAlign: 'center'},
+//   });
 
 //   const load = useCallback(async () => {
 //     setLoading(true);
@@ -274,12 +334,15 @@ export default function NotificationsScreen({
 //   const filtered = filter === 'unread' ? items.filter(n => !n.read) : items;
 
 //   return (
-//     <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
+//     <View
+//       style={[
+//         styles.screen,
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}>
 //       {/* Header */}
 //       <View style={styles.nav}>
-//         <Text style={[styles.title, {color: theme.colors.primary}]}>
-//           Notifications
-//         </Text>
+//         <Text style={globalStyles.header}>Notifications</Text>
 //         <View style={styles.actions}>
 //           <TouchableOpacity
 //             onPress={async () => {
@@ -294,8 +357,19 @@ export default function NotificationsScreen({
 //               await clearAll(userId);
 //               await load();
 //             }}
-//             style={[styles.actionBtn, styles.actionDanger]}>
-//             <Text style={styles.actionText}>Clear</Text>
+//             style={[
+//               styles.actionBtn,
+//               styles.actionDanger,
+//               {backgroundColor: theme.colors.error},
+//             ]}>
+//             <Text
+//               style={{
+//                 color: theme.colors.foreground,
+//                 fontWeight: '700',
+//                 fontSize: 12,
+//               }}>
+//               Clear
+//             </Text>
 //           </TouchableOpacity>
 //         </View>
 //       </View>
@@ -308,7 +382,11 @@ export default function NotificationsScreen({
 //             <TouchableOpacity
 //               key={f}
 //               onPress={() => setFilter(f)}
-//               style={[styles.pill, active && styles.pillActive]}>
+//               style={[
+//                 styles.pill,
+//                 active && styles.pillActive,
+//                 {marginRight: 6},
+//               ]}>
 //               <Text style={[styles.pillText, active && styles.pillTextActive]}>
 //                 {f === 'all' ? 'All' : 'Unread'}
 //               </Text>
@@ -366,54 +444,3 @@ export default function NotificationsScreen({
 //     </View>
 //   );
 // }
-
-// const styles = StyleSheet.create({
-//   screen: {flex: 1},
-//   nav: {
-//     paddingTop: 10,
-//     paddingHorizontal: 16,
-//     paddingBottom: 8,
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//   },
-//   title: {fontSize: 22, fontWeight: '800'},
-//   actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
-//   actionBtn: {
-//     paddingHorizontal: 10,
-//     paddingVertical: 6,
-//     borderRadius: 10,
-//     backgroundColor: 'rgba(255,255,255,0.08)',
-//   },
-//   actionDanger: {backgroundColor: 'rgba(255,59,48,0.22)'},
-//   actionText: {color: '#fff', fontWeight: '700', fontSize: 12},
-//   filters: {
-//     flexDirection: 'row',
-//     gap: 8,
-//     paddingHorizontal: 16,
-//     marginBottom: 8,
-//   },
-//   pill: {
-//     paddingHorizontal: 12,
-//     paddingVertical: 6,
-//     borderRadius: 999,
-//     backgroundColor: 'rgba(255,255,255,0.08)',
-//     borderWidth: StyleSheet.hairlineWidth,
-//     borderColor: 'rgba(255,255,255,0.12)',
-//   },
-//   pillActive: {
-//     backgroundColor: 'rgba(99,102,241,0.25)',
-//     borderColor: 'rgba(99,102,241,0.45)',
-//   },
-//   pillText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
-//   pillTextActive: {color: '#fff'},
-//   center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
-//   empty: {paddingHorizontal: 16, paddingTop: 40},
-//   emptyBig: {
-//     color: '#fff',
-//     fontWeight: '800',
-//     fontSize: 18,
-//     marginBottom: 6,
-//     textAlign: 'center',
-//   },
-//   emptySub: {color: 'rgba(255,255,255,0.7)', textAlign: 'center'},
-// });
