@@ -195,6 +195,7 @@ export default function SearchScreen({navigate, goBack}) {
       <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
         Search
       </Text>
+
       <View style={globalStyles.section}>
         <View style={[globalStyles.backContainer, {marginTop: 16}]}>
           <AppleTouchFeedback onPress={goBack} hapticStyle="impactMedium">
@@ -215,7 +216,6 @@ export default function SearchScreen({navigate, goBack}) {
               placeholderTextColor={'#9b9b9bff'}
               value={query}
               onChangeText={text => {
-                // SEARCH LOGIC UNTOUCHED
                 setQuery(text);
               }}
               style={styles.input}

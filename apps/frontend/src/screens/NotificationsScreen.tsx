@@ -113,7 +113,12 @@ export default function NotificationsScreen({
   const filtered = filter === 'unread' ? items.filter(n => !n.read) : items;
 
   return (
-    <View style={[styles.screen, globalStyles.container]}>
+    <View
+      style={[
+        styles.screen,
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
       {/* Header */}
       <View style={styles.nav}>
         <Text style={globalStyles.header}>Notifications</Text>
