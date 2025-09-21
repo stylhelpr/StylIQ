@@ -14,6 +14,7 @@ import {useFashionFeeds} from '../../hooks/useFashionFeeds';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
+import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Article = {
   id: string | number;
@@ -103,11 +104,11 @@ const NewsCarousel: React.FC = () => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{paddingRight: 8}}>
       {topTen.map(a => (
-        <TouchableOpacity
+        <AppleTouchFeedback
           key={String(a.id)}
           style={styles.card}
-          onPress={() => a.link && Linking.openURL(a.link)}
-          activeOpacity={0.9}>
+          hapticStyle="impactLight"
+          onPress={() => a.link && Linking.openURL(a.link)}>
           {a.image ? (
             <Image
               source={{uri: a.image}}
@@ -127,7 +128,7 @@ const NewsCarousel: React.FC = () => {
           <Text style={styles.source} numberOfLines={1}>
             {a.source || 'Fashion News'}
           </Text>
-        </TouchableOpacity>
+        </AppleTouchFeedback>
       ))}
     </ScrollView>
   );
