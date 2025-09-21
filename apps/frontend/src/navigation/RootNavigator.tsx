@@ -45,6 +45,7 @@ import AiStylistChatScreen from '../screens/AiStyleChatScreen';
 import ContactScreen from '../screens/ContactScreen';
 import AboutScreen from '../screens/AboutScreen';
 import FeedbackScreen from '../screens/FeedBackScreen';
+import WebPageScreen from '../screens/WebPageScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -102,6 +103,7 @@ type Screen =
   | 'AboutScreen'
   | 'FeedbackScreen'
   | 'AiStylistChatScreen'
+  | 'WebPageScreen'
   | 'Planner';
 
 const RootNavigator = () => {
@@ -280,6 +282,10 @@ const RootNavigator = () => {
         return <FeedbackScreen navigate={navigate} />;
       case 'AboutScreen':
         return <AboutScreen navigate={navigate} />;
+      case 'WebPageScreen':
+        return (
+          <WebPageScreen route={{params: screenParams}} navigate={navigate} />
+        );
       case 'Lifestyle':
         return <LifestyleScreen navigate={navigate} />;
       case 'ShoppingHabits':
