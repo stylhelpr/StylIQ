@@ -98,6 +98,7 @@ export default function SearchScreen({navigate, goBack}) {
       borderColor: theme.colors.surfaceBorder,
       backgroundColor: theme.colors.surface3,
       borderRadius: 20,
+      color: theme.colors.foreground,
     },
     micWrap: {
       position: 'absolute',
@@ -120,7 +121,7 @@ export default function SearchScreen({navigate, goBack}) {
     card: {
       padding: 14,
       borderRadius: 12,
-      marginBottom: 12,
+      marginBottom: 10,
     },
     groupLabel: {
       marginTop: 20,

@@ -373,7 +373,7 @@ export default function SavedOutfitsScreen() {
       backgroundColor: theme.colors.surface,
       borderRadius: 28,
       padding: 20,
-      marginBottom: 20,
+      marginBottom: 10,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
       shadowColor: '#000',

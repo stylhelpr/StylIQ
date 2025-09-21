@@ -47,6 +47,7 @@ const DiscoverCarousel: React.FC = () => {
       height: 120,
       backgroundColor: theme.colors.surface,
       borderBottomColor: theme.colors.surfaceBorder,
+      borderBottomWidth: tokens.borderWidth.md,
     },
     title: {
       color: theme.colors.foreground,
