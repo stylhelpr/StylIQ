@@ -16,6 +16,13 @@ import {useAuthRole} from '../../hooks/useAuthRole';
 import {STYLE_AGENTS} from '../../../../backend-nest/src/wardrobe/logic/style-agents';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+const h = (type: string) =>
+  ReactNativeHapticFeedback.trigger(type, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
 
 export type Weights = {
   constraintsWeight: number;
@@ -115,7 +122,10 @@ function SliderLite({
       <Pressable
         disabled={disabled}
         onLayout={onTrackLayout}
-        onPress={e => setFromX(e.nativeEvent.locationX)}
+        onPress={e => {
+          h('selection'); // tap on track
+          setFromX(e.nativeEvent.locationX);
+        }}
         style={{
           height: 28,
           borderRadius: 999,
@@ -142,7 +152,10 @@ function SliderLite({
         }}>
         <TouchableOpacity
           disabled={disabled}
-          onPress={() => onChange(clamp(toStep(value - step)))}
+          onPress={() => {
+            h('selection');
+            onChange(clamp(toStep(value - step)));
+          }}
           style={{
             paddingVertical: 6,
             paddingHorizontal: 12,
@@ -153,7 +166,10 @@ function SliderLite({
         </TouchableOpacity>
         <TouchableOpacity
           disabled={disabled}
-          onPress={() => onChange(clamp(toStep(value + step)))}
+          onPress={() => {
+            h('selection');
+            onChange(clamp(toStep(value + step)));
+          }}
           style={{
             paddingVertical: 6,
             paddingHorizontal: 12,
@@ -216,7 +232,11 @@ export default function OutfitTuningControls({
     label: {marginLeft: 8, color: theme.colors.foreground, fontSize: 14},
     faint: {color: theme.colors.muted, fontSize: 12},
     pill: {borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12},
-    pillPrimary2: {backgroundColor: isGenerating ? '#7a88ff' : '#474747ff'},
+    pillPrimary2: {
+      backgroundColor: isGenerating
+        ? theme.colors.button1
+        : theme.colors.button1,
+    },
     pillTextPrimary: {color: '#fff', fontWeight: '600', fontSize: 13},
     cta: {
       height: 48,
@@ -370,7 +390,10 @@ export default function OutfitTuningControls({
         }}>
         <TouchableOpacity
           style={[globalStyles.buttonPrimary, {width: 140}]}
-          onPress={onRegenerate}
+          onPress={() => {
+            h('impactMedium'); // primary action tap
+            onRegenerate();
+          }}
           disabled={isGenDisabled}
           accessibilityState={{disabled: isGenDisabled}}
           testID="generate-outfit-button">
@@ -381,13 +404,16 @@ export default function OutfitTuningControls({
 
         {/* NEW: Single gear to toggle ALL content below */}
         <TouchableOpacity
-          onPress={() => setShowExtras(s => !s)}
+          onPress={() => {
+            h('selection');
+            setShowExtras(s => !s);
+          }}
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel={showExtras ? 'Hide options' : 'Show options'}
           testID="master-gear-toggle"
           style={[S.iconBtn, {marginTop: 10}]}>
-          <MaterialIcons name="settings" size={20} color={'#504949ff'} />
+          <MaterialIcons name="settings" size={28} color={'#504949ff'} />
         </TouchableOpacity>
       </View>
 
@@ -411,6 +437,7 @@ export default function OutfitTuningControls({
               style={S.refineCta}
               onPress={() => {
                 if (onRefine && refineText.trim()) {
+                  h('impactLight'); // refine tap
                   onRefine(refineText.trim());
                   setRefineText('');
                 }
@@ -445,6 +472,7 @@ export default function OutfitTuningControls({
                   typeof next === 'function'
                     ? (next(styleAgent) as StyleAgentKey | null)
                     : (next as StyleAgentKey | null);
+                h('impactLight'); // selecting a preset
                 onChangeStyleAgent?.(resolved);
               }}
               items={styleAgentOptions}
@@ -461,6 +489,7 @@ export default function OutfitTuningControls({
                 elevation: 9999,
                 maxHeight: 180,
               }}
+              onOpen={() => h('selection')}
             />
           </View>
 
@@ -470,6 +499,7 @@ export default function OutfitTuningControls({
               <Switch
                 value={useWeather}
                 onValueChange={enabled => {
+                  h('selection');
                   onToggleWeather(enabled);
                   if (!enabled) setShowWeatherPicker(false);
                 }}
@@ -485,7 +515,10 @@ export default function OutfitTuningControls({
 
             <TouchableOpacity
               disabled={weatherDisabled}
-              onPress={() => setShowWeatherPicker(s => !s)}
+              onPress={() => {
+                if (!weatherDisabled) h('selection');
+                setShowWeatherPicker(s => !s);
+              }}
               activeOpacity={0.8}
               style={[
                 S.pill,
@@ -505,7 +538,10 @@ export default function OutfitTuningControls({
                 open={openWeather}
                 setOpen={setOpenWeather}
                 value={weather}
-                setValue={val => onChangeWeather(val as unknown as string)}
+                setValue={val => {
+                  h('selection');
+                  onChangeWeather(val as unknown as string);
+                }}
                 items={weatherOptions}
                 placeholder={
                   useWeather ? 'Choose weather option' : 'Weather (disabled)'
@@ -520,6 +556,7 @@ export default function OutfitTuningControls({
                   elevation: 9999,
                 }}
                 disabled={weatherDisabled}
+                onOpen={() => h('selection')}
               />
               <Text style={[S.faint, {marginTop: 6}]}>
                 {useWeather
@@ -534,8 +571,14 @@ export default function OutfitTuningControls({
             <View style={[S.row, {marginTop: 4}]}>
               <Text style={[S.faint]}>Advanced Controls</Text>
               <TouchableOpacity
-                onPress={() => setShowMoreOptions(s => !s)}
-                onLongPress={() => setShowHiddenDev(v => !v)}
+                onPress={() => {
+                  h('selection');
+                  setShowMoreOptions(s => !s);
+                }}
+                onLongPress={() => {
+                  h('impactMedium');
+                  setShowHiddenDev(v => !v);
+                }}
                 delayLongPress={500}
                 activeOpacity={0.8}
                 accessibilityRole="button"
@@ -561,6 +604,7 @@ export default function OutfitTuningControls({
                   <Switch
                     value={feedbackEnabled}
                     onValueChange={enabled => {
+                      h('selection');
                       setFeedbackEnabled(enabled);
                       onToggleFeedback?.(enabled);
                     }}
@@ -589,7 +633,10 @@ export default function OutfitTuningControls({
                   }}>
                   <Text style={S.cardTitle}>Scoring Weights (dev)</Text>
                   <TouchableOpacity
-                    onPress={() => onChangeWeights?.(DEFAULT_WEIGHTS)}
+                    onPress={() => {
+                      h('impactLight');
+                      onChangeWeights?.(DEFAULT_WEIGHTS);
+                    }}
                     style={{
                       paddingVertical: 6,
                       paddingHorizontal: 10,
@@ -645,7 +692,7 @@ export default function OutfitTuningControls({
   );
 }
 
-//////////////////
+////////////////////////
 
 // import React, {useMemo, useRef, useState} from 'react';
 // import {
@@ -663,6 +710,8 @@ export default function OutfitTuningControls({
 // import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // import {useAuthRole} from '../../hooks/useAuthRole';
 // import {STYLE_AGENTS} from '../../../../backend-nest/src/wardrobe/logic/style-agents';
+// import {useGlobalStyles} from '../../styles/useGlobalStyles';
+// import {tokens} from '../../styles/tokens/tokens';
 
 // export type Weights = {
 //   constraintsWeight: number;
@@ -847,64 +896,10 @@ export default function OutfitTuningControls({
 //   showRefine = true,
 // }: Props) {
 //   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
 
 //   const role = useAuthRole();
 //   console.log('ROLE FROM HOOK =', role);
-
-//   // SAFE DEFAULTS so we never blow up if parent forgets to pass weights
-//   const w: Weights = weights ?? DEFAULT_WEIGHTS;
-
-//   const setWeights = (next: Partial<Weights>) => {
-//     const merged = {...w, ...next};
-//     onChangeWeights?.(merged);
-//   };
-
-//   // Dropdown state
-//   const [openWeather, setOpenWeather] = useState(false);
-//   const [openStyleAgent, setOpenStyleAgent] = useState(false);
-
-//   // Panels
-//   const [showWeatherPicker, setShowWeatherPicker] = useState(false);
-//   const [showMoreOptions, setShowMoreOptions] = useState(false);
-
-//   // NEW — hidden developer controls (revealed with a long-press on gear)
-//   const [showHiddenDev, setShowHiddenDev] = useState(false);
-//   const [feedbackEnabled, setFeedbackEnabled] = useState(useFeedback);
-
-//   // 👇 NEW refinement input state
-//   const [refineText, setRefineText] = useState('');
-
-//   // 👇 NEW — collapses EVERYTHING below the CTA behind a single gear
-//   const [showExtras, setShowExtras] = useState(false);
-
-//   const weatherOptions = [
-//     {label: 'Use My Location (Auto)', value: 'auto'},
-//     {label: 'Hot Weather', value: 'hot'},
-//     {label: 'Cold Weather', value: 'cold'},
-//     {label: 'Rainy Weather', value: 'rainy'},
-//   ];
-
-//   const styleAgentOptions = useMemo(() => {
-//     const none = [
-//       {label: 'None (Use My Style Preferences)', value: null as null},
-//     ];
-
-//     // Keep numeric order: agent1 → agent12
-//     const numbered = Object.entries(STYLE_AGENTS)
-//       .sort(([a], [b]) => {
-//         const na = parseInt(a.replace('agent', ''), 10);
-//         const nb = parseInt(b.replace('agent', ''), 10);
-//         return na - nb;
-//       })
-//       .map(([key, cfg]) => ({
-//         label: cfg.name, // e.g. "Power Tailoring (Tom Ford–inspired)"
-//         value: key as StyleAgentKey, // 'agent1' | ... | 'agent12'
-//       }));
-
-//     return [...none, ...numbered];
-//   }, []);
-
-//   const isGenDisabled = !canGenerate || isGenerating;
 
 //   const S = StyleSheet.create({
 //     container: {width: '100%', paddingHorizontal: 20, gap: 12},
@@ -994,6 +989,61 @@ export default function OutfitTuningControls({
 //     },
 //   });
 
+//   // SAFE DEFAULTS so we never blow up if parent forgets to pass weights
+//   const w: Weights = weights ?? DEFAULT_WEIGHTS;
+
+//   const setWeights = (next: Partial<Weights>) => {
+//     const merged = {...w, ...next};
+//     onChangeWeights?.(merged);
+//   };
+
+//   // Dropdown state
+//   const [openWeather, setOpenWeather] = useState(false);
+//   const [openStyleAgent, setOpenStyleAgent] = useState(false);
+
+//   // Panels
+//   const [showWeatherPicker, setShowWeatherPicker] = useState(false);
+//   const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+//   // NEW — hidden developer controls (revealed with a long-press on gear)
+//   const [showHiddenDev, setShowHiddenDev] = useState(false);
+//   const [feedbackEnabled, setFeedbackEnabled] = useState(useFeedback);
+
+//   // 👇 NEW refinement input state
+//   const [refineText, setRefineText] = useState('');
+
+//   // 👇 NEW — collapses EVERYTHING below the CTA behind a single gear
+//   const [showExtras, setShowExtras] = useState(false);
+
+//   const weatherOptions = [
+//     {label: 'Use My Location (Auto)', value: 'auto'},
+//     {label: 'Hot Weather', value: 'hot'},
+//     {label: 'Cold Weather', value: 'cold'},
+//     {label: 'Rainy Weather', value: 'rainy'},
+//   ];
+
+//   const styleAgentOptions = useMemo(() => {
+//     const none = [
+//       {label: 'None (Use My Style Preferences)', value: null as null},
+//     ];
+
+//     // Keep numeric order: agent1 → agent12
+//     const numbered = Object.entries(STYLE_AGENTS)
+//       .sort(([a], [b]) => {
+//         const na = parseInt(a.replace('agent', ''), 10);
+//         const nb = parseInt(b.replace('agent', ''), 10);
+//         return na - nb;
+//       })
+//       .map(([key, cfg]) => ({
+//         label: cfg.name, // e.g. "Power Tailoring (Tom Ford–inspired)"
+//         value: key as StyleAgentKey, // 'agent1' | ... | 'agent12'
+//       }));
+
+//     return [...none, ...numbered];
+//   }, []);
+
+//   const isGenDisabled = !canGenerate || isGenerating;
+
 //   const weatherDisabled = !useWeather;
 //   const modeLabel = useWeather
 //     ? weather === 'auto'
@@ -1015,12 +1065,12 @@ export default function OutfitTuningControls({
 //           alignItems: 'center',
 //         }}>
 //         <TouchableOpacity
-//           style={S.cta}
+//           style={[globalStyles.buttonPrimary, {width: 140}]}
 //           onPress={onRegenerate}
 //           disabled={isGenDisabled}
 //           accessibilityState={{disabled: isGenDisabled}}
 //           testID="generate-outfit-button">
-//           <Text style={S.ctaText}>
+//           <Text style={globalStyles.buttonPrimaryText}>
 //             {isGenerating ? 'Generating…' : 'Create Outfit'}
 //           </Text>
 //         </TouchableOpacity>
@@ -1119,7 +1169,7 @@ export default function OutfitTuningControls({
 //                   onToggleWeather(enabled);
 //                   if (!enabled) setShowWeatherPicker(false);
 //                 }}
-//                 trackColor={{false: '#767577', true: '#405de6'}}
+//                 trackColor={{false: '#767577', true: 'rgba(102, 0, 197, 1)'}}
 //                 thumbColor={useWeather ? '#fff' : '#f4f3f4'}
 //               />
 //               <Text style={S.label}>Use Weather</Text>
