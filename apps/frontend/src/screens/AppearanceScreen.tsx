@@ -7,10 +7,16 @@ import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
-type Props = {
-  navigate: (screen: string) => void;
-};
+type Props = {navigate: (screen: string) => void};
+
+const h = (type: string) =>
+  ReactNativeHapticFeedback.trigger(type, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
 
 const fields: Record<string, string[]> = {
   proportions: [
@@ -27,14 +33,6 @@ export default function AppearanceScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
-
-  const styles = StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-  });
-
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
@@ -43,12 +41,10 @@ export default function AppearanceScreen({navigate}: Props) {
     {},
   );
 
-  // Fetch backend data on mount
   useEffect(() => {
     if (userId) refetch();
   }, [userId, refetch]);
 
-  // Sync UI state when profile loads
   useEffect(() => {
     if (!styleProfile) return;
 
@@ -62,9 +58,17 @@ export default function AppearanceScreen({navigate}: Props) {
   }, [styleProfile]);
 
   const handleSelect = (field: string, value: string) => {
+    // 🔔 buzz on chip selection
+    h('impactLight');
+
     const updated = {...selectedValues, [field]: value};
     setSelectedValues(updated);
-    updateProfile(field, value); // <-- directly update backend
+
+    try {
+      updateProfile(field, value);
+    } catch {
+      h('notificationError');
+    }
   };
 
   return (
@@ -79,7 +83,15 @@ export default function AppearanceScreen({navigate}: Props) {
 
       <ScrollView contentContainerStyle={globalStyles.section4}>
         <View style={globalStyles.backContainer}>
-          <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+          {/* 🔔 back gets a light tap */}
+          <AppleTouchFeedback
+            hapticStyle="impactLight"
+            onPress={() => navigate('StyleProfileScreen')}>
+            <BackHeader
+              title=""
+              onBack={() => navigate('StyleProfileScreen')}
+            />
+          </AppleTouchFeedback>
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
@@ -117,30 +129,30 @@ export default function AppearanceScreen({navigate}: Props) {
   );
 }
 
-////////////
+//////////////
 
-// // AppearanceScreen.tsx
 // import React, {useState, useEffect} from 'react';
 // import {View, Text, StyleSheet, ScrollView} from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 // import {Chip} from '../components/Chip/Chip';
 // import BackHeader from '../components/Backheader/Backheader';
 // import {useAuth0} from 'react-native-auth0';
 // import {useStyleProfile} from '../hooks/useStyleProfile';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
 
 // type Props = {
 //   navigate: (screen: string) => void;
 // };
 
-// const fields = {
+// const fields: Record<string, string[]> = {
 //   proportions: [
 //     'Short Legs',
 //     'Long Legs',
 //     'Short Torso',
 //     'Long Torso',
 //     'Balanced',
+//     'Even Proportions',
 //   ],
 // };
 
@@ -158,21 +170,34 @@ export default function AppearanceScreen({navigate}: Props) {
 
 //   const {user} = useAuth0();
 //   const userId = user?.sub || '';
-//   const {updateProfile} = useStyleProfile(userId);
+//   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
-//   const [selected, setSelected] = useState<{[key: string]: string}>({});
+//   const [selectedValues, setSelectedValues] = useState<{[key: string]: string}>(
+//     {},
+//   );
 
+//   // Fetch backend data on mount
 //   useEffect(() => {
-//     AsyncStorage.getItem('appearance').then(val => {
-//       if (val) setSelected(JSON.parse(val));
-//     });
-//   }, []);
+//     if (userId) refetch();
+//   }, [userId, refetch]);
 
-//   const handleSelect = (category: string, value: string) => {
-//     const updated = {...selected, [category]: value};
-//     setSelected(updated);
-//     AsyncStorage.setItem('appearance', JSON.stringify(updated));
-//     updateProfile(category, value);
+//   // Sync UI state when profile loads
+//   useEffect(() => {
+//     if (!styleProfile) return;
+
+//     const initial: {[key: string]: string} = {};
+//     Object.keys(fields).forEach(field => {
+//       if (typeof styleProfile[field] === 'string') {
+//         initial[field] = styleProfile[field];
+//       }
+//     });
+//     setSelectedValues(initial);
+//   }, [styleProfile]);
+
+//   const handleSelect = (field: string, value: string) => {
+//     const updated = {...selectedValues, [field]: value};
+//     setSelectedValues(updated);
+//     updateProfile(field, value); // <-- directly update backend
 //   };
 
 //   return (
@@ -190,121 +215,36 @@ export default function AppearanceScreen({navigate}: Props) {
 //           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
 //           <Text style={globalStyles.backText}>Back</Text>
 //         </View>
-//         {Object.entries(fields).map(([category, options]) => (
-//           <View key={category}>
-//             <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
-//               {category
-//                 .replace(/_/g, ' ')
-//                 .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
-//             </Text>
-//             <View style={globalStyles.styleContainer1}>
-//               <View style={globalStyles.pillContainer}>
-//                 {options.map(opt => (
-//                   <Chip
-//                     key={opt}
-//                     label={opt}
-//                     selected={selected[category] === opt}
-//                     onPress={() => handleSelect(category, opt)}
-//                   />
-//                 ))}
+
+//         <View style={globalStyles.centeredSection}>
+//           {Object.entries(fields).map(([field, options]) => (
+//             <View key={field}>
+//               <Text
+//                 style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
+//                 {field
+//                   .replace(/_/g, ' ')
+//                   .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
+//               </Text>
+//               <View
+//                 style={[
+//                   globalStyles.styleContainer1,
+//                   globalStyles.cardStyles3,
+//                   {borderWidth: tokens.borderWidth.md},
+//                 ]}>
+//                 <View style={globalStyles.pillContainer}>
+//                   {options.map(option => (
+//                     <Chip
+//                       key={option}
+//                       label={option}
+//                       selected={selectedValues[field] === option}
+//                       onPress={() => handleSelect(field, option)}
+//                     />
+//                   ))}
+//                 </View>
 //               </View>
 //             </View>
-//           </View>
-//         ))}
-//       </ScrollView>
-//     </View>
-//   );
-// }
-
-//////////////
-
-// // AppearanceScreen.tsx
-// import React, {useState, useEffect} from 'react';
-// import {View, Text, StyleSheet, ScrollView} from 'react-native';
-// import {useAppTheme} from '../context/ThemeContext';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import {Chip} from '../components/Chip/Chip';
-// import BackHeader from '../components/Backheader/Backheader';
-// import {useAuth0} from 'react-native-auth0';
-// import {useStyleProfile} from '../hooks/useStyleProfile';
-// import {useGlobalStyles} from '../styles/useGlobalStyles';
-
-// type Props = {
-//   navigate: (screen: string) => void;
-// };
-
-// const fields = {
-//   proportions: [
-//     'Short Legs',
-//     'Long Legs',
-//     'Short Torso',
-//     'Long Torso',
-//     'Balanced',
-//   ],
-// };
-
-// export default function AppearanceScreen({navigate}: Props) {
-//   const {theme} = useAppTheme();
-//   const colors = theme.colors;
-//   const globalStyles = useGlobalStyles();
-
-//   const styles = StyleSheet.create({
-//     screen: {
-//       flex: 1,
-//       backgroundColor: theme.colors.background,
-//     },
-//   });
-
-//   const {user} = useAuth0();
-//   const userId = user?.sub || '';
-//   const {updateProfile} = useStyleProfile(userId);
-
-//   const [selected, setSelected] = useState<{[key: string]: string}>({});
-
-//   useEffect(() => {
-//     AsyncStorage.getItem('appearance').then(val => {
-//       if (val) setSelected(JSON.parse(val));
-//     });
-//   }, []);
-
-//   const handleSelect = (category: string, value: string) => {
-//     const updated = {...selected, [category]: value};
-//     setSelected(updated);
-//     AsyncStorage.setItem('appearance', JSON.stringify(updated));
-//     updateProfile(category, value);
-//   };
-
-//   return (
-//     <View
-//       style={[
-//         globalStyles.container,
-//         {backgroundColor: theme.colors.background},
-//       ]}>
-//       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
-//         Appearance
-//       </Text>
-
-//       <ScrollView contentContainerStyle={globalStyles.section}>
-//         <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-//         {Object.entries(fields).map(([category, options]) => (
-//           <View key={category}>
-//             <Text style={[globalStyles.sectionTitle, {color: colors.primary}]}>
-//               {category
-//                 .replace(/_/g, ' ')
-//                 .replace(/(^\w|\s\w)/g, t => t.toUpperCase())}
-//             </Text>
-//             <View style={globalStyles.pillContainer}>
-//               {options.map(opt => (
-//                 <Chip
-//                   key={opt}
-//                   label={opt}
-//                   selected={selected[category] === opt}
-//                   onPress={() => handleSelect(category, opt)}
-//                 />
-//               ))}
-//             </View>
-//           </View>
-//         ))}
+//           ))}
+//         </View>
 //       </ScrollView>
 //     </View>
 //   );

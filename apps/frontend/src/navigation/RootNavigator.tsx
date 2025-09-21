@@ -273,7 +273,7 @@ const RootNavigator = () => {
       case 'BudgetAndBrands':
         return <BudgetAndBrandsScreen navigate={navigate} />;
       case 'Appearance':
-        return <ContactScreen navigate={navigate} />;
+        return <AppearanceScreen navigate={navigate} />;
       case 'ContactScreen':
         return <ContactScreen navigate={navigate} />;
       case 'FeedbackScreen':

@@ -8,10 +8,18 @@ import {useAuth0} from 'react-native-auth0';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
-type Props = {
-  navigate: (screen: string) => void;
-};
+type Props = {navigate: (screen: string) => void};
+
+const h = (type: string) =>
+  ReactNativeHapticFeedback.trigger(type, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
+
+const STORAGE_KEY = 'fitPreferences';
 
 const options = [
   'Slim Fit',
@@ -29,42 +37,39 @@ export default function FitPreferencesScreen({navigate}: Props) {
   const [selected, setSelected] = useState<string[]>([]);
 
   const styles = StyleSheet.create({
-    screen: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    subtitle: {
-      fontSize: 17,
-      marginBottom: 20,
-    },
+    screen: {flex: 1, backgroundColor: theme.colors.background},
+    subtitle: {fontSize: 17, marginBottom: 20},
   });
 
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
-  // Fetch fresh profile data on mount
   useEffect(() => {
     refetch();
   }, [refetch]);
 
-  // Sync UI state with backend data when it arrives
   useEffect(() => {
-    if (
-      styleProfile?.fit_preferences &&
-      Array.isArray(styleProfile.fit_preferences)
-    ) {
+    if (Array.isArray(styleProfile?.fit_preferences)) {
       setSelected(styleProfile.fit_preferences);
     }
   }, [styleProfile]);
 
   const toggleSelection = async (label: string) => {
+    // 🔔 haptic on chip press
+    h('impactLight');
+
     const updated = selected.includes(label)
       ? selected.filter(item => item !== label)
       : [...selected, label];
-    setSelected(updated);
-    await AsyncStorage.setItem('fitPreferences', JSON.stringify(updated));
-    updateProfile('fit_preferences', updated);
+
+    try {
+      setSelected(updated);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      updateProfile('fit_preferences', updated);
+    } catch {
+      h('notificationError');
+    }
   };
 
   return (
@@ -79,7 +84,15 @@ export default function FitPreferencesScreen({navigate}: Props) {
 
       <ScrollView contentContainerStyle={globalStyles.section4}>
         <View style={globalStyles.backContainer}>
-          <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+          {/* 🔔 back = light tap */}
+          <AppleTouchFeedback
+            hapticStyle="impactLight"
+            onPress={() => navigate('StyleProfileScreen')}>
+            <BackHeader
+              title=""
+              onBack={() => navigate('StyleProfileScreen')}
+            />
+          </AppleTouchFeedback>
           <Text style={globalStyles.backText}>Back</Text>
         </View>
 
@@ -112,7 +125,7 @@ export default function FitPreferencesScreen({navigate}: Props) {
   );
 }
 
-/////////
+///////////////////
 
 // import React, {useEffect, useState} from 'react';
 // import {View, Text, StyleSheet, ScrollView} from 'react-native';
@@ -123,6 +136,7 @@ export default function FitPreferencesScreen({navigate}: Props) {
 // import {useAuth0} from 'react-native-auth0';
 // import {useStyleProfile} from '../hooks/useStyleProfile';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
 
 // type Props = {
 //   navigate: (screen: string) => void;
@@ -156,15 +170,22 @@ export default function FitPreferencesScreen({navigate}: Props) {
 
 //   const {user} = useAuth0();
 //   const userId = user?.sub || '';
-//   const {updateProfile} = useStyleProfile(userId);
+//   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
+//   // Fetch fresh profile data on mount
 //   useEffect(() => {
-//     const loadData = async () => {
-//       const data = await AsyncStorage.getItem('fitPreferences');
-//       if (data) setSelected(JSON.parse(data));
-//     };
-//     loadData();
-//   }, []);
+//     refetch();
+//   }, [refetch]);
+
+//   // Sync UI state with backend data when it arrives
+//   useEffect(() => {
+//     if (
+//       styleProfile?.fit_preferences &&
+//       Array.isArray(styleProfile.fit_preferences)
+//     ) {
+//       setSelected(styleProfile.fit_preferences);
+//     }
+//   }, [styleProfile]);
 
 //   const toggleSelection = async (label: string) => {
 //     const updated = selected.includes(label)
@@ -185,20 +206,35 @@ export default function FitPreferencesScreen({navigate}: Props) {
 //         Fit Preferences
 //       </Text>
 
-//       <ScrollView contentContainerStyle={globalStyles.section}>
-//         <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
-//         <Text style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
-//           Choose your most comfortable and flattering fits:
-//         </Text>
-//         <View style={globalStyles.pillContainer}>
-//           {options.map(option => (
-//             <Chip
-//               key={option}
-//               label={option}
-//               selected={selected.includes(option)}
-//               onPress={() => toggleSelection(option)}
-//             />
-//           ))}
+//       <ScrollView contentContainerStyle={globalStyles.section4}>
+//         <View style={globalStyles.backContainer}>
+//           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+//           <Text style={globalStyles.backText}>Back</Text>
+//         </View>
+
+//         <View style={globalStyles.centeredSection}>
+//           <Text
+//             style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
+//             Choose your most comfortable and flattering fits:
+//           </Text>
+
+//           <View
+//             style={[
+//               globalStyles.styleContainer1,
+//               globalStyles.cardStyles3,
+//               {borderWidth: tokens.borderWidth.md},
+//             ]}>
+//             <View style={globalStyles.pillContainer}>
+//               {options.map(option => (
+//                 <Chip
+//                   key={option}
+//                   label={option}
+//                   selected={selected.includes(option)}
+//                   onPress={() => toggleSelection(option)}
+//                 />
+//               ))}
+//             </View>
+//           </View>
 //         </View>
 //       </ScrollView>
 //     </View>
