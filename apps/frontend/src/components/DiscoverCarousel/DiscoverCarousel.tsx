@@ -13,6 +13,7 @@ import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
+import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Product = {
   id: string;
@@ -111,9 +112,10 @@ const DiscoverCarousel: React.FC = () => {
         <Text style={{padding: 16, color: '#666'}}>No picks found</Text>
       ) : (
         recommended.map(item => (
-          <TouchableOpacity
+          <AppleTouchFeedback
             key={item.id}
             style={styles.card}
+            hapticStyle="impactLight"
             onPress={() => Linking.openURL(item.link || '#')}>
             <Image
               source={{uri: item.image_url}}
@@ -125,7 +127,7 @@ const DiscoverCarousel: React.FC = () => {
               {item.title || 'Untitled'}
             </Text>
             <Text style={styles.brand}>{item.brand || 'Brand'}</Text>
-          </TouchableOpacity>
+          </AppleTouchFeedback>
         ))
       )}
     </ScrollView>
