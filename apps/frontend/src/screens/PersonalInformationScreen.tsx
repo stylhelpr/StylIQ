@@ -67,7 +67,7 @@ export default function PersonalInformationScreen({navigate}: any) {
       marginBottom: 6,
     },
     input: {
-      borderWidth: 1,
+      borderWidth: theme.borderWidth.lg,
       borderRadius: 10,
       padding: 14,
       fontSize: 16,

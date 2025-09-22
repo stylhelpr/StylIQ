@@ -235,7 +235,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     weatherTemp: {
       fontSize: 28,
       fontWeight: '800',
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
     },
     weatherAdvice: {
       fontSize: 14,
@@ -294,14 +294,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             fontSize: 17,
             fontWeight: '800',
             color: theme.colors.foreground,
-            textShadowColor: 'rgba(0,0,0,0.6)',
-            textShadowOffset: {width: 0, height: 1},
-            textShadowRadius: 2,
+            // textShadowColor: 'rgba(0,0,0,0.6)',
+            // textShadowOffset: {width: 0, height: 1},
+            // textShadowRadius: 2,
           }}
           numberOfLines={1}
           ellipsizeMode="tail">
-          {firstName
+          {/* {firstName
             ? `Hey ${firstName}, ready to get styled today?`
+            : 'Hey there, ready to get styled today?'} */}
+          {firstName
+            ? `Hey ${firstName}, Ready to Get Styled Today?`
             : 'Hey there, ready to get styled today?'}
         </Text>
 
@@ -386,7 +389,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {/* Weather Section */}
       {prefs.weather && (
         <View style={globalStyles.section}>
-          <Text style={globalStyles.sectionTitle}>Weather</Text>
+          {/* <Text style={globalStyles.sectionTitle}>Weather</Text> */}
+          <Text style={globalStyles.sectionTitle}>WEATHER</Text>
           {weather && (
             <View style={globalStyles.cardStyles1}>
               <Animatable.View
@@ -457,7 +461,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {/* Map Section */}
       {prefs.locationMap && (
         <View style={globalStyles.section}>
-          <Text style={globalStyles.sectionTitle}>Your Location</Text>
+          {/* <Text style={globalStyles.sectionTitle}>Your Location</Text> */}
+          <Text style={globalStyles.sectionTitle}>YOUR LOCATION</Text>
           <View
             style={[
               globalStyles.cardStyles1,
@@ -479,7 +484,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {prefs.quickAccess && (
         <View style={globalStyles.centeredSection}>
           <View style={globalStyles.section}>
-            <Text style={globalStyles.sectionTitle}>Quick Access</Text>
+            {/* <Text style={globalStyles.sectionTitle}>Quick Access</Text> */}
+            <Text style={globalStyles.sectionTitle}>QUICK ACCESS</Text>
             <View style={[globalStyles.centeredSection]}>
               <View
                 style={[
@@ -520,7 +526,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {/* NEW: Top Fashion Stories (preview carousel) */}
       {prefs.topFashionStories && (
         <View style={globalStyles.section}>
-          <Text style={[globalStyles.sectionTitle]}>Top Fashion Stories</Text>
+          {/* <Text style={[globalStyles.sectionTitle]}>Top Fashion Stories</Text> */}
+          <Text style={[globalStyles.sectionTitle]}>TOP FASHION STORIES</Text>
           <NewsCarousel onOpenArticle={openArticle} />
         </View>
       )}
@@ -534,7 +541,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
       {prefs.recommendedItems && (
         <View style={globalStyles.section}>
-          <Text style={[globalStyles.sectionTitle]}>Recommended Items</Text>
+          {/* <Text style={[globalStyles.sectionTitle]}>Recommended Items</Text> */}
+          <Text style={[globalStyles.sectionTitle]}>RECOMMENDED ITEMS</Text>
           <DiscoverCarousel onOpenItem={openArticle} />
         </View>
       )}
@@ -542,7 +550,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {/* // 2) Saved Looks */}
       {prefs.savedLooks && (
         <View style={globalStyles.sectionScroll}>
-          <Text style={globalStyles.sectionTitle}>Saved Looks</Text>
+          {/* <Text style={globalStyles.sectionTitle}>Saved Looks</Text> */}
+          <Text style={globalStyles.sectionTitle}>SAVED LOOKS</Text>
           {savedLooks.length === 0 ? (
             <Text style={{color: '#aaa', paddingLeft: 16, fontStyle: 'italic'}}>
               You haven’t saved any outfits yet. Tap the heart on your favorite
