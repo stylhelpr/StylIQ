@@ -51,7 +51,7 @@ export default function ContactScreen({navigate}: any) {
       padding: 14,
       fontSize: 16,
       backgroundColor: theme.colors.surface3,
-      borderWidth: tokens.borderWidth.md,
+      borderWidth: tokens.borderWidth.lg,
       borderColor: theme.colors.surfaceBorder,
       marginBottom: 10,
     },

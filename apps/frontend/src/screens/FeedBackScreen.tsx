@@ -43,7 +43,7 @@ export default function FeedbackScreen({navigate}: any) {
     label: {fontSize: 15, fontWeight: '600', marginTop: 12, marginBottom: 6},
     input: {
       backgroundColor: theme.colors.surface3,
-      borderWidth: tokens.borderWidth.md,
+      borderWidth: tokens.borderWidth.lg,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: 10,
       padding: 14,

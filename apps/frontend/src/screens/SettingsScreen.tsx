@@ -18,7 +18,6 @@ import {notifyOutfitForTomorrow} from '../utils/notifyOutfitForTomorrow';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PushNotification from 'react-native-push-notification';
 import DeviceInfo from 'react-native-device-info';
-// import BackHeader from '../components/Backheader/Backheader'; // (unused)
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
@@ -35,9 +34,11 @@ const skinOptions: {
   label: string;
   color: string;
 }[] = [
+  {key: 'fashion1', label: 'Fashion 1', color: '#f5f5f5'},
   {key: 'modernDark', label: 'Modern Dark', color: '#00050e'},
   {key: 'modernDark2', label: 'Modern Dark 2', color: '#121212'},
   {key: 'modernLight', label: 'Modern Light', color: '#f5f5f5'},
+  {key: 'fashion1', label: 'Fashion 1', color: '#f5f5f5'},
   {key: 'retro', label: 'Retro', color: '#FDEDDC'},
   {key: 'minimal', label: 'Minimal', color: '#FFFFFF'},
   {key: 'vibrant', label: 'Vibrant', color: '#1B0032'},

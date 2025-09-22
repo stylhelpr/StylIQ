@@ -38,18 +38,18 @@ export default function TrendChips({
     chip: {
       paddingHorizontal: 12,
       paddingVertical: 8,
-      backgroundColor: theme.colors.pillDark2,
+      backgroundColor: 'theme.colors.pillDark2',
       borderRadius: 18,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       marginLeft: 4,
     },
     chipActive: {
-      backgroundColor: theme.colors.pillDark2,
-      borderColor: 'rgba(255,255,255,0.32)',
+      backgroundColor: theme.colors.foreground,
+      borderColor: theme.colors.surfaceBorder,
     },
-    label: {color: '#ff0000ff', fontWeight: '600'},
-    labelActive: {color: '#ffffffff'},
+    label: {color: theme.colors.pillTextColor1, fontWeight: '600'},
+    labelActive: {color: theme.colors.button1},
     moreChip: {backgroundColor: theme.colors.pillDark2},
   });
 
