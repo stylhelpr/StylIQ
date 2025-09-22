@@ -359,12 +359,12 @@ export default function ProfileScreen({navigate}: Props) {
             <Icon
               name="person-outline"
               size={20}
-              color={theme.colors.primary}
+              color={theme.colors.buttonText1}
               style={{marginRight: 8}}
             />
             <Text
               style={{
-                color: theme.colors.primary,
+                color: theme.colors.buttonText1,
                 fontSize: 16,
                 fontWeight: '500',
                 flexShrink: 1,
@@ -407,11 +407,14 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Saved Looks */}
       <View style={globalStyles.sectionScroll}>
-        <Text style={globalStyles.sectionTitle}>Saved Looks</Text>
-        {loadingSaved ? (
-          <ActivityIndicator style={{marginTop: 8}} />
-        ) : savedLooks.length === 0 ? (
-          <Text style={{color: '#aaa', paddingLeft: 16, fontStyle: 'italic'}}>
+        <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
+        {savedLooks.length === 0 ? (
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              paddingLeft: 16,
+              fontStyle: 'italic',
+            }}>
             You haven’t saved any outfits yet. Tap the heart on your favorite
             looks!
           </Text>
@@ -427,7 +430,6 @@ export default function ProfileScreen({navigate}: Props) {
                 delay={index * 120}
                 useNativeDriver
                 style={globalStyles.outfitCard}>
-                {/* add haptics here */}
                 <AppleTouchFeedback
                   hapticStyle="impactLight"
                   onPress={() => {
@@ -443,6 +445,7 @@ export default function ProfileScreen({navigate}: Props) {
                         {
                           borderColor: theme.colors.surfaceBorder,
                           borderWidth: tokens.borderWidth.md,
+                          borderRadius: tokens.borderRadius.md,
                         },
                       ]}
                       resizeMode="cover"
@@ -456,15 +459,10 @@ export default function ProfileScreen({navigate}: Props) {
                 </AppleTouchFeedback>
               </Animatable.View>
             ))}
-
-            <SavedLookPreviewModal
-              visible={previewVisible}
-              look={selectedLook}
-              onClose={() => setPreviewVisible(false)}
-            />
           </ScrollView>
         )}
       </View>
+
       {/* ───────── Profile Footer (tiny help link) ───────── */}
       <View style={[globalStyles.section, {paddingTop: 8}]}>
         <AppleTouchFeedback
@@ -473,11 +471,11 @@ export default function ProfileScreen({navigate}: Props) {
           <Text
             style={{
               textAlign: 'center',
-              color: theme.colors.foreground3,
+              color: theme.colors.foreground,
               fontSize: 13,
               paddingVertical: 8,
             }}>
-            Need help? Contact Support
+            Contact Support
           </Text>
         </AppleTouchFeedback>
 
@@ -487,7 +485,7 @@ export default function ProfileScreen({navigate}: Props) {
           <Text
             style={{
               textAlign: 'center',
-              color: theme.colors.foreground3,
+              color: theme.colors.foreground,
               fontSize: 12,
               opacity: 0.8,
               paddingBottom: 16,
@@ -496,6 +494,12 @@ export default function ProfileScreen({navigate}: Props) {
           </Text>
         </AppleTouchFeedback>
       </View>
+
+      <SavedLookPreviewModal
+        visible={previewVisible}
+        look={selectedLook}
+        onClose={() => setPreviewVisible(false)}
+      />
     </ScrollView>
   );
 }

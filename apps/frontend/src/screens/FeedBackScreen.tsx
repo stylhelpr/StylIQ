@@ -257,9 +257,9 @@ export default function FeedbackScreen({navigate}: any) {
             <View style={styles.toggleRow}>
               <View style={{flex: 1}}>
                 <Text style={[styles.toggleTitle, {color: colors.foreground}]}>
-                  Include diagnostics
+                  Include Diagnostics
                 </Text>
-                <Text style={[styles.toggleSub, {color: colors.foreground3}]}>
+                <Text style={[styles.toggleSub, {color: theme.colors.muted}]}>
                   Device and app info helps us debug faster
                 </Text>
               </View>
@@ -306,11 +306,15 @@ export default function FeedbackScreen({navigate}: any) {
               <MaterialIcons
                 name="lightbulb-outline"
                 size={16}
-                color={colors.primary}
+                color={colors.foreground}
               />
             </View>
-            <Text style={[styles.tipText, {color: colors.foreground}]}>
-              Thanks for helping improve StylHelpr — we read every message.
+            <Text
+              style={[
+                styles.tipText,
+                {color: colors.foreground, marginLeft: 10},
+              ]}>
+              Thanks for helping improve StylHelpr — We read every message.
             </Text>
           </View>
         </ScrollView>

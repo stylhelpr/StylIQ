@@ -41,7 +41,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
     card: {
       width: 160,
       marginRight: 12,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
       borderWidth: tokens.borderWidth.md,
@@ -56,14 +56,10 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
     },
     title: {
       color: theme.colors.foreground,
-      fontSize: 14,
-      fontWeight: '600',
       marginHorizontal: 10,
       marginTop: 6,
     },
     brand: {
-      fontSize: 12,
-      fontWeight: '500',
       color: theme.colors.foreground2,
       marginHorizontal: 10,
       marginBottom: 8,
@@ -113,7 +109,9 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       {recommended.length === 0 ? (
-        <Text style={{padding: 16, color: '#666'}}>No picks found</Text>
+        <Text style={{padding: 16, color: theme.colors.foreground2}}>
+          No picks found
+        </Text>
       ) : (
         recommended.map(item => (
           <AppleTouchFeedback
@@ -129,14 +127,34 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
             }}>
             <Image
               source={{uri: item.image_url}}
-              style={styles.image}
+              style={globalStyles.image5}
               resizeMode="cover"
               onError={() => console.warn('⚠️ image failed', item.image_url)}
             />
-            <Text style={styles.title} numberOfLines={1}>
+            <Text
+              style={[
+                globalStyles.cardLabel,
+                {
+                  color: theme.colors.foreground,
+                  marginHorizontal: 10,
+                  marginTop: 6,
+                },
+              ]}
+              numberOfLines={1}>
               {item.title || 'Untitled'}
             </Text>
-            <Text style={styles.brand}>{item.brand || 'Brand'}</Text>
+            <Text
+              style={[
+                globalStyles.cardSubLabel,
+                {
+                  color: theme.colors.foreground2,
+                  marginHorizontal: 10,
+                  marginBottom: 8,
+                  marginTop: 4,
+                },
+              ]}>
+              {item.brand || 'Brand'}
+            </Text>
           </AppleTouchFeedback>
         ))
       )}

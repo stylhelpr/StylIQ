@@ -4,6 +4,7 @@ import {Modal, View, Image, Text, StyleSheet} from 'react-native';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+import {tokens} from '../styles/tokens/tokens';
 
 type Props = {
   visible: boolean;
@@ -14,6 +15,50 @@ type Props = {
 export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    card: {
+      width: '90%',
+      borderRadius: 16,
+      alignItems: 'center',
+      padding: 16,
+    },
+    image: {
+      width: '100%',
+      height: undefined,
+      aspectRatio: 3 / 4,
+      borderRadius: 12,
+      marginBottom: 12,
+    },
+    name: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+      marginTop: 12,
+      textAlign: 'center',
+    },
+    url: {
+      fontSize: 12,
+      color: theme.colors.foreground2,
+      marginTop: 4,
+      textAlign: 'center',
+    },
+    button: {
+      marginTop: 16,
+      backgroundColor: theme.colors.button1,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+    },
+    buttonText: {color: theme.colors.buttonText1, fontWeight: '600'},
+  });
 
   if (!look) return null;
 
@@ -43,50 +88,6 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    width: '90%',
-    borderRadius: 16,
-    alignItems: 'center',
-    padding: 16,
-  },
-  image: {
-    width: '100%',
-    height: undefined,
-    aspectRatio: 3 / 4,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  url: {
-    fontSize: 12,
-    color: '#aaa',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  button: {
-    marginTop: 16,
-    backgroundColor: '#5d00ff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  buttonText: {color: '#fff', fontWeight: '600'},
-});
 
 ////////////////////
 

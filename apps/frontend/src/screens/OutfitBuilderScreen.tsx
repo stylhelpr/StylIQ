@@ -239,7 +239,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       borderRadius: 8,
       paddingVertical: 6,
     },
-    clearButtonText: {color: theme.colors.foreground, fontWeight: '500'},
+    clearButtonText: {color: theme.colors.buttonText1, fontWeight: '500'},
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -281,14 +281,23 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       backgroundColor: theme.colors.button1,
       alignItems: 'center',
     },
-    saveText: {fontSize: 16, fontWeight: '600', color: theme.colors.foreground},
+    saveText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.buttonText1,
+    },
     cancelButton: {
       width: 160,
       paddingVertical: 9,
       borderRadius: tokens.borderRadius.sm,
+      color: theme.colors.buttonText1,
       alignItems: 'center',
     },
-    cancelText: {fontSize: 16, fontWeight: '600', color: '#fff'},
+    cancelText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.buttonText1,
+    },
     modalContent: {
       padding: 24,
       borderRadius: 12,

@@ -24,9 +24,9 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
 
   const styles = StyleSheet.create({
     wrap: {paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4},
-    bg: {height: 240, borderRadius: 16, overflow: 'hidden'},
+    bg: {height: 240, borderRadius: tokens.borderRadius.lg, overflow: 'hidden'},
     bgImg: {
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.lg,
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder,
     },

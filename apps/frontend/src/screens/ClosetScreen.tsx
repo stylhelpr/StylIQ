@@ -212,21 +212,6 @@ export default function ClosetScreen({navigate}: Props) {
     deleteMutation.mutate(itemId);
   };
 
-  // const favoriteMutation = useMutation({
-  //   mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
-  //     await fetch(`${API_BASE_URL}/wardrobe/favorite/${id}`, {
-  //       method: 'PATCH',
-  //       headers: {'Content-Type': 'application/json'},
-  //       body: JSON.stringify({favorite}),
-  //     });
-  //   },
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({
-  //       queryKey: ['wardrobe', userId],
-  //     });
-  //   },
-  // });
-
   const favoriteMutation = useMutation({
     mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
       await fetch(`${API_BASE_URL}/wardrobe/favorite/${id}`, {
@@ -312,11 +297,7 @@ export default function ClosetScreen({navigate}: Props) {
       overflow: 'hidden',
     },
     gridImage: {
-      width: '100%',
       height: imageSize,
-      borderTopLeftRadius: 10,
-      borderTopRightRadius: 10,
-      backgroundColor: theme.colors.foreground,
     },
     label: {
       fontSize: 13,
@@ -385,14 +366,14 @@ export default function ClosetScreen({navigate}: Props) {
             style={{...styles.iconButton, marginRight: 8}}
             hapticStyle="impactLight"
             onPress={() => setShowFilter(true)}>
-            <MaterialIcons name="filter-list" size={28} color={'white'} />
+            <MaterialIcons name="filter-list" size={27} color={'white'} />
           </AppleTouchFeedback>
 
           <AppleTouchFeedback
             style={{...styles.iconButton}}
             hapticStyle="impactLight"
             onPress={() => setShowSort(true)}>
-            <MaterialIcons name="sort" size={28} color={'white'} />
+            <MaterialIcons name="sort" size={27} color={'white'} />
           </AppleTouchFeedback>
         </View>
       </View>
@@ -400,13 +381,13 @@ export default function ClosetScreen({navigate}: Props) {
       <ScrollView>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
           <View key={mainCategory} style={globalStyles.section}>
-            <Text style={[globalStyles.sectionTitle2]}>
+            <Text style={[globalStyles.sectionTitle5]}>
               {labelForCategory(mainCategory)}
             </Text>
 
             {Object.entries(subMap).map(([subCategory, items]) => (
               <View key={subCategory}>
-                <Text style={[globalStyles.title2]}>{subCategory}</Text>
+                <Text style={[globalStyles.title3]}>{subCategory}</Text>
 
                 <View style={[styles.gridContainer]}>
                   {items.map(item => (
@@ -431,7 +412,7 @@ export default function ClosetScreen({navigate}: Props) {
                       }}>
                       <Image
                         source={{uri: item.image_url}}
-                        style={styles.gridImage}
+                        style={(globalStyles.image5, styles.gridImage)}
                         resizeMode="cover"
                       />
 
