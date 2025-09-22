@@ -100,12 +100,14 @@ export default function ExploreScreen() {
     addBtnText: {color: theme.colors.foreground, fontWeight: '800'},
     resetBtn: {
       marginTop: 8,
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: theme.colors.surface2,
       borderRadius: 10,
       paddingVertical: 10,
       alignItems: 'center',
+      borderColor: theme.colors.surfaceBorder,
+      borderWidth: theme.borderWidth.xl,
     },
-    resetText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
+    resetText: {color: theme.colors.foreground, fontWeight: '700'},
     topBar: {
       paddingTop: 14,
       paddingHorizontal: 16,
@@ -141,7 +143,7 @@ export default function ExploreScreen() {
       marginTop: 60,
       marginRight: 12,
       width: 200,
-      backgroundColor: '#111',
+      backgroundColor: theme.colors.surface,
       borderRadius: 12,
       paddingVertical: 8,
       borderWidth: tokens.borderWidth.md,
@@ -153,7 +155,7 @@ export default function ExploreScreen() {
       elevation: 8,
     },
     menuTitle: {
-      color: 'rgba(255,255,255,0.7)',
+      color: theme.colors.foreground,
       fontSize: 12,
       fontWeight: '700',
       paddingHorizontal: 12,
@@ -164,7 +166,7 @@ export default function ExploreScreen() {
       paddingVertical: 12,
     },
     menuItemText: {
-      color: '#fff',
+      color: theme.colors.foreground,
       fontWeight: '700',
     },
     manageBtn: {
@@ -204,7 +206,7 @@ export default function ExploreScreen() {
       fontWeight: '800',
       fontSize: 18,
     },
-    done: {color: '#5900ffff', fontWeight: '700'},
+    done: {color: theme.colors.button1, fontWeight: '700'},
     sourceRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -222,11 +224,12 @@ export default function ExploreScreen() {
       marginBottom: 2,
     },
     input: {
-      backgroundColor: 'rgba(255,255,255,0.06)',
-      borderRadius: 10,
+      backgroundColor: theme.colors.surface3,
+      borderRadius: 20,
       paddingHorizontal: 12,
       paddingVertical: 10,
       color: theme.colors.foreground,
+      marginBottom: 8,
     },
     rowToggle: {
       flexDirection: 'row',
@@ -845,7 +848,11 @@ export default function ExploreScreen() {
         )}
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
+          <Text
+            style={[
+              globalStyles.sectionTitle,
+              {color: theme.colors.button1, marginBottom: -2},
+            ]}>
             {tab === 'For You' ? 'Recommended for you' : 'Following'}
           </Text>
         </View>
@@ -969,7 +976,12 @@ export default function ExploreScreen() {
                   </View>
 
                   {/* Read toggle (in-app feed) */}
-                  <View style={{alignItems: 'center', marginRight: 10}}>
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      marginRight: 10,
+                      marginBottom: 14,
+                    }}>
                     <Text
                       style={{
                         color: '#fff',
@@ -993,7 +1005,12 @@ export default function ExploreScreen() {
                   </View>
 
                   {/* Notify toggle (push) */}
-                  <View style={{alignItems: 'center', marginRight: 10}}>
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      marginRight: 10,
+                      marginBottom: 14,
+                    }}>
                     <Text
                       style={{
                         color: '#fff',
@@ -1033,14 +1050,14 @@ export default function ExploreScreen() {
                 value={newName}
                 onChangeText={setNewName}
                 placeholder="Display name (optional)"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={theme.colors.muted}
                 style={styles.input}
               />
               <TextInput
                 value={newUrl}
                 onChangeText={setNewUrl}
                 placeholder="Feed URL (https://…)"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={theme.colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.input}
@@ -1096,7 +1113,7 @@ export default function ExploreScreen() {
               value={brandSearch}
               onChangeText={setBrandSearch}
               placeholder="Search your wardrobe brands…"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={theme.colors.muted}
               style={styles.input}
             />
           </View>
@@ -1314,7 +1331,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
   const seg = StyleSheet.create({
     root: {
       height: 36,
-      backgroundColor: 'rgba(73, 73, 73, 1)',
+      backgroundColor: theme.colors.surface3,
       borderRadius: 10,
       padding: 3,
       flexDirection: 'row',

@@ -137,11 +137,19 @@ export default function AiStylistChatScreen({navigate}: Props) {
       inputBar: {
         flexDirection: 'row',
         alignItems: 'flex-end',
-        borderWidth: tokens.borderWidth.hairline,
+        borderWidth: tokens.borderWidth.xl,
         borderColor: theme.colors.surfaceBorder,
         backgroundColor: theme.colors.surface3,
         borderRadius: 20,
         paddingHorizontal: 8,
+      },
+      input: {
+        flex: 1,
+        height: 45,
+        color: theme.colors.foreground,
+        paddingHorizontal: 8,
+        paddingTop: 12,
+        fontSize: 16,
       },
       leftIcon: {
         width: 30,
@@ -152,19 +160,12 @@ export default function AiStylistChatScreen({navigate}: Props) {
       },
       rightIcon: {
         width: 30,
-        height: 38,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 4,
       },
-      input: {
-        flex: 1,
-        height: 40,
-        color: theme.colors.foreground,
-        paddingHorizontal: 8,
-        paddingTop: 10,
-        fontSize: 16,
-      },
+
       sendButton: {
         width: 34,
         height: 34,

@@ -38,7 +38,6 @@ const skinOptions: {
   {key: 'modernDark', label: 'Modern Dark', color: '#00050e'},
   {key: 'modernDark2', label: 'Modern Dark 2', color: '#121212'},
   {key: 'modernLight', label: 'Modern Light', color: '#f5f5f5'},
-  {key: 'fashion1', label: 'Fashion 1', color: '#f5f5f5'},
   {key: 'retro', label: 'Retro', color: '#FDEDDC'},
   {key: 'minimal', label: 'Minimal', color: '#FFFFFF'},
   {key: 'vibrant', label: 'Vibrant', color: '#1B0032'},

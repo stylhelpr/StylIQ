@@ -41,7 +41,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
     card: {
       width: 160,
       marginRight: 12,
-      borderRadius: 20,
+      borderRadius: 12,
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
       borderWidth: tokens.borderWidth.md,
@@ -58,16 +58,16 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
       color: theme.colors.foreground,
       fontSize: 14,
       fontWeight: '600',
-      marginHorizontal: 8,
+      marginHorizontal: 10,
       marginTop: 6,
     },
     brand: {
       fontSize: 12,
+      fontWeight: '500',
       color: theme.colors.foreground2,
-      marginHorizontal: 8,
+      marginHorizontal: 10,
       marginBottom: 8,
       marginTop: 4,
-      fontWeight: '500',
     },
   });
 

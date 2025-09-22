@@ -98,12 +98,12 @@ export default function SearchScreen({navigate, goBack}) {
     screen: {flex: 1, backgroundColor: theme.colors.background},
     inputWrapper: {position: 'relative', marginBottom: 16},
     input: {
-      height: 40,
+      height: 45,
       paddingHorizontal: 14,
       fontSize: 16,
       paddingRight: 88,
       marginTop: 22,
-      borderWidth: tokens.borderWidth.hairline,
+      borderWidth: tokens.borderWidth.xl,
       borderColor: theme.colors.surfaceBorder,
       backgroundColor: theme.colors.surface3,
       borderRadius: 20,
@@ -120,7 +120,7 @@ export default function SearchScreen({navigate, goBack}) {
     },
     micTouch: {
       width: 30,
-      height: 32,
+      height: 37,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 8,
