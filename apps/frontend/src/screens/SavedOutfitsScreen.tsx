@@ -470,7 +470,7 @@ export default function SavedOutfitsScreen() {
 
     // Bottom sheet base (for pickers)
     sheetContainer: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.surface3,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingTop: 8,
@@ -632,8 +632,8 @@ export default function SavedOutfitsScreen() {
                     {
                       backgroundColor:
                         sortType === key
-                          ? theme.colors.primary
-                          : theme.colors.pillDark2,
+                          ? theme.colors.foreground
+                          : theme.colors.surface3,
                       marginRight: 7,
                     },
                   ]}>
@@ -642,7 +642,9 @@ export default function SavedOutfitsScreen() {
                       globalStyles.pillTextFixedWidth2,
                       {
                         color:
-                          sortType === key ? 'black' : theme.colors.foreground2,
+                          sortType === key
+                            ? theme.colors.background
+                            : theme.colors.foreground2,
                       },
                     ]}>
                     {label}
@@ -687,7 +689,7 @@ export default function SavedOutfitsScreen() {
                             globalStyles.titleBold,
                             {
                               fontSize: 20,
-                              marginBottom: 0,
+
                               color: theme.colors.button1,
                             },
                           ]}>
@@ -843,7 +845,7 @@ export default function SavedOutfitsScreen() {
                           setShowDatePicker(true);
                         }}
                         style={{
-                          backgroundColor: theme.colors.pillDark2,
+                          backgroundColor: theme.colors.surface3,
                           borderRadius: 18,
                           paddingVertical: 8,
                           paddingHorizontal: 12,
@@ -1006,7 +1008,7 @@ export default function SavedOutfitsScreen() {
                       onPress={resetPlanFlow}
                       style={[
                         styles.sheetPill,
-                        {backgroundColor: theme.colors.input2},
+                        {backgroundColor: theme.colors.surface},
                       ]}>
                       <Text style={styles.sheetPillText}>Cancel</Text>
                     </AppleTouchFeedback>
@@ -1019,9 +1021,13 @@ export default function SavedOutfitsScreen() {
                       }}
                       style={[
                         styles.sheetPill,
-                        {backgroundColor: theme.colors.primary},
+                        {backgroundColor: theme.colors.background},
                       ]}>
-                      <Text style={{color: '#000', fontWeight: '800'}}>
+                      <Text
+                        style={{
+                          color: theme.colors.foreground,
+                          fontWeight: '800',
+                        }}>
                         Next: Time
                       </Text>
                     </AppleTouchFeedback>

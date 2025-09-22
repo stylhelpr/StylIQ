@@ -266,6 +266,7 @@ export default function AddItemScreen({
       color: theme.colors.muted,
       fontSize: 13,
       marginBottom: 8,
+      paddingHorizontal: 12,
     },
     // grid for selected thumbnails (multi)
     selectedGrid: {

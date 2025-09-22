@@ -152,8 +152,9 @@ export const createGlobalStyles = (theme: Theme) =>
     header: {
       paddingLeft: 20,
       fontSize: 30,
-      fontWeight: '600',
+      fontWeight: '700',
       color: theme.colors.foreground,
+      textTransform: 'uppercase',
     },
     backContainer: {
       flexDirection: 'row',
@@ -167,10 +168,11 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: '800',
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 8,
+      textTransform: 'uppercase',
     },
     sectionTitle2: {
       fontSize: 18,
@@ -219,11 +221,11 @@ export const createGlobalStyles = (theme: Theme) =>
     titleBold: {
       fontSize: 19,
       fontWeight: '800',
-      marginBottom: 4,
+      // marginBottom: 4,
       color: theme.colors.foreground,
     },
     label: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '500',
       color: theme.colors.foreground,
     },
@@ -402,7 +404,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius['2xl'],
-      paddingVertical: 12,
+      paddingVertical: 11,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',

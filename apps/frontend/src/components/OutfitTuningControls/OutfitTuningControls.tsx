@@ -503,7 +503,7 @@ export default function OutfitTuningControls({
                   onToggleWeather(enabled);
                   if (!enabled) setShowWeatherPicker(false);
                 }}
-                trackColor={{false: '#767577', true: 'rgba(102, 0, 197, 1)'}}
+                trackColor={{false: '#767577', true: theme.colors.button1}}
                 thumbColor={useWeather ? '#fff' : '#f4f3f4'}
               />
               <Text style={S.label}>Use Weather</Text>
@@ -608,7 +608,7 @@ export default function OutfitTuningControls({
                       setFeedbackEnabled(enabled);
                       onToggleFeedback?.(enabled);
                     }}
-                    trackColor={{false: '#767577', true: '#405de6'}}
+                    trackColor={{false: '#767577', true: theme.colors.button1}}
                     thumbColor={feedbackEnabled ? '#fff' : '#f4f3f4'}
                   />
                   <Text style={S.label}>Use Feedback Influence</Text>

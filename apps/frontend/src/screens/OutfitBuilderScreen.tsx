@@ -235,11 +235,11 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       alignSelf: 'flex-end',
       padding: 8,
       marginTop: 4,
-      backgroundColor: theme.colors.foreground,
+      backgroundColor: theme.colors.button1,
       borderRadius: 8,
       paddingVertical: 6,
     },
-    clearButtonText: {color: '#333', fontWeight: '500'},
+    clearButtonText: {color: theme.colors.foreground, fontWeight: '500'},
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -343,7 +343,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
   return (
     <ScrollView
-      style={globalStyles.container}
+      style={[
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}
       contentContainerStyle={{paddingBottom: 120, flexGrow: 1}}>
       <View style={globalStyles.sectionTitle}>
         <Text style={globalStyles.header}>Build Your Outfit</Text>
