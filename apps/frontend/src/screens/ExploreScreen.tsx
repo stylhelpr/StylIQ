@@ -984,7 +984,7 @@ export default function ExploreScreen() {
                     }}>
                     <Text
                       style={{
-                        color: '#fff',
+                        color: theme.colors.foreground,
                         fontSize: 11,
                         marginBottom: 2,
                       }}>
@@ -1013,7 +1013,7 @@ export default function ExploreScreen() {
                     }}>
                     <Text
                       style={{
-                        color: '#fff',
+                        color: theme.colors.foreground,
                         fontSize: 11,
                         marginBottom: 2,
                       }}>
