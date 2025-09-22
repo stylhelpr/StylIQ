@@ -46,7 +46,7 @@ export default function StyleProfileScreen({navigate}: Props) {
       fontSize: 16,
       textAlign: 'left',
       marginTop: 4,
-      color: theme.colors.foreground3,
+      color: theme.colors.foreground,
     },
     progressBar: {
       height: 8,
@@ -74,7 +74,7 @@ export default function StyleProfileScreen({navigate}: Props) {
       paddingHorizontal: 16,
       backgroundColor: '#1c1c1e',
       borderBottomWidth: 1,
-      borderBottomColor: '#2c2c2e',
+      borderBottomColor: theme.colors.surfaceBorder,
     },
     firstItem: {
       borderTopLeftRadius: 12,
@@ -232,7 +232,7 @@ export default function StyleProfileScreen({navigate}: Props) {
                       <Icon
                         name="chevron-right"
                         size={22}
-                        color="#888"
+                        color={theme.colors.muted}
                         style={{marginTop: 1}}
                       />
                     </View>

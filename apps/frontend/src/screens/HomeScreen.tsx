@@ -10,7 +10,6 @@ import {
   Animated,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
-
 import {fetchWeather} from '../utils/travelWeather';
 import {ensureLocationPermission} from '../utils/permissions';
 import Geolocation from 'react-native-geolocation-service';
@@ -68,6 +67,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [readerVisible, setReaderVisible] = useState(false);
   const [readerUrl, setReaderUrl] = useState<string | undefined>(undefined);
   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
+  // ▼▼▼ Map dropdown state & animations (only addition) ▼▼▼
+  const [mapOpen, setMapOpen] = useState(true);
+  const chevron = useRef(new Animated.Value(0)).current; // 0: closed, 1: open
+  const mapCardRef = useRef<Animatable.View & View>(null);
 
   const openArticle = (url: string, title?: string) => {
     setReaderUrl(url);
@@ -141,6 +144,33 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       console.log('[HomeScreen] speech:', speech);
     }
   }, [speech]);
+
+  const toggleMap = () => {
+    if (mapOpen) {
+      // slide out then hide
+      mapCardRef.current?.slideOutUp(220).then(() => {
+        setMapOpen(false);
+        Animated.timing(chevron, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }).start();
+      });
+    } else {
+      setMapOpen(true);
+      Animated.timing(chevron, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const rotateZ = chevron.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+  // ▲▲▲ End map dropdown additions ▲▲▲
 
   const styles = StyleSheet.create({
     bannerImage: {
@@ -261,7 +291,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     tagText: {
       fontSize: 13,
       fontWeight: '600',
-      color: theme.colors.primary,
+      color: theme.colors.foreground,
     },
   });
 
@@ -294,15 +324,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             fontSize: 17,
             fontWeight: '800',
             color: theme.colors.foreground,
-            // textShadowColor: 'rgba(0,0,0,0.6)',
-            // textShadowOffset: {width: 0, height: 1},
-            // textShadowRadius: 2,
           }}
           numberOfLines={1}
           ellipsizeMode="tail">
-          {/* {firstName
-            ? `Hey ${firstName}, ready to get styled today?`
-            : 'Hey there, ready to get styled today?'} */}
           {firstName
             ? `Hey ${firstName}, Ready to Get Styled Today?`
             : 'Hey there, ready to get styled today?'}
@@ -327,7 +351,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             elevation: 5,
             borderWidth: tokens.borderWidth.md,
             borderColor: theme.colors.surfaceBorder,
-            borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.borderRadius.xl,
             backgroundColor: theme.colors.surface,
             transform: [
               {
@@ -457,24 +481,72 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
       )}
 
-      {/* Map Section */}
+      {/* Map Section — now collapsible */}
       {prefs.locationMap && (
         <View style={globalStyles.section}>
-          <Text style={globalStyles.sectionTitle}>Your Location</Text>
           <View
-            style={[
-              globalStyles.cardStyles1,
-              {
-                padding: 1,
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+            <Text style={globalStyles.sectionTitle}>Your Location</Text>
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={toggleMap}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: theme.colors.surface3,
+                borderWidth: tokens.borderWidth.sm,
                 borderColor: theme.colors.surfaceBorder,
-              },
-            ]}>
-            <LiveLocationMap
-              height={220}
-              useCustomPin={false}
-              postHeartbeat={false}
-            />
+              }}>
+              <View
+                style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    fontWeight: '700',
+                    fontSize: 13,
+                  }}>
+                  {mapOpen ? 'Close' : 'Open'}
+                </Text>
+                <Animated.View style={{transform: [{rotateZ}]}}>
+                  <Icon
+                    name="keyboard-arrow-down"
+                    size={18}
+                    color={theme.colors.foreground}
+                  />
+                </Animated.View>
+              </View>
+            </AppleTouchFeedback>
           </View>
+
+          {mapOpen && (
+            <Animatable.View
+              ref={mapCardRef}
+              animation="fadeInDown"
+              duration={260}
+              useNativeDriver
+              style={{marginTop: 8}}>
+              <View
+                style={[
+                  globalStyles.cardStyles1,
+                  {
+                    padding: 1,
+                    borderColor: theme.colors.surfaceBorder,
+                    overflow: 'hidden',
+                  },
+                ]}>
+                <LiveLocationMap
+                  height={220}
+                  useCustomPin={false}
+                  postHeartbeat={false}
+                />
+              </View>
+            </Animatable.View>
+          )}
         </View>
       )}
 
@@ -540,7 +612,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         <View style={globalStyles.sectionScroll}>
           <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
           {savedLooks.length === 0 ? (
-            <Text style={{color: '#aaa', paddingLeft: 16, fontStyle: 'italic'}}>
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                paddingLeft: 16,
+                fontStyle: 'italic',
+              }}>
               You haven’t saved any outfits yet. Tap the heart on your favorite
               looks!
             </Text>
@@ -571,6 +648,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           {
                             borderColor: theme.colors.surfaceBorder,
                             borderWidth: tokens.borderWidth.md,
+                            borderRadius: tokens.borderRadius.md,
                           },
                         ]}
                         resizeMode="cover"
@@ -623,6 +701,634 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 };
 
 export default HomeScreen;
+
+////////////////////
+
+// // apps/mobile/src/screens/HomeScreen.tsx
+// import React, {useEffect, useState, useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   TouchableOpacity,
+//   StyleSheet,
+//   Image,
+//   Animated,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+
+// import {fetchWeather} from '../utils/travelWeather';
+// import {ensureLocationPermission} from '../utils/permissions';
+// import Geolocation from 'react-native-geolocation-service';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import * as Animatable from 'react-native-animatable';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {initializeNotifications} from '../utils/notificationService';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import Video from 'react-native-video';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import SaveLookModal from '../components/SavedLookModal/SavedLookModal';
+// import SavedLookPreviewModal from '../components/SavedLookModal/SavedLookPreviewModal';
+// import {useVoiceControl} from '../hooks/useVoiceControl';
+// import LiveLocationMap from '../components/LiveLocationMap/LiveLocationMap';
+// import {useHomePrefs} from '../hooks/useHomePrefs';
+// import DiscoverCarousel from '../components/DiscoverCarousel/DiscoverCarousel';
+// import NewsCarousel from '../components/NewsCarousel/NewsCarousel';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+
+// type Props = {
+//   navigate: (screen: string, params?: any) => void;
+//   wardrobe: any[];
+// };
+
+// type NewsCarouselProps = {
+//   onOpenArticle?: (url: string, title?: string) => void;
+// };
+
+// const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
+//   const scrollY = useRef(new Animated.Value(0)).current;
+
+//   const interpolatedBlurAmount = scrollY.interpolate({
+//     inputRange: [0, 100],
+//     outputRange: [10, 2],
+//     extrapolate: 'clamp',
+//   });
+
+//   const interpolatedShadowOpacity = scrollY.interpolate({
+//     inputRange: [0, 100],
+//     outputRange: [0.12, 0.03],
+//     extrapolate: 'clamp',
+//   });
+
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const [weather, setWeather] = useState<any>(null);
+//   const userId = useUUID();
+
+//   const [firstName, setFirstName] = useState('');
+//   const [saveModalVisible, setSaveModalVisible] = useState(false);
+//   const [previewVisible, setPreviewVisible] = useState(false);
+//   const [selectedLook, setSelectedLook] = useState<any | null>(null);
+//   const [readerVisible, setReaderVisible] = useState(false);
+//   const [readerUrl, setReaderUrl] = useState<string | undefined>(undefined);
+//   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
+
+//   const openArticle = (url: string, title?: string) => {
+//     setReaderUrl(url);
+//     setReaderTitle(title);
+//     setReaderVisible(true);
+//   };
+
+//   // 🔧 visibility prefs from Settings
+//   const {prefs, ready} = useHomePrefs();
+
+//   useEffect(() => {
+//     const fetchFirstName = async () => {
+//       if (!userId) return;
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+//         const data = await res.json();
+//         setFirstName(data.first_name);
+//       } catch (err) {
+//         console.error('❌ Failed to fetch user:', err);
+//       }
+//     };
+
+//     fetchFirstName();
+//   }, [userId]);
+
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return;
+//       Geolocation.getCurrentPosition(
+//         async pos => {
+//           const data = await fetchWeather(
+//             pos.coords.latitude,
+//             pos.coords.longitude,
+//           );
+//           setWeather(data);
+//         },
+//         err => console.warn(err),
+//         {enableHighAccuracy: true, timeout: 15000, maximumAge: 1000},
+//       );
+//     };
+//     fetchData();
+//   }, []);
+
+//   useEffect(() => {
+//     initializeNotifications();
+//   }, []);
+
+//   // Saved looks
+//   const [savedLooks, setSavedLooks] = useState<any[]>([]);
+//   useEffect(() => {
+//     if (!userId) return;
+//     const fetchSavedLooks = async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/saved-looks/${userId}`);
+//         if (!res.ok) throw new Error('Failed to fetch saved looks');
+//         const data = await res.json();
+//         console.log('📦 savedLooks data:', data);
+//         setSavedLooks(data);
+//       } catch (err) {
+//         console.error('❌ Failed to fetch saved looks:', err);
+//       }
+//     };
+//     fetchSavedLooks();
+//   }, [userId]);
+
+//   // Voice (kept minimal to avoid unused vars)
+//   const {speech} = useVoiceControl();
+//   useEffect(() => {
+//     if (speech) {
+//       console.log('[HomeScreen] speech:', speech);
+//     }
+//   }, [speech]);
+
+//   const styles = StyleSheet.create({
+//     bannerImage: {
+//       width: '100%',
+//       height: 200,
+//     },
+//     bannerOverlay: {
+//       position: 'absolute',
+//       bottom: 16,
+//       left: 16,
+//       right: 16,
+//       backgroundColor: 'rgba(0,0,0,0.45)',
+//       padding: 12,
+//       borderRadius: tokens.borderRadius.md,
+//     },
+//     bannerText: {
+//       fontSize: 17,
+//       fontWeight: '600',
+//       color: theme.colors.foreground,
+//     },
+//     bannerSubtext: {
+//       fontSize: 13,
+//       fontWeight: '400',
+//       color: theme.colors.foreground,
+//       marginTop: 4,
+//     },
+//     bodyText: {
+//       fontSize: 16,
+//       fontWeight: '400',
+//       color: theme.colors.foreground,
+//     },
+//     subtext: {
+//       fontSize: 13,
+//       fontWeight: '400',
+//       color: theme.colors.foreground,
+//     },
+//     dailyLookText: {
+//       fontSize: 14,
+//       fontWeight: '400',
+//       color: theme.colors.foreground3,
+//       lineHeight: 22,
+//     },
+//     tryButton: {
+//       backgroundColor: theme.colors.button1,
+//       paddingVertical: 10,
+//       marginTop: 14,
+//       alignItems: 'center',
+//     },
+//     tryButtonText: {
+//       fontSize: 17,
+//       fontWeight: '600',
+//       color: '#fff',
+//     },
+//     quickAccessItem: {
+//       alignItems: 'center',
+//       width: '40%',
+//       minWidth: 140,
+//       maxWidth: 185,
+//       margin: 12,
+//     },
+//     quickAccessGrid: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       width: '100%',
+//     },
+//     quickAccessButton: {
+//       backgroundColor: theme.colors.button1,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     sectionWeather: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//     },
+//     weatherCity: {
+//       fontSize: 16,
+//       fontWeight: '600',
+//       color: theme.colors.foreground,
+//       marginBottom: 4,
+//     },
+//     weatherDesc: {
+//       fontSize: 13,
+//       color: theme.colors.foreground2,
+//     },
+//     weatherTempContainer: {
+//       backgroundColor: theme.colors.button1,
+//       paddingVertical: 6,
+//       paddingHorizontal: 14,
+//       borderRadius: tokens.borderRadius.md,
+//     },
+//     weatherTemp: {
+//       fontSize: 28,
+//       fontWeight: '800',
+//       color: theme.colors.buttonText1,
+//     },
+//     weatherAdvice: {
+//       fontSize: 14,
+//       fontWeight: '600',
+//       color: '#ffd369',
+//       marginTop: 8,
+//     },
+//     tagRow: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       gap: 8,
+//     },
+//     tag: {
+//       backgroundColor: theme.colors.surface,
+//       paddingHorizontal: 12,
+//       paddingVertical: 6,
+//       borderRadius: 20,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.05,
+//       shadowRadius: 4,
+//       elevation: 2,
+//     },
+//     tagText: {
+//       fontSize: 13,
+//       fontWeight: '600',
+//       color: theme.colors.primary,
+//     },
+//   });
+
+//   // Avoid flicker until prefs are ready
+//   if (!ready) {
+//     return <View style={globalStyles.screen} />;
+//   }
+
+//   return (
+//     <Animated.ScrollView
+//       style={[globalStyles.screen]}
+//       contentContainerStyle={globalStyles.container}
+//       scrollEventThrottle={16}
+//       onScroll={Animated.event([{nativeEvent: {contentOffset: {y: scrollY}}}], {
+//         useNativeDriver: true,
+//       })}>
+//       {/* Header Row: Greeting + Menu */}
+//       <View
+//         style={{
+//           flexDirection: 'row',
+//           justifyContent: 'space-between',
+//           alignItems: 'center',
+//           paddingHorizontal: 16,
+//           paddingTop: 0,
+//           marginBottom: 6,
+//         }}>
+//         <Text
+//           style={{
+//             flex: 1,
+//             fontSize: 17,
+//             fontWeight: '800',
+//             color: theme.colors.foreground,
+//             // textShadowColor: 'rgba(0,0,0,0.6)',
+//             // textShadowOffset: {width: 0, height: 1},
+//             // textShadowRadius: 2,
+//           }}
+//           numberOfLines={1}
+//           ellipsizeMode="tail">
+//           {/* {firstName
+//             ? `Hey ${firstName}, ready to get styled today?`
+//             : 'Hey there, ready to get styled today?'} */}
+//           {firstName
+//             ? `Hey ${firstName}, Ready to Get Styled Today?`
+//             : 'Hey there, ready to get styled today?'}
+//         </Text>
+
+//         <AppleTouchFeedback
+//           onPress={() => navigate('Settings')}
+//           hapticStyle="impactLight"
+//           style={{padding: 6, marginLeft: 10}}>
+//           <Icon name="tune" size={22} color={theme.colors.button1} />
+//         </AppleTouchFeedback>
+//       </View>
+
+//       {/* Video Banner with ambient parallax */}
+//       <View style={globalStyles.section}>
+//         <Animated.View
+//           style={{
+//             overflow: 'hidden',
+//             shadowOffset: {width: 0, height: 6},
+//             shadowOpacity: 0.1,
+//             shadowRadius: 12,
+//             elevation: 5,
+//             borderWidth: tokens.borderWidth.md,
+//             borderColor: theme.colors.surfaceBorder,
+//             borderRadius: tokens.borderRadius.md,
+//             backgroundColor: theme.colors.surface,
+//             transform: [
+//               {
+//                 translateY: scrollY.interpolate({
+//                   inputRange: [0, 100],
+//                   outputRange: [0, -10],
+//                   extrapolate: 'clamp',
+//                 }),
+//               },
+//             ],
+//           }}>
+//           <Video
+//             source={require('../assets/images/free4.mp4')}
+//             style={{
+//               width: '100%',
+//               height: 200,
+//             }}
+//             muted
+//             repeat
+//             resizeMode="cover"
+//             rate={1.0}
+//             ignoreSilentSwitch="obey"
+//           />
+//           <Animated.View
+//             style={{
+//               position: 'absolute',
+//               bottom: 10,
+//               left: 10,
+//               right: 16,
+//               backgroundColor: 'rgba(0,0,0,0.45)',
+//               padding: 12,
+//               borderRadius: 16,
+//               transform: [
+//                 {
+//                   translateY: scrollY.interpolate({
+//                     inputRange: [0, 100],
+//                     outputRange: [0, -4],
+//                     extrapolate: 'clamp',
+//                   }),
+//                 },
+//               ],
+//             }}>
+//             <Animatable.Text
+//               animation="fadeInDown"
+//               delay={200}
+//               style={styles.bannerText}>
+//               Discover Your Signature Look
+//             </Animatable.Text>
+//             <Animatable.Text
+//               animation="fadeIn"
+//               delay={400}
+//               style={styles.bannerSubtext}>
+//               Curated just for you this season.
+//             </Animatable.Text>
+//           </Animated.View>
+//         </Animated.View>
+//       </View>
+
+//       {/* Weather Section */}
+//       {prefs.weather && (
+//         <View style={globalStyles.section}>
+//           <Text style={globalStyles.sectionTitle}>Weather</Text>
+//           {weather && (
+//             <View style={globalStyles.cardStyles1}>
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 duration={600}
+//                 delay={100}
+//                 useNativeDriver
+//                 style={{
+//                   flexDirection: 'row',
+//                   alignItems: 'center',
+//                   justifyContent: 'space-between',
+//                 }}>
+//                 <View style={{flex: 1}}>
+//                   <Text style={styles.weatherCity}>{weather.celsius.name}</Text>
+//                   <Text style={styles.weatherDesc}>
+//                     {weather.celsius.weather[0].description}
+//                   </Text>
+//                   <Text style={styles.weatherAdvice}>
+//                     🌤️{' '}
+//                     {weather.fahrenheit.main.temp < 50
+//                       ? 'It’s chilly — layer up.'
+//                       : weather.fahrenheit.main.temp > 85
+//                       ? 'Hot day — keep it light.'
+//                       : 'Perfect weather — dress freely.'}
+//                   </Text>
+//                 </View>
+//                 <View style={styles.weatherTempContainer}>
+//                   <Text style={styles.weatherTemp}>
+//                     {Math.round(weather.fahrenheit.main.temp)}° F
+//                   </Text>
+//                 </View>
+//               </Animatable.View>
+//             </View>
+//           )}
+//         </View>
+//       )}
+
+//       {/* ✅ Smart AI Nudge (only when weather is on) */}
+//       {prefs.weather && weather?.fahrenheit?.main?.temp < 55 && (
+//         <Animatable.View
+//           animation="fadeInUp"
+//           delay={300}
+//           duration={800}
+//           useNativeDriver
+//           style={{
+//             marginHorizontal: 16,
+//             marginBottom: 20,
+//             backgroundColor: theme.colors.surface,
+//             borderRadius: 16,
+//             padding: 16,
+//             shadowColor: '#000',
+//             shadowOpacity: 0.08,
+//             shadowRadius: 6,
+//             elevation: 3,
+//           }}>
+//           <Text
+//             style={{
+//               fontSize: 15,
+//               fontWeight: '600',
+//               color: '#ffd369',
+//               fontStyle: 'italic',
+//             }}>
+//             🧥 It might rain later — consider a jacket with your look.
+//           </Text>
+//         </Animatable.View>
+//       )}
+
+//       {/* Map Section */}
+//       {prefs.locationMap && (
+//         <View style={globalStyles.section}>
+//           <Text style={globalStyles.sectionTitle}>Your Location</Text>
+//           <View
+//             style={[
+//               globalStyles.cardStyles1,
+//               {
+//                 padding: 1,
+//                 borderColor: theme.colors.surfaceBorder,
+//               },
+//             ]}>
+//             <LiveLocationMap
+//               height={220}
+//               useCustomPin={false}
+//               postHeartbeat={false}
+//             />
+//           </View>
+//         </View>
+//       )}
+
+//       {/* /// QUICK ACCESS SECTION /// */}
+//       {prefs.quickAccess && (
+//         <View style={globalStyles.centeredSection}>
+//           <View style={globalStyles.section}>
+//             <Text style={globalStyles.sectionTitle}>Quick Access</Text>
+//             <View style={[globalStyles.centeredSection]}>
+//               <View
+//                 style={[
+//                   globalStyles.cardStyles1,
+//                   {
+//                     padding: 10,
+//                     justifyContent: 'center',
+//                     flexDirection: 'row',
+//                     flexWrap: 'wrap',
+//                     width: '100%',
+//                   },
+//                 ]}>
+//                 {[
+//                   // {label: 'Ai Chat', screen: 'AiStylistChatScreen'},
+//                   {label: 'Style Me', screen: 'Outfit'},
+//                   {label: 'Wardrobe', screen: 'Wardrobe'},
+//                   {label: 'Add Clothes', screen: 'AddItem'},
+//                   // {label: 'Fashion News', screen: 'Explore'},
+//                   {label: 'Profile', screen: 'Profile'},
+//                 ].map(btn => (
+//                   <View key={btn.screen} style={styles.quickAccessItem}>
+//                     <AppleTouchFeedback
+//                       style={[globalStyles.buttonPrimary, {width: 160}]}
+//                       hapticStyle="impactHeavy"
+//                       onPress={() => navigate(btn.screen)}>
+//                       <Text style={globalStyles.buttonPrimaryText}>
+//                         {btn.label}
+//                       </Text>
+//                     </AppleTouchFeedback>
+//                   </View>
+//                 ))}
+//               </View>
+//             </View>
+//           </View>
+//         </View>
+//       )}
+
+//       {/* NEW: Top Fashion Stories (preview carousel) */}
+//       {prefs.topFashionStories && (
+//         <View style={globalStyles.section}>
+//           <Text style={[globalStyles.sectionTitle]}>Top Fashion Stories</Text>
+//           <NewsCarousel onOpenArticle={openArticle} />
+//         </View>
+//       )}
+
+//       {prefs.recommendedItems && (
+//         <View style={globalStyles.section}>
+//           <Text style={[globalStyles.sectionTitle]}>Recommended Items</Text>
+//           <DiscoverCarousel onOpenItem={openArticle} />
+//         </View>
+//       )}
+
+//       {/* // 2) Saved Looks */}
+//       {prefs.savedLooks && (
+//         <View style={globalStyles.sectionScroll}>
+//           <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
+//           {savedLooks.length === 0 ? (
+//             <Text style={{color: '#aaa', paddingLeft: 16, fontStyle: 'italic'}}>
+//               You haven’t saved any outfits yet. Tap the heart on your favorite
+//               looks!
+//             </Text>
+//           ) : (
+//             <ScrollView
+//               horizontal
+//               showsHorizontalScrollIndicator={false}
+//               contentContainerStyle={{paddingRight: 8}}>
+//               {savedLooks.map((look, index) => (
+//                 <Animatable.View
+//                   key={look.id}
+//                   animation="fadeInUp"
+//                   delay={index * 120}
+//                   useNativeDriver
+//                   style={globalStyles.outfitCard}>
+//                   <AppleTouchFeedback
+//                     hapticStyle="impactLight"
+//                     onPress={() => {
+//                       setSelectedLook(look);
+//                       setPreviewVisible(true);
+//                     }}
+//                     style={{alignItems: 'center'}}>
+//                     <View>
+//                       <Image
+//                         source={{uri: look.image_url}}
+//                         style={[
+//                           globalStyles.image4,
+//                           {
+//                             borderColor: theme.colors.surfaceBorder,
+//                             borderWidth: tokens.borderWidth.md,
+//                           },
+//                         ]}
+//                         resizeMode="cover"
+//                       />
+//                     </View>
+//                     <Text
+//                       style={[globalStyles.label, {marginTop: 6}]}
+//                       numberOfLines={1}>
+//                       {look.name}
+//                     </Text>
+//                   </AppleTouchFeedback>
+//                 </Animatable.View>
+//               ))}
+//             </ScrollView>
+//           )}
+//         </View>
+//       )}
+
+//       {/* Add Look CTA only if Saved Looks is on */}
+//       {prefs.savedLooks && (
+//         <View style={{alignItems: 'center'}}>
+//           <AppleTouchFeedback
+//             style={[globalStyles.buttonPrimary, {width: 125}]}
+//             hapticStyle="impactHeavy"
+//             onPress={() => setSaveModalVisible(true)}>
+//             <Text style={globalStyles.buttonPrimaryText}>Add Look</Text>
+//           </AppleTouchFeedback>
+//         </View>
+//       )}
+
+//       <SaveLookModal
+//         visible={saveModalVisible}
+//         onClose={() => setSaveModalVisible(false)}
+//       />
+
+//       <SavedLookPreviewModal
+//         visible={previewVisible}
+//         look={selectedLook}
+//         onClose={() => setPreviewVisible(false)}
+//       />
+
+//       <ReaderModal
+//         visible={readerVisible}
+//         url={readerUrl}
+//         title={readerTitle}
+//         onClose={() => setReaderVisible(false)}
+//       />
+//     </Animated.ScrollView>
+//   );
+// };
+
+// export default HomeScreen;
 
 //////////////////////
 

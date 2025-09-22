@@ -54,30 +54,6 @@ export const createGlobalStyles = (theme: Theme) =>
       alignSelf: 'center',
       borderRadius: 25,
     },
-    // cardStyles1: {
-    //   padding: 16,
-    //   shadowOffset: {width: 0, height: 6},
-    //   shadowOpacity: 0.1,
-    //   // shadowRadius: 12,
-    //   elevation: 5,
-    //   borderWidth: tokens.borderWidth.md,
-    //   borderColor: theme.colors.surfaceBorder,
-    //   borderRadius: tokens.borderRadius.xl,
-    //   backgroundColor: theme.colors.surface,
-    // },
-    // cardStyles1: {
-    //   padding: 16,
-    //   shadowColor: '#000',
-    //   shadowOffset: {width: 10, height: 7},
-    //   shadowOpacity: 0.7,
-    //   shadowRadius: 14,
-    //   elevation: 14,
-
-    //   borderWidth: tokens.borderWidth.md,
-    //   borderColor: theme.colors.surfaceBorder,
-    //   borderRadius: tokens.borderRadius.xl,
-    //   backgroundColor: theme.colors.surface,
-    // },
     cardStyles1: {
       padding: 16,
 
@@ -144,6 +120,10 @@ export const createGlobalStyles = (theme: Theme) =>
       alignSelf: 'center',
       borderRadius: 25,
     },
+    section6: {
+      // marginBottom: sectionMarginBottom,
+      paddingHorizontal: responsivePadding,
+    },
     sectionScroll: {
       // marginBottom: 26,
       marginBottom: 30,
@@ -180,6 +160,7 @@ export const createGlobalStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 2,
+      //  textTransform: 'uppercase',
     },
     sectionTitle3: {
       fontSize: 17,
@@ -187,6 +168,7 @@ export const createGlobalStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 2,
+      //  textTransform: 'uppercase',
     },
     sectionTitle4: {
       fontSize: 17,
@@ -194,6 +176,16 @@ export const createGlobalStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       // paddingLeft: 20,
+      //  textTransform: 'uppercase',
+    },
+    sectionTitle5: {
+      fontSize: 18,
+      fontWeight: '800',
+      lineHeight: 24,
+      color: theme.colors.foreground,
+      marginBottom: 2,
+      // paddingLeft: 20,
+      textTransform: 'uppercase',
     },
     styleContainer1: {
       flexDirection: 'column',
@@ -218,10 +210,17 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       marginBottom: 12,
     },
+    title3: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+      marginBottom: 6,
+      marginTop: 4,
+    },
     titleBold: {
       fontSize: 19,
       fontWeight: '800',
-      // marginBottom: 4,
+      marginBottom: -4,
       color: theme.colors.foreground,
     },
     label: {
@@ -371,6 +370,7 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.md,
       marginBottom: 20,
       alignItems: 'center',
+      backgroundColor: 'black',
     },
     buttonHomeText: {
       fontSize: 18,
@@ -478,9 +478,24 @@ export const createGlobalStyles = (theme: Theme) =>
     image4: {
       width: image4Size,
       height: image4Size,
-      borderRadius: tokens.borderRadius.md,
       backgroundColor: '#eee',
+      borderRadius: tokens.borderRadius.md,
     },
+    image5: {
+      width: '100%',
+      height: 120,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: tokens.borderWidth.md,
+      borderBottomColor: theme.colors.surfaceBorder,
+      // borderRadius: tokens.borderRadius.md,
+    },
+    image6: {
+      width: '100%',
+      // borderTopLeftRadius: 10,
+      // borderTopRightRadius: 10,
+      backgroundColor: theme.colors.foreground,
+    },
+
     outfitCard: {
       width: ouftiCardSize,
       marginRight: 12,

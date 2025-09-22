@@ -1650,7 +1650,7 @@ export default function OutfitPlannerScreen() {
               left: 0,
               right: 0,
               alignItems: 'center',
-              backgroundColor: 'rgba(0,0,0,0.35)',
+              // backgroundColor: 'rgba(0,0,0,0.35)',
               paddingVertical: 20,
             }}>
             <View

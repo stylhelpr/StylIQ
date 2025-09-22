@@ -82,7 +82,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
         alignItems: 'center',
         paddingHorizontal: 12,
         height: 34,
-        borderRadius: 10,
+        borderRadius: 20,
         backgroundColor: theme.colors.button1,
         marginLeft: 6,
         maxWidth: 280,
@@ -122,12 +122,12 @@ export default function AiStylistChatScreen({navigate}: Props) {
         marginHorizontal: 12,
         marginBottom: 8,
         borderRadius: 14,
-        backgroundColor: 'rgb(48, 48, 48)',
+        backgroundColor: theme.colors.surface3,
         borderWidth: tokens.borderWidth.hairline,
         borderColor: theme.colors.surfaceBorder,
         gap: 8,
       },
-      typingText: {color: theme.colors.surface, fontSize: 13},
+      typingText: {color: theme.colors.foreground, fontSize: 13},
       inputBarWrap: {
         paddingHorizontal: 10,
         paddingBottom: Platform.OS === 'ios' ? 8 : 10,
@@ -160,7 +160,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
       },
       rightIcon: {
         width: 30,
-        height: 44,
+        height: 42,
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 4,
@@ -174,7 +174,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
         justifyContent: 'center',
         marginLeft: 6,
         backgroundColor: theme.colors.surface,
-        marginBottom: 3,
+        marginBottom: 5,
       },
     });
   }
@@ -526,7 +526,11 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 {isTyping ? (
                   <ActivityIndicator />
                 ) : (
-                  <MaterialIcons name="arrow-upward" size={22} color="#fff" />
+                  <MaterialIcons
+                    name="arrow-upward"
+                    size={22}
+                    color={theme.colors.foreground}
+                  />
                 )}
               </TouchableOpacity>
             </AppleTouchFeedback>
@@ -563,6 +567,8 @@ function MessageBubble({message}: {message: Message}) {
 
 /** Typing dots */
 function TypingDots() {
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const dot = {width: 6, height: 6, borderRadius: 3, marginHorizontal: 3};
   return (
     <View
@@ -576,7 +582,7 @@ function TypingDots() {
         iterationCount="infinite"
         easing="ease-in-out"
         duration={900}
-        style={[dot, {backgroundColor: 'rgb(48, 48, 48)'}]}
+        style={[dot, {backgroundColor: theme.colors.buttonText1}]}
       />
       <Animatable.View
         delay={150}
@@ -584,7 +590,7 @@ function TypingDots() {
         iterationCount="infinite"
         easing="ease-in-out"
         duration={900}
-        style={[dot, {backgroundColor: 'rgb(48, 48, 48)'}]}
+        style={[dot, {backgroundColor: theme.colors.buttonText1}]}
       />
       <Animatable.View
         delay={300}
@@ -592,7 +598,7 @@ function TypingDots() {
         iterationCount="infinite"
         easing="ease-in-out"
         duration={900}
-        style={[dot, {backgroundColor: 'rgb(48, 48, 48)'}]}
+        style={[dot, {backgroundColor: theme.colors.buttonText1}]}
       />
     </View>
   );
@@ -642,19 +648,19 @@ function stylesUserBubble(theme: any) {
       maxWidth: '78%',
       backgroundColor: 'rgba(0, 119, 255, 1)',
       borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceborder,
+      borderColor: theme.colors.surfaceBorder,
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderRadius: 16,
       marginRight: 8,
     },
     text: {
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       fontSize: 16,
       lineHeight: 22,
     },
     time: {
-      color: theme.colors.foreground3,
+      color: theme.colors.buttonText1,
       fontSize: 11,
       marginTop: 4,
       textAlign: 'right',
@@ -695,7 +701,7 @@ function stylesAssistantBubble(theme: any) {
       paddingVertical: 10,
       borderRadius: 20,
       borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceborder,
+      borderColor: theme.colors.surfaceBorder,
       marginLeft: 8,
     },
     text: {
@@ -704,7 +710,7 @@ function stylesAssistantBubble(theme: any) {
       lineHeight: 22,
     },
     time: {
-      color: 'white',
+      color: theme.colors.foreground,
       fontSize: 11,
       marginTop: 4,
       textAlign: 'right',

@@ -48,7 +48,7 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
     card: {
       width: 220,
       marginRight: 12,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
       borderWidth: tokens.borderWidth.md,
@@ -111,7 +111,7 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
           {a.image ? (
             <Image
               source={{uri: a.image}}
-              style={styles.image}
+              style={globalStyles.image5}
               resizeMode="cover"
             />
           ) : (

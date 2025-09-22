@@ -41,14 +41,14 @@ export default function SaveLookModal({visible, onClose}: Props) {
     },
     card: {
       width: '85%',
-      backgroundColor: '#fff',
+      backgroundColor: theme.colors.surface,
       padding: 20,
       borderRadius: 12,
     },
     title: {fontSize: 18, fontWeight: '700', marginBottom: 10},
     input: {
       borderWidth: 1,
-      borderColor: '#ccc',
+      borderColor: theme.colors.inputText1,
       borderRadius: 6,
       padding: 10,
       marginBottom: 12,
@@ -59,7 +59,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       borderRadius: 6,
       alignItems: 'center',
     },
-    buttonText: {color: '#fff', fontWeight: '600'},
+    buttonText: {color: theme.colors.buttonText1, fontWeight: '600'},
   });
 
   const handleSave = async () => {
@@ -100,22 +100,26 @@ export default function SaveLookModal({visible, onClose}: Props) {
             globalStyles.cardStyles1,
             {paddingVertical: 36, paddingHorizontal: 22},
           ]}>
-          <Text style={[styles.title, {textAlign: 'center', color: 'white'}]}>
+          <Text
+            style={[
+              styles.title,
+              {textAlign: 'center', color: theme.colors.foreground},
+            ]}>
             Save a Look
           </Text>
 
           <TextInput
-            style={[styles.input, {color: 'white'}]}
+            style={[styles.input, {color: theme.colors.foreground}]}
             placeholder="Name (optional)"
-            placeholderTextColor="white"
+            placeholderTextColor={theme.colors.muted}
             value={name}
             onChangeText={setName}
           />
 
           <TextInput
-            style={[styles.input, {color: 'white'}]}
+            style={[styles.input, {color: theme.colors.foreground}]}
             placeholder="Image Address"
-            placeholderTextColor="white"
+            placeholderTextColor={theme.colors.muted}
             value={url}
             onChangeText={setUrl}
           />
@@ -133,7 +137,11 @@ export default function SaveLookModal({visible, onClose}: Props) {
             }}>
             <Text
               style={[
-                {color: '#5d00ffff', marginTop: 10, textAlign: 'center'},
+                {
+                  color: theme.colors.foreground,
+                  marginTop: 10,
+                  textAlign: 'center',
+                },
               ]}>
               Cancel
             </Text>

@@ -301,7 +301,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
   return (
     <ScrollView
-      style={[useGlobalStyles().screen, useGlobalStyles().section]}
+      style={[useGlobalStyles().screen, useGlobalStyles().section6]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled">
       <View

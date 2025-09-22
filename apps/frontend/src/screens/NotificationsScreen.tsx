@@ -20,6 +20,8 @@ import {
 import NotificationCard from '../components/Notifications/NotificationCard';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type, {
@@ -34,10 +36,68 @@ export default function NotificationsScreen({
 }) {
   const userId = useUUID() ?? '';
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  const styles = StyleSheet.create({
+    screen: {flex: 1},
+    nav: {
+      paddingTop: 10,
+      paddingHorizontal: 16,
+      paddingBottom: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    title: {fontSize: 22, fontWeight: '800'},
+    actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
+    actionBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: theme.colors.pillDark1,
+      marginHorizontal: 4,
+    },
+    actionDanger: {backgroundColor: theme.colors.error},
+    actionText: {
+      color: theme.colors.buttonText1,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    filters: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 16,
+      marginBottom: 8,
+    },
+    pill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: theme.colors.pillDark1,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.surfaceBorder,
+      marginHorizontal: 4,
+    },
+    pillActive: {
+      backgroundColor: theme.colors.button1,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    pillText: {color: theme.colors.buttonText1, fontWeight: '700'},
+    pillTextActive: {color: theme.colors.buttonText1},
+    center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+    empty: {paddingHorizontal: 16, paddingTop: 40},
+    emptyBig: {
+      color: theme.colors.foreground,
+      fontWeight: '800',
+      fontSize: 18,
+      marginBottom: 6,
+      textAlign: 'center',
+    },
+    emptySub: {color: theme.colors.muted, textAlign: 'center'},
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,7 +185,7 @@ export default function NotificationsScreen({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#fff"
+              tintColor={theme.colors.foreground}
             />
           }
           contentContainerStyle={{padding: 16, paddingBottom: 32}}
@@ -163,57 +223,6 @@ export default function NotificationsScreen({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {flex: 1},
-  nav: {
-    paddingTop: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  title: {fontSize: 22, fontWeight: '800'},
-  actions: {flexDirection: 'row', marginLeft: 'auto', gap: 8},
-  actionBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  actionDanger: {backgroundColor: 'rgba(255,59,48,0.22)'},
-  actionText: {color: '#fff', fontWeight: '700', fontSize: 12},
-  filters: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  pillActive: {
-    backgroundColor: 'rgba(99,102,241,0.25)',
-    borderColor: 'rgba(99,102,241,0.45)',
-  },
-  pillText: {color: 'rgba(255,255,255,0.9)', fontWeight: '700'},
-  pillTextActive: {color: '#fff'},
-  center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
-  empty: {paddingHorizontal: 16, paddingTop: 40},
-  emptyBig: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 18,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  emptySub: {color: 'rgba(255,255,255,0.7)', textAlign: 'center'},
-});
 
 ///////////////////
 

@@ -657,7 +657,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   <MaterialIcons
                     name="keyboard-voice"
                     size={22}
-                    color="white"
+                    color={theme.colors.foreground}
                     style={{marginRight: 30}}
                   />
                 </TouchableOpacity>

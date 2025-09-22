@@ -29,7 +29,7 @@ export default function ArticleCard({
       paddingHorizontal: 16,
       backgroundColor: theme.colors.surface,
       marginBottom: 10,
-      borderRadius: 12,
+      borderRadius: tokens.borderRadius.md,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
     },

@@ -25,9 +25,11 @@ export const skins = {
       surface2: 'rgba(18, 18, 18, 1)',
       surface3: 'rgba(54, 54, 54, 1)',
       // surfaceBorder: '#3b3b3bff',
-      surfaceBorder: '#3b3b3bff',
+
+      surfaceBorder: '#3b3b3b',
+
       // surfaceBorder: '#263238', //MUI STYLE
-      pillDark1: 'rgba(40, 40, 40, 1)',
+      pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
       inputBorder: '#676769',
       accents: '#676769',
@@ -127,11 +129,10 @@ export const skins = {
   },
 
   fashion1: {
-    // Fashion 1 — clone of `minimal` (you can adjust colors later)
     colors: {
       primary: '#222222',
       secondary: '#000000',
-      background: '#FFFFFF',
+      background: '#ffffffff',
       foreground: '#000000',
       foreground2: 'rgba(104, 101, 101, 1)',
       foreground3: 'rgb(97, 153, 232)',
@@ -141,17 +142,17 @@ export const skins = {
       input: '#E0E0E0',
       input2: '#EAEAEA',
       inputText1: 'rgb(80, 84, 90)',
+      // surface: '#F8F8F8',
       surface: '#F8F8F8',
-      // surface: 'rgb(245, 247, 248)',
-      surface2: '#FDFDFD',
+      surface2: '#f4f4f4ff',
       surface3: '#d7d7d7ff',
       surfaceBorder: 'rgba(227, 229, 231, 1)',
       pillDark1: 'rgba(40, 40, 40, 1)',
-      pillDark2: 'rgba(255, 255, 255, 1)',
+      pillDark2: 'rgba(221, 221, 221, 1)',
       inputBorder: '#C0C0C0',
       accents: '#999',
       separator: '#CCCCCC',
-      error: '#B00020',
+      error: '#ff002fff',
       success: '#00A676',
       warning: '#FF9900',
       frostedGlass: 'rgba(255,255,255,0.2)',

@@ -115,6 +115,7 @@ export default function LoginScreen({
       textShadowColor: 'rgba(0,0,0,0.7)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 2,
+      color: '#fff',
     },
     loginLink: {
       backgroundColor: 'rgba(255,255,255,0.1)',
@@ -144,7 +145,7 @@ export default function LoginScreen({
       textShadowRadius: 2,
     },
     linkText: {
-      color: '#007AFF',
+      color: '#fff',
       textDecorationLine: 'underline',
       textShadowColor: 'rgba(0,0,0,0.6)',
       textShadowOffset: {width: 0, height: 1},
@@ -260,19 +261,14 @@ export default function LoginScreen({
         </View>
 
         <TouchableOpacity
-          style={[
-            globalStyles.buttonHome,
-            {backgroundColor: theme.colors.background},
-          ]}
+          style={[globalStyles.buttonHome]}
           onPress={onFaceIdLogin}
           activeOpacity={0.8}>
           <Text style={globalStyles.buttonHomeText}>Face ID</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleLogin}>
-          <Text style={[styles.passwordLogin, {color: theme.colors.primary}]}>
-            Login
-          </Text>
+          <Text style={[styles.passwordLogin]}>Login</Text>
         </TouchableOpacity>
 
         <View style={styles.termsContainer}>
@@ -293,7 +289,7 @@ export default function LoginScreen({
   );
 }
 
-//////////////////////
+//////////////////
 
 // // screens/LoginScreen.tsx
 // import React from 'react';
@@ -555,19 +551,6 @@ export default function LoginScreen({
 //             Your personal AI fashion concierge
 //           </Text>
 //         </View>
-
-//         <TouchableOpacity
-//           style={[
-//             styles.googleButton,
-//             {backgroundColor: theme.colors.background},
-//           ]}
-//           activeOpacity={0.8}>
-//           <Text style={styles.googleButtonText}>G</Text>
-//         </TouchableOpacity>
-
-//         <Text style={styles.emailText}>
-//           {email ? maskEmail(email) : 'giffinmike@hotmail.com'}
-//         </Text>
 
 //         <TouchableOpacity
 //           style={[
