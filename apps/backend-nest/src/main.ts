@@ -41,7 +41,7 @@ async function bootstrap() {
     // Prefix real APIs under /api
     app.setGlobalPrefix('api');
 
-    // ---- Minimal endpoints so Cloud Run health/startup probes get 200s ---- /
+    // ---- Minimal endpoints so Cloud Run health/startup probes get 200s ----
     const fastify = app.getHttpAdapter().getInstance();
     fastify.get('/', async (_req: any, reply: any) =>
       reply.send({ status: 'ok' }),
