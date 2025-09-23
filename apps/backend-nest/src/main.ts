@@ -60,7 +60,9 @@ async function bootstrap() {
   }, intervalMs);
 
   // Start server
-  // with this:
+  //   await app.listen(3001, '0.0.0.0');
+
+  // Start server
   await app.listen(
     process.env.PORT ? Number(process.env.PORT) : 8080,
     '0.0.0.0',
