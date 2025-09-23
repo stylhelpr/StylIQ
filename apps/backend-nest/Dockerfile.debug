@@ -1,0 +1,16 @@
+FROM node:20-alpine
+WORKDIR /app
+
+# Basic tools
+RUN apk add --no-cache ca-certificates dumb-init curl
+
+# Match Cloud Run expectations
+ENV PORT=8080
+
+# Expose the port (Cloud Run docs only)
+EXPOSE 8080
+
+# Debug entrypoint:
+# 1. Print all env vars (sorted, so secrets aren’t cut mid-line)
+# 2. Start a simple HTTP server that listens on $PORT
+CMD ["sh", "-c", "env | sort && node -e \"require('http').createServer((req,res)=>res.end('ok')).listen(process.env.PORT)\""]
