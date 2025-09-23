@@ -5,6 +5,7 @@
     "baseUrl": "apps/frontend/src",
     "paths": {
       "@tokens/*": ["styles/tokens/*"],
+<<<<<<< HEAD
       "@tokens": ["styles/tokens/index"]
     }
   }
@@ -22,3 +23,12 @@
 //     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
 //   }
 // }
+=======
+      "@tokens": ["styles/tokens/index"],
+      "@types/*": ["types/*"],
+      "@types": ["types/index"]
+    },
+    "typeRoots": ["./node_modules/@types", "./types"]
+  }
+}
+>>>>>>> 9-22-25-chore-mg3

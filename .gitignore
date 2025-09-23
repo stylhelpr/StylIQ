@@ -72,4 +72,24 @@ buck-out/
 *.tbz2
 
 .env
+<<<<<<< HEAD
 .env.*
+=======
+.env.*
+.aider*
+
+apps/backend-nest/*.json
+
+/apps/backend-nest/service-account.json
+
+google-service.json
+stylhelpr-prod-12ff0cbcc3ed.json
+*.key
+*.pem
+*.p12
+*.jks
+*.env
+.env.*
+
+* text=auto
+>>>>>>> 9-22-25-chore-mg3

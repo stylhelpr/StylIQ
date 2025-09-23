@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // // metro.config.js
 // const { getDefaultConfig } = require('metro-config');
 // const { wrapWithReanimatedMetroConfig } = require('react-native-reanimated/metro-config');
@@ -25,11 +26,19 @@
 
 // metro.config.js
 const { getDefaultConfig } = require('metro-config');
+=======
+// metro.config.js
+const {getDefaultConfig} = require('metro-config');
+>>>>>>> 9-22-25-chore-mg3
 const path = require('path');
 
 module.exports = (async () => {
   const {
+<<<<<<< HEAD
     resolver: { sourceExts, assetExts },
+=======
+    resolver: {sourceExts, assetExts},
+>>>>>>> 9-22-25-chore-mg3
   } = await getDefaultConfig();
 
   return {
@@ -42,6 +51,7 @@ module.exports = (async () => {
     maxWorkers: 1,
   };
 })();
+<<<<<<< HEAD
 
 /////////
 
@@ -57,3 +67,5 @@ module.exports = (async () => {
 //     watchFolders: [__dirname],
 //   };
 // })();
+=======
+>>>>>>> 9-22-25-chore-mg3

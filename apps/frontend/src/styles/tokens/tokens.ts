@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export const tokens = {
   spacing: {
     xxs: 4,
@@ -44,6 +45,52 @@ export const tokens = {
     '8xl': 80,
     '9xl': 90,
     '10xl': 104,
+=======
+// styles/tokens.ts
+import {scale} from '../../utils/scale';
+
+export const tokens = {
+  spacing: {
+    xxs: scale(4),
+    sm: scale(8),
+    md: scale(16),
+    lg: scale(24),
+    xl: scale(32),
+    xxl: scale(64),
+    xxxl: scale(80),
+    card: scale(24),
+    icon: scale(24),
+    navbar: scale(72),
+    section: scale(64),
+  },
+
+  layout: {
+    pagePadding: scale(32),
+    sectionGap: scale(64),
+    cardPadding: scale(24),
+  },
+
+  fontSize: {
+    xxs: scale(10),
+    xs: scale(12),
+    sm: scale(14),
+    md: scale(15),
+    base: scale(16),
+    lg: scale(18),
+    xl: scale(20),
+    xxl: scale(22),
+    '2xl': scale(24),
+    '2.5xl': scale(28),
+    '3xl': scale(30),
+    '3.5xl': scale(32),
+    '4xl': scale(36),
+    '5xl': scale(48),
+    '6xl': scale(56),
+    '7xl': scale(64),
+    '8xl': scale(80),
+    '9xl': scale(90),
+    '10xl': scale(104),
+>>>>>>> 9-22-25-chore-mg3
   },
 
   text: {
@@ -52,6 +99,33 @@ export const tokens = {
     heading: 'xl',
   },
 
+<<<<<<< HEAD
+=======
+  borderRadius: {
+    none: 0,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 20,
+    // md: 0,
+    // lg: 0,
+    // xl: 0,
+    '2xl': 32,
+    full: 9999,
+    default: 8,
+  },
+
+  borderWidth: {
+    none: 0,
+    hairline: 0.5,
+    sm: 0.75,
+    md: 1.0,
+    lg: 1.5,
+    xl: 2.0,
+    '2xl': 2.5,
+  },
+
+>>>>>>> 9-22-25-chore-mg3
   fontWeight: {
     thin: '100',
     extraLight: '200',
@@ -82,12 +156,15 @@ export const tokens = {
     default: 1.6,
   },
 
+<<<<<<< HEAD
   layout: {
     pagePadding: 'xl',
     sectionGap: 'xxl',
     cardPadding: 'lg',
   },
 
+=======
+>>>>>>> 9-22-25-chore-mg3
   shadows: {
     none: 'none',
     sm: '0px 1px 2px rgba(0, 0, 0, 0.1)',
