@@ -1,6 +1,21 @@
+# node
 node_modules
-dist
 npm-debug.log
+.yarn
+.pnp.*
+# builds
+dist
+build
+coverage
+# VCS/IDE
+.git
+.gitignore
+.vscode
+.idea
+# OS
 .DS_Store
-.env
-.env.*
+# mobile stuff from monorepo
+android
+ios
+# other app dirs not needed for backend build (if building from repo root)
+apps/frontend
