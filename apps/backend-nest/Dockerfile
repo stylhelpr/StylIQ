@@ -1,19 +1,51 @@
-FROM node:20-alpine
+# ---------- build ----------
+FROM node:20-alpine AS build
+WORKDIR /app
+RUN apk add --no-cache python3 make g++  # needed for node-gyp deps
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# ---------- runtime ----------
+FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Basic tools
-RUN apk add --no-cache ca-certificates dumb-init curl
+ENV NODE_ENV=production \
+    PORT=8080
 
-# Match Cloud Run expectations
-ENV PORT=8080
+RUN apk add --no-cache dumb-init curl ca-certificates
 
-# Expose the port (Cloud Run docs only)
-EXPOSE 8080
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
-# Debug entrypoint:
-# 1. Print all env vars (sorted, so secrets aren’t cut mid-line)
-# 2. Start a simple HTTP server that listens on $PORT
-CMD ["sh", "-c", "env | sort && node -e \"require('http').createServer((req,res)=>res.end('ok')).listen(process.env.PORT)\""]
+COPY --from=build /app/dist ./dist
+
+# Start NestJS
+CMD ["dumb-init", "node", "dist/main.js"]
+
+
+
+
+
+# FROM node:20-alpine
+# WORKDIR /app
+
+# # Basic tools
+# RUN apk add --no-cache ca-certificates dumb-init curl
+
+# # Match Cloud Run expectations
+# ENV PORT=8080
+
+# # Expose the port (Cloud Run docs only)
+# EXPOSE 8080
+
+# # Debug entrypoint:
+# # 1. Print all env vars (sorted, so secrets aren’t cut mid-line)
+# # 2. Start a simple HTTP server that listens on $PORT
+# CMD ["sh", "-c", "env | sort && node -e \"require('http').createServer((req,res)=>res.end('ok')).listen(process.env.PORT)\""]
 
 
 
