@@ -9,30 +9,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repo
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Authenticate to Google Cloud
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: stylhelpr-prod
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          service_account_key: ${{ secrets.GCP_CREDENTIALS }}
           export_default_credentials: true
 
-      # Configure Docker for Artifact Registry
       - name: Configure Docker
         run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-      # Build and push image
       - name: Build and Push Docker image
         run: |
           IMAGE="us-central1-docker.pkg.dev/stylhelpr-prod/backend/api:latest"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
-      # Deploy to Cloud Run
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy backend \
