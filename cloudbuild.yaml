@@ -1,0 +1,22 @@
+# Send logs to Cloud Logging so a logs bucket is NOT required
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM
+
+timeout: '1200s'
+
+steps:
+  # Build the backend image from your monorepo root
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:$SHORT_SHA',
+        '-f',
+        'apps/backend-nest/Dockerfile',
+        '.',
+      ]
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:$SHORT_SHA'
