@@ -9,7 +9,7 @@ steps:
         'build',
         '-t',
         'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:$SHORT_SHA',
-        # Build context = backend folder (this is the key change)
+        # IMPORTANT: build context is the backend folder (no -f needed)
         'apps/backend-nest',
       ]
 
