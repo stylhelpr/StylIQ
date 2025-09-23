@@ -28,16 +28,10 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
 
-# 🔑 Ensure secrets are symlinked to the expected filename
-# Cloud Run mounts FIREBASE_ADMIN_SA as /secrets/firebase.json
-# Your code expects /app/stylhelpr-prod-85685-7ca9f2f2ded8.json
-RUN mkdir -p /secrets \
-  && ln -s /secrets/firebase.json /app/stylhelpr-prod-85685-7ca9f2f2ded8.json
-
 # EXPOSE is documentation only; Cloud Run uses $PORT
 EXPOSE 8080
 
-# Run as non-root for security
+# Run as non-root for security (remove if secrets mount fails with EACCES)
 USER node
 
 ENTRYPOINT ["dumb-init", "--"]
