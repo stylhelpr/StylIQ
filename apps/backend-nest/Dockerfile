@@ -1,25 +1,25 @@
-# ---- deps
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package*.json ./
-# Be robust to presence/absence of package-lock.json
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
-
-# ---- build
+# ---------- build ----------
 FROM node:20-alpine AS build
 WORKDIR /app
+# Faster installs + reproducible cache
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
-# Install dev deps for build if needed (again robust to lockfile)
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+# Compile Nest to dist
 RUN npm run build
 
-# ---- runtime
-FROM node:20-alpine
+# ---------- runtime ----------
+FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=8080
-# bring prod deps and compiled app
-COPY --from=deps /app/node_modules ./node_modules
+# Only prod deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+# App files
 COPY --from=build /app/dist ./dist
+# If you have any non-TS runtime assets (e.g., email templates), copy them too:
+# COPY --from=build /app/src/**/*.hbs ./dist/
+# Health + listen
+ENV PORT=8080
 EXPOSE 8080
 CMD ["node", "dist/main.js"]
