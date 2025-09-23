@@ -11,7 +11,7 @@ export function scheduleLocalOutfitNotification(
   const fireDate = new Date(scheduledForISO);
 
   PushNotification.localNotificationSchedule({
-    channelId: 'default', /// must match the channel you created at startup
+    channelId: 'default', //// must match the channel you created at startup
     title: '📅 Outfit Reminder',
     message: `It's time to wear: ${outfitName}`,
     date: fireDate,
