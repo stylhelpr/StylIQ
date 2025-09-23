@@ -9,9 +9,12 @@ steps:
         'build',
         '-t',
         'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:$SHORT_SHA',
+        '-t',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:latest',
         # IMPORTANT: build context is the backend folder (no -f needed)
         'apps/backend-nest',
       ]
 
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:$SHORT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/backend/api:latest'
