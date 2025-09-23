@@ -25,7 +25,7 @@ async function bootstrap() {
       { logger: ['error', 'warn'] },
     );
 
-    // Ensure Express-style middleware exists (used by Passport)
+    // Ensure Express-style middleware exists (used by Passport) /
     const fastifyInstance = adapter.getInstance() as any;
     if (typeof fastifyInstance.use !== 'function') {
       await fastifyInstance.register(fastifyExpress);
