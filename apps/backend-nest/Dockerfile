@@ -34,16 +34,11 @@ COPY --from=build /app/dist ./dist
 RUN mkdir -p /secrets \
   && ln -s /secrets/firebase.json /app/stylhelpr-prod-85685-7ca9f2f2ded8.json
 
-# (Optional) If you read .env in production, copy it via secrets instead.
-# EXPOSE is only documentation; Cloud Run uses $PORT.
+# EXPOSE is documentation only; Cloud Run uses $PORT
 EXPOSE 8080
 
 # Run as non-root for security
 USER node
-
-# Optional: simple healthcheck against your Nest prefix
-# HEALTHCHECK --interval=30s --timeout=3s \
-#   CMD curl -f http://127.0.0.1:${PORT}/api/health || exit 1
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main.js"]
