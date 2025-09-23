@@ -20,7 +20,7 @@ export async function getCurrentLocation(): Promise<{
   });
 }
 
-const OPENWEATHER_API_KEY = '88345763663b7944e3997b4cff97e73d'; // ✅ Hardcoded here
+const OPENWEATHER_API_KEY = '88345763663b7944e3997b4cff97e73d'; /// ✅ Hardcoded here
 
 // Convert destination name to lat/lon
 export async function geocodeDestination(
