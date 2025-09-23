@@ -1,4 +1,3 @@
-// apps/backend-nest/src/main.ts
 import * as dotenv from 'dotenv';
 dotenv.config(); // Load env variables first
 
@@ -14,58 +13,81 @@ import fastifyExpress from '@fastify/express';
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
 
 async function bootstrap() {
-  // Create Fastify adapter and Nest app
-  const adapter = new FastifyAdapter();
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    adapter,
-  );
+  try {
+    // Keep logs quiet by default; override with FASTIFY_LOG_LEVEL
+    const adapter = new FastifyAdapter({
+      logger: { level: process.env.FASTIFY_LOG_LEVEL ?? 'error' },
+    });
 
-  // Ensure Express-style middleware is available (for Passport)
-  if (typeof (adapter.getInstance() as any).use !== 'function') {
-    await adapter.getInstance().register(fastifyExpress);
+    const app = await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      adapter,
+      { logger: ['error', 'warn'] },
+    );
+
+    // Ensure Express-style middleware exists (used by Passport)
+    const fastifyInstance = adapter.getInstance() as any;
+    if (typeof fastifyInstance.use !== 'function') {
+      await fastifyInstance.register(fastifyExpress);
+    }
+    fastifyInstance.use(passport.initialize());
+
+    // CORS
+    await app.register(cors, {
+      origin: '*', // tighten in prod
+      credentials: true,
+    });
+
+    // Prefix real APIs under /api
+    app.setGlobalPrefix('api');
+
+    // ---- Minimal endpoints so Cloud Run health/startup probes get 200s ----
+    const fastify = app.getHttpAdapter().getInstance();
+    fastify.get('/', async (_req: any, reply: any) =>
+      reply.send({ status: 'ok' }),
+    );
+    fastify.get('/api/health', async (_req: any, reply: any) =>
+      reply.send({ status: 'healthy' }),
+    );
+    // ----------------------------------------------------------------------
+
+    // Listen: Cloud Run sets PORT (8080). Default to 3001 locally.
+    const port = Number(process.env.PORT ?? 3001);
+    await app.listen(port, '0.0.0.0');
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`API listening on http://localhost:${port} (prefix: /api)`);
+    }
+
+    // ---- Background job: start AFTER the server is up ----
+    const notifier = app.get(ScheduledOutfitNotifier);
+    const intervalMs = Math.max(
+      5000,
+      Number(process.env.SCHEDULE_NOTIFIER_INTERVAL_MS ?? 30_000),
+    );
+
+    // Kick once at boot
+    notifier
+      .run()
+      .catch((err) => console.error('❌ Notifier startup error:', err));
+
+    // Then run on an interval
+    setInterval(() => {
+      notifier.run().catch((err) => console.error('❌ Notifier error:', err));
+    }, intervalMs);
+  } catch (err) {
+    console.error('❌ Fatal bootstrap error:', err);
+    process.exit(1);
   }
-  adapter.getInstance().use(passport.initialize());
-
-  // CORS
-  await app.register(cors, {
-    origin: '*', // tighten in production
-    credentials: true,
-  });
-
-  // Global API prefix
-  app.setGlobalPrefix('api');
-
-  // ---- Scheduled Outfit Notifier loop ----
-  const notifier = app.get(ScheduledOutfitNotifier);
-
-  // Interval (default 30s). Override with SCHEDULE_NOTIFIER_INTERVAL_MS if needed.
-  const intervalMs = Math.max(
-    5000,
-    Number(process.env.SCHEDULE_NOTIFIER_INTERVAL_MS ?? 30_000),
-  );
-
-  // Run once immediately on boot
-  notifier
-    .run()
-    .catch((err) => console.error('❌ Notifier error on startup:', err));
-
-  // Then on an interval
-  setInterval(() => {
-    notifier.run().catch((err) => console.error('❌ Notifier error:', err));
-  }, intervalMs);
-
-  // Start server
-  await app.listen(3001, '0.0.0.0');
 }
 
 bootstrap();
 
-//////////////////////
+////////////////
 
 // // apps/backend-nest/src/main.ts
 // import * as dotenv from 'dotenv';
-// dotenv.config(); // 🔹 Load environment variables first
+// dotenv.config(); // Load env variables first
 
 // import { NestFactory } from '@nestjs/core';
 // import {
@@ -79,96 +101,49 @@ bootstrap();
 // import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
 
 // async function bootstrap() {
-//   // 🔹 Create a Fastify adapter for NestJS instead of default Express
+//   // Create Fastify adapter and Nest app
 //   const adapter = new FastifyAdapter();
-
-//   // 🔹 Initialize NestJS app with the Fastify adapter
 //   const app = await NestFactory.create<NestFastifyApplication>(
 //     AppModule,
 //     adapter,
 //   );
 
-//   // ✅ Ensure Fastify can use Express-style middleware (needed for Passport)
+//   // Ensure Express-style middleware is available (for Passport)
 //   if (typeof (adapter.getInstance() as any).use !== 'function') {
 //     await adapter.getInstance().register(fastifyExpress);
 //   }
-
-//   // ✅ Initialize Passport authentication middleware
 //   adapter.getInstance().use(passport.initialize());
 
-//   // ✅ Enable CORS (allow cross-origin requests)
+//   // CORS
 //   await app.register(cors, {
-//     origin: '*', // allow all origins (change this in production!)
-//     credentials: true, // include cookies/headers for auth
+//     origin: '*', // tighten in production
+//     credentials: true,
 //   });
 
-//   // ✅ Set a global API prefix → all routes start with `/api/...`
+//   // Global API prefix
 //   app.setGlobalPrefix('api');
 
-//   // ⚡ Start scheduled outfit notifier loop
+//   // ---- Scheduled Outfit Notifier loop ----
 //   const notifier = app.get(ScheduledOutfitNotifier);
+
+//   // Interval (default 30s). Override with SCHEDULE_NOTIFIER_INTERVAL_MS if needed.
+//   const intervalMs = Math.max(
+//     5000,
+//     Number(process.env.SCHEDULE_NOTIFIER_INTERVAL_MS ?? 30_000),
+//   );
+
 //   // Run once immediately on boot
 //   notifier
 //     .run()
 //     .catch((err) => console.error('❌ Notifier error on startup:', err));
-//   // Then every 5 minutes
-//   setInterval(
-//     () => {
-//       notifier.run().catch((err) => console.error('❌ Notifier error:', err));
-//     },
-//     5 * 60 * 1000,
-//   );
 
-//   // ✅ Start the server on port 3001 (listen on all interfaces)
+//   // Then on an interval
+//   setInterval(() => {
+//     notifier.run().catch((err) => console.error('❌ Notifier error:', err));
+//   }, intervalMs);
+
+//   // Start server
 //   await app.listen(3001, '0.0.0.0');
 // }
 
-// bootstrap();
-
-//////////////////////
-
-// import * as dotenv from 'dotenv';
-// dotenv.config();
-// // 🔹 Load environment variables from .env before anything else (DB URL, API keys, etc.)
-
-// import { NestFactory } from '@nestjs/core';
-// import {
-//   FastifyAdapter,
-//   NestFastifyApplication,
-// } from '@nestjs/platform-fastify';
-// import { AppModule } from './app.module';
-// import cors from '@fastify/cors';
-// import * as passport from 'passport';
-// import fastifyExpress from '@fastify/express';
-
-// async function bootstrap() {
-//   // 🔹 Create a Fastify adapter for NestJS instead of default Express
-//   const adapter = new FastifyAdapter();
-
-//   // 🔹 Initialize NestJS app with the Fastify adapter
-//   const app = await NestFactory.create<NestFastifyApplication>(
-//     AppModule,
-//     adapter,
-//   );
-
-//   // ✅ Ensure Fastify can use Express-style middleware (needed for Passport)
-//   if (typeof (adapter.getInstance() as any).use !== 'function') {
-//     await adapter.getInstance().register(fastifyExpress);
-//   }
-
-//   // ✅ Initialize Passport authentication middleware
-//   adapter.getInstance().use(passport.initialize());
-
-//   // ✅ Enable CORS (allow cross-origin requests)
-//   await app.register(cors, {
-//     origin: '*', // allow all origins (change this in production!)
-//     credentials: true, // include cookies/headers for auth
-//   });
-
-//   // ✅ Set a global API prefix → all routes start with `/api/...`
-//   app.setGlobalPrefix('api');
-
-//   // ✅ Start the server on port 3001 (listen on all interfaces)
-//   await app.listen(3001, '0.0.0.0');
-// }
 // bootstrap();
