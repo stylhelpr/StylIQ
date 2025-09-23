@@ -12,6 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # ✅ Authenticate gcloud (so deploy works)
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -19,7 +20,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_CREDENTIALS }}
           export_default_credentials: true
 
-      # ✅ Authenticate Docker to Artifact Registry
+      # ✅ Authenticate Docker to Artifact Registry (so push works)
       - name: Auth for Artifact Registry
         uses: docker/login-action@v2
         with:
