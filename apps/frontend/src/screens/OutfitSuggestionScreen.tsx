@@ -612,7 +612,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           <Text
             style={{
               textAlign: 'center',
-              fontSize: 16,
+              fontSize: 18,
               color: theme.colors.foreground,
               fontWeight: '400',
             }}>

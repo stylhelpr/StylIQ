@@ -366,14 +366,14 @@ export default function ClosetScreen({navigate}: Props) {
             style={{...styles.iconButton, marginRight: 8}}
             hapticStyle="impactLight"
             onPress={() => setShowFilter(true)}>
-            <MaterialIcons name="filter-list" size={27} color={'white'} />
+            <MaterialIcons name="filter-list" size={32} color={'white'} />
           </AppleTouchFeedback>
 
           <AppleTouchFeedback
             style={{...styles.iconButton}}
             hapticStyle="impactLight"
             onPress={() => setShowSort(true)}>
-            <MaterialIcons name="sort" size={27} color={'white'} />
+            <MaterialIcons name="sort" size={32} color={'white'} />
           </AppleTouchFeedback>
         </View>
       </View>
@@ -495,7 +495,7 @@ export default function ClosetScreen({navigate}: Props) {
         hapticStyle="impactHeavy"
         style={[
           globalStyles.buttonPrimary,
-          {...styles.fab, marginRight: 16, width: 127},
+          {...styles.fab, marginRight: 16, width: 130},
         ]}
         onPress={() => navigate('AddItem')}>
         <Text style={{color: theme.colors.buttonText1, fontWeight: '600'}}>

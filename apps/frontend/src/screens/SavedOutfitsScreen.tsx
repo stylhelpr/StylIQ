@@ -1076,7 +1076,7 @@ export default function SavedOutfitsScreen() {
                       onPress={commitSchedule}
                       style={[
                         styles.sheetPill,
-                        {backgroundColor: theme.colors.primary},
+                        {backgroundColor: theme.colors.button1},
                       ]}>
                       <Text
                         style={{

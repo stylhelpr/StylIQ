@@ -380,31 +380,11 @@ export const createGlobalStyles = (theme: Theme) =>
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 3,
     },
-    // buttonPrimary: {
-    //   width: '90%',
-    //   maxWidth: 160,
-    //   backgroundColor: theme.colors.button1,
-    //   borderRadius: tokens.borderRadius['2xl'],
-    //   paddingVertical: 11,
-    //   alignItems: 'center',
-    //   justifyContent: 'center',
-    //   shadowColor: '#000',
-    //   shadowOffset: {width: 0, height: 1},
-    //   shadowOpacity: 0.1,
-    //   shadowRadius: 4,
-    //   elevation: 2,
-    // },
-    // buttonPrimaryText: {
-    //   fontSize: 13,
-    //   fontWeight: '500',
-    //   color: '#fff',
-    // },
     buttonPrimary: {
       // width: '90%',
       // maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius['2xl'],
-      paddingVertical: 11,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -412,12 +392,25 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
+      borderColor: theme.colors.surfaceBorder,
+      //  paddingVertical: 11,
+
+      paddingVertical: 14,
+      borderWidth: 1,
     },
+
+    // buttonPrimaryText: {
+    //   fontSize: 15,
+    //   fontWeight: '700',
+    //   color: theme.colors.buttonText1,
+    // },
+
     buttonPrimaryText: {
-      fontSize: 15,
-      fontWeight: '700',
+      fontSize: 17,
+      fontWeight: '600',
       color: theme.colors.buttonText1,
     },
+
     buttonSecondary: {
       width: '90%',
       maxWidth: 186,

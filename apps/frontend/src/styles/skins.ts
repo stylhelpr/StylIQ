@@ -17,18 +17,15 @@ export const skins = {
       input: '#EAEAEA',
       input2: 'rgb(43, 43, 43)',
       inputText1: 'rgba(121, 121, 121, 1)',
-      surface: '#1c1c1cff',
-      // surface: '#1b1b1bff',
-      // surface: '#rgba(25, 25, 25, 1)',
-      // surface: '#121212ff',
-      // surface: '#121212', //MUI STYLE
+      // surface: '#1c1c1cff',
+
+      surface: '#1a1a1aff',
+
       surface2: 'rgba(18, 18, 18, 1)',
       surface3: 'rgba(54, 54, 54, 1)',
-      // surfaceBorder: '#3b3b3bff',
 
       surfaceBorder: '#3b3b3b',
 
-      // surfaceBorder: '#263238', //MUI STYLE
       pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
       inputBorder: '#676769',
@@ -39,9 +36,11 @@ export const skins = {
       warning: '#FFC107',
       frostedGlass: 'rgb(0, 0, 0)',
       skeletonLoader: '#e6e3e3',
-      // button1: 'rgba(132, 0, 255, 1)',
+
+      // button1: 'rgba(32, 128, 255, 1)',
+
       button1: 'rgba(144, 0, 255, 1)',
-      // button1: 'rgba(51, 0, 255, 1)',
+
       button2: 'red',
       button3: 'rgb(130, 46, 255)',
       buttonText1: 'rgba(255, 255, 255, 1)',
@@ -157,7 +156,11 @@ export const skins = {
       warning: '#FF9900',
       frostedGlass: 'rgba(255,255,255,0.2)',
       skeletonLoader: '#EFEFEF',
+
       button1: 'rgb(76, 152, 252)',
+
+      // button1: 'rgba(32, 128, 255, 1)',
+
       button2: 'rgba(3, 3, 3, 1)',
       button3: 'rgb(76, 152, 252)',
       buttonText1: 'rgba(255, 255, 255, 1)',
