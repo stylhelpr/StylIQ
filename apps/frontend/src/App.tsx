@@ -1,6 +1,6 @@
 import {LogBox} from 'react-native';
 
-// 🔀 Flip this when you want logs back
+/// 🔀 Flip this when you want logs back
 const ENABLE_LOG_SILENCER = true;
 
 // 🔇 Dev-only: optionally silence specific noisy warnings that spam your console
