@@ -92,4 +92,4 @@ stylhelpr-prod-12ff0cbcc3ed.json
 *.env
 .env.*
 
-* text=auto
+* text=autobackend-nest-key.json
