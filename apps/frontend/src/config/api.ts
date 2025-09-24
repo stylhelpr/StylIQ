@@ -2,7 +2,21 @@ import {Platform} from 'react-native';
 import {LOCAL_IP} from './localIP';
 import {PORT} from './port';
 
-export const API_BASE_URL =
-  Platform.OS === 'android'
+const PROD_URL = 'https://backend-161054336483.us-central1.run.app/api';
+
+export const API_BASE_URL = __DEV__
+  ? Platform.OS === 'android'
     ? `http://10.0.2.2:${PORT}/api`
-    : `http://${LOCAL_IP}:${PORT}/api`;
+    : `http://${LOCAL_IP}:${PORT}/api`
+  : PROD_URL;
+
+////////////////
+
+// import {Platform} from 'react-native';
+// import {LOCAL_IP} from './localIP';
+// import {PORT} from './port';
+
+// export const API_BASE_URL =
+//   Platform.OS === 'android'
+//     ? `http://10.0.2.2:${PORT}/api`
+//     : `http://${LOCAL_IP}:${PORT}/api`;
