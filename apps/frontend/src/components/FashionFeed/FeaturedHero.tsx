@@ -41,13 +41,13 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
       bottom: 14,
     },
     source: {
-      color: theme.colors.foreground3,
+      color: theme.colors.buttonText1,
       fontWeight: '700',
       fontSize: 13,
       marginBottom: 6,
     },
     title: {
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       fontSize: 22,
       lineHeight: 28,
       fontWeight: '800',
