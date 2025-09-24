@@ -63,8 +63,9 @@ export default function ImagePickerGrid({
       flexDirection: 'row',
       justifyContent: 'space-between',
       width: '100%',
+      marginLeft: -12,
     },
-    buttonWrapper: {flex: 1, marginHorizontal: 4, maxWidth: 180, minWidth: 100},
+    buttonWrapper: {flex: 1, marginHorizontal: 4, maxWidth: 180, minWidth: 120},
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
