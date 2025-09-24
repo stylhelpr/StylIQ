@@ -528,7 +528,7 @@ export class VertexService {
   }
 
   // -------------------
-  // Outfit Generation (Gemini Pro via Generative API)
+  // Outfit Generation (Gemini Pro via Generative API) /
   // -------------------
   async generateReasonedOutfit(prompt: string): Promise<any> {
     const model = this.vertexAI.getGenerativeModel({
