@@ -16,7 +16,7 @@ if (__DEV__) {
       '⚠️ No userId provided. Skipping token registration.',
     ]);
 
-    // Drop just these warn lines even if a lib bypasses LogBox
+    /// Drop just these warn lines even if a lib bypasses LogBox
     const originalWarn = console.warn;
     // @ts-expect-error: preserving original signature
     console.warn = (...args) => {
