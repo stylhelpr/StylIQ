@@ -4,7 +4,7 @@ import { PredictionServiceClient, helpers } from '@google-cloud/aiplatform';
 import * as fs from 'fs';
 import { VertexAI, SchemaType } from '@google-cloud/vertexai';
 import { withBackoff } from './vertex.util';
-import { GoogleAuth } from 'google-auth-library'; // ✅ ADDED
+import { GoogleAuth } from 'google-auth-library'; // ✅ ADDEDD
 
 const { toValue } = helpers;
 
