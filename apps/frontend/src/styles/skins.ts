@@ -21,14 +21,14 @@ export const skins = {
 
       // surface: '#1a1a1aff',
 
-      // surface: ' rgba(34, 35, 40, 1.0)',
-      surface: 'rgba(39, 40, 45, 1)',
+      surface: ' rgba(34, 35, 40, 1)',
+      // surface: 'rgba(39, 40, 45, 1)',
 
       surface2: 'rgba(18, 18, 18, 1)',
       surface3: 'rgba(54, 54, 54, 1)',
 
       // surfaceBorder: '#3b3b3b',
-      surfaceBorder: 'rgba(59, 59, 59, 0.5)',
+      surfaceBorder: 'rgba(59, 59, 59, 0.7)',
 
       pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
