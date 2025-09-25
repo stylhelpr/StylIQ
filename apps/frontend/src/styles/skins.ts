@@ -28,7 +28,7 @@ export const skins = {
       surface3: 'rgba(54, 54, 54, 1)',
 
       // surfaceBorder: '#3b3b3b',
-      surfaceBorder: 'rgba(59, 59, 59, 0.7)',
+      surfaceBorder: 'rgba(59, 59, 59, 0.5)',
 
       pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
