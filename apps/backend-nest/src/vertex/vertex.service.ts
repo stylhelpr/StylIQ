@@ -60,7 +60,7 @@ export type AnalyzeOutput = {
   color_temp?: 'Warm' | 'Cool' | 'Neutral';
   contrast_profile?: 'Low' | 'Medium' | 'High';
 
-  // Material & Construction
+  // Material & Construction /
   material?: string;
   fabric_blend?: Array<{ material: string; percent: number }>;
   fit?: 'Slim' | 'Regular' | 'Oversized';
