@@ -77,6 +77,8 @@ buck-out/
 
 apps/backend-nest/*.json
 
+backend-nest-key.json
+
 /apps/backend-nest/service-account.json
 
 google-service.json

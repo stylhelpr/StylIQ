@@ -4,7 +4,6 @@ import { PredictionServiceClient, helpers } from '@google-cloud/aiplatform';
 import * as fs from 'fs';
 import { VertexAI, SchemaType } from '@google-cloud/vertexai';
 import { withBackoff } from './vertex.util';
-import { GoogleAuth } from 'google-auth-library'; // ✅ ADDED
 
 const { toValue } = helpers;
 
@@ -178,16 +177,12 @@ export class VertexService {
     if (lower.endsWith('.png')) return 'image/png';
     if (lower.endsWith('.webp')) return 'image/webp';
     if (lower.endsWith('.gif')) return 'image/gif';
-    // HEIC/HEIF often not supported directly by models; prefer converting at upload time.
     return 'image/jpeg';
   }
 
   constructor() {
-    // ✅ Force Prediction client to use the Cloud Run service account auth
-    const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    });
-    this.client = new PredictionServiceClient({ auth });
+    // Predict API client for embeddings
+    this.client = new PredictionServiceClient();
 
     // Load project ID from service account JSON
     const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS!;
@@ -283,7 +278,7 @@ export class VertexService {
     }
 
     const model = this.vertexAI.getGenerativeModel({
-      model: this.generationModel, // e.g., gemini-2.5-flash
+      model: this.generationModel,
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: {
@@ -296,6 +291,7 @@ export class VertexService {
               items: { type: SchemaType.STRING },
             },
             ai_confidence: { type: SchemaType.NUMBER },
+
             main_category: { type: SchemaType.STRING },
             subcategory: { type: SchemaType.STRING },
             tags: {
@@ -314,6 +310,7 @@ export class VertexService {
               type: SchemaType.STRING,
               enum: ['Hero', 'Neutral', 'Connector'],
             },
+
             occasion_tags: {
               type: SchemaType.ARRAY,
               items: {
@@ -333,6 +330,7 @@ export class VertexService {
               ],
             },
             formality_score: { type: SchemaType.NUMBER },
+
             color: { type: SchemaType.STRING },
             dominant_hex: { type: SchemaType.STRING },
             palette_hex: {
@@ -348,6 +346,7 @@ export class VertexService {
               type: SchemaType.STRING,
               enum: ['Low', 'Medium', 'High'],
             },
+
             material: { type: SchemaType.STRING },
             fabric_blend: {
               type: SchemaType.ARRAY,
@@ -376,6 +375,7 @@ export class VertexService {
               type: SchemaType.STRING,
               enum: ['2-way', '4-way'],
             },
+
             pattern: {
               type: SchemaType.STRING,
               enum: [
@@ -395,6 +395,7 @@ export class VertexService {
               type: SchemaType.STRING,
               enum: ['Micro', 'Medium', 'Bold'],
             },
+
             neckline: { type: SchemaType.STRING },
             collar_type: { type: SchemaType.STRING },
             sleeve_length: { type: SchemaType.STRING },
@@ -409,6 +410,7 @@ export class VertexService {
             shoe_style: { type: SchemaType.STRING },
             sole: { type: SchemaType.STRING },
             toe_shape: { type: SchemaType.STRING },
+
             seasonality: {
               type: SchemaType.STRING,
               enum: ['Spring', 'Summer', 'Fall', 'Winter', 'AllSeason'],
@@ -421,17 +423,20 @@ export class VertexService {
               type: SchemaType.STRING,
               enum: ['Base', 'Mid', 'Outer'],
             },
+
             rain_ok: { type: SchemaType.BOOLEAN },
             wind_ok: { type: SchemaType.BOOLEAN },
             waterproof_rating: { type: SchemaType.STRING },
             climate_sweetspot_f_min: { type: SchemaType.NUMBER },
             climate_sweetspot_f_max: { type: SchemaType.NUMBER },
+
             size: { type: SchemaType.STRING },
             size_label: { type: SchemaType.STRING },
             size_system: { type: SchemaType.STRING, enum: ['US', 'EU', 'UK'] },
             measurements: { type: SchemaType.OBJECT },
             width: { type: SchemaType.NUMBER },
             height: { type: SchemaType.NUMBER },
+
             care_symbols: {
               type: SchemaType.ARRAY,
               items: { type: SchemaType.STRING },
@@ -439,6 +444,7 @@ export class VertexService {
             wash_temp_c: { type: SchemaType.NUMBER },
             dry_clean: { type: SchemaType.BOOLEAN },
             iron_ok: { type: SchemaType.BOOLEAN },
+
             brand: { type: SchemaType.STRING },
             retailer: { type: SchemaType.STRING },
             purchase_date: { type: SchemaType.STRING },
@@ -512,7 +518,7 @@ export class VertexService {
   // -------------------
   async generateOutfits(prompt: string): Promise<any> {
     const model = this.vertexAI.getGenerativeModel({
-      model: this.generationModel, // gemini-2.5-flash
+      model: this.generationModel,
     });
 
     const result = await this.withSemaphore(() =>
@@ -532,7 +538,7 @@ export class VertexService {
   // -------------------
   async generateReasonedOutfit(prompt: string): Promise<any> {
     const model = this.vertexAI.getGenerativeModel({
-      model: this.reasoningModel, // gemini-2.5-pro
+      model: this.reasoningModel,
     });
 
     const result = await this.withSemaphore(() =>
