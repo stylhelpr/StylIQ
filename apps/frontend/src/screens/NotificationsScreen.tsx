@@ -115,6 +115,7 @@ export default function NotificationsScreen({
     const unsubscribeFg = messaging().onMessage(async msg => {
       console.log('📩 Foreground push:', msg);
       await addToInbox({
+        user_id: userId, // ✅ added
         id: msg.messageId || `${Date.now()}`,
         title: msg.notification?.title || msg.data?.title,
         message:
@@ -133,6 +134,7 @@ export default function NotificationsScreen({
     const unsubscribeOpen = messaging().onNotificationOpenedApp(async msg => {
       console.log('📬 Notification opened from background:', msg);
       await addToInbox({
+        user_id: userId, // ✅ added
         id: msg.messageId || `${Date.now()}`,
         title: msg.notification?.title || msg.data?.title,
         message:
@@ -151,7 +153,7 @@ export default function NotificationsScreen({
       unsubscribeFg();
       unsubscribeOpen();
     };
-  }, [load]);
+  }, [load, userId]); // ✅ added userId to dependencies
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

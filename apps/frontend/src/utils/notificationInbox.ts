@@ -1,5 +1,6 @@
 // utils/notificationInbox.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {API_BASE_URL} from '../config/api';
 
 export type AppNotification = {
   id: string;
@@ -48,10 +49,14 @@ export async function saveInbox(list: AppNotification[]) {
   notifySubscribers(); // 🔥 Notify listeners whenever inbox changes
 }
 
-export async function addToInbox(n: AppNotification) {
+/**
+ * ✅ Adds a notification to the local inbox (AsyncStorage)
+ * ✅ And also mirrors it to your backend (optional best practice)
+ */
+export async function addToInbox(n: AppNotification & {user_id?: string}) {
   const list = await loadInbox();
 
-  // ✅ Skip duplicates
+  // ✅ Skip duplicates locally
   const duplicate = list.find(
     x => x.id === n.id || (x.title === n.title && x.message === n.message),
   );
@@ -62,12 +67,28 @@ export async function addToInbox(n: AppNotification) {
 
   const next = [n, ...list].slice(0, cap);
   await saveInbox(next);
+
+  // 🆕 Mirror notification to backend (non-breaking optional best practice)
+  try {
+    if (n.user_id) {
+      await fetch(`${API_BASE_URL}/notifications/save`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(n),
+      });
+      console.log('☁️ Notification mirrored to backend');
+    }
+  } catch (err) {
+    console.warn('⚠️ Failed to persist notification to backend:', err);
+  }
 }
 
 export async function markRead(userId: string, id: string) {
   const list = await loadInbox();
   const updated = list.map(n => (n.id === id ? {...n, read: true} : n));
   await saveInbox(updated);
+
+  // (optional) mark as read in backend later if needed
 }
 
 export async function markAllRead() {

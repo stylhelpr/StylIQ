@@ -58,6 +58,11 @@ export class NotificationsController {
     return this.service.debug(user_id);
   }
 
+  @Post('save')
+  async saveInboxItem(@Body() body: any) {
+    return this.service.saveInboxItem(body);
+  }
+
   // Optional manual trigger to prove the full flow:
   @Post('notify/source-article')
   notifySource(

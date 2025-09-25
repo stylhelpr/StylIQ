@@ -431,6 +431,44 @@ export class NotificationsService {
     }
   }
 
+  async saveInboxItem(n: any) {
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_notifications (
+      id text PRIMARY KEY,
+      user_id uuid NOT NULL,
+      title text,
+      message text NOT NULL,
+      timestamp timestamptz NOT NULL,
+      category text,
+      deeplink text,
+      data jsonb,
+      read boolean DEFAULT false
+    );
+  `);
+
+    await pool.query(
+      `
+    INSERT INTO user_notifications (id, user_id, title, message, timestamp, category, deeplink, data, read)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    ON CONFLICT (id) DO UPDATE SET
+      read = COALESCE($9, user_notifications.read)
+    `,
+      [
+        n.id,
+        n.user_id,
+        n.title,
+        n.message,
+        n.timestamp,
+        n.category,
+        n.deeplink,
+        n.data || {},
+        n.read ?? false,
+      ],
+    );
+
+    return { ok: true };
+  }
+
   // ── Debug ────────────────────────────────────────────────
   async debug(user_id?: string) {
     const appOpts: any = (admin as any).app().options || {};
