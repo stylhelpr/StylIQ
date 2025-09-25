@@ -172,7 +172,7 @@ export class VertexService {
     }
   }
 
-  // tiny helper to pick a sane mime from gs:// path/
+  // tiny helper to pick a sane mime from gs:// path
   private detectMimeFromGcsUri(uri: string): string {
     const lower = uri.toLowerCase();
     if (lower.endsWith('.png')) return 'image/png';
