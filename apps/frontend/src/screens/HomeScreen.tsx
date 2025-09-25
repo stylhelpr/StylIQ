@@ -1,4 +1,4 @@
-// apps/mobile/src/screens/HomeScreen.tsx /
+// apps/mobile/src/screens/HomeScreen.tsx //
 import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
