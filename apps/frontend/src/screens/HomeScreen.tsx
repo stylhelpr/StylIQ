@@ -1,4 +1,4 @@
-// apps/mobile/src/screens/HomeScreen.tsx //
+// apps/mobile/src/screens/HomeScreen.tsx
 import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
@@ -569,7 +569,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 ]}>
                 {[
                   // {label: 'Ai Chat', screen: 'AiStylistChatScreen'},
-                  {label: 'Style Me', screen: 'Outfit'},
+                  {label: 'Get started', screen: 'Outfit'},
                   {label: 'Wardrobe', screen: 'Wardrobe'},
                   {label: 'Add Clothes', screen: 'AddItem'},
                   // {label: 'Fashion News', screen: 'Explore'},

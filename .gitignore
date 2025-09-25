@@ -77,11 +77,7 @@ buck-out/
 
 apps/backend-nest/*.json
 
-backend-nest-key.json
-
 /apps/backend-nest/service-account.json
-
-/Users/giffinmike/Git/StylIQ/backend-nest-key.json
 
 google-service.json
 stylhelpr-prod-12ff0cbcc3ed.json
@@ -92,5 +88,4 @@ stylhelpr-prod-12ff0cbcc3ed.json
 *.env
 .env.*
 
-* text=autobackend-nest-key.json
-backend-nest-key.json
+* text=auto
