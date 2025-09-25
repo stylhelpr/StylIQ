@@ -45,6 +45,9 @@ let fgUnsub: (() => void) | null = null;
 let openUnsub: (() => void) | null = null;
 let fgRegistered = false;
 
+// 🔥 Used to suppress duplicate banners
+let lastShownId: string | null = null;
+
 export const initializeNotifications = async (userId?: string) => {
   try {
     const enabled = await AsyncStorage.getItem('notificationsEnabled');
@@ -127,14 +130,20 @@ export const initializeNotifications = async (userId?: string) => {
     fgUnsub = null;
     openUnsub = null;
     fgRegistered = false;
+    lastShownId = null;
 
     // 📬 Foreground push → show banner (only once)
     if (!fgRegistered) {
       fgUnsub = messaging().onMessage(async msg => {
         const mapped = mapMessage(msg);
-
-        // ✅ Deduplicate banner: ensure we only trigger one banner per messageId
         console.log('📩 Foreground push:', mapped.id);
+
+        // ✅ Skip banner if we've already shown this message ID
+        if (mapped.id === lastShownId) {
+          console.log('⚠️ Skipping duplicate banner for:', mapped.id);
+          return;
+        }
+        lastShownId = mapped.id;
 
         // 🔔 Show local banner (but DO NOT add to inbox here to prevent duplicates)
         try {
