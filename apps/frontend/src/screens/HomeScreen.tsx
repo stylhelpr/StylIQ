@@ -554,7 +554,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       {prefs.quickAccess && (
         <View style={globalStyles.centeredSection}>
           <View style={globalStyles.section}>
-            <Text style={globalStyles.sectionTitle}>11111Quick Access</Text>
+            <Text style={globalStyles.sectionTitle}>Quick Access</Text>
             <View style={[globalStyles.centeredSection]}>
               <View
                 style={[
