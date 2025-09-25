@@ -395,7 +395,7 @@ export const createGlobalStyles = (theme: Theme) =>
       borderColor: theme.colors.surfaceBorder,
       //  paddingVertical: 11,
 
-      paddingVertical: 14,
+      paddingVertical: 13,
       borderWidth: 1,
     },
 
@@ -406,7 +406,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // },
 
     buttonPrimaryText: {
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: '600',
       color: theme.colors.buttonText1,
     },

@@ -19,12 +19,16 @@ export const skins = {
       inputText1: 'rgba(121, 121, 121, 1)',
       // surface: '#1c1c1cff',
 
-      surface: '#1a1a1aff',
+      // surface: '#1a1a1aff',
+
+      // surface: ' rgba(34, 35, 40, 1.0)',
+      surface: 'rgba(39, 40, 45, 1)',
 
       surface2: 'rgba(18, 18, 18, 1)',
       surface3: 'rgba(54, 54, 54, 1)',
 
-      surfaceBorder: '#3b3b3b',
+      // surfaceBorder: '#3b3b3b',
+      surfaceBorder: 'rgba(59, 59, 59, 0.5)',
 
       pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
@@ -40,6 +44,8 @@ export const skins = {
       // button1: 'rgba(32, 128, 255, 1)',
 
       button1: 'rgba(144, 0, 255, 1)',
+
+      // button1: 'rgba(75, 92, 249, 1)',
 
       button2: 'red',
       button3: 'rgb(130, 46, 255)',
