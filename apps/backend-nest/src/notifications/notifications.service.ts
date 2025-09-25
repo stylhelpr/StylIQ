@@ -15,7 +15,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// ── Firebase Admin init ────────────────────────────────────
+// ── Firebase Admin init ────────────────────────────────────/
 // ✅ Always prefer new secret path first, fallback to legacy vars
 const FIREBASE_SERVICE_ACCOUNT =
   process.env.NOTIFICATIONS_FIREBASE2 ||
