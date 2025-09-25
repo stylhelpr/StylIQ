@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import * as admin from 'firebase-admin';
 import * as fs from 'fs';
-import * as path from 'path';
 
 type PushPayload = {
   title: string;
@@ -17,8 +16,7 @@ const pool = new Pool({
 });
 
 // ── Firebase Admin init ────────────────────────────────────
-// const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT;
-// Prefer the new mounted secret if present
+// ✅ Always prefer new secret path first, fallback to legacy vars
 const FIREBASE_SERVICE_ACCOUNT =
   process.env.NOTIFICATIONS_FIREBASE2 ||
   process.env.NOTIFICATIONS_FIREBASE ||
@@ -35,16 +33,11 @@ if (!admin.apps.length) {
   let projectIdFromKey = 'n/a';
 
   if (FIREBASE_SERVICE_ACCOUNT) {
-    const p = path.isAbsolute(FIREBASE_SERVICE_ACCOUNT)
-      ? FIREBASE_SERVICE_ACCOUNT
-      : path.join(process.cwd(), FIREBASE_SERVICE_ACCOUNT);
-    loadedPath = p;
-    const json = JSON.parse(fs.readFileSync(p, 'utf8'));
+    // ✅ Assume env var is already a full path — do NOT join/calc
+    loadedPath = FIREBASE_SERVICE_ACCOUNT;
+    const json = JSON.parse(fs.readFileSync(loadedPath, 'utf8'));
     projectIdFromKey = json.project_id || 'n/a';
     credential = admin.credential.cert(json);
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    loadedPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    credential = admin.credential.applicationDefault();
   } else {
     throw new Error('Firebase Admin credentials missing.');
   }
@@ -123,7 +116,6 @@ export class NotificationsService {
       ON push_tokens (user_id, token);
     `);
 
-    // Keep one token per user & platform to avoid stale tokens
     await pool.query(
       `DELETE FROM push_tokens WHERE user_id=$1 AND platform=$2`,
       [user_id, platform],
@@ -299,7 +291,6 @@ export class NotificationsService {
       const res = await this.sendToToken(t.token, { title, body, data });
       if (res.ok) sent++;
       else {
-        // purge permanent/bad tokens so they don't break future sends
         const m = (res.error || '').toLowerCase();
         if (
           m.includes('senderid mismatch') ||
@@ -317,7 +308,7 @@ export class NotificationsService {
     return { sent, detail };
   }
 
-  // ── Notify everyone who follows a source (REAL flow) ──────
+  // ── Notify everyone who follows a source ──────────────────
   async notifyFollowersOfSourceArticle(input: {
     source: string;
     title: string;
@@ -327,7 +318,6 @@ export class NotificationsService {
     const { source, title, url, image } = input;
     await this.ensureFollowTables();
 
-    // Only users who: follow this source + have push_enabled=true + following_realtime=true
     const { rows: users } = await pool.query(
       `
       SELECT u.user_id
@@ -390,7 +380,6 @@ export class NotificationsService {
     token: string,
     payload: PushPayload,
   ): admin.messaging.Message {
-    // IMPORTANT: no "notification" block; data-only so iOS will deliver to headless JS
     return {
       token,
       data: toStringMap({
@@ -405,7 +394,7 @@ export class NotificationsService {
       apns: {
         headers: {
           'apns-push-type': 'background',
-          'apns-priority': '5', // background
+          'apns-priority': '5',
           ...(APNS_TOPIC ? { 'apns-topic': APNS_TOPIC } : {}),
         },
         payload: {
@@ -417,17 +406,15 @@ export class NotificationsService {
     };
   }
 
-  // ── Raw send via Firebase (dual-send: alert + background) ─
+  // ── Raw send via Firebase ────────────────────────────────
   private async sendToToken(
     token: string,
     payload: PushPayload,
   ): Promise<{ ok: boolean; error?: string }> {
     try {
-      // 1) Show the banner (alert)
       const alertMsg = this.buildAlertMessage(token, payload);
       const id1 = await admin.messaging().send(alertMsg);
 
-      // 2) Deliver a silent data copy so RN background handler can persist it
       const bgMsg = this.buildBackgroundDataMessage(token, payload);
       const id2 = await admin.messaging().send(bgMsg);
 
@@ -444,7 +431,7 @@ export class NotificationsService {
     }
   }
 
-  // ── Debug ─────────────────────────────────────────────────
+  // ── Debug ────────────────────────────────────────────────
   async debug(user_id?: string) {
     const appOpts: any = (admin as any).app().options || {};
     const cfg = {
