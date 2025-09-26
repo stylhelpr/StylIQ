@@ -52,7 +52,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
 
-  /** 🌐 State */
+  /** 🌐 State *//
   const [messages, setMessages] = useState<Message[]>(() => [
     {
       id: 'seed-1',
