@@ -36,6 +36,7 @@ import {addNotification} from '../storage/notifications';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import * as Animatable from 'react-native-animatable';
 
 type Tab = 'For You' | 'Following';
 
@@ -830,9 +831,21 @@ export default function ExploreScreen() {
           globalStyles.container,
           {backgroundColor: theme.colors.background},
         ]}>
-        <View style={globalStyles.sectionTitle}>
+        <Animatable.Text
+          animation="fadeInDown"
+          duration={900}
+          delay={100}
+          easing="ease-out-cubic"
+          style={[
+            globalStyles.header,
+            {color: theme.colors.foreground, marginBottom: 20},
+          ]}>
+          Fashion News
+        </Animatable.Text>
+
+        {/* <View style={globalStyles.sectionTitle}>
           <Text style={globalStyles.header}>Fashion News</Text>
-        </View>
+        </View> */}
 
         <View style={styles.topBar}>
           <Segmented

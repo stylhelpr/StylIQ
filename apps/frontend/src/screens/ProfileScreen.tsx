@@ -252,12 +252,14 @@ export default function ProfileScreen({navigate}: Props) {
   return (
     <ScrollView style={[styles.screen, globalStyles.container]}>
       {/* Page Header */}
-      <Animatable.Text
+      {/* <Animatable.Text
         animation="fadeInDown"
         delay={200}
         style={globalStyles.header}>
         Profile
-      </Animatable.Text>
+      </Animatable.Text> */}
+
+      <Text style={globalStyles.header}>Profile</Text>
 
       {/* Settings Icon */}
       <AppleTouchFeedback

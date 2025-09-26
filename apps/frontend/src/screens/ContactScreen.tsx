@@ -1,17 +1,15 @@
 // apps/mobile/src/screens/ContactScreen.tsx
-import React, {useState} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   Linking,
+  Animated,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
@@ -23,6 +21,16 @@ export default function ContactScreen({navigate}: any) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
+
+  // ✨ Fade-in animation setup
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 700,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const styles = StyleSheet.create({
     content: {padding: 24, paddingBottom: 60, gap: 24},
@@ -101,25 +109,20 @@ export default function ContactScreen({navigate}: any) {
   const sendEmail = async () => {
     try {
       setSending(true);
-
       const to = 'mike@stylhelpr.com';
-
       const subjectBase = topic ? `[${topic}]` : 'Contact';
       const subject = encodeURIComponent(`${subjectBase} — ${name}`);
-
       const body = encodeURIComponent(
         `Name: ${name}\nEmail: ${email}\nTopic: ${
           topic || '(none)'
         }\n\n${message}`,
       );
-
       const url = `mailto:${to}?subject=${subject}&body=${body}`;
 
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         await Linking.openURL(url);
       } else {
-        // Fallback to basic mailto without params
         await Linking.openURL(`mailto:${to}`);
       }
     } catch (e) {
@@ -133,10 +136,10 @@ export default function ContactScreen({navigate}: any) {
   };
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={[
         globalStyles.container,
-        {backgroundColor: theme.colors.background},
+        {backgroundColor: theme.colors.background, opacity: fadeAnim},
       ]}
       keyboardShouldPersistTaps="handled">
       <Text style={globalStyles.header}>Contact Us</Text>
@@ -161,19 +164,13 @@ export default function ContactScreen({navigate}: any) {
           {/* Name */}
           <View
             style={[styles.formCard, {backgroundColor: theme.colors.surface}]}>
-            {/* Name */}
             <Text style={[styles.label, {color: theme.colors.foreground}]}>
               Name
             </Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              style={[
-                styles.input,
-                {
-                  color: theme.colors.foreground,
-                },
-              ]}
+              style={[styles.input, {color: theme.colors.foreground}]}
               placeholder="Your full name"
               placeholderTextColor={theme.colors.muted}
             />
@@ -185,12 +182,7 @@ export default function ContactScreen({navigate}: any) {
             <TextInput
               value={email}
               onChangeText={setEmail}
-              style={[
-                styles.input,
-                {
-                  color: theme.colors.foreground,
-                },
-              ]}
+              style={[styles.input, {color: theme.colors.foreground}]}
               placeholder="you@domain.com"
               placeholderTextColor={colors.muted}
               keyboardType="email-address"
@@ -204,12 +196,7 @@ export default function ContactScreen({navigate}: any) {
             <TextInput
               value={topic}
               onChangeText={setTopic}
-              style={[
-                styles.input,
-                {
-                  color: theme.colors.foreground,
-                },
-              ]}
+              style={[styles.input, {color: theme.colors.foreground}]}
               placeholder="Bug report, feedback, feature request…"
               placeholderTextColor={colors.muted}
             />
@@ -224,9 +211,7 @@ export default function ContactScreen({navigate}: any) {
               style={[
                 styles.input,
                 styles.textarea,
-                {
-                  color: theme.colors.foreground,
-                },
+                {color: theme.colors.foreground},
               ]}
               placeholder="How can we help?"
               placeholderTextColor={colors.muted}
@@ -243,11 +228,7 @@ export default function ContactScreen({navigate}: any) {
               style={[
                 globalStyles.buttonPrimary,
                 styles.primaryBtn,
-                {
-                  opacity: disabled ? 0.5 : 1,
-                  marginTop: 22,
-                  marginBottom: 22,
-                },
+                {opacity: disabled ? 0.5 : 1, marginTop: 22, marginBottom: 22},
               ]}>
               {sending ? (
                 <ActivityIndicator color={colors.background} />
@@ -280,11 +261,11 @@ export default function ContactScreen({navigate}: any) {
           </View>
         </ScrollView>
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
-///////////////////////
+//////////////////
 
 // // apps/mobile/src/screens/ContactScreen.tsx
 // import React, {useState} from 'react';
@@ -299,13 +280,13 @@ export default function ContactScreen({navigate}: any) {
 //   SafeAreaView,
 //   ActivityIndicator,
 //   Alert,
+//   Linking,
 // } from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
 // import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 // import {tokens} from '../styles/tokens/tokens';
 // import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-// import {API_BASE_URL} from '../config/api';
 
 // export default function ContactScreen({navigate}: any) {
 //   const {theme} = useAppTheme();
@@ -338,8 +319,8 @@ export default function ContactScreen({navigate}: any) {
 //       borderRadius: 10,
 //       padding: 14,
 //       fontSize: 16,
-//       backgroundColor: theme.colors.background,
-//       borderWidth: tokens.borderWidth.md,
+//       backgroundColor: theme.colors.surface3,
+//       borderWidth: tokens.borderWidth.lg,
 //       borderColor: theme.colors.surfaceBorder,
 //       marginBottom: 10,
 //     },
@@ -386,22 +367,35 @@ export default function ContactScreen({navigate}: any) {
 
 //   const disabled = !name || !email || !message || sending;
 
-//   const submit = async () => {
+//   const sendEmail = async () => {
 //     try {
 //       setSending(true);
-//       const res = await fetch(`${API_BASE_URL}/contact`, {
-//         method: 'POST',
-//         headers: {'Content-Type': 'application/json'},
-//         body: JSON.stringify({name, email, topic, message}),
-//       });
-//       if (!res.ok) throw new Error('Failed');
-//       setName('');
-//       setEmail('');
-//       setTopic('');
-//       setMessage('');
-//       Alert.alert('Thanks!', 'Your message has been sent.');
-//     } catch {
-//       Alert.alert('Oops', 'Unable to send your message right now.');
+
+//       const to = 'mike@stylhelpr.com';
+
+//       const subjectBase = topic ? `[${topic}]` : 'Contact';
+//       const subject = encodeURIComponent(`${subjectBase} — ${name}`);
+
+//       const body = encodeURIComponent(
+//         `Name: ${name}\nEmail: ${email}\nTopic: ${
+//           topic || '(none)'
+//         }\n\n${message}`,
+//       );
+
+//       const url = `mailto:${to}?subject=${subject}&body=${body}`;
+
+//       const supported = await Linking.canOpenURL(url);
+//       if (supported) {
+//         await Linking.openURL(url);
+//       } else {
+//         // Fallback to basic mailto without params
+//         await Linking.openURL(`mailto:${to}`);
+//       }
+//     } catch (e) {
+//       Alert.alert(
+//         'Email not available',
+//         'We couldn’t open your mail app on this device.',
+//       );
 //     } finally {
 //       setSending(false);
 //     }
@@ -436,7 +430,7 @@ export default function ContactScreen({navigate}: any) {
 //           {/* Name */}
 //           <View
 //             style={[styles.formCard, {backgroundColor: theme.colors.surface}]}>
-//             {/* Subject */}
+//             {/* Name */}
 //             <Text style={[styles.label, {color: theme.colors.foreground}]}>
 //               Name
 //             </Text>
@@ -513,7 +507,7 @@ export default function ContactScreen({navigate}: any) {
 //           {/* Primary Action */}
 //           <View style={styles.buttonRow}>
 //             <AppleTouchFeedback
-//               onPress={!disabled ? submit : () => {}}
+//               onPress={!disabled ? sendEmail : () => {}}
 //               hapticStyle="impactMedium"
 //               style={[
 //                 globalStyles.buttonPrimary,
@@ -558,280 +552,3 @@ export default function ContactScreen({navigate}: any) {
 //     </ScrollView>
 //   );
 // }
-
-///////////////////
-
-// // apps/mobile/src/screens/ContactScreen.tsx
-// import React, {useState} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   TextInput,
-//   KeyboardAvoidingView,
-//   Platform,
-//   ScrollView,
-//   SafeAreaView,
-//   ActivityIndicator,
-//   Alert,
-// } from 'react-native';
-// import {useAppTheme} from '../context/ThemeContext';
-// import {useGlobalStyles} from '../styles/useGlobalStyles';
-// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
-// import {tokens} from '../styles/tokens/tokens';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-// import {API_BASE_URL} from '../config/api'; // e.g. http://192.168.1.55:3001/api
-
-// export default function ContactScreen({navigate}: any) {
-//   const {theme} = useAppTheme();
-//   const colors = theme.colors;
-//   const global = useGlobalStyles();
-
-//   const [name, setName] = useState('');
-//   const [email, setEmail] = useState('');
-//   const [topic, setTopic] = useState('');
-//   const [message, setMessage] = useState('');
-//   const [sending, setSending] = useState(false);
-
-//   const disabled = !name || !email || !message || sending;
-
-//   const submit = async () => {
-//     try {
-//       setSending(true);
-//       const res = await fetch(`${API_BASE_URL}/contact`, {
-//         method: 'POST',
-//         headers: {'Content-Type': 'application/json'},
-//         body: JSON.stringify({name, email, topic, message}),
-//       });
-//       if (!res.ok) throw new Error('Failed');
-//       setName('');
-//       setEmail('');
-//       setTopic('');
-//       setMessage('');
-//       Alert.alert('Thanks!', 'Your message has been sent.');
-//     } catch {
-//       Alert.alert('Oops', 'Unable to send your message right now.');
-//     } finally {
-//       setSending(false);
-//     }
-//   };
-
-//   return (
-//     <SafeAreaView style={[global.screen, {backgroundColor: colors.background}]}>
-//       <KeyboardAvoidingView
-//         style={{flex: 1}}
-//         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-//         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
-//         <ScrollView
-//           style={[global.container, {backgroundColor: colors.background}]}
-//           contentContainerStyle={styles.content}
-//           keyboardShouldPersistTaps="handled">
-//           {/* Back */}
-//           <View
-//             style={[global.backContainer, {marginTop: 16, marginBottom: 24}]}>
-//             <AppleTouchFeedback
-//               onPress={() => navigate('Settings')}
-//               hapticStyle="impactMedium"
-//               style={{alignSelf: 'flex-start'}}>
-//               <MaterialIcons
-//                 name="arrow-back"
-//                 size={24}
-//                 color={colors.button3}
-//               />
-//             </AppleTouchFeedback>
-//             <Text style={[global.backText, {marginLeft: 12}]}>Back</Text>
-//           </View>
-
-//           {/* Title */}
-//           <Text style={[styles.title, {color: colors.primary}]}>
-//             Contact Us
-//           </Text>
-
-//           {/* Form Card */}
-//           <View
-//             style={[styles.formCard, {backgroundColor: 'rgba(20,20,20,1)'}]}>
-//             {/* Name */}
-//             <Text style={[styles.label, {color: colors.foreground}]}>Name</Text>
-//             <TextInput
-//               value={name}
-//               onChangeText={setName}
-//               style={[
-//                 styles.input,
-//                 {
-//                   color: colors.foreground,
-//                   borderColor: 'rgba(200,200,200,0.3)',
-//                 },
-//               ]}
-//               placeholder="Your full name"
-//               placeholderTextColor={colors.muted}
-//             />
-
-//             {/* Email */}
-//             <Text style={[styles.label, {color: colors.foreground}]}>
-//               Email
-//             </Text>
-//             <TextInput
-//               value={email}
-//               onChangeText={setEmail}
-//               style={[
-//                 styles.input,
-//                 {
-//                   color: colors.foreground,
-//                   borderColor: 'rgba(200,200,200,0.3)',
-//                 },
-//               ]}
-//               placeholder="you@domain.com"
-//               placeholderTextColor={colors.muted}
-//               keyboardType="email-address"
-//               autoCapitalize="none"
-//             />
-
-//             {/* Topic */}
-//             <Text style={[styles.label, {color: colors.foreground}]}>
-//               Topic (optional)
-//             </Text>
-//             <TextInput
-//               value={topic}
-//               onChangeText={setTopic}
-//               style={[
-//                 styles.input,
-//                 {
-//                   color: colors.foreground,
-//                   borderColor: 'rgba(200,200,200,0.3)',
-//                 },
-//               ]}
-//               placeholder="Bug report, feedback, feature request…"
-//               placeholderTextColor={colors.muted}
-//             />
-
-//             {/* Message */}
-//             <Text style={[styles.label, {color: colors.foreground}]}>
-//               Message
-//             </Text>
-//             <TextInput
-//               value={message}
-//               onChangeText={setMessage}
-//               style={[
-//                 styles.input,
-//                 styles.textarea,
-//                 {
-//                   color: colors.foreground,
-//                   borderColor: 'rgba(200,200,200,0.3)',
-//                 },
-//               ]}
-//               placeholder="How can we help?"
-//               placeholderTextColor={colors.muted}
-//               multiline
-//               textAlignVertical="top"
-//             />
-//           </View>
-
-//           {/* Primary Action */}
-//           <View style={styles.buttonRow}>
-//             <AppleTouchFeedback
-//               onPress={!disabled ? submit : () => {}}
-//               hapticStyle="impactMedium"
-//               style={[
-//                 global.buttonPrimary,
-//                 styles.primaryBtn,
-//                 {opacity: disabled ? 0.5 : 1},
-//               ]}>
-//               {sending ? (
-//                 <ActivityIndicator color={colors.background} />
-//               ) : (
-//                 <Text style={global.buttonPrimaryText}>Send Message</Text>
-//               )}
-//             </AppleTouchFeedback>
-//           </View>
-
-//           {/* Tip Banner */}
-//           <View
-//             style={[
-//               styles.tipCard,
-//               {
-//                 backgroundColor: 'rgba(20,20,20,1)',
-//                 borderColor: 'rgba(200,200,200,0.2)',
-//               },
-//             ]}>
-//             <View style={[styles.tipIcon]}>
-//               <MaterialIcons
-//                 name="help-outline"
-//                 size={16}
-//                 color={colors.primary}
-//               />
-//             </View>
-//             <Text style={[styles.tipText, {color: colors.foreground}]}>
-//               Tip: Include screenshots or steps to reproduce if you’re reporting
-//               a bug.
-//             </Text>
-//           </View>
-//         </ScrollView>
-//       </KeyboardAvoidingView>
-//     </SafeAreaView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   content: {padding: 24, paddingBottom: 60, gap: 24},
-//   title: {
-//     fontSize: 28,
-//     fontWeight: '700',
-//     textAlign: 'center',
-//     marginBottom: 4,
-//   },
-//   formCard: {
-//     borderRadius: 16,
-//     padding: 18,
-//     shadowColor: '#000',
-//     shadowOpacity: 0.08,
-//     shadowRadius: 12,
-//     shadowOffset: {width: 0, height: 4},
-//   },
-//   label: {
-//     fontSize: 15,
-//     fontWeight: '600',
-//     marginTop: 12,
-//     marginBottom: 6,
-//   },
-//   input: {
-//     borderWidth: 1,
-//     borderRadius: 10,
-//     padding: 14,
-//     fontSize: 16,
-//     backgroundColor: 'rgba(250,250,250,0.05)',
-//     marginBottom: 10,
-//   },
-//   textarea: {
-//     height: 140,
-//   },
-//   buttonRow: {
-//     flexDirection: 'row',
-//     justifyContent: 'center',
-//   },
-//   primaryBtn: {
-//     width: 220,
-//     borderRadius: 50,
-//     paddingHorizontal: 22,
-//   },
-//   tipCard: {
-//     borderRadius: 12,
-//     padding: 14,
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     borderWidth: 1,
-//     gap: 8,
-//   },
-//   tipIcon: {
-//     width: 24,
-//     height: 24,
-//     borderRadius: 6,
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//     backgroundColor: 'rgba(250,250,250,0.06)',
-//   },
-//   tipText: {
-//     fontSize: 13,
-//     lineHeight: 18,
-//     flexShrink: 1,
-//   },
-// });

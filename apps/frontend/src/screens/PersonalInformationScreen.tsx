@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
@@ -21,6 +22,16 @@ export default function PersonalInformationScreen({navigate}: any) {
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
   const {getCredentials} = useAuth0();
+
+  // ✨ Fade-in animation
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 700,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const styles = StyleSheet.create({
     centered: {justifyContent: 'center', alignItems: 'center'},
@@ -171,8 +182,11 @@ export default function PersonalInformationScreen({navigate}: any) {
   }
 
   return (
-    <ScrollView
-      style={[globalStyles.container, {backgroundColor: colors.background}]}
+    <Animated.ScrollView
+      style={[
+        globalStyles.container,
+        {backgroundColor: colors.background, opacity: fadeAnim},
+      ]}
       contentContainerStyle={styles.content}>
       <Text style={[styles.title, {color: colors.primary}]}>
         Personal Information
@@ -240,12 +254,7 @@ export default function PersonalInformationScreen({navigate}: any) {
         />
       </View>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+      <View style={styles.buttonRow}>
         {/* Save */}
         <AppleTouchFeedback
           onPress={hasChanges ? handleSave : () => {}}
@@ -271,11 +280,11 @@ export default function PersonalInformationScreen({navigate}: any) {
           <Text style={globalStyles.buttonPrimaryText}>Cancel</Text>
         </AppleTouchFeedback>
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
-//////////////
+////////////////////
 
 // import React, {useState, useEffect} from 'react';
 // import {
@@ -289,6 +298,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 // } from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
 // import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 // import * as ImagePicker from 'react-native-image-picker';
 // import {useAuth0} from 'react-native-auth0';
@@ -299,6 +309,66 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   const colors = theme.colors;
 //   const globalStyles = useGlobalStyles();
 //   const {getCredentials} = useAuth0();
+
+//   const styles = StyleSheet.create({
+//     centered: {justifyContent: 'center', alignItems: 'center'},
+//     content: {padding: 24, paddingBottom: 60},
+//     title: {
+//       fontSize: 28,
+//       fontWeight: '700',
+//       textAlign: 'center',
+//       marginBottom: 28,
+//     },
+//     avatarContainer: {
+//       alignItems: 'center',
+//       marginBottom: 32,
+//     },
+//     avatar: {
+//       width: 120,
+//       height: 120,
+//       borderRadius: 60,
+//       marginBottom: 14,
+//     },
+//     avatarPlaceholder: {
+//       backgroundColor: theme.colors.surface,
+//       borderWidth: 1,
+//       borderColor: theme.colors.surfaceBorder,
+//     },
+//     photoButton: {
+//       paddingHorizontal: 22,
+//       borderRadius: 50,
+//     },
+//     formCard: {
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       padding: 18,
+//       marginBottom: 32,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.08,
+//       shadowRadius: 12,
+//       shadowOffset: {width: 0, height: 4},
+//     },
+//     label: {
+//       fontSize: 15,
+//       fontWeight: '600',
+//       marginTop: 12,
+//       marginBottom: 6,
+//     },
+//     input: {
+//       borderWidth: theme.borderWidth.lg,
+//       borderRadius: 10,
+//       padding: 14,
+//       fontSize: 16,
+//       backgroundColor: theme.colors.surface3,
+//       borderColor: theme.colors.surfaceBorder,
+//       marginBottom: 10,
+//     },
+//     buttonRow: {
+//       flexDirection: 'row',
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//   });
 
 //   const [firstName, setFirstName] = useState('');
 //   const [lastName, setLastName] = useState('');
@@ -492,62 +562,3 @@ export default function PersonalInformationScreen({navigate}: any) {
 //     </ScrollView>
 //   );
 // }
-
-// const styles = StyleSheet.create({
-//   centered: {justifyContent: 'center', alignItems: 'center'},
-//   content: {padding: 24, paddingBottom: 60},
-//   title: {
-//     fontSize: 28,
-//     fontWeight: '700',
-//     textAlign: 'center',
-//     marginBottom: 28,
-//   },
-//   avatarContainer: {
-//     alignItems: 'center',
-//     marginBottom: 32,
-//   },
-//   avatar: {
-//     width: 120,
-//     height: 120,
-//     borderRadius: 60,
-//     marginBottom: 14,
-//   },
-//   avatarPlaceholder: {
-//     backgroundColor: 'rgba(200,200,200,0.2)',
-//     borderWidth: 1,
-//     borderColor: 'rgba(200,200,200,0.3)',
-//   },
-//   photoButton: {
-//     paddingHorizontal: 22,
-//     borderRadius: 50,
-//   },
-//   formCard: {
-//     backgroundColor: 'rgba(20, 20, 20, 1)',
-//     borderRadius: 16,
-//     padding: 18,
-//     marginBottom: 32,
-//     shadowColor: '#000',
-//     shadowOpacity: 0.08,
-//     shadowRadius: 12,
-//     shadowOffset: {width: 0, height: 4},
-//   },
-//   label: {
-//     fontSize: 15,
-//     fontWeight: '600',
-//     marginTop: 12,
-//     marginBottom: 6,
-//   },
-//   input: {
-//     borderWidth: 1,
-//     borderRadius: 10,
-//     padding: 14,
-//     fontSize: 16,
-//     backgroundColor: 'rgba(250,250,250,0.05)',
-//     marginBottom: 10,
-//   },
-//   buttonRow: {
-//     flexDirection: 'row',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-// });

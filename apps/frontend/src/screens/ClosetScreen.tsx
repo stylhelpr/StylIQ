@@ -355,15 +355,7 @@ export default function ClosetScreen({navigate}: Props) {
   });
 
   return (
-    <Animated.View
-      style={[
-        globalStyles.screen,
-        globalStyles.container,
-        {
-          opacity: screenFade,
-          transform: [{translateY: screenTranslate}],
-        },
-      ]}>
+    <View style={[globalStyles.screen, globalStyles.container]}>
       <Text style={globalStyles.header}>Wardrobe</Text>
 
       <View style={globalStyles.section}>
@@ -796,7 +788,7 @@ export default function ClosetScreen({navigate}: Props) {
           </TouchableWithoutFeedback>
         </Modal>
       )}
-    </Animated.View>
+    </View>
   );
 }
 

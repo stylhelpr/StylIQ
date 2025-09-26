@@ -595,13 +595,21 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         {backgroundColor: theme.colors.background, paddingBottom: 60},
       ]}>
       <View className="sectionTitle">
-        <Text
+        <View style={globalStyles.sectionTitle}>
+          <Text style={globalStyles.header}> Style Me</Text>
+        </View>
+
+        {/* <Animatable.Text
+          animation="fadeInDown"
+          duration={900}
+          delay={100}
+          easing="ease-out-cubic"
           style={[
             globalStyles.header,
             {color: theme.colors.foreground, marginBottom: 20},
           ]}>
           Style Me
-        </Text>
+        </Animatable.Text> */}
 
         {/* Header */}
         <View

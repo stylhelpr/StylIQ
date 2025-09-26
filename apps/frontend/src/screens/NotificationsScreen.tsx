@@ -179,12 +179,17 @@ export default function NotificationsScreen({
       ]}
       keyboardShouldPersistTaps="handled">
       {/* Animated Page Header */}
-      <Animatable.Text
+
+      <View style={globalStyles.sectionTitle}>
+        <Text style={globalStyles.header}>Notifications</Text>
+      </View>
+
+      {/* <Animatable.Text
         animation="fadeInDown"
         duration={800}
         style={[globalStyles.header, {color: theme.colors.foreground}]}>
         Notifications
-      </Animatable.Text>
+      </Animatable.Text> */}
 
       {/* ✅ Combined row with animated filters + actions */}
       <Animatable.View
