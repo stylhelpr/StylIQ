@@ -64,6 +64,7 @@ export default function ImagePickerGrid({
       justifyContent: 'space-between',
       width: '100%',
       marginLeft: -12,
+      marginBottom: 8,
     },
     buttonWrapper: {flex: 1, marginHorizontal: 4, maxWidth: 180, minWidth: 120},
     grid: {
@@ -194,7 +195,7 @@ export default function ImagePickerGrid({
   };
 
   return (
-    <View style={{marginBottom: 20, width: '100%'}}>
+    <View style={{marginBottom: 2, width: '100%'}}>
       <View style={styles.imagePickerRow}>
         {[
           {label: 'Take Photo', onPress: takePhoto},
@@ -212,7 +213,7 @@ export default function ImagePickerGrid({
         ))}
       </View>
 
-      {!selectedUri && (
+      {!selectedUri && photos.length > 0 && !onSelectImages && (
         <ScrollView contentContainerStyle={styles.grid}>
           {photos
             .filter((p): p is Asset & {uri: string} => !!p.uri)

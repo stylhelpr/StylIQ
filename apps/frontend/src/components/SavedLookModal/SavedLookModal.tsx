@@ -45,7 +45,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       padding: 20,
       borderRadius: 12,
     },
-    title: {fontSize: 18, fontWeight: '700', marginBottom: 10},
+    title: {fontSize: 18, fontWeight: '700', marginBottom: 18},
     input: {
       borderWidth: 1,
       borderColor: theme.colors.inputText1,
@@ -98,7 +98,11 @@ export default function SaveLookModal({visible, onClose}: Props) {
           style={[
             styles.card,
             globalStyles.cardStyles1,
-            {paddingVertical: 36, paddingHorizontal: 22},
+            {
+              paddingVertical: 36,
+              paddingHorizontal: 22,
+              borderRadius: tokens.borderRadius['2xl'],
+            },
           ]}>
           <Text
             style={[
@@ -125,7 +129,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
           />
 
           <TouchableOpacity
-            style={[styles.button, {marginVertical: 4}]}
+            style={[styles.button, {marginVertical: 4, marginTop: 10}]}
             onPress={handleSave}>
             <Text style={styles.buttonText}>Save</Text>
           </TouchableOpacity>

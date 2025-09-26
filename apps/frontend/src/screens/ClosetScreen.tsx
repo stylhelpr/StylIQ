@@ -434,7 +434,7 @@ export default function ClosetScreen({navigate}: Props) {
                           }>
                           <MaterialIcons
                             name="favorite"
-                            size={22}
+                            size={32}
                             color={
                               item.favorite ? 'red' : theme.colors.inputBorder
                             }

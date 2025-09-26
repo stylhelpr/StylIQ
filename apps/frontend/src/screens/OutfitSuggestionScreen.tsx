@@ -612,9 +612,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           <Text
             style={{
               textAlign: 'center',
-              fontSize: 18,
+              fontSize: 16,
               color: theme.colors.foreground,
-              fontWeight: '400',
+              fontWeight: '500',
             }}>
             "Let's create an outfit! - Just tell me what you want and press
             Create Outfit"
