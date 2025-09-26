@@ -110,7 +110,7 @@ export default function LoginScreen({
     passwordLogin: {
       fontSize: 18,
       fontWeight: '600',
-      marginBottom: 40,
+      marginBottom: 20,
       textDecorationLine: 'underline',
       textShadowColor: 'rgba(0,0,0,0.7)',
       textShadowOffset: {width: 0, height: 1},
@@ -125,6 +125,31 @@ export default function LoginScreen({
       marginBottom: 40,
     },
     loginLinkText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#fff',
+      textShadowColor: 'rgba(0,0,0,0.7)',
+      textShadowOffset: {width: 0, height: 1},
+      textShadowRadius: 3,
+    },
+    signup: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 40,
+      textDecorationLine: 'underline',
+      textShadowColor: 'rgba(0,0,0,0.7)',
+      textShadowOffset: {width: 0, height: 1},
+      textShadowRadius: 2,
+      color: '#fff',
+    },
+    signupLink: {
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 24,
+      marginBottom: 40,
+    },
+    signupLinkText: {
       fontSize: 18,
       fontWeight: '600',
       color: '#fff',
@@ -271,6 +296,10 @@ export default function LoginScreen({
           <Text style={[styles.passwordLogin]}>Login</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity onPress={handleLogin}>
+          <Text style={[styles.signup]}>Signup</Text>
+        </TouchableOpacity>
+
         <View style={styles.termsContainer}>
           <Text style={styles.termsText}>
             By continuing, you agree to the{' '}
@@ -289,7 +318,7 @@ export default function LoginScreen({
   );
 }
 
-//////////////////
+////////////////////
 
 // // screens/LoginScreen.tsx
 // import React from 'react';
@@ -408,6 +437,7 @@ export default function LoginScreen({
 //       textShadowColor: 'rgba(0,0,0,0.7)',
 //       textShadowOffset: {width: 0, height: 1},
 //       textShadowRadius: 2,
+//       color: '#fff',
 //     },
 //     loginLink: {
 //       backgroundColor: 'rgba(255,255,255,0.1)',
@@ -437,7 +467,7 @@ export default function LoginScreen({
 //       textShadowRadius: 2,
 //     },
 //     linkText: {
-//       color: '#007AFF',
+//       color: '#fff',
 //       textDecorationLine: 'underline',
 //       textShadowColor: 'rgba(0,0,0,0.6)',
 //       textShadowOffset: {width: 0, height: 1},
@@ -553,19 +583,14 @@ export default function LoginScreen({
 //         </View>
 
 //         <TouchableOpacity
-//           style={[
-//             globalStyles.buttonHome,
-//             {backgroundColor: theme.colors.background},
-//           ]}
+//           style={[globalStyles.buttonHome]}
 //           onPress={onFaceIdLogin}
 //           activeOpacity={0.8}>
 //           <Text style={globalStyles.buttonHomeText}>Face ID</Text>
 //         </TouchableOpacity>
 
 //         <TouchableOpacity onPress={handleLogin}>
-//           <Text style={[styles.passwordLogin, {color: theme.colors.primary}]}>
-//             Login
-//           </Text>
+//           <Text style={[styles.passwordLogin]}>Login</Text>
 //         </TouchableOpacity>
 
 //         <View style={styles.termsContainer}>

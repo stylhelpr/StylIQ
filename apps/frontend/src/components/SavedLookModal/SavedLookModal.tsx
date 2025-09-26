@@ -112,6 +112,21 @@ export default function SaveLookModal({visible, onClose}: Props) {
             Save a Look
           </Text>
 
+          <Text
+            style={[
+              globalStyles.label,
+              {
+                paddingHorizontal: 1,
+                marginBottom: 17,
+                fontSize: 12,
+                fontWeight: '400',
+                color: theme.colors.foreground,
+              },
+            ]}>
+            Find any image online, right-click "Copy Image Address", then paste
+            that address into the "Image Address" field below to save a look.
+          </Text>
+
           <TextInput
             style={[styles.input, {color: theme.colors.foreground}]}
             placeholder="Name (optional)"

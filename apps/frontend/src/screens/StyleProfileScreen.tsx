@@ -21,6 +21,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import type {WardrobeItem} from '../types/wardrobe';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 type Props = {
   navigate: (screen: string) => void;
@@ -215,6 +216,31 @@ export default function StyleProfileScreen({navigate}: Props) {
             <View style={[styles.progressFill, {width: `${progress}%`}]} />
           </View>
         </View>
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 28,
+          marginBottom: 18,
+          marginTop: -8,
+        }}>
+        <MaterialIcons name="warning" size={32} color="#FFD700" />
+        <Text
+          style={[
+            globalStyles.label,
+            {
+              color: theme.colors.foreground,
+              paddingHorizontal: 1,
+              marginLeft: 12,
+            },
+          ]}>
+          Please spend a moment and go through fill out all the information
+          below. This will help drive accurate and optimal outfit results and
+          styling advice!
+        </Text>
       </View>
 
       <ScrollView>

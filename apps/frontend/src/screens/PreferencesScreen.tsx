@@ -1,5 +1,12 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, ScrollView} from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  Keyboard,
+  StyleSheet,
+} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {Chip} from '../components/Chip/Chip';
 import BackHeader from '../components/Backheader/Backheader';
@@ -12,12 +19,8 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 type Props = {navigate: (screen: string) => void};
+
 const STORAGE_KEY = 'style_preferences';
-const h = (type: string) =>
-  ReactNativeHapticFeedback.trigger(type, {
-    enableVibrateFallback: true,
-    ignoreAndroidSystemSettings: false,
-  });
 
 const preferences = [
   'Minimalist',
@@ -32,43 +35,142 @@ const preferences = [
   'Business Casual',
 ];
 
+const h = (type: string) =>
+  ReactNativeHapticFeedback.trigger(type, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
+
 export default function PreferencesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
 
+  // Selected (persisted) prefs from DB
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
+  // User-added custom prefs vocabulary (shown as chips even if unselected)
+  const [customPrefs, setCustomPrefs] = useState<string[]>([]);
+  const [newPref, setNewPref] = useState('');
+
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
+  const styles = StyleSheet.create({
+    input: {
+      borderWidth: tokens.borderWidth.hairline,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 16,
+      backgroundColor: theme.colors.input2,
+      color: colors.foreground,
+      marginTop: 12,
+      borderColor: theme.colors.inputBorder,
+    },
+  });
+
+  // Pull latest profile
   useEffect(() => {
     if (userId) refetch();
   }, [userId, refetch]);
 
+  // Hydrate UI from DB (fallback to local if DB empty)
   useEffect(() => {
-    if (Array.isArray(styleProfile?.style_preferences)) {
-      setSelectedPrefs(styleProfile!.style_preferences);
-    }
+    (async () => {
+      if (Array.isArray(styleProfile?.style_preferences)) {
+        const fromDB = styleProfile!.style_preferences ?? [];
+        setSelectedPrefs(fromDB);
+
+        // Anything in DB not in base prefs is considered custom
+        const customOnly = fromDB.filter(
+          p => !preferences.map(x => x.toLowerCase()).includes(p.toLowerCase()),
+        );
+        setCustomPrefs(prev => {
+          // Keep any already-known custom vocab plus what DB shows
+          const merged = Array.from(new Set([...(prev ?? []), ...customOnly]));
+          return merged;
+        });
+      } else {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed: string[] = JSON.parse(stored);
+          setSelectedPrefs(parsed);
+          const customOnly = parsed.filter(
+            p =>
+              !preferences.map(x => x.toLowerCase()).includes(p.toLowerCase()),
+          );
+          setCustomPrefs(customOnly);
+        }
+      }
+    })();
   }, [styleProfile]);
 
+  const persist = async (next: string[]) => {
+    // Persist to local cache first (best-effort)
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    // Persist to DB (await is **critical** so it actually saves)
+    await updateProfile('style_preferences', next);
+    // Pull fresh copy from server so UI stays in sync with DB serialization
+    await refetch();
+  };
+
   const togglePref = async (pref: string) => {
-    // 🔔 fire haptic in the handler (child may consume the press)
     h('impactLight');
 
-    const isSelected = selectedPrefs.includes(pref);
-    const updated = isSelected
+    const wasSelected = selectedPrefs.includes(pref);
+    const next = wasSelected
       ? selectedPrefs.filter(p => p !== pref)
       : [...selectedPrefs, pref];
 
+    // optimistic update + rollback on failure
+    const prev = selectedPrefs;
+    setSelectedPrefs(next);
     try {
-      setSelectedPrefs(updated);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      updateProfile('style_preferences', updated);
-    } catch {
+      await persist(next);
+    } catch (e) {
+      // rollback
+      setSelectedPrefs(prev);
       h('notificationError');
     }
   };
+
+  const handleAddPref = async () => {
+    const trimmed = newPref.trim();
+    if (!trimmed) return;
+
+    // Case-insensitive duplicate guard across base + custom
+    const allVocab = [...preferences, ...customPrefs];
+    const exists = allVocab.some(
+      p => p.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (exists) {
+      setNewPref('');
+      Keyboard.dismiss();
+      return;
+    }
+
+    // Add to vocab and select by default
+    const nextCustom = [...customPrefs, trimmed];
+    const nextSelected = [...selectedPrefs, trimmed];
+
+    // optimistic updates
+    setCustomPrefs(nextCustom);
+    setSelectedPrefs(nextSelected);
+
+    try {
+      await persist(nextSelected);
+      setNewPref('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch (e) {
+      // rollback on failure
+      setCustomPrefs(customPrefs);
+      setSelectedPrefs(selectedPrefs);
+      h('notificationError');
+    }
+  };
+
+  const combinedPrefs = [...preferences, ...customPrefs];
 
   return (
     <View
@@ -80,9 +182,10 @@ export default function PreferencesScreen({navigate}: Props) {
         Style Preferences
       </Text>
 
-      <ScrollView style={globalStyles.section}>
+      <ScrollView
+        style={globalStyles.section}
+        keyboardShouldPersistTaps="handled">
         <View style={globalStyles.backContainer}>
-          {/* Back gets a light tap */}
           <AppleTouchFeedback
             hapticStyle="impactLight"
             onPress={() => navigate('StyleProfileScreen')}>
@@ -107,8 +210,7 @@ export default function PreferencesScreen({navigate}: Props) {
               {borderWidth: tokens.borderWidth.md},
             ]}>
             <View style={globalStyles.pillContainer}>
-              {preferences.map(pref => (
-                // Keep press on the Chip; haptic is inside togglePref
+              {combinedPrefs.map(pref => (
                 <Chip
                   key={pref}
                   label={pref}
@@ -117,6 +219,17 @@ export default function PreferencesScreen({navigate}: Props) {
                 />
               ))}
             </View>
+
+            <TextInput
+              placeholder="Add a new style preference"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newPref}
+              onChangeText={setNewPref}
+              onSubmitEditing={handleAddPref}
+              onBlur={handleAddPref}
+              returnKeyType="done"
+            />
           </View>
         </View>
       </ScrollView>
@@ -124,10 +237,10 @@ export default function PreferencesScreen({navigate}: Props) {
   );
 }
 
-////////////////////////
+//////////////////
 
 // import React, {useEffect, useState} from 'react';
-// import {View, Text, StyleSheet, ScrollView} from 'react-native';
+// import {View, Text, ScrollView} from 'react-native';
 // import {useAppTheme} from '../context/ThemeContext';
 // import {Chip} from '../components/Chip/Chip';
 // import BackHeader from '../components/Backheader/Backheader';
@@ -136,12 +249,16 @@ export default function PreferencesScreen({navigate}: Props) {
 // import {useStyleProfile} from '../hooks/useStyleProfile';
 // import {useGlobalStyles} from '../styles/useGlobalStyles';
 // import {tokens} from '../styles/tokens/tokens';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
-// type Props = {
-//   navigate: (screen: string) => void;
-// };
-
+// type Props = {navigate: (screen: string) => void};
 // const STORAGE_KEY = 'style_preferences';
+// const h = (type: string) =>
+//   ReactNativeHapticFeedback.trigger(type, {
+//     enableVibrateFallback: true,
+//     ignoreAndroidSystemSettings: false,
+//   });
 
 // const preferences = [
 //   'Minimalist',
@@ -162,37 +279,36 @@ export default function PreferencesScreen({navigate}: Props) {
 //   const globalStyles = useGlobalStyles();
 
 //   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
-
 //   const {user} = useAuth0();
 //   const userId = user?.sub || '';
 //   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
 
-//   // Fetch fresh backend data on mount
 //   useEffect(() => {
-//     if (userId) {
-//       refetch();
-//     }
+//     if (userId) refetch();
 //   }, [userId, refetch]);
 
-//   // Sync UI state with backend data when it arrives
 //   useEffect(() => {
-//     if (
-//       styleProfile?.style_preferences &&
-//       Array.isArray(styleProfile.style_preferences)
-//     ) {
-//       setSelectedPrefs(styleProfile.style_preferences);
+//     if (Array.isArray(styleProfile?.style_preferences)) {
+//       setSelectedPrefs(styleProfile!.style_preferences);
 //     }
 //   }, [styleProfile]);
 
 //   const togglePref = async (pref: string) => {
+//     // 🔔 fire haptic in the handler (child may consume the press)
+//     h('impactLight');
+
 //     const isSelected = selectedPrefs.includes(pref);
 //     const updated = isSelected
 //       ? selectedPrefs.filter(p => p !== pref)
 //       : [...selectedPrefs, pref];
 
-//     setSelectedPrefs(updated);
-//     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-//     updateProfile('style_preferences', updated);
+//     try {
+//       setSelectedPrefs(updated);
+//       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+//       updateProfile('style_preferences', updated);
+//     } catch {
+//       h('notificationError');
+//     }
 //   };
 
 //   return (
@@ -204,9 +320,18 @@ export default function PreferencesScreen({navigate}: Props) {
 //       <Text style={[globalStyles.header, {color: theme.colors.foreground}]}>
 //         Style Preferences
 //       </Text>
+
 //       <ScrollView style={globalStyles.section}>
 //         <View style={globalStyles.backContainer}>
-//           <BackHeader title="" onBack={() => navigate('StyleProfileScreen')} />
+//           {/* Back gets a light tap */}
+//           <AppleTouchFeedback
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('StyleProfileScreen')}>
+//             <BackHeader
+//               title=""
+//               onBack={() => navigate('StyleProfileScreen')}
+//             />
+//           </AppleTouchFeedback>
 //           <Text style={globalStyles.backText}>Back</Text>
 //         </View>
 
@@ -224,6 +349,7 @@ export default function PreferencesScreen({navigate}: Props) {
 //             ]}>
 //             <View style={globalStyles.pillContainer}>
 //               {preferences.map(pref => (
+//                 // Keep press on the Chip; haptic is inside togglePref
 //                 <Chip
 //                   key={pref}
 //                   label={pref}
