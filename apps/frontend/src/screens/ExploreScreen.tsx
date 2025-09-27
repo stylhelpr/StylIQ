@@ -116,10 +116,11 @@ export default function ExploreScreen() {
       backgroundColor: theme.colors.background,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
     },
     iconBtn: {
-      marginLeft: 8,
-      width: 36,
+      // marginLeft: 16,
+      width: 100,
       height: 36,
       borderRadius: 10,
       alignItems: 'center',
@@ -128,12 +129,12 @@ export default function ExploreScreen() {
     },
     iconBtnText: {
       color: theme.colors.foreground,
-      fontWeight: '900',
-      fontSize: 20,
+      fontWeight: '600',
+      fontSize: 11,
       lineHeight: 20,
       marginTop: -2,
+      textAlign: 'center',
     },
-
     menuBackdrop: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.4)',
@@ -141,8 +142,8 @@ export default function ExploreScreen() {
       alignItems: 'flex-end',
     },
     menuSheet: {
-      marginTop: 60,
-      marginRight: 12,
+      marginTop: 230,
+      marginRight: 14,
       width: 200,
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
@@ -848,25 +849,6 @@ export default function ExploreScreen() {
           Fashion News
         </Animatable.Text>
 
-        {/* <View style={globalStyles.sectionTitle}>
-          <Text style={globalStyles.header}>Fashion News</Text>
-        </View> */}
-
-        <Text
-          style={[
-            globalStyles.label,
-            {
-              textAlign: 'right',
-              color: theme.colors.foreground,
-              marginRight: 86,
-              marginBottom: 0,
-              fontSize: 13,
-              fontWeight: '600',
-            },
-          ]}>
-          Manage
-        </Text>
-
         <View style={styles.topBar}>
           <Segmented
             tab={tab}
@@ -882,7 +864,7 @@ export default function ExploreScreen() {
             style={styles.iconBtn}
             hapticStyle="impactLight"
             accessibilityLabel="Manage">
-            <Text style={styles.iconBtnText}>⋯</Text>
+            <Text style={styles.iconBtnText}>Manage</Text>
           </AppleTouchFeedback>
         </View>
 
