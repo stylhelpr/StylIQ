@@ -316,6 +316,62 @@ export default function SavedOutfitsScreen() {
     return d;
   };
 
+  const handleNameSave = async () => {
+    if (!editingOutfitId || editedName.trim() === '') return;
+
+    const outfit = combinedOutfits.find(o => o.id === editingOutfitId);
+    if (!outfit) return;
+
+    try {
+      // ✅ dynamically hit the correct endpoint just like the old version
+      const table = outfit.type === 'custom' ? 'custom' : 'suggestions';
+      const res = await fetch(
+        `${API_BASE_URL}/outfit/${table}/${editingOutfitId}`,
+        {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: editedName.trim()}),
+        },
+      );
+
+      if (!res.ok) throw new Error('Failed to update outfit name');
+
+      // ✅ update state so UI reflects the change immediately
+      const updated = combinedOutfits.map(o =>
+        o.id === editingOutfitId ? {...o, name: editedName.trim()} : o,
+      );
+      setCombinedOutfits(updated);
+
+      // ✅ reset modal state
+      setEditingOutfitId(null);
+      setEditedName('');
+    } catch (err) {
+      console.error('❌ Error updating outfit name:', err);
+      Alert.alert('Error', 'Failed to update outfit name in the database.');
+    }
+  };
+
+  // ✅ Restore old delete logic (single DELETE endpoint)
+  const handleDelete = async (id: string) => {
+    const deleted = combinedOutfits.find(o => o.id === id);
+    if (!deleted) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/outfit/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete from DB');
+
+      const updated = combinedOutfits.filter(o => o.id !== id);
+      setCombinedOutfits(updated);
+      setLastDeletedOutfit(deleted); // keep your existing Undo toast
+      setTimeout(() => setLastDeletedOutfit(null), 3000);
+    } catch (err) {
+      console.error('❌ Error deleting outfit:', err);
+      Alert.alert('Error', 'Could not delete outfit from the database.');
+    }
+  };
+
   // 📅 Local notification helpers
   const scheduleOutfitLocalAlert = (
     outfitId: string,

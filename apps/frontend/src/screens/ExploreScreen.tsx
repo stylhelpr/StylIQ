@@ -537,21 +537,6 @@ export default function ExploreScreen() {
     }
   };
 
-  // ───────── Personal chips ─────────
-  // const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
-  // useEffect(() => {
-  //   if (!userId) return;
-  //   (async () => {
-  //     try {
-  //       const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
-  //       const json = await res.json();
-  //       setWardrobeBrands(Array.isArray(json?.brands) ? json.brands : []);
-  //     } catch {
-  //       setWardrobeBrands([]);
-  //     }
-  //   })();
-  // }, [userId]);
-
   // ───────── Personal chips (from style_profiles.preferred_brands) ─────────
   const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
 
