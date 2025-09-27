@@ -25,6 +25,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 
 type WardrobeItem = {
   id: string;
@@ -400,11 +401,21 @@ export default function ClosetScreen({navigate}: Props) {
       </View>
 
       {!isLoading && wardrobe.length === 0 && (
-        <View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignSelf: 'center',
+          }}>
           <Text style={globalStyles.missingDataMessage1}>
-            You haven’t uploaded any wardrobe items yet. Tap “Add Clothes +”
-            below to start building your wardrobe.
+            No wardrobe items found.
           </Text>
+          <View style={{alignSelf: 'flex-start'}}>
+            <TooltipBubble
+              message="You haven’t uploaded any wardrobe items yet. Tap the “Add Clothes”
+             button below to start adding your personal wardrobe inventory."
+              position="top"
+            />
+          </View>
         </View>
       )}
 

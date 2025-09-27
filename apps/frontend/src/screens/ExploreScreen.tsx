@@ -36,6 +36,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 
 type Tab = 'For You' | 'Following';
 
@@ -927,11 +928,19 @@ export default function ExploreScreen() {
 
         {tab === 'For You' && wardrobeBrands.length === 0 && (
           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
-            <Text style={globalStyles.missingDataMessage1}>
-              No content/news feeds chosen yet. Add them by going to the
-              "Manage" button, and clicking on "Feeds" or "Brands". You can also
-              adjust their notification preferences there.
-            </Text>
+            <View style={{flexDirection: 'row'}}>
+              <Text style={globalStyles.missingDataMessage1}>
+                No stories found.
+              </Text>
+
+              <View style={{alignSelf: 'flex-start'}}>
+                <TooltipBubble
+                  message='No fashion news feeds chosen yet. Tap the
+              "Manage" button above, and click on "Feeds" or "Brands".'
+                  position="top"
+                />
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>

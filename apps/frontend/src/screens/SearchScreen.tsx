@@ -22,6 +22,7 @@ import {useVoiceControl} from '../hooks/useVoiceControl';
 import {tokens} from '../styles/tokens/tokens';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import * as Animatable from 'react-native-animatable';
+import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 
 type SavedOutfit = {
   id: string;
@@ -334,16 +335,15 @@ export default function SearchScreen({navigate, goBack}) {
 
             {/* 🪶 Empty States */}
             {noWardrobeItems && (
-              <Text
-                style={{
-                  color: theme.colors.muted,
-                  textAlign: 'center',
-                  marginTop: 16,
-                  lineHeight: 20,
-                  paddingHorizontal: 20,
-                }}>
-                Add wardrobe items to start searching.
-              </Text>
+              <View style={{flexDirection: 'row', alignSelf: 'center'}}>
+                <Text style={globalStyles.missingDataMessage1}>
+                  No wardrobe items.
+                </Text>
+                <TooltipBubble
+                  message='Add wardrobe items from the "Wardrobe" page to be able to search wardrobe items here.'
+                  position="top"
+                />
+              </View>
             )}
 
             {filteredWardrobe.length === 0 &&

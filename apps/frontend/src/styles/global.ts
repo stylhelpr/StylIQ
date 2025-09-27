@@ -531,7 +531,7 @@ export const createGlobalStyles = (theme: Theme) =>
       textAlign: 'left',
       marginTop: 0,
       lineHeight: 20,
-      paddingHorizontal: 20,
+      // paddingHorizontal: 20,
       maxWidth: 400,
     },
   });

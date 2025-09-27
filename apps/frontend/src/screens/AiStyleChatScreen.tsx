@@ -26,6 +26,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import {API_BASE_URL} from '../config/api';
 import {useVoiceControl} from '../hooks/useVoiceControl';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 
 type Role = 'user' | 'assistant' | 'system';
 type Message = {id: string; role: Role; text: string; createdAt: number};
@@ -329,13 +330,15 @@ export default function AiStylistChatScreen({navigate}: Props) {
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 12,
+              flexDirection: 'row',
+              marginLeft: 30,
             }}>
             <AppleTouchFeedback type="impactLight">
               <TouchableOpacity
                 style={[
                   globalStyles.buttonPrimary,
                   {opacity: canSendToOutfit ? 1 : 0.4},
-                  {width: 240, marginTop: 12},
+                  {width: 240},
                 ]}
                 onPress={sendToOutfitSafe}
                 disabled={!canSendToOutfit}>
@@ -344,6 +347,11 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 </Text>
               </TouchableOpacity>
             </AppleTouchFeedback>
+
+            <TooltipBubble
+              message="This button is only if you want to use this specific prompt to create your outfit."
+              position="top"
+            />
           </View>
 
           {/* 📥 Animated Input Bar */}

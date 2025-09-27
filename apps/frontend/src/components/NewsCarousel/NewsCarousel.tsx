@@ -16,6 +16,7 @@ import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+import {TooltipBubble} from '../../components/ToolTip/ToolTip1';
 
 type Article = {
   id: string | number;
@@ -111,9 +112,13 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
     return <Text style={{padding: 16}}>{String(error)}</Text>;
   if (!topTen.length)
     return (
-      <Text style={globalStyles.missingDataMessage1}>
-        No stories found. Go to the Fashion News page to add content.
-      </Text>
+      <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+        <Text style={globalStyles.missingDataMessage1}>No stories found.</Text>
+        <TooltipBubble
+          message='No stories found. Tap "Fashion News" in the bottom navigation bar to got to the Fashion News screen add your favorite fashion news feeds.'
+          position="top"
+        />
+      </View>
     );
 
   return (
