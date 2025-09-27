@@ -406,13 +406,9 @@ export default function ProfileScreen({navigate}: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingRight: 8}}>
           {styleTags.length === 0 ? (
-            <Text
-              style={{
-                color: theme.colors.foreground3,
-                paddingLeft: 16,
-                fontStyle: 'italic',
-              }}>
-              No style preferences added yet.
+            <Text style={globalStyles.missingDataMessage1}>
+              No style tags added yet. Tap "Edit Style Profile" and head over
+              there to add some.
             </Text>
           ) : (
             styleTags.map((tag, index) => (
@@ -440,13 +436,9 @@ export default function ProfileScreen({navigate}: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingRight: 8}}>
           {favoriteBrands.length === 0 ? (
-            <Text
-              style={{
-                color: theme.colors.foreground3,
-                paddingLeft: 16,
-                fontStyle: 'italic',
-              }}>
-              Add your favorite brands to see them here.
+            <Text style={globalStyles.missingDataMessage1}>
+              No brands added yet. Tap "Edit Style Profile" and head over there
+              to add some.
             </Text>
           ) : (
             favoriteBrands.map((brand, index) => (
@@ -470,14 +462,9 @@ export default function ProfileScreen({navigate}: Props) {
         style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
         {savedLooks.length === 0 ? (
-          <Text
-            style={{
-              color: theme.colors.foreground,
-              paddingLeft: 16,
-              fontStyle: 'italic',
-            }}>
-            You haven’t saved any outfits yet. Tap the heart on your favorite
-            looks!
+          <Text style={globalStyles.missingDataMessage1}>
+            You haven’t saved any outfits yet. Head to the Home page and tap
+            "Add Look" to add some.
           </Text>
         ) : (
           <ScrollView

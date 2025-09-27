@@ -110,7 +110,11 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
   if (error && !topTen.length)
     return <Text style={{padding: 16}}>{String(error)}</Text>;
   if (!topTen.length)
-    return <Text style={{padding: 16, color: '#666'}}>No stories found</Text>;
+    return (
+      <Text style={globalStyles.missingDataMessage1}>
+        No stories found. Go to the Fashion News page to add content.
+      </Text>
+    );
 
   return (
     <ScrollView

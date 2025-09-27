@@ -400,31 +400,10 @@ export default function ClosetScreen({navigate}: Props) {
       </View>
 
       {!isLoading && wardrobe.length === 0 && (
-        <View
-          style={{padding: 40, alignItems: 'center', justifyContent: 'center'}}>
-          <MaterialIcons
-            name="info-outline"
-            size={48}
-            color={theme.colors.muted}
-          />
-          <Text
-            style={{
-              marginTop: 12,
-              fontSize: 18,
-              textAlign: 'center',
-              color: theme.colors.muted,
-              fontWeight: '500',
-            }}>
-            You haven’t uploaded any wardrobe items yet.
-          </Text>
-          <Text
-            style={{
-              marginTop: 6,
-              fontSize: 15,
-              textAlign: 'center',
-              color: theme.colors.muted,
-            }}>
-            Tap “Add Clothes +” below to start building your wardrobe.
+        <View>
+          <Text style={globalStyles.missingDataMessage1}>
+            You haven’t uploaded any wardrobe items yet. Tap “Add Clothes +”
+            below to start building your wardrobe.
           </Text>
         </View>
       )}

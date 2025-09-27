@@ -700,12 +700,11 @@ export default function SavedOutfitsScreen() {
             <Animatable.Text
               animation="fadeIn"
               delay={300}
-              style={{
-                color: theme.colors.foreground,
-                textAlign: 'center',
-                marginTop: 40,
-              }}>
-              No saved outfits yet.
+              style={globalStyles.missingDataMessage1}>
+              You don’t have any saved outfits yet. Go to the Wardrobe page and
+              tap
+              <Text style={{fontWeight: '900'}}> "Build an Outfit"</Text>. Once
+              you create your first outfit, it will appear here automatically.
             </Animatable.Text>
           ) : (
             sortedOutfits.map((outfit, index) => {

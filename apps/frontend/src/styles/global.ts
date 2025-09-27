@@ -526,4 +526,12 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowRadius: 7,
       elevation: 6,
     },
+    missingDataMessage1: {
+      color: theme.colors.muted,
+      textAlign: 'left',
+      marginTop: 0,
+      lineHeight: 20,
+      paddingHorizontal: 20,
+      maxWidth: 400,
+    },
   });

@@ -1,3 +1,4 @@
+// src/saved-look/saved-look.controller.ts
 import {
   Controller,
   Get,
@@ -37,7 +38,7 @@ export class SavedLookController {
   }
 }
 
-/////////////////
+////////////
 
 // import {
 //   Controller,
@@ -63,6 +64,7 @@ export class SavedLookController {
 
 //   @Get(':userId')
 //   getUserLooks(@Param('userId') userId: string) {
+//     console.log('📡 GET /saved-looks/:userId hit →', userId);
 //     return this.service.getByUser(userId);
 //   }
 

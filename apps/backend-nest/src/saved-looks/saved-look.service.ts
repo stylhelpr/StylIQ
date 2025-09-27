@@ -1,3 +1,4 @@
+// src/saved-look/saved-look.service.ts
 import { Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import { CreateSavedLookDto } from './dto/create-saved-look.dto';
@@ -53,12 +54,14 @@ export class SavedLookService {
   }
 
   async delete(id: string) {
-    await pool.query(`DELETE FROM saved_looks WHERE id = $1`, [id]);
-    return { message: 'Deleted' };
+    const result = await pool.query(`DELETE FROM saved_looks WHERE id = $1`, [
+      id,
+    ]);
+    return { message: result.rowCount > 0 ? 'Deleted' : 'Not found' };
   }
 }
 
-//////////////////////
+//////////////
 
 // import { Injectable } from '@nestjs/common';
 // import { Pool } from 'pg';
@@ -92,6 +95,7 @@ export class SavedLookService {
 //        ORDER BY created_at DESC`,
 //       [userId],
 //     );
+//     console.log('✅ Saved looks found:', res.rows);
 //     return res.rows;
 //   }
 
