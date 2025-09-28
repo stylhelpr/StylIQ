@@ -262,14 +262,14 @@ export default function ProfileScreen({navigate}: Props) {
       width: 100,
       height: 100,
       borderRadius: 50,
-      borderWidth: tokens.borderWidth.xl,
-      borderColor: theme.colors.surfaceBorder,
+      // borderWidth: tokens.borderWidth.xl,
+      // borderColor: theme.colors.surfaceBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
     avatar: {
-      width: 90,
-      height: 90,
+      width: 92,
+      height: 92,
       borderRadius: 45,
       backgroundColor: theme.colors.surface,
       alignItems: 'center',
@@ -484,7 +484,10 @@ export default function ProfileScreen({navigate}: Props) {
                 animation="bounceInRight"
                 delay={1700 + index * 80}
                 useNativeDriver
-                style={globalStyles.pill}>
+                style={[
+                  globalStyles.pill,
+                  {backgroundColor: theme.colors.error},
+                ]}>
                 <Text style={globalStyles.pillText}>#{tag}</Text>
               </Animatable.View>
             ))
@@ -519,7 +522,10 @@ export default function ProfileScreen({navigate}: Props) {
                 animation="bounceInLeft"
                 delay={2000 + index * 90}
                 useNativeDriver
-                style={globalStyles.pill}>
+                style={[
+                  globalStyles.pill,
+                  {backgroundColor: theme.colors.error},
+                ]}>
                 <Text style={globalStyles.pillText}>#{brand}</Text>
               </Animatable.View>
             ))

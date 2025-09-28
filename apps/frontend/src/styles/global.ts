@@ -392,7 +392,7 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
-      borderColor: theme.colors.surfaceBorder,
+      // borderColor: theme.colors.surfaceBorder,
       //  paddingVertical: 11,
 
       paddingVertical: 13,
@@ -406,7 +406,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // },
 
     buttonPrimaryText: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '600',
       color: theme.colors.buttonText1,
     },

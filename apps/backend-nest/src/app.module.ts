@@ -26,6 +26,7 @@ import { FeedSourcesModule } from './feed-sources/feed-sources.module';
 import { DiscoverModule } from './services/discover.module';
 import { ContactModule } from './contact/contact.module';
 import { ProfileUploadModule } from './profile-upload/profile-upload.module';
+import { FeedsModule } from './feeds/feeds.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -57,6 +58,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     DiscoverModule,
     ContactModule,
     ProfileUploadModule,
+    FeedsModule,
   ],
   controllers: [AppController],
   providers: [
