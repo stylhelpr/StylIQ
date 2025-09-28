@@ -1276,7 +1276,7 @@ export default function ExploreScreen() {
                   <Text style={globalStyles.buttonPrimaryText}>Add Feed</Text>
                 </AppleTouchFeedback>
 
-                <AppleTouchFeedback
+                {/* <AppleTouchFeedback
                   hapticStyle="impactLight"
                   onPress={resetToDefaults}
                   style={[
@@ -1290,7 +1290,7 @@ export default function ExploreScreen() {
                   <Text style={globalStyles.buttonPrimaryText}>
                     Reset to Defaults
                   </Text>
-                </AppleTouchFeedback>
+                </AppleTouchFeedback> */}
 
                 <AppleTouchFeedback
                   hapticStyle="impactLight"
