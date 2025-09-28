@@ -131,7 +131,7 @@ export class UsersService {
       );
       dto.profile_picture = current.rows[0]?.profile_picture || null;
     } else {
-      // ✅ Apply same guard here to avoid overwriting with default
+      // ✅ Apply same guard here to avoid overwriting with default /
       const current = await pool.query(
         'SELECT profile_picture FROM users WHERE id = $1',
         [id],
