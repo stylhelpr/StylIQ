@@ -1,15 +1,9 @@
-// scripts/bulkDeleteWardrobe.mjs
-// Run:
-// USER_ID=2e7b4297-72e4-4152-90bb-f00432c88ab7 \
-// API_BASE_URL=http://192.168.1.81:3001/api \
-// node scripts/bulkDeleteWardrobe.mjs
-
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api';
 const USER_ID = process.env.USER_ID || '';
 
 if (!USER_ID) {
   console.error(
-    '❌ Missing USER_ID env.\nExample:\nUSER_ID=<uuid> API_BASE_URL=http://192.168.1.81:3001/api node scripts/bulkDeleteWardrobe.mjs',
+    '❌ Missing USER_ID env.\nExample:\nUSER_ID=<uuid> API_BASE_URL=http://192.168.1.152:3001/api node scripts/bulkDeleteWardrobe.mjs',
   );
   process.exit(1);
 }

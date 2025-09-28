@@ -639,6 +639,649 @@ export default function ProfileScreen({navigate}: Props) {
   );
 }
 
+//////////////////////
+
+// import React, {useState, useEffect} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   ScrollView,
+//   Dimensions,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useQuery} from '@tanstack/react-query';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import {useAuth0} from 'react-native-auth0';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {useStyleProfile} from '../hooks/useStyleProfile';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import * as Animatable from 'react-native-animatable';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import SavedLookPreviewModal from '../components/SavedLookModal/SavedLookPreviewModal';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// const screenWidth = Dimensions.get('window').width;
+// const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
+
+// type WardrobeItem = {
+//   id: string;
+//   image_url: string;
+//   name: string;
+//   favorite?: boolean;
+// };
+
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// type UserProfile = {
+//   first_name: string;
+//   last_name: string;
+//   email: string;
+//   profile_picture?: string;
+//   fashion_level?: string;
+//   profession?: string;
+// };
+
+// export default function ProfileScreen({navigate}: Props) {
+//   const userId = useUUID();
+//   const {theme} = useAppTheme();
+//   const {user} = useAuth0();
+//   const globalStyles = useGlobalStyles();
+//   const auth0Sub = user?.sub;
+//   const {styleProfile} = useStyleProfile(auth0Sub || '');
+//   const styleTags = styleProfile?.style_preferences || [];
+
+//   const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
+//   const [savedLooks, setSavedLooks] = useState<any[]>([]);
+//   const [loadingSaved, setLoadingSaved] = useState(true);
+//   const [previewVisible, setPreviewVisible] = useState(false);
+//   const [selectedLook, setSelectedLook] = useState<any | null>(null);
+//   const [profilePicture, setProfilePicture] = useState<string>(''); // keep as string only
+
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   // Hydrate cached profile picture early
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
+//       if (cached) {
+//         console.log('[PROFILE] Cached profile pic found:', cached);
+//         setProfilePicture(cached);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   // Fetch favorite brands
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API_BASE_URL}/style-profile/${userId}/brands`,
+//         );
+//         const json = await res.json();
+//         setFavoriteBrands(Array.isArray(json.brands) ? json.brands : []);
+//       } catch {
+//         setFavoriteBrands([]);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   // Fetch saved looks
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/saved-looks/${userId}`);
+//         if (!res.ok) throw new Error('Failed to fetch saved looks');
+//         const data = await res.json();
+//         setSavedLooks(data);
+//       } catch {
+//       } finally {
+//         setLoadingSaved(false);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   // Queries: profile, wardrobe, counts
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   const {data: userProfileRaw} = useQuery<UserProfile>({
+//     enabled: !!userId,
+//     queryKey: ['userProfile', userId],
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch user profile');
+//       return res.json();
+//     },
+//   });
+
+//   // Only hydrate picture from backend if we don't already have one locally
+//   // useEffect(() => {
+//   //   if (
+//   //     userProfileRaw &&
+//   //     !profilePicture &&
+//   //     userProfileRaw.profile_picture &&
+//   //     userProfileRaw.profile_picture.trim() !== ''
+//   //   ) {
+//   //     setProfilePicture(userProfileRaw.profile_picture);
+//   //     if (userId) {
+//   //       AsyncStorage.setItem(
+//   //         STORAGE_KEY(userId),
+//   //         userProfileRaw.profile_picture,
+//   //       ).catch(() => {});
+//   //     }
+//   //   }
+//   // }, [userProfileRaw, profilePicture, userId]);
+
+//   // Replace this entire useEffect:
+//   useEffect(() => {
+//     if (
+//       userProfileRaw &&
+//       userProfileRaw.profile_picture &&
+//       userProfileRaw.profile_picture.trim() !== ''
+//     ) {
+//       console.log(
+//         '[PROFILE] Using backend profile picture:',
+//         userProfileRaw.profile_picture,
+//       );
+//       setProfilePicture(userProfileRaw.profile_picture);
+//       if (userId) {
+//         AsyncStorage.setItem(
+//           STORAGE_KEY(userId),
+//           userProfileRaw.profile_picture,
+//         ).catch(() => {});
+//       }
+//     }
+//   }, [userProfileRaw, userId]);
+
+//   // IMPORTANT: Don't construct a UserProfile when data is still undefined,
+//   // or TS will complain about missing required fields.
+//   const userProfile = userProfileRaw
+//     ? {
+//         ...userProfileRaw,
+//         // never assign null; use undefined or a string
+//         profile_picture:
+//           profilePicture || userProfileRaw.profile_picture || undefined,
+//       }
+//     : undefined;
+
+//   const {data: wardrobe = []} = useQuery<WardrobeItem[]>({
+//     queryKey: ['wardrobe', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch wardrobe');
+//       return res.json();
+//     },
+//   });
+
+//   const {data: totalFavorites = 0} = useQuery({
+//     queryKey: ['totalFavorites', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(
+//         `${API_BASE_URL}/outfit-favorites/count/${userId}`,
+//       );
+//       const data = await res.json();
+//       return data.count;
+//     },
+//   });
+
+//   const {data: totalCustomOutfits = 0} = useQuery({
+//     queryKey: ['totalCustomOutfits', userId],
+//     enabled: !!userId,
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/custom-outfits/count/${userId}`);
+//       const data = await res.json();
+//       return data.count;
+//     },
+//   });
+
+//   const totalItems = wardrobe.length;
+
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   // Initials fallback logic
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   let initials = '';
+//   if (userProfile?.first_name || userProfile?.last_name) {
+//     const f = (userProfile?.first_name?.trim?.()[0] || '').toUpperCase();
+//     const l = (userProfile?.last_name?.trim?.()[0] || '').toUpperCase();
+//     initials = `${f}${l}`;
+//   } else if (userProfile?.email) {
+//     const local = userProfile.email.split('@')[0];
+//     const parts = local.split(/[^a-zA-Z]/).filter(Boolean);
+//     const f = (parts[0]?.[0] || '').toUpperCase();
+//     const l = (parts[1]?.[0] || '').toUpperCase();
+//     initials = f + l || local.slice(0, 2).toUpperCase();
+//   }
+
+//   // cache-busted URI so the newest image shows immediately
+//   const profileUri =
+//     profilePicture && profilePicture.length > 0
+//       ? `${profilePicture}${
+//           profilePicture.includes('?') ? '&' : '?'
+//         }v=${Date.now()}`
+//       : '';
+
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   // Styles
+//   // ─────────────────────────────────────────────────────────────────────────────
+//   const styles = StyleSheet.create({
+//     screen: {
+//       flex: 1,
+//       backgroundColor: theme.colors.background,
+//     },
+//     headerRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       marginTop: 10,
+//     },
+//     settingsButton: {
+//       position: 'absolute',
+//       bottom: 0,
+//       right: 16,
+//       zIndex: 10,
+//       padding: 8,
+//     },
+//     avatarWrapper: {
+//       marginRight: 20,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       marginBottom: 4,
+//     },
+//     avatarBorder: {
+//       width: 100,
+//       height: 100,
+//       borderRadius: 50,
+//       borderWidth: tokens.borderWidth.xl,
+//       borderColor: theme.colors.surfaceBorder,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     avatar: {
+//       width: 90,
+//       height: 90,
+//       borderRadius: 45,
+//       backgroundColor: theme.colors.surface,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     initialsText: {
+//       color: theme.colors.foreground,
+//       fontWeight: '800',
+//       fontSize: 30,
+//       letterSpacing: 0.5,
+//     },
+//     statsRow: {
+//       flexDirection: 'row',
+//       justifyContent: screenWidth >= 768 ? 'flex-start' : 'space-between',
+//       flex: 1,
+//     },
+//     statBox: {
+//       alignItems: 'center',
+//       marginRight: screenWidth >= 768 ? 32 : 0,
+//     },
+//     statNumber: {
+//       fontWeight: 'bold',
+//       fontSize: 17,
+//       color: theme.colors.foreground2,
+//     },
+//     statLabel: {
+//       fontSize: 14,
+//       color: theme.colors.foreground3,
+//       fontWeight: '600',
+//     },
+//     bioContainer: {
+//       marginTop: 8,
+//     },
+//     nameText: {
+//       color: theme.colors.foreground,
+//       fontWeight: '700',
+//       fontSize: 17,
+//     },
+//     bioText: {
+//       color: theme.colors.foreground2,
+//       fontSize: 16,
+//       marginTop: 4,
+//       lineHeight: 18,
+//     },
+//     linkText: {
+//       color: '#4ea1f2',
+//       fontSize: 16,
+//       marginTop: 4,
+//     },
+//   });
+
+//   return (
+//     <ScrollView style={[styles.screen, globalStyles.container]}>
+//       <Text style={globalStyles.header}>Profile</Text>
+
+//       {/* Settings Icon */}
+//       <AppleTouchFeedback
+//         style={styles.settingsButton}
+//         onPress={() => navigate('Settings')}
+//         hapticStyle="selection">
+//         <Animatable.View
+//           animation="rotate"
+//           iterationCount="infinite"
+//           duration={16000}>
+//           <Icon name="settings" size={24} color={theme.colors.button1} />
+//         </Animatable.View>
+//       </AppleTouchFeedback>
+
+//       {/* Header Row */}
+//       <Animatable.View
+//         animation="fadeInUp"
+//         delay={300}
+//         style={globalStyles.section}>
+//         <View style={styles.headerRow}>
+//           {/* Avatar */}
+//           <Animatable.View
+//             animation="pulse"
+//             iterationCount="infinite"
+//             duration={5000}
+//             style={styles.avatarWrapper}>
+//             <View style={styles.avatarBorder}>
+//               {profilePicture ? (
+//                 <Image source={{uri: profileUri}} style={styles.avatar} />
+//               ) : (
+//                 <View style={styles.avatar}>
+//                   <Text style={styles.initialsText}>{initials}</Text>
+//                 </View>
+//               )}
+//             </View>
+//           </Animatable.View>
+
+//           {/* Stats */}
+//           <Animatable.View
+//             animation="fadeIn"
+//             delay={500}
+//             style={styles.statsRow}>
+//             <View style={styles.statBox}>
+//               <Animatable.Text
+//                 animation="bounceIn"
+//                 delay={600}
+//                 style={styles.statNumber}>
+//                 {totalItems}
+//               </Animatable.Text>
+//               <Text style={styles.statLabel}>Wardrobe Items</Text>
+//             </View>
+//             <View style={styles.statBox}>
+//               <Animatable.Text
+//                 animation="bounceIn"
+//                 delay={800}
+//                 style={styles.statNumber}>
+//                 {totalCustomOutfits}
+//               </Animatable.Text>
+//               <Text style={styles.statLabel}>Outfits</Text>
+//             </View>
+//             <View style={styles.statBox}>
+//               <Animatable.Text
+//                 animation="bounceIn"
+//                 delay={1000}
+//                 style={styles.statNumber}>
+//                 {totalFavorites}
+//               </Animatable.Text>
+//               <Text style={styles.statLabel}>Favorites</Text>
+//             </View>
+//           </Animatable.View>
+//         </View>
+
+//         {/* Bio Section */}
+//         <Animatable.View
+//           animation="fadeInUp"
+//           delay={1200}
+//           style={styles.bioContainer}>
+//           <Text style={styles.nameText}>
+//             {(userProfile?.first_name || '') +
+//               ' ' +
+//               (userProfile?.last_name || '')}
+//           </Text>
+//           {userProfile?.fashion_level && (
+//             <Text style={styles.bioText}>{userProfile.fashion_level}</Text>
+//           )}
+//           {userProfile?.profession && (
+//             <Text style={styles.bioText}>{userProfile.profession}</Text>
+//           )}
+//           <Text style={styles.linkText}>{userProfile?.email}</Text>
+//         </Animatable.View>
+//       </Animatable.View>
+
+//       {/* Style Profile CTA */}
+//       <Animatable.View
+//         animation="fadeInUp"
+//         delay={1400}
+//         style={globalStyles.section}>
+//         <Text style={globalStyles.sectionTitle}>Style Profile</Text>
+//         <View style={{alignItems: 'center'}}>
+//           <AppleTouchFeedback
+//             onPress={() => navigate('StyleProfileScreen')}
+//             hapticStyle="impactMedium"
+//             style={[
+//               globalStyles.buttonPrimary,
+//               {
+//                 minWidth: 200,
+//                 flexDirection: 'row',
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 marginTop: 4,
+//               },
+//             ]}>
+//             <Icon
+//               name="person-outline"
+//               size={20}
+//               color={theme.colors.buttonText1}
+//               style={{marginRight: 8}}
+//             />
+//             <Text
+//               style={{
+//                 color: theme.colors.buttonText1,
+//                 fontSize: 16,
+//                 fontWeight: '500',
+//                 flexShrink: 1,
+//                 textAlign: 'center',
+//               }}
+//               numberOfLines={1}>
+//               Edit Style Profile
+//             </Text>
+//           </AppleTouchFeedback>
+//         </View>
+//       </Animatable.View>
+
+//       {/* Style Tags */}
+//       <Animatable.View
+//         animation="fadeInLeft"
+//         delay={1600}
+//         style={globalStyles.sectionScroll}>
+//         <Text style={globalStyles.sectionTitle}>Style Tags</Text>
+//         <ScrollView
+//           horizontal
+//           showsHorizontalScrollIndicator={false}
+//           contentContainerStyle={{paddingRight: 8}}>
+//           {styleTags.length === 0 ? (
+//             <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+//               <Text style={globalStyles.missingDataMessage1}>
+//                 No saved styles.
+//               </Text>
+//               <TooltipBubble
+//                 message='No styles added yet. Tap the "Edit Style Profile" button above and head over there to add your favorite styles.'
+//                 position="top"
+//               />
+//             </View>
+//           ) : (
+//             styleTags.map((tag, index) => (
+//               <Animatable.View
+//                 key={tag}
+//                 animation="bounceInRight"
+//                 delay={1700 + index * 80}
+//                 useNativeDriver
+//                 style={globalStyles.pill}>
+//                 <Text style={globalStyles.pillText}>#{tag}</Text>
+//               </Animatable.View>
+//             ))
+//           )}
+//         </ScrollView>
+//       </Animatable.View>
+
+//       {/* Favorite Brands */}
+//       <Animatable.View
+//         animation="fadeInRight"
+//         delay={1900}
+//         style={globalStyles.sectionScroll}>
+//         <Text style={[globalStyles.sectionTitle]}>Saved Brand Tags</Text>
+//         <ScrollView
+//           horizontal
+//           showsHorizontalScrollIndicator={false}
+//           contentContainerStyle={{paddingRight: 8}}>
+//           {favoriteBrands.length === 0 ? (
+//             <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+//               <Text style={globalStyles.missingDataMessage1}>
+//                 No saved brands.
+//               </Text>
+//               <TooltipBubble
+//                 message='No brands added yet. Tap the "Edit Style Profile" button above and head over there to add your favorite brands.'
+//                 position="top"
+//               />
+//             </View>
+//           ) : (
+//             favoriteBrands.map((brand, index) => (
+//               <Animatable.View
+//                 key={brand}
+//                 animation="bounceInLeft"
+//                 delay={2000 + index * 90}
+//                 useNativeDriver
+//                 style={globalStyles.pill}>
+//                 <Text style={globalStyles.pillText}>#{brand}</Text>
+//               </Animatable.View>
+//             ))
+//           )}
+//         </ScrollView>
+//       </Animatable.View>
+
+//       {/* Saved Looks */}
+//       <Animatable.View
+//         animation="fadeInUpBig"
+//         delay={2200}
+//         style={globalStyles.sectionScroll}>
+//         <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
+//         {savedLooks.length === 0 ? (
+//           <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+//             <Text style={globalStyles.missingDataMessage1}>
+//               No saved looks.
+//             </Text>
+//             <TooltipBubble
+//               message='You haven’t saved any looks yet. Tap "Home" in the bottom navigation bar and then tap "Add Look" to add your favorite looks.'
+//               position="top"
+//             />
+//           </View>
+//         ) : (
+//           <ScrollView
+//             horizontal
+//             showsHorizontalScrollIndicator={false}
+//             contentContainerStyle={{paddingRight: 8}}>
+//             {savedLooks.map((look, index) => (
+//               <Animatable.View
+//                 key={look.id}
+//                 animation="zoomInUp"
+//                 delay={2300 + index * 120}
+//                 useNativeDriver
+//                 style={globalStyles.outfitCard}>
+//                 <AppleTouchFeedback
+//                   hapticStyle="impactLight"
+//                   onPress={() => {
+//                     setSelectedLook(look);
+//                     setPreviewVisible(true);
+//                   }}
+//                   style={{alignItems: 'center'}}>
+//                   <View>
+//                     <Image
+//                       source={{uri: look.image_url}}
+//                       style={[
+//                         globalStyles.image4,
+//                         {
+//                           borderColor: theme.colors.surfaceBorder,
+//                           borderWidth: tokens.borderWidth.md,
+//                           borderRadius: tokens.borderRadius.md,
+//                         },
+//                       ]}
+//                       resizeMode="cover"
+//                     />
+//                   </View>
+//                   <Animatable.Text
+//                     animation="fadeIn"
+//                     delay={2500 + index * 100}
+//                     style={[globalStyles.label, {marginTop: 6}]}
+//                     numberOfLines={1}>
+//                     {look.name}
+//                   </Animatable.Text>
+//                 </AppleTouchFeedback>
+//               </Animatable.View>
+//             ))}
+//           </ScrollView>
+//         )}
+//       </Animatable.View>
+
+//       {/* Footer */}
+//       <Animatable.View
+//         animation="fadeIn"
+//         delay={2800}
+//         style={[globalStyles.section, {paddingTop: 8}]}>
+//         <AppleTouchFeedback
+//           hapticStyle="impactLight"
+//           onPress={() => navigate('ContactScreen')}>
+//           <Animatable.Text
+//             animation="pulse"
+//             iterationCount="infinite"
+//             duration={5000}
+//             style={{
+//               textAlign: 'center',
+//               color: theme.colors.foreground,
+//               fontSize: 13,
+//               paddingVertical: 8,
+//             }}>
+//             Contact Support
+//           </Animatable.Text>
+//         </AppleTouchFeedback>
+
+//         <AppleTouchFeedback
+//           hapticStyle="impactLight"
+//           onPress={() => navigate('AboutScreen')}>
+//           <Animatable.Text
+//             animation="fadeInUp"
+//             delay={3000}
+//             style={{
+//               textAlign: 'center',
+//               color: theme.colors.foreground,
+//               fontSize: 12,
+//               opacity: 0.8,
+//               paddingBottom: 16,
+//             }}>
+//             About StylHelpr
+//           </Animatable.Text>
+//         </AppleTouchFeedback>
+//       </Animatable.View>
+
+//       <SavedLookPreviewModal
+//         visible={previewVisible}
+//         look={selectedLook}
+//         onClose={() => setPreviewVisible(false)}
+//       />
+//     </ScrollView>
+//   );
+// }
+
 ///////////////////
 
 // import React, {useState, useEffect} from 'react';

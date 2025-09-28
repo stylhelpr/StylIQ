@@ -1,7 +1,7 @@
 import {WardrobeItem} from '../types/wardrobe';
 import {mapApiWardrobeItem} from './mappers';
 
-const API = 'http://192.168.1.81:3001/api';
+const API = 'http://192.168.1.152:3001/api';
 
 export async function listWardrobe(userId: string): Promise<WardrobeItem[]> {
   const r = await fetch(
