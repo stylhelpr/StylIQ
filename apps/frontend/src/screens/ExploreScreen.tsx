@@ -1,3 +1,5 @@
+// FILTERED CHIPS AND ARTICLES IN UI LOGIC WORKING BELOW HERE - KEEP
+
 import React, {useEffect, useMemo, useState} from 'react';
 import {
   View,
@@ -14,7 +16,7 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
-
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import FeaturedHero from '../components/FashionFeed/FeaturedHero';
 import ArticleCard from '../components/FashionFeed/ArticleCard';
 import TrendChips from '../components/FashionFeed/TrendChips';
@@ -69,6 +71,9 @@ export default function ExploreScreen() {
 
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  const scrollRef = React.useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
 
   const [discoveredFeeds, setDiscoveredFeeds] = useState<
     {title: string; href: string}[]
@@ -933,6 +938,7 @@ export default function ExploreScreen() {
   return (
     <View>
       <ScrollView
+        ref={scrollRef} // 👈 add this
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -995,20 +1001,6 @@ export default function ExploreScreen() {
         )}
 
         {tab === 'For You' && (
-          // <TrendChips
-          //   items={chips.map(c => c.label)}
-          //   selected={activeChipLabel}
-          //   onTap={label => {
-          //     triggerSelection();
-          //     setActiveChipLabel(prev =>
-          //       prev?.toLowerCase() === label.toLowerCase() ? null : label,
-          //     );
-          //   }}
-          //   onMore={() => {
-          //     triggerSelection();
-          //     setManageBrandsOpen(true);
-          //   }}
-          // />
           <TrendChips
             items={visibleChips.map(c => c.label)} // 👈 changed here
             selected={activeChipLabel}
@@ -1053,7 +1045,7 @@ export default function ExploreScreen() {
           ))}
         </View>
 
-        {tab === 'For You' && wardrobeBrands.length === 0 && (
+        {tab === 'For You' && list.length === 0 && (
           <View style={{paddingHorizontal: 16, paddingTop: 8}}>
             <View style={{flexDirection: 'row'}}>
               <Text style={globalStyles.missingDataMessage1}>
@@ -1244,6 +1236,69 @@ export default function ExploreScreen() {
                 style={[styles.input, {marginTop: 4}]}
               />
 
+              {loadingDiscover && (
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    textAlign: 'center',
+                    paddingTop: 8,
+                  }}>
+                  Looking for feeds…
+                </Text>
+              )}
+
+              {!!discoverError && (
+                <Text
+                  style={{
+                    color: theme.colors.error,
+                    textAlign: 'center',
+                    marginBottom: 10,
+                  }}>
+                  {discoverError}
+                </Text>
+              )}
+
+              {discoveredFeeds.length > 0 && (
+                <View style={{marginTop: 10}}>
+                  <Text
+                    style={{
+                      color: theme.colors.foreground,
+                      fontWeight: '700',
+                      marginBottom: 8,
+                    }}>
+                    Feeds Found:
+                  </Text>
+                  {discoveredFeeds.map((f, idx) => (
+                    <AppleTouchFeedback
+                      key={idx}
+                      onPress={() => {
+                        setNewUrl(f.href);
+                        setAddError(null);
+                      }}
+                      hapticStyle="selection"
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                        backgroundColor: theme.colors.surface3,
+                        marginBottom: 6,
+                      }}>
+                      <Text
+                        style={{
+                          color: theme.colors.button1,
+                          fontWeight: '700',
+                        }}>
+                        {f.title || f.href}
+                      </Text>
+                      <Text
+                        style={{color: theme.colors.foreground, fontSize: 12}}>
+                        {f.href}
+                      </Text>
+                    </AppleTouchFeedback>
+                  ))}
+                </View>
+              )}
+
               {/* 🔎 Discover button */}
               <AppleTouchFeedback
                 hapticStyle="impactLight"
@@ -1298,65 +1353,6 @@ export default function ExploreScreen() {
                 </Text>
               </AppleTouchFeedback>
 
-              {loadingDiscover && (
-                <Text
-                  style={{color: theme.colors.foreground, textAlign: 'center'}}>
-                  Looking for feeds…
-                </Text>
-              )}
-
-              {!!discoverError && (
-                <Text
-                  style={{
-                    color: theme.colors.error,
-                    textAlign: 'center',
-                    marginBottom: 8,
-                  }}>
-                  {discoverError}
-                </Text>
-              )}
-
-              {discoveredFeeds.length > 0 && (
-                <View style={{marginTop: 10}}>
-                  <Text
-                    style={{
-                      color: theme.colors.foreground,
-                      fontWeight: '700',
-                      marginBottom: 8,
-                    }}>
-                    Feeds Found:
-                  </Text>
-                  {discoveredFeeds.map((f, idx) => (
-                    <AppleTouchFeedback
-                      key={idx}
-                      onPress={() => {
-                        setNewUrl(f.href);
-                        setAddError(null);
-                      }}
-                      hapticStyle="selection"
-                      style={{
-                        paddingVertical: 8,
-                        paddingHorizontal: 12,
-                        borderRadius: 8,
-                        backgroundColor: theme.colors.surface3,
-                        marginBottom: 6,
-                      }}>
-                      <Text
-                        style={{
-                          color: theme.colors.button1,
-                          fontWeight: '700',
-                        }}>
-                        {f.title || f.href}
-                      </Text>
-                      <Text
-                        style={{color: theme.colors.foreground, fontSize: 12}}>
-                        {f.href}
-                      </Text>
-                    </AppleTouchFeedback>
-                  ))}
-                </View>
-              )}
-
               <View style={{alignItems: 'center'}}>
                 <AppleTouchFeedback
                   hapticStyle="impactMedium"
@@ -1377,22 +1373,6 @@ export default function ExploreScreen() {
                   ]}>
                   <Text style={globalStyles.buttonPrimaryText}>Add Feed</Text>
                 </AppleTouchFeedback>
-
-                {/* <AppleTouchFeedback
-                  hapticStyle="impactLight"
-                  onPress={resetToDefaults}
-                  style={[
-                    globalStyles.buttonPrimary,
-                    {
-                      backgroundColor: theme.colors.surface3,
-                      marginBottom: 12,
-                      width: 200,
-                    },
-                  ]}>
-                  <Text style={globalStyles.buttonPrimaryText}>
-                    Reset to Defaults
-                  </Text>
-                </AppleTouchFeedback> */}
 
                 <AppleTouchFeedback
                   hapticStyle="impactLight"
@@ -1653,6 +1633,30 @@ export default function ExploreScreen() {
           </ScrollView>
         </View>
       </Modal>
+      {/* 🆙 Scroll-to-top button */}
+      <AppleTouchFeedback
+        onPress={() => {
+          scrollRef.current?.scrollTo({y: 0, animated: true});
+          triggerSelection();
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 40,
+          right: 20,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          shadowOffset: {width: 0, height: 4},
+        }}
+        hapticStyle="impactLight">
+        <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
+      </AppleTouchFeedback>
     </View>
   );
 }

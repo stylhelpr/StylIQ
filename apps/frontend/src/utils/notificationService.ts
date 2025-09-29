@@ -210,7 +210,7 @@ export const initializeNotifications = async (userId?: string) => {
   }
 };
 
-/////////////////
+////////////////////////
 
 // // utils/notificationService.ts
 // import PushNotification from 'react-native-push-notification';
