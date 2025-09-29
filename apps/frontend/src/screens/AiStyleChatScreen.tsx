@@ -759,6 +759,8 @@ function stylesUserBubble(theme: any) {
       borderBottomLeftRadius: 22,
       borderTopRightRadius: 22,
       marginRight: 8,
+      borderColor: theme.colors.surfaceborder,
+      borderWidth: tokens.borderWidth.hairline,
 
       // 🍏 Apple-style depth
       shadowColor: '#000',
@@ -842,7 +844,9 @@ function stylesAssistantBubble(theme: any) {
       maxWidth: '82%',
       // backgroundColor: theme.colors.surface3,
       // backgroundColor: 'rgba(144, 0, 255, 1)',
-      backgroundColor: 'rgba(43, 43, 43, 1)',
+      backgroundColor: theme.colors.surface,
+      borderColor: theme.colors.surfaceborder,
+      borderWidth: tokens.borderWidth.hairline,
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderTopLeftRadius: 22,

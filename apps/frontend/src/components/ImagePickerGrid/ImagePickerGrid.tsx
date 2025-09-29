@@ -60,7 +60,6 @@ export default function ImagePickerGrid({
       flexDirection: 'row',
       justifyContent: 'space-between',
       width: '100%',
-      marginLeft: -12,
       marginBottom: 8,
     },
     buttonWrapper: {flex: 1, marginHorizontal: 4, maxWidth: 180, minWidth: 120},
@@ -165,7 +164,6 @@ export default function ImagePickerGrid({
       <View style={styles.imagePickerRow}>
         {[
           {label: 'Take Photo', onPress: takePhoto},
-          {label: 'Record Video', onPress: recordVideo},
           {label: 'Photo Library', onPress: pickFromGallery},
         ].map(({label, onPress}) => (
           <View key={label} style={styles.buttonWrapper}>
