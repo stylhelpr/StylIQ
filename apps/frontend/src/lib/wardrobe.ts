@@ -1,11 +1,10 @@
 import {WardrobeItem} from '../types/wardrobe';
 import {mapApiWardrobeItem} from './mappers';
-
-const API = 'http://192.168.1.152:3001/api';
+import {API_BASE_URL} from '../config/api';
 
 export async function listWardrobe(userId: string): Promise<WardrobeItem[]> {
   const r = await fetch(
-    `${API}/wardrobe?user_id=${encodeURIComponent(userId)}`,
+    `${API_BASE_URL}/wardrobe?user_id=${encodeURIComponent(userId)}`,
   );
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
@@ -13,7 +12,7 @@ export async function listWardrobe(userId: string): Promise<WardrobeItem[]> {
 }
 
 export async function createWardrobeItem(payload: any): Promise<WardrobeItem> {
-  const r = await fetch(`${API}/wardrobe`, {
+  const r = await fetch(`${API_BASE_URL}/wardrobe`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(payload),
@@ -28,7 +27,7 @@ export async function searchText(
   q: string,
   topK = 20,
 ): Promise<any[]> {
-  const r = await fetch(`${API}/wardrobe/search-text`, {
+  const r = await fetch(`${API_BASE_URL}/wardrobe/search-text`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({user_id: userId, q, topK}),
@@ -41,7 +40,7 @@ export async function updateWardrobeItem(
   itemId: string,
   patch: any,
 ): Promise<WardrobeItem> {
-  const r = await fetch(`${API}/wardrobe/${itemId}`, {
+  const r = await fetch(`${API_BASE_URL}/wardrobe/${itemId}`, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(patch),

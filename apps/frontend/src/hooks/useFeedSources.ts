@@ -30,13 +30,6 @@ const DEFAULT_SOURCES: FeedSource[] = [
     isDefault: true,
   },
   {
-    id: 'hypebeast-fashion',
-    name: 'Hypebeast Fashion',
-    url: 'https://hypebeast.com/feed',
-    enabled: true,
-    isDefault: true,
-  },
-  {
     id: 'fashionista',
     name: 'Fashionista',
     url: 'https://fashionista.com/feed',
