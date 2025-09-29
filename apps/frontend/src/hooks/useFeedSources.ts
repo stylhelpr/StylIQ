@@ -7,13 +7,57 @@ export type FeedSource = {
   name: string; // human-friendly name
   url: string; // RSS/Atom url
   enabled: boolean; // whether to include in feed
+  isDefault?: boolean; // optional flag to mark defaults
 };
 
 const STORAGE_KEY = '@fashion_feed_sources_v1';
 const keyFor = (userId: string) => `${STORAGE_KEY}:${userId}`;
 
-// ⛔️ no defaults anymore for new users
-const DEFAULT_SOURCES: FeedSource[] = [];
+// 🌟 Default feeds shown to new users
+const DEFAULT_SOURCES: FeedSource[] = [
+  {
+    id: 'vogue-uk',
+    name: 'Vogue UK',
+    url: 'https://www.vogue.co.uk/feed/rss',
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: 'gq-style',
+    name: 'GQ Style',
+    url: 'https://www.gq.com/feed/rss',
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: 'hypebeast-fashion',
+    name: 'Hypebeast Fashion',
+    url: 'https://hypebeast.com/feed',
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: 'fashionista',
+    name: 'Fashionista',
+    url: 'https://fashionista.com/feed',
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: 'fibre-2',
+    name: 'Fibre2',
+    url: 'https://feeds.feedburner.com/fibre2fashion/fashion-news',
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: 'ny-mg',
+    name: 'NY Mag',
+    url: 'https://feeds.feedburner.com/nymag/fashion',
+    enabled: true,
+    isDefault: true,
+  },
+];
 
 function idFor(url: string) {
   try {
@@ -31,25 +75,28 @@ export function useFeedSources({userId}: {userId: string}) {
   const [sources, setSources] = useState<FeedSource[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 🧼 clear state whenever user changes
+  // 🧼 Reset state when user changes
   useEffect(() => {
     setSources([]);
     setLoading(true);
   }, [userId]);
 
-  // 📥 load feeds from server or local storage
+  // 📥 Load feeds from backend, local storage, or defaults
   useEffect(() => {
     if (!userId) return;
+
     (async () => {
       try {
-        // 1) server
+        // 1️⃣ Try backend first
         let serverData: FeedSource[] | null = null;
         try {
           const res = await fetch(
             `${API_BASE_URL}/users/${userId}/feed-sources`,
           );
           if (res.ok) serverData = await res.json();
-        } catch {}
+        } catch (err) {
+          console.log('⚠️ Could not fetch server feed sources:', err);
+        }
 
         if (serverData && Array.isArray(serverData) && serverData.length) {
           setSources(serverData);
@@ -57,31 +104,39 @@ export function useFeedSources({userId}: {userId: string}) {
           return;
         }
 
-        // 2) local
+        // 2️⃣ Try local storage
         const raw = await AsyncStorage.getItem(keyFor(userId));
         if (raw) {
           const saved: FeedSource[] = JSON.parse(raw);
-          setSources(saved); // ✅ just what user saved — no merging
-          setLoading(false);
-          return;
+          if (saved.length > 0) {
+            setSources(saved);
+            setLoading(false);
+            return;
+          }
         }
 
-        // 3) fallback
-        setSources([]);
-      } catch {
-        setSources([]);
+        // 3️⃣ Fallback: use defaults for brand-new users
+        console.log('🌟 No feeds found — seeding default sources.');
+        setSources(DEFAULT_SOURCES);
+      } catch (err) {
+        console.error('❌ Feed source load failed:', err);
+        setSources(DEFAULT_SOURCES); // fallback even if request fails
       } finally {
         setLoading(false);
       }
     })();
   }, [userId]);
 
-  // 💾 persist to local + server whenever sources change
+  // 💾 Persist any source changes to local storage + backend
   useEffect(() => {
     if (loading) return;
+
+    // Save to local
     AsyncStorage.setItem(keyFor(userId), JSON.stringify(sources)).catch(
       () => {},
     );
+
+    // Save to backend
     (async () => {
       try {
         await fetch(`${API_BASE_URL}/users/${userId}/feed-sources`, {
@@ -89,11 +144,13 @@ export function useFeedSources({userId}: {userId: string}) {
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({sources}),
         });
-      } catch {}
+      } catch (err) {
+        console.log('⚠️ Failed to sync sources with server:', err);
+      }
     })();
   }, [sources, loading, userId]);
 
-  // helpers
+  // 📊 Helpers
   const enabled = useMemo(() => sources.filter(s => s.enabled), [sources]);
 
   const addSource = useCallback(
@@ -103,6 +160,7 @@ export function useFeedSources({userId}: {userId: string}) {
         throw new Error('Enter a valid http(s) URL');
       if (sources.some(s => s.url === trimmed))
         throw new Error('Feed already exists');
+
       const id = idFor(trimmed);
       setSources(prev => [
         ...prev,
@@ -129,7 +187,8 @@ export function useFeedSources({userId}: {userId: string}) {
   }, []);
 
   const resetToDefaults = useCallback(() => {
-    setSources([]); // ✅ clear all feeds
+    console.log('🔄 Resetting feed sources to defaults');
+    setSources(DEFAULT_SOURCES);
   }, []);
 
   return {
@@ -144,6 +203,155 @@ export function useFeedSources({userId}: {userId: string}) {
     setSources,
   };
 }
+
+///////////////
+
+// import {useEffect, useMemo, useState, useCallback} from 'react';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {API_BASE_URL} from '../config/api';
+
+// export type FeedSource = {
+//   id: string; // stable id
+//   name: string; // human-friendly name
+//   url: string; // RSS/Atom url
+//   enabled: boolean; // whether to include in feed
+// };
+
+// const STORAGE_KEY = '@fashion_feed_sources_v1';
+// const keyFor = (userId: string) => `${STORAGE_KEY}:${userId}`;
+
+// // ⛔️ no defaults anymore for new users
+// const DEFAULT_SOURCES: FeedSource[] = [];
+
+// function idFor(url: string) {
+//   try {
+//     const u = new URL(url);
+//     return (u.hostname + u.pathname)
+//       .replace(/[^a-z0-9]+/gi, '-')
+//       .replace(/^-+|-+$/g, '')
+//       .toLowerCase();
+//   } catch {
+//     return 'id-' + Math.random().toString(36).slice(2);
+//   }
+// }
+
+// export function useFeedSources({userId}: {userId: string}) {
+//   const [sources, setSources] = useState<FeedSource[]>([]);
+//   const [loading, setLoading] = useState(true);
+
+//   // 🧼 clear state whenever user changes
+//   useEffect(() => {
+//     setSources([]);
+//     setLoading(true);
+//   }, [userId]);
+
+//   // 📥 load feeds from server or local storage
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       try {
+//         // 1) server
+//         let serverData: FeedSource[] | null = null;
+//         try {
+//           const res = await fetch(
+//             `${API_BASE_URL}/users/${userId}/feed-sources`,
+//           );
+//           if (res.ok) serverData = await res.json();
+//         } catch {}
+
+//         if (serverData && Array.isArray(serverData) && serverData.length) {
+//           setSources(serverData);
+//           setLoading(false);
+//           return;
+//         }
+
+//         // 2) local
+//         const raw = await AsyncStorage.getItem(keyFor(userId));
+//         if (raw) {
+//           const saved: FeedSource[] = JSON.parse(raw);
+//           setSources(saved); // ✅ just what user saved — no merging
+//           setLoading(false);
+//           return;
+//         }
+
+//         // 3) fallback
+//         setSources([]);
+//       } catch {
+//         setSources([]);
+//       } finally {
+//         setLoading(false);
+//       }
+//     })();
+//   }, [userId]);
+
+//   // 💾 persist to local + server whenever sources change
+//   useEffect(() => {
+//     if (loading) return;
+//     AsyncStorage.setItem(keyFor(userId), JSON.stringify(sources)).catch(
+//       () => {},
+//     );
+//     (async () => {
+//       try {
+//         await fetch(`${API_BASE_URL}/users/${userId}/feed-sources`, {
+//           method: 'PUT',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({sources}),
+//         });
+//       } catch {}
+//     })();
+//   }, [sources, loading, userId]);
+
+//   // helpers
+//   const enabled = useMemo(() => sources.filter(s => s.enabled), [sources]);
+
+//   const addSource = useCallback(
+//     (name: string, url: string) => {
+//       const trimmed = url.trim();
+//       if (!/^https?:\/\//i.test(trimmed))
+//         throw new Error('Enter a valid http(s) URL');
+//       if (sources.some(s => s.url === trimmed))
+//         throw new Error('Feed already exists');
+//       const id = idFor(trimmed);
+//       setSources(prev => [
+//         ...prev,
+//         {id, name: name.trim() || trimmed, url: trimmed, enabled: true},
+//       ]);
+//     },
+//     [sources],
+//   );
+
+//   const toggleSource = useCallback((id: string, value: boolean) => {
+//     setSources(prev =>
+//       prev.map(s => (s.id === id ? {...s, enabled: value} : s)),
+//     );
+//   }, []);
+
+//   const removeSource = useCallback((id: string) => {
+//     setSources(prev => prev.filter(s => s.id !== id));
+//   }, []);
+
+//   const renameSource = useCallback((id: string, name: string) => {
+//     setSources(prev =>
+//       prev.map(s => (s.id === id ? {...s, name: name.trim() || s.name} : s)),
+//     );
+//   }, []);
+
+//   const resetToDefaults = useCallback(() => {
+//     setSources([]); // ✅ clear all feeds
+//   }, []);
+
+//   return {
+//     sources,
+//     enabled,
+//     loading,
+//     addSource,
+//     toggleSource,
+//     removeSource,
+//     renameSource,
+//     resetToDefaults,
+//     setSources,
+//   };
+// }
 
 //////////////////
 

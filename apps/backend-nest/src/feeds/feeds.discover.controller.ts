@@ -1,32 +1,61 @@
-import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
 @Controller('feeds')
 export class FeedDiscoverController {
   @Get('discover')
-  async discover(@Query('url') url: string) {
-    if (!url) throw new BadRequestException('Missing url');
+  async discover(@Query('url') url?: string, @Query('brand') brand?: string) {
+    if (!url && !brand) {
+      throw new BadRequestException('Missing url or brand');
+    }
 
-    let target = url.trim();
-    if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
+    // ✅ Step 1: Try direct URL, fallback to brand resolution
+    let target: string | undefined = url?.trim();
 
-    console.log('🌐 FEED DISCOVER CALLED for', target);
+    if (!target && brand) {
+      const resolved = await this.resolveBrandToUrl(brand);
+      target = resolved ?? undefined;
+      if (!target) {
+        throw new BadRequestException(
+          `Could not resolve a site for brand "${brand}"`,
+        );
+      }
+    }
+
+    // ✅ Step 2: Ensure protocol
+    if (target && !/^https?:\/\//i.test(target)) {
+      target = `https://${target}`;
+    }
+
+    // ✅ Step 3: Final guaranteed URL
+    if (!target) {
+      throw new BadRequestException('Could not resolve target URL');
+    }
+    const finalTarget: string = target;
+
+    console.log('🌐 FEED DISCOVER CALLED for', finalTarget);
 
     try {
-      // 🛰️ Fetch homepage
-      const res = await fetch(target, {
+      // 🛰️ Fetch homepage HTML
+      const res = await fetch(finalTarget, {
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': this.UA,
           Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
         },
         redirect: 'follow',
       });
 
-      if (!res.ok)
+      if (!res.ok) {
         throw new BadRequestException(
           `Failed to fetch site: ${res.statusText}`,
         );
+      }
 
       const body = await res.text();
       const $ = cheerio.load(body);
@@ -40,23 +69,23 @@ export class FeedDiscoverController {
         if (href) {
           feeds.push({
             title: $(el).attr('title') || href,
-            href: new URL(href, target).href,
+            href: new URL(href, finalTarget).href,
           });
         }
       });
 
-      // 🧠 2️⃣ Look for <a> with common patterns
+      // 🧠 2️⃣ Look for <a> tags that hint at feeds
       $('a[href*=".xml"], a[href*="/feed"]').each((_, el) => {
         const href = $(el).attr('href');
         if (href && (href.endsWith('.xml') || href.includes('/feed'))) {
-          const abs = new URL(href, target).href;
+          const abs = new URL(href, finalTarget).href;
           if (!feeds.some((f) => f.href === abs)) {
             feeds.push({ title: $(el).text() || abs, href: abs });
           }
         }
       });
 
-      // 🧠 3️⃣ Try standard candidate paths
+      // 🧠 3️⃣ Try common RSS/Atom feed paths
       const candidates = [
         '/feed',
         '/feed/rss',
@@ -77,7 +106,7 @@ export class FeedDiscoverController {
       ];
 
       for (const path of candidates) {
-        const candidateUrl = new URL(path, target).href;
+        const candidateUrl = new URL(path, finalTarget).href;
         if (await this.isValidFeed(candidateUrl)) {
           if (!feeds.some((f) => f.href === candidateUrl)) {
             feeds.push({ title: candidateUrl, href: candidateUrl });
@@ -85,11 +114,10 @@ export class FeedDiscoverController {
         }
       }
 
-      // 🧠 4️⃣ Try known feedburner or parent site hints
-      const domain = new URL(target).hostname.replace('www.', '');
+      // 🧠 4️⃣ Known domain hints
+      const domain = new URL(finalTarget).hostname.replace('www.', '');
       const hints: string[] = [];
 
-      // Example: nymag runs The Cut
       if (domain.includes('thecut.com')) {
         const known = 'https://feeds.feedburner.com/nymag/fashion';
         if (await this.isValidFeed(known)) {
@@ -99,7 +127,7 @@ export class FeedDiscoverController {
         }
       }
 
-      // ✅ Final decision
+      // ✅ Final result
       return {
         feed: feeds.length ? feeds[0].href : null,
         feeds,
@@ -111,19 +139,18 @@ export class FeedDiscoverController {
       };
     } catch (err: any) {
       console.error('❌ Feed discovery failed:', err.message || err);
-      throw new BadRequestException('Could not fetch or parse site.');
+      throw new InternalServerErrorException('Could not fetch or parse site.');
     }
   }
 
-  // ✅ Validate if URL is a real RSS/Atom feed
+  // ✅ Verify if URL is a valid RSS or Atom feed
   private async isValidFeed(url: string): Promise<boolean> {
     try {
       const res = await fetch(url, {
         method: 'GET',
         redirect: 'follow',
         headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': this.UA,
           Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
         },
       });
@@ -140,7 +167,187 @@ export class FeedDiscoverController {
       return false;
     }
   }
+
+  // 🔍 Try to resolve a brand name → official homepage URL
+  private async resolveBrandToUrl(brand: string): Promise<string | undefined> {
+    console.log(`🔍 Attempting to resolve brand "${brand}"...`);
+
+    // Common patterns for official sites
+    const patterns = [
+      `https://www.${brand.toLowerCase()}.com`,
+      `https://${brand.toLowerCase()}.com`,
+      `https://www.${brand.toLowerCase()}.co`,
+      `https://${brand.toLowerCase()}.co`,
+      `https://www.${brand.toLowerCase()}.net`,
+      `https://${brand.toLowerCase()}.net`,
+    ];
+
+    // Try them one by one (HEAD request to avoid downloading pages)
+    for (const url of patterns) {
+      try {
+        const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+        if (res.ok) {
+          console.log(`✅ Brand "${brand}" resolved to: ${url}`);
+          return url;
+        }
+      } catch {
+        // ignore errors and try next
+      }
+    }
+
+    console.log(`⚠️ Could not resolve a site for brand "${brand}"`);
+    return undefined;
+  }
+
+  private readonly UA =
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 }
+
+//////////////////////
+
+// import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+// import * as cheerio from 'cheerio';
+
+// @Controller('feeds')
+// export class FeedDiscoverController {
+//   @Get('discover')
+//   async discover(@Query('url') url: string) {
+//     if (!url) throw new BadRequestException('Missing url');
+
+//     let target = url.trim();
+//     if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
+
+//     console.log('🌐 FEED DISCOVER CALLED for', target);
+
+//     try {
+//       // 🛰️ Fetch homepage
+//       const res = await fetch(target, {
+//         headers: {
+//           'User-Agent':
+//             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+//           Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+//         },
+//         redirect: 'follow',
+//       });
+
+//       if (!res.ok)
+//         throw new BadRequestException(
+//           `Failed to fetch site: ${res.statusText}`,
+//         );
+
+//       const body = await res.text();
+//       const $ = cheerio.load(body);
+//       const feeds: { title: string; href: string }[] = [];
+
+//       // 🧠 1️⃣ Look for <link> tags
+//       $(
+//         'link[type="application/rss+xml"], link[type="application/atom+xml"]',
+//       ).each((_, el) => {
+//         const href = $(el).attr('href');
+//         if (href) {
+//           feeds.push({
+//             title: $(el).attr('title') || href,
+//             href: new URL(href, target).href,
+//           });
+//         }
+//       });
+
+//       // 🧠 2️⃣ Look for <a> with common patterns
+//       $('a[href*=".xml"], a[href*="/feed"]').each((_, el) => {
+//         const href = $(el).attr('href');
+//         if (href && (href.endsWith('.xml') || href.includes('/feed'))) {
+//           const abs = new URL(href, target).href;
+//           if (!feeds.some((f) => f.href === abs)) {
+//             feeds.push({ title: $(el).text() || abs, href: abs });
+//           }
+//         }
+//       });
+
+//       // 🧠 3️⃣ Try standard candidate paths
+//       const candidates = [
+//         '/feed',
+//         '/feed/rss',
+//         '/feed/rss.xml',
+//         '/feed/index.xml',
+//         '/rss',
+//         '/rss.xml',
+//         '/rss/latest.xml',
+//         '/atom.xml',
+//         '/index.xml',
+//         '/feeds/rss.xml',
+//         '/feeds/all.xml',
+//         '/feed.atom',
+//         '/feed.rss',
+//         '/blog/rss.xml',
+//         '/articles/rss.xml',
+//         '/news/rss.xml',
+//       ];
+
+//       for (const path of candidates) {
+//         const candidateUrl = new URL(path, target).href;
+//         if (await this.isValidFeed(candidateUrl)) {
+//           if (!feeds.some((f) => f.href === candidateUrl)) {
+//             feeds.push({ title: candidateUrl, href: candidateUrl });
+//           }
+//         }
+//       }
+
+//       // 🧠 4️⃣ Try known feedburner or parent site hints
+//       const domain = new URL(target).hostname.replace('www.', '');
+//       const hints: string[] = [];
+
+//       // Example: nymag runs The Cut
+//       if (domain.includes('thecut.com')) {
+//         const known = 'https://feeds.feedburner.com/nymag/fashion';
+//         if (await this.isValidFeed(known)) {
+//           feeds.push({ title: 'NYMag Fashion Feed', href: known });
+//         } else {
+//           hints.push(known);
+//         }
+//       }
+
+//       // ✅ Final decision
+//       return {
+//         feed: feeds.length ? feeds[0].href : null,
+//         feeds,
+//         hints,
+//         count: feeds.length,
+//         message: feeds.length
+//           ? 'Feeds found'
+//           : 'No feeds found. Try entering a known feed URL manually.',
+//       };
+//     } catch (err: any) {
+//       console.error('❌ Feed discovery failed:', err.message || err);
+//       throw new BadRequestException('Could not fetch or parse site.');
+//     }
+//   }
+
+//   // ✅ Validate if URL is a real RSS/Atom feed
+//   private async isValidFeed(url: string): Promise<boolean> {
+//     try {
+//       const res = await fetch(url, {
+//         method: 'GET',
+//         redirect: 'follow',
+//         headers: {
+//           'User-Agent':
+//             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+//           Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+//         },
+//       });
+//       if (!res.ok) return false;
+
+//       const contentType = res.headers.get('content-type') || '';
+//       const text = await res.text();
+//       return (
+//         contentType.includes('xml') ||
+//         text.includes('<rss') ||
+//         text.includes('<feed')
+//       );
+//     } catch {
+//       return false;
+//     }
+//   }
+// }
 
 //////////////////
 
