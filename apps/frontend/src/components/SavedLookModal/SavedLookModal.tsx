@@ -115,9 +115,9 @@ export default function SaveLookModal({visible, onClose}: Props) {
       borderRadius: tokens.borderRadius['2xl'],
     },
     title: {
-      fontSize: 20,
-      fontWeight: '700',
-      marginBottom: 18,
+      fontSize: 24,
+      fontWeight: '800',
+      marginBottom: 14,
       textAlign: 'center',
       color: theme.colors.foreground,
     },
@@ -125,7 +125,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       paddingHorizontal: 1,
       marginBottom: 17,
       fontSize: 14,
-      fontWeight: '400',
+      fontWeight: '500',
       color: theme.colors.foreground,
       textAlign: 'center',
       lineHeight: 21,
@@ -153,7 +153,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       marginTop: 20,
     },
     primaryButtonText: {
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       fontSize: 17,
       fontWeight: '600',
       letterSpacing: 0.2,
@@ -167,7 +167,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       backgroundColor: 'transparent',
     },
     secondaryButtonText: {
-      color: theme.colors.foreground || '#007AFF',
+      color: theme.colors.buttonText1 || '#007AFF',
       fontSize: 17,
       fontWeight: '500',
     },
@@ -185,7 +185,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       marginTop: 10,
     },
     uploadButtonText: {
-      color: theme.colors.foreground || '#ffffffff',
+      color: theme.colors.buttonText1 || '#ffffffff',
       fontSize: 17,
       fontWeight: '600',
     },
@@ -241,7 +241,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
               },
             ]}
             onPress={handleUpload}>
-            <Text style={{color: theme.colors.foreground}}>
+            <Text style={{color: theme.colors.buttonText1}}>
               Upload from Camera Roll
             </Text>
           </TouchableOpacity>
@@ -252,7 +252,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
             // style={[styles.primaryButton, !url && {opacity: 0.5}]}
             style={[globalStyles.buttonPrimary, {marginBottom: 16}]}
             disabled={!url}>
-            <Text style={{color: theme.colors.foreground}}>Save</Text>
+            <Text style={{color: theme.colors.buttonText1}}>Save</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

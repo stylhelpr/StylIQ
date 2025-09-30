@@ -252,14 +252,15 @@ export default function ExploreScreen() {
       paddingVertical: 12,
       marginHorizontal: 12,
       marginVertical: 6,
-      borderRadius: 14,
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: 'rgba(255,255,255,0.1)',
-      shadowColor: '#000',
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      shadowOffset: {width: 0, height: 4},
+      backgroundColor: theme.colors.surface,
+
+      borderRadius: tokens.borderRadius.md,
+      borderColor: theme.colors.surfaceBorder,
+      borderWidth: tokens.borderWidth.hairline,
+      // shadowColor: '#000',
+      // shadowOpacity: 0.15,
+      // shadowRadius: 8,
+      // shadowOffset: {width: 0, height: 4},
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.colors.surface,
@@ -280,7 +281,7 @@ export default function ExploreScreen() {
       width: 38,
       height: 38,
       borderRadius: 8,
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      backgroundColor: theme.colors.button1,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -309,7 +310,7 @@ export default function ExploreScreen() {
       fontWeight: '700',
     },
     sourceUrl: {
-      color: theme.colors.foreground3,
+      color: theme.colors.foreground,
       fontSize: 15,
       lineHeight: 16,
       flexShrink: 1,
@@ -1440,7 +1441,13 @@ export default function ExploreScreen() {
                       <View style={{flex: 1}}>
                         <Text style={styles.sourceName2}>{brand}</Text>
                       </View>
-                      <Text style={{color: '#fff', marginRight: 8}}>
+                      <Text
+                        style={{
+                          color: theme.colors.foreground,
+                          marginRight: 8,
+                          fontWeight: '500',
+                          fontSize: 13,
+                        }}>
                         Visible
                       </Text>
                       <Switch
@@ -1540,6 +1547,8 @@ export default function ExploreScreen() {
                 backgroundColor: theme.colors.surface,
                 marginBottom: 10,
                 borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
               }}>
               <RowToggle
                 label="Enable Push"
@@ -1561,6 +1570,8 @@ export default function ExploreScreen() {
                 backgroundColor: theme.colors.surface,
                 marginBottom: 10,
                 borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
               }}>
               <RowToggle
                 label="Realtime for Following"
@@ -1578,6 +1589,8 @@ export default function ExploreScreen() {
                 backgroundColor: theme.colors.surface,
                 marginBottom: 10,
                 borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
               }}>
               <RowToggle
                 label="Realtime for Brands (For You)"
@@ -1595,6 +1608,8 @@ export default function ExploreScreen() {
                 backgroundColor: theme.colors.surface,
                 marginBottom: 10,
                 borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
               }}>
               <RowToggle
                 label="Breaking Fashion News"

@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
+import {useAppTheme} from '../../context/ThemeContext';
 
 const STORAGE_KEY = 'outfit_feedback_logs';
 
@@ -44,13 +47,16 @@ export default function OutfitFeedbackModal({
   setFeedbackData,
   toggleTag,
   REASON_TAGS,
-  theme,
+  // theme,
   apiBaseUrl,
   userId,
   requestId,
   outfitId,
   outfitItemIds,
 }: Props) {
+  const globalStyles = useGlobalStyles();
+  const {theme} = useAppTheme();
+
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
@@ -59,38 +65,45 @@ export default function OutfitFeedbackModal({
       alignItems: 'center',
       padding: 20,
     },
-    modal: {width: '100%', borderRadius: 16, padding: 20},
+    modal: {
+      width: '100%',
+      borderRadius: 16,
+      paddingVertical: 30,
+      backgroundColor: theme.colors.surface,
+    },
     title: {
-      fontSize: 18,
-      fontWeight: '600',
-      marginBottom: 10,
+      fontSize: 28,
+      fontWeight: '700',
+      marginBottom: 14,
       textAlign: 'center',
     },
-    subtext: {fontSize: 14, textAlign: 'center'},
+    subtext: {fontSize: 15, textAlign: 'center', fontWeight: '400'},
     thumbRow: {
       flexDirection: 'row',
       justifyContent: 'center',
-      gap: 20,
-      marginVertical: 16,
+      marginVertical: 14,
     },
     input: {
-      borderWidth: 1,
-      borderColor: '#ccc',
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.foreground,
       borderRadius: 10,
-      padding: 10,
-      width: '100%',
+      paddingVertical: 16,
+      paddingHorizontal: 12,
+      width: '90%',
       color: theme.colors.foreground,
-      marginTop: 12,
+      fontSize: 16,
+      fontWeight: '400',
+      marginBottom: 14,
     },
     closeBtn: {
-      marginTop: 20,
+      marginTop: 4,
       alignSelf: 'center',
-      paddingVertical: 8,
-      paddingHorizontal: 20,
-      backgroundColor: '#007AFF',
-      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 34,
+      backgroundColor: theme.colors.button1,
+      borderRadius: tokens.borderRadius.md,
     },
-    closeText: {color: 'white', fontWeight: '600'},
+    closeText: {color: theme.colors.foreground, fontWeight: '600'},
   });
 
   const storeFeedback = async () => {
@@ -157,9 +170,14 @@ export default function OutfitFeedbackModal({
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
-        <View
-          style={[styles.modal, {backgroundColor: theme.colors.background}]}>
-          <Text style={[styles.title, {color: theme.colors.foreground}]}>
+        <View style={[styles.modal, {borderRadius: tokens.borderRadius.xl}]}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: theme.colors.foreground,
+              },
+            ]}>
             Rate this outfit
           </Text>
           <Text style={[styles.subtext, {color: theme.colors.foreground}]}>
@@ -176,7 +194,7 @@ export default function OutfitFeedbackModal({
               }>
               <MaterialIcons
                 name="thumb-up"
-                size={30}
+                size={38}
                 color={feedbackData.feedback === 'like' ? 'green' : 'gray'}
               />
             </TouchableOpacity>
@@ -187,11 +205,13 @@ export default function OutfitFeedbackModal({
                   feedback: prev.feedback === 'dislike' ? null : 'dislike',
                 }))
               }>
-              <MaterialIcons
-                name="thumb-down"
-                size={30}
-                color={feedbackData.feedback === 'dislike' ? 'red' : 'gray'}
-              />
+              <View style={{marginLeft: 16}}>
+                <MaterialIcons
+                  name="thumb-down"
+                  size={38}
+                  color={feedbackData.feedback === 'dislike' ? 'red' : 'gray'}
+                />
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -202,8 +222,7 @@ export default function OutfitFeedbackModal({
                   styles.subtext,
                   {
                     color: theme.colors.foreground,
-                    marginTop: 8,
-                    marginBottom: 8,
+                    marginBottom: 16,
                   },
                 ]}>
                 Why did you{' '}
@@ -224,16 +243,18 @@ export default function OutfitFeedbackModal({
                       key={tag}
                       onPress={() => toggleTag(tag)}
                       style={{
-                        borderColor: selected ? '#333' : '#999',
+                        borderColor: selected
+                          ? theme.colors.surfaceBorder
+                          : '#999',
                         borderWidth: 1,
                         borderRadius: 20,
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
                         backgroundColor: selected ? 'grey' : 'black',
-                        marginBottom: 8,
+                        marginBottom: 10,
                         marginRight: 8,
                       }}>
-                      <Text style={{color: theme.colors.foreground}}>
+                      <Text style={{color: theme.colors.buttonText1}}>
                         {tag}
                       </Text>
                     </TouchableOpacity>
@@ -241,16 +262,23 @@ export default function OutfitFeedbackModal({
                 })}
               </View>
 
-              <TextInput
-                placeholder="Add any comments or suggestions..."
-                placeholderTextColor={theme.colors.muted}
-                value={feedbackData.reason}
-                onChangeText={text =>
-                  setFeedbackData(prev => ({...prev, reason: text}))
-                }
-                style={styles.input}
-                multiline
-              />
+              <View
+                style={{
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: -5,
+                }}>
+                <TextInput
+                  placeholder="Add any comments or suggestions..."
+                  placeholderTextColor={theme.colors.muted}
+                  value={feedbackData.reason}
+                  onChangeText={text =>
+                    setFeedbackData(prev => ({...prev, reason: text}))
+                  }
+                  style={[styles.input]}
+                  multiline
+                />
+              </View>
             </>
           )}
 

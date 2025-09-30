@@ -58,9 +58,9 @@ export const createGlobalStyles = (theme: Theme) =>
       padding: 16,
 
       // shadowColor: '#000',
-      // shadowOffset: {width: 10, height: 5},
+      // shadowOffset: {width: 5, height: 5},
       // shadowOpacity: 0.4,
-      // shadowRadius: 6,
+      // shadowRadius: 5,
       // elevation: 14,
 
       borderWidth: tokens.borderWidth.md,
@@ -392,9 +392,8 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
-      // borderColor: theme.colors.surfaceBorder,
+      borderColor: theme.colors.surfaceBorder,
       //  paddingVertical: 11,
-
       paddingVertical: 13,
       borderWidth: 1,
     },

@@ -65,15 +65,15 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
       bottom: 20,
     },
     source: {
-      color: theme.colors.foreground3,
+      color: theme.colors.buttonText1,
       fontWeight: '700',
-      fontSize: 14,
+      fontSize: 16,
       marginBottom: 8,
       letterSpacing: 0.5,
       opacity: 0.9,
     },
     title: {
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       fontSize: 24,
       lineHeight: 30,
       fontWeight: '800',

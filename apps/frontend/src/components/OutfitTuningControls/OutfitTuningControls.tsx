@@ -272,7 +272,7 @@ export default function OutfitTuningControls({
       marginBottom: 12,
       width: 150,
     },
-    ctaText: {color: '#fff', fontSize: 16, fontWeight: '600'},
+    ctaText: {color: theme.colors.buttonText1, fontSize: 16, fontWeight: '700'},
     section: {gap: 10},
     iconBtn: {
       width: 25,
@@ -295,16 +295,15 @@ export default function OutfitTuningControls({
       padding: 12,
       borderRadius: 12,
       backgroundColor: theme.colors.surface,
-      gap: 10,
     },
     cardTitle: {color: theme.colors.foreground, fontWeight: '600'},
     refineInput: {
-      borderWidth: 1,
-      borderColor: '#666',
-      borderRadius: 8,
-      padding: 10,
-      marginTop: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginTop: 10,
       color: theme.colors.foreground,
+      fontSize: 16,
+      fontWeight: '400',
     },
     hint: {
       textAlign: 'center',
@@ -404,7 +403,7 @@ export default function OutfitTuningControls({
             disabled={isGenDisabled}
             accessibilityState={{disabled: isGenDisabled}}
             testID="generate-outfit-button">
-            <Text style={globalStyles.buttonPrimaryText}>
+            <Text style={[globalStyles.buttonPrimaryText, {fontWeight: '700'}]}>
               {isGenerating ? 'Generating…' : 'Create Outfit'}
             </Text>
           </TouchableOpacity>
@@ -414,13 +413,23 @@ export default function OutfitTuningControls({
       {/* NEW: Refinement input + button (hidden until outfit exists) */}
       {showRefine && (
         <>
-          <TextInput
-            style={S.refineInput}
-            value={refineText}
-            onChangeText={setRefineText}
-            placeholder="Refine outfit (e.g. make shorts more colorful)"
-            placeholderTextColor="#888"
-          />
+          <View style={{alignItems: 'center', paddingHorizontal: 16}}>
+            <TextInput
+              style={[
+                S.refineInput,
+                {
+                  width: 400,
+                  borderRadius: tokens.borderRadius.md,
+                  backgroundColor: theme.colors.surface3,
+                  paddingVertical: 14,
+                },
+              ]}
+              value={refineText}
+              onChangeText={setRefineText}
+              placeholder="Refine outfit (e.g. make shorts more colorful)"
+              placeholderTextColor="#888"
+            />
+          </View>
           <View
             style={{
               display: 'flex',
@@ -440,7 +449,7 @@ export default function OutfitTuningControls({
               accessibilityState={{disabled: isGenerating}}
               testID="refine-outfit-button">
               <Text style={S.ctaText}>
-                {isGenerating ? 'Refining…' : 'Refine Outfit'}
+                {isGenerating ? 'Refining…' : 'Update Outfit'}
               </Text>
             </TouchableOpacity>
           </View>

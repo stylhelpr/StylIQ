@@ -48,6 +48,15 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    iconCircle2: {
+      backgroundColor: theme.colors.button1,
+      padding: 6,
+      marginLeft: 10,
+      marginRight: 4,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     title: {
       fontSize: 24,
       fontWeight: '700',
@@ -86,13 +95,13 @@ export default function GlobalHeader({navigate, showSettings = false}: Props) {
         </AppleTouchFeedback>
 
         <AppleTouchFeedback
-          style={styles.iconButton}
+          style={styles.iconCircle2}
           hapticStyle="impactLight"
           onPress={() => navigate('AiStylistChatScreen')}>
           <MaterialIcons
             name="smart-toy"
-            size={32}
-            color={theme.colors.button1}
+            size={20}
+            color={theme.colors.buttonText1}
           />
         </AppleTouchFeedback>
 

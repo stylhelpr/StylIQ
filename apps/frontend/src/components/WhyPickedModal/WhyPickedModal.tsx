@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import type {WardrobeItem} from '../../hooks/useOutfitSuggestion';
 import {useAppTheme} from '../../context/ThemeContext';
+import {useGlobalStyles} from '../../styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
 
 type Props = {
   visible: boolean;
@@ -26,6 +28,44 @@ export default function WhyPickedModal({
   section,
 }: Props) {
   const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: 'center',
+      backgroundColor: '#00000099',
+      padding: 20,
+    },
+    modal: {
+      paddingHorizontal: 30,
+      paddingVertical: 30,
+      borderRadius: tokens.borderRadius.xl,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '800',
+      marginBottom: 16,
+    },
+    content: {
+      // height: 220,
+    },
+    reason: {
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '400',
+    },
+    closeButton: {
+      alignSelf: 'center',
+      backgroundColor: theme.colors.button1,
+      marginTop: 16,
+    },
+    closeText: {
+      color: theme.colors.buttonText1,
+      fontWeight: 'bold',
+      fontSize: 18,
+    },
+  });
 
   if (!item) return null;
 
@@ -53,50 +93,23 @@ export default function WhyPickedModal({
             )}
           </ScrollView>
 
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>Close</Text>
-          </TouchableOpacity>
+          <View style={{alignItems: 'center'}}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={[
+                globalStyles.buttonPrimary,
+                {marginTop: 20, width: '50%'},
+              ]}>
+              <Text style={styles.closeText}>Close</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#00000099',
-    padding: 20,
-  },
-  modal: {
-    borderRadius: 12,
-    padding: 20,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  content: {
-    maxHeight: 200,
-  },
-  reason: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  closeButton: {
-    marginTop: 20,
-    alignSelf: 'center',
-  },
-  closeText: {
-    color: '#007AFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
-
-/////////////////
+//////////////////
 
 // import React from 'react';
 // import {

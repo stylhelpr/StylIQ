@@ -720,10 +720,10 @@ export default function SavedOutfitsScreen() {
                     width: 92,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    shadowColor: '#000',
-                    shadowOpacity: 0.15,
-                    shadowRadius: 6,
-                    shadowOffset: {width: 0, height: 2},
+                    // shadowColor: '#000',
+                    // shadowOpacity: 0.15,
+                    // shadowRadius: 6,
+                    // shadowOffset: {width: 0, height: 2},
                   }}>
                   <Text
                     style={{
@@ -842,7 +842,7 @@ export default function SavedOutfitsScreen() {
                                     styles.timestamp,
                                     {
                                       fontSize: 12,
-                                      color: theme.colors.foreground3,
+                                      color: theme.colors.muted,
                                     },
                                   ]}>
                                   {`Saved ${new Date(

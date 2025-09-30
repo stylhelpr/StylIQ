@@ -263,17 +263,17 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 justifyContent: 'center',
                 alignSelf: 'flex-end',
                 marginRight: 6,
-                shadowColor: '#000',
-                shadowOpacity: 0.15,
-                shadowRadius: 6,
-                shadowOffset: {width: 0, height: 2},
+                // shadowColor: '#000',
+                // shadowOpacity: 0.15,
+                // shadowRadius: 6,
+                // shadowOffset: {width: 0, height: 2},
                 borderWidth: 1,
                 borderColor: theme.colors.surfaceBorder,
               }}>
               <MaterialIcons
                 name="smart-toy"
                 size={22}
-                color={theme.colors.primary}
+                color={theme.colors.buttonText1}
                 style={{transform: [{scale: 1.05}]}}
               />
             </View>
@@ -298,14 +298,14 @@ export default function AiStylistChatScreen({navigate}: Props) {
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 20,
+                borderRadius: 50,
                 overflow: 'hidden',
                 backgroundColor: theme.colors.surface,
                 alignSelf: 'flex-end',
-                shadowColor: '#000',
-                shadowOpacity: 0.15,
-                shadowRadius: 6,
-                shadowOffset: {width: 0, height: 2},
+                // shadowColor: '#000',
+                // shadowOpacity: 0.15,
+                // shadowRadius: 6,
+                // shadowOffset: {width: 0, height: 2},
                 borderWidth: 1,
                 borderColor: theme.colors.surfaceBorder,
                 // marginLeft: 8,
@@ -643,6 +643,7 @@ export function AnimatedInputBar({
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginLeft: 6,
+                  marginBottom: 2,
                   backgroundColor: theme.colors.surface,
                 }}>
                 <MaterialIcons
@@ -751,7 +752,7 @@ function stylesUserBubble(theme: any) {
       maxWidth: '78%',
       // backgroundColor: 'rgba(0, 122, 255, 1)',
       // backgroundColor: 'rgba(43, 43, 43, 1)',
-      backgroundColor: 'rgba(144, 0, 255, 1)',
+      backgroundColor: theme.colors.button1,
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderTopLeftRadius: 22,
@@ -763,14 +764,14 @@ function stylesUserBubble(theme: any) {
       borderWidth: tokens.borderWidth.hairline,
 
       // 🍏 Apple-style depth
-      shadowColor: '#000',
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      shadowOffset: {width: 0, height: 4},
+      // shadowColor: '#000',
+      // shadowOpacity: 0.15,
+      // shadowRadius: 8,
+      // shadowOffset: {width: 0, height: 4},
 
       position: 'relative',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceBorder,
     },
     tail: {
       position: 'absolute',
@@ -783,14 +784,14 @@ function stylesUserBubble(theme: any) {
       borderBottomRightRadius: 4,
     },
     text: {
-      color: '#fff',
+      color: theme.colors.foreground,
       fontSize: 16,
       lineHeight: 22,
       fontWeight: '500',
       letterSpacing: 0.2,
     },
     time: {
-      color: 'rgba(255,255,255,0.7)',
+      color: theme.colors.foreground,
       fontSize: 11,
       marginTop: 4,
       textAlign: 'right',
