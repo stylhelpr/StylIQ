@@ -54,6 +54,8 @@ import {useAppTheme} from '../context/ThemeContext';
 import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 
+import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
+
 import ReactNativeBiometrics from 'react-native-biometrics';
 import {useAuth0} from 'react-native-auth0';
 
@@ -360,16 +362,20 @@ const RootNavigator = () => {
         <View style={styles.screen}>{renderScreen()}</View>
       </LayoutWrapper>
 
-      {currentScreen !== 'Login' && currentScreen !== 'Onboarding' ? (
-        <BottomNavigation current={currentScreen} navigate={navigate} />
-      ) : null}
+      {/* ✅ Always visible when logged in */}
+      {currentScreen !== 'Login' && currentScreen !== 'Onboarding' && (
+        <>
+          <BottomNavigation current={currentScreen} navigate={navigate} />
+          <VoiceMicButton navigate={navigate} />
+        </>
+      )}
     </View>
   );
 };
 
 export default RootNavigator;
 
-////////////////////
+///////////////////
 
 // import React, {useState, useEffect} from 'react';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -413,6 +419,12 @@ export default RootNavigator;
 // import UndertoneScreen from '../screens/UndertoneScreen';
 // import StyleKeywordsScreen from '../screens/StyleKeywordsScreen';
 // import OnboardingScreen from '../screens/OnboardingScreen';
+// import PersonalInformationScreen from '../screens/PersonalInformationScreen';
+// import AiStylistChatScreen from '../screens/AiStyleChatScreen';
+// import ContactScreen from '../screens/ContactScreen';
+// import AboutScreen from '../screens/AboutScreen';
+// import FeedbackScreen from '../screens/FeedBackScreen';
+// import WebPageScreen from '../screens/WebPageScreen';
 
 // import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 // import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -465,6 +477,12 @@ export default RootNavigator;
 //   | 'Undertone'
 //   | 'StyleKeywords'
 //   | 'Onboarding'
+//   | 'PersonalInformation'
+//   | 'ContactScreen'
+//   | 'AboutScreen'
+//   | 'FeedbackScreen'
+//   | 'AiStylistChatScreen'
+//   | 'WebPageScreen'
 //   | 'Planner';
 
 // const RootNavigator = () => {
@@ -637,10 +655,22 @@ export default RootNavigator;
 //         return <BudgetAndBrandsScreen navigate={navigate} />;
 //       case 'Appearance':
 //         return <AppearanceScreen navigate={navigate} />;
+//       case 'ContactScreen':
+//         return <ContactScreen navigate={navigate} />;
+//       case 'FeedbackScreen':
+//         return <FeedbackScreen navigate={navigate} />;
+//       case 'AboutScreen':
+//         return <AboutScreen navigate={navigate} />;
+//       case 'WebPageScreen':
+//         return (
+//           <WebPageScreen route={{params: screenParams}} navigate={navigate} />
+//         );
 //       case 'Lifestyle':
 //         return <LifestyleScreen navigate={navigate} />;
 //       case 'ShoppingHabits':
 //         return <ShoppingHabitScreen navigate={navigate} />;
+//       case 'AiStylistChatScreen':
+//         return <AiStylistChatScreen navigate={navigate} />;
 //       case 'Activities':
 //         return <ActivitiesScreen navigate={navigate} />;
 //       case 'BodyTypes':
@@ -673,6 +703,8 @@ export default RootNavigator;
 //         return <StyleKeywordsScreen navigate={navigate} />;
 //       case 'Onboarding':
 //         return <OnboardingScreen navigate={navigate} />;
+//       case 'PersonalInformation':
+//         return <PersonalInformationScreen navigate={navigate} />;
 //       case 'ItemDetail':
 //         return (
 //           <ItemDetailScreen

@@ -263,10 +263,6 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 justifyContent: 'center',
                 alignSelf: 'flex-end',
                 marginRight: 6,
-                // shadowColor: '#000',
-                // shadowOpacity: 0.15,
-                // shadowRadius: 6,
-                // shadowOffset: {width: 0, height: 2},
                 borderWidth: 1,
                 borderColor: theme.colors.surfaceBorder,
               }}>
@@ -706,39 +702,6 @@ function stylesHeader(theme: any) {
   });
 }
 
-// function stylesUserBubble(theme: any) {
-//   return StyleSheet.create({
-//     row: {
-//       flexDirection: 'row',
-//       alignItems: 'flex-end',
-//       justifyContent: 'flex-end',
-//       gap: 8,
-//       marginVertical: 2,
-//     },
-//     bubble: {
-//       maxWidth: '78%',
-//       backgroundColor: 'rgba(0, 119, 255, 1)',
-//       borderWidth: tokens.borderWidth.hairline,
-//       borderColor: theme.colors.surfaceBorder,
-//       paddingHorizontal: 14,
-//       paddingVertical: 10,
-//       borderRadius: 16,
-//       marginRight: 8,
-//     },
-//     text: {
-//       color: theme.colors.buttonText1,
-//       fontSize: 16,
-//       lineHeight: 22,
-//     },
-//     time: {
-//       color: theme.colors.buttonText1,
-//       fontSize: 11,
-//       marginTop: 4,
-//       textAlign: 'right',
-//     },
-//   });
-// }
-
 function stylesUserBubble(theme: any) {
   return StyleSheet.create({
     row: {
@@ -750,8 +713,6 @@ function stylesUserBubble(theme: any) {
     },
     bubble: {
       maxWidth: '78%',
-      // backgroundColor: 'rgba(0, 122, 255, 1)',
-      // backgroundColor: 'rgba(43, 43, 43, 1)',
       backgroundColor: theme.colors.button1,
       paddingHorizontal: 16,
       paddingVertical: 12,
@@ -762,13 +723,6 @@ function stylesUserBubble(theme: any) {
       marginRight: 8,
       borderColor: theme.colors.surfaceborder,
       borderWidth: tokens.borderWidth.hairline,
-
-      // 🍏 Apple-style depth
-      // shadowColor: '#000',
-      // shadowOpacity: 0.15,
-      // shadowRadius: 8,
-      // shadowOffset: {width: 0, height: 4},
-
       position: 'relative',
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
@@ -799,39 +753,6 @@ function stylesUserBubble(theme: any) {
   });
 }
 
-// function stylesAssistantBubble(theme: any) {
-//   return StyleSheet.create({
-//     row: {
-//       flexDirection: 'row',
-//       alignItems: 'flex-end',
-//       justifyContent: 'flex-start',
-//       gap: 8,
-//       marginVertical: 8,
-//     },
-//     bubble: {
-//       maxWidth: '82%',
-//       backgroundColor: theme.colors.surface3,
-//       paddingHorizontal: 14,
-//       paddingVertical: 10,
-//       borderRadius: 20,
-//       borderWidth: tokens.borderWidth.hairline,
-//       borderColor: theme.colors.surfaceBorder,
-//       marginLeft: 8,
-//     },
-//     text: {
-//       color: theme.colors.foreground,
-//       fontSize: 16,
-//       lineHeight: 22,
-//     },
-//     time: {
-//       color: theme.colors.foreground,
-//       fontSize: 11,
-//       marginTop: 4,
-//       textAlign: 'right',
-//     },
-//   });
-// }
-
 function stylesAssistantBubble(theme: any) {
   return StyleSheet.create({
     row: {
@@ -843,15 +764,13 @@ function stylesAssistantBubble(theme: any) {
     },
     bubble: {
       maxWidth: '82%',
-      // backgroundColor: theme.colors.surface3,
-      // backgroundColor: 'rgba(144, 0, 255, 1)',
       backgroundColor: theme.colors.surface,
       borderColor: theme.colors.surfaceborder,
       borderWidth: tokens.borderWidth.hairline,
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderTopLeftRadius: 22,
-      borderBottomRightRadius: 22, // 👈 slightly flatter top-right
+      borderBottomRightRadius: 22,
       borderBottomLeftRadius: 6,
       borderTopRightRadius: 22,
       marginRight: 8,
