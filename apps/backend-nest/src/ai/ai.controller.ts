@@ -10,7 +10,29 @@ export class AiController {
   chat(@Body() dto: ChatDto) {
     return this.service.chat(dto);
   }
+
+  // 🧠 New endpoint for AI stylist suggestions
+  @Post('suggest')
+  suggest(@Body() body: any) {
+    return this.service.suggest(body);
+  }
 }
+
+////////////
+
+// import { Controller, Post, Body } from '@nestjs/common';
+// import { AiService } from './ai.service';
+// import { ChatDto } from './dto/chat.dto';
+
+// @Controller('ai')
+// export class AiController {
+//   constructor(private readonly service: AiService) {}
+
+//   @Post('chat')
+//   chat(@Body() dto: ChatDto) {
+//     return this.service.chat(dto);
+//   }
+// }
 
 ///////////////
 
