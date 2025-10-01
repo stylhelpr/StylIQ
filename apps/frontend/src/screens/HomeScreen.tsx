@@ -301,9 +301,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     weatherAdvice: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '500',
       color: '#ffd369',
-      marginTop: 8,
+      marginTop: 4,
+      lineHeight: 22,
+      paddingRight: 14,
     },
     tagRow: {
       flexDirection: 'row',
@@ -510,18 +512,72 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     <Text style={styles.weatherCity}>
                       {weather.celsius.name}
                     </Text>
+
                     <Text style={styles.weatherDesc}>
-                      {weather.celsius.weather[0].description}
+                      {weather.celsius.weather[0].description.replace(
+                        /\b\w/g,
+                        c => c.toUpperCase(),
+                      )}
                     </Text>
+
+                    {/* <Text style={styles.weatherAdvice}>
+                      🌤️{' '}
+                      {(() => {
+                        const temp = weather.fahrenheit.main.temp;
+                        const condition = weather.celsius.weather[0].main;
+
+                        if (temp < 40)
+                          return 'Very cold — bundle up with layers and a coat.';
+                        if (temp < 50)
+                          return 'Chilly — layer a knit or light jacket.';
+                        if (temp < 65)
+                          return 'Mild and comfortable — a shirt and light layer work perfectly.';
+                        if (temp < 80)
+                          return 'Warm — opt for breathable fabrics.';
+                        if (temp < 90) return 'Hot — keep it light and airy.';
+                        return 'Scorching — wear ultra-light pieces and stay hydrated.';
+                      })()}{' '}
+                      {(() => {
+                        const condition = weather.celsius.weather[0].main;
+                        if (condition === 'Rain')
+                          return '☔ Grab an umbrella or waterproof layer.';
+                        if (condition === 'Snow')
+                          return '❄️ Insulated footwear and layers recommended.';
+                        if (condition === 'Clear')
+                          return '😎 Sunglasses might come in handy.';
+                        if (condition === 'Clouds')
+                          return '☁️ Great day for layering neutrals.';
+                        return '';
+                      })()}
+                    </Text> */}
                     <Text style={styles.weatherAdvice}>
                       🌤️{' '}
-                      {weather.fahrenheit.main.temp < 50
-                        ? 'It’s chilly — layer up.'
-                        : weather.fahrenheit.main.temp > 85
-                        ? 'Hot day — keep it light.'
-                        : 'Perfect weather — dress freely.'}
+                      {(() => {
+                        const temp = weather.fahrenheit.main.temp;
+                        const condition = weather.celsius.weather[0].main;
+
+                        if (temp < 40) return 'Very cold';
+                        if (temp < 50) return 'Chilly';
+                        if (temp < 65) return 'Mild and comfortable';
+                        if (temp < 80) return 'Warm';
+                        if (temp < 90) return 'Hot';
+                        return 'Scorching';
+                      })()}{' '}
+                      {/* {(() => {
+                        const condition = weather.celsius.weather[0].main;
+                        if (condition === 'Rain')
+                          return '☔ Grab an umbrella or waterproof layer.';
+                        if (condition === 'Snow')
+                          return '❄️ Insulated footwear and layers recommended.';
+                        if (condition === 'Clear')
+                          return '😎 Sunglasses might come in handy.';
+                        if (condition === 'Clouds')
+                          return '☁️ Great day for layering neutrals.';
+                        return '';
+                      })()} */}
                     </Text>
                   </View>
+
                   <View style={styles.weatherTempContainer}>
                     <Text style={styles.weatherTemp}>
                       {Math.round(weather.fahrenheit.main.temp)}° F
@@ -562,6 +618,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             </Text>
           </Animatable.View>
         )}
+
+        {/* AI SUGGESTS SECTION */}
+        {prefs.aiSuggestions &&
+          typeof weather?.fahrenheit?.main?.temp === 'number' && (
+            <AiStylistSuggestions
+              theme={theme}
+              weather={weather}
+              globalStyles={globalStyles}
+              navigate={navigate}
+              wardrobe={wardrobe}
+            />
+          )}
 
         {/* Map Section — collapsible with animated height & fade */}
         {prefs.locationMap && (
@@ -637,17 +705,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             </Animated.View>
           </Animatable.View>
         )}
-
-        {/* {prefs.aiSuggestions &&
-          typeof weather?.fahrenheit?.main?.temp === 'number' && (
-            <AiStylistSuggestions
-              theme={theme}
-              weather={weather}
-              globalStyles={globalStyles}
-              navigate={navigate}
-              wardrobe={wardrobe}
-            />
-          )} */}
 
         {/* Quick Access Section */}
         {prefs.quickAccess && (

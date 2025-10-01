@@ -39,7 +39,9 @@ const VoiceMicButton: React.FC<Props> = ({navigate}) => {
       shadowOpacity: 0.5,
       shadowRadius: 8,
       elevation: 10,
-      opacity: 0.9,
+      opacity: 0.8,
+      borderWidth: 2,
+      borderColor: theme.colors.buttonText1,
     },
     label: {
       marginTop: 8,

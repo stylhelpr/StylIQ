@@ -303,8 +303,8 @@ export default function SettingsScreen({navigate}: Props) {
                 {(
                   [
                     ['weather', 'Weather'],
-                    ['locationMap', 'Location Map'],
                     ['aiSuggestions', 'Ai Suggestions'],
+                    ['locationMap', 'Location Map'],
                     ['quickAccess', 'Quick Access'],
                     ['topFashionStories', 'Top Fashion Stories'],
                     ['recommendedItems', 'Recommended Items'],
