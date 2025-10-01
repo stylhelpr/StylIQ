@@ -497,7 +497,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             style={globalStyles.section}>
             <Text style={globalStyles.sectionTitle}>Weather</Text>
             {weather && (
-              <View style={globalStyles.cardStyles1}>
+              <View style={[globalStyles.cardStyles1]}>
                 <Animatable.View
                   animation="fadeInUp"
                   duration={600}

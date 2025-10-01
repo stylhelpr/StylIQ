@@ -292,19 +292,12 @@ export default function AiStylistChatScreen({navigate}: Props) {
           {isUser && (
             <View
               style={{
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 borderRadius: 50,
                 overflow: 'hidden',
-                backgroundColor: theme.colors.surface,
+                backgroundColor: theme.colors.background,
                 alignSelf: 'flex-end',
-                // shadowColor: '#000',
-                // shadowOpacity: 0.15,
-                // shadowRadius: 6,
-                // shadowOffset: {width: 0, height: 2},
-                borderWidth: 1,
-                borderColor: theme.colors.surfaceBorder,
-                // marginLeft: 8,
               }}>
               {profilePicture ? (
                 <Image
