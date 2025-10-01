@@ -209,11 +209,11 @@
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
+				B84B65C27EBFB31B0692C3E3 /* [CP] Embed Pods Frameworks */,
 				C20047E32E8383AF005702BE /* Strip Bitcode From Embedded Frameworks */,
 				C2799AB22E83881E0034D74E /* Generate Hermes dSYM */,
 				C2115CAB2E88E17F00871CF8 /* Embed Foundation Extensions */,
 				C2115CB02E88E52F00871CF8 /* CopyFiles */,
-				B84B65C27EBFB31B0692C3E3 /* [CP] Embed Pods Frameworks */,
 				6E66F0FB6D96BA097E44EF28 /* [CP] Copy Pods Resources */,
 				FF6FA99292645E5B2A4769F7 /* [CP-User] [RNFB] Core Configuration */,
 			);

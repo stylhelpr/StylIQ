@@ -85,8 +85,8 @@ export default function StyleProfileScreen({navigate}: Props) {
       paddingVertical: 12,
       paddingHorizontal: 16,
       backgroundColor: '#1c1c1e',
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.surfaceBorder,
+      borderBottomWidth: theme.borderWidth.hairline,
+      borderBottomColor: theme.colors.separator2,
     },
     firstItem: {
       borderTopLeftRadius: 12,
