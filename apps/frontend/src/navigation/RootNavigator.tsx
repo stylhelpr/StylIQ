@@ -366,7 +366,7 @@ const RootNavigator = () => {
       {currentScreen !== 'Login' && currentScreen !== 'Onboarding' && (
         <>
           <BottomNavigation current={currentScreen} navigate={navigate} />
-          <VoiceMicButton navigate={navigate} />
+          {/* <VoiceMicButton navigate={navigate} /> */}
         </>
       )}
     </View>
