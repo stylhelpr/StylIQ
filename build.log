@@ -1,0 +1,10 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace StylIQ.xcworkspace -scheme StylIQ -configuration Debug -sdk iphonesimulator -derivedDataPath build
+
+User defaults from command line:
+    IDEDerivedDataPathOverride = /Users/giffinmike/Git/StylIQ/build
+    IDEPackageSupportUseBuiltinSCM = YES
+
+Build settings from command line:
+    SDKROOT = iphonesimulator18.2
+
