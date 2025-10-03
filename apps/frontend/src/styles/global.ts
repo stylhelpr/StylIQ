@@ -131,10 +131,10 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     header: {
       paddingLeft: 20,
-      fontSize: 30,
+      fontSize: 34,
       fontWeight: '700',
       color: theme.colors.foreground,
-      textTransform: 'uppercase',
+      // textTransform: 'uppercase',
     },
     backContainer: {
       flexDirection: 'row',
@@ -152,7 +152,7 @@ export const createGlobalStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 8,
-      textTransform: 'uppercase',
+      // textTransform: 'uppercase',
     },
     sectionTitle2: {
       fontSize: 18,

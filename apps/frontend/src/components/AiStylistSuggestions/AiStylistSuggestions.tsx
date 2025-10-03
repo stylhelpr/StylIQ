@@ -275,7 +275,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             textTransform: 'uppercase',
             marginBottom: 0,
           }}>
-          Agent
+          AI Stylist Agent
         </Text>
       </View>
 
