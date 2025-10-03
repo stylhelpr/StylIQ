@@ -18,7 +18,7 @@ export const Surface: React.FC<{style?: any; children: React.ReactNode}> = ({
           theme.colors.surfaceGradientStart,
           theme.colors.surfaceGradientEnd,
         ]}
-        style={[{borderRadius: 16, overflow: 'hidden'}, style]}>
+        style={[{borderRadius: 30, overflow: 'hidden'}, style]}>
         {children}
       </LinearGradient>
     );

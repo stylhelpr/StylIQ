@@ -18,9 +18,11 @@ export const skins = {
       input2: 'rgb(43, 43, 43)',
       inputText1: 'rgba(121, 121, 121, 1)',
 
-      surface: '#1a1a1aff' /* Apple Newsey */,
+      // surface: '#1a1a1aff' /* Apple Newsey */,
 
       // surface: 'rgba(34, 35, 40, 1)', /// MVP RELEASE 1
+
+      surface: 'rgba(26, 26, 26, 1)',
 
       // surface: '#121212', /* MUI grey[900] */
 
@@ -29,7 +31,7 @@ export const skins = {
 
       // surfaceBorder: '#3b3b3b',
       surfaceBorder: 'rgba(59, 59, 59, 0.03)',
-      // surfaceBorder: 'rgba(59, 59, 59, 1.0)',
+      // surfaceBorder: 'rgba(55, 55, 55, 1)',
 
       pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
@@ -54,10 +56,14 @@ export const skins = {
       //  pillTextColor1: 'rgba(0, 255, 21, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
+      buttonGradientStart: '#9000ffff',
       buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
+      surfaceGradientStart: '#bc00afff',
       surfaceGradientEnd: '#7C4DFF',
+      // buttonGradientStart: '#FF00FF',
+      // buttonGradientEnd: '#7C4DFF',
+      // surfaceGradientStart: '#FF00FF',
+      // surfaceGradientEnd: '#7C4DFF',
     },
     ...tokens,
     borderRadius: 16,
