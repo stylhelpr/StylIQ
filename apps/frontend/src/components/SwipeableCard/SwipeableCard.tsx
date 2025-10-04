@@ -74,7 +74,7 @@ export default function SwipeableCard({
           (swipeVelocity < -0.15 && swipeDistance < -8);
 
         if (shouldSwipeRight) {
-          triggerHaptic();
+          // triggerHaptic();
           Animated.timing(panX, {
             toValue: SCREEN_WIDTH + 60,
             duration: 150,
@@ -84,7 +84,7 @@ export default function SwipeableCard({
             onSwipeRight?.();
           });
         } else if (shouldSwipeLeft) {
-          triggerHaptic();
+          // triggerHaptic();
           Animated.timing(panX, {
             toValue: -SCREEN_WIDTH - 60,
             duration: 150,

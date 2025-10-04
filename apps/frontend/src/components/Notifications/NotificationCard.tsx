@@ -70,7 +70,7 @@ export default function NotificationCard({n, onPress, onDelete}: Props) {
         const distanceTrigger = g.dx < -50; // Lowered from 70 → 50
 
         if (velocityTrigger || distanceTrigger) {
-          triggerHaptic();
+          // triggerHaptic();
           deleteVisible.current = true;
           Animated.timing(panX, {
             toValue: -DELETE_BUTTON_WIDTH,
@@ -248,6 +248,259 @@ export default function NotificationCard({n, onPress, onDelete}: Props) {
     </View>
   );
 }
+
+/////////////////
+
+// import React, {useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Animated,
+//   PanResponder,
+//   TouchableOpacity,
+// } from 'react-native';
+// import type {AppNotification} from '../../storage/notifications';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useGlobalStyles} from '../../styles/useGlobalStyles';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// const SWIPE_THRESHOLD = 70;
+// const DELETE_BUTTON_WIDTH = 88;
+
+// const iconFor = (c?: AppNotification['category']) => {
+//   switch (c) {
+//     case 'news':
+//       return '📰';
+//     case 'outfit':
+//       return '👗';
+//     case 'weather':
+//       return '☔';
+//     case 'care':
+//       return '🧼';
+//     default:
+//       return '🔔';
+//   }
+// };
+
+// type Props = {
+//   n: AppNotification;
+//   onPress: () => void;
+//   onDelete: (id: string) => void;
+// };
+
+// export default function NotificationCard({n, onPress, onDelete}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const isUnread = !n.read;
+
+//   // 🔥 Animation & swipe state
+//   const panX = useRef(new Animated.Value(0)).current;
+//   const deleteVisible = useRef(false);
+
+//   const triggerHaptic = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+//   };
+
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 4,
+//       onMoveShouldSetPanResponderCapture: (_, g) => Math.abs(g.dx) > 4,
+
+//       onPanResponderMove: (_, g) => {
+//         // ✅ Only allow swiping left (negative X)
+//         if (g.dx < 0) {
+//           panX.setValue(Math.max(g.dx, -DELETE_BUTTON_WIDTH));
+//         }
+//       },
+
+//       onPanResponderRelease: (_, g) => {
+//         // ✅ Easiest possible swipe: velocity OR distance
+//         const velocityTrigger = g.vx < -0.15; // Quick flick
+//         const distanceTrigger = g.dx < -50; // Lowered from 70 → 50
+
+//         if (velocityTrigger || distanceTrigger) {
+//           // triggerHaptic();
+//           deleteVisible.current = true;
+//           Animated.timing(panX, {
+//             toValue: -DELETE_BUTTON_WIDTH,
+//             duration: 180,
+//             useNativeDriver: true,
+//           }).start();
+//         } else {
+//           deleteVisible.current = false;
+//           Animated.timing(panX, {
+//             toValue: 0,
+//             duration: 160,
+//             useNativeDriver: true,
+//           }).start();
+//         }
+//       },
+
+//       onPanResponderTerminate: () => {
+//         Animated.spring(panX, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//         }).start();
+//       },
+//     }),
+//   ).current;
+
+//   const handleDeletePress = () => {
+//     triggerHaptic();
+//     onDelete(n.id);
+//   };
+
+//   const styles = StyleSheet.create({
+//     container: {
+//       position: 'relative',
+//       overflow: 'hidden',
+//       borderRadius: 16,
+//       marginBottom: 12,
+//     },
+//     deleteButton: {
+//       position: 'absolute',
+//       right: 0,
+//       top: 0,
+//       bottom: 0,
+//       width: DELETE_BUTTON_WIDTH,
+//       backgroundColor: '#FF3B30',
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     deleteText: {
+//       color: '#fff',
+//       fontSize: 17,
+//       fontWeight: '600',
+//     },
+//     card: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-start',
+//       padding: 14,
+//       borderRadius: 16,
+//       borderWidth: theme.borderWidth.md,
+//       borderColor: theme.colors.surfaceBorder,
+//       backgroundColor: theme.colors.surface,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.08,
+//       shadowRadius: 6,
+//       elevation: 1,
+//     },
+//     cardUnread: {
+//       backgroundColor: theme.isDark
+//         ? theme.colors.surface
+//         : theme.colors.background,
+//       borderColor: theme.colors.button3,
+//       borderWidth: theme.borderWidth.lg,
+//     },
+//     left: {
+//       width: 32,
+//       alignItems: 'center',
+//       marginRight: 10,
+//       paddingTop: 2,
+//       position: 'relative',
+//     },
+//     unreadDot: {
+//       position: 'absolute',
+//       top: -4,
+//       right: -4,
+//       width: 10,
+//       height: 10,
+//       borderRadius: 5,
+//       backgroundColor: theme.colors.button1,
+//     },
+//     icon: {fontSize: 20},
+//     center: {flex: 1},
+//     title: {
+//       fontSize: 16,
+//       marginBottom: 2,
+//       fontWeight: isUnread ? '700' : '500',
+//       color: theme.colors.foreground,
+//     },
+//     message: {
+//       fontSize: 14,
+//       lineHeight: 19,
+//       color: isUnread ? theme.colors.foreground : theme.colors.foreground3,
+//       marginTop: 4,
+//     },
+//     outfitName: {
+//       fontSize: 16,
+//       fontWeight: '700',
+//       color: theme.colors.foreground,
+//       marginLeft: 4,
+//     },
+//     time: {
+//       fontSize: 12,
+//       marginTop: 8,
+//       color: theme.colors.foreground2,
+//     },
+//   });
+
+//   // ✅ Extract outfit name cleanly
+//   const outfitName = n?.data?.outfit_name;
+//   const [prefix, parsedName] = n.message.includes(':')
+//     ? n.message.split(':')
+//     : [n.message, ''];
+
+//   return (
+//     <View style={styles.container}>
+//       {/* 🔴 Delete background */}
+//       <View style={styles.deleteButton}>
+//         <TouchableOpacity
+//           onPress={handleDeletePress}
+//           style={{
+//             flex: 1,
+//             justifyContent: 'center',
+//             alignItems: 'center',
+//           }}>
+//           <Text style={styles.deleteText}>Delete</Text>
+//         </TouchableOpacity>
+//       </View>
+
+//       {/* 📱 Swipeable notification card */}
+//       <Animated.View
+//         {...panResponder.panHandlers}
+//         style={[{transform: [{translateX: panX}]}]}>
+//         <TouchableOpacity
+//           onPress={onPress}
+//           activeOpacity={0.9}
+//           style={[styles.card, isUnread && styles.cardUnread]}>
+//           <View style={styles.left}>
+//             <Text style={styles.icon}>{iconFor(n.category)}</Text>
+//             {isUnread && <View style={styles.unreadDot} />}
+//           </View>
+
+//           <View style={styles.center}>
+//             {n.title ? (
+//               <Text numberOfLines={1} style={styles.title}>
+//                 {n.title}
+//               </Text>
+//             ) : null}
+
+//             <Text numberOfLines={2} style={styles.message}>
+//               {prefix}
+//               {outfitName || parsedName ? (
+//                 <>
+//                   :{' '}
+//                   <Text style={styles.outfitName}>
+//                     "{outfitName || parsedName.trim()}"
+//                   </Text>
+//                 </>
+//               ) : null}
+//             </Text>
+
+//             <Text style={styles.time}>
+//               {new Date(n.timestamp).toLocaleString()}
+//             </Text>
+//           </View>
+//         </TouchableOpacity>
+//       </Animated.View>
+//     </View>
+//   );
+// }
 
 ////////////////////
 
