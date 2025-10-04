@@ -32,6 +32,7 @@ import ReaderModal from '../components/FashionFeed/ReaderModal';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import AiStylistSuggestions from '../components/AiStylistSuggestions/AiStylistSuggestions';
 import {Surface} from '../components/Surface/Surface';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // import SparkleIcon from '../assets/images/sparkle-icon.png';
 // import Future1 from '../assets/images/future-icon1.png';
 
@@ -125,6 +126,26 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   }, [userId]);
 
   useEffect(() => {
+    const restoreMapState = async () => {
+      try {
+        const savedState = await AsyncStorage.getItem('mapOpenState');
+        if (savedState !== null) {
+          const isOpen = JSON.parse(savedState);
+          setMapOpen(isOpen);
+
+          // Make sure animation reflects stored state
+          mapHeight.setValue(isOpen ? 220 : 0);
+          mapOpacity.setValue(isOpen ? 1 : 0);
+          chevron.setValue(isOpen ? 1 : 0);
+        }
+      } catch (err) {
+        console.error('❌ Failed to restore map state:', err);
+      }
+    };
+    restoreMapState();
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       const hasPermission = await ensureLocationPermission();
       if (!hasPermission) return;
@@ -163,7 +184,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     fetchSavedLooks();
   }, [userId]);
 
-  const toggleMap = () => {
+  const toggleMap = async () => {
     if (mapOpen) {
       Animated.parallel([
         Animated.timing(mapHeight, {
@@ -183,11 +204,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           duration: 220,
           useNativeDriver: true,
         }),
-      ]).start(() => {
+      ]).start(async () => {
         setMapOpen(false);
+        await AsyncStorage.setItem('mapOpenState', JSON.stringify(false));
       });
     } else {
       setMapOpen(true);
+      await AsyncStorage.setItem('mapOpenState', JSON.stringify(true));
+
       Animated.parallel([
         Animated.timing(mapHeight, {
           toValue: 220,
@@ -304,7 +328,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     weatherAdvice: {
       fontSize: 14,
-      fontWeight: '500',
+      fontWeight: '700',
       color: '#ffd369',
       marginTop: 4,
       lineHeight: 22,
@@ -414,7 +438,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         </Animatable.View>
 
         {/* Banner with ambient parallax + reveal */}
-        <View style={[globalStyles.section, {paddingHorizontal: 12}]}>
+        {/* <View style={[globalStyles.section, {paddingHorizontal: 12}]}>
           <Surface>
             <Animated.View
               style={{
@@ -445,19 +469,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   },
                 ],
               }}>
-              {/* <Image
-                source={SparkleIcon}
-                style={{
-                  position: 'absolute',
-                  top: 30,
-                  right: 10,
-                  width: 110,
-                  height: 110,
-                  resizeMode: 'contain',
-                  opacity: 1.0,
-                  transform: [{scale: 1.05}],
-                }}
-              /> */}
+          
 
               <Animatable.Text
                 animation="fadeInDown"
@@ -465,7 +477,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 style={[
                   {
                     color: theme.colors.foreground,
-                    fontWeight: '700',
+                    fontWeight: '800',
                     letterSpacing: 3,
                     fontSize: 55,
                     textAlign: 'left',
@@ -517,6 +529,79 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               </Animated.View>
             </Animated.View>
           </Surface>
+        </View> */}
+
+        {/* Banner with ambient parallax + reveal */}
+        <View style={globalStyles.section}>
+          <Animated.View
+            style={{
+              overflow: 'hidden',
+              shadowOffset: {width: 0, height: 6},
+              shadowOpacity: 0.1,
+              shadowRadius: 12,
+              elevation: 5,
+              borderWidth: tokens.borderWidth.md,
+              borderColor: theme.colors.surfaceBorder,
+              borderRadius: tokens.borderRadius.xl,
+              backgroundColor: theme.colors.surface,
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: [0, -10],
+                    extrapolate: 'clamp',
+                  }),
+                },
+                {
+                  scale: scrollY.interpolate({
+                    inputRange: [-50, 0, 100],
+                    outputRange: [1.05, 1, 0.97],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            }}>
+            <Image
+              source={require('../assets/images/video-still-1.png')}
+              style={{width: '100%', height: 200}}
+              resizeMode="cover"
+            />
+            <Animated.View
+              style={{
+                position: 'absolute',
+                bottom: 10,
+                left: 10,
+                right: 16,
+                backgroundColor: 'rgba(0,0,0,0.45)',
+                padding: 12,
+                borderRadius: 16,
+                transform: [
+                  {
+                    translateY: scrollY.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: [0, -4],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ],
+              }}>
+              <Animatable.Text
+                animation="fadeInDown"
+                delay={200}
+                style={[styles.bannerText, {color: theme.colors.buttonText1}]}>
+                Discover Your Signature Look
+              </Animatable.Text>
+              <Animatable.Text
+                animation="fadeIn"
+                delay={400}
+                style={[
+                  styles.bannerSubtext,
+                  {color: theme.colors.buttonText1},
+                ]}>
+                Curated just for you this season.
+              </Animatable.Text>
+            </Animated.View>
+          </Animated.View>
         </View>
 
         {/* Weather Section */}

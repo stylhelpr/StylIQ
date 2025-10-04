@@ -129,6 +129,13 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: 30,
       paddingLeft: responsivePadding,
     },
+    // header: {
+    //   paddingLeft: 20,
+    //   fontSize: 30,
+    //   fontWeight: '700',
+    //   color: theme.colors.foreground,
+    //   textTransform: 'uppercase',
+    // },
     header: {
       paddingLeft: 20,
       fontSize: 34,
@@ -152,8 +159,16 @@ export const createGlobalStyles = (theme: Theme) =>
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 8,
-      // textTransform: 'uppercase',
+      textTransform: 'uppercase',
     },
+    // sectionTitle: {
+    //   fontSize: 22,
+    //   fontWeight: '700',
+    //   lineHeight: 24,
+    //   color: theme.colors.foreground,
+    //   marginBottom: 8,
+    //   // textTransform: 'uppercase',
+    // },
     sectionTitle2: {
       fontSize: 18,
       fontWeight: '700',
@@ -405,17 +420,16 @@ export const createGlobalStyles = (theme: Theme) =>
     // },
 
     buttonPrimaryText: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '600',
       color: theme.colors.buttonText1,
     },
 
     buttonSecondary: {
-      width: '90%',
-      maxWidth: 186,
-      backgroundColor: theme.colors.button1,
-      borderRadius: tokens.borderRadius.sm,
-      paddingVertical: 12,
+      // width: '90%',
+      // maxWidth: 160,
+      backgroundColor: theme.colors.button2,
+      borderRadius: tokens.borderRadius['2xl'],
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -423,6 +437,10 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
+      borderColor: theme.colors.surfaceBorder,
+      //  paddingVertical: 11,
+      paddingVertical: 13,
+      borderWidth: 1,
     },
     buttonSecondaryText: {
       fontSize: 15,

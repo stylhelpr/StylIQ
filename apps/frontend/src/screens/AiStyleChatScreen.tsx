@@ -155,10 +155,124 @@ export default function AiStylistChatScreen({navigate}: Props) {
     h('selection');
   }, [stopListening]);
 
+  // /** 📤 Send message */
+  // const send = useCallback(async () => {
+  //   const trimmed = input.trim();
+  //   if (!trimmed || isTyping) return;
+  //   setInput('');
+  //   inputRef.current?.clear();
+  //   const userMsg: Message = {
+  //     id: `u-${Date.now()}`,
+  //     role: 'user',
+  //     text: trimmed,
+  //     createdAt: Date.now(),
+  //   };
+  //   setMessages(prev => [...prev, userMsg]);
+  //   setIsTyping(true);
+  //   Keyboard.dismiss();
+  //   h('impactLight');
+
+  //   try {
+  //     const historyForApi = [...messages, userMsg];
+  //     const assistant = await callAiChatAPI(historyForApi, userMsg);
+  //     const aiMsg: Message = {
+  //       id: `a-${Date.now()}`,
+  //       role: 'assistant',
+  //       text: assistant.text,
+  //       createdAt: Date.now(),
+  //     };
+  //     setMessages(prev => [...prev, aiMsg]);
+  //     h('selection');
+  //   } catch {
+  //     setMessages(prev => [
+  //       ...prev,
+  //       {
+  //         id: `a-${Date.now()}`,
+  //         role: 'assistant',
+  //         text: "Hmm, I couldn't reach the styling service. Want me to try again?",
+  //         createdAt: Date.now(),
+  //       },
+  //     ]);
+  //     h('notificationError');
+  //   } finally {
+  //     setIsTyping(false);
+  //   }
+  // }, [input, isTyping, messages]);
+
   /** 📤 Send message */
   const send = useCallback(async () => {
     const trimmed = input.trim();
     if (!trimmed || isTyping) return;
+
+    // 🧠 STEP 1: Block anything unrelated to fashion before sending
+    const fashionKeywords = [
+      'outfit',
+      'style',
+      'wardrobe',
+      'stores',
+      'clothing',
+      'clothes',
+      'dress',
+      'trends',
+      'weather',
+      'event',
+      'occasion',
+      'formal',
+      'casual',
+      'smart casual',
+      'blazer',
+      'pants',
+      'shirt',
+      'jacket',
+      'accessory',
+      'color',
+      'shoes',
+      'season',
+      'vibe',
+      'wear', // ✅ catches “what should I wear”
+      'look', // ✅ catches “create a look” or “build a look”
+      'fit', // ✅ covers “does this fit”
+      'layer', // ✅ layering questions
+      'capsule', // ✅ capsule wardrobe
+      'pair', // ✅ “what pairs with…”
+      'match', // ✅ “does this match…”
+      'coordinate', // ✅ “coordinate these items”
+      'dress code', // ✅ “dress code for…”
+    ];
+
+    const lower = trimmed.toLowerCase();
+
+    // ✅ 1. Check for obvious fashion terms
+    const hasFashionKeyword = fashionKeywords.some(kw => lower.includes(kw));
+
+    // ✅ 2. Check for common fashion-related question patterns
+    const commonPhrases = [
+      'what should i wear',
+      'how should i dress',
+      'what goes with',
+      'how to style',
+      'how do i style',
+      'make me an outfit',
+      'build an outfit',
+      'suggest an outfit',
+      'style me',
+      'pair with',
+      'does this match',
+    ];
+    const hasCommonPhrase = commonPhrases.some(p => lower.includes(p));
+
+    // ✅ Final decision
+    const isFashionRelated = hasFashionKeyword || hasCommonPhrase;
+
+    if (!isFashionRelated) {
+      Alert.alert(
+        'Styling Questions Only ✨',
+        "I'm your personal stylist — I can only help with outfits, clothing advice, or fashion-related questions. Try asking about what to wear, how to style something, or how to dress for an event.",
+      );
+      return;
+    }
+
+    // 🧵 Continue normal chat flow
     setInput('');
     inputRef.current?.clear();
     const userMsg: Message = {
@@ -428,7 +542,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                   marginHorizontal: 12,
                   marginBottom: 8,
                   borderRadius: 14,
-                  backgroundColor: theme.colors.surface3,
+                  // backgroundColor: theme.colors.surface3,
                 }}>
                 <TypingDots />
                 <Text style={{color: theme.colors.foreground, fontSize: 13}}>
@@ -558,7 +672,7 @@ export function CreateOutfitCTA({
   );
 }
 
-/** 📥 Animated Input Bar */
+/** 📥 Animated Input Bar — iMessage-style (no internal scroll, keeps growing) */
 export function AnimatedInputBar({
   input,
   setInput,
@@ -571,6 +685,10 @@ export function AnimatedInputBar({
 }: any) {
   const {theme} = useAppTheme();
 
+  // iMessage feel: no max cap, keep growing
+  const MIN_HEIGHT = 40;
+  const [inputHeight, setInputHeight] = React.useState(MIN_HEIGHT);
+
   return (
     <Animatable.View
       animation="fadeInUp"
@@ -581,11 +699,7 @@ export function AnimatedInputBar({
         paddingBottom: 16,
         backgroundColor: 'transparent',
       }}>
-      <Animatable.View
-        animation="pulse"
-        iterationCount="infinite"
-        duration={5000}
-        easing="ease-in-out"
+      <View
         style={{
           flexDirection: 'row',
           alignItems: 'flex-end',
@@ -599,32 +713,37 @@ export function AnimatedInputBar({
           shadowRadius: 5,
           shadowOffset: {width: 0, height: 2},
         }}>
+        {/* 📝 Input (auto-grows forever, no ScrollView) */}
         <TextInput
           ref={inputRef}
           value={input}
           onChangeText={setInput}
           placeholder="Ask for a look… event, vibe, weather"
           placeholderTextColor={'#9c9c9cff'}
-          style={{
-            flex: 1,
-            height: 45,
-            color: theme.colors.foreground,
-            paddingHorizontal: 8,
-            paddingTop: 12,
-            fontSize: 16,
-          }}
           multiline
+          scrollEnabled={false} // never scroll internally
           keyboardAppearance="dark"
-          onSubmitEditing={onSend}
           returnKeyType="send"
           blurOnSubmit={false}
+          style={{
+            flex: 1,
+            color: theme.colors.foreground,
+            paddingHorizontal: 8,
+            paddingTop: 10,
+            paddingBottom: 10,
+            fontSize: 16,
+            textAlignVertical: 'top',
+            flexGrow: 1, // ✅ allow it to grow naturally
+            flexShrink: 1, // ✅ prevent mic/send push-out
+            minHeight: 40, // ✅ sensible base height
+          }}
         />
 
         {/* 🎙️ Mic */}
-        <Animatable.View
-          animation={isRecording ? 'pulse' : undefined}
-          iterationCount="infinite"
-          duration={1200}
+        <TouchableOpacity
+          onPressIn={onMicPressIn}
+          onPressOut={onMicPressOut}
+          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           style={{
             width: 38,
             height: 42,
@@ -632,59 +751,49 @@ export function AnimatedInputBar({
             justifyContent: 'center',
             transform: [{scale: isRecording ? 1.15 : 1}],
           }}>
-          <TouchableOpacity
-            onPressIn={onMicPressIn}
-            onPressOut={onMicPressOut}
-            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-            <MaterialIcons
-              name={isRecording ? 'mic' : 'mic-none'}
-              size={24}
-              color={
-                isRecording ? theme.colors.primary : theme.colors.foreground2
-              }
-            />
-          </TouchableOpacity>
-        </Animatable.View>
+          <MaterialIcons
+            name={isRecording ? 'mic' : 'mic-none'}
+            size={24}
+            color={
+              isRecording ? theme.colors.primary : theme.colors.foreground2
+            }
+          />
+        </TouchableOpacity>
 
         {/* 📤 Send */}
-        <Animatable.View
-          animation="fadeIn"
-          duration={400}
+        <TouchableOpacity
+          onPress={onSend}
+          disabled={!input.trim() || isTyping}
           style={{
             width: 38,
             height: 42,
             alignItems: 'center',
             justifyContent: 'center',
-            transform: [{scale: !input.trim() || isTyping ? 0.9 : 1}],
             opacity: !input.trim() || isTyping ? 0.4 : 1,
           }}>
-          <TouchableOpacity
-            onPress={onSend}
-            disabled={!input.trim() || isTyping}>
-            {isTyping ? (
-              <ActivityIndicator />
-            ) : (
-              <View
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 17,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginLeft: 6,
-                  marginBottom: 2,
-                  backgroundColor: theme.colors.surface,
-                }}>
-                <MaterialIcons
-                  name="arrow-upward"
-                  size={24}
-                  color={theme.colors.foreground}
-                />
-              </View>
-            )}
-          </TouchableOpacity>
-        </Animatable.View>
-      </Animatable.View>
+          {isTyping ? (
+            <ActivityIndicator />
+          ) : (
+            <View
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: 6,
+                marginBottom: 2,
+                backgroundColor: theme.colors.surface,
+              }}>
+              <MaterialIcons
+                name="arrow-upward"
+                size={24}
+                color={theme.colors.foreground}
+              />
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
     </Animatable.View>
   );
 }
@@ -821,6 +930,2588 @@ function stylesAssistantBubble(theme: any) {
     },
   });
 }
+
+/////////////////////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useMemo, useRef, useState, useEffect, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TextInput,
+//   KeyboardAvoidingView,
+//   Platform,
+//   ScrollView,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   PermissionsAndroid,
+//   Keyboard,
+//   TouchableWithoutFeedback,
+//   Animated,
+//   Image,
+// } from 'react-native';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+// import * as Animatable from 'react-native-animatable';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import dayjs from 'dayjs';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {API_BASE_URL} from '../config/api';
+// import {useVoiceControl} from '../hooks/useVoiceControl';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useUUID} from '../context/UUIDContext';
+// import {Alert} from 'react-native';
+
+// type Role = 'user' | 'assistant' | 'system';
+// type Message = {id: string; role: Role; text: string; createdAt: number};
+// type Props = {navigate: (screen: string, params?: any) => void};
+
+// const SUGGESTIONS_DEFAULT = [
+//   'Build a smart-casual look for 75°F',
+//   'What should I wear to a gallery opening?',
+//   'Make 3 outfit ideas from my polos + loafers',
+//   'Refine that last look for “business creative”',
+// ];
+
+// const h = (
+//   type: 'selection' | 'impactLight' | 'impactMedium' | 'notificationError',
+// ) =>
+//   ReactNativeHapticFeedback.trigger(type, {
+//     enableVibrateFallback: true,
+//     ignoreAndroidSystemSettings: false,
+//   });
+
+// export default function AiStylistChatScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const insets = useSafeAreaInsets();
+
+//   const userId = useUUID();
+//   const [profilePicture, setProfilePicture] = useState<string>('');
+
+//   /** 🌐 State */
+//   const [messages, setMessages] = useState<Message[]>(() => [
+//     {
+//       id: 'seed-1',
+//       role: 'assistant',
+//       text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+//       createdAt: Date.now(),
+//     },
+//   ]);
+//   const [input, setInput] = useState('');
+//   const [isTyping, setIsTyping] = useState(false);
+//   const [suggestions, setSuggestions] = useState<string[]>(SUGGESTIONS_DEFAULT);
+//   const [isHolding, setIsHolding] = useState(false);
+
+//   const scrollRef = useRef<ScrollView | null>(null);
+//   const inputRef = useRef<TextInput | null>(null);
+//   const scrollY = useRef(new Animated.Value(0)).current;
+
+//   /** 🎙️ Voice */
+//   const {speech, isRecording, startListening, stopListening} =
+//     useVoiceControl();
+
+//   useEffect(() => {
+//     if (typeof speech === 'string') setInput(speech);
+//   }, [speech]);
+
+//   /** 📜 Scroll-to-bottom helper */
+//   const scrollToBottom = useCallback(() => {
+//     requestAnimationFrame(() =>
+//       scrollRef.current?.scrollToEnd({animated: true}),
+//     );
+//   }, []);
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [messages]);
+
+//   useEffect(() => {
+//     const s1 = Keyboard.addListener('keyboardWillShow', scrollToBottom);
+//     const s2 = Keyboard.addListener('keyboardDidShow', scrollToBottom);
+//     return () => {
+//       s1.remove();
+//       s2.remove();
+//     };
+//   }, [scrollToBottom]);
+
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
+//       if (cached) {
+//         setProfilePicture(
+//           `${cached}${cached.includes('?') ? '&' : '?'}v=${Date.now()}`,
+//         ); // bust cache so updates show immediately
+//       }
+//     })();
+//   }, [userId]);
+
+//   /** 💾 Persist chat thread */
+//   useEffect(() => {
+//     (async () => {
+//       const saved = await AsyncStorage.getItem(`chat_thread:${userId}`);
+//       if (saved) {
+//         const parsed: Message[] = JSON.parse(saved);
+//         if (parsed?.length) setMessages(parsed);
+//       }
+//     })();
+//   }, [userId]);
+
+//   useEffect(() => {
+//     if (messages?.length) {
+//       AsyncStorage.setItem(`chat_thread:${userId}`, JSON.stringify(messages));
+//     }
+//   }, [messages, userId]);
+
+//   /** 🎙️ Mic logic */
+//   async function prepareAudio() {
+//     if (Platform.OS === 'android') {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+//       );
+//       if (granted !== PermissionsAndroid.RESULTS.GRANTED) return false;
+//     }
+//     return true;
+//   }
+//   const handleMicPressIn = useCallback(async () => {
+//     if (!(await prepareAudio())) return;
+//     setIsHolding(true);
+//     h('impactLight');
+//     startListening();
+//   }, [startListening]);
+//   const handleMicPressOut = useCallback(() => {
+//     setIsHolding(false);
+//     stopListening();
+//     h('selection');
+//   }, [stopListening]);
+
+//   // /** 📤 Send message */
+//   // const send = useCallback(async () => {
+//   //   const trimmed = input.trim();
+//   //   if (!trimmed || isTyping) return;
+//   //   setInput('');
+//   //   inputRef.current?.clear();
+//   //   const userMsg: Message = {
+//   //     id: `u-${Date.now()}`,
+//   //     role: 'user',
+//   //     text: trimmed,
+//   //     createdAt: Date.now(),
+//   //   };
+//   //   setMessages(prev => [...prev, userMsg]);
+//   //   setIsTyping(true);
+//   //   Keyboard.dismiss();
+//   //   h('impactLight');
+
+//   //   try {
+//   //     const historyForApi = [...messages, userMsg];
+//   //     const assistant = await callAiChatAPI(historyForApi, userMsg);
+//   //     const aiMsg: Message = {
+//   //       id: `a-${Date.now()}`,
+//   //       role: 'assistant',
+//   //       text: assistant.text,
+//   //       createdAt: Date.now(),
+//   //     };
+//   //     setMessages(prev => [...prev, aiMsg]);
+//   //     h('selection');
+//   //   } catch {
+//   //     setMessages(prev => [
+//   //       ...prev,
+//   //       {
+//   //         id: `a-${Date.now()}`,
+//   //         role: 'assistant',
+//   //         text: "Hmm, I couldn't reach the styling service. Want me to try again?",
+//   //         createdAt: Date.now(),
+//   //       },
+//   //     ]);
+//   //     h('notificationError');
+//   //   } finally {
+//   //     setIsTyping(false);
+//   //   }
+//   // }, [input, isTyping, messages]);
+
+//   /** 📤 Send message */
+//   const send = useCallback(async () => {
+//     const trimmed = input.trim();
+//     if (!trimmed || isTyping) return;
+
+//     // 🧠 STEP 1: Block anything unrelated to fashion before sending
+//     const fashionKeywords = [
+//       'outfit',
+//       'style',
+//       'wardrobe',
+//       'stores',
+//       'clothing',
+//       'clothes',
+//       'dress',
+//       'trends',
+//       'weather',
+//       'event',
+//       'occasion',
+//       'formal',
+//       'casual',
+//       'smart casual',
+//       'blazer',
+//       'pants',
+//       'shirt',
+//       'jacket',
+//       'accessory',
+//       'color',
+//       'shoes',
+//       'season',
+//       'vibe',
+//       'wear', // ✅ catches “what should I wear”
+//       'look', // ✅ catches “create a look” or “build a look”
+//       'fit', // ✅ covers “does this fit”
+//       'layer', // ✅ layering questions
+//       'capsule', // ✅ capsule wardrobe
+//       'pair', // ✅ “what pairs with…”
+//       'match', // ✅ “does this match…”
+//       'coordinate', // ✅ “coordinate these items”
+//       'dress code', // ✅ “dress code for…”
+//     ];
+
+//     const lower = trimmed.toLowerCase();
+
+//     // ✅ 1. Check for obvious fashion terms
+//     const hasFashionKeyword = fashionKeywords.some(kw => lower.includes(kw));
+
+//     // ✅ 2. Check for common fashion-related question patterns
+//     const commonPhrases = [
+//       'what should i wear',
+//       'how should i dress',
+//       'what goes with',
+//       'how to style',
+//       'how do i style',
+//       'make me an outfit',
+//       'build an outfit',
+//       'suggest an outfit',
+//       'style me',
+//       'pair with',
+//       'does this match',
+//     ];
+//     const hasCommonPhrase = commonPhrases.some(p => lower.includes(p));
+
+//     // ✅ Final decision
+//     const isFashionRelated = hasFashionKeyword || hasCommonPhrase;
+
+//     if (!isFashionRelated) {
+//       Alert.alert(
+//         'Styling Questions Only ✨',
+//         "I'm your personal stylist — I can only help with outfits, clothing advice, or fashion-related questions. Try asking about what to wear, how to style something, or how to dress for an event.",
+//       );
+//       return;
+//     }
+
+//     // 🧵 Continue normal chat flow
+//     setInput('');
+//     inputRef.current?.clear();
+//     const userMsg: Message = {
+//       id: `u-${Date.now()}`,
+//       role: 'user',
+//       text: trimmed,
+//       createdAt: Date.now(),
+//     };
+//     setMessages(prev => [...prev, userMsg]);
+//     setIsTyping(true);
+//     Keyboard.dismiss();
+//     h('impactLight');
+
+//     try {
+//       const historyForApi = [...messages, userMsg];
+//       const assistant = await callAiChatAPI(historyForApi, userMsg);
+//       const aiMsg: Message = {
+//         id: `a-${Date.now()}`,
+//         role: 'assistant',
+//         text: assistant.text,
+//         createdAt: Date.now(),
+//       };
+//       setMessages(prev => [...prev, aiMsg]);
+//       h('selection');
+//     } catch {
+//       setMessages(prev => [
+//         ...prev,
+//         {
+//           id: `a-${Date.now()}`,
+//           role: 'assistant',
+//           text: "Hmm, I couldn't reach the styling service. Want me to try again?",
+//           createdAt: Date.now(),
+//         },
+//       ]);
+//       h('notificationError');
+//     } finally {
+//       setIsTyping(false);
+//     }
+//   }, [input, isTyping, messages]);
+
+//   /** ✅ Original button logic */
+//   const canSendToOutfit = useMemo(() => {
+//     const lastUser = [...messages]
+//       .reverse()
+//       .find(m => m.role === 'user' && m.text.trim());
+//     if (!lastUser) return false;
+//     const hasAssistantAfterUser = messages.some(
+//       m =>
+//         m.role === 'assistant' &&
+//         m.text.trim() &&
+//         m.createdAt > lastUser.createdAt,
+//     );
+//     return hasAssistantAfterUser;
+//   }, [messages]);
+
+//   const assistantPrompt = useMemo(() => {
+//     const lastUser = [...messages]
+//       .reverse()
+//       .find(m => m.role === 'user' && m.text.trim());
+//     if (!lastUser) return '';
+//     let lastAssistantAfterUser: Message | null = null;
+//     for (const m of messages) {
+//       if (
+//         m.role === 'assistant' &&
+//         m.text.trim() &&
+//         m.createdAt > lastUser.createdAt
+//       ) {
+//         lastAssistantAfterUser = m;
+//       }
+//     }
+//     return lastAssistantAfterUser?.text.trim() ?? '';
+//   }, [messages]);
+
+//   const sendToOutfitSafe = useCallback(() => {
+//     if (!canSendToOutfit) return;
+//     if (!assistantPrompt) return;
+//     h('impactMedium');
+//     const payload = {
+//       seedPrompt: assistantPrompt,
+//       autogenerate: true,
+//       ts: Date.now(),
+//     };
+//     navigate('Outfit', payload);
+//   }, [assistantPrompt, canSendToOutfit, navigate]);
+
+//   /** 📊 Render bubbles */
+//   const renderMessage = (m: Message, idx: number) => {
+//     const isUser = m.role === 'user';
+//     const bubble = isUser
+//       ? stylesUserBubble(theme)
+//       : stylesAssistantBubble(theme);
+
+//     const translateX = scrollY.interpolate({
+//       inputRange: [0, 400],
+//       outputRange: [0, isUser ? -6 : 6],
+//       extrapolate: 'clamp',
+//     });
+
+//     return (
+//       <Animated.View key={m.id} style={{transform: [{translateX}]}}>
+//         <Animatable.View
+//           animation={isUser ? 'fadeInRight' : 'fadeInLeft'}
+//           duration={420}
+//           delay={idx * 90}
+//           easing="ease-out-cubic"
+//           style={[
+//             bubble.row,
+//             // ADD MORE VERTICAL SPACE BETWEEN BUBBLES
+//             {marginVertical: 10, transform: [{scale: 0.98}]},
+//           ]}>
+//           {/* 🤖 Chatbot icon for assistant messages */}
+//           {!isUser && (
+//             <View
+//               style={{
+//                 width: 36,
+//                 height: 36,
+//                 borderRadius: 19,
+//                 backgroundColor: theme.colors.button1,
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 alignSelf: 'flex-end',
+//                 marginRight: 6,
+//                 borderWidth: 1,
+//                 borderColor: theme.colors.surfaceBorder,
+//               }}>
+//               <MaterialIcons
+//                 name="smart-toy"
+//                 size={22}
+//                 color={theme.colors.buttonText1}
+//                 style={{transform: [{scale: 1.05}]}}
+//               />
+//             </View>
+//           )}
+
+//           {/* 💬 Message bubble */}
+//           <Animatable.View
+//             animation="zoomIn"
+//             delay={idx * 90 + 80}
+//             duration={420}
+//             easing="ease-out-cubic"
+//             style={bubble.bubble}>
+//             <Text style={bubble.text}>{m.text}</Text>
+//             <Text style={bubble.time}>
+//               {dayjs(m.createdAt).format('h:mm A')}
+//             </Text>
+//           </Animatable.View>
+
+//           {/* 👤 User profile image for user messages */}
+//           {isUser && (
+//             <View
+//               style={{
+//                 width: 38,
+//                 height: 38,
+//                 borderRadius: 50,
+//                 overflow: 'hidden',
+//                 backgroundColor: theme.colors.background,
+//                 alignSelf: 'flex-end',
+//               }}>
+//               {profilePicture ? (
+//                 <Image
+//                   source={{uri: profilePicture}}
+//                   style={{width: '100%', height: '100%'}}
+//                   resizeMode="cover"
+//                 />
+//               ) : (
+//                 <MaterialIcons
+//                   name="person"
+//                   size={22}
+//                   color={theme.colors.foreground2}
+//                   style={{alignSelf: 'center', marginTop: 6}}
+//                 />
+//               )}
+//             </View>
+//           )}
+//         </Animatable.View>
+//       </Animated.View>
+//     );
+//   };
+
+//   return (
+//     <SafeAreaView
+//       style={[globalStyles.screen]}
+//       edges={['top', 'left', 'right']}>
+//       <KeyboardAvoidingView
+//         style={{flex: 1}}
+//         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+//         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 40 : 0}>
+//         {/* 🧠 Header */}
+//         <View style={stylesHeader(theme).header}>
+//           <View style={stylesHeader(theme).headerLeft}>
+//             <View
+//               style={[
+//                 stylesHeader(theme).presenceDot,
+//                 {backgroundColor: theme.colors.success},
+//               ]}
+//             />
+//             <Text style={globalStyles.header}>AI Stylist Chat</Text>
+//           </View>
+//           <AppleTouchFeedback type="light">
+//             <TouchableOpacity
+//               style={stylesHeader(theme).iconButton}
+//               onPress={() => {
+//                 h('impactLight');
+//                 Alert.alert(
+//                   'Clear Chat?',
+//                   'This will erase your current conversation with the stylist.',
+//                   [
+//                     {text: 'Cancel', style: 'cancel'},
+//                     {
+//                       text: 'Clear Chat',
+//                       style: 'destructive',
+//                       onPress: async () => {
+//                         await AsyncStorage.removeItem(`chat_thread:${userId}`);
+//                         setMessages([
+//                           {
+//                             id: 'seed-1',
+//                             role: 'assistant',
+//                             text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+//                             createdAt: Date.now(),
+//                           },
+//                         ]);
+//                         scrollToBottom();
+//                       },
+//                     },
+//                   ],
+//                 );
+//               }}>
+//               <MaterialIcons
+//                 name="delete"
+//                 size={22}
+//                 color={theme.colors.foreground}
+//               />
+//             </TouchableOpacity>
+//           </AppleTouchFeedback>
+//         </View>
+
+//         {/* 💬 Main Scrollable Content */}
+//         <View style={{flex: 1}}>
+//           <Animated.ScrollView
+//             ref={scrollRef}
+//             onScroll={Animated.event(
+//               [{nativeEvent: {contentOffset: {y: scrollY}}}],
+//               {useNativeDriver: true},
+//             )}
+//             scrollEventThrottle={16}
+//             contentContainerStyle={{paddingBottom: 100}}
+//             showsVerticalScrollIndicator={false}
+//             keyboardShouldPersistTaps="handled"
+//             keyboardDismissMode={
+//               Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+//             }>
+//             {/* 📩 All Messages */}
+//             <View style={{paddingHorizontal: 12, paddingBottom: 20}}>
+//               {messages.map((m, i) => renderMessage(m, i))}
+//             </View>
+
+//             {/* 🫧 Typing Indicator */}
+//             {isTyping && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 duration={300}
+//                 style={{
+//                   flexDirection: 'row',
+//                   alignItems: 'center',
+//                   paddingHorizontal: 14,
+//                   paddingVertical: 10,
+//                   marginHorizontal: 12,
+//                   marginBottom: 8,
+//                   borderRadius: 14,
+//                   // backgroundColor: theme.colors.surface3,
+//                 }}>
+//                 <TypingDots />
+//                 <Text style={{color: theme.colors.foreground, fontSize: 13}}>
+//                   Stylist is thinking…
+//                 </Text>
+//               </Animatable.View>
+//             )}
+//           </Animated.ScrollView>
+
+//           {/* ✅ Original disabled CTA behavior */}
+//           {/* <View
+//             pointerEvents={canSendToOutfit ? 'auto' : 'none'}
+//             style={{
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               marginBottom: 12,
+//               flexDirection: 'row',
+//               marginLeft: 30,
+//             }}>
+//             <AppleTouchFeedback type="impactLight">
+//               <TouchableOpacity
+//                 style={[
+//                   globalStyles.buttonPrimary,
+//                   {opacity: canSendToOutfit ? 1 : 0.4},
+//                   {width: 240},
+//                 ]}
+//                 onPress={sendToOutfitSafe}
+//                 disabled={!canSendToOutfit}>
+//                 <Text style={globalStyles.buttonPrimaryText}>
+//                   Create Outfit From Prompt
+//                 </Text>
+//               </TouchableOpacity>
+//             </AppleTouchFeedback>
+
+//             <TooltipBubble
+//               message="This button is only if you want to use this specific prompt to create your outfit."
+//               position="top"
+//             />
+//           </View> */}
+
+//           {/* 📥 Animated Input Bar */}
+//           <AnimatedInputBar
+//             input={input}
+//             setInput={setInput}
+//             onSend={send}
+//             isTyping={isTyping}
+//             inputRef={inputRef}
+//             onMicPressIn={handleMicPressIn}
+//             onMicPressOut={handleMicPressOut}
+//             isRecording={isRecording}
+//           />
+//         </View>
+//       </KeyboardAvoidingView>
+//     </SafeAreaView>
+//   );
+// }
+
+// /** 🫧 Typing Dots */
+// function TypingDots() {
+//   const {theme} = useAppTheme();
+//   const dot = {width: 6, height: 6, borderRadius: 3, marginHorizontal: 3};
+//   return (
+//     <View
+//       style={{
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         paddingHorizontal: 8,
+//       }}>
+//       {[0, 150, 300].map(delay => (
+//         <Animatable.View
+//           key={delay}
+//           delay={delay}
+//           animation="pulse"
+//           iterationCount="infinite"
+//           easing="ease-in-out"
+//           duration={900}
+//           style={[dot, {backgroundColor: theme.colors.buttonText1}]}
+//         />
+//       ))}
+//     </View>
+//   );
+// }
+
+// /** 👗 Create Outfit CTA (kept but unused) */
+// export function CreateOutfitCTA({
+//   visible,
+//   onPress,
+// }: {
+//   visible: boolean;
+//   onPress: () => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   if (!visible) return null;
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={600}
+//       easing="ease-out-cubic"
+//       useNativeDriver
+//       style={{
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         paddingVertical: 20,
+//         transform: [{translateY: 10}],
+//       }}>
+//       <AppleTouchFeedback type="impactLight">
+//         <TouchableOpacity
+//           onPress={onPress}
+//           style={[
+//             globalStyles.buttonPrimary,
+//             {
+//               width: 240,
+//               opacity: 1,
+//               shadowColor: '#000',
+//               shadowOpacity: 0.15,
+//               shadowRadius: 8,
+//               shadowOffset: {width: 0, height: 4},
+//             },
+//           ]}>
+//           <Text style={globalStyles.buttonPrimaryText}>
+//             Create Outfit From Prompt
+//           </Text>
+//         </TouchableOpacity>
+//       </AppleTouchFeedback>
+//     </Animatable.View>
+//   );
+// }
+
+// /** 📥 Animated Input Bar — iMessage-style (no internal scroll, keeps growing) */
+// export function AnimatedInputBar({
+//   input,
+//   setInput,
+//   onSend,
+//   isTyping,
+//   inputRef,
+//   onMicPressIn,
+//   onMicPressOut,
+//   isRecording,
+// }: any) {
+//   const {theme} = useAppTheme();
+
+//   // iMessage feel: no max cap, keep growing
+//   const MIN_HEIGHT = 40;
+//   const [inputHeight, setInputHeight] = React.useState(MIN_HEIGHT);
+
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={600}
+//       delay={200}
+//       style={{
+//         paddingHorizontal: 10,
+//         paddingBottom: 16,
+//         backgroundColor: 'transparent',
+//       }}>
+//       <View
+//         style={{
+//           flexDirection: 'row',
+//           alignItems: 'flex-end',
+//           borderWidth: tokens.borderWidth.xl,
+//           borderColor: theme.colors.surfaceBorder,
+//           backgroundColor: theme.colors.surface3,
+//           borderRadius: 20,
+//           paddingHorizontal: 8,
+//           shadowColor: '#000',
+//           shadowOpacity: 0.08,
+//           shadowRadius: 5,
+//           shadowOffset: {width: 0, height: 2},
+//         }}>
+//         {/* 📝 Input (auto-grows forever, no ScrollView) */}
+//         <TextInput
+//           ref={inputRef}
+//           value={input}
+//           onChangeText={setInput}
+//           placeholder="Ask for a look… event, vibe, weather"
+//           placeholderTextColor={'#9c9c9cff'}
+//           multiline
+//           scrollEnabled={false} // never scroll internally
+//           keyboardAppearance="dark"
+//           returnKeyType="send"
+//           blurOnSubmit={false}
+//           style={{
+//             flex: 1,
+//             color: theme.colors.foreground,
+//             paddingHorizontal: 8,
+//             paddingTop: 10,
+//             paddingBottom: 10,
+//             fontSize: 16,
+//             textAlignVertical: 'top',
+//             flexGrow: 1, // ✅ allow it to grow naturally
+//             flexShrink: 1, // ✅ prevent mic/send push-out
+//             minHeight: 40, // ✅ sensible base height
+//           }}
+//         />
+
+//         {/* 🎙️ Mic */}
+//         <TouchableOpacity
+//           onPressIn={onMicPressIn}
+//           onPressOut={onMicPressOut}
+//           hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+//           style={{
+//             width: 38,
+//             height: 42,
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             transform: [{scale: isRecording ? 1.15 : 1}],
+//           }}>
+//           <MaterialIcons
+//             name={isRecording ? 'mic' : 'mic-none'}
+//             size={24}
+//             color={
+//               isRecording ? theme.colors.primary : theme.colors.foreground2
+//             }
+//           />
+//         </TouchableOpacity>
+
+//         {/* 📤 Send */}
+//         <TouchableOpacity
+//           onPress={onSend}
+//           disabled={!input.trim() || isTyping}
+//           style={{
+//             width: 38,
+//             height: 42,
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             opacity: !input.trim() || isTyping ? 0.4 : 1,
+//           }}>
+//           {isTyping ? (
+//             <ActivityIndicator />
+//           ) : (
+//             <View
+//               style={{
+//                 width: 34,
+//                 height: 34,
+//                 borderRadius: 17,
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 marginLeft: 6,
+//                 marginBottom: 2,
+//                 backgroundColor: theme.colors.surface,
+//               }}>
+//               <MaterialIcons
+//                 name="arrow-upward"
+//                 size={24}
+//                 color={theme.colors.foreground}
+//               />
+//             </View>
+//           )}
+//         </TouchableOpacity>
+//       </View>
+//     </Animatable.View>
+//   );
+// }
+
+// /** 🧠 API Call */
+// async function callAiChatAPI(
+//   history: Message[],
+//   latest: Message,
+// ): Promise<{text: string; suggestions?: string[]}> {
+//   const payload = {
+//     messages: [...history, latest].map(m => ({
+//       role: m.role,
+//       content: m.text,
+//     })),
+//   };
+//   const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+//     method: 'POST',
+//     headers: {'Content-Type': 'application/json'},
+//     body: JSON.stringify(payload),
+//   });
+//   if (!res.ok) throw new Error('Bad response');
+//   const data = await res.json();
+//   return {
+//     text: data.reply ?? 'Styled response unavailable.',
+//     suggestions: Array.isArray(data.suggestions) ? data.suggestions : undefined,
+//   };
+// }
+
+// /** 🎨 Styles */
+// function stylesHeader(theme: any) {
+//   return StyleSheet.create({
+//     header: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 16,
+//       paddingTop: 2,
+//       paddingBottom: 8,
+//       marginTop: -38,
+//     },
+//     headerLeft: {flexDirection: 'row', alignItems: 'center'},
+//     presenceDot: {width: 8, height: 8, borderRadius: 4, marginRight: 8},
+//     iconButton: {
+//       padding: 8,
+//       borderRadius: 10,
+//       backgroundColor: theme.colors.surface,
+//     },
+//   });
+// }
+
+// function stylesUserBubble(theme: any) {
+//   return StyleSheet.create({
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-end',
+//       justifyContent: 'flex-end',
+//       gap: 8,
+//       marginVertical: 14,
+//     },
+//     bubble: {
+//       maxWidth: '78%',
+//       backgroundColor: theme.colors.button1,
+//       paddingHorizontal: 16,
+//       paddingVertical: 12,
+//       borderTopLeftRadius: 22,
+//       borderBottomRightRadius: 6,
+//       borderBottomLeftRadius: 22,
+//       borderTopRightRadius: 22,
+//       marginRight: 8,
+//       borderColor: theme.colors.surfaceborder,
+//       borderWidth: tokens.borderWidth.hairline,
+//       position: 'relative',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.surfaceBorder,
+//     },
+//     tail: {
+//       position: 'absolute',
+//       right: -6,
+//       bottom: 0,
+//       width: 14,
+//       height: 14,
+//       backgroundColor: 'rgba(0, 122, 255, 1)',
+//       transform: [{rotate: '45deg'}],
+//       borderBottomRightRadius: 4,
+//     },
+//     text: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//       lineHeight: 22,
+//       fontWeight: '500',
+//       letterSpacing: 0.2,
+//     },
+//     time: {
+//       color: theme.colors.foreground,
+//       fontSize: 11,
+//       marginTop: 4,
+//       textAlign: 'right',
+//     },
+//   });
+// }
+
+// function stylesAssistantBubble(theme: any) {
+//   return StyleSheet.create({
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-end',
+//       justifyContent: 'flex-start',
+//       gap: 8,
+//       marginVertical: 8,
+//     },
+//     bubble: {
+//       maxWidth: '82%',
+//       backgroundColor: theme.colors.surface,
+//       borderColor: theme.colors.surfaceborder,
+//       borderWidth: tokens.borderWidth.hairline,
+//       paddingHorizontal: 16,
+//       paddingVertical: 12,
+//       borderTopLeftRadius: 22,
+//       borderBottomRightRadius: 22,
+//       borderBottomLeftRadius: 6,
+//       borderTopRightRadius: 22,
+//       marginRight: 8,
+//     },
+//     text: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//       lineHeight: 22,
+//     },
+//     time: {
+//       color: theme.colors.foreground,
+//       fontSize: 11,
+//       marginTop: 4,
+//       textAlign: 'right',
+//     },
+//   });
+// }
+
+///////////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useMemo, useRef, useState, useEffect, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TextInput,
+//   KeyboardAvoidingView,
+//   Platform,
+//   ScrollView,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   PermissionsAndroid,
+//   Keyboard,
+//   TouchableWithoutFeedback,
+//   Animated,
+//   Image,
+// } from 'react-native';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+// import * as Animatable from 'react-native-animatable';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import dayjs from 'dayjs';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {API_BASE_URL} from '../config/api';
+// import {useVoiceControl} from '../hooks/useVoiceControl';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useUUID} from '../context/UUIDContext';
+// import {Alert} from 'react-native';
+
+// type Role = 'user' | 'assistant' | 'system';
+// type Message = {id: string; role: Role; text: string; createdAt: number};
+// type Props = {navigate: (screen: string, params?: any) => void};
+
+// const SUGGESTIONS_DEFAULT = [
+//   'Build a smart-casual look for 75°F',
+//   'What should I wear to a gallery opening?',
+//   'Make 3 outfit ideas from my polos + loafers',
+//   'Refine that last look for “business creative”',
+// ];
+
+// const h = (
+//   type: 'selection' | 'impactLight' | 'impactMedium' | 'notificationError',
+// ) =>
+//   ReactNativeHapticFeedback.trigger(type, {
+//     enableVibrateFallback: true,
+//     ignoreAndroidSystemSettings: false,
+//   });
+
+// export default function AiStylistChatScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const insets = useSafeAreaInsets();
+
+//   const userId = useUUID();
+//   const [profilePicture, setProfilePicture] = useState<string>('');
+
+//   /** 🌐 State */
+//   const [messages, setMessages] = useState<Message[]>(() => [
+//     {
+//       id: 'seed-1',
+//       role: 'assistant',
+//       text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+//       createdAt: Date.now(),
+//     },
+//   ]);
+//   const [input, setInput] = useState('');
+//   const [isTyping, setIsTyping] = useState(false);
+//   const [suggestions, setSuggestions] = useState<string[]>(SUGGESTIONS_DEFAULT);
+//   const [isHolding, setIsHolding] = useState(false);
+
+//   const scrollRef = useRef<ScrollView | null>(null);
+//   const inputRef = useRef<TextInput | null>(null);
+//   const scrollY = useRef(new Animated.Value(0)).current;
+
+//   /** 🎙️ Voice */
+//   const {speech, isRecording, startListening, stopListening} =
+//     useVoiceControl();
+
+//   useEffect(() => {
+//     if (typeof speech === 'string') setInput(speech);
+//   }, [speech]);
+
+//   /** 📜 Scroll-to-bottom helper */
+//   const scrollToBottom = useCallback(() => {
+//     requestAnimationFrame(() =>
+//       scrollRef.current?.scrollToEnd({animated: true}),
+//     );
+//   }, []);
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [messages]);
+
+//   useEffect(() => {
+//     const s1 = Keyboard.addListener('keyboardWillShow', scrollToBottom);
+//     const s2 = Keyboard.addListener('keyboardDidShow', scrollToBottom);
+//     return () => {
+//       s1.remove();
+//       s2.remove();
+//     };
+//   }, [scrollToBottom]);
+
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
+//       if (cached) {
+//         setProfilePicture(
+//           `${cached}${cached.includes('?') ? '&' : '?'}v=${Date.now()}`,
+//         ); // bust cache so updates show immediately
+//       }
+//     })();
+//   }, [userId]);
+
+//   /** 💾 Persist chat thread */
+//   useEffect(() => {
+//     (async () => {
+//       const saved = await AsyncStorage.getItem(`chat_thread:${userId}`);
+//       if (saved) {
+//         const parsed: Message[] = JSON.parse(saved);
+//         if (parsed?.length) setMessages(parsed);
+//       }
+//     })();
+//   }, [userId]);
+
+//   useEffect(() => {
+//     if (messages?.length) {
+//       AsyncStorage.setItem(`chat_thread:${userId}`, JSON.stringify(messages));
+//     }
+//   }, [messages, userId]);
+
+//   /** 🎙️ Mic logic */
+//   async function prepareAudio() {
+//     if (Platform.OS === 'android') {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+//       );
+//       if (granted !== PermissionsAndroid.RESULTS.GRANTED) return false;
+//     }
+//     return true;
+//   }
+//   const handleMicPressIn = useCallback(async () => {
+//     if (!(await prepareAudio())) return;
+//     setIsHolding(true);
+//     h('impactLight');
+//     startListening();
+//   }, [startListening]);
+//   const handleMicPressOut = useCallback(() => {
+//     setIsHolding(false);
+//     stopListening();
+//     h('selection');
+//   }, [stopListening]);
+
+//   /** 📤 Send message */
+//   const send = useCallback(async () => {
+//     const trimmed = input.trim();
+//     if (!trimmed || isTyping) return;
+//     setInput('');
+//     inputRef.current?.clear();
+//     const userMsg: Message = {
+//       id: `u-${Date.now()}`,
+//       role: 'user',
+//       text: trimmed,
+//       createdAt: Date.now(),
+//     };
+//     setMessages(prev => [...prev, userMsg]);
+//     setIsTyping(true);
+//     Keyboard.dismiss();
+//     h('impactLight');
+
+//     try {
+//       const historyForApi = [...messages, userMsg];
+//       const assistant = await callAiChatAPI(historyForApi, userMsg);
+//       const aiMsg: Message = {
+//         id: `a-${Date.now()}`,
+//         role: 'assistant',
+//         text: assistant.text,
+//         createdAt: Date.now(),
+//       };
+//       setMessages(prev => [...prev, aiMsg]);
+//       h('selection');
+//     } catch {
+//       setMessages(prev => [
+//         ...prev,
+//         {
+//           id: `a-${Date.now()}`,
+//           role: 'assistant',
+//           text: "Hmm, I couldn't reach the styling service. Want me to try again?",
+//           createdAt: Date.now(),
+//         },
+//       ]);
+//       h('notificationError');
+//     } finally {
+//       setIsTyping(false);
+//     }
+//   }, [input, isTyping, messages]);
+
+//   /** ✅ Original button logic */
+//   const canSendToOutfit = useMemo(() => {
+//     const lastUser = [...messages]
+//       .reverse()
+//       .find(m => m.role === 'user' && m.text.trim());
+//     if (!lastUser) return false;
+//     const hasAssistantAfterUser = messages.some(
+//       m =>
+//         m.role === 'assistant' &&
+//         m.text.trim() &&
+//         m.createdAt > lastUser.createdAt,
+//     );
+//     return hasAssistantAfterUser;
+//   }, [messages]);
+
+//   const assistantPrompt = useMemo(() => {
+//     const lastUser = [...messages]
+//       .reverse()
+//       .find(m => m.role === 'user' && m.text.trim());
+//     if (!lastUser) return '';
+//     let lastAssistantAfterUser: Message | null = null;
+//     for (const m of messages) {
+//       if (
+//         m.role === 'assistant' &&
+//         m.text.trim() &&
+//         m.createdAt > lastUser.createdAt
+//       ) {
+//         lastAssistantAfterUser = m;
+//       }
+//     }
+//     return lastAssistantAfterUser?.text.trim() ?? '';
+//   }, [messages]);
+
+//   const sendToOutfitSafe = useCallback(() => {
+//     if (!canSendToOutfit) return;
+//     if (!assistantPrompt) return;
+//     h('impactMedium');
+//     const payload = {
+//       seedPrompt: assistantPrompt,
+//       autogenerate: true,
+//       ts: Date.now(),
+//     };
+//     navigate('Outfit', payload);
+//   }, [assistantPrompt, canSendToOutfit, navigate]);
+
+//   /** 📊 Render bubbles */
+//   const renderMessage = (m: Message, idx: number) => {
+//     const isUser = m.role === 'user';
+//     const bubble = isUser
+//       ? stylesUserBubble(theme)
+//       : stylesAssistantBubble(theme);
+
+//     const translateX = scrollY.interpolate({
+//       inputRange: [0, 400],
+//       outputRange: [0, isUser ? -6 : 6],
+//       extrapolate: 'clamp',
+//     });
+
+//     return (
+//       <Animated.View key={m.id} style={{transform: [{translateX}]}}>
+//         <Animatable.View
+//           animation={isUser ? 'fadeInRight' : 'fadeInLeft'}
+//           duration={420}
+//           delay={idx * 90}
+//           easing="ease-out-cubic"
+//           style={[
+//             bubble.row,
+//             // ADD MORE VERTICAL SPACE BETWEEN BUBBLES
+//             {marginVertical: 10, transform: [{scale: 0.98}]},
+//           ]}>
+//           {/* 🤖 Chatbot icon for assistant messages */}
+//           {!isUser && (
+//             <View
+//               style={{
+//                 width: 36,
+//                 height: 36,
+//                 borderRadius: 19,
+//                 backgroundColor: theme.colors.button1,
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 alignSelf: 'flex-end',
+//                 marginRight: 6,
+//                 borderWidth: 1,
+//                 borderColor: theme.colors.surfaceBorder,
+//               }}>
+//               <MaterialIcons
+//                 name="smart-toy"
+//                 size={22}
+//                 color={theme.colors.buttonText1}
+//                 style={{transform: [{scale: 1.05}]}}
+//               />
+//             </View>
+//           )}
+
+//           {/* 💬 Message bubble */}
+//           <Animatable.View
+//             animation="zoomIn"
+//             delay={idx * 90 + 80}
+//             duration={420}
+//             easing="ease-out-cubic"
+//             style={bubble.bubble}>
+//             <Text style={bubble.text}>{m.text}</Text>
+//             <Text style={bubble.time}>
+//               {dayjs(m.createdAt).format('h:mm A')}
+//             </Text>
+//           </Animatable.View>
+
+//           {/* 👤 User profile image for user messages */}
+//           {isUser && (
+//             <View
+//               style={{
+//                 width: 38,
+//                 height: 38,
+//                 borderRadius: 50,
+//                 overflow: 'hidden',
+//                 backgroundColor: theme.colors.background,
+//                 alignSelf: 'flex-end',
+//               }}>
+//               {profilePicture ? (
+//                 <Image
+//                   source={{uri: profilePicture}}
+//                   style={{width: '100%', height: '100%'}}
+//                   resizeMode="cover"
+//                 />
+//               ) : (
+//                 <MaterialIcons
+//                   name="person"
+//                   size={22}
+//                   color={theme.colors.foreground2}
+//                   style={{alignSelf: 'center', marginTop: 6}}
+//                 />
+//               )}
+//             </View>
+//           )}
+//         </Animatable.View>
+//       </Animated.View>
+//     );
+//   };
+
+//   return (
+//     <SafeAreaView
+//       style={[globalStyles.screen]}
+//       edges={['top', 'left', 'right']}>
+//       <KeyboardAvoidingView
+//         style={{flex: 1}}
+//         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+//         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 40 : 0}>
+//         {/* 🧠 Header */}
+//         <View style={stylesHeader(theme).header}>
+//           <View style={stylesHeader(theme).headerLeft}>
+//             <View
+//               style={[
+//                 stylesHeader(theme).presenceDot,
+//                 {backgroundColor: theme.colors.success},
+//               ]}
+//             />
+//             <Text style={globalStyles.header}>AI Stylist Chat</Text>
+//           </View>
+//           <AppleTouchFeedback type="light">
+//             <TouchableOpacity
+//               style={stylesHeader(theme).iconButton}
+//               onPress={() => {
+//                 h('impactLight');
+//                 Alert.alert(
+//                   'Clear Chat?',
+//                   'This will erase your current conversation with the stylist.',
+//                   [
+//                     {text: 'Cancel', style: 'cancel'},
+//                     {
+//                       text: 'Clear Chat',
+//                       style: 'destructive',
+//                       onPress: async () => {
+//                         await AsyncStorage.removeItem(`chat_thread:${userId}`);
+//                         setMessages([
+//                           {
+//                             id: 'seed-1',
+//                             role: 'assistant',
+//                             text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+//                             createdAt: Date.now(),
+//                           },
+//                         ]);
+//                         scrollToBottom();
+//                       },
+//                     },
+//                   ],
+//                 );
+//               }}>
+//               <MaterialIcons
+//                 name="delete"
+//                 size={22}
+//                 color={theme.colors.foreground}
+//               />
+//             </TouchableOpacity>
+//           </AppleTouchFeedback>
+//         </View>
+
+//         {/* 💬 Main Scrollable Content */}
+//         <View style={{flex: 1}}>
+//           <Animated.ScrollView
+//             ref={scrollRef}
+//             onScroll={Animated.event(
+//               [{nativeEvent: {contentOffset: {y: scrollY}}}],
+//               {useNativeDriver: true},
+//             )}
+//             scrollEventThrottle={16}
+//             contentContainerStyle={{paddingBottom: 100}}
+//             showsVerticalScrollIndicator={false}
+//             keyboardShouldPersistTaps="handled"
+//             keyboardDismissMode={
+//               Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+//             }>
+//             {/* 📩 All Messages */}
+//             <View style={{paddingHorizontal: 12, paddingBottom: 20}}>
+//               {messages.map((m, i) => renderMessage(m, i))}
+//             </View>
+
+//             {/* 🫧 Typing Indicator */}
+//             {isTyping && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 duration={300}
+//                 style={{
+//                   flexDirection: 'row',
+//                   alignItems: 'center',
+//                   paddingHorizontal: 14,
+//                   paddingVertical: 10,
+//                   marginHorizontal: 12,
+//                   marginBottom: 8,
+//                   borderRadius: 14,
+//                   // backgroundColor: theme.colors.surface3,
+//                 }}>
+//                 <TypingDots />
+//                 <Text style={{color: theme.colors.foreground, fontSize: 13}}>
+//                   Stylist is thinking…
+//                 </Text>
+//               </Animatable.View>
+//             )}
+//           </Animated.ScrollView>
+
+//           {/* ✅ Original disabled CTA behavior */}
+//           {/* <View
+//             pointerEvents={canSendToOutfit ? 'auto' : 'none'}
+//             style={{
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               marginBottom: 12,
+//               flexDirection: 'row',
+//               marginLeft: 30,
+//             }}>
+//             <AppleTouchFeedback type="impactLight">
+//               <TouchableOpacity
+//                 style={[
+//                   globalStyles.buttonPrimary,
+//                   {opacity: canSendToOutfit ? 1 : 0.4},
+//                   {width: 240},
+//                 ]}
+//                 onPress={sendToOutfitSafe}
+//                 disabled={!canSendToOutfit}>
+//                 <Text style={globalStyles.buttonPrimaryText}>
+//                   Create Outfit From Prompt
+//                 </Text>
+//               </TouchableOpacity>
+//             </AppleTouchFeedback>
+
+//             <TooltipBubble
+//               message="This button is only if you want to use this specific prompt to create your outfit."
+//               position="top"
+//             />
+//           </View> */}
+
+//           {/* 📥 Animated Input Bar */}
+//           <AnimatedInputBar
+//             input={input}
+//             setInput={setInput}
+//             onSend={send}
+//             isTyping={isTyping}
+//             inputRef={inputRef}
+//             onMicPressIn={handleMicPressIn}
+//             onMicPressOut={handleMicPressOut}
+//             isRecording={isRecording}
+//           />
+//         </View>
+//       </KeyboardAvoidingView>
+//     </SafeAreaView>
+//   );
+// }
+
+// /** 🫧 Typing Dots */
+// function TypingDots() {
+//   const {theme} = useAppTheme();
+//   const dot = {width: 6, height: 6, borderRadius: 3, marginHorizontal: 3};
+//   return (
+//     <View
+//       style={{
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         paddingHorizontal: 8,
+//       }}>
+//       {[0, 150, 300].map(delay => (
+//         <Animatable.View
+//           key={delay}
+//           delay={delay}
+//           animation="pulse"
+//           iterationCount="infinite"
+//           easing="ease-in-out"
+//           duration={900}
+//           style={[dot, {backgroundColor: theme.colors.buttonText1}]}
+//         />
+//       ))}
+//     </View>
+//   );
+// }
+
+// /** 👗 Create Outfit CTA (kept but unused) */
+// export function CreateOutfitCTA({
+//   visible,
+//   onPress,
+// }: {
+//   visible: boolean;
+//   onPress: () => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   if (!visible) return null;
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={600}
+//       easing="ease-out-cubic"
+//       useNativeDriver
+//       style={{
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         paddingVertical: 20,
+//         transform: [{translateY: 10}],
+//       }}>
+//       <AppleTouchFeedback type="impactLight">
+//         <TouchableOpacity
+//           onPress={onPress}
+//           style={[
+//             globalStyles.buttonPrimary,
+//             {
+//               width: 240,
+//               opacity: 1,
+//               shadowColor: '#000',
+//               shadowOpacity: 0.15,
+//               shadowRadius: 8,
+//               shadowOffset: {width: 0, height: 4},
+//             },
+//           ]}>
+//           <Text style={globalStyles.buttonPrimaryText}>
+//             Create Outfit From Prompt
+//           </Text>
+//         </TouchableOpacity>
+//       </AppleTouchFeedback>
+//     </Animatable.View>
+//   );
+// }
+
+// /** 📥 Animated Input Bar — iMessage-style (no internal scroll, keeps growing) */
+// export function AnimatedInputBar({
+//   input,
+//   setInput,
+//   onSend,
+//   isTyping,
+//   inputRef,
+//   onMicPressIn,
+//   onMicPressOut,
+//   isRecording,
+// }: any) {
+//   const {theme} = useAppTheme();
+
+//   // iMessage feel: no max cap, keep growing
+//   const MIN_HEIGHT = 40;
+//   const [inputHeight, setInputHeight] = React.useState(MIN_HEIGHT);
+
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={600}
+//       delay={200}
+//       style={{
+//         paddingHorizontal: 10,
+//         paddingBottom: 16,
+//         backgroundColor: 'transparent',
+//       }}>
+//       <View
+//         style={{
+//           flexDirection: 'row',
+//           alignItems: 'flex-end',
+//           borderWidth: tokens.borderWidth.xl,
+//           borderColor: theme.colors.surfaceBorder,
+//           backgroundColor: theme.colors.surface3,
+//           borderRadius: 20,
+//           paddingHorizontal: 8,
+//           shadowColor: '#000',
+//           shadowOpacity: 0.08,
+//           shadowRadius: 5,
+//           shadowOffset: {width: 0, height: 2},
+//         }}>
+//         {/* 📝 Input (auto-grows forever, no ScrollView) */}
+//         <TextInput
+//           ref={inputRef}
+//           value={input}
+//           onChangeText={setInput}
+//           placeholder="Ask for a look… event, vibe, weather"
+//           placeholderTextColor={'#9c9c9cff'}
+//           multiline
+//           scrollEnabled={false} // never scroll internally
+//           keyboardAppearance="dark"
+//           returnKeyType="send"
+//           blurOnSubmit={false}
+//           style={{
+//             flex: 1,
+//             color: theme.colors.foreground,
+//             paddingHorizontal: 8,
+//             paddingTop: 10,
+//             paddingBottom: 10,
+//             fontSize: 16,
+//             textAlignVertical: 'top',
+//             flexGrow: 1, // ✅ allow it to grow naturally
+//             flexShrink: 1, // ✅ prevent mic/send push-out
+//             minHeight: 40, // ✅ sensible base height
+//           }}
+//         />
+
+//         {/* 🎙️ Mic */}
+//         <TouchableOpacity
+//           onPressIn={onMicPressIn}
+//           onPressOut={onMicPressOut}
+//           hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+//           style={{
+//             width: 38,
+//             height: 42,
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             transform: [{scale: isRecording ? 1.15 : 1}],
+//           }}>
+//           <MaterialIcons
+//             name={isRecording ? 'mic' : 'mic-none'}
+//             size={24}
+//             color={
+//               isRecording ? theme.colors.primary : theme.colors.foreground2
+//             }
+//           />
+//         </TouchableOpacity>
+
+//         {/* 📤 Send */}
+//         <TouchableOpacity
+//           onPress={onSend}
+//           disabled={!input.trim() || isTyping}
+//           style={{
+//             width: 38,
+//             height: 42,
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             opacity: !input.trim() || isTyping ? 0.4 : 1,
+//           }}>
+//           {isTyping ? (
+//             <ActivityIndicator />
+//           ) : (
+//             <View
+//               style={{
+//                 width: 34,
+//                 height: 34,
+//                 borderRadius: 17,
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 marginLeft: 6,
+//                 marginBottom: 2,
+//                 backgroundColor: theme.colors.surface,
+//               }}>
+//               <MaterialIcons
+//                 name="arrow-upward"
+//                 size={24}
+//                 color={theme.colors.foreground}
+//               />
+//             </View>
+//           )}
+//         </TouchableOpacity>
+//       </View>
+//     </Animatable.View>
+//   );
+// }
+
+// /** 🧠 API Call */
+// async function callAiChatAPI(
+//   history: Message[],
+//   latest: Message,
+// ): Promise<{text: string; suggestions?: string[]}> {
+//   const payload = {
+//     messages: [...history, latest].map(m => ({
+//       role: m.role,
+//       content: m.text,
+//     })),
+//   };
+//   const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+//     method: 'POST',
+//     headers: {'Content-Type': 'application/json'},
+//     body: JSON.stringify(payload),
+//   });
+//   if (!res.ok) throw new Error('Bad response');
+//   const data = await res.json();
+//   return {
+//     text: data.reply ?? 'Styled response unavailable.',
+//     suggestions: Array.isArray(data.suggestions) ? data.suggestions : undefined,
+//   };
+// }
+
+// /** 🎨 Styles */
+// function stylesHeader(theme: any) {
+//   return StyleSheet.create({
+//     header: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 16,
+//       paddingTop: 2,
+//       paddingBottom: 8,
+//       marginTop: -38,
+//     },
+//     headerLeft: {flexDirection: 'row', alignItems: 'center'},
+//     presenceDot: {width: 8, height: 8, borderRadius: 4, marginRight: 8},
+//     iconButton: {
+//       padding: 8,
+//       borderRadius: 10,
+//       backgroundColor: theme.colors.surface,
+//     },
+//   });
+// }
+
+// function stylesUserBubble(theme: any) {
+//   return StyleSheet.create({
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-end',
+//       justifyContent: 'flex-end',
+//       gap: 8,
+//       marginVertical: 14,
+//     },
+//     bubble: {
+//       maxWidth: '78%',
+//       backgroundColor: theme.colors.button1,
+//       paddingHorizontal: 16,
+//       paddingVertical: 12,
+//       borderTopLeftRadius: 22,
+//       borderBottomRightRadius: 6,
+//       borderBottomLeftRadius: 22,
+//       borderTopRightRadius: 22,
+//       marginRight: 8,
+//       borderColor: theme.colors.surfaceborder,
+//       borderWidth: tokens.borderWidth.hairline,
+//       position: 'relative',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.surfaceBorder,
+//     },
+//     tail: {
+//       position: 'absolute',
+//       right: -6,
+//       bottom: 0,
+//       width: 14,
+//       height: 14,
+//       backgroundColor: 'rgba(0, 122, 255, 1)',
+//       transform: [{rotate: '45deg'}],
+//       borderBottomRightRadius: 4,
+//     },
+//     text: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//       lineHeight: 22,
+//       fontWeight: '500',
+//       letterSpacing: 0.2,
+//     },
+//     time: {
+//       color: theme.colors.foreground,
+//       fontSize: 11,
+//       marginTop: 4,
+//       textAlign: 'right',
+//     },
+//   });
+// }
+
+// function stylesAssistantBubble(theme: any) {
+//   return StyleSheet.create({
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-end',
+//       justifyContent: 'flex-start',
+//       gap: 8,
+//       marginVertical: 8,
+//     },
+//     bubble: {
+//       maxWidth: '82%',
+//       backgroundColor: theme.colors.surface,
+//       borderColor: theme.colors.surfaceborder,
+//       borderWidth: tokens.borderWidth.hairline,
+//       paddingHorizontal: 16,
+//       paddingVertical: 12,
+//       borderTopLeftRadius: 22,
+//       borderBottomRightRadius: 22,
+//       borderBottomLeftRadius: 6,
+//       borderTopRightRadius: 22,
+//       marginRight: 8,
+//     },
+//     text: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//       lineHeight: 22,
+//     },
+//     time: {
+//       color: theme.colors.foreground,
+//       fontSize: 11,
+//       marginTop: 4,
+//       textAlign: 'right',
+//     },
+//   });
+// }
+
+///////////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useMemo, useRef, useState, useEffect, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TextInput,
+//   KeyboardAvoidingView,
+//   Platform,
+//   ScrollView,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   PermissionsAndroid,
+//   Keyboard,
+//   TouchableWithoutFeedback,
+//   Animated,
+//   Image,
+// } from 'react-native';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+// import * as Animatable from 'react-native-animatable';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import dayjs from 'dayjs';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {API_BASE_URL} from '../config/api';
+// import {useVoiceControl} from '../hooks/useVoiceControl';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useUUID} from '../context/UUIDContext';
+// import {Alert} from 'react-native';
+
+// type Role = 'user' | 'assistant' | 'system';
+// type Message = {id: string; role: Role; text: string; createdAt: number};
+// type Props = {navigate: (screen: string, params?: any) => void};
+
+// const SUGGESTIONS_DEFAULT = [
+//   'Build a smart-casual look for 75°F',
+//   'What should I wear to a gallery opening?',
+//   'Make 3 outfit ideas from my polos + loafers',
+//   'Refine that last look for “business creative”',
+// ];
+
+// const h = (
+//   type: 'selection' | 'impactLight' | 'impactMedium' | 'notificationError',
+// ) =>
+//   ReactNativeHapticFeedback.trigger(type, {
+//     enableVibrateFallback: true,
+//     ignoreAndroidSystemSettings: false,
+//   });
+
+// export default function AiStylistChatScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const insets = useSafeAreaInsets();
+
+//   const userId = useUUID();
+//   const [profilePicture, setProfilePicture] = useState<string>('');
+
+//   /** 🌐 State */
+//   const [messages, setMessages] = useState<Message[]>(() => [
+//     {
+//       id: 'seed-1',
+//       role: 'assistant',
+//       text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+//       createdAt: Date.now(),
+//     },
+//   ]);
+//   const [input, setInput] = useState('');
+//   const [isTyping, setIsTyping] = useState(false);
+//   const [suggestions, setSuggestions] = useState<string[]>(SUGGESTIONS_DEFAULT);
+//   const [isHolding, setIsHolding] = useState(false);
+
+//   const scrollRef = useRef<ScrollView | null>(null);
+//   const inputRef = useRef<TextInput | null>(null);
+//   const scrollY = useRef(new Animated.Value(0)).current;
+
+//   /** 🎙️ Voice */
+//   const {speech, isRecording, startListening, stopListening} =
+//     useVoiceControl();
+
+//   useEffect(() => {
+//     if (typeof speech === 'string') setInput(speech);
+//   }, [speech]);
+
+//   /** 📜 Scroll-to-bottom helper */
+//   const scrollToBottom = useCallback(() => {
+//     requestAnimationFrame(() =>
+//       scrollRef.current?.scrollToEnd({animated: true}),
+//     );
+//   }, []);
+//   useEffect(() => {
+//     scrollToBottom();
+//   }, [messages]);
+
+//   useEffect(() => {
+//     const s1 = Keyboard.addListener('keyboardWillShow', scrollToBottom);
+//     const s2 = Keyboard.addListener('keyboardDidShow', scrollToBottom);
+//     return () => {
+//       s1.remove();
+//       s2.remove();
+//     };
+//   }, [scrollToBottom]);
+
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
+//       if (cached) {
+//         setProfilePicture(
+//           `${cached}${cached.includes('?') ? '&' : '?'}v=${Date.now()}`,
+//         ); // bust cache so updates show immediately
+//       }
+//     })();
+//   }, [userId]);
+
+//   /** 💾 Persist chat thread */
+//   useEffect(() => {
+//     (async () => {
+//       const saved = await AsyncStorage.getItem(`chat_thread:${userId}`);
+//       if (saved) {
+//         const parsed: Message[] = JSON.parse(saved);
+//         if (parsed?.length) setMessages(parsed);
+//       }
+//     })();
+//   }, [userId]);
+
+//   useEffect(() => {
+//     if (messages?.length) {
+//       AsyncStorage.setItem(`chat_thread:${userId}`, JSON.stringify(messages));
+//     }
+//   }, [messages, userId]);
+
+//   /** 🎙️ Mic logic */
+//   async function prepareAudio() {
+//     if (Platform.OS === 'android') {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+//       );
+//       if (granted !== PermissionsAndroid.RESULTS.GRANTED) return false;
+//     }
+//     return true;
+//   }
+//   const handleMicPressIn = useCallback(async () => {
+//     if (!(await prepareAudio())) return;
+//     setIsHolding(true);
+//     h('impactLight');
+//     startListening();
+//   }, [startListening]);
+//   const handleMicPressOut = useCallback(() => {
+//     setIsHolding(false);
+//     stopListening();
+//     h('selection');
+//   }, [stopListening]);
+
+//   /** 📤 Send message */
+//   const send = useCallback(async () => {
+//     const trimmed = input.trim();
+//     if (!trimmed || isTyping) return;
+//     setInput('');
+//     inputRef.current?.clear();
+//     const userMsg: Message = {
+//       id: `u-${Date.now()}`,
+//       role: 'user',
+//       text: trimmed,
+//       createdAt: Date.now(),
+//     };
+//     setMessages(prev => [...prev, userMsg]);
+//     setIsTyping(true);
+//     Keyboard.dismiss();
+//     h('impactLight');
+
+//     try {
+//       const historyForApi = [...messages, userMsg];
+//       const assistant = await callAiChatAPI(historyForApi, userMsg);
+//       const aiMsg: Message = {
+//         id: `a-${Date.now()}`,
+//         role: 'assistant',
+//         text: assistant.text,
+//         createdAt: Date.now(),
+//       };
+//       setMessages(prev => [...prev, aiMsg]);
+//       h('selection');
+//     } catch {
+//       setMessages(prev => [
+//         ...prev,
+//         {
+//           id: `a-${Date.now()}`,
+//           role: 'assistant',
+//           text: "Hmm, I couldn't reach the styling service. Want me to try again?",
+//           createdAt: Date.now(),
+//         },
+//       ]);
+//       h('notificationError');
+//     } finally {
+//       setIsTyping(false);
+//     }
+//   }, [input, isTyping, messages]);
+
+//   /** ✅ Original button logic */
+//   const canSendToOutfit = useMemo(() => {
+//     const lastUser = [...messages]
+//       .reverse()
+//       .find(m => m.role === 'user' && m.text.trim());
+//     if (!lastUser) return false;
+//     const hasAssistantAfterUser = messages.some(
+//       m =>
+//         m.role === 'assistant' &&
+//         m.text.trim() &&
+//         m.createdAt > lastUser.createdAt,
+//     );
+//     return hasAssistantAfterUser;
+//   }, [messages]);
+
+//   const assistantPrompt = useMemo(() => {
+//     const lastUser = [...messages]
+//       .reverse()
+//       .find(m => m.role === 'user' && m.text.trim());
+//     if (!lastUser) return '';
+//     let lastAssistantAfterUser: Message | null = null;
+//     for (const m of messages) {
+//       if (
+//         m.role === 'assistant' &&
+//         m.text.trim() &&
+//         m.createdAt > lastUser.createdAt
+//       ) {
+//         lastAssistantAfterUser = m;
+//       }
+//     }
+//     return lastAssistantAfterUser?.text.trim() ?? '';
+//   }, [messages]);
+
+//   const sendToOutfitSafe = useCallback(() => {
+//     if (!canSendToOutfit) return;
+//     if (!assistantPrompt) return;
+//     h('impactMedium');
+//     const payload = {
+//       seedPrompt: assistantPrompt,
+//       autogenerate: true,
+//       ts: Date.now(),
+//     };
+//     navigate('Outfit', payload);
+//   }, [assistantPrompt, canSendToOutfit, navigate]);
+
+//   /** 📊 Render bubbles */
+//   const renderMessage = (m: Message, idx: number) => {
+//     const isUser = m.role === 'user';
+//     const bubble = isUser
+//       ? stylesUserBubble(theme)
+//       : stylesAssistantBubble(theme);
+
+//     const translateX = scrollY.interpolate({
+//       inputRange: [0, 400],
+//       outputRange: [0, isUser ? -6 : 6],
+//       extrapolate: 'clamp',
+//     });
+
+//     return (
+//       <Animated.View key={m.id} style={{transform: [{translateX}]}}>
+//         <Animatable.View
+//           animation={isUser ? 'fadeInRight' : 'fadeInLeft'}
+//           duration={420}
+//           delay={idx * 90}
+//           easing="ease-out-cubic"
+//           style={[
+//             bubble.row,
+//             // ADD MORE VERTICAL SPACE BETWEEN BUBBLES
+//             {marginVertical: 10, transform: [{scale: 0.98}]},
+//           ]}>
+//           {/* 🤖 Chatbot icon for assistant messages */}
+//           {!isUser && (
+//             <View
+//               style={{
+//                 width: 36,
+//                 height: 36,
+//                 borderRadius: 19,
+//                 backgroundColor: theme.colors.button1,
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//                 alignSelf: 'flex-end',
+//                 marginRight: 6,
+//                 borderWidth: 1,
+//                 borderColor: theme.colors.surfaceBorder,
+//               }}>
+//               <MaterialIcons
+//                 name="smart-toy"
+//                 size={22}
+//                 color={theme.colors.buttonText1}
+//                 style={{transform: [{scale: 1.05}]}}
+//               />
+//             </View>
+//           )}
+
+//           {/* 💬 Message bubble */}
+//           <Animatable.View
+//             animation="zoomIn"
+//             delay={idx * 90 + 80}
+//             duration={420}
+//             easing="ease-out-cubic"
+//             style={bubble.bubble}>
+//             <Text style={bubble.text}>{m.text}</Text>
+//             <Text style={bubble.time}>
+//               {dayjs(m.createdAt).format('h:mm A')}
+//             </Text>
+//           </Animatable.View>
+
+//           {/* 👤 User profile image for user messages */}
+//           {isUser && (
+//             <View
+//               style={{
+//                 width: 38,
+//                 height: 38,
+//                 borderRadius: 50,
+//                 overflow: 'hidden',
+//                 backgroundColor: theme.colors.background,
+//                 alignSelf: 'flex-end',
+//               }}>
+//               {profilePicture ? (
+//                 <Image
+//                   source={{uri: profilePicture}}
+//                   style={{width: '100%', height: '100%'}}
+//                   resizeMode="cover"
+//                 />
+//               ) : (
+//                 <MaterialIcons
+//                   name="person"
+//                   size={22}
+//                   color={theme.colors.foreground2}
+//                   style={{alignSelf: 'center', marginTop: 6}}
+//                 />
+//               )}
+//             </View>
+//           )}
+//         </Animatable.View>
+//       </Animated.View>
+//     );
+//   };
+
+//   return (
+//     <SafeAreaView
+//       style={[globalStyles.screen]}
+//       edges={['top', 'left', 'right']}>
+//       <KeyboardAvoidingView
+//         style={{flex: 1}}
+//         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+//         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 40 : 0}>
+//         {/* 🧠 Header */}
+//         <View style={stylesHeader(theme).header}>
+//           <View style={stylesHeader(theme).headerLeft}>
+//             <View
+//               style={[
+//                 stylesHeader(theme).presenceDot,
+//                 {backgroundColor: theme.colors.success},
+//               ]}
+//             />
+//             <Text style={globalStyles.header}>AI Stylist Chat</Text>
+//           </View>
+//           <AppleTouchFeedback type="light">
+//             <TouchableOpacity
+//               style={stylesHeader(theme).iconButton}
+//               onPress={() => {
+//                 h('impactLight');
+//                 Alert.alert(
+//                   'Clear Chat?',
+//                   'This will erase your current conversation with the stylist.',
+//                   [
+//                     {text: 'Cancel', style: 'cancel'},
+//                     {
+//                       text: 'Clear Chat',
+//                       style: 'destructive',
+//                       onPress: async () => {
+//                         await AsyncStorage.removeItem(`chat_thread:${userId}`);
+//                         setMessages([
+//                           {
+//                             id: 'seed-1',
+//                             role: 'assistant',
+//                             text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+//                             createdAt: Date.now(),
+//                           },
+//                         ]);
+//                         scrollToBottom();
+//                       },
+//                     },
+//                   ],
+//                 );
+//               }}>
+//               <MaterialIcons
+//                 name="delete"
+//                 size={22}
+//                 color={theme.colors.foreground}
+//               />
+//             </TouchableOpacity>
+//           </AppleTouchFeedback>
+//         </View>
+
+//         {/* 💬 Main Scrollable Content */}
+//         <View style={{flex: 1}}>
+//           <Animated.ScrollView
+//             ref={scrollRef}
+//             onScroll={Animated.event(
+//               [{nativeEvent: {contentOffset: {y: scrollY}}}],
+//               {useNativeDriver: true},
+//             )}
+//             scrollEventThrottle={16}
+//             contentContainerStyle={{paddingBottom: 100}}
+//             showsVerticalScrollIndicator={false}
+//             keyboardShouldPersistTaps="handled"
+//             keyboardDismissMode={
+//               Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+//             }>
+//             {/* 📩 All Messages */}
+//             <View style={{paddingHorizontal: 12, paddingBottom: 20}}>
+//               {messages.map((m, i) => renderMessage(m, i))}
+//             </View>
+
+//             {/* 🫧 Typing Indicator */}
+//             {isTyping && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 duration={300}
+//                 style={{
+//                   flexDirection: 'row',
+//                   alignItems: 'center',
+//                   paddingHorizontal: 14,
+//                   paddingVertical: 10,
+//                   marginHorizontal: 12,
+//                   marginBottom: 8,
+//                   borderRadius: 14,
+//                   // backgroundColor: theme.colors.surface3,
+//                 }}>
+//                 <TypingDots />
+//                 <Text style={{color: theme.colors.foreground, fontSize: 13}}>
+//                   Stylist is thinking…
+//                 </Text>
+//               </Animatable.View>
+//             )}
+//           </Animated.ScrollView>
+
+//           {/* ✅ Original disabled CTA behavior */}
+//           {/* <View
+//             pointerEvents={canSendToOutfit ? 'auto' : 'none'}
+//             style={{
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               marginBottom: 12,
+//               flexDirection: 'row',
+//               marginLeft: 30,
+//             }}>
+//             <AppleTouchFeedback type="impactLight">
+//               <TouchableOpacity
+//                 style={[
+//                   globalStyles.buttonPrimary,
+//                   {opacity: canSendToOutfit ? 1 : 0.4},
+//                   {width: 240},
+//                 ]}
+//                 onPress={sendToOutfitSafe}
+//                 disabled={!canSendToOutfit}>
+//                 <Text style={globalStyles.buttonPrimaryText}>
+//                   Create Outfit From Prompt
+//                 </Text>
+//               </TouchableOpacity>
+//             </AppleTouchFeedback>
+
+//             <TooltipBubble
+//               message="This button is only if you want to use this specific prompt to create your outfit."
+//               position="top"
+//             />
+//           </View> */}
+
+//           {/* 📥 Animated Input Bar */}
+//           <AnimatedInputBar
+//             input={input}
+//             setInput={setInput}
+//             onSend={send}
+//             isTyping={isTyping}
+//             inputRef={inputRef}
+//             onMicPressIn={handleMicPressIn}
+//             onMicPressOut={handleMicPressOut}
+//             isRecording={isRecording}
+//           />
+//         </View>
+//       </KeyboardAvoidingView>
+//     </SafeAreaView>
+//   );
+// }
+
+// /** 🫧 Typing Dots */
+// function TypingDots() {
+//   const {theme} = useAppTheme();
+//   const dot = {width: 6, height: 6, borderRadius: 3, marginHorizontal: 3};
+//   return (
+//     <View
+//       style={{
+//         flexDirection: 'row',
+//         alignItems: 'center',
+//         paddingHorizontal: 8,
+//       }}>
+//       {[0, 150, 300].map(delay => (
+//         <Animatable.View
+//           key={delay}
+//           delay={delay}
+//           animation="pulse"
+//           iterationCount="infinite"
+//           easing="ease-in-out"
+//           duration={900}
+//           style={[dot, {backgroundColor: theme.colors.buttonText1}]}
+//         />
+//       ))}
+//     </View>
+//   );
+// }
+
+// /** 👗 Create Outfit CTA (kept but unused) */
+// export function CreateOutfitCTA({
+//   visible,
+//   onPress,
+// }: {
+//   visible: boolean;
+//   onPress: () => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   if (!visible) return null;
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={600}
+//       easing="ease-out-cubic"
+//       useNativeDriver
+//       style={{
+//         justifyContent: 'center',
+//         alignItems: 'center',
+//         paddingVertical: 20,
+//         transform: [{translateY: 10}],
+//       }}>
+//       <AppleTouchFeedback type="impactLight">
+//         <TouchableOpacity
+//           onPress={onPress}
+//           style={[
+//             globalStyles.buttonPrimary,
+//             {
+//               width: 240,
+//               opacity: 1,
+//               shadowColor: '#000',
+//               shadowOpacity: 0.15,
+//               shadowRadius: 8,
+//               shadowOffset: {width: 0, height: 4},
+//             },
+//           ]}>
+//           <Text style={globalStyles.buttonPrimaryText}>
+//             Create Outfit From Prompt
+//           </Text>
+//         </TouchableOpacity>
+//       </AppleTouchFeedback>
+//     </Animatable.View>
+//   );
+// }
+
+// /** 📥 Animated Input Bar */
+// export function AnimatedInputBar({
+//   input,
+//   setInput,
+//   onSend,
+//   isTyping,
+//   inputRef,
+//   onMicPressIn,
+//   onMicPressOut,
+//   isRecording,
+// }: any) {
+//   const {theme} = useAppTheme();
+
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={600}
+//       delay={200}
+//       style={{
+//         paddingHorizontal: 10,
+//         paddingBottom: 16,
+//         backgroundColor: 'transparent',
+//       }}>
+//       <Animatable.View
+//         animation="pulse"
+//         iterationCount="infinite"
+//         duration={5000}
+//         easing="ease-in-out"
+//         style={{
+//           flexDirection: 'row',
+//           alignItems: 'flex-end',
+//           borderWidth: tokens.borderWidth.xl,
+//           borderColor: theme.colors.surfaceBorder,
+//           backgroundColor: theme.colors.surface3,
+//           borderRadius: 20,
+//           paddingHorizontal: 8,
+//           shadowColor: '#000',
+//           shadowOpacity: 0.08,
+//           shadowRadius: 5,
+//           shadowOffset: {width: 0, height: 2},
+//         }}>
+//         <TextInput
+//           ref={inputRef}
+//           value={input}
+//           onChangeText={setInput}
+//           placeholder="Ask for a look… event, vibe, weather"
+//           placeholderTextColor={'#9c9c9cff'}
+//           style={{
+//             flex: 1,
+//             height: 45,
+//             color: theme.colors.foreground,
+//             paddingHorizontal: 8,
+//             paddingTop: 12,
+//             fontSize: 16,
+//           }}
+//           multiline
+//           keyboardAppearance="dark"
+//           onSubmitEditing={onSend}
+//           returnKeyType="send"
+//           blurOnSubmit={false}
+//         />
+
+//         {/* 🎙️ Mic */}
+//         <Animatable.View
+//           animation={isRecording ? 'pulse' : undefined}
+//           iterationCount="infinite"
+//           duration={1200}
+//           style={{
+//             width: 38,
+//             height: 42,
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             transform: [{scale: isRecording ? 1.15 : 1}],
+//           }}>
+//           <TouchableOpacity
+//             onPressIn={onMicPressIn}
+//             onPressOut={onMicPressOut}
+//             hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+//             <MaterialIcons
+//               name={isRecording ? 'mic' : 'mic-none'}
+//               size={24}
+//               color={
+//                 isRecording ? theme.colors.primary : theme.colors.foreground2
+//               }
+//             />
+//           </TouchableOpacity>
+//         </Animatable.View>
+
+//         {/* 📤 Send */}
+//         <Animatable.View
+//           animation="fadeIn"
+//           duration={400}
+//           style={{
+//             width: 38,
+//             height: 42,
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             transform: [{scale: !input.trim() || isTyping ? 0.9 : 1}],
+//             opacity: !input.trim() || isTyping ? 0.4 : 1,
+//           }}>
+//           <TouchableOpacity
+//             onPress={onSend}
+//             disabled={!input.trim() || isTyping}>
+//             {isTyping ? (
+//               <ActivityIndicator />
+//             ) : (
+//               <View
+//                 style={{
+//                   width: 34,
+//                   height: 34,
+//                   borderRadius: 17,
+//                   alignItems: 'center',
+//                   justifyContent: 'center',
+//                   marginLeft: 6,
+//                   marginBottom: 2,
+//                   backgroundColor: theme.colors.surface,
+//                 }}>
+//                 <MaterialIcons
+//                   name="arrow-upward"
+//                   size={24}
+//                   color={theme.colors.foreground}
+//                 />
+//               </View>
+//             )}
+//           </TouchableOpacity>
+//         </Animatable.View>
+//       </Animatable.View>
+//     </Animatable.View>
+//   );
+// }
+
+// /** 🧠 API Call */
+// async function callAiChatAPI(
+//   history: Message[],
+//   latest: Message,
+// ): Promise<{text: string; suggestions?: string[]}> {
+//   const payload = {
+//     messages: [...history, latest].map(m => ({
+//       role: m.role,
+//       content: m.text,
+//     })),
+//   };
+//   const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+//     method: 'POST',
+//     headers: {'Content-Type': 'application/json'},
+//     body: JSON.stringify(payload),
+//   });
+//   if (!res.ok) throw new Error('Bad response');
+//   const data = await res.json();
+//   return {
+//     text: data.reply ?? 'Styled response unavailable.',
+//     suggestions: Array.isArray(data.suggestions) ? data.suggestions : undefined,
+//   };
+// }
+
+// /** 🎨 Styles */
+// function stylesHeader(theme: any) {
+//   return StyleSheet.create({
+//     header: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 16,
+//       paddingTop: 2,
+//       paddingBottom: 8,
+//       marginTop: -38,
+//     },
+//     headerLeft: {flexDirection: 'row', alignItems: 'center'},
+//     presenceDot: {width: 8, height: 8, borderRadius: 4, marginRight: 8},
+//     iconButton: {
+//       padding: 8,
+//       borderRadius: 10,
+//       backgroundColor: theme.colors.surface,
+//     },
+//   });
+// }
+
+// function stylesUserBubble(theme: any) {
+//   return StyleSheet.create({
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-end',
+//       justifyContent: 'flex-end',
+//       gap: 8,
+//       marginVertical: 14,
+//     },
+//     bubble: {
+//       maxWidth: '78%',
+//       backgroundColor: theme.colors.button1,
+//       paddingHorizontal: 16,
+//       paddingVertical: 12,
+//       borderTopLeftRadius: 22,
+//       borderBottomRightRadius: 6,
+//       borderBottomLeftRadius: 22,
+//       borderTopRightRadius: 22,
+//       marginRight: 8,
+//       borderColor: theme.colors.surfaceborder,
+//       borderWidth: tokens.borderWidth.hairline,
+//       position: 'relative',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.surfaceBorder,
+//     },
+//     tail: {
+//       position: 'absolute',
+//       right: -6,
+//       bottom: 0,
+//       width: 14,
+//       height: 14,
+//       backgroundColor: 'rgba(0, 122, 255, 1)',
+//       transform: [{rotate: '45deg'}],
+//       borderBottomRightRadius: 4,
+//     },
+//     text: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//       lineHeight: 22,
+//       fontWeight: '500',
+//       letterSpacing: 0.2,
+//     },
+//     time: {
+//       color: theme.colors.foreground,
+//       fontSize: 11,
+//       marginTop: 4,
+//       textAlign: 'right',
+//     },
+//   });
+// }
+
+// function stylesAssistantBubble(theme: any) {
+//   return StyleSheet.create({
+//     row: {
+//       flexDirection: 'row',
+//       alignItems: 'flex-end',
+//       justifyContent: 'flex-start',
+//       gap: 8,
+//       marginVertical: 8,
+//     },
+//     bubble: {
+//       maxWidth: '82%',
+//       backgroundColor: theme.colors.surface,
+//       borderColor: theme.colors.surfaceborder,
+//       borderWidth: tokens.borderWidth.hairline,
+//       paddingHorizontal: 16,
+//       paddingVertical: 12,
+//       borderTopLeftRadius: 22,
+//       borderBottomRightRadius: 22,
+//       borderBottomLeftRadius: 6,
+//       borderTopRightRadius: 22,
+//       marginRight: 8,
+//     },
+//     text: {
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//       lineHeight: 22,
+//     },
+//     time: {
+//       color: theme.colors.foreground,
+//       fontSize: 11,
+//       marginTop: 4,
+//       textAlign: 'right',
+//     },
+//   });
+// }
 
 ///////////////////
 

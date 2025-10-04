@@ -1022,7 +1022,10 @@ export default function ExploreScreen() {
           <Text
             style={[
               globalStyles.sectionTitle,
-              {color: theme.colors.button1, marginBottom: -2},
+              {
+                color: theme.colors.button1,
+                marginBottom: -2,
+              },
             ]}>
             {tab === 'For You' ? 'Recommended for you' : 'Following'}
           </Text>
