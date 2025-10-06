@@ -10,12 +10,14 @@ import {
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 type Props = {
   children: React.ReactNode;
   style?: ViewStyle;
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
+  onSwipeDown?: () => void; // ✅ new prop
   onSwipeActiveChange?: (active: boolean) => void;
   /** how far you must swipe (0.0 - 1.0) before triggering */
   deleteThreshold?: number;
@@ -28,11 +30,13 @@ export default function SwipeableCard({
   style,
   onSwipeLeft,
   onSwipeRight,
+  onSwipeDown, // ✅ new
   onSwipeActiveChange,
   deleteThreshold = 0.15,
   deleteBackground,
 }: Props) {
   const panX = useRef(new Animated.Value(0)).current;
+  const panY = useRef(new Animated.Value(0)).current; // ✅ new for vertical swipe
 
   const triggerHaptic = () => {
     ReactNativeHapticFeedback.trigger('impactLight', {
@@ -43,59 +47,82 @@ export default function SwipeableCard({
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 2,
-      onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 2,
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > 2 || Math.abs(g.dy) > 2,
+      onMoveShouldSetPanResponderCapture: (_e, g) =>
+        Math.abs(g.dx) > 2 || Math.abs(g.dy) > 2,
       onPanResponderGrant: () => onSwipeActiveChange?.(true),
 
       onPanResponderMove: (_e, g) => {
         const nextX = Math.max(-SCREEN_WIDTH, Math.min(SCREEN_WIDTH, g.dx));
+        const nextY = Math.max(-SCREEN_HEIGHT, Math.min(SCREEN_HEIGHT, g.dy));
         panX.setValue(nextX);
+        panY.setValue(nextY);
       },
 
       onPanResponderRelease: (_e, g) => {
         onSwipeActiveChange?.(false);
 
-        const swipeDistance = g.dx;
-        const swipeVelocity = g.vx;
+        const swipeDistanceX = g.dx;
+        const swipeVelocityX = g.vx;
+        const swipeDistanceY = g.dy;
+        const swipeVelocityY = g.vy;
 
         const leftTrigger = -SCREEN_WIDTH * deleteThreshold;
         const rightTrigger = SCREEN_WIDTH * deleteThreshold;
+        const downTrigger = SCREEN_HEIGHT * 0.12; // ✅ ~12% of screen (~100px)
 
-        // ✅ Feather-light Apple-style detection
-        // const shouldSwipeRight =
-        //   swipeDistance > rightTrigger ||
-        //   (swipeVelocity > 0.15 && swipeDistance > 8);
-        // ✅ Much lighter, balanced right-swipe detection
+        // ✅ horizontal detection (unchanged)
         const shouldSwipeRight =
-          swipeDistance > SCREEN_WIDTH * 0.08 || // 👈 trigger at ~8% of screen (~30px)
-          (swipeVelocity > 0.32 && swipeDistance > 3); // 👈 tiny velocity requirement + minimal distance
+          swipeDistanceX > SCREEN_WIDTH * 0.08 ||
+          (swipeVelocityX > 0.32 && swipeDistanceX > 3);
         const shouldSwipeLeft =
-          swipeDistance < leftTrigger ||
-          (swipeVelocity < -0.15 && swipeDistance < -8);
+          swipeDistanceX < leftTrigger ||
+          (swipeVelocityX < -0.15 && swipeDistanceX < -8);
+
+        // ✅ new vertical detection
+        const shouldSwipeDown =
+          swipeDistanceY > downTrigger ||
+          (swipeVelocityY > 0.25 && swipeDistanceY > 40);
 
         if (shouldSwipeRight) {
-          // triggerHaptic();
           Animated.timing(panX, {
             toValue: SCREEN_WIDTH + 60,
             duration: 150,
             useNativeDriver: true,
           }).start(() => {
             panX.setValue(0);
+            panY.setValue(0);
             onSwipeRight?.();
           });
         } else if (shouldSwipeLeft) {
-          // triggerHaptic();
           Animated.timing(panX, {
             toValue: -SCREEN_WIDTH - 60,
             duration: 150,
             useNativeDriver: true,
           }).start(() => {
             panX.setValue(0);
+            panY.setValue(0);
             onSwipeLeft?.();
           });
+        } else if (shouldSwipeDown) {
+          // ✅ swipe down to close
+          Animated.timing(panY, {
+            toValue: SCREEN_HEIGHT + 60,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            panX.setValue(0);
+            panY.setValue(0);
+            onSwipeDown?.();
+          });
         } else {
-          // ✅ Less “springy” return: faster, no bounce
           Animated.timing(panX, {
+            toValue: 0,
+            duration: 140,
+            useNativeDriver: true,
+          }).start();
+          Animated.timing(panY, {
             toValue: 0,
             duration: 140,
             useNativeDriver: true,
@@ -109,17 +136,21 @@ export default function SwipeableCard({
           duration: 140,
           useNativeDriver: true,
         }).start();
+        Animated.timing(panY, {
+          toValue: 0,
+          duration: 140,
+          useNativeDriver: true,
+        }).start();
       },
     }),
   ).current;
 
   const animatedStyle = {
-    transform: [{translateX: panX}],
+    transform: [{translateX: panX}, {translateY: panY}],
   };
 
   return (
     <View style={{position: 'relative'}}>
-      {/* ✅ Background behind swipe */}
       {deleteBackground && (
         <View
           style={[
@@ -130,7 +161,6 @@ export default function SwipeableCard({
         </View>
       )}
 
-      {/* ✅ Foreground (swipeable card) */}
       <Animated.View
         {...panResponder.panHandlers}
         style={[{zIndex: 1}, animatedStyle, style]}>
@@ -139,6 +169,150 @@ export default function SwipeableCard({
     </View>
   );
 }
+
+///////////////////
+
+// import React, {useRef} from 'react';
+// import {
+//   Animated,
+//   PanResponder,
+//   Dimensions,
+//   View,
+//   ViewStyle,
+//   StyleSheet,
+// } from 'react-native';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// type Props = {
+//   children: React.ReactNode;
+//   style?: ViewStyle;
+//   onSwipeLeft?: () => void;
+//   onSwipeRight?: () => void;
+//   onSwipeActiveChange?: (active: boolean) => void;
+//   /** how far you must swipe (0.0 - 1.0) before triggering */
+//   deleteThreshold?: number;
+//   /** background element (e.g. red delete bar) */
+//   deleteBackground?: React.ReactNode;
+// };
+
+// export default function SwipeableCard({
+//   children,
+//   style,
+//   onSwipeLeft,
+//   onSwipeRight,
+//   onSwipeActiveChange,
+//   deleteThreshold = 0.15,
+//   deleteBackground,
+// }: Props) {
+//   const panX = useRef(new Animated.Value(0)).current;
+
+//   const triggerHaptic = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+//   };
+
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) > 2,
+//       onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 2,
+//       onPanResponderGrant: () => onSwipeActiveChange?.(true),
+
+//       onPanResponderMove: (_e, g) => {
+//         const nextX = Math.max(-SCREEN_WIDTH, Math.min(SCREEN_WIDTH, g.dx));
+//         panX.setValue(nextX);
+//       },
+
+//       onPanResponderRelease: (_e, g) => {
+//         onSwipeActiveChange?.(false);
+
+//         const swipeDistance = g.dx;
+//         const swipeVelocity = g.vx;
+
+//         const leftTrigger = -SCREEN_WIDTH * deleteThreshold;
+//         const rightTrigger = SCREEN_WIDTH * deleteThreshold;
+
+//         // ✅ Feather-light Apple-style detection
+//         // const shouldSwipeRight =
+//         //   swipeDistance > rightTrigger ||
+//         //   (swipeVelocity > 0.15 && swipeDistance > 8);
+//         // ✅ Much lighter, balanced right-swipe detection
+//         const shouldSwipeRight =
+//           swipeDistance > SCREEN_WIDTH * 0.08 || // 👈 trigger at ~8% of screen (~30px)
+//           (swipeVelocity > 0.32 && swipeDistance > 3); // 👈 tiny velocity requirement + minimal distance
+//         const shouldSwipeLeft =
+//           swipeDistance < leftTrigger ||
+//           (swipeVelocity < -0.15 && swipeDistance < -8);
+
+//         if (shouldSwipeRight) {
+//           // triggerHaptic();
+//           Animated.timing(panX, {
+//             toValue: SCREEN_WIDTH + 60,
+//             duration: 150,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//             onSwipeRight?.();
+//           });
+//         } else if (shouldSwipeLeft) {
+//           // triggerHaptic();
+//           Animated.timing(panX, {
+//             toValue: -SCREEN_WIDTH - 60,
+//             duration: 150,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//             onSwipeLeft?.();
+//           });
+//         } else {
+//           // ✅ Less “springy” return: faster, no bounce
+//           Animated.timing(panX, {
+//             toValue: 0,
+//             duration: 140,
+//             useNativeDriver: true,
+//           }).start();
+//         }
+//       },
+
+//       onPanResponderTerminate: () => {
+//         Animated.timing(panX, {
+//           toValue: 0,
+//           duration: 140,
+//           useNativeDriver: true,
+//         }).start();
+//       },
+//     }),
+//   ).current;
+
+//   const animatedStyle = {
+//     transform: [{translateX: panX}],
+//   };
+
+//   return (
+//     <View style={{position: 'relative'}}>
+//       {/* ✅ Background behind swipe */}
+//       {deleteBackground && (
+//         <View
+//           style={[
+//             StyleSheet.absoluteFillObject,
+//             {zIndex: 0, justifyContent: 'center'},
+//           ]}>
+//           {deleteBackground}
+//         </View>
+//       )}
+
+//       {/* ✅ Foreground (swipeable card) */}
+//       <Animated.View
+//         {...panResponder.panHandlers}
+//         style={[{zIndex: 1}, animatedStyle, style]}>
+//         {children}
+//       </Animated.View>
+//     </View>
+//   );
+// }
 
 /////////////////////
 
