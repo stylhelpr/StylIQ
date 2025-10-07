@@ -863,10 +863,8 @@ function stylesUserBubble(theme: any) {
       borderBottomLeftRadius: 22,
       borderTopRightRadius: 22,
       marginRight: 8,
-      borderColor: theme.colors.surfaceborder,
       borderWidth: tokens.borderWidth.hairline,
       position: 'relative',
-      borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
     },
     tail: {
@@ -907,7 +905,7 @@ function stylesAssistantBubble(theme: any) {
     bubble: {
       maxWidth: '82%',
       backgroundColor: theme.colors.surface,
-      borderColor: theme.colors.surfaceborder,
+      borderColor: theme.colors.surfaceBorder,
       borderWidth: tokens.borderWidth.hairline,
       paddingHorizontal: 16,
       paddingVertical: 12,

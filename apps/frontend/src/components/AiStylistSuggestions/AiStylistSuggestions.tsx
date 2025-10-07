@@ -227,6 +227,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
         marginBottom: 20,
         backgroundColor: theme.colors.surface,
         borderRadius: tokens.borderRadius.md,
+        borderWidth: theme.borderWidth.md,
+        borderColor: theme.colors.surfaceBorder,
         padding: 18,
       }}>
       {/* 🧠 Header */}
@@ -283,6 +285,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
         style={{
           backgroundColor: theme.colors.surface2,
           borderRadius: tokens.borderRadius.md,
+          borderWidth: theme.borderWidth.md,
+          borderColor: theme.colors.surfaceBorder,
           padding: 12,
         }}>
         {loading && (

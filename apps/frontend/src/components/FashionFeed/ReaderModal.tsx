@@ -8,11 +8,16 @@ import {
   Dimensions,
   Animated,
   PanResponder,
+  TouchableOpacity,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import * as Animatable from 'react-native-animatable';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 import {BlurView} from '@react-native-community/blur';
+import {useGlobalStyles} from '../..//styles/useGlobalStyles';
+import {tokens} from '../../styles/tokens/tokens';
+import {useAppTheme} from '../../context/ThemeContext';
 
 const {height} = Dimensions.get('window');
 
@@ -31,6 +36,68 @@ export default function ReaderModal({
 
   const translateY = useRef(new Animated.Value(0)).current;
 
+  const {theme, setSkin} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+
+  const styles = StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: 'transparent',
+      justifyContent: 'flex-end',
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: theme.colors.background,
+    },
+    panel: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOpacity: 0.5,
+      shadowRadius: 24,
+      shadowOffset: {width: 0, height: -8},
+      elevation: 20,
+    },
+    closeIcon: {
+      position: 'absolute',
+      top: 0, // 👈 Sits ABOVE gesture zone
+      right: 20,
+      zIndex: 20,
+      backgroundColor: 'black',
+      borderRadius: 20,
+      padding: 6,
+    },
+    gestureZone: {
+      position: 'absolute',
+      top: 56,
+      height: 80,
+      width: '100%',
+      zIndex: 10,
+      backgroundColor: 'transparent',
+    },
+    header: {
+      marginTop: 35, // 👈 Push header BELOW swipe zone
+      height: 56,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      borderBottomColor: 'rgba(255,255,255,0.08)',
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      zIndex: 5,
+    },
+    title: {
+      color: '#fff',
+      fontWeight: '800',
+      fontSize: 17,
+      flex: 1,
+      textAlign: 'left',
+    },
+  });
+
   // 🔁 Reset position whenever modal opens
   useEffect(() => {
     if (visible) {
@@ -39,7 +106,7 @@ export default function ReaderModal({
     }
   }, [visible, translateY]);
 
-  // ✅ Unified close logic for swipe & Done
+  // ✅ Unified close logic for swipe & buttons
   const handleClose = () => {
     console.log('🚪 handleClose triggered');
     Animated.timing(translateY, {
@@ -59,9 +126,7 @@ export default function ReaderModal({
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
-      onPanResponderGrant: () => {
-        console.log('👆 Gesture start detected');
-      },
+      onPanResponderGrant: () => console.log('👆 Gesture start detected'),
       onPanResponderMove: (_e, g) => {
         console.log('📦 Moving DY:', g.dy);
         if (g.dy > 0) translateY.setValue(g.dy);
@@ -97,16 +162,32 @@ export default function ReaderModal({
           style={styles.backdrop}
         />
 
-        {/* Animated panel */}
+        {/* 📜 Animated panel */}
         <Animated.View
           style={[
             styles.panel,
-            {transform: [{translateY}], width: '100%', height: '100%'},
+            {
+              transform: [{translateY}],
+              width: '100%',
+              height: '100%',
+            },
           ]}>
-          {/* ✅ Gesture capture zone */}
+          {/* ❌ Floating close button ABOVE gesture zone */}
+          <TouchableOpacity
+            style={[styles.closeIcon]}
+            onPress={handleClose}
+            hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+            <MaterialIcons
+              name="close"
+              size={22}
+              color={theme.colors.buttonText1}
+            />
+          </TouchableOpacity>
+
+          {/* ✅ Swipe gesture zone */}
           <View
             {...panResponder.panHandlers}
-            style={styles.gestureZone}
+            style={[styles.gestureZone]}
             onStartShouldSetResponder={() => true}
           />
 
@@ -119,14 +200,6 @@ export default function ReaderModal({
             <Text numberOfLines={1} style={styles.title}>
               {title || 'Article'}
             </Text>
-
-            {/* ✅ Done button also closes via handleClose */}
-            <AppleTouchFeedback
-              onPress={handleClose}
-              hapticStyle="impactLight"
-              hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-              <Text style={styles.close}>Done</Text>
-            </AppleTouchFeedback>
           </BlurView>
 
           {/* 🌐 WebView */}
@@ -148,61 +221,6 @@ export default function ReaderModal({
   );
 }
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
-  panel: {
-    flex: 1,
-    backgroundColor: '#000',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    shadowOffset: {width: 0, height: -8},
-    elevation: 20,
-  },
-  gestureZone: {
-    position: 'absolute',
-    top: 0,
-    height: 80,
-    width: '100%',
-    zIndex: 10,
-    backgroundColor: 'transparent', // 👈 keep invisible, captures touches
-  },
-  header: {
-    height: 56,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    zIndex: 5,
-  },
-  title: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 17,
-    flex: 1,
-    textAlign: 'left',
-  },
-  close: {
-    color: '#0A84FF',
-    fontWeight: '700',
-    fontSize: 16,
-    marginLeft: 12,
-  },
-});
-
 /////////////////
 
 // import React, {useRef, useEffect} from 'react';
@@ -215,9 +233,11 @@ const styles = StyleSheet.create({
 //   Dimensions,
 //   Animated,
 //   PanResponder,
+//   TouchableOpacity,
 // } from 'react-native';
 // import {WebView} from 'react-native-webview';
 // import * as Animatable from 'react-native-animatable';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 // import {BlurView} from '@react-native-community/blur';
 
@@ -238,34 +258,94 @@ const styles = StyleSheet.create({
 
 //   const translateY = useRef(new Animated.Value(0)).current;
 
+//   const styles = StyleSheet.create({
+//     modalContainer: {
+//       flex: 1,
+//       backgroundColor: 'transparent',
+//       justifyContent: 'flex-end',
+//     },
+//     backdrop: {
+//       ...StyleSheet.absoluteFillObject,
+//       backgroundColor: 'rgba(0,0,0,0.55)',
+//     },
+//     panel: {
+//       flex: 1,
+//       backgroundColor: '#000',
+//       borderTopLeftRadius: 24,
+//       borderTopRightRadius: 24,
+//       overflow: 'hidden',
+//       shadowColor: '#000',
+//       shadowOpacity: 0.5,
+//       shadowRadius: 24,
+//       shadowOffset: {width: 0, height: -8},
+//       elevation: 20,
+//     },
+//     closeIcon: {
+//       position: 'absolute',
+//       top: 0, // 👈 Sits ABOVE gesture zone
+//       right: 20,
+//       zIndex: 20,
+//       backgroundColor: 'rgba(0,0,0,0.6)',
+//       borderRadius: 20,
+//       padding: 6,
+//     },
+//     gestureZone: {
+//       position: 'absolute',
+//       top: 56,
+//       height: 80,
+//       width: '100%',
+//       zIndex: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     header: {
+//       marginTop: 40, // 👈 Push header BELOW swipe zone
+//       height: 56,
+//       alignItems: 'center',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 16,
+//       borderBottomColor: 'rgba(255,255,255,0.08)',
+//       borderBottomWidth: StyleSheet.hairlineWidth,
+//       zIndex: 5,
+//     },
+//     title: {
+//       color: '#fff',
+//       fontWeight: '800',
+//       fontSize: 17,
+//       flex: 1,
+//       textAlign: 'left',
+//     },
+//   });
+
 //   // 🔁 Reset position whenever modal opens
 //   useEffect(() => {
 //     if (visible) {
+//       console.log('✅ Modal visible - resetting translateY');
 //       translateY.setValue(0);
 //     }
 //   }, [visible, translateY]);
 
-//   // ✅ Unified close logic
+//   // ✅ Unified close logic for swipe & buttons
 //   const handleClose = () => {
+//     console.log('🚪 handleClose triggered');
 //     Animated.timing(translateY, {
 //       toValue: height,
 //       duration: 220,
 //       useNativeDriver: true,
 //     }).start(({finished}) => {
 //       if (finished) {
+//         console.log('✅ Animation complete - calling onClose()');
 //         translateY.setValue(0);
 //         onClose();
 //       }
 //     });
 //   };
 
-//   // ✅ PanResponder logic
+//   // ✅ PanResponder logic for swipe-down
 //   const panResponder = useRef(
 //     PanResponder.create({
 //       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
-//       onPanResponderGrant: () => {
-//         console.log('👆 Gesture start detected');
-//       },
+//       onPanResponderGrant: () => console.log('👆 Gesture start detected'),
 //       onPanResponderMove: (_e, g) => {
 //         console.log('📦 Moving DY:', g.dy);
 //         if (g.dy > 0) translateY.setValue(g.dy);
@@ -291,7 +371,8 @@ const styles = StyleSheet.create({
 //       visible={visible}
 //       transparent
 //       animationType="fade"
-//       onRequestClose={handleClose}>
+//       onRequestClose={handleClose}
+//       onShow={() => console.log('✅ Modal onShow fired')}>
 //       <SafeAreaView style={styles.modalContainer}>
 //         {/* Dim backdrop */}
 //         <Animatable.View
@@ -300,232 +381,32 @@ const styles = StyleSheet.create({
 //           style={styles.backdrop}
 //         />
 
-//         {/* Animated panel */}
+//         {/* 📜 Animated panel */}
 //         <Animated.View
-//           style={[
-//             styles.panel,
-//             {transform: [{translateY}], width: '100%', height: '100%'},
-//           ]}>
-//           {/* ✅ Gesture capture zone (swipe-down works even over WebView) */}
-//           <View
-//             {...panResponder.panHandlers}
-//             style={styles.gestureZone}
-//             onStartShouldSetResponder={() => true}
-//           />
-
-//           {/* Header */}
-//           <BlurView
-//             style={styles.header}
-//             blurType="dark"
-//             blurAmount={20}
-//             reducedTransparencyFallbackColor="rgba(0,0,0,0.85)">
-//             <Text numberOfLines={1} style={styles.title}>
-//               {title || 'Article'}
-//             </Text>
-//             <AppleTouchFeedback
-//               onPress={handleClose}
-//               hapticStyle="impactLight"
-//               hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-//               <Text style={styles.close}>Done</Text>
-//             </AppleTouchFeedback>
-//           </BlurView>
-
-//           {/* Web content */}
-//           <Animatable.View
-//             animation="fadeIn"
-//             delay={250}
-//             duration={800}
-//             style={{flex: 1}}>
-//             <WebView source={{uri: url}} style={{flex: 1}} />
-//           </Animatable.View>
-//         </Animated.View>
-//       </SafeAreaView>
-//     </Modal>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   modalContainer: {
-//     flex: 1,
-//     backgroundColor: 'transparent',
-//     justifyContent: 'flex-end',
-//   },
-//   backdrop: {
-//     ...StyleSheet.absoluteFillObject,
-//     backgroundColor: 'rgba(0,0,0,0.55)',
-//   },
-//   panel: {
-//     flex: 1,
-//     backgroundColor: '#000',
-//     borderTopLeftRadius: 24,
-//     borderTopRightRadius: 24,
-//     overflow: 'hidden',
-//     shadowColor: '#000',
-//     shadowOpacity: 0.5,
-//     shadowRadius: 24,
-//     shadowOffset: {width: 0, height: -8},
-//     elevation: 20,
-//   },
-//   gestureZone: {
-//     position: 'absolute',
-//     top: 0,
-//     height: 80, // 👈 Swipe zone height (tweak if needed)
-//     width: '100%',
-//     zIndex: 10,
-//     backgroundColor: 'transparent',
-//   },
-//   header: {
-//     height: 56,
-//     alignItems: 'center',
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     paddingHorizontal: 16,
-//     borderBottomColor: 'rgba(255,255,255,0.08)',
-//     borderBottomWidth: StyleSheet.hairlineWidth,
-//     zIndex: 5,
-//   },
-//   title: {
-//     color: '#fff',
-//     fontWeight: '800',
-//     fontSize: 17,
-//     flex: 1,
-//     textAlign: 'left',
-//   },
-//   close: {
-//     color: '#0A84FF',
-//     fontWeight: '700',
-//     fontSize: 16,
-//     marginLeft: 12,
-//   },
-// });
-
-////////////////////
-
-// import React, {useRef, useEffect, useState} from 'react';
-// import {
-//   Modal,
-//   View,
-//   Text,
-//   StyleSheet,
-//   SafeAreaView,
-//   Dimensions,
-//   Animated,
-//   PanResponder,
-// } from 'react-native';
-// import {WebView} from 'react-native-webview';
-// import * as Animatable from 'react-native-animatable';
-// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
-// import {BlurView} from '@react-native-community/blur';
-
-// const {height} = Dimensions.get('window');
-
-// export default function ReaderModal({
-//   visible,
-//   url,
-//   title,
-//   onClose,
-// }: {
-//   visible: boolean;
-//   url?: string;
-//   title?: string;
-//   onClose: () => void;
-// }) {
-//   if (!url) return null;
-
-//   const translateY = useRef(new Animated.Value(0)).current;
-//   const [swiping, setSwiping] = useState(false);
-
-//   useEffect(() => {
-//     if (visible) {
-//       console.log('✅ Modal visible - resetting translateY');
-//       translateY.setValue(0);
-//     }
-//   }, [visible]);
-
-//   const handleClose = () => {
-//     console.log('🚪 handleClose triggered');
-//     Animated.timing(translateY, {
-//       toValue: height,
-//       duration: 250,
-//       useNativeDriver: true,
-//     }).start(({finished}) => {
-//       if (finished) {
-//         console.log('✅ Animation complete - calling onClose()');
-//         translateY.setValue(0);
-//         onClose();
-//       }
-//     });
-//   };
-
-//   // 🪵 PanResponder with detailed logs
-//   const panResponder = useRef(
-//     PanResponder.create({
-//       onStartShouldSetPanResponder: () => {
-//         console.log('👆 TOUCH START detected');
-//         return true;
-//       },
-//       onMoveShouldSetPanResponder: (_, g) => {
-//         console.log('📍 onMoveShouldSetPanResponder triggered:', g.dy);
-//         return Math.abs(g.dy) > 2; // even tiny drags
-//       },
-//       onPanResponderGrant: () => {
-//         console.log('✋ Pan GRANTED — gesture started');
-//         setSwiping(true);
-//       },
-//       onPanResponderMove: (_, g) => {
-//         console.log('📦 MOVING dy:', g.dy);
-//         if (g.dy > 0) translateY.setValue(g.dy);
-//       },
-//       onPanResponderRelease: (_, g) => {
-//         console.log('📉 RELEASE dy:', g.dy, 'vy:', g.vy);
-//         setSwiping(false);
-//         if (g.dy > 100 || g.vy > 0.3) {
-//           console.log('✅ Swipe passed threshold — closing');
-//           handleClose();
-//         } else {
-//           console.log('↩️ Swipe too short — snapping back');
-//           Animated.spring(translateY, {
-//             toValue: 0,
-//             useNativeDriver: true,
-//           }).start();
-//         }
-//       },
-//       onPanResponderTerminate: () => {
-//         console.log('❌ Pan TERMINATED');
-//         setSwiping(false);
-//       },
-//     }),
-//   ).current;
-
-//   return (
-//     <Modal
-//       visible={visible}
-//       transparent
-//       animationType="fade"
-//       onShow={() => console.log('✅ Modal onShow fired')}
-//       onRequestClose={handleClose}>
-//       <SafeAreaView style={styles.modalContainer}>
-//         <Animatable.View
-//           animation="fadeIn"
-//           duration={300}
-//           style={styles.backdrop}
-//         />
-
-//         {/* 🪩 Entire panel now listens for touch */}
-//         <Animated.View
-//           {...panResponder.panHandlers}
 //           style={[
 //             styles.panel,
 //             {
 //               transform: [{translateY}],
 //               width: '100%',
 //               height: '100%',
+//               backgroundColor: 'yellow',
 //             },
 //           ]}>
-//           {/* 🔥 Visual target zone */}
-//           <View style={styles.gestureZone}>
-//             <Text style={{color: '#fff', fontSize: 14}}>⬇️ SWIPE HERE</Text>
-//           </View>
+//           {/* ❌ Floating close button ABOVE gesture zone */}
+//           <TouchableOpacity
+//             style={[styles.closeIcon, {backgroundColor: 'red'}]}
+//             onPress={handleClose}
+//             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+//             <MaterialIcons name="close" size={28} color="#fff" />
+//           </TouchableOpacity>
+
+//           {/* ✅ Swipe gesture zone */}
+//           <View
+//             {...panResponder.panHandlers}
+//             // style={[styles.gestureZone, {backgroundColor: 'blue'}]}
+//             style={[styles.gestureZone]}
+//             onStartShouldSetResponder={() => true}
+//           />
 
 //           {/* 🍏 Header */}
 //           <BlurView
@@ -536,12 +417,6 @@ const styles = StyleSheet.create({
 //             <Text numberOfLines={1} style={styles.title}>
 //               {title || 'Article'}
 //             </Text>
-//             <AppleTouchFeedback
-//               onPress={handleClose}
-//               hapticStyle="impactLight"
-//               hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-//               <Text style={styles.close}>Done</Text>
-//             </AppleTouchFeedback>
 //           </BlurView>
 
 //           {/* 🌐 WebView */}
@@ -549,8 +424,7 @@ const styles = StyleSheet.create({
 //             animation="fadeIn"
 //             delay={250}
 //             duration={800}
-//             style={{flex: 1}}
-//             pointerEvents={swiping ? 'none' : 'auto'}>
+//             style={{flex: 1}}>
 //             <WebView
 //               source={{uri: url}}
 //               style={{flex: 1}}
@@ -564,61 +438,7 @@ const styles = StyleSheet.create({
 //   );
 // }
 
-// const styles = StyleSheet.create({
-//   modalContainer: {
-//     flex: 1,
-//     backgroundColor: 'transparent',
-//     justifyContent: 'flex-end',
-//   },
-//   backdrop: {
-//     ...StyleSheet.absoluteFillObject,
-//     backgroundColor: 'rgba(0,0,0,0.55)',
-//   },
-//   panel: {
-//     flex: 1,
-//     backgroundColor: '#000',
-//     borderTopLeftRadius: 24,
-//     borderTopRightRadius: 24,
-//     overflow: 'hidden',
-//     shadowColor: '#000',
-//     shadowOpacity: 0.5,
-//     shadowRadius: 24,
-//     shadowOffset: {width: 0, height: -8},
-//     elevation: 20,
-//   },
-//   gestureZone: {
-//     width: '100%',
-//     height: 80,
-//     backgroundColor: 'rgba(255,0,0,0.3)', // 🔥 red swipe area
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   header: {
-//     height: 56,
-//     alignItems: 'center',
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     paddingHorizontal: 16,
-//     borderBottomColor: 'rgba(255,255,255,0.08)',
-//     borderBottomWidth: StyleSheet.hairlineWidth,
-//     zIndex: 5,
-//   },
-//   title: {
-//     color: '#fff',
-//     fontWeight: '800',
-//     fontSize: 17,
-//     flex: 1,
-//     textAlign: 'left',
-//   },
-//   close: {
-//     color: '#0A84FF',
-//     fontWeight: '700',
-//     fontSize: 16,
-//     marginLeft: 12,
-//   },
-// });
-
-//////////////////
+//////////////////////
 
 // import React, {useRef} from 'react';
 // import {

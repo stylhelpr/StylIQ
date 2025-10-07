@@ -92,8 +92,6 @@ export default function SettingsScreen({navigate}: Props) {
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 20,
-      backgroundColor: theme.colors.surface,
-      borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 22,
       paddingVertical: 14,
     },
@@ -124,7 +122,7 @@ export default function SettingsScreen({navigate}: Props) {
       borderRadius: 4,
       marginRight: 10,
       borderWidth: tokens.borderWidth.md,
-      borderColor: '#ccc',
+      borderColor: theme.colors.surfaceBorder,
     },
     version: {
       textAlign: 'center',
