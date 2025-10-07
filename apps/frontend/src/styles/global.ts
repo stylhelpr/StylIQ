@@ -1,11 +1,12 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Dimensions} from 'react-native';
 import {tokens} from './tokens/tokens';
 import type {Theme} from '../context/ThemeContext';
-import {Dimensions} from 'react-native';
 
-const screenWidth = Dimensions.get('window').width;
+const {width: screenWidth} = Dimensions.get('window');
 const isTablet = screenWidth >= 768;
+const isLargePhone = screenWidth >= 430; // iPhone Pro Max breakpoint
 
+// 📐 Responsive constants
 const responsivePadding = isTablet ? 38 : 20;
 const sectionMarginBottom = isTablet ? 32 : 24;
 const image1Width = isTablet ? 270 : 165;
@@ -13,7 +14,17 @@ const image1Height = isTablet ? 150 : 95;
 const image2Width = isTablet ? 270 : 165;
 const image2Height = isTablet ? 150 : 95;
 const image4Size = isTablet ? 160 : 110;
-const ouftiCardSize = isTablet ? 164 : 110;
+const outfitCardSize = isTablet ? 164 : 110;
+
+// ✅ Breakpoint-based typography — no scaling, just gentle tiering
+const font = {
+  xs: isTablet ? 14 : isLargePhone ? 13 : 12,
+  sm: isTablet ? 15 : isLargePhone ? 14 : 13,
+  md: isTablet ? 17 : isLargePhone ? 16 : 15,
+  lg: isTablet ? 19 : isLargePhone ? 18 : 17,
+  xl: isTablet ? 22 : isLargePhone ? 20 : 18,
+  heading: isTablet ? 36 : isLargePhone ? 34 : 32,
+};
 
 export const createGlobalStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -36,7 +47,7 @@ export const createGlobalStyles = (theme: Theme) =>
     modalSection: {
       width: '100%',
       backgroundColor: theme.colors.surface,
-      paddingHorizontal: 20,
+      paddingHorizontal: responsivePadding,
       maxWidth: 720,
       alignSelf: 'center',
       borderRadius: 25,
@@ -49,20 +60,13 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     modalSection3: {
       width: '100%',
-      paddingHorizontal: 20,
+      paddingHorizontal: responsivePadding,
       maxWidth: 720,
       alignSelf: 'center',
       borderRadius: 25,
     },
     cardStyles1: {
       padding: 16,
-
-      // shadowColor: '#000',
-      // shadowOffset: {width: 5, height: 5},
-      // shadowOpacity: 0.4,
-      // shadowRadius: 5,
-      // elevation: 14,
-
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xl,
@@ -79,17 +83,11 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.xl,
     },
     cardStyles3: {
-      // padding: 14,
-      // shadowOffset: {width: 0, height: 6},
-      // shadowOpacity: 0.1,
-      // shadowRadius: 12,
-      // elevation: 5,
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xl,
     },
     cardStyles4: {
-      // padding: 14,
       shadowOffset: {width: 0, height: 6},
       shadowOpacity: 0.1,
       shadowRadius: 12,
@@ -115,33 +113,22 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     section5: {
       width: '100%',
-      // paddingHorizontal: 20,
       maxWidth: 720,
       alignSelf: 'center',
       borderRadius: 25,
     },
     section6: {
-      // marginBottom: sectionMarginBottom,
       paddingHorizontal: responsivePadding,
     },
     sectionScroll: {
-      // marginBottom: 26,
       marginBottom: 30,
       paddingLeft: responsivePadding,
     },
-    // header: {
-    //   paddingLeft: 20,
-    //   fontSize: 30,
-    //   fontWeight: '700',
-    //   color: theme.colors.foreground,
-    //   textTransform: 'uppercase',
-    // },
     header: {
       paddingLeft: 20,
-      fontSize: 34,
+      fontSize: font.heading,
       fontWeight: '700',
       color: theme.colors.foreground,
-      // textTransform: 'uppercase',
     },
     backContainer: {
       flexDirection: 'row',
@@ -149,57 +136,44 @@ export const createGlobalStyles = (theme: Theme) =>
       width: 100,
     },
     backText: {
-      fontSize: 18,
+      fontSize: font.md,
       fontWeight: '500',
       color: theme.colors.button3,
     },
     sectionTitle: {
-      fontSize: 18,
+      fontSize: font.lg,
       fontWeight: '800',
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 8,
       textTransform: 'uppercase',
     },
-    // sectionTitle: {
-    //   fontSize: 22,
-    //   fontWeight: '700',
-    //   lineHeight: 24,
-    //   color: theme.colors.foreground,
-    //   marginBottom: 8,
-    //   // textTransform: 'uppercase',
-    // },
     sectionTitle2: {
-      fontSize: 18,
+      fontSize: font.md,
       fontWeight: '700',
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 2,
-      //  textTransform: 'uppercase',
     },
     sectionTitle3: {
-      fontSize: 17,
+      fontSize: font.sm,
       fontWeight: '500',
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 2,
-      //  textTransform: 'uppercase',
     },
     sectionTitle4: {
-      fontSize: 17,
+      fontSize: font.sm,
       fontWeight: '400',
       lineHeight: 24,
       color: theme.colors.foreground,
-      // paddingLeft: 20,
-      //  textTransform: 'uppercase',
     },
     sectionTitle5: {
-      fontSize: 18,
+      fontSize: font.lg,
       fontWeight: '800',
       lineHeight: 24,
       color: theme.colors.foreground,
       marginBottom: 2,
-      // paddingLeft: 20,
       textTransform: 'uppercase',
     },
     styleContainer1: {
@@ -214,54 +188,54 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingBottom: 8,
     },
     title: {
-      fontSize: 14,
+      fontSize: font.sm,
       fontWeight: '500',
       color: theme.colors.foreground,
       marginBottom: 12,
     },
     title2: {
-      fontSize: 13,
+      fontSize: font.xs,
       fontWeight: '500',
       color: theme.colors.foreground,
       marginBottom: 12,
     },
     title3: {
-      fontSize: 12,
+      fontSize: font.xs,
       fontWeight: '500',
       color: theme.colors.foreground,
       marginBottom: 6,
       marginTop: 4,
     },
     titleBold: {
-      fontSize: 19,
+      fontSize: font.lg,
       fontWeight: '800',
       marginBottom: -4,
       color: theme.colors.foreground,
     },
     label: {
-      fontSize: 12,
+      fontSize: font.xs,
       fontWeight: '500',
       color: theme.colors.foreground,
     },
     label2: {
-      fontSize: 13,
+      fontSize: font.sm,
       fontWeight: '500',
       width: '25%',
       color: theme.colors.foreground,
     },
     subLabel: {
-      fontSize: 12,
+      fontSize: font.xs,
       fontWeight: '500',
       marginTop: 2,
       color: theme.colors.foreground2,
     },
     cardLabel: {
-      fontSize: 13,
+      fontSize: font.sm,
       fontWeight: '500',
       color: theme.colors.foreground,
     },
     cardSubLabel: {
-      fontSize: 12,
+      fontSize: font.xs,
       fontWeight: '500',
       marginTop: 2,
       color: theme.colors.foreground2,
@@ -270,7 +244,6 @@ export const createGlobalStyles = (theme: Theme) =>
       flexDirection: 'column',
       justifyContent: 'center',
       marginTop: 8,
-      // marginBottom: 20,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 16,
@@ -293,7 +266,7 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: 26,
     },
     menuLabel: {
-      fontSize: 18,
+      fontSize: font.lg,
       fontWeight: '400',
       color: theme.colors.foreground,
     },
@@ -322,8 +295,6 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: 18,
       paddingVertical: 9,
       borderRadius: 18,
-      // borderWidth: tokens.borderWidth.hairline,
-      // borderColor: theme.colors.surfaceBorder,
       marginRight: 8,
     },
     pill2: {
@@ -336,7 +307,7 @@ export const createGlobalStyles = (theme: Theme) =>
       marginRight: 8,
     },
     pillText: {
-      fontSize: 14,
+      fontSize: font.sm,
       fontWeight: '500',
       color: theme.colors.background,
     },
@@ -350,11 +321,9 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 12,
       elevation: 5,
-      // borderWidth: tokens.borderWidth.hairline,
-      // borderColor: theme.colors.surfaceBorder,
     },
     pillTextFixedWidth: {
-      fontSize: 14,
+      fontSize: font.sm,
       fontWeight: '500',
       color: theme.colors.foreground,
       textAlign: 'center',
@@ -367,13 +336,11 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 12,
       elevation: 5,
-      // borderWidth: tokens.borderWidth.hairline,
-      // borderColor: theme.colors.surfaceBorder,
       alignSelf: 'flex-start',
       width: '23%',
     },
     pillTextFixedWidth2: {
-      fontSize: 14,
+      fontSize: font.sm,
       fontWeight: '500',
       color: theme.colors.foreground,
       textAlign: 'center',
@@ -388,7 +355,7 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: 'black',
     },
     buttonHomeText: {
-      fontSize: 18,
+      fontSize: font.lg,
       fontWeight: '600',
       color: '#fff',
       textShadowColor: 'rgba(0,0,0,0.7)',
@@ -396,8 +363,6 @@ export const createGlobalStyles = (theme: Theme) =>
       textShadowRadius: 3,
     },
     buttonPrimary: {
-      // width: '90%',
-      // maxWidth: 160,
       backgroundColor: theme.colors.button1,
       borderRadius: tokens.borderRadius['2xl'],
       alignItems: 'center',
@@ -408,26 +373,15 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowRadius: 4,
       elevation: 2,
       borderColor: theme.colors.surfaceBorder,
-      //  paddingVertical: 11,
       paddingVertical: 13,
       borderWidth: 1,
     },
-
-    // buttonPrimaryText: {
-    //   fontSize: 15,
-    //   fontWeight: '700',
-    //   color: theme.colors.buttonText1,
-    // },
-
     buttonPrimaryText: {
-      fontSize: 16,
+      fontSize: font.md,
       fontWeight: '600',
       color: theme.colors.buttonText1,
     },
-
     buttonSecondary: {
-      // width: '90%',
-      // maxWidth: 160,
       backgroundColor: theme.colors.button2,
       borderRadius: tokens.borderRadius['2xl'],
       alignItems: 'center',
@@ -438,12 +392,11 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowRadius: 4,
       elevation: 2,
       borderColor: theme.colors.surfaceBorder,
-      //  paddingVertical: 11,
       paddingVertical: 13,
       borderWidth: 1,
     },
     buttonSecondaryText: {
-      fontSize: 15,
+      fontSize: font.sm,
       fontWeight: '600',
       color: '#fff',
     },
@@ -462,7 +415,7 @@ export const createGlobalStyles = (theme: Theme) =>
       elevation: 2,
     },
     buttonTertiaryText: {
-      fontSize: 15,
+      fontSize: font.sm,
       fontWeight: '600',
       color: '#fff',
     },
@@ -497,17 +450,13 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface,
       borderBottomWidth: tokens.borderWidth.md,
       borderBottomColor: theme.colors.surfaceBorder,
-      // borderRadius: tokens.borderRadius.md,
     },
     image6: {
       width: '100%',
-      // borderTopLeftRadius: 10,
-      // borderTopRightRadius: 10,
       backgroundColor: theme.colors.foreground,
     },
-
     outfitCard: {
-      width: ouftiCardSize,
+      width: outfitCardSize,
       marginRight: 12,
       alignItems: 'flex-start',
     },
@@ -517,13 +466,12 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: '#1a1a1a',
       borderRadius: tokens.borderRadius.md,
       paddingHorizontal: 12,
-      // height: 38,
       width: '100%',
     },
     promptInput: {
       flex: 1,
       color: theme.colors.foreground,
-      fontSize: 16,
+      fontSize: font.md,
     },
     hrLine: {
       borderBottomWidth: 1,
@@ -548,7 +496,563 @@ export const createGlobalStyles = (theme: Theme) =>
       textAlign: 'left',
       marginTop: 0,
       lineHeight: 20,
-      // paddingHorizontal: 20,
       maxWidth: 400,
     },
   });
+
+/////////////////////
+
+// import {StyleSheet} from 'react-native';
+// import {tokens} from './tokens/tokens';
+// import type {Theme} from '../context/ThemeContext';
+// import {Dimensions} from 'react-native';
+
+// const screenWidth = Dimensions.get('window').width;
+// const isTablet = screenWidth >= 768;
+
+// const responsivePadding = isTablet ? 38 : 20;
+// const sectionMarginBottom = isTablet ? 32 : 24;
+// const image1Width = isTablet ? 270 : 165;
+// const image1Height = isTablet ? 150 : 95;
+// const image2Width = isTablet ? 270 : 165;
+// const image2Height = isTablet ? 150 : 95;
+// const image4Size = isTablet ? 160 : 110;
+// const ouftiCardSize = isTablet ? 164 : 110;
+
+// export const createGlobalStyles = (theme: Theme) =>
+//   StyleSheet.create({
+//     screen: {
+//       flex: 1,
+//       backgroundColor: theme.colors.background,
+//     },
+//     container: {
+//       paddingTop: 20,
+//       paddingBottom: 60,
+//       width: '100%',
+//       alignSelf: 'center',
+//       flexGrow: 1,
+//     },
+//     centeredSection: {
+//       width: '100%',
+//       maxWidth: 720,
+//       alignSelf: 'center',
+//     },
+//     modalSection: {
+//       width: '100%',
+//       backgroundColor: theme.colors.surface,
+//       paddingHorizontal: 20,
+//       maxWidth: 720,
+//       alignSelf: 'center',
+//       borderRadius: 25,
+//     },
+//     modalSection2: {
+//       width: '100%',
+//       maxWidth: 720,
+//       alignSelf: 'center',
+//       borderRadius: 25,
+//     },
+//     modalSection3: {
+//       width: '100%',
+//       paddingHorizontal: 20,
+//       maxWidth: 720,
+//       alignSelf: 'center',
+//       borderRadius: 25,
+//     },
+//     cardStyles1: {
+//       padding: 16,
+
+//       // shadowColor: '#000',
+//       // shadowOffset: {width: 5, height: 5},
+//       // shadowOpacity: 0.4,
+//       // shadowRadius: 5,
+//       // elevation: 14,
+
+//       borderWidth: tokens.borderWidth.md,
+//       borderColor: theme.colors.surfaceBorder,
+//       borderRadius: tokens.borderRadius.xl,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     cardStyles2: {
+//       padding: 14,
+//       shadowOffset: {width: 0, height: 6},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 12,
+//       elevation: 5,
+//       borderWidth: 1,
+//       borderColor: theme.colors.surfaceBorder,
+//       borderRadius: tokens.borderRadius.xl,
+//     },
+//     cardStyles3: {
+//       // padding: 14,
+//       // shadowOffset: {width: 0, height: 6},
+//       // shadowOpacity: 0.1,
+//       // shadowRadius: 12,
+//       // elevation: 5,
+//       borderWidth: 1,
+//       borderColor: theme.colors.surfaceBorder,
+//       borderRadius: tokens.borderRadius.xl,
+//     },
+//     cardStyles4: {
+//       // padding: 14,
+//       shadowOffset: {width: 0, height: 6},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 12,
+//       elevation: 5,
+//       borderWidth: 1,
+//       borderColor: theme.colors.surfaceBorder,
+//       borderRadius: tokens.borderRadius.md,
+//     },
+//     section: {
+//       marginBottom: sectionMarginBottom,
+//       paddingHorizontal: responsivePadding,
+//     },
+//     section2: {
+//       marginBottom: sectionMarginBottom,
+//     },
+//     section3: {
+//       paddingHorizontal: responsivePadding,
+//       marginTop: 20,
+//       marginBottom: 20,
+//     },
+//     section4: {
+//       paddingHorizontal: responsivePadding,
+//     },
+//     section5: {
+//       width: '100%',
+//       // paddingHorizontal: 20,
+//       maxWidth: 720,
+//       alignSelf: 'center',
+//       borderRadius: 25,
+//     },
+//     section6: {
+//       // marginBottom: sectionMarginBottom,
+//       paddingHorizontal: responsivePadding,
+//     },
+//     sectionScroll: {
+//       // marginBottom: 26,
+//       marginBottom: 30,
+//       paddingLeft: responsivePadding,
+//     },
+//     // header: {
+//     //   paddingLeft: 20,
+//     //   fontSize: 30,
+//     //   fontWeight: '700',
+//     //   color: theme.colors.foreground,
+//     //   textTransform: 'uppercase',
+//     // },
+//     header: {
+//       paddingLeft: 20,
+//       fontSize: 34,
+//       fontWeight: '700',
+//       color: theme.colors.foreground,
+//       // textTransform: 'uppercase',
+//     },
+//     backContainer: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       width: 100,
+//     },
+//     backText: {
+//       fontSize: 18,
+//       fontWeight: '500',
+//       color: theme.colors.button3,
+//     },
+//     sectionTitle: {
+//       fontSize: 18,
+//       fontWeight: '800',
+//       lineHeight: 24,
+//       color: theme.colors.foreground,
+//       marginBottom: 8,
+//       textTransform: 'uppercase',
+//     },
+//     // sectionTitle: {
+//     //   fontSize: 22,
+//     //   fontWeight: '700',
+//     //   lineHeight: 24,
+//     //   color: theme.colors.foreground,
+//     //   marginBottom: 8,
+//     //   // textTransform: 'uppercase',
+//     // },
+//     sectionTitle2: {
+//       fontSize: 18,
+//       fontWeight: '700',
+//       lineHeight: 24,
+//       color: theme.colors.foreground,
+//       marginBottom: 2,
+//       //  textTransform: 'uppercase',
+//     },
+//     sectionTitle3: {
+//       fontSize: 17,
+//       fontWeight: '500',
+//       lineHeight: 24,
+//       color: theme.colors.foreground,
+//       marginBottom: 2,
+//       //  textTransform: 'uppercase',
+//     },
+//     sectionTitle4: {
+//       fontSize: 17,
+//       fontWeight: '400',
+//       lineHeight: 24,
+//       color: theme.colors.foreground,
+//       // paddingLeft: 20,
+//       //  textTransform: 'uppercase',
+//     },
+//     sectionTitle5: {
+//       fontSize: 18,
+//       fontWeight: '800',
+//       lineHeight: 24,
+//       color: theme.colors.foreground,
+//       marginBottom: 2,
+//       // paddingLeft: 20,
+//       textTransform: 'uppercase',
+//     },
+//     styleContainer1: {
+//       flexDirection: 'column',
+//       justifyContent: 'center',
+//       marginTop: 10,
+//       marginBottom: 20,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: tokens.borderRadius.md,
+//       paddingTop: 18,
+//       paddingHorizontal: 16,
+//       paddingBottom: 8,
+//     },
+//     title: {
+//       fontSize: 14,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       marginBottom: 12,
+//     },
+//     title2: {
+//       fontSize: 13,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       marginBottom: 12,
+//     },
+//     title3: {
+//       fontSize: 12,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       marginBottom: 6,
+//       marginTop: 4,
+//     },
+//     titleBold: {
+//       fontSize: 19,
+//       fontWeight: '800',
+//       marginBottom: -4,
+//       color: theme.colors.foreground,
+//     },
+//     label: {
+//       fontSize: 12,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//     },
+//     label2: {
+//       fontSize: 13,
+//       fontWeight: '500',
+//       width: '25%',
+//       color: theme.colors.foreground,
+//     },
+//     subLabel: {
+//       fontSize: 12,
+//       fontWeight: '500',
+//       marginTop: 2,
+//       color: theme.colors.foreground2,
+//     },
+//     cardLabel: {
+//       fontSize: 13,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//     },
+//     cardSubLabel: {
+//       fontSize: 12,
+//       fontWeight: '500',
+//       marginTop: 2,
+//       color: theme.colors.foreground2,
+//     },
+//     menuContainer1: {
+//       flexDirection: 'column',
+//       justifyContent: 'center',
+//       marginTop: 8,
+//       // marginBottom: 20,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: tokens.borderRadius.md,
+//       paddingHorizontal: 16,
+//     },
+//     menuSection1: {
+//       flexDirection: 'column',
+//       justifyContent: 'center',
+//       paddingHorizontal: 8,
+//       paddingVertical: 18,
+//     },
+//     menuSection2: {
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: tokens.borderRadius.md,
+//       paddingHorizontal: 26,
+//       paddingVertical: 18,
+//     },
+//     menuSection3: {
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: tokens.borderRadius.md,
+//       paddingHorizontal: 26,
+//     },
+//     menuLabel: {
+//       fontSize: 18,
+//       fontWeight: '400',
+//       color: theme.colors.foreground,
+//     },
+//     labelContainer: {
+//       paddingVertical: 8,
+//       paddingHorizontal: 12,
+//     },
+//     labelContainer2: {
+//       paddingHorizontal: 12,
+//     },
+//     labelContainer3: {
+//       paddingVertical: 6,
+//       paddingHorizontal: 12,
+//     },
+//     labelContainer4: {
+//       backgroundColor: 'red',
+//     },
+//     pillContainer: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       justifyContent: 'flex-start',
+//       width: '100%',
+//     },
+//     pill: {
+//       backgroundColor: theme.colors.foreground,
+//       paddingHorizontal: 18,
+//       paddingVertical: 9,
+//       borderRadius: 18,
+//       // borderWidth: tokens.borderWidth.hairline,
+//       // borderColor: theme.colors.surfaceBorder,
+//       marginRight: 8,
+//     },
+//     pill2: {
+//       paddingHorizontal: 18,
+//       paddingVertical: 9,
+//       backgroundColor: theme.colors.pillDark2,
+//       borderRadius: 18,
+//       borderWidth: tokens.borderWidth.md,
+//       borderColor: theme.colors.surfaceBorder,
+//       marginRight: 8,
+//     },
+//     pillText: {
+//       fontSize: 14,
+//       fontWeight: '500',
+//       color: theme.colors.background,
+//     },
+//     pillFixedWidth: {
+//       backgroundColor: theme.colors.surface,
+//       paddingVertical: 9,
+//       borderRadius: 18,
+//       alignSelf: 'flex-start',
+//       width: '32%',
+//       shadowOffset: {width: 0, height: 6},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 12,
+//       elevation: 5,
+//       // borderWidth: tokens.borderWidth.hairline,
+//       // borderColor: theme.colors.surfaceBorder,
+//     },
+//     pillTextFixedWidth: {
+//       fontSize: 14,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       textAlign: 'center',
+//     },
+//     pillFixedWidth2: {
+//       backgroundColor: theme.colors.surface,
+//       paddingVertical: 9,
+//       borderRadius: 18,
+//       shadowOffset: {width: 0, height: 6},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 12,
+//       elevation: 5,
+//       // borderWidth: tokens.borderWidth.hairline,
+//       // borderColor: theme.colors.surfaceBorder,
+//       alignSelf: 'flex-start',
+//       width: '23%',
+//     },
+//     pillTextFixedWidth2: {
+//       fontSize: 14,
+//       fontWeight: '500',
+//       color: theme.colors.foreground,
+//       textAlign: 'center',
+//     },
+//     buttonHome: {
+//       width: '90%',
+//       maxWidth: 270,
+//       paddingVertical: 16,
+//       borderRadius: tokens.borderRadius.md,
+//       marginBottom: 20,
+//       alignItems: 'center',
+//       backgroundColor: 'black',
+//     },
+//     buttonHomeText: {
+//       fontSize: 18,
+//       fontWeight: '600',
+//       color: '#fff',
+//       textShadowColor: 'rgba(0,0,0,0.7)',
+//       textShadowOffset: {width: 0, height: 1},
+//       textShadowRadius: 3,
+//     },
+//     buttonPrimary: {
+//       // width: '90%',
+//       // maxWidth: 160,
+//       backgroundColor: theme.colors.button1,
+//       borderRadius: tokens.borderRadius['2xl'],
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       shadowColor: '#000',
+//       shadowOffset: {width: 0, height: 1},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 4,
+//       elevation: 2,
+//       borderColor: theme.colors.surfaceBorder,
+//       //  paddingVertical: 11,
+//       paddingVertical: 13,
+//       borderWidth: 1,
+//     },
+
+//     // buttonPrimaryText: {
+//     //   fontSize: 15,
+//     //   fontWeight: '700',
+//     //   color: theme.colors.buttonText1,
+//     // },
+
+//     buttonPrimaryText: {
+//       fontSize: 16,
+//       fontWeight: '600',
+//       color: theme.colors.buttonText1,
+//     },
+
+//     buttonSecondary: {
+//       // width: '90%',
+//       // maxWidth: 160,
+//       backgroundColor: theme.colors.button2,
+//       borderRadius: tokens.borderRadius['2xl'],
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       shadowColor: '#000',
+//       shadowOffset: {width: 0, height: 1},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 4,
+//       elevation: 2,
+//       borderColor: theme.colors.surfaceBorder,
+//       //  paddingVertical: 11,
+//       paddingVertical: 13,
+//       borderWidth: 1,
+//     },
+//     buttonSecondaryText: {
+//       fontSize: 15,
+//       fontWeight: '600',
+//       color: '#fff',
+//     },
+//     buttonTertiary: {
+//       width: 90,
+//       maxWidth: 186,
+//       backgroundColor: theme.colors.surface2,
+//       borderRadius: tokens.borderRadius.sm,
+//       paddingVertical: 12,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       shadowColor: '#000',
+//       shadowOffset: {width: 0, height: 1},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 4,
+//       elevation: 2,
+//     },
+//     buttonTertiaryText: {
+//       fontSize: 15,
+//       fontWeight: '600',
+//       color: '#fff',
+//     },
+//     image1: {
+//       width: 92,
+//       height: 92,
+//       borderRadius: tokens.borderRadius.md,
+//       backgroundColor: '#eee',
+//     },
+//     image2: {
+//       width: image2Width,
+//       height: image2Height,
+//       borderTopLeftRadius: 12,
+//       borderTopRightRadius: 12,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     image3: {
+//       width: 165,
+//       height: 95,
+//       borderRadius: tokens.borderRadius.md,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     image4: {
+//       width: image4Size,
+//       height: image4Size,
+//       backgroundColor: '#eee',
+//       borderRadius: tokens.borderRadius.md,
+//     },
+//     image5: {
+//       width: '100%',
+//       height: 120,
+//       backgroundColor: theme.colors.surface,
+//       borderBottomWidth: tokens.borderWidth.md,
+//       borderBottomColor: theme.colors.surfaceBorder,
+//       // borderRadius: tokens.borderRadius.md,
+//     },
+//     image6: {
+//       width: '100%',
+//       // borderTopLeftRadius: 10,
+//       // borderTopRightRadius: 10,
+//       backgroundColor: theme.colors.foreground,
+//     },
+
+//     outfitCard: {
+//       width: ouftiCardSize,
+//       marginRight: 12,
+//       alignItems: 'flex-start',
+//     },
+//     promptRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       backgroundColor: '#1a1a1a',
+//       borderRadius: tokens.borderRadius.md,
+//       paddingHorizontal: 12,
+//       // height: 38,
+//       width: '100%',
+//     },
+//     promptInput: {
+//       flex: 1,
+//       color: theme.colors.foreground,
+//       fontSize: 16,
+//     },
+//     hrLine: {
+//       borderBottomWidth: 1,
+//       borderColor: 'rgba(74, 74, 74, 0.37)',
+//     },
+//     boxShadowLight: {
+//       shadowColor: 'rgb(0, 0, 0)',
+//       shadowOffset: {width: 10, height: 8},
+//       shadowOpacity: 0.5,
+//       shadowRadius: 7,
+//       elevation: 6,
+//     },
+//     boxShadowDark: {
+//       shadowColor: 'rgb(73, 73, 73)',
+//       shadowOffset: {width: 10, height: 8},
+//       shadowOpacity: 0.5,
+//       shadowRadius: 7,
+//       elevation: 6,
+//     },
+//     missingDataMessage1: {
+//       color: theme.colors.muted,
+//       textAlign: 'left',
+//       marginTop: 0,
+//       lineHeight: 20,
+//       // paddingHorizontal: 20,
+//       maxWidth: 400,
+//     },
+//   });

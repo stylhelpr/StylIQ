@@ -167,9 +167,9 @@ export default function NotificationCard({n, onPress, onDelete}: Props) {
       // elevation: 1,
     },
     cardUnread: {
-      // backgroundColor: theme.isDark
-      //   ? theme.colors.surface
-      //   : theme.colors.background,
+      backgroundColor: theme.isDark
+        ? theme.colors.surface
+        : theme.colors.background,
       borderColor: theme.colors.button3,
       borderWidth: theme.borderWidth['2xl'],
     },
