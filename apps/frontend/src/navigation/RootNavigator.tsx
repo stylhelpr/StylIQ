@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {View, StyleSheet, TouchableOpacity, Text} from 'react-native';
 
@@ -53,6 +53,7 @@ import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
 import {useAppTheme} from '../context/ThemeContext';
 import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
+import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
 
 import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
 
@@ -110,12 +111,16 @@ type Screen =
 
 const RootNavigator = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Login');
-  const [prevScreen, setPrevScreen] = useState<Screen>('Home');
   const [screenParams, setScreenParams] = useState<any>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>(mockClothingItems);
 
   const screensWithNoHeader = ['Login', 'ItemDetail', 'AddItem', 'Home'];
   const screensWithSettings = ['Profile'];
+
+  const screenHistory = useRef<Screen[]>([]); // ✅ full navigation history stack
+  const isGoingBackRef = useRef(false);
+
+  const profileScreenCache = useRef<JSX.Element | null>(null);
 
   const {theme} = useAppTheme();
   const {authorize} = useAuth0();
@@ -150,7 +155,16 @@ const RootNavigator = () => {
   };
 
   const navigate = (screen: Screen, params?: any) => {
-    setPrevScreen(currentScreen);
+    if (isGoingBackRef.current) {
+      console.log('⏩ Skipping push because we just went back');
+      isGoingBackRef.current = false;
+    } else if (screen !== currentScreen) {
+      console.log('📍 Pushing current to history:', currentScreen);
+      screenHistory.current.push(currentScreen);
+    } else {
+      console.log('⚠️ Skipped push because screen is same:', screen);
+    }
+
     setCurrentScreen(screen);
     setScreenParams(params || null);
   };
@@ -191,10 +205,36 @@ const RootNavigator = () => {
         setCurrentScreen('Login');
       }
     } catch {
-      // If anything is weird, fall back to Home
       setCurrentScreen('Home');
     }
   };
+
+  const goBack = () => {
+    console.log('⬅️ goBack called, history:', screenHistory.current);
+
+    global.goingBack = false;
+    isGoingBackRef.current = true;
+
+    const prev = screenHistory.current.pop();
+    if (!prev) {
+      console.warn('⚠️ History empty, defaulting to Home');
+      setCurrentScreen('Home');
+      return;
+    }
+
+    console.log('🔙 Navigating back to:', prev);
+    setScreenParams({__forceRemount: Date.now()});
+    setCurrentScreen(prev);
+  };
+
+  // ✅ Register global goBack for gestures
+  useEffect(() => {
+    global.__rootGoBack = goBack;
+    console.log('🌍 Global goBack registered');
+    return () => {
+      global.__rootGoBack = undefined;
+    };
+  }, []);
 
   useEffect(() => {
     routeAfterLogin();
@@ -232,9 +272,17 @@ const RootNavigator = () => {
         );
 
       case 'Profile':
-        return (
-          <ProfileScreen navigate={navigate} user={user} wardrobe={wardrobe} />
-        );
+        if (!profileScreenCache.current) {
+          profileScreenCache.current = (
+            <ProfileScreen
+              navigate={navigate}
+              user={user}
+              wardrobe={wardrobe}
+            />
+          );
+        }
+        return profileScreenCache.current;
+
       case 'StyleProfileScreen':
         return <StyleProfileScreen navigate={navigate} />;
       case 'Explore':
@@ -265,7 +313,9 @@ const RootNavigator = () => {
           />
         );
       case 'Settings':
+        console.log('🔁 Rendering Settings. history:', screenHistory.current);
         return <SettingsScreen navigate={navigate} />;
+
       case 'Notifications':
         return <NotificationsScreen navigate={navigate} />;
       case 'Preferences':
@@ -332,7 +382,7 @@ const RootNavigator = () => {
         return (
           <ItemDetailScreen
             route={{params: screenParams}}
-            navigation={{goBack: () => setCurrentScreen('Wardrobe')}}
+            navigation={{goBack}}
           />
         );
       case 'AddItem':
@@ -344,11 +394,17 @@ const RootNavigator = () => {
           <SearchScreen
             wardrobe={wardrobe}
             navigate={navigate}
-            goBack={() => setCurrentScreen(prevScreen)}
+            goBack={goBack}
           />
         );
       default:
-        return <HomeScreen navigate={navigate} wardrobe={wardrobe} />;
+        return (
+          <HomeScreen
+            key={screenParams?.__forceRemount}
+            navigate={navigate}
+            wardrobe={wardrobe}
+          />
+        );
     }
   };
 
@@ -359,7 +415,9 @@ const RootNavigator = () => {
         navigate={navigate}
         hideHeader={screensWithNoHeader.includes(currentScreen)}
         showSettings={screensWithSettings.includes(currentScreen)}>
-        <View style={styles.screen}>{renderScreen()}</View>
+        <GlobalGestureHandler onEdgeSwipeBack={goBack}>
+          <View style={styles.screen}>{renderScreen()}</View>
+        </GlobalGestureHandler>
       </LayoutWrapper>
 
       {/* ✅ Always visible when logged in */}
