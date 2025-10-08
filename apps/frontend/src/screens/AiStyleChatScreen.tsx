@@ -681,6 +681,45 @@ async function callAiChatAPI(
   };
 }
 
+// /** Typing dots */
+function TypingDots() {
+  const {theme} = useAppTheme();
+  const globalStyles = useGlobalStyles();
+  const dot = {width: 6, height: 6, borderRadius: 3, marginHorizontal: 3};
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+      }}>
+      <Animatable.View
+        animation="pulse"
+        iterationCount="infinite"
+        easing="ease-in-out"
+        duration={900}
+        style={[dot, {backgroundColor: theme.colors.buttonText1}]}
+      />
+      <Animatable.View
+        delay={150}
+        animation="pulse"
+        iterationCount="infinite"
+        easing="ease-in-out"
+        duration={900}
+        style={[dot, {backgroundColor: theme.colors.buttonText1}]}
+      />
+      <Animatable.View
+        delay={300}
+        animation="pulse"
+        iterationCount="infinite"
+        easing="ease-in-out"
+        duration={900}
+        style={[dot, {backgroundColor: theme.colors.buttonText1}]}
+      />
+    </View>
+  );
+}
+
 /** 🎨 Apple-style adaptive styles */
 function stylesHeader(theme: any, isTablet: boolean) {
   return StyleSheet.create({
