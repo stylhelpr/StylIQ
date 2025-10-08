@@ -1,3 +1,153 @@
+import React, {useRef} from 'react';
+import {
+  Animated,
+  PanResponder,
+  Dimensions,
+  View,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+type Props = {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onSwipeDown?: () => void;
+  onSwipeActiveChange?: (active: boolean) => void;
+  deleteThreshold?: number;
+  deleteBackground?: React.ReactNode;
+};
+
+export default function SwipeableCard({
+  children,
+  style,
+  onSwipeLeft,
+  onSwipeRight,
+  onSwipeDown,
+  onSwipeActiveChange,
+  deleteThreshold = 0.15,
+  deleteBackground,
+}: Props) {
+  const panX = useRef(new Animated.Value(0)).current;
+  const panY = useRef(new Animated.Value(0)).current;
+
+  const triggerHaptic = () => {
+    ReactNativeHapticFeedback.trigger('impactLight', {
+      enableVibrateFallback: true,
+      ignoreAndroidSystemSettings: false,
+    });
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3,
+
+      onPanResponderGrant: () => onSwipeActiveChange?.(true),
+
+      onPanResponderMove: (_e, g) => {
+        const nextX = Math.max(-SCREEN_WIDTH, Math.min(SCREEN_WIDTH, g.dx));
+        const nextY = Math.max(-SCREEN_HEIGHT, Math.min(SCREEN_HEIGHT, g.dy));
+        panX.setValue(nextX);
+        panY.setValue(nextY);
+      },
+
+      onPanResponderRelease: (_e, g) => {
+        onSwipeActiveChange?.(false);
+
+        // 🍎 More forgiving thresholds (left-hand friendly)
+        const shouldSwipeRight =
+          g.dx > SCREEN_WIDTH * 0.06 || (g.vx > 0.25 && g.dx > 3);
+
+        // 🍎 New: ultra-light left swipe auto-complete detection
+        // If user swipes just a little left with some intent, trigger delete.
+        const barelySwipeLeft = g.dx < -SCREEN_WIDTH * 0.04 && g.vx < -0.05; // 👈 ~4% distance & light velocity
+
+        const shouldSwipeLeft =
+          g.dx < -SCREEN_WIDTH * deleteThreshold ||
+          (g.vx < -0.15 && g.dx < -6) ||
+          barelySwipeLeft;
+
+        const shouldSwipeDown =
+          g.dy > SCREEN_HEIGHT * 0.1 || (g.vy > 0.2 && g.dy > 32);
+
+        if (shouldSwipeRight && onSwipeRight) {
+          triggerHaptic();
+          Animated.timing(panX, {
+            toValue: SCREEN_WIDTH + 80,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            panX.setValue(0);
+            panY.setValue(0);
+            onSwipeRight();
+          });
+        } else if (shouldSwipeLeft && onSwipeLeft) {
+          triggerHaptic();
+          Animated.timing(panX, {
+            toValue: -SCREEN_WIDTH - 80,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            panX.setValue(0);
+            panY.setValue(0);
+            onSwipeLeft();
+          });
+        } else if (shouldSwipeDown && onSwipeDown) {
+          triggerHaptic();
+          Animated.timing(panY, {
+            toValue: SCREEN_HEIGHT + 60,
+            duration: 220,
+            useNativeDriver: true,
+          }).start(() => {
+            panX.setValue(0);
+            panY.setValue(0);
+            onSwipeDown();
+          });
+        } else {
+          Animated.spring(panX, {toValue: 0, useNativeDriver: true}).start();
+          Animated.spring(panY, {toValue: 0, useNativeDriver: true}).start();
+        }
+      },
+
+      onPanResponderTerminate: () => {
+        Animated.spring(panX, {toValue: 0, useNativeDriver: true}).start();
+        Animated.spring(panY, {toValue: 0, useNativeDriver: true}).start();
+      },
+    }),
+  ).current;
+
+  return (
+    <View style={{position: 'relative'}}>
+      {deleteBackground && (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {zIndex: 0, justifyContent: 'center'},
+          ]}>
+          {deleteBackground}
+        </View>
+      )}
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={[
+          {zIndex: 1},
+          style,
+          {transform: [{translateX: panX}, {translateY: panY}]},
+        ]}>
+        {children}
+      </Animated.View>
+    </View>
+  );
+}
+
+////////////////
+
 // /* eslint-disable react-native/no-inline-styles */
 // import React, {useRef} from 'react';
 // import {
@@ -171,145 +321,145 @@
 ///////////////////
 
 /* eslint-disable react-native/no-inline-styles */
-import React, {useRef} from 'react';
-import {
-  Animated,
-  PanResponder,
-  Dimensions,
-  View,
-  StyleSheet,
-  ViewStyle,
-} from 'react-native';
-import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import React, {useRef} from 'react';
+// import {
+//   Animated,
+//   PanResponder,
+//   Dimensions,
+//   View,
+//   StyleSheet,
+//   ViewStyle,
+// } from 'react-native';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+// const SCREEN_WIDTH = Dimensions.get('window').width;
+// const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-type Props = {
-  children: React.ReactNode;
-  style?: ViewStyle;
-  onSwipeLeft?: () => void;
-  onSwipeRight?: () => void;
-  onSwipeDown?: () => void;
-  onSwipeActiveChange?: (active: boolean) => void;
-  deleteThreshold?: number;
-  deleteBackground?: React.ReactNode;
-};
+// type Props = {
+//   children: React.ReactNode;
+//   style?: ViewStyle;
+//   onSwipeLeft?: () => void;
+//   onSwipeRight?: () => void;
+//   onSwipeDown?: () => void;
+//   onSwipeActiveChange?: (active: boolean) => void;
+//   deleteThreshold?: number;
+//   deleteBackground?: React.ReactNode;
+// };
 
-export default function SwipeableCard({
-  children,
-  style,
-  onSwipeLeft,
-  onSwipeRight,
-  onSwipeDown,
-  onSwipeActiveChange,
-  deleteThreshold = 0.15,
-  deleteBackground,
-}: Props) {
-  const panX = useRef(new Animated.Value(0)).current;
-  const panY = useRef(new Animated.Value(0)).current;
+// export default function SwipeableCard({
+//   children,
+//   style,
+//   onSwipeLeft,
+//   onSwipeRight,
+//   onSwipeDown,
+//   onSwipeActiveChange,
+//   deleteThreshold = 0.15,
+//   deleteBackground,
+// }: Props) {
+//   const panX = useRef(new Animated.Value(0)).current;
+//   const panY = useRef(new Animated.Value(0)).current;
 
-  const triggerHaptic = () => {
-    ReactNativeHapticFeedback.trigger('impactLight', {
-      enableVibrateFallback: true,
-      ignoreAndroidSystemSettings: false,
-    });
-  };
+//   const triggerHaptic = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+//   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_e, g) =>
-        Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3,
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onMoveShouldSetPanResponder: (_e, g) =>
+//         Math.abs(g.dx) > 3 || Math.abs(g.dy) > 3,
 
-      onPanResponderGrant: () => onSwipeActiveChange?.(true),
+//       onPanResponderGrant: () => onSwipeActiveChange?.(true),
 
-      onPanResponderMove: (_e, g) => {
-        const nextX = Math.max(-SCREEN_WIDTH, Math.min(SCREEN_WIDTH, g.dx));
-        const nextY = Math.max(-SCREEN_HEIGHT, Math.min(SCREEN_HEIGHT, g.dy));
-        panX.setValue(nextX);
-        panY.setValue(nextY);
-      },
+//       onPanResponderMove: (_e, g) => {
+//         const nextX = Math.max(-SCREEN_WIDTH, Math.min(SCREEN_WIDTH, g.dx));
+//         const nextY = Math.max(-SCREEN_HEIGHT, Math.min(SCREEN_HEIGHT, g.dy));
+//         panX.setValue(nextX);
+//         panY.setValue(nextY);
+//       },
 
-      onPanResponderRelease: (_e, g) => {
-        onSwipeActiveChange?.(false);
+//       onPanResponderRelease: (_e, g) => {
+//         onSwipeActiveChange?.(false);
 
-        // 🍎 More forgiving thresholds (left-hand friendly)
-        const shouldSwipeRight =
-          g.dx > SCREEN_WIDTH * 0.06 || (g.vx > 0.25 && g.dx > 3); // ↓ lowered velocity + distance
-        const shouldSwipeLeft =
-          g.dx < -SCREEN_WIDTH * deleteThreshold || (g.vx < -0.15 && g.dx < -6); // ↓ easier to trigger
-        const shouldSwipeDown =
-          g.dy > SCREEN_HEIGHT * 0.1 || (g.vy > 0.2 && g.dy > 32); // ↓ relaxed downward intent
+//         // 🍎 More forgiving thresholds (left-hand friendly)
+//         const shouldSwipeRight =
+//           g.dx > SCREEN_WIDTH * 0.06 || (g.vx > 0.25 && g.dx > 3); // ↓ lowered velocity + distance
+//         const shouldSwipeLeft =
+//           g.dx < -SCREEN_WIDTH * deleteThreshold || (g.vx < -0.15 && g.dx < -6); // ↓ easier to trigger
+//         const shouldSwipeDown =
+//           g.dy > SCREEN_HEIGHT * 0.1 || (g.vy > 0.2 && g.dy > 32); // ↓ relaxed downward intent
 
-        if (shouldSwipeRight && onSwipeRight) {
-          triggerHaptic();
-          Animated.timing(panX, {
-            toValue: SCREEN_WIDTH + 80,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(() => {
-            panX.setValue(0);
-            panY.setValue(0);
-            onSwipeRight();
-          });
-        } else if (shouldSwipeLeft && onSwipeLeft) {
-          triggerHaptic();
-          Animated.timing(panX, {
-            toValue: -SCREEN_WIDTH - 80,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(() => {
-            panX.setValue(0);
-            panY.setValue(0);
-            onSwipeLeft();
-          });
-        } else if (shouldSwipeDown && onSwipeDown) {
-          triggerHaptic();
-          Animated.timing(panY, {
-            toValue: SCREEN_HEIGHT + 60,
-            duration: 220,
-            useNativeDriver: true,
-          }).start(() => {
-            panX.setValue(0);
-            panY.setValue(0);
-            onSwipeDown();
-          });
-        } else {
-          Animated.spring(panX, {toValue: 0, useNativeDriver: true}).start();
-          Animated.spring(panY, {toValue: 0, useNativeDriver: true}).start();
-        }
-      },
+//         if (shouldSwipeRight && onSwipeRight) {
+//           triggerHaptic();
+//           Animated.timing(panX, {
+//             toValue: SCREEN_WIDTH + 80,
+//             duration: 180,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//             panY.setValue(0);
+//             onSwipeRight();
+//           });
+//         } else if (shouldSwipeLeft && onSwipeLeft) {
+//           triggerHaptic();
+//           Animated.timing(panX, {
+//             toValue: -SCREEN_WIDTH - 80,
+//             duration: 180,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//             panY.setValue(0);
+//             onSwipeLeft();
+//           });
+//         } else if (shouldSwipeDown && onSwipeDown) {
+//           triggerHaptic();
+//           Animated.timing(panY, {
+//             toValue: SCREEN_HEIGHT + 60,
+//             duration: 220,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//             panY.setValue(0);
+//             onSwipeDown();
+//           });
+//         } else {
+//           Animated.spring(panX, {toValue: 0, useNativeDriver: true}).start();
+//           Animated.spring(panY, {toValue: 0, useNativeDriver: true}).start();
+//         }
+//       },
 
-      onPanResponderTerminate: () => {
-        Animated.spring(panX, {toValue: 0, useNativeDriver: true}).start();
-        Animated.spring(panY, {toValue: 0, useNativeDriver: true}).start();
-      },
-    }),
-  ).current;
+//       onPanResponderTerminate: () => {
+//         Animated.spring(panX, {toValue: 0, useNativeDriver: true}).start();
+//         Animated.spring(panY, {toValue: 0, useNativeDriver: true}).start();
+//       },
+//     }),
+//   ).current;
 
-  return (
-    <View style={{position: 'relative'}}>
-      {deleteBackground && (
-        <View
-          style={[
-            StyleSheet.absoluteFillObject,
-            {zIndex: 0, justifyContent: 'center'},
-          ]}>
-          {deleteBackground}
-        </View>
-      )}
-      <Animated.View
-        {...panResponder.panHandlers}
-        style={[
-          {zIndex: 1},
-          style,
-          {transform: [{translateX: panX}, {translateY: panY}]},
-        ]}>
-        {children}
-      </Animated.View>
-    </View>
-  );
-}
+//   return (
+//     <View style={{position: 'relative'}}>
+//       {deleteBackground && (
+//         <View
+//           style={[
+//             StyleSheet.absoluteFillObject,
+//             {zIndex: 0, justifyContent: 'center'},
+//           ]}>
+//           {deleteBackground}
+//         </View>
+//       )}
+//       <Animated.View
+//         {...panResponder.panHandlers}
+//         style={[
+//           {zIndex: 1},
+//           style,
+//           {transform: [{translateX: panX}, {translateY: panY}]},
+//         ]}>
+//         {children}
+//       </Animated.View>
+//     </View>
+//   );
+// }
 
 //////////////////
 
