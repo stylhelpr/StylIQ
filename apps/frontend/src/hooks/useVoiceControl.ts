@@ -4,12 +4,7 @@ import Voice, {
   SpeechResultsEvent,
   SpeechStartEvent,
 } from '@react-native-voice/voice';
-import {
-  PermissionsAndroid,
-  Platform,
-  NativeModules,
-  NativeEventEmitter,
-} from 'react-native';
+import {PermissionsAndroid, Platform, NativeModules} from 'react-native';
 import Tts from 'react-native-tts';
 
 const DEBUG = true;
@@ -96,8 +91,30 @@ export const useVoiceControl = () => {
       log('Voice.stop ERROR', err);
       commitIfAny('stopError');
     } finally {
+      // ✅ Always fully reset state here
       setIsRecording(false);
+      finalRef.current = '';
+      setSpeech('');
     }
+  };
+
+  /**
+   * ✅ Call this when user presses "Send" (after using `speech`)
+   * This ensures mic stops and everything resets like iOS.
+   */
+  const handleSend = async (onSend?: (text: string) => void) => {
+    log('handleSend()');
+    // Stop mic first
+    await stopListening();
+
+    // Fire the callback with current speech (if any)
+    if (speech.trim()) {
+      onSend?.(speech.trim());
+    }
+
+    // Clean reset
+    setSpeech('');
+    finalRef.current = '';
   };
 
   useEffect(() => {
@@ -137,15 +154,16 @@ export const useVoiceControl = () => {
       finalRef.current = text;
       setSpeech(text);
     };
+
+    // ✅ Auto-stop once speech ends (just like iOS)
     Voice.onSpeechEnd = () => {
       log('onSpeechEnd');
-      setIsRecording(false);
-      commitIfAny('onSpeechEnd');
+      stopListening();
     };
+
     Voice.onSpeechError = (e: SpeechErrorEvent) => {
       log('onSpeechError', e);
-      setIsRecording(false);
-      commitIfAny('onSpeechError');
+      stopListening();
     };
 
     log('Listeners attached');
@@ -156,8 +174,177 @@ export const useVoiceControl = () => {
     };
   }, []);
 
-  return {speech, isRecording, startListening, stopListening};
+  return {
+    speech,
+    isRecording,
+    startListening,
+    stopListening,
+    handleSend, // ✅ use this instead of manually calling stop + send
+  };
 };
+
+//////////////////
+
+// import {useEffect, useRef, useState} from 'react';
+// import Voice, {
+//   SpeechErrorEvent,
+//   SpeechResultsEvent,
+//   SpeechStartEvent,
+// } from '@react-native-voice/voice';
+// import {
+//   PermissionsAndroid,
+//   Platform,
+//   NativeModules,
+//   NativeEventEmitter,
+// } from 'react-native';
+// import Tts from 'react-native-tts';
+
+// const DEBUG = true;
+// const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
+
+// // RN-Voice iOS native bridge
+// const {RCTVoice} = NativeModules as {
+//   RCTVoice?: {setupAudioSession?: () => Promise<void> | void};
+// };
+
+// export const useVoiceControl = () => {
+//   const [speech, setSpeech] = useState('');
+//   const [isRecording, setIsRecording] = useState(false);
+
+//   const finalRef = useRef('');
+//   const commitTimer = useRef<NodeJS.Timeout | null>(null);
+
+//   const requestMic = async () => {
+//     if (Platform.OS === 'android') {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+//         {
+//           title: 'Mic Permission',
+//           message: 'We need microphone access for voice search.',
+//           buttonPositive: 'OK',
+//         },
+//       );
+//       return granted === PermissionsAndroid.RESULTS.GRANTED;
+//     }
+//     return true;
+//   };
+
+//   const commitIfAny = (from: string) => {
+//     const text = finalRef.current.trim();
+//     log('commitIfAny(', from, ') =>', text);
+//     if (text) setSpeech(text);
+//     finalRef.current = '';
+//     if (commitTimer.current) clearTimeout(commitTimer.current);
+//   };
+
+//   const startListening = async () => {
+//     log('startListening()');
+
+//     if (!(await requestMic())) {
+//       log('Mic permission denied');
+//       return;
+//     }
+
+//     try {
+//       await Tts.stop();
+//       await new Promise(res => setTimeout(res, 200));
+
+//       // 💥 iOS: force valid session
+//       if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
+//         try {
+//           log('Calling RCTVoice.setupAudioSession()');
+//           await RCTVoice.setupAudioSession();
+//           log('Audio session armed');
+//         } catch (err) {
+//           log('setupAudioSession error', err);
+//         }
+//       }
+
+//       await Voice.cancel();
+
+//       finalRef.current = '';
+//       setSpeech('');
+//       log('Voice.start…');
+//       await Voice.start('en-US');
+//       setIsRecording(true);
+//       log('Voice.start OK');
+//     } catch (err) {
+//       log('Voice.start ERROR', err);
+//       setIsRecording(false);
+//     }
+//   };
+
+//   const stopListening = async () => {
+//     log('stopListening()');
+//     try {
+//       await Voice.stop();
+//       commitTimer.current = setTimeout(() => commitIfAny('fallback'), 700);
+//     } catch (err) {
+//       log('Voice.stop ERROR', err);
+//       commitIfAny('stopError');
+//     } finally {
+//       setIsRecording(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         await Tts.getInitStatus();
+//         await Tts.setDefaultLanguage('en-US');
+//         if (Platform.OS === 'ios') {
+//           // @ts-ignore
+//           Tts.setIgnoreSilentSwitch?.('ignore');
+//         }
+//       } catch (e) {
+//         log('TTS init error', e);
+//       }
+
+//       // ⚡ Pre-arm audio session on iOS just once at mount
+//       if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
+//         try {
+//           await RCTVoice.setupAudioSession();
+//           log('Pre-armed audio session');
+//         } catch (err) {
+//           log('setupAudioSession at mount error', err);
+//         }
+//       }
+//     })();
+
+//     Voice.onSpeechStart = (e: SpeechStartEvent) => log('onSpeechStart', e);
+//     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+//       log('onSpeechResults', e.value);
+//       const text = e.value?.[0] || '';
+//       finalRef.current = text;
+//       setSpeech(text);
+//     };
+//     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
+//       log('onSpeechPartialResults', e.value);
+//       const text = e.value?.[0] || '';
+//       finalRef.current = text;
+//       setSpeech(text);
+//     };
+//     Voice.onSpeechEnd = () => {
+//       log('onSpeechEnd');
+//       setIsRecording(false);
+//       commitIfAny('onSpeechEnd');
+//     };
+//     Voice.onSpeechError = (e: SpeechErrorEvent) => {
+//       log('onSpeechError', e);
+//       setIsRecording(false);
+//       commitIfAny('onSpeechError');
+//     };
+
+//     log('Listeners attached');
+//     return () => {
+//       log('Unmount: removing listeners');
+//       Voice.destroy().then(Voice.removeAllListeners);
+//       if (commitTimer.current) clearTimeout(commitTimer.current);
+//     };
+//   }, []);
+
+//   return {speech, isRecording, startListening, stopListening};
+// };
 
 //////////////////
 
