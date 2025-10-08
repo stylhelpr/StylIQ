@@ -6,6 +6,7 @@ import {
   Dimensions,
   StyleSheet,
   View,
+  Easing,
 } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
@@ -22,11 +23,11 @@ if (typeof global.goingBack === 'undefined') {
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
 const DEBUG = true;
-const EDGE_WIDTH = 44;
-const BACK_DIST = SCREEN_WIDTH * 0.18;
-const BACK_VEL = 0.45;
-const DOWN_DIST = SCREEN_HEIGHT * 0.24;
-const DOWN_VEL = 0.9;
+const EDGE_WIDTH = 60; // 🍎 easier left-thumb reach
+const BACK_DIST = SCREEN_WIDTH * 0.14;
+const BACK_VEL = 0.32;
+const DOWN_DIST = SCREEN_HEIGHT * 0.2;
+const DOWN_VEL = 0.7;
 
 function d(...args: any[]) {
   if (DEBUG) console.log('[GlobalGesture]', ...args);
@@ -57,7 +58,6 @@ export default function GlobalGestureHandler({
     });
   };
 
-  // ✅ Safety: check for global.__rootGoBack on mount
   useEffect(() => {
     if (!global.__rootGoBack) {
       console.warn(
@@ -73,17 +73,15 @@ export default function GlobalGestureHandler({
         d('START pageX:', e.nativeEvent.pageX, 'x0:', g.x0);
         return false;
       },
-
       onStartShouldSetPanResponderCapture: () => false,
 
       onMoveShouldSetPanResponderCapture: (e, g) => {
         if (!panResponderEnabled.current) return false;
-
         const initialX =
           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
         const fromEdge = initialX <= EDGE_WIDTH;
-        const horizontalIntent = fromEdge && g.dx > 12 && Math.abs(g.dy) < 40;
-        const downwardIntent = isModal && g.dy > 72 && Math.abs(g.dx) < 28;
+        const horizontalIntent = fromEdge && g.dx > 8 && Math.abs(g.dy) < 48;
+        const downwardIntent = isModal && g.dy > 60 && Math.abs(g.dx) < 36;
         return (
           panResponderEnabled.current && (horizontalIntent || downwardIntent)
         );
@@ -91,12 +89,11 @@ export default function GlobalGestureHandler({
 
       onMoveShouldSetPanResponder: (e, g) => {
         if (!panResponderEnabled.current) return false;
-
         const initialX =
           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
         const fromEdge = initialX <= EDGE_WIDTH;
-        const horizontalIntent = fromEdge && g.dx > 12 && Math.abs(g.dy) < 40;
-        const downwardIntent = isModal && g.dy > 72 && Math.abs(g.dx) < 28;
+        const horizontalIntent = fromEdge && g.dx > 8 && Math.abs(g.dy) < 48;
+        const downwardIntent = isModal && g.dy > 60 && Math.abs(g.dx) < 36;
 
         d('MOVE-SHOULD-SET', {
           pageX: e.nativeEvent.pageX,
@@ -123,7 +120,6 @@ export default function GlobalGestureHandler({
 
       onPanResponderMove: (_e, g) => {
         if (!panResponderEnabled.current) return;
-
         const initialX =
           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
         const fromEdge = initialX <= EDGE_WIDTH;
@@ -131,8 +127,7 @@ export default function GlobalGestureHandler({
         if (fromEdge && g.dx > 0) {
           panX.setValue(Math.min(g.dx, SCREEN_WIDTH));
         }
-
-        if (isModal && g.dy > 0 && Math.abs(g.dx) < 56) {
+        if (isModal && g.dy > 0 && Math.abs(g.dx) < 64) {
           panY.setValue(Math.min(g.dy, SCREEN_HEIGHT));
         }
       },
@@ -162,27 +157,14 @@ export default function GlobalGestureHandler({
         });
 
         if (backTriggered) {
-          haptic();
-
           if (global.goingBack) {
             d('⚠️ Gesture ignored because already going back');
             return;
           }
-
           global.goingBack = true;
           setTimeout(() => {
             global.goingBack = false;
           }, 400);
-
-          // ✅ Trigger goBack now — try prop first, fallback to global.__rootGoBack
-          d('⬅️ Triggering goBack from gesture');
-          if (onEdgeSwipeBack) {
-            onEdgeSwipeBack();
-          } else if (global.__rootGoBack) {
-            global.__rootGoBack();
-          } else {
-            console.warn('[GlobalGesture] ❌ No goBack handler defined.');
-          }
 
           panResponderEnabled.current = false;
           setTimeout(() => {
@@ -191,10 +173,21 @@ export default function GlobalGestureHandler({
 
           Animated.timing(panX, {
             toValue: SCREEN_WIDTH,
-            duration: 180,
+            duration: 220,
+            easing: Easing.bezier(0.25, 1, 0.5, 1),
             useNativeDriver: true,
           }).start(() => {
             panX.setValue(0);
+            haptic();
+            setTimeout(() => {
+              if (onEdgeSwipeBack) {
+                onEdgeSwipeBack();
+              } else if (global.__rootGoBack) {
+                global.__rootGoBack();
+              } else {
+                console.warn('[GlobalGesture] ❌ No goBack handler defined.');
+              }
+            }, 12);
           });
 
           Animated.timing(panY, {
@@ -208,13 +201,14 @@ export default function GlobalGestureHandler({
         }
 
         if (downTriggered) {
-          haptic();
           Animated.timing(panY, {
             toValue: SCREEN_HEIGHT,
-            duration: 220,
+            duration: 240,
+            easing: Easing.bezier(0.25, 1, 0.5, 1),
             useNativeDriver: true,
           }).start(() => {
             panY.setValue(0);
+            haptic();
             onModalSwipeDown?.();
           });
 
@@ -227,12 +221,16 @@ export default function GlobalGestureHandler({
           Animated.spring(panX, {
             toValue: 0,
             useNativeDriver: true,
-            bounciness: 0,
+            damping: 24,
+            stiffness: 180,
+            mass: 0.9,
           }).start();
           Animated.spring(panY, {
             toValue: 0,
             useNativeDriver: true,
-            bounciness: 0,
+            damping: 24,
+            stiffness: 180,
+            mass: 0.9,
           }).start();
         }
 
@@ -246,12 +244,16 @@ export default function GlobalGestureHandler({
         Animated.spring(panX, {
           toValue: 0,
           useNativeDriver: true,
-          bounciness: 0,
+          damping: 24,
+          stiffness: 180,
+          mass: 0.9,
         }).start();
         Animated.spring(panY, {
           toValue: 0,
           useNativeDriver: true,
-          bounciness: 0,
+          damping: 24,
+          stiffness: 180,
+          mass: 0.9,
         }).start();
         initialTouchXRef.current = null;
       },
@@ -275,7 +277,7 @@ export default function GlobalGestureHandler({
             top: 0,
             bottom: 0,
             width: EDGE_WIDTH,
-            backgroundColor: 'rgba(255,0,0,0.08)',
+            backgroundColor: 'rgba(255,0,0,0.06)',
           }}
         />
       )}
@@ -290,6 +292,928 @@ export default function GlobalGestureHandler({
 const styles = StyleSheet.create({
   wrapper: {flex: 1, backgroundColor: 'transparent'},
 });
+
+//////////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useRef, useEffect} from 'react';
+// import {
+//   Animated,
+//   PanResponder,
+//   Dimensions,
+//   StyleSheet,
+//   View,
+// } from 'react-native';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// // ✅ Declare global helpers
+// declare global {
+//   var goingBack: boolean | undefined;
+//   var __rootGoBack: (() => void) | undefined;
+// }
+
+// if (typeof global.goingBack === 'undefined') {
+//   global.goingBack = false;
+// }
+
+// const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+
+// const DEBUG = true;
+// const EDGE_WIDTH = 60; // 🍎 widened for easier thumb reach
+// const BACK_DIST = SCREEN_WIDTH * 0.14;
+// const BACK_VEL = 0.32;
+// const DOWN_DIST = SCREEN_HEIGHT * 0.2;
+// const DOWN_VEL = 0.7;
+
+// function d(...args: any[]) {
+//   if (DEBUG) console.log('[GlobalGesture]', ...args);
+// }
+
+// type Props = {
+//   children: React.ReactNode;
+//   onEdgeSwipeBack?: () => void;
+//   onModalSwipeDown?: () => void;
+// };
+
+// export default function GlobalGestureHandler({
+//   children,
+//   onEdgeSwipeBack,
+//   onModalSwipeDown,
+// }: Props) {
+//   const panX = useRef(new Animated.Value(0)).current;
+//   const panY = useRef(new Animated.Value(0)).current;
+//   const initialTouchXRef = useRef<number | null>(null);
+//   const panResponderEnabled = useRef(true);
+
+//   // 🍎 NEW: lock direction after intent is clear
+//   let lockedDirection: 'horizontal' | 'vertical' | null = null;
+
+//   const isModal = typeof onModalSwipeDown === 'function';
+
+//   const haptic = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+//   };
+
+//   useEffect(() => {
+//     if (!global.__rootGoBack) {
+//       console.warn(
+//         '[GlobalGesture] ⚠️ global.__rootGoBack is not defined. Make sure RootNavigator sets it in useEffect.',
+//       );
+//     }
+//   }, []);
+
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onStartShouldSetPanResponder: (e, g) => {
+//         initialTouchXRef.current = e.nativeEvent.pageX;
+//         d('START pageX:', e.nativeEvent.pageX, 'x0:', g.x0);
+//         return false;
+//       },
+//       onStartShouldSetPanResponderCapture: () => false,
+
+//       onMoveShouldSetPanResponderCapture: (e, g) => {
+//         if (!panResponderEnabled.current) return false;
+
+//         // 🍎 detect direction early
+//         if (!lockedDirection) {
+//           if (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy)) {
+//             lockedDirection = 'horizontal';
+//           } else if (Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx)) {
+//             lockedDirection = 'vertical';
+//           }
+//         }
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         const horizontalIntent =
+//           fromEdge &&
+//           lockedDirection === 'horizontal' &&
+//           g.dx > 8 &&
+//           Math.abs(g.dy) < 48;
+
+//         const downwardIntent =
+//           isModal &&
+//           lockedDirection === 'vertical' &&
+//           g.dy > 60 &&
+//           Math.abs(g.dx) < 36;
+
+//         return (
+//           panResponderEnabled.current && (horizontalIntent || downwardIntent)
+//         );
+//       },
+
+//       onMoveShouldSetPanResponder: (e, g) => {
+//         if (!panResponderEnabled.current) return false;
+
+//         if (!lockedDirection) {
+//           if (Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy)) {
+//             lockedDirection = 'horizontal';
+//           } else if (Math.abs(g.dy) > 8 && Math.abs(g.dy) > Math.abs(g.dx)) {
+//             lockedDirection = 'vertical';
+//           }
+//         }
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         const horizontalIntent =
+//           fromEdge &&
+//           lockedDirection === 'horizontal' &&
+//           g.dx > 8 &&
+//           Math.abs(g.dy) < 48;
+//         const downwardIntent =
+//           isModal &&
+//           lockedDirection === 'vertical' &&
+//           g.dy > 60 &&
+//           Math.abs(g.dx) < 36;
+
+//         d('MOVE-SHOULD-SET', {
+//           pageX: e.nativeEvent.pageX,
+//           dx: g.dx,
+//           dy: g.dy,
+//           vx: g.vx,
+//           vy: g.vy,
+//           lockedDirection,
+//           horizontalIntent,
+//           downwardIntent,
+//         });
+
+//         return (
+//           panResponderEnabled.current && (horizontalIntent || downwardIntent)
+//         );
+//       },
+
+//       onPanResponderGrant: (e, g) => {
+//         d('GRANT from initialX:', initialTouchXRef.current, 'g.x0:', g.x0);
+//       },
+
+//       onPanResponderMove: (_e, g) => {
+//         if (!panResponderEnabled.current) return;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         if (fromEdge && g.dx > 0 && lockedDirection === 'horizontal') {
+//           panX.setValue(Math.min(g.dx, SCREEN_WIDTH));
+//         }
+
+//         if (
+//           isModal &&
+//           g.dy > 0 &&
+//           Math.abs(g.dx) < 64 &&
+//           lockedDirection === 'vertical'
+//         ) {
+//           panY.setValue(Math.min(g.dy, SCREEN_HEIGHT));
+//         }
+//       },
+
+//       onPanResponderRelease: (_e, g) => {
+//         lockedDirection = null; // 🔄 reset intent lock
+
+//         if (!panResponderEnabled.current) {
+//           d('🚫 Gesture ignored because responder disabled');
+//           initialTouchXRef.current = null;
+//           return;
+//         }
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         const backTriggered = fromEdge && (g.dx > BACK_DIST || g.vx > BACK_VEL);
+//         const downTriggered = isModal && (g.dy > DOWN_DIST || g.vy > DOWN_VEL);
+
+//         d('RELEASE', {
+//           initialX,
+//           dx: g.dx,
+//           dy: g.dy,
+//           vx: g.vx,
+//           vy: g.vy,
+//           backTriggered,
+//           downTriggered,
+//         });
+
+//         if (backTriggered) {
+//           haptic();
+//           if (global.goingBack) {
+//             d('⚠️ Gesture ignored because already going back');
+//             return;
+//           }
+//           global.goingBack = true;
+//           setTimeout(() => {
+//             global.goingBack = false;
+//           }, 400);
+
+//           d('⬅️ Triggering goBack from gesture');
+//           if (onEdgeSwipeBack) {
+//             onEdgeSwipeBack();
+//           } else if (global.__rootGoBack) {
+//             global.__rootGoBack();
+//           } else {
+//             console.warn('[GlobalGesture] ❌ No goBack handler defined.');
+//           }
+
+//           panResponderEnabled.current = false;
+//           setTimeout(() => {
+//             panResponderEnabled.current = true;
+//           }, 500);
+
+//           Animated.timing(panX, {
+//             toValue: SCREEN_WIDTH,
+//             duration: 180,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//           });
+
+//           Animated.timing(panY, {
+//             toValue: 0,
+//             duration: 1,
+//             useNativeDriver: true,
+//           }).start();
+
+//           initialTouchXRef.current = null;
+//           return;
+//         }
+
+//         if (downTriggered) {
+//           haptic();
+//           Animated.timing(panY, {
+//             toValue: SCREEN_HEIGHT,
+//             duration: 220,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panY.setValue(0);
+//             onModalSwipeDown?.();
+//           });
+
+//           Animated.timing(panX, {
+//             toValue: 0,
+//             duration: 1,
+//             useNativeDriver: true,
+//           }).start();
+//         } else {
+//           Animated.spring(panX, {
+//             toValue: 0,
+//             useNativeDriver: true,
+//             bounciness: 0,
+//           }).start();
+//           Animated.spring(panY, {
+//             toValue: 0,
+//             useNativeDriver: true,
+//             bounciness: 0,
+//           }).start();
+//         }
+
+//         initialTouchXRef.current = null;
+//       },
+
+//       onPanResponderTerminationRequest: () => false,
+
+//       onPanResponderTerminate: () => {
+//         lockedDirection = null; // 🔄 reset on cancel too
+//         d('TERMINATE -> reset');
+//         Animated.spring(panX, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//           bounciness: 0,
+//         }).start();
+//         Animated.spring(panY, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//           bounciness: 0,
+//         }).start();
+//         initialTouchXRef.current = null;
+//       },
+//     }),
+//   ).current;
+
+//   return (
+//     <Animated.View
+//       {...panResponder.panHandlers}
+//       pointerEvents="box-none"
+//       style={[
+//         styles.wrapper,
+//         {transform: [{translateX: panX}, {translateY: panY}]},
+//       ]}>
+//       {DEBUG && (
+//         <View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             left: 0,
+//             top: 0,
+//             bottom: 0,
+//             width: EDGE_WIDTH,
+//             backgroundColor: 'rgba(255,0,0,0.06)',
+//           }}
+//         />
+//       )}
+
+//       <View style={{flex: 1}} pointerEvents="box-none">
+//         {children}
+//       </View>
+//     </Animated.View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   wrapper: {flex: 1, backgroundColor: 'transparent'},
+// });
+
+/////////////////
+
+/* eslint-disable react-native/no-inline-styles */
+// import React, {useRef, useEffect} from 'react';
+// import {
+//   Animated,
+//   PanResponder,
+//   Dimensions,
+//   StyleSheet,
+//   View,
+// } from 'react-native';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// // ✅ Declare global helpers
+// declare global {
+//   var goingBack: boolean | undefined;
+//   var __rootGoBack: (() => void) | undefined;
+// }
+
+// if (typeof global.goingBack === 'undefined') {
+//   global.goingBack = false;
+// }
+
+// const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+
+// const DEBUG = true;
+// const EDGE_WIDTH = 60; // 🍎 widened from 44px → easier to reach with left thumb
+// const BACK_DIST = SCREEN_WIDTH * 0.14; // 🍎 slightly less distance needed
+// const BACK_VEL = 0.32; // 🍎 reduced velocity threshold
+// const DOWN_DIST = SCREEN_HEIGHT * 0.2; // 🍎 relaxed downward distance
+// const DOWN_VEL = 0.7; // 🍎 slightly easier downward velocity
+
+// function d(...args: any[]) {
+//   if (DEBUG) console.log('[GlobalGesture]', ...args);
+// }
+
+// type Props = {
+//   children: React.ReactNode;
+//   onEdgeSwipeBack?: () => void;
+//   onModalSwipeDown?: () => void;
+// };
+
+// export default function GlobalGestureHandler({
+//   children,
+//   onEdgeSwipeBack,
+//   onModalSwipeDown,
+// }: Props) {
+//   const panX = useRef(new Animated.Value(0)).current;
+//   const panY = useRef(new Animated.Value(0)).current;
+//   const initialTouchXRef = useRef<number | null>(null);
+//   const panResponderEnabled = useRef(true);
+
+//   const isModal = typeof onModalSwipeDown === 'function';
+
+//   const haptic = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+//   };
+
+//   useEffect(() => {
+//     if (!global.__rootGoBack) {
+//       console.warn(
+//         '[GlobalGesture] ⚠️ global.__rootGoBack is not defined. Make sure RootNavigator sets it in useEffect.',
+//       );
+//     }
+//   }, []);
+
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onStartShouldSetPanResponder: (e, g) => {
+//         initialTouchXRef.current = e.nativeEvent.pageX;
+//         d('START pageX:', e.nativeEvent.pageX, 'x0:', g.x0);
+//         return false;
+//       },
+//       onStartShouldSetPanResponderCapture: () => false,
+
+//       onMoveShouldSetPanResponderCapture: (e, g) => {
+//         if (!panResponderEnabled.current) return false;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+//         const horizontalIntent = fromEdge && g.dx > 8 && Math.abs(g.dy) < 48; // 🍎 easier
+//         const downwardIntent = isModal && g.dy > 60 && Math.abs(g.dx) < 36; // 🍎 relaxed diagonal tolerance
+//         return (
+//           panResponderEnabled.current && (horizontalIntent || downwardIntent)
+//         );
+//       },
+
+//       onMoveShouldSetPanResponder: (e, g) => {
+//         if (!panResponderEnabled.current) return false;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+//         const horizontalIntent = fromEdge && g.dx > 8 && Math.abs(g.dy) < 48;
+//         const downwardIntent = isModal && g.dy > 60 && Math.abs(g.dx) < 36;
+
+//         d('MOVE-SHOULD-SET', {
+//           pageX: e.nativeEvent.pageX,
+//           x0: g.x0,
+//           initialX,
+//           dx: g.dx,
+//           dy: g.dy,
+//           vx: g.vx,
+//           vy: g.vy,
+//           fromEdge,
+//           horizontalIntent,
+//           downwardIntent,
+//           take: horizontalIntent || downwardIntent,
+//         });
+
+//         return (
+//           panResponderEnabled.current && (horizontalIntent || downwardIntent)
+//         );
+//       },
+
+//       onPanResponderGrant: (e, g) => {
+//         d('GRANT from initialX:', initialTouchXRef.current, 'g.x0:', g.x0);
+//       },
+
+//       onPanResponderMove: (_e, g) => {
+//         if (!panResponderEnabled.current) return;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         if (fromEdge && g.dx > 0) {
+//           panX.setValue(Math.min(g.dx, SCREEN_WIDTH));
+//         }
+
+//         if (isModal && g.dy > 0 && Math.abs(g.dx) < 64) {
+//           panY.setValue(Math.min(g.dy, SCREEN_HEIGHT));
+//         }
+//       },
+
+//       onPanResponderRelease: (_e, g) => {
+//         if (!panResponderEnabled.current) {
+//           d('🚫 Gesture ignored because responder disabled');
+//           initialTouchXRef.current = null;
+//           return;
+//         }
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         const backTriggered = fromEdge && (g.dx > BACK_DIST || g.vx > BACK_VEL);
+//         const downTriggered = isModal && (g.dy > DOWN_DIST || g.vy > DOWN_VEL);
+
+//         d('RELEASE', {
+//           initialX,
+//           dx: g.dx,
+//           dy: g.dy,
+//           vx: g.vx,
+//           vy: g.vy,
+//           backTriggered,
+//           downTriggered,
+//         });
+
+//         if (backTriggered) {
+//           haptic();
+
+//           if (global.goingBack) {
+//             d('⚠️ Gesture ignored because already going back');
+//             return;
+//           }
+
+//           global.goingBack = true;
+//           setTimeout(() => {
+//             global.goingBack = false;
+//           }, 400);
+
+//           d('⬅️ Triggering goBack from gesture');
+//           if (onEdgeSwipeBack) {
+//             onEdgeSwipeBack();
+//           } else if (global.__rootGoBack) {
+//             global.__rootGoBack();
+//           } else {
+//             console.warn('[GlobalGesture] ❌ No goBack handler defined.');
+//           }
+
+//           panResponderEnabled.current = false;
+//           setTimeout(() => {
+//             panResponderEnabled.current = true;
+//           }, 500);
+
+//           Animated.timing(panX, {
+//             toValue: SCREEN_WIDTH,
+//             duration: 180,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//           });
+
+//           Animated.timing(panY, {
+//             toValue: 0,
+//             duration: 1,
+//             useNativeDriver: true,
+//           }).start();
+
+//           initialTouchXRef.current = null;
+//           return;
+//         }
+
+//         if (downTriggered) {
+//           haptic();
+//           Animated.timing(panY, {
+//             toValue: SCREEN_HEIGHT,
+//             duration: 220,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panY.setValue(0);
+//             onModalSwipeDown?.();
+//           });
+
+//           Animated.timing(panX, {
+//             toValue: 0,
+//             duration: 1,
+//             useNativeDriver: true,
+//           }).start();
+//         } else {
+//           Animated.spring(panX, {
+//             toValue: 0,
+//             useNativeDriver: true,
+//             bounciness: 0,
+//           }).start();
+//           Animated.spring(panY, {
+//             toValue: 0,
+//             useNativeDriver: true,
+//             bounciness: 0,
+//           }).start();
+//         }
+
+//         initialTouchXRef.current = null;
+//       },
+
+//       onPanResponderTerminationRequest: () => false,
+
+//       onPanResponderTerminate: () => {
+//         d('TERMINATE -> reset');
+//         Animated.spring(panX, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//           bounciness: 0,
+//         }).start();
+//         Animated.spring(panY, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//           bounciness: 0,
+//         }).start();
+//         initialTouchXRef.current = null;
+//       },
+//     }),
+//   ).current;
+
+//   return (
+//     <Animated.View
+//       {...panResponder.panHandlers}
+//       pointerEvents="box-none"
+//       style={[
+//         styles.wrapper,
+//         {transform: [{translateX: panX}, {translateY: panY}]},
+//       ]}>
+//       {DEBUG && (
+//         <View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             left: 0,
+//             top: 0,
+//             bottom: 0,
+//             width: EDGE_WIDTH,
+//             backgroundColor: 'rgba(255,0,0,0.06)',
+//           }}
+//         />
+//       )}
+
+//       <View style={{flex: 1}} pointerEvents="box-none">
+//         {children}
+//       </View>
+//     </Animated.View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   wrapper: {flex: 1, backgroundColor: 'transparent'},
+// });
+
+/////////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useRef, useEffect} from 'react';
+// import {
+//   Animated,
+//   PanResponder,
+//   Dimensions,
+//   StyleSheet,
+//   View,
+// } from 'react-native';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// // ✅ Declare global helpers
+// declare global {
+//   var goingBack: boolean | undefined;
+//   var __rootGoBack: (() => void) | undefined;
+// }
+
+// if (typeof global.goingBack === 'undefined') {
+//   global.goingBack = false;
+// }
+
+// const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+
+// const DEBUG = true;
+// const EDGE_WIDTH = 44;
+// const BACK_DIST = SCREEN_WIDTH * 0.18;
+// const BACK_VEL = 0.45;
+// const DOWN_DIST = SCREEN_HEIGHT * 0.24;
+// const DOWN_VEL = 0.9;
+
+// function d(...args: any[]) {
+//   if (DEBUG) console.log('[GlobalGesture]', ...args);
+// }
+
+// type Props = {
+//   children: React.ReactNode;
+//   onEdgeSwipeBack?: () => void;
+//   onModalSwipeDown?: () => void;
+// };
+
+// export default function GlobalGestureHandler({
+//   children,
+//   onEdgeSwipeBack,
+//   onModalSwipeDown,
+// }: Props) {
+//   const panX = useRef(new Animated.Value(0)).current;
+//   const panY = useRef(new Animated.Value(0)).current;
+//   const initialTouchXRef = useRef<number | null>(null);
+//   const panResponderEnabled = useRef(true);
+
+//   const isModal = typeof onModalSwipeDown === 'function';
+
+//   const haptic = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+//   };
+
+//   // ✅ Safety: check for global.__rootGoBack on mount
+//   useEffect(() => {
+//     if (!global.__rootGoBack) {
+//       console.warn(
+//         '[GlobalGesture] ⚠️ global.__rootGoBack is not defined. Make sure RootNavigator sets it in useEffect.',
+//       );
+//     }
+//   }, []);
+
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onStartShouldSetPanResponder: (e, g) => {
+//         initialTouchXRef.current = e.nativeEvent.pageX;
+//         d('START pageX:', e.nativeEvent.pageX, 'x0:', g.x0);
+//         return false;
+//       },
+
+//       onStartShouldSetPanResponderCapture: () => false,
+
+//       onMoveShouldSetPanResponderCapture: (e, g) => {
+//         if (!panResponderEnabled.current) return false;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+//         const horizontalIntent = fromEdge && g.dx > 12 && Math.abs(g.dy) < 40;
+//         const downwardIntent = isModal && g.dy > 72 && Math.abs(g.dx) < 28;
+//         return (
+//           panResponderEnabled.current && (horizontalIntent || downwardIntent)
+//         );
+//       },
+
+//       onMoveShouldSetPanResponder: (e, g) => {
+//         if (!panResponderEnabled.current) return false;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+//         const horizontalIntent = fromEdge && g.dx > 12 && Math.abs(g.dy) < 40;
+//         const downwardIntent = isModal && g.dy > 72 && Math.abs(g.dx) < 28;
+
+//         d('MOVE-SHOULD-SET', {
+//           pageX: e.nativeEvent.pageX,
+//           x0: g.x0,
+//           initialX,
+//           dx: g.dx,
+//           dy: g.dy,
+//           vx: g.vx,
+//           vy: g.vy,
+//           fromEdge,
+//           horizontalIntent,
+//           downwardIntent,
+//           take: horizontalIntent || downwardIntent,
+//         });
+
+//         return (
+//           panResponderEnabled.current && (horizontalIntent || downwardIntent)
+//         );
+//       },
+
+//       onPanResponderGrant: (e, g) => {
+//         d('GRANT from initialX:', initialTouchXRef.current, 'g.x0:', g.x0);
+//       },
+
+//       onPanResponderMove: (_e, g) => {
+//         if (!panResponderEnabled.current) return;
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         if (fromEdge && g.dx > 0) {
+//           panX.setValue(Math.min(g.dx, SCREEN_WIDTH));
+//         }
+
+//         if (isModal && g.dy > 0 && Math.abs(g.dx) < 56) {
+//           panY.setValue(Math.min(g.dy, SCREEN_HEIGHT));
+//         }
+//       },
+
+//       onPanResponderRelease: (_e, g) => {
+//         if (!panResponderEnabled.current) {
+//           d('🚫 Gesture ignored because responder disabled');
+//           initialTouchXRef.current = null;
+//           return;
+//         }
+
+//         const initialX =
+//           initialTouchXRef.current ?? g.x0 ?? Number.MAX_SAFE_INTEGER;
+//         const fromEdge = initialX <= EDGE_WIDTH;
+
+//         const backTriggered = fromEdge && (g.dx > BACK_DIST || g.vx > BACK_VEL);
+//         const downTriggered = isModal && (g.dy > DOWN_DIST || g.vy > DOWN_VEL);
+
+//         d('RELEASE', {
+//           initialX,
+//           dx: g.dx,
+//           dy: g.dy,
+//           vx: g.vx,
+//           vy: g.vy,
+//           backTriggered,
+//           downTriggered,
+//         });
+
+//         if (backTriggered) {
+//           haptic();
+
+//           if (global.goingBack) {
+//             d('⚠️ Gesture ignored because already going back');
+//             return;
+//           }
+
+//           global.goingBack = true;
+//           setTimeout(() => {
+//             global.goingBack = false;
+//           }, 400);
+
+//           // ✅ Trigger goBack now — try prop first, fallback to global.__rootGoBack
+//           d('⬅️ Triggering goBack from gesture');
+//           if (onEdgeSwipeBack) {
+//             onEdgeSwipeBack();
+//           } else if (global.__rootGoBack) {
+//             global.__rootGoBack();
+//           } else {
+//             console.warn('[GlobalGesture] ❌ No goBack handler defined.');
+//           }
+
+//           panResponderEnabled.current = false;
+//           setTimeout(() => {
+//             panResponderEnabled.current = true;
+//           }, 500);
+
+//           Animated.timing(panX, {
+//             toValue: SCREEN_WIDTH,
+//             duration: 180,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panX.setValue(0);
+//           });
+
+//           Animated.timing(panY, {
+//             toValue: 0,
+//             duration: 1,
+//             useNativeDriver: true,
+//           }).start();
+
+//           initialTouchXRef.current = null;
+//           return;
+//         }
+
+//         if (downTriggered) {
+//           haptic();
+//           Animated.timing(panY, {
+//             toValue: SCREEN_HEIGHT,
+//             duration: 220,
+//             useNativeDriver: true,
+//           }).start(() => {
+//             panY.setValue(0);
+//             onModalSwipeDown?.();
+//           });
+
+//           Animated.timing(panX, {
+//             toValue: 0,
+//             duration: 1,
+//             useNativeDriver: true,
+//           }).start();
+//         } else {
+//           Animated.spring(panX, {
+//             toValue: 0,
+//             useNativeDriver: true,
+//             bounciness: 0,
+//           }).start();
+//           Animated.spring(panY, {
+//             toValue: 0,
+//             useNativeDriver: true,
+//             bounciness: 0,
+//           }).start();
+//         }
+
+//         initialTouchXRef.current = null;
+//       },
+
+//       onPanResponderTerminationRequest: () => false,
+
+//       onPanResponderTerminate: () => {
+//         d('TERMINATE -> reset');
+//         Animated.spring(panX, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//           bounciness: 0,
+//         }).start();
+//         Animated.spring(panY, {
+//           toValue: 0,
+//           useNativeDriver: true,
+//           bounciness: 0,
+//         }).start();
+//         initialTouchXRef.current = null;
+//       },
+//     }),
+//   ).current;
+
+//   return (
+//     <Animated.View
+//       {...panResponder.panHandlers}
+//       pointerEvents="box-none"
+//       style={[
+//         styles.wrapper,
+//         {transform: [{translateX: panX}, {translateY: panY}]},
+//       ]}>
+//       {DEBUG && (
+//         <View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             left: 0,
+//             top: 0,
+//             bottom: 0,
+//             width: EDGE_WIDTH,
+//             backgroundColor: 'rgba(255,0,0,0.08)',
+//           }}
+//         />
+//       )}
+
+//       <View style={{flex: 1}} pointerEvents="box-none">
+//         {children}
+//       </View>
+//     </Animated.View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   wrapper: {flex: 1, backgroundColor: 'transparent'},
+// });
 
 ///////////////
 
