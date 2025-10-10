@@ -8,16 +8,19 @@ export function useRecreateLook() {
   /**
    * Calls backend to generate a new outfit suggestion from tags + image.
    * Accepts optional `image_url` for context (Vertex/Gemini visual prompt).
+   * The backend automatically looks up gender_representation from Postgres.
    */
   const recreateLook = useCallback(
     async ({
       user_id,
       tags,
       image_url,
+      user_gender, // optional override
     }: {
       user_id: string;
       tags: string[];
       image_url?: string;
+      user_gender?: string;
     }) => {
       setError(null);
       setLoading(true);
@@ -31,7 +34,12 @@ export function useRecreateLook() {
         const res = await fetch(`${API_BASE_URL}/ai/recreate`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({user_id, tags: safeTags, image_url}),
+          body: JSON.stringify({
+            user_id,
+            tags: safeTags,
+            image_url,
+            user_gender, // you can send it if known, backend handles fallback
+          }),
         });
 
         if (!res.ok) {
@@ -41,7 +49,6 @@ export function useRecreateLook() {
 
         const data = await res.json();
 
-        // ✅ Normalize backend schema for consistent client display
         return {
           outfit: data.outfit ?? [],
           style_note: data.style_note ?? '',
@@ -61,6 +68,72 @@ export function useRecreateLook() {
 
   return {recreateLook, loading, error};
 }
+
+////////////////////
+
+// import {useState, useCallback} from 'react';
+// import {API_BASE_URL} from '../config/api';
+
+// export function useRecreateLook() {
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+
+//   /**
+//    * Calls backend to generate a new outfit suggestion from tags + image.
+//    * Accepts optional `image_url` for context (Vertex/Gemini visual prompt).
+//    */
+//   const recreateLook = useCallback(
+//     async ({
+//       user_id,
+//       tags,
+//       image_url,
+//     }: {
+//       user_id: string;
+//       tags: string[];
+//       image_url?: string;
+//     }) => {
+//       setError(null);
+//       setLoading(true);
+
+//       try {
+//         const safeTags =
+//           Array.isArray(tags) && tags.length > 0
+//             ? tags
+//             : ['modern', 'neutral', 'tailored'];
+
+//         const res = await fetch(`${API_BASE_URL}/ai/recreate`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({user_id, tags: safeTags, image_url}),
+//         });
+
+//         if (!res.ok) {
+//           const text = await res.text();
+//           throw new Error(`AI recreate failed (${res.status}): ${text}`);
+//         }
+
+//         const data = await res.json();
+
+//         // ✅ Normalize backend schema for consistent client display
+//         return {
+//           outfit: data.outfit ?? [],
+//           style_note: data.style_note ?? '',
+//           recommendations: data.recommendations ?? [],
+//           user_id: data.user_id ?? user_id,
+//         };
+//       } catch (err: any) {
+//         console.error('[useRecreateLook] ❌ Error:', err);
+//         setError(err.message || 'Recreate look failed');
+//         throw err;
+//       } finally {
+//         setLoading(false);
+//       }
+//     },
+//     [],
+//   );
+
+//   return {recreateLook, loading, error};
+// }
 
 ////////////////
 

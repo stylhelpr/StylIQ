@@ -3,6 +3,12 @@ import OpenAI from 'openai';
 import { ChatDto } from './dto/chat.dto';
 import { VertexService } from '../vertex/vertex.service'; // 🔹 ADDED
 import { ProductSearchService } from '../product-services/product-search.service';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -335,21 +341,118 @@ export class AiService {
   //     return { user_id, outfit: enriched, style_note };
   //   }
 
-  async recreate(user_id: string, tags: string[], image_url?: string) {
+  //   async recreate(
+  //     user_id: string,
+  //     tags: string[],
+  //     image_url?: string,
+  //     user_gender?: string,
+  //   ) {
+  //     console.log(
+  //       '🧥 [AI] recreate() called for user',
+  //       user_id,
+  //       'with tags:',
+  //       tags,
+  //       'and gender:',
+  //       user_gender,
+  //     );
+
+  //     if (!user_id) throw new Error('Missing user_id');
+  //     if (!tags?.length) {
+  //       console.warn('⚠️ [AI] recreate() empty tags, using fallback keywords.');
+  //       tags = ['modern', 'neutral', 'tailored'];
+  //     }
+
+  //     // 🧠 NEW LOGIC: normalize gender
+  //     const normalizedGender =
+  //       user_gender?.toLowerCase().includes('female') ||
+  //       user_gender?.toLowerCase().includes('woman')
+  //         ? 'female'
+  //         : user_gender?.toLowerCase().includes('male') ||
+  //             user_gender?.toLowerCase().includes('man')
+  //           ? 'male'
+  //           : process.env.DEFAULT_GENDER || 'male';
+
+  //     const prompt = `
+  // You are a professional AI fashion stylist specializing in ${normalizedGender} fashion.
+  // Create a cohesive outfit inspired by a *real uploaded look*.
+
+  // Client ID: ${user_id}
+  // Uploaded look image: ${image_url || 'N/A'}
+  // Detected visual tags: ${tags.join(', ')}
+
+  // Guidelines:
+  // - Analyze the photo’s gender presentation and proportions — if unclear, assume ${process.env.DEFAULT_GENDER || 'male'}.
+  // - Stay within that gender’s ready-to-wear category only (no mixing).
+  // - Use the uploaded look’s palette, texture, and silhouette as reference.
+  // - Maintain the same overall vibe (e.g. tailored, minimalist, modern, or streetwear).
+  // - Prioritize wearable, realistic items from men’s fashion retail.
+  // - Output only valid JSON, in the exact format below — no text outside the JSON.
+
+  // {
+  //   "outfit": [
+  //     { "category": "Top", "item": "Grey Cotton Tee", "color": "gray" },
+  //     { "category": "Bottom", "item": "Ripped Indigo Jeans", "color": "indigo" },
+  //     { "category": "Outerwear", "item": "Beige Overshirt", "color": "beige" },
+  //     { "category": "Shoes", "item": "White Sneakers", "color": "white" }
+  //   ],
+  //   "style_note": "Brief note describing the overall look and how it connects to the uploaded image."
+  // }
+  // `;
+
+  async recreate(
+    user_id: string,
+    tags: string[],
+    image_url?: string,
+    user_gender?: string,
+  ) {
     console.log(
       '🧥 [AI] recreate() called for user',
       user_id,
       'with tags:',
       tags,
+      'and gender:',
+      user_gender,
     );
+
     if (!user_id) throw new Error('Missing user_id');
     if (!tags?.length) {
       console.warn('⚠️ [AI] recreate() empty tags, using fallback keywords.');
       tags = ['modern', 'neutral', 'tailored'];
     }
 
+    /* 🧩 1️⃣ Fetch gender_presentation from DB only if not provided */
+    if (!user_gender) {
+      try {
+        const result = await pool.query(
+          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+          [user_id],
+        );
+        user_gender = result.rows[0]?.gender_presentation || 'neutral';
+        console.log('🧠 [AI] gender_presentation from DB →', user_gender);
+      } catch (err: any) {
+        console.warn(
+          '⚠️ [AI] Could not fetch gender_presentation:',
+          err.message,
+        );
+        user_gender = 'neutral';
+      }
+    }
+
+    /* 🧠 2️⃣ Normalize gender */
+    const normalizedGender =
+      user_gender?.toLowerCase().includes('female') ||
+      user_gender?.toLowerCase().includes('woman')
+        ? 'female'
+        : user_gender?.toLowerCase().includes('male') ||
+            user_gender?.toLowerCase().includes('man')
+          ? 'male'
+          : process.env.DEFAULT_GENDER || 'neutral';
+
+    console.log('🧠 [AI] normalized gender →', normalizedGender);
+
+    /* 🎩 3️⃣ Build gender-aware prompt */
     const prompt = `
-You are a professional AI fashion stylist. 
+You are a professional AI fashion stylist specializing in ${normalizedGender} fashion.
 Create a cohesive outfit inspired by a *real uploaded look*.
 
 Client ID: ${user_id}
@@ -357,9 +460,10 @@ Uploaded look image: ${image_url || 'N/A'}
 Detected visual tags: ${tags.join(', ')}
 
 Guidelines:
-- Use the image (if provided) as the main inspiration for palette, mood, and silhouette.
-- Keep the same style family (e.g. streetwear, tailored, casual).
-- Output only valid JSON, in the exact format below — no text outside the JSON.
+- Only include items consistent with ${normalizedGender} fashion.
+- Use the uploaded image’s palette, fabric, and silhouette as inspiration.
+- Match the same overall style (e.g., tailored, streetwear, minimal, modern).
+- Output only valid JSON exactly like this:
 
 {
   "outfit": [
@@ -368,7 +472,7 @@ Guidelines:
     { "category": "Outerwear", "item": "Beige Overshirt", "color": "beige" },
     { "category": "Shoes", "item": "White Sneakers", "color": "white" }
   ],
-  "style_note": "Brief note describing the overall look and how it connects to the uploaded image."
+  "style_note": "Brief note describing how the recreated outfit connects to the uploaded image."
 }
 `;
 
@@ -416,7 +520,11 @@ Guidelines:
     /* ---------------------- 2️⃣ Enrich with live products ---------------------- */
     const enriched = await Promise.all(
       outfit.map(async (o: any) => {
-        const query = `${o.item || o.category || ''} ${o.color || ''}`.trim();
+        // 👇 Add this
+        const genderPrefix = normalizedGender + ' ';
+        const query =
+          `${genderPrefix}${o.item || o.category || ''} ${o.color || ''}`.trim();
+
         const products = await this.productSearch.search(query);
         let top = products[0];
 
