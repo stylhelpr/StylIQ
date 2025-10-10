@@ -37,6 +37,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // import SparkleIcon from '../assets/images/sparkle-icon.png';
 // import Future1 from '../assets/images/future-icon1.png';
 import AllSavedLooksModal from '../components/AllSavedLooksModal/AllSavedLooksModal';
+import {useRecreateLook} from '../hooks/useRecreateLook';
+import {searchProducts} from '../services/productSearchClient';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -99,6 +101,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const mapHeight = useRef(new Animated.Value(220)).current;
   const mapOpacity = useRef(new Animated.Value(1)).current;
   const [mapOpen, setMapOpen] = useState(true);
+
+  const {recreateLook, loading: recreating} = useRecreateLook();
 
   //  TOOL TIPS
   const [showSettingsTooltip, setShowSettingsTooltip] = useState(false);
@@ -392,6 +396,35 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   if (!ready) {
     return <View style={globalStyles.screen} />;
   }
+
+  // 🧥 Recreate Look
+  const handleRecreateLook = async ({image_url, tags}) => {
+    try {
+      console.log('[Home] Recreate from Saved Look:', image_url, tags);
+      const result = await recreateLook({user_id: userId, tags, image_url});
+      console.log('[Home] Recreated outfit result:', result);
+
+      // Navigate to your RecreatedLook screen
+      navigate('RecreatedLook', {data: result});
+      // navigate('RecreatedLook', result);
+    } catch (err) {
+      console.error('[Home] Failed to recreate:', err);
+    }
+  };
+
+  // 🛍️ Shop The Vibe
+  const handleShopModal = async tags => {
+    try {
+      console.log('[Home] Shop tags:', tags);
+      const query = tags && tags.length > 0 ? tags.join(' ') : 'outfit';
+      const results = await searchProducts(query); // ✅ fixed
+      console.log('[Home] Shop results:', results);
+
+      // TODO: display results (e.g. open a new modal/grid)
+    } catch (err) {
+      console.error('[Home] Shop modal failed:', err);
+    }
+  };
 
   return (
     <View style={{flex: 1}}>
@@ -918,8 +951,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           visible={imageModalVisible}
           onClose={() => setImageModalVisible(false)}
           savedLooks={savedLooks}
-          theme={theme}
+          recreateLook={handleRecreateLook}
+          openShopModal={handleShopModal}
         />
+        {/* <AllSavedLooksModal
+          visible={imageModalVisible}
+          onClose={() => setImageModalVisible(false)}
+          savedLooks={savedLooks}
+          theme={theme}
+        /> */}
       </Animated.ScrollView>
     </View>
   );

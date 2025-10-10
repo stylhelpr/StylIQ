@@ -185,7 +185,7 @@ export default function GlobalGestureHandler({
               } else if (global.__rootGoBack) {
                 global.__rootGoBack();
               } else {
-                // console.warn('[GlobalGesture] ❌ No goBack handler defined.');
+                console.warn('[GlobalGesture] ❌ No goBack handler defined.');
               }
             }, 12);
           });

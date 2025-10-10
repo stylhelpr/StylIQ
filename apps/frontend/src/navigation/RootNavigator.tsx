@@ -46,6 +46,8 @@ import ContactScreen from '../screens/ContactScreen';
 import AboutScreen from '../screens/AboutScreen';
 import FeedbackScreen from '../screens/FeedBackScreen';
 import WebPageScreen from '../screens/WebPageScreen';
+import InspirationHubScreen from '../screens/InspirationHubScreen';
+import RecreatedLookScreen from '../screens/RecreatedLookScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -106,6 +108,8 @@ type Screen =
   | 'AboutScreen'
   | 'FeedbackScreen'
   | 'AiStylistChatScreen'
+  | 'InspirationHub'
+  | 'RecreatedLook'
   | 'WebPageScreen'
   | 'Planner';
 
@@ -282,6 +286,17 @@ const RootNavigator = () => {
           );
         }
         return profileScreenCache.current;
+
+      case 'InspirationHub':
+        return <InspirationHubScreen navigate={navigate} />;
+
+      case 'RecreatedLook':
+        return (
+          <RecreatedLookScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
+        );
 
       case 'StyleProfileScreen':
         return <StyleProfileScreen navigate={navigate} />;
