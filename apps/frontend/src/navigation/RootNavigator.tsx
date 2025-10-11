@@ -46,7 +46,6 @@ import ContactScreen from '../screens/ContactScreen';
 import AboutScreen from '../screens/AboutScreen';
 import FeedbackScreen from '../screens/FeedBackScreen';
 import WebPageScreen from '../screens/WebPageScreen';
-import InspirationHubScreen from '../screens/InspirationHubScreen';
 import RecreatedLookScreen from '../screens/RecreatedLookScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
@@ -108,7 +107,6 @@ type Screen =
   | 'AboutScreen'
   | 'FeedbackScreen'
   | 'AiStylistChatScreen'
-  | 'InspirationHub'
   | 'RecreatedLook'
   | 'WebPageScreen'
   | 'Planner';
@@ -287,15 +285,34 @@ const RootNavigator = () => {
         }
         return profileScreenCache.current;
 
-      case 'InspirationHub':
-        return <InspirationHubScreen navigate={navigate} />;
-
       case 'RecreatedLook':
+        console.log('🧩 Rendering RecreatedLookScreen OVER Home');
+
+        const safeNav = {
+          navigate,
+          goBack: () => {
+            console.log('⬅️ [RootNavigator] goBack triggered');
+            if (global.showAllSavedLooksModal) {
+              console.log('🪄 Triggering global.showAllSavedLooksModal()...');
+              global.showAllSavedLooksModal();
+            } else if (global.__rootGoBack) {
+              global.__rootGoBack();
+            } else {
+              console.warn('[RootNavigator] No global goBack handler found');
+            }
+          },
+        };
+
         return (
-          <RecreatedLookScreen
-            route={{params: screenParams}}
-            navigate={navigate}
-          />
+          <View style={{flex: 1}}>
+            <HomeScreen navigate={navigate} />
+            <View style={{...StyleSheet.absoluteFillObject, zIndex: 999}}>
+              <RecreatedLookScreen
+                route={{params: screenParams}}
+                navigation={safeNav} // 👈 pass a safe shim
+              />
+            </View>
+          </View>
         );
 
       case 'StyleProfileScreen':
@@ -311,6 +328,7 @@ const RootNavigator = () => {
             toggleFavorite={toggleFavorite}
           />
         );
+
       case 'OutfitBuilder':
         return (
           <OutfitBuilderScreen

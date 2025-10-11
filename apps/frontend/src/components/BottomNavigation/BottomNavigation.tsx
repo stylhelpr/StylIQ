@@ -96,15 +96,6 @@ const BottomNavigation = ({
         />
 
         <TabButton
-          icon="lightbulb-outline" // 💡 Inspiration Hub icon
-          label="Hub"
-          onPress={() =>
-            current !== 'InspirationHub' && navigate('InspirationHub')
-          }
-          isActive={current === 'InspirationHub'}
-        />
-
-        <TabButton
           icon="auto-awesome"
           label="Style Me"
           onPress={() => current !== 'Outfit' && navigate('Outfit')}

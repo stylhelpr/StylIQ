@@ -39,6 +39,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AllSavedLooksModal from '../components/AllSavedLooksModal/AllSavedLooksModal';
 import {useRecreateLook} from '../hooks/useRecreateLook';
 import {searchProducts} from '../services/productSearchClient';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {Linking} from 'react-native';
+import type {ProductResult} from '../services/productSearchClient';
+import ShopModal from '../components/ShopModal/ShopModal';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -93,6 +97,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [readerUrl, setReaderUrl] = useState<string | undefined>(undefined);
   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
   const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [shopResults, setShopResults] = useState<ProductResult[]>([]);
 
   // Map dropdown state & animations
   // DEAFULT OPEN STATE
@@ -103,6 +108,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [mapOpen, setMapOpen] = useState(true);
 
   const {recreateLook, loading: recreating} = useRecreateLook();
+  const [shopVisible, setShopVisible] = useState(false);
 
   //  TOOL TIPS
   const [showSettingsTooltip, setShowSettingsTooltip] = useState(false);
@@ -413,14 +419,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   };
 
   // 🛍️ Shop The Vibe
-  const handleShopModal = async tags => {
+  const handleShopModal = async (tags?: string[]) => {
     try {
+      // ReactNativeHapticFeedback.trigger('impactMedium');
       console.log('[Home] Shop tags:', tags);
+
       const query = tags && tags.length > 0 ? tags.join(' ') : 'outfit';
-      const results = await searchProducts(query); // ✅ fixed
+      const results = await searchProducts(query);
       console.log('[Home] Shop results:', results);
 
-      // TODO: display results (e.g. open a new modal/grid)
+      if (results && results.length > 0) {
+        setShopResults(results); // ✅ saves results to modal state
+        setShopVisible(true); // ✅ opens modal
+      } else {
+        console.warn('[Home] No products found for', query);
+      }
     } catch (err) {
       console.error('[Home] Shop modal failed:', err);
     }
@@ -953,13 +966,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           savedLooks={savedLooks}
           recreateLook={handleRecreateLook}
           openShopModal={handleShopModal}
+          shopResults={shopResults}
         />
-        {/* <AllSavedLooksModal
-          visible={imageModalVisible}
-          onClose={() => setImageModalVisible(false)}
-          savedLooks={savedLooks}
-          theme={theme}
-        /> */}
+        <ShopModal
+          visible={shopVisible}
+          onClose={() => setShopVisible(false)}
+          results={shopResults}
+        />
       </Animated.ScrollView>
     </View>
   );
