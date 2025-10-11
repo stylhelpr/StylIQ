@@ -42,15 +42,23 @@ export function useRecreateLook() {
         }
 
         // 🧠 Step 2: Combine AI + provided tags + gender context
-        const safeTags = [
+        let merged = [
           user_gender || 'unisex',
           'outfit',
-          ...(aiTags.length > 0
-            ? aiTags
-            : tags.length > 0
-            ? tags
-            : ['modern', 'neutral', 'tailored']),
+          ...(aiTags.length > 0 ? aiTags : tags.length > 0 ? tags : []),
         ];
+
+        // 🪄 Add soft weighting — emphasize material/pattern/style terms
+        const weighted = merged.flatMap(tag => {
+          const t = tag.toLowerCase();
+          if (/(flannel|wool|linen|denim|corduroy)/.test(t)) return [t, t, t]; // material boost
+          if (/(plaid|striped|solid|check|herringbone)/.test(t)) return [t, t]; // pattern boost
+          if (/(tailored|relaxed|oversized|fitted)/.test(t)) return [t, t]; // fit boost
+          return [t];
+        });
+
+        // 🧩 Deduplicate while preserving boosted influence
+        const safeTags = Array.from(new Set(weighted)).filter(Boolean);
 
         console.log('[useRecreateLook] Final tag set →', safeTags);
 
@@ -92,6 +100,103 @@ export function useRecreateLook() {
 
   return {recreateLook, loading, error};
 }
+
+/////////////////////
+
+// import {useState, useCallback} from 'react';
+// import {API_BASE_URL} from '../config/api';
+// import {useAnalyzeLook} from './useAnalyzeLook';
+
+// export function useRecreateLook() {
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+//   const {analyzeLook} = useAnalyzeLook();
+
+//   /**
+//    * Calls backend to generate a new outfit suggestion from tags + image.
+//    * Now automatically analyzes the image to extract AI tags.
+//    */
+//   const recreateLook = useCallback(
+//     async ({
+//       user_id,
+//       tags = [],
+//       image_url,
+//       user_gender,
+//     }: {
+//       user_id: string;
+//       tags?: string[];
+//       image_url?: string;
+//       user_gender?: string;
+//     }) => {
+//       setError(null);
+//       setLoading(true);
+
+//       try {
+//         // 🔍 Step 1: Analyze image for fresh AI tags
+//         let aiTags: string[] = [];
+//         if (image_url) {
+//           try {
+//             const analysis = await analyzeLook(image_url);
+//             aiTags = analysis?.tags || [];
+//             console.log('[useRecreateLook] AI tags:', aiTags);
+//           } catch (err) {
+//             console.warn(
+//               '[useRecreateLook] analyzeLook failed, fallback to tags',
+//             );
+//           }
+//         }
+
+//         // 🧠 Step 2: Combine AI + provided tags + gender context
+//         const safeTags = [
+//           user_gender || 'unisex',
+//           'outfit',
+//           ...(aiTags.length > 0
+//             ? aiTags
+//             : tags.length > 0
+//             ? tags
+//             : ['modern', 'neutral', 'tailored']),
+//         ];
+
+//         console.log('[useRecreateLook] Final tag set →', safeTags);
+
+//         // 🪄 Step 3: Call backend recreate endpoint
+//         const res = await fetch(`${API_BASE_URL}/ai/recreate`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({
+//             user_id,
+//             tags: safeTags,
+//             image_url,
+//             user_gender,
+//           }),
+//         });
+
+//         if (!res.ok) {
+//           const text = await res.text();
+//           throw new Error(`AI recreate failed (${res.status}): ${text}`);
+//         }
+
+//         const data = await res.json();
+
+//         return {
+//           outfit: data.outfit ?? [],
+//           style_note: data.style_note ?? '',
+//           recommendations: data.recommendations ?? [],
+//           user_id: data.user_id ?? user_id,
+//         };
+//       } catch (err: any) {
+//         console.error('[useRecreateLook] ❌ Error:', err);
+//         setError(err.message || 'Recreate look failed');
+//         throw err;
+//       } finally {
+//         setLoading(false);
+//       }
+//     },
+//     [analyzeLook],
+//   );
+
+//   return {recreateLook, loading, error};
+// }
 
 /////////////////
 

@@ -156,6 +156,7 @@ export class AiService {
   }
 
   //////ANALYZE LOOK
+
   async analyze(imageUrl: string) {
     console.log('🧠 [AI] analyze() called with', imageUrl);
     if (!imageUrl) throw new Error('Missing imageUrl');
@@ -184,7 +185,7 @@ export class AiService {
       }
     }
 
-    // 🔸 OpenAI fallback (unchanged)
+    // 🔸 OpenAI fallback
     try {
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -209,15 +210,7 @@ export class AiService {
       console.log('🧠 [AI] analyze() raw response:', raw);
 
       if (!raw) throw new Error('Empty response from OpenAI');
-
-      let parsed: any = {};
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        console.error('⚠️ [AI] analyze() JSON parse failed:', raw);
-        parsed = {};
-      }
-
+      const parsed = JSON.parse(raw || '{}');
       return { tags: parsed.tags || [] };
     } catch (err: any) {
       console.error('❌ [AI] analyze() failed:', err.message);
@@ -225,179 +218,96 @@ export class AiService {
     }
   }
 
-  //   async recreate(user_id: string, tags: string[], image_url?: string) {
-  //     console.log(
-  //       '🧥 [AI] recreate() called for user',
-  //       user_id,
-  //       'with tags:',
-  //       tags,
+  /* ------------------------------------------------------------
+     🧩 Weighted Tag Enrichment + Trend Injection
+  -------------------------------------------------------------*/
+  private async enrichTags(tags: string[]): Promise<string[]> {
+    const weightMap: Record<string, number> = {
+      tailored: 3,
+      minimal: 3,
+      neutral: 3,
+      modern: 2,
+      vintage: 2,
+      classic: 2,
+      streetwear: 2,
+      oversized: 2,
+      slim: 2,
+      relaxed: 2,
+      casual: 1,
+      sporty: 1,
+    };
+
+    // 🧹 Normalize + de-dupe
+    const cleanTags = Array.from(
+      new Set(
+        tags
+          .map((t) => t.toLowerCase().trim())
+          .filter((t) => t && !['outfit', 'style', 'fashion'].includes(t)),
+      ),
+    );
+
+    // 🧠 Apply weights
+    const weighted = cleanTags
+      .map((t) => ({ tag: t, weight: weightMap[t] || 1 }))
+      .sort((a, b) => b.weight - a.weight);
+
+    // 🌍 Inject current trend tags
+    const trendTags = await this.fetchTrendTags();
+    const final = Array.from(
+      new Set([...weighted.map((w) => w.tag), ...trendTags.slice(0, 3)]),
+    );
+
+    console.log('🎯 [AI] Enriched tags →', final);
+    return final;
+  }
+
+  /* 🔥 Pull in fashion trends (cached or RSS) */
+  // private async fetchTrendTags(): Promise<string[]> {
+  //   try {
+  //     const res = await fetch(
+  //       'https://trends.google.com/trends/hottrends/visualize/internal/data/en_us',
   //     );
-  //     if (!user_id) throw new Error('Missing user_id');
-  //     if (!tags?.length) {
-  //       console.warn('⚠️ [AI] recreate() empty tags, using fallback keywords.');
-  //       tags = ['modern', 'neutral', 'tailored'];
-  //     }
-
-  //     const prompt = `
-  // You are a professional AI fashion stylist.
-  // Create a cohesive outfit inspired by a *real uploaded look*.
-
-  // Client ID: ${user_id}
-  // Uploaded look image: ${image_url || 'N/A'}
-  // Detected visual tags: ${tags.join(', ')}
-
-  // Guidelines:
-  // - Use the image (if provided) as the main inspiration for palette, mood, and silhouette.
-  // - Keep the same style family (e.g. streetwear, tailored, casual).
-  // - Output only valid JSON, in the exact format below — no text outside the JSON.
-
-  // {
-  //   "outfit": [
-  //     { "category": "Top", "item": "Grey Cotton Tee", "color": "gray" },
-  //     { "category": "Bottom", "item": "Ripped Indigo Jeans", "color": "indigo" },
-  //     { "category": "Outerwear", "item": "Beige Overshirt", "color": "beige" },
-  //     { "category": "Shoes", "item": "White Sneakers", "color": "white" }
-  //   ],
-  //   "style_note": "Brief note describing the overall look and how it connects to the uploaded image."
-  // }
-  // `;
-
-  //     /* ---------------------- 1️⃣ Generate outfit ---------------------- */
-  //     let parsed: any;
-  //     if (this.useVertex && this.vertexService) {
-  //       try {
-  //         const result = await this.vertexService.generateReasonedOutfit(prompt);
-  //         let text = result?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  //         text = text
-  //           .replace(/^```json\s*/i, '')
-  //           .replace(/```$/, '')
-  //           .trim();
-  //         parsed = JSON.parse(text);
-  //         console.log('🧠 [Vertex] recreate() success:', parsed);
-  //       } catch (err: any) {
-  //         console.warn(
-  //           '[Vertex] recreate() failed → fallback to OpenAI:',
-  //           err.message,
-  //         );
-  //       }
-  //     }
-
-  //     if (!parsed) {
-  //       const completion = await this.openai.chat.completions.create({
-  //         model: 'gpt-4o-mini',
-  //         temperature: 0.7,
-  //         messages: [{ role: 'user', content: prompt }],
-  //         response_format: { type: 'json_object' },
-  //       });
-
-  //       const raw = completion.choices[0]?.message?.content || '{}';
-  //       try {
-  //         parsed = JSON.parse(raw);
-  //       } catch {
-  //         console.error('⚠️ [AI] recreate() JSON parse failed:', raw);
-  //         parsed = {};
-  //       }
-  //     }
-
-  //     const outfit = Array.isArray(parsed?.outfit) ? parsed.outfit : [];
-  //     const style_note =
-  //       parsed?.style_note || 'Modern outfit inspired by the uploaded look.';
-
-  //     /* ---------------------- 2️⃣ Enrich with live products ---------------------- */
-  //     const enriched = await Promise.all(
-  //       outfit.map(async (o: any) => {
-  //         const query = `${o.item || o.category || ''} ${o.color || ''}`.trim();
-
-  //         // 🔎 1st pass: combined search (Farfetch → ASOS → SerpAPI)
-  //         const products = await this.productSearch.search(query);
-  //         let top = products[0];
-
-  //         // 🔁 2nd pass: retry with SerpAPI if no valid image
-  //         if (!top?.image || top.image.includes('No_Image')) {
-  //           const serp = await this.productSearch.searchSerpApi(query);
-  //           if (serp?.[0]) top = { ...serp[0], source: 'SerpAPI' };
-  //         }
-
-  //         // 🧱 Always return a full object
-  //         return {
-  //           category: o.category,
-  //           item: o.item,
-  //           color: o.color,
-  //           brand: top?.brand || 'Unknown',
-  //           price: top?.price || '—',
-  //           image:
-  //             top?.image && top.image.startsWith('http')
-  //               ? top.image
-  //               : 'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
-  //           shopUrl:
-  //             top?.shopUrl ||
-  //             `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=shop`,
-  //           source: top?.source || 'ASOS / Fallback',
-  //         };
-  //       }),
+  //     const json = await res.json().catch(() => []);
+  //     const trendWords = JSON.stringify(json).toLowerCase();
+  //     const matched = trendWords.match(
+  //       /(quiet luxury|monochrome|minimalism|maximalism|italian|tailoring|loafers|neutrals|linen|structured|preppy)/gi,
   //     );
-
-  //     /* ---------------------- 3️⃣ Return final payload ---------------------- */
-  //     return { user_id, outfit: enriched, style_note };
+  //     return matched ? Array.from(new Set(matched)) : [];
+  //   } catch {
+  //     return ['quiet luxury', 'neutral tones', 'tailored fit'];
   //   }
-
-  //   async recreate(
-  //     user_id: string,
-  //     tags: string[],
-  //     image_url?: string,
-  //     user_gender?: string,
-  //   ) {
-  //     console.log(
-  //       '🧥 [AI] recreate() called for user',
-  //       user_id,
-  //       'with tags:',
-  //       tags,
-  //       'and gender:',
-  //       user_gender,
-  //     );
-
-  //     if (!user_id) throw new Error('Missing user_id');
-  //     if (!tags?.length) {
-  //       console.warn('⚠️ [AI] recreate() empty tags, using fallback keywords.');
-  //       tags = ['modern', 'neutral', 'tailored'];
-  //     }
-
-  //     // 🧠 NEW LOGIC: normalize gender
-  //     const normalizedGender =
-  //       user_gender?.toLowerCase().includes('female') ||
-  //       user_gender?.toLowerCase().includes('woman')
-  //         ? 'female'
-  //         : user_gender?.toLowerCase().includes('male') ||
-  //             user_gender?.toLowerCase().includes('man')
-  //           ? 'male'
-  //           : process.env.DEFAULT_GENDER || 'male';
-
-  //     const prompt = `
-  // You are a professional AI fashion stylist specializing in ${normalizedGender} fashion.
-  // Create a cohesive outfit inspired by a *real uploaded look*.
-
-  // Client ID: ${user_id}
-  // Uploaded look image: ${image_url || 'N/A'}
-  // Detected visual tags: ${tags.join(', ')}
-
-  // Guidelines:
-  // - Analyze the photo’s gender presentation and proportions — if unclear, assume ${process.env.DEFAULT_GENDER || 'male'}.
-  // - Stay within that gender’s ready-to-wear category only (no mixing).
-  // - Use the uploaded look’s palette, texture, and silhouette as reference.
-  // - Maintain the same overall vibe (e.g. tailored, minimalist, modern, or streetwear).
-  // - Prioritize wearable, realistic items from men’s fashion retail.
-  // - Output only valid JSON, in the exact format below — no text outside the JSON.
-
-  // {
-  //   "outfit": [
-  //     { "category": "Top", "item": "Grey Cotton Tee", "color": "gray" },
-  //     { "category": "Bottom", "item": "Ripped Indigo Jeans", "color": "indigo" },
-  //     { "category": "Outerwear", "item": "Beige Overshirt", "color": "beige" },
-  //     { "category": "Shoes", "item": "White Sneakers", "color": "white" }
-  //   ],
-  //   "style_note": "Brief note describing the overall look and how it connects to the uploaded image."
   // }
-  // `;
+
+  private async fetchTrendTags(): Promise<string[]> {
+    try {
+      const res = await fetch(
+        'https://trends.google.com/trends/hottrends/visualize/internal/data/en_us',
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json().catch(() => []);
+      const trendWords = JSON.stringify(json).toLowerCase();
+      const matched = trendWords.match(
+        /(quiet luxury|monochrome|minimalism|maximalism|italian|tailoring|loafers|neutrals|linen|structured|preppy|flannel|earth tones|autumn layering)/gi,
+      );
+      if (matched?.length) return Array.from(new Set(matched));
+
+      // 🧭 If Google Trends returned empty, use local backup
+      return [
+        'quiet luxury',
+        'neutral tones',
+        'tailored fit',
+        'autumn layering',
+      ];
+    } catch (err: any) {
+      console.warn('⚠️ Trend fetch fallback triggered:', err.message);
+      return [
+        'quiet luxury',
+        'neutral tones',
+        'tailored fit',
+        'autumn layering',
+      ];
+    }
+  }
 
   async recreate(
     user_id: string,
@@ -416,11 +326,14 @@ export class AiService {
 
     if (!user_id) throw new Error('Missing user_id');
     if (!tags?.length) {
-      console.warn('⚠️ [AI] recreate() empty tags, using fallback keywords.');
+      console.warn('⚠️ [AI] recreate() empty tags → using defaults.');
       tags = ['modern', 'neutral', 'tailored'];
     }
 
-    /* 🧩 1️⃣ Fetch gender_presentation from DB only if not provided */
+    // ✅ Weighted + trend-injected tags
+    tags = await this.enrichTags(tags);
+
+    // 🧠 Fetch gender_presentation if missing
     if (!user_gender) {
       try {
         const result = await pool.query(
@@ -428,17 +341,12 @@ export class AiService {
           [user_id],
         );
         user_gender = result.rows[0]?.gender_presentation || 'neutral';
-        console.log('🧠 [AI] gender_presentation from DB →', user_gender);
-      } catch (err: any) {
-        console.warn(
-          '⚠️ [AI] Could not fetch gender_presentation:',
-          err.message,
-        );
+      } catch {
         user_gender = 'neutral';
       }
     }
 
-    /* 🧠 2️⃣ Normalize gender */
+    // 🧩 Normalize gender
     const normalizedGender =
       user_gender?.toLowerCase().includes('female') ||
       user_gender?.toLowerCase().includes('woman')
@@ -448,35 +356,31 @@ export class AiService {
           ? 'male'
           : process.env.DEFAULT_GENDER || 'neutral';
 
-    console.log('🧠 [AI] normalized gender →', normalizedGender);
-
-    /* 🎩 3️⃣ Build gender-aware prompt */
+    // 🧠 Build stylist prompt
     const prompt = `
-You are a professional AI fashion stylist specializing in ${normalizedGender} fashion.
-Create a cohesive outfit inspired by a *real uploaded look*.
+You are a world-class AI stylist for ${normalizedGender} fashion.
+Create a cohesive outfit inspired by an uploaded look.
 
-Client ID: ${user_id}
-Uploaded look image: ${image_url || 'N/A'}
-Detected visual tags: ${tags.join(', ')}
+Client: ${user_id}
+Image: ${image_url || 'N/A'}
+Detected tags: ${tags.join(', ')}
 
-Guidelines:
-- Only include items consistent with ${normalizedGender} fashion.
-- Use the uploaded image’s palette, fabric, and silhouette as inspiration.
-- Match the same overall style (e.g., tailored, streetwear, minimal, modern).
-- Output only valid JSON exactly like this:
-
+Rules:
+- Match fabric, color palette, and silhouette.
+- Use ${normalizedGender}-appropriate pieces.
+- Output only JSON:
 {
   "outfit": [
     { "category": "Top", "item": "Grey Cotton Tee", "color": "gray" },
-    { "category": "Bottom", "item": "Ripped Indigo Jeans", "color": "indigo" },
+    { "category": "Bottom", "item": "Navy Chinos", "color": "navy" },
     { "category": "Outerwear", "item": "Beige Overshirt", "color": "beige" },
     { "category": "Shoes", "item": "White Sneakers", "color": "white" }
   ],
-  "style_note": "Brief note describing how the recreated outfit connects to the uploaded image."
+  "style_note": "Describe how the look connects to the uploaded image."
 }
 `;
 
-    /* ---------------------- 1️⃣ Generate outfit ---------------------- */
+    // 🧠 Generate outfit via Vertex or OpenAI
     let parsed: any;
     if (this.useVertex && this.vertexService) {
       try {
@@ -487,12 +391,9 @@ Guidelines:
           .replace(/```$/, '')
           .trim();
         parsed = JSON.parse(text);
-        console.log('🧠 [Vertex] recreate() success:', parsed);
+        console.log('🧠 [Vertex] recreate() success');
       } catch (err: any) {
-        console.warn(
-          '[Vertex] recreate() failed → fallback to OpenAI:',
-          err.message,
-        );
+        console.warn('[Vertex] recreate() failed → fallback', err.message);
       }
     }
 
@@ -508,7 +409,6 @@ Guidelines:
       try {
         parsed = JSON.parse(raw);
       } catch {
-        console.error('⚠️ [AI] recreate() JSON parse failed:', raw);
         parsed = {};
       }
     }
@@ -517,47 +417,29 @@ Guidelines:
     const style_note =
       parsed?.style_note || 'Modern outfit inspired by the uploaded look.';
 
-    /* ---------------------- 2️⃣ Enrich with live products ---------------------- */
+    // 🛍️ Enrich each item with live products
     const enriched = await Promise.all(
       outfit.map(async (o: any) => {
-        // 👇 Add this
-        const genderPrefix = normalizedGender + ' ';
         const query =
-          `${genderPrefix}${o.item || o.category || ''} ${o.color || ''}`.trim();
-
-        const products = await this.productSearch.search(query);
+          `${normalizedGender} ${o.item || o.category || ''} ${o.color || ''}`.trim();
+        let products = await this.productSearch.search(query);
         let top = products[0];
 
-        // 🔁 Retry with SerpAPI if no valid image
-        if (!top?.image || top.image.includes('No_Image')) {
+        if (!top?.image || top.image.includes('No_image')) {
           const serp = await this.productSearch.searchSerpApi(query);
           if (serp?.[0]) top = { ...serp[0], source: 'SerpAPI' };
         }
 
-        // 🌟 Extract Farfetch / SerpAPI extras if available
-        const hasMeta =
-          top &&
-          (top.source === 'Farfetch' || top.source === 'SerpAPI') &&
-          (top as any);
-
-        const discount =
-          (hasMeta as any)?.tag ||
-          (hasMeta as any)?.extensions?.join(', ') ||
+        const materialHint =
+          query.match(/(wool|cotton|linen|leather|denim|polyester)/i)?.[0] ||
           null;
-        const delivery = (hasMeta as any)?.delivery || null;
+        const seasonalityHint =
+          query.match(/(summer|winter|fall|spring)/i)?.[0] ||
+          getCurrentSeason();
+        const fitHint =
+          query.match(/(slim|regular|relaxed|oversized|tailored)/i)?.[0] ||
+          'regular';
 
-        // Optionally, try to infer metadata fields for enrichment
-        const materialHint = query.match(
-          /(wool|cotton|linen|leather|nylon|denim|polyester)/i,
-        )?.[0];
-        const seasonalityHint = query.match(
-          /(summer|winter|fall|spring)/i,
-        )?.[0];
-        const fitHint = query.match(
-          /(slim|regular|relaxed|oversized|tailored)/i,
-        )?.[0];
-
-        // 🧱 Return enriched object
         return {
           category: o.category,
           item: o.item,
@@ -572,18 +454,13 @@ Guidelines:
             top?.shopUrl ||
             `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=shop`,
           source: top?.source || 'ASOS / Fallback',
-
-          // 🧩 Extended metadata
-          discount,
-          delivery,
-          material: materialHint || null,
-          seasonality: seasonalityHint || getCurrentSeason(),
-          fit: fitHint || 'regular',
+          material: materialHint,
+          seasonality: seasonalityHint,
+          fit: fitHint,
         };
       }),
     );
 
-    /* ---------------------- 3️⃣ Return final payload ---------------------- */
     return { user_id, outfit: enriched, style_note };
   }
 
@@ -689,6 +566,526 @@ Preferences: ${JSON.stringify(preferences || {})}
     return parsed;
   }
 }
+
+////////////////////////
+
+// import { Injectable } from '@nestjs/common';
+// import OpenAI from 'openai';
+// import { ChatDto } from './dto/chat.dto';
+// import { VertexService } from '../vertex/vertex.service'; // 🔹 ADDED
+// import { ProductSearchService } from '../product-services/product-search.service';
+// import { Pool } from 'pg';
+
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: { rejectUnauthorized: false },
+// });
+
+// import * as fs from 'fs';
+// import * as path from 'path';
+// import * as dotenv from 'dotenv';
+
+// function loadOpenAISecrets(): {
+//   apiKey?: string;
+//   project?: string;
+//   source: string;
+// } {
+//   const candidates = [
+//     path.join(process.cwd(), '.env'),
+//     path.join(process.cwd(), 'apps', 'backend-nest', '.env'),
+//     path.join(__dirname, '..', '..', '.env'),
+//   ];
+
+//   for (const p of candidates) {
+//     try {
+//       if (fs.existsSync(p)) {
+//         const parsed = dotenv.parse(fs.readFileSync(p));
+//         const apiKey = parsed['OPENAI_API_KEY'];
+//         const project = parsed['OPENAI_PROJECT_ID'];
+//         if (apiKey) return { apiKey, project, source: p };
+//       }
+//     } catch {
+//       // ignore
+//     }
+//   }
+
+//   return {
+//     apiKey: process.env.OPENAI_API_KEY,
+//     project: process.env.OPENAI_PROJECT_ID,
+//     source: 'process.env',
+//   };
+// }
+
+// // 🧥 Basic capsule wardrobe templates
+// const CAPSULES = {
+//   Spring: [
+//     { category: 'Outerwear', subcategory: 'Light Jacket', recommended: 2 },
+//     { category: 'Tops', subcategory: 'Oxford Shirt', recommended: 3 },
+//     { category: 'Bottoms', subcategory: 'Chinos', recommended: 2 },
+//     { category: 'Shoes', subcategory: 'Loafers', recommended: 1 },
+//     { category: 'Shoes', subcategory: 'Sneakers', recommended: 1 },
+//   ],
+//   Summer: [
+//     { category: 'Tops', subcategory: 'Short Sleeve Shirt', recommended: 4 },
+//     { category: 'Tops', subcategory: 'Polo Shirt', recommended: 2 },
+//     { category: 'Bottoms', subcategory: 'Linen Trousers', recommended: 2 },
+//     { category: 'Shoes', subcategory: 'Loafers', recommended: 1 },
+//     { category: 'Shoes', subcategory: 'Sandals', recommended: 1 },
+//   ],
+//   Fall: [
+//     { category: 'Outerwear', subcategory: 'Field Jacket', recommended: 1 },
+//     { category: 'Outerwear', subcategory: 'Blazer', recommended: 1 },
+//     { category: 'Tops', subcategory: 'Knit Sweater', recommended: 2 },
+//     { category: 'Bottoms', subcategory: 'Wool Trousers', recommended: 2 },
+//     { category: 'Shoes', subcategory: 'Chelsea Boots', recommended: 1 },
+//   ],
+//   Winter: [
+//     { category: 'Outerwear', subcategory: 'Overcoat', recommended: 1 },
+//     { category: 'Outerwear', subcategory: 'Heavy Parka', recommended: 1 },
+//     { category: 'Tops', subcategory: 'Heavy Knit Sweater', recommended: 2 },
+//     { category: 'Bottoms', subcategory: 'Wool Trousers', recommended: 2 },
+//     { category: 'Shoes', subcategory: 'Boots', recommended: 2 },
+//   ],
+// };
+
+// // 🗓️ Auto-detect season based on month
+// function getCurrentSeason(): 'Spring' | 'Summer' | 'Fall' | 'Winter' {
+//   const month = new Date().getMonth() + 1;
+//   if ([3, 4, 5].includes(month)) return 'Spring';
+//   if ([6, 7, 8].includes(month)) return 'Summer';
+//   if ([9, 10, 11].includes(month)) return 'Fall';
+//   return 'Winter';
+// }
+
+// // 🧠 Compare wardrobe to capsule and return simple forecast text
+// function generateSeasonalForecast(wardrobe: any[] = []): string | undefined {
+//   const season = getCurrentSeason();
+//   const capsule = CAPSULES[season];
+//   if (!capsule) return;
+
+//   const missing: string[] = [];
+
+//   capsule.forEach((item) => {
+//     const owned = wardrobe.filter(
+//       (w) =>
+//         w.category?.toLowerCase() === item.category.toLowerCase() &&
+//         w.subcategory?.toLowerCase() === item.subcategory.toLowerCase(),
+//     ).length;
+
+//     if (owned < item.recommended) {
+//       const needed = item.recommended - owned;
+//       missing.push(`${needed} × ${item.subcategory}`);
+//     }
+//   });
+
+//   if (missing.length === 0) {
+//     return `✅ Your ${season} capsule is complete — you're ready for the season.`;
+//   }
+
+//   return `🍂 ${season} is approaching — you're missing: ${missing.join(', ')}.`;
+// }
+
+// @Injectable()
+// export class AiService {
+//   private openai: OpenAI;
+//   private useVertex: boolean;
+//   private vertexService?: VertexService; // 🔹 optional instance
+//   private productSearch: ProductSearchService; // ✅ add this
+
+//   constructor(vertexService?: VertexService) {
+//     const { apiKey, project, source } = loadOpenAISecrets();
+
+//     const snippet = apiKey?.slice(0, 20) ?? '';
+//     const len = apiKey?.length ?? 0;
+//     console.log('🔑 OPENAI key source:', source);
+//     console.log('🔑 OPENAI key snippet:', JSON.stringify(snippet));
+//     console.log('🔑 OPENAI key length:', len);
+//     console.log('📂 CWD:', process.cwd());
+
+//     if (!apiKey) {
+//       throw new Error('OPENAI_API_KEY not found in .env or environment.');
+//     }
+//     if (/^sk-?x{3,}/i.test(apiKey)) {
+//       throw new Error(
+//         'OPENAI_API_KEY appears masked (e.g., "sk-xxxxx..."). Read from the correct .env instead.',
+//       );
+//     }
+//     if (!apiKey.startsWith('sk-')) {
+//       throw new Error('OPENAI_API_KEY is malformed — must start with "sk-".');
+//     }
+
+//     this.openai = new OpenAI({ apiKey, project });
+
+//     // 🔹 New: Vertex toggle
+//     this.useVertex = process.env.USE_VERTEX === 'true';
+//     if (this.useVertex) {
+//       this.vertexService = vertexService;
+//       console.log('🧠 Vertex/Gemini mode enabled for analyze/recreate');
+//     }
+
+//     this.productSearch = new ProductSearchService(); // NEW
+//   }
+
+//   //////ANALYZE LOOK
+//   async analyze(imageUrl: string) {
+//     console.log('🧠 [AI] analyze() called with', imageUrl);
+//     if (!imageUrl) throw new Error('Missing imageUrl');
+
+//     // 🔹 Try Vertex first if enabled
+//     if (this.useVertex && this.vertexService) {
+//       try {
+//         const gcsUri = imageUrl.replace(
+//           'https://storage.googleapis.com/',
+//           'gs://',
+//         );
+//         const metadata = await this.vertexService.analyzeImage(gcsUri);
+//         const tags = [
+//           ...(metadata.tags || []),
+//           ...(metadata.style_descriptors || []),
+//           metadata.main_category,
+//           metadata.subcategory,
+//         ].filter(Boolean);
+//         console.log('🧠 [Vertex] analyze() success:', tags);
+//         return { tags };
+//       } catch (err: any) {
+//         console.warn(
+//           '[Vertex] analyze() failed → fallback to OpenAI:',
+//           err.message,
+//         );
+//       }
+//     }
+
+//     // 🔸 OpenAI fallback (unchanged)
+//     try {
+//       const completion = await this.openai.chat.completions.create({
+//         model: 'gpt-4o-mini',
+//         messages: [
+//           {
+//             role: 'system',
+//             content:
+//               'You are a professional fashion classifier. Return only JSON with a "tags" array describing the outfit’s style, color palette, and vibe.',
+//           },
+//           {
+//             role: 'user',
+//             content: [
+//               { type: 'text', text: 'Describe this outfit as tags only:' },
+//               { type: 'image_url', image_url: { url: imageUrl } },
+//             ],
+//           },
+//         ],
+//         response_format: { type: 'json_object' },
+//       });
+
+//       const raw = completion.choices[0]?.message?.content;
+//       console.log('🧠 [AI] analyze() raw response:', raw);
+
+//       if (!raw) throw new Error('Empty response from OpenAI');
+
+//       let parsed: any = {};
+//       try {
+//         parsed = JSON.parse(raw);
+//       } catch {
+//         console.error('⚠️ [AI] analyze() JSON parse failed:', raw);
+//         parsed = {};
+//       }
+
+//       return { tags: parsed.tags || [] };
+//     } catch (err: any) {
+//       console.error('❌ [AI] analyze() failed:', err.message);
+//       return { tags: ['casual', 'modern', 'neutral'] };
+//     }
+//   }
+
+//   async recreate(
+//     user_id: string,
+//     tags: string[],
+//     image_url?: string,
+//     user_gender?: string,
+//   ) {
+//     console.log(
+//       '🧥 [AI] recreate() called for user',
+//       user_id,
+//       'with tags:',
+//       tags,
+//       'and gender:',
+//       user_gender,
+//     );
+
+//     if (!user_id) throw new Error('Missing user_id');
+//     if (!tags?.length) {
+//       console.warn('⚠️ [AI] recreate() empty tags, using fallback keywords.');
+//       tags = ['modern', 'neutral', 'tailored'];
+//     }
+
+//     /* 🧩 1️⃣ Fetch gender_presentation from DB only if not provided */
+//     if (!user_gender) {
+//       try {
+//         const result = await pool.query(
+//           'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+//           [user_id],
+//         );
+//         user_gender = result.rows[0]?.gender_presentation || 'neutral';
+//         console.log('🧠 [AI] gender_presentation from DB →', user_gender);
+//       } catch (err: any) {
+//         console.warn(
+//           '⚠️ [AI] Could not fetch gender_presentation:',
+//           err.message,
+//         );
+//         user_gender = 'neutral';
+//       }
+//     }
+
+//     /* 🧠 2️⃣ Normalize gender */
+//     const normalizedGender =
+//       user_gender?.toLowerCase().includes('female') ||
+//       user_gender?.toLowerCase().includes('woman')
+//         ? 'female'
+//         : user_gender?.toLowerCase().includes('male') ||
+//             user_gender?.toLowerCase().includes('man')
+//           ? 'male'
+//           : process.env.DEFAULT_GENDER || 'neutral';
+
+//     console.log('🧠 [AI] normalized gender →', normalizedGender);
+
+//     /* 🎩 3️⃣ Build gender-aware prompt */
+//     const prompt = `
+// You are a professional AI fashion stylist specializing in ${normalizedGender} fashion.
+// Create a cohesive outfit inspired by a *real uploaded look*.
+
+// Client ID: ${user_id}
+// Uploaded look image: ${image_url || 'N/A'}
+// Detected visual tags: ${tags.join(', ')}
+
+// Guidelines:
+// - Only include items consistent with ${normalizedGender} fashion.
+// - Use the uploaded image’s palette, fabric, and silhouette as inspiration.
+// - Match the same overall style (e.g., tailored, streetwear, minimal, modern).
+// - Output only valid JSON exactly like this:
+
+// {
+//   "outfit": [
+//     { "category": "Top", "item": "Grey Cotton Tee", "color": "gray" },
+//     { "category": "Bottom", "item": "Ripped Indigo Jeans", "color": "indigo" },
+//     { "category": "Outerwear", "item": "Beige Overshirt", "color": "beige" },
+//     { "category": "Shoes", "item": "White Sneakers", "color": "white" }
+//   ],
+//   "style_note": "Brief note describing how the recreated outfit connects to the uploaded image."
+// }
+// `;
+
+//     /* ---------------------- 1️⃣ Generate outfit ---------------------- */
+//     let parsed: any;
+//     if (this.useVertex && this.vertexService) {
+//       try {
+//         const result = await this.vertexService.generateReasonedOutfit(prompt);
+//         let text = result?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+//         text = text
+//           .replace(/^```json\s*/i, '')
+//           .replace(/```$/, '')
+//           .trim();
+//         parsed = JSON.parse(text);
+//         console.log('🧠 [Vertex] recreate() success:', parsed);
+//       } catch (err: any) {
+//         console.warn(
+//           '[Vertex] recreate() failed → fallback to OpenAI:',
+//           err.message,
+//         );
+//       }
+//     }
+
+//     if (!parsed) {
+//       const completion = await this.openai.chat.completions.create({
+//         model: 'gpt-4o-mini',
+//         temperature: 0.7,
+//         messages: [{ role: 'user', content: prompt }],
+//         response_format: { type: 'json_object' },
+//       });
+
+//       const raw = completion.choices[0]?.message?.content || '{}';
+//       try {
+//         parsed = JSON.parse(raw);
+//       } catch {
+//         console.error('⚠️ [AI] recreate() JSON parse failed:', raw);
+//         parsed = {};
+//       }
+//     }
+
+//     const outfit = Array.isArray(parsed?.outfit) ? parsed.outfit : [];
+//     const style_note =
+//       parsed?.style_note || 'Modern outfit inspired by the uploaded look.';
+
+//     /* ---------------------- 2️⃣ Enrich with live products ---------------------- */
+//     const enriched = await Promise.all(
+//       outfit.map(async (o: any) => {
+//         // 👇 Add this
+//         const genderPrefix = normalizedGender + ' ';
+//         const query =
+//           `${genderPrefix}${o.item || o.category || ''} ${o.color || ''}`.trim();
+
+//         const products = await this.productSearch.search(query);
+//         let top = products[0];
+
+//         // 🔁 Retry with SerpAPI if no valid image
+//         if (!top?.image || top.image.includes('No_Image')) {
+//           const serp = await this.productSearch.searchSerpApi(query);
+//           if (serp?.[0]) top = { ...serp[0], source: 'SerpAPI' };
+//         }
+
+//         // 🌟 Extract Farfetch / SerpAPI extras if available
+//         const hasMeta =
+//           top &&
+//           (top.source === 'Farfetch' || top.source === 'SerpAPI') &&
+//           (top as any);
+
+//         const discount =
+//           (hasMeta as any)?.tag ||
+//           (hasMeta as any)?.extensions?.join(', ') ||
+//           null;
+//         const delivery = (hasMeta as any)?.delivery || null;
+
+//         // Optionally, try to infer metadata fields for enrichment
+//         const materialHint = query.match(
+//           /(wool|cotton|linen|leather|nylon|denim|polyester)/i,
+//         )?.[0];
+//         const seasonalityHint = query.match(
+//           /(summer|winter|fall|spring)/i,
+//         )?.[0];
+//         const fitHint = query.match(
+//           /(slim|regular|relaxed|oversized|tailored)/i,
+//         )?.[0];
+
+//         // 🧱 Return enriched object
+//         return {
+//           category: o.category,
+//           item: o.item,
+//           color: o.color,
+//           brand: top?.brand || 'Unknown',
+//           price: top?.price || '—',
+//           image:
+//             top?.image && top.image.startsWith('http')
+//               ? top.image
+//               : 'https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg',
+//           shopUrl:
+//             top?.shopUrl ||
+//             `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=shop`,
+//           source: top?.source || 'ASOS / Fallback',
+
+//           // 🧩 Extended metadata
+//           discount,
+//           delivery,
+//           material: materialHint || null,
+//           seasonality: seasonalityHint || getCurrentSeason(),
+//           fit: fitHint || 'regular',
+//         };
+//       }),
+//     );
+
+//     /* ---------------------- 3️⃣ Return final payload ---------------------- */
+//     return { user_id, outfit: enriched, style_note };
+//   }
+
+//   ////////END CREATE LOOK
+
+//   async chat(dto: ChatDto) {
+//     const { messages } = dto;
+//     const lastUserMsg = messages
+//       .slice()
+//       .reverse()
+//       .find((m) => m.role === 'user')?.content;
+
+//     if (!lastUserMsg) {
+//       throw new Error('No user message provided');
+//     }
+
+//     const completion = await this.openai.chat.completions.create({
+//       model: 'gpt-4o',
+//       temperature: 0.8,
+//       messages: [
+//         {
+//           role: 'system',
+//           content:
+//             'You are a world-class personal fashion stylist. Give sleek, modern, practical outfit advice with attention to silhouette, color harmony, occasion, climate, and user comfort. Keep responses concise and actionable.',
+//         },
+//         ...messages,
+//       ],
+//     });
+
+//     const aiReply =
+//       completion.choices[0]?.message?.content?.trim() ||
+//       'Styled response unavailable.';
+
+//     return { reply: aiReply };
+//   }
+
+//   async suggest(body: {
+//     user?: string;
+//     weather?: any;
+//     wardrobe?: any[];
+//     preferences?: Record<string, any>;
+//   }) {
+//     const { user, weather, wardrobe, preferences } = body;
+
+//     const temp = weather?.fahrenheit?.main?.temp;
+//     const tempDesc = temp
+//       ? `${temp}°F and ${temp < 60 ? 'cool' : temp > 85 ? 'warm' : 'mild'} weather`
+//       : 'unknown temperature';
+
+//     const wardrobeCount = wardrobe?.length || 0;
+
+//     const systemPrompt = `
+// You are a luxury personal stylist.
+// Your goal is to provide a daily style briefing that helps the user feel prepared, stylish, and confident.
+// Be concise, intelligent, and polished — similar to a stylist at a high-end menswear brand.
+
+// Output must be JSON with the following fields:
+// - suggestion (string)
+// - insight (string)
+// - tomorrow (string)
+// Optionally include seasonalForecast, lifecycleForecast, styleTrajectory.
+// `;
+
+//     const userPrompt = `
+// Client: ${user || 'The user'}
+// Weather: ${tempDesc}
+// Wardrobe items: ${wardrobeCount}
+// Preferences: ${JSON.stringify(preferences || {})}
+// `;
+
+//     const completion = await this.openai.chat.completions.create({
+//       model: 'gpt-4o',
+//       temperature: 0.8,
+//       messages: [
+//         { role: 'system', content: systemPrompt },
+//         { role: 'user', content: userPrompt },
+//       ],
+//       response_format: { type: 'json_object' },
+//     });
+
+//     const raw = completion.choices[0]?.message?.content;
+//     if (!raw) throw new Error('No suggestion response received from model.');
+
+//     let parsed: {
+//       suggestion: string;
+//       insight: string;
+//       tomorrow: string;
+//       seasonalForecast?: string;
+//       lifecycleForecast?: string;
+//       styleTrajectory?: string;
+//     };
+//     try {
+//       parsed = JSON.parse(raw);
+//     } catch {
+//       console.error('❌ Failed to parse AI JSON:', raw);
+//       throw new Error('AI response was not valid JSON.');
+//     }
+
+//     if (!parsed.seasonalForecast) {
+//       parsed.seasonalForecast = generateSeasonalForecast(wardrobe);
+//     }
+
+//     return parsed;
+//   }
+// }
 
 ////////////////////
 

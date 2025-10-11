@@ -310,7 +310,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
         )}
 
         {/* ✅ Done */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           activeOpacity={0.9}
           onPress={handleBack}
           style={{
@@ -330,7 +330,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             }}>
             Done
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </ScrollView>
 
       {/* 🌐 SHOP MODAL */}
