@@ -22,6 +22,7 @@ import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useAnalyzeLook} from '../../hooks/useAnalyzeLook';
 
 const {height} = Dimensions.get('window');
 
@@ -43,6 +44,7 @@ export default function AllSavedLooksModal({
   openShopModal?: (tags?: string[]) => void;
   shopResults?: any[]; // ✅ new prop
 }) {
+  const {analyzeLook} = useAnalyzeLook();
   const translateY = useRef(new Animated.Value(0)).current;
   const {theme} = useAppTheme();
   const [loading, setLoading] = useState(false);
@@ -392,22 +394,34 @@ export default function AllSavedLooksModal({
 
   const handleShopPress = async (look: any) => {
     if (!openShopModal) return;
+
     try {
       setShopLoading(true);
 
-      // 🧠 Build query from existing look metadata
+      // 🧠 Step 1: Analyze the image first
+      const analysis = await analyzeLook(look.image_url);
+      const aiTags = analysis?.tags || [];
+      console.log('[AllSavedLooksModal] 🧠 AI analyze tags →', aiTags);
+
+      // 🧩 Step 2: Merge AI tags with existing metadata
       const words: string[] = [];
 
-      // Include gender
-      const gender = (
-        look.gender ||
-        look.gender_presentation ||
-        'men'
-      ).toLowerCase();
-      words.push(gender);
+      if (look.gender || look.gender_presentation)
+        words.push((look.gender || look.gender_presentation).toLowerCase());
+      else words.push('men');
 
-      // Use AI / saved tags if present
-      if (Array.isArray(look.tags) && look.tags.length > 0) {
+      if (Array.isArray(aiTags))
+        words.push(...aiTags.map(t => t.toLowerCase()));
+      if (look.mainCategory) words.push(look.mainCategory.toLowerCase());
+      if (look.subCategory) words.push(look.subCategory.toLowerCase());
+      if (look.style_type) words.push(look.style_type.toLowerCase());
+      if (look.occasion) words.push(look.occasion.toLowerCase());
+      if (look.seasonality) words.push(look.seasonality.toLowerCase());
+      if (look.pattern) words.push(look.pattern.toLowerCase());
+      if (look.color) words.push(look.color.toLowerCase());
+      if (look.fit) words.push(look.fit.toLowerCase());
+
+      if (Array.isArray(look.tags)) {
         for (const tag of look.tags) {
           if (
             tag &&
@@ -420,50 +434,12 @@ export default function AllSavedLooksModal({
         }
       }
 
-      // Add descriptive props (if exist)
-      const enrichKeys = [
-        'mainCategory',
-        'subCategory',
-        'style_type',
-        'occasion',
-        'seasonality',
-        'pattern',
-        'color',
-        'fit',
-      ];
+      const unique = Array.from(new Set(words)).filter(Boolean);
+      console.log('[AllSavedLooksModal] Enriched shop tags →', unique);
 
-      for (const key of enrichKeys) {
-        if (look[key]) words.push(String(look[key]).toLowerCase());
-      }
-
-      // 🪄 Build and sanitize
-      let query = Array.from(new Set(words)).filter(Boolean).join(' ').trim();
-
-      // 🧩 Smarter fallback: infer context from known category hints
-      if (query.split(' ').length < 3) {
-        let inferredType = 'outfit';
-        if (look.mainCategory?.toLowerCase().includes('top'))
-          inferredType = 'shirt';
-        else if (look.mainCategory?.toLowerCase().includes('bottom'))
-          inferredType = 'trousers';
-        else if (look.mainCategory?.toLowerCase().includes('outerwear'))
-          inferredType = 'jacket';
-        else if (look.mainCategory?.toLowerCase().includes('shoe'))
-          inferredType = 'sneakers';
-        else if (look.subCategory?.toLowerCase().includes('coat'))
-          inferredType = 'coat';
-        else if (look.subCategory?.toLowerCase().includes('short'))
-          inferredType = 'shorts';
-
-        // include style fallback
-        query = `${gender} ${inferredType} ${look.color || ''} ${
-          look.fit || ''
-        } ${look.tags?.join(' ') || 'neutral modern'}`.trim();
-      }
-
+      const query = unique.join(' ').trim();
       console.log('[AllSavedLooksModal] Final shop query →', query);
 
-      // ✅ Close modal and trigger ShopModal
       onClose();
       await openShopModal?.([query]);
     } catch (err) {

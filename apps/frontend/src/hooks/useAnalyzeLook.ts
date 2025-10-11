@@ -23,6 +23,9 @@ export function useAnalyzeLook() {
         if (!imageUrl)
           throw new Error('Missing image URL or gsutilUri for analyzeLook');
 
+        console.log('[useAnalyzeLook] 🔍 called');
+        console.log('[useAnalyzeLook] API_BASE_URL →', API_BASE_URL);
+
         const res = await fetch(`${API_BASE_URL}/ai/analyze`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
