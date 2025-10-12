@@ -45,6 +45,7 @@ import type {ProductResult} from '../services/productSearchClient';
 import ShopModal from '../components/ShopModal/ShopModal';
 import {Share} from 'react-native';
 import ViewShot from 'react-native-view-shot';
+import PersonalizedShopModal from '../components/PersonalizedShopModal/PersonalizedShopModal';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -198,6 +199,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [shopResults, setShopResults] = useState<ProductResult[]>([]);
+
+  const [personalizedVisible, setPersonalizedVisible] = useState(false);
+  const [personalizedPurchases, setPersonalizedPurchases] = useState<any[]>([]);
 
   // Map dropdown state & animations
   // DEAFULT OPEN STATE
@@ -355,6 +359,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     };
     fetchSavedLooks();
   }, [userId]);
+
+  const openPersonalizedShopModal = (purchases: any[]) => {
+    setPersonalizedPurchases(purchases);
+    setPersonalizedVisible(true);
+  };
 
   const toggleMap = async () => {
     if (mapOpen) {
@@ -1357,12 +1366,26 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           recreateLook={handleRecreateLook}
           openShopModal={handleShopModal}
           shopResults={shopResults}
-          yes
+          openPersonalizedShopModal={openPersonalizedShopModal} // ✅ add this
         />
         <ShopModal
           visible={shopVisible}
           onClose={() => setShopVisible(false)}
           results={shopResults}
+        />
+        {/* <PersonalizedShopModal
+          visible={personalizedVisible}
+          onClose={() => setPersonalizedVisible(false)}
+          purchases={personalizedPurchases}
+        /> */}
+        <PersonalizedShopModal
+          visible={personalizedVisible}
+          onClose={() => setPersonalizedVisible(false)}
+          purchases={
+            personalizedPurchases?.suggested_purchases || personalizedPurchases
+          }
+          recreatedOutfit={personalizedPurchases?.recreated_outfit}
+          styleNote={personalizedPurchases?.style_note}
         />
       </Animated.ScrollView>
     </View>
