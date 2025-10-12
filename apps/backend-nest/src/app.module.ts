@@ -28,6 +28,8 @@ import { ContactModule } from './contact/contact.module';
 import { ProfileUploadModule } from './profile-upload/profile-upload.module';
 import { FeedsModule } from './feeds/feeds.module';
 import { ProductsModule } from './product-services/product-services.module';
+import { LookMemoryModule } from './look-memory/look-memory.module';
+import { RecreatedLookModule } from './recreated-look/recreated-look.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -58,8 +60,10 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     FeedSourcesModule,
     DiscoverModule,
     ContactModule,
+    RecreatedLookModule,
     ProfileUploadModule,
     ProductsModule,
+    LookMemoryModule,
     FeedsModule,
   ],
   controllers: [AppController],

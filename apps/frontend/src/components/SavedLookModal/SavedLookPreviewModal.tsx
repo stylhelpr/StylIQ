@@ -240,10 +240,20 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
           ]}>
           {/* Close button ABOVE gesture zone */}
           <TouchableOpacity
-            style={styles.closeIcon}
+            style={[
+              styles.closeIcon,
+              {backgroundColor: theme.colors.foreground, marginTop: 4},
+            ]}
             onPress={handleClose}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-            <Text style={{color: '#fff', fontSize: 18}}>✕</Text>
+            <Text
+              style={{
+                color: theme.colors.background,
+                fontSize: 18,
+                fontWeight: '900',
+              }}>
+              ✕
+            </Text>
           </TouchableOpacity>
 
           {/* Swipe gesture zone (TOP) */}

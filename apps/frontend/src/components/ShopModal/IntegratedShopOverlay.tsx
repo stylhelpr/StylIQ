@@ -37,11 +37,15 @@ export default function IntegratedShopOverlay({
             top: 120,
             right: 16,
             zIndex: 999,
-            backgroundColor: theme.colors.background,
+            backgroundColor: theme.colors.foreground,
             borderRadius: 24,
             padding: 6,
           }}>
-          <MaterialIcons name="close" size={26} color="white" />
+          <MaterialIcons
+            name="close"
+            size={22}
+            color={theme.colors.background}
+          />
         </TouchableOpacity>
 
         {/* WebView */}
