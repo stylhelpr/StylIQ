@@ -30,6 +30,7 @@ import { FeedsModule } from './feeds/feeds.module';
 import { ProductsModule } from './product-services/product-services.module';
 import { LookMemoryModule } from './look-memory/look-memory.module';
 import { RecreatedLookModule } from './recreated-look/recreated-look.module';
+import { ShareModule } from './share/share.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -64,6 +65,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     ProfileUploadModule,
     ProductsModule,
     LookMemoryModule,
+    ShareModule,
     FeedsModule,
   ],
   controllers: [AppController],

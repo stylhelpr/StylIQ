@@ -43,6 +43,8 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {Linking} from 'react-native';
 import type {ProductResult} from '../services/productSearchClient';
 import ShopModal from '../components/ShopModal/ShopModal';
+import {Share} from 'react-native';
+import ViewShot from 'react-native-view-shot';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -621,6 +623,44 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     }
   };
 
+  const handleShareVibe = async vibe => {
+    try {
+      ReactNativeHapticFeedback.trigger('impactLight');
+
+      const imageUri = vibe.source_image_url || vibe.image_url;
+
+      if (!imageUri) {
+        console.warn('⚠️ No image URL found for vibe:', vibe);
+        Toast.show('This vibe has no image to share ❌', {
+          duration: Toast.durations.SHORT,
+          position: Toast.positions.BOTTOM,
+        });
+        return;
+      }
+
+      await Share.share({
+        url: imageUri,
+        message: `Just created this vibe ✨ with StylHelpr AI – ${
+          (vibe.tags && vibe.tags.slice(0, 3).join(', ')) ||
+          vibe.query_used ||
+          'New Look'
+        }`,
+        title: 'Share Your Vibe',
+      });
+
+      Toast.show('Vibe shared successfully ✅', {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+      });
+    } catch (err) {
+      console.error('❌ Error sharing vibe:', err);
+      Toast.show('Error sharing vibe ❌', {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+      });
+    }
+  };
+
   return (
     <View style={{flex: 1}}>
       <Animated.ScrollView
@@ -1179,6 +1219,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         resizeMode="cover"
                       />
                     </AppleTouchFeedback>
+                    {/* 👇 ADD THIS just below the image */}
+                    <TouchableOpacity
+                      onPress={() => handleShareVibe(c)}
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        backgroundColor: 'rgba(0,0,0,0.4)',
+                        borderRadius: 20,
+                        padding: 6,
+                      }}>
+                      <Icon name="ios-share" size={20} color="#fff" />
+                    </TouchableOpacity>
 
                     <Text
                       numberOfLines={1}
@@ -1250,6 +1303,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           ]}
                           resizeMode="cover"
                         />
+                        {/* 👇 Add share button */}
+                        <TouchableOpacity
+                          onPress={() => handleShareVibe(vibe)}
+                          style={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            backgroundColor: 'rgba(0,0,0,0.4)',
+                            borderRadius: 20,
+                            padding: 6,
+                          }}>
+                          <Icon name="ios-share" size={20} color="#fff" />
+                        </TouchableOpacity>
                       </AppleTouchFeedback>
 
                       <Text
