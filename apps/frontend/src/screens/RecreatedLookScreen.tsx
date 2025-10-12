@@ -20,6 +20,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useSimilarLooks} from '../hooks/useSimilarLooks';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const {width} = Dimensions.get('window');
 const CARD_SIZE = width / 2 - tokens.spacing.md * 1.5;
@@ -47,6 +48,7 @@ type Props = {
 };
 
 export default function RecreatedLookScreen({route, navigation}: Props) {
+  const insets = useSafeAreaInsets(); // 👈 add this
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
@@ -202,22 +204,28 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
   );
 
   return (
-    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        paddingTop: insets.top + 30,
+        paddingHorizontal: 16,
+      }}>
       {/* ❌ Close Button (top-right corner) */}
       <View
         style={{
           position: 'absolute',
-          top: 10,
+          top: 70,
           right: 20,
           zIndex: 10,
-          backgroundColor: theme.colors.foreground,
+          backgroundColor: theme.colors.background,
           borderRadius: 30,
         }}>
         <AppleTouchFeedback onPress={handleBack}>
           <View style={{padding: 6}}>
             <MaterialIcons
               name="close"
-              color={theme.colors.background}
+              color={theme.colors.foreground}
               size={22}
             />
           </View>
@@ -534,7 +542,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           </Animatable.View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
