@@ -47,6 +47,7 @@ import {Share} from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import PersonalizedShopModal from '../components/PersonalizedShopModal/PersonalizedShopModal';
 import RecreatedLookScreen from './RecreatedLookScreen';
+import {Camera} from 'react-native-vision-camera';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -72,6 +73,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const globalStyles = useGlobalStyles();
   const [weather, setWeather] = useState<any>(null);
   const userId = useUUID();
+
+  useEffect(() => {
+    (async () => {
+      const status = await Camera.getCameraPermissionStatus();
+      console.log('🔒 Camera permission status:', status);
+      if (status !== 'authorized') {
+        const newStatus = await Camera.requestCameraPermission();
+        console.log('🔓 New camera permission:', newStatus);
+      }
+    })();
+  }, []);
 
   // Simple inline collapsible wrapper — smooth open/close animation
   const CollapsibleSection: React.FC<{

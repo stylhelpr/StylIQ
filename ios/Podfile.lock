@@ -447,10 +447,16 @@ PODS:
     - React-Core
   - RNReactNativeHapticFeedback (2.3.3):
     - React-Core
-  - RNVectorIcons (10.2.0):
+  - RNVectorIcons (10.3.0):
     - React-Core
   - SimpleKeychain (1.2.0)
   - TextToSpeech (4.1.1):
+    - React-Core
+  - VisionCamera (4.7.2):
+    - VisionCamera/Core (= 4.7.2)
+    - VisionCamera/React (= 4.7.2)
+  - VisionCamera/Core (4.7.2)
+  - VisionCamera/React (4.7.2):
     - React-Core
   - Yoga (1.14.0)
 
@@ -525,6 +531,7 @@ DEPENDENCIES:
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - TextToSpeech (from `../node_modules/react-native-tts`)
+  - VisionCamera (from `../node_modules/react-native-vision-camera`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -682,6 +689,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-vector-icons"
   TextToSpeech:
     :path: "../node_modules/react-native-tts"
+  VisionCamera:
+    :path: "../node_modules/react-native-vision-camera"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -766,9 +775,10 @@ SPEC CHECKSUMS:
   RNFBMessaging: c05a432d82a2aa730161e62c56b2a53ca3b412f5
   RNPermissions: bd0d9ca7969ff7b999aa605ee2e5919c12522bfe
   RNReactNativeHapticFeedback: e70e211728d66c367d5744488c0809b0773b6679
-  RNVectorIcons: e944f84b90781998c847ee42ad411a1bf8825ac8
+  RNVectorIcons: eaf77cfdc651fe0cc0325f464b3d442346477070
   SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
+  VisionCamera: 30b358b807324c692064f78385e9a732ce1bebfe
   Yoga: 0518155cfbcc68c56223422f6a20a71b82e307d2
 
 PODFILE CHECKSUM: 9b4ea791878358f8e002e3750c77f4db0a3dcf2c

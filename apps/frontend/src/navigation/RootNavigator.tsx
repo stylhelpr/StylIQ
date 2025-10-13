@@ -47,6 +47,7 @@ import AboutScreen from '../screens/AboutScreen';
 import FeedbackScreen from '../screens/FeedBackScreen';
 import WebPageScreen from '../screens/WebPageScreen';
 import RecreatedLookScreen from '../screens/RecreatedLookScreen';
+import BarcodeScannerScreen from '../screens/BarcodeScannerScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -70,6 +71,7 @@ type Screen =
   | 'Wardrobe'
   | 'Settings'
   | 'Preferences'
+  | 'BarcodeScannerScreen'
   | 'Measurements'
   | 'BudgetAndBrands'
   | 'Appearance'
@@ -317,6 +319,8 @@ const RootNavigator = () => {
 
       case 'StyleProfileScreen':
         return <StyleProfileScreen navigate={navigate} />;
+      case 'BarcodeScannerScreen':
+        return <BarcodeScannerScreen navigate={navigate} />;
       case 'Explore':
         return <ExploreScreen navigate={navigate} />;
       case 'Wardrobe':

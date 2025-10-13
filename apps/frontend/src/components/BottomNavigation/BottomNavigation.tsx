@@ -96,6 +96,16 @@ const BottomNavigation = ({
         />
 
         <TabButton
+          icon="qr-code-scanner"
+          label="Barcode"
+          onPress={() =>
+            current !== 'BarcodeScannerScreen' &&
+            navigate('BarcodeScannerScreen')
+          }
+          isActive={current === 'BarcodeScannerScreen'}
+        />
+
+        <TabButton
           icon="auto-awesome"
           label="Style Me"
           onPress={() => current !== 'Outfit' && navigate('Outfit')}
