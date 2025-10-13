@@ -364,14 +364,27 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     fetchSavedLooks();
   }, [userId]);
 
-  // const openPersonalizedShopModal = (purchases: any[]) => {
-  //   setPersonalizedPurchases(purchases);
-  //   setPersonalizedVisible(true);
-  // };
+  const openPersonalizedShopModal = (data: PersonalizedResult) => {
+    if (!data) return;
 
-  const openPersonalizedShopModal = (data: any) => {
-    setPersonalizedPurchases(data);
-    setPersonalizedVisible(true);
+    const normalized: PersonalizedResult = {
+      recreated_outfit: Array.isArray(data.recreated_outfit)
+        ? [...data.recreated_outfit]
+        : [],
+      suggested_purchases: Array.isArray(data.suggested_purchases)
+        ? [...data.suggested_purchases]
+        : [],
+      style_note: data.style_note ?? '',
+      tags: data.tags ?? [],
+    };
+
+    console.log('💎 Opening Personalized Shop Modal with:', normalized);
+
+    setPersonalizedPurchases(JSON.parse(JSON.stringify(normalized)));
+
+    setTimeout(() => {
+      setPersonalizedVisible(true);
+    }, 100);
   };
 
   const toggleMap = async () => {
@@ -1392,11 +1405,22 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           visible={personalizedVisible}
           onClose={() => setPersonalizedVisible(false)}
           purchases={
-            personalizedPurchases?.suggested_purchases || personalizedPurchases
+            personalizedPurchases?.purchases ??
+            personalizedPurchases?.suggested_purchases ??
+            []
           }
-          recreatedOutfit={personalizedPurchases?.recreated_outfit}
-          styleNote={personalizedPurchases?.style_note}
+          recreatedOutfit={
+            personalizedPurchases?.recreatedOutfit ??
+            personalizedPurchases?.recreated_outfit ??
+            []
+          }
+          styleNote={
+            personalizedPurchases?.styleNote ??
+            personalizedPurchases?.style_note ??
+            ''
+          }
         />
+
         {showRecreatedModal && recreatedData && (
           <Modal
             visible={showRecreatedModal}
