@@ -1026,7 +1026,26 @@ Wardrobe subset: ${JSON.stringify(wardrobe.slice(0, 10), null, 2)}
           q += ' -women -womens -female -girls -ladies';
         }
 
-        let products = await this.productSearch.search(q);
+        // Combine into final query with brand + color + fit bias
+        q = [q, brandTerms, colorTerms, fitTerms].filter(Boolean).join(' ');
+
+        // 🔒 Ensure all queries exclude female results explicitly
+        if (
+          !/-(women|female|ladies|girls)/i.test(q) &&
+          /\bmen\b|\bmale\b/i.test(q)
+        ) {
+          q += ' -women -womens -female -girls -ladies';
+        }
+
+        // 🧠 Gender-aware product search
+        let products = await this.productSearch.search(
+          q,
+          gender?.toLowerCase() === 'female'
+            ? 'female'
+            : gender?.toLowerCase() === 'male'
+              ? 'male'
+              : 'unisex',
+        );
 
         // 🚫 Filter out any accidental female/unisex results
         products = products.filter(
@@ -1092,7 +1111,14 @@ Wardrobe subset: ${JSON.stringify(wardrobe.slice(0, 10), null, 2)}
       const fallbackQuery = `${genderPrefix} ${tagSeed} ${season} fashion ${brandTerms} ${colorTerms} ${fitTerms}`;
       console.log('🧩 [personalizedShop] fallbackQuery →', fallbackQuery);
 
-      const products = await this.productSearch.search(fallbackQuery);
+      const products = await this.productSearch.search(
+        fallbackQuery,
+        gender?.toLowerCase() === 'female'
+          ? 'female'
+          : gender?.toLowerCase() === 'male'
+            ? 'male'
+            : 'unisex',
+      );
 
       // 🚫 Filter out any accidental female/unisex results
       const maleProducts = products.filter(
@@ -1187,6 +1213,35 @@ Wardrobe subset: ${JSON.stringify(wardrobe.slice(0, 10), null, 2)}
           validProduct?.result?.serpapi_thumbnail ||
           null;
 
+        // 🎯 Gender-aware image guard
+        const userGender = (gender || '').toLowerCase();
+
+        if (previewImage) {
+          const url = previewImage.toLowerCase();
+
+          // 🧍‍♂️ If male → block clearly female-coded URLs
+          if (
+            userGender.includes('male') &&
+            /(women|woman|female|ladies|girls|womenswear|femme|skims|shein|fashionnova|princesspolly|revolve|anthropologie)/i.test(
+              url,
+            )
+          ) {
+            previewImage =
+              'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
+          }
+
+          // 🧍‍♀️ If female → block clearly male-coded URLs
+          else if (
+            userGender.includes('female') &&
+            /(men|man|male|menswear|masculine)/i.test(url)
+          ) {
+            previewImage =
+              'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
+          }
+
+          // 🧍 Unisex → allow all images
+        }
+
         // 🧠 If still missing, do a quick SerpAPI lookup and cache
         if (!previewImage && p.query) {
           const results = await this.productSearch.searchSerpApi(p.query);
@@ -1200,6 +1255,27 @@ Wardrobe subset: ${JSON.stringify(wardrobe.slice(0, 10), null, 2)}
             r?.result?.thumbnail ||
             r?.result?.serpapi_thumbnail ||
             null;
+
+          // 🎯 Apply same gender guard to SerpAPI result
+          if (previewImage) {
+            const url = previewImage.toLowerCase();
+
+            if (
+              userGender.includes('male') &&
+              /(women|woman|female|ladies|girls|womenswear|femme|skims|shein|fashionnova|princesspolly|revolve|anthropologie)/i.test(
+                url,
+              )
+            ) {
+              previewImage =
+                'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
+            } else if (
+              userGender.includes('female') &&
+              /(men|man|male|menswear|masculine)/i.test(url)
+            ) {
+              previewImage =
+                'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
+            }
+          }
         }
 
         return {
@@ -1212,7 +1288,7 @@ Wardrobe subset: ${JSON.stringify(wardrobe.slice(0, 10), null, 2)}
           previewUrl: validProduct?.shopUrl || p.shopUrl || null,
         };
       }),
-    ); // ✅ ← this closes Promise.all()
+    ); // ✅ ← closes Promise.all()
 
     // 🧹 remove empty product groups (no valid images)
     const filteredPurchases = normalizedPurchases.filter(
