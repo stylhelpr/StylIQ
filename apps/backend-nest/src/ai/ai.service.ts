@@ -1624,14 +1624,26 @@ Preferences: ${JSON.stringify(preferences || {})}
 
     try {
       const base64 = fs.readFileSync(tempPath).toString('base64');
+      //   const prompt = `
+      //   You are analyzing a close-up photo of a product barcode label.
+      //   Return ONLY the numeric barcode digits (UPC or EAN), usually 12–13 digits.
+      //   If the barcode looks incomplete or OCR produces letters/spaces
+      //   (e.g. "226008 ign345"), infer the correct full numeric code.
+      //   If absolutely no barcode is visible, return "none".
+      //   Do not explain.
+      // `;
+
       const prompt = `
-      You are analyzing a close-up photo of a product barcode label.
-      Return ONLY the numeric barcode digits (UPC or EAN), usually 12–13 digits.
-      If the barcode looks incomplete or OCR produces letters/spaces
-      (e.g. "226008 ign345"), infer the correct full numeric code.
-      If absolutely no barcode is visible, return "none".
-      Do not explain.
-    `;
+        You are analyzing a product described by its packaging text.
+        The product is likely an article of clothing or accessory.
+        Return structured JSON like:
+        {
+          "name": "Uniqlo Linen Shirt",
+          "brand": "Uniqlo",
+          "category": "Shirts",
+          "material": "Linen"
+        }
+`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
