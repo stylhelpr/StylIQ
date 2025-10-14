@@ -19,10 +19,11 @@ export const skins = {
       inputText1: 'rgba(121, 121, 121, 1)',
 
       // surface: '#1a1a1aff' /* Apple Newsey */,
+      surface: '#242426' /* Actual ios Apple Newsey */,
 
       // surface: 'rgba(34, 35, 40, 1)', /// MVP RELEASE 1
 
-      surface: 'rgba(26, 26, 26, 1)',
+      // surface: 'rgba(26, 26, 26, 1)', //USING THIS NOW BEST
 
       // surface: '#121212', /* MUI grey[900] */
 
@@ -177,12 +178,19 @@ export const skins = {
       input: '#E0E0E0',
       input2: '#EAEAEA',
       inputText1: 'rgb(80, 84, 90)',
-      // surface: '#F8F8F8',
-      surface: '#f3f3f3ff',
+
+      // surface: '#EBEAEF',
+
+      surface: '#F0F0F2', //Actual ios Apple light grey
+      // surface: '#F0F0F0', //Fasion Nova
+
+      // surface: '#f3f3f3ff',
       surface2: '#f4f4f4ff',
       surface3: '#d7d7d7ff',
-      // surfaceBorder: 'rgba(163, 163, 163, 0.32)',
+
       surfaceBorder: 'rgba(163, 163, 163, 0.09)',
+      // surfaceBorder: 'rgba(163, 163, 163, 0)',
+
       pillDark1: 'rgba(40, 40, 40, 1)',
       pillDark2: 'rgba(221, 221, 221, 1)',
       inputBorder: '#C0C0C0',
