@@ -48,13 +48,22 @@ const outfitCardSize = isTablet ? 164 : 110;
 // Fonts never scale automatically with screen width — only through fixed tiers.
 // This keeps typography visually consistent (Apple-style design philosophy).
 // ---------------------------------------------------------------------------
+// const font = {
+//   xs: isTablet ? 14 : isLargePhone ? 13 : 12, // tiny captions
+//   sm: isTablet ? 15 : isLargePhone ? 14 : 13, // labels, metadata
+//   md: isTablet ? 17 : isLargePhone ? 16 : 15, // body text
+//   lg: isTablet ? 19 : isLargePhone ? 18 : 17, // section titles
+//   xl: isTablet ? 22 : isLargePhone ? 20 : 18, // large titles
+//   heading: isTablet ? 36 : isLargePhone ? 34 : 32, // hero headers
+// };
+
 const font = {
-  xs: isTablet ? 14 : isLargePhone ? 13 : 12, // tiny captions
-  sm: isTablet ? 15 : isLargePhone ? 14 : 13, // labels, metadata
-  md: isTablet ? 17 : isLargePhone ? 16 : 15, // body text
-  lg: isTablet ? 19 : isLargePhone ? 18 : 17, // section titles
-  xl: isTablet ? 22 : isLargePhone ? 20 : 18, // large titles
-  heading: isTablet ? 36 : isLargePhone ? 34 : 32, // hero headers
+  xs: isTablet ? tokens.fontSize.xs + 1 : tokens.fontSize.xs,
+  sm: isTablet ? tokens.fontSize.sm + 1 : tokens.fontSize.sm,
+  md: isTablet ? tokens.fontSize.base + 1 : tokens.fontSize.base,
+  lg: isTablet ? tokens.fontSize.lg + 1 : tokens.fontSize.lg,
+  xl: isTablet ? tokens.fontSize.xl + 2 : tokens.fontSize.xl,
+  heading: isTablet ? tokens.fontSize['3xl'] : tokens.fontSize['2.5xl'],
 };
 
 // ---------------------------------------------------------------------------

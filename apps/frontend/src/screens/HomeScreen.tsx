@@ -901,7 +901,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <View style={styles.weatherTempContainer}>
                     <Text
                       style={{
-                        fontSize: 34,
+                        // fontSize: 34,
+                        fontSize: tokens.fontSize['3.5xl'],
                         fontWeight: '800',
                         color: theme.colors.buttonText1,
                       }}>
