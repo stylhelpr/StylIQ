@@ -20,6 +20,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import {initializeNotifications} from '../utils/notificationService';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {fontScale, moderateScale} from '../utils/scale';
 // import Video from 'react-native-video';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
@@ -903,9 +904,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     <Text
                       style={{
                         // fontSize: 34,
-                        fontSize: tokens.fontSize['3.5xl'],
-                        fontWeight: '800',
+                        // fontSize: tokens.fontSize['3.5xl'],
+                        fontSize: fontScale(tokens.fontSize['3.5xl']),
+                        // fontWeight: '800',
+                        fontWeight: tokens.fontWeight.extraBold,
                         color: theme.colors.buttonText1,
+                        // marginTop: moderateScale(tokens.spacing.md), // ✅ responsive margin
                       }}>
                       {Math.round(weather.fahrenheit.main.temp)}°F
                     </Text>
