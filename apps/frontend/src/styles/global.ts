@@ -1,14 +1,41 @@
+// src/styles/globalStyles.ts
+// ---------------------------------------------------------------------------
+// 🔹 Purpose:
+// Defines all global React Native styles shared across the app.
+// Provides consistent design primitives (spacing, radii, typography, etc.)
+// and responsive behavior across phones, Pro Max devices, and tablets.
+//
+// 🔹 Core Features:
+// - Uses Dimensions for static device breakpoints (phone / tablet).
+// - Imports design tokens (borderRadius, borderWidth, etc.) from tokens.ts.
+// - Pulls the current color palette from ThemeContext (light/dark).
+// - Centralizes card, button, text, image, and layout styles.
+//
+// 🔹 When to use:
+// Call `createGlobalStyles(theme)` inside a screen or component to
+// access unified styles: `const global = createGlobalStyles(theme)`
+// ---------------------------------------------------------------------------
+
 import {StyleSheet, Dimensions} from 'react-native';
 import {tokens} from './tokens/tokens';
 import type {Theme} from '../context/ThemeContext';
 
+// ---------------------------------------------------------------------------
+// 🧭 Device breakpoints
+// Determines device class once at load time. Used for static style tiers.
+// ---------------------------------------------------------------------------
 const {width: screenWidth} = Dimensions.get('window');
-const isTablet = screenWidth >= 768;
-const isLargePhone = screenWidth >= 430; // iPhone Pro Max breakpoint
+const isTablet = screenWidth >= 768; // Tablets / iPads / large foldables
+const isLargePhone = screenWidth >= 430; // iPhone Pro Max & similar large phones
 
+// ---------------------------------------------------------------------------
 // 📐 Responsive constants
+// Defines adaptive spacing, padding, and element dimensions for each device tier.
+// These are static (computed once) for performance and predictability.
+// ---------------------------------------------------------------------------
 const responsivePadding = isTablet ? 38 : 20;
 const sectionMarginBottom = isTablet ? 32 : 24;
+
 const image1Width = isTablet ? 270 : 165;
 const image1Height = isTablet ? 150 : 95;
 const image2Width = isTablet ? 270 : 165;
@@ -16,21 +43,33 @@ const image2Height = isTablet ? 150 : 95;
 const image4Size = isTablet ? 160 : 110;
 const outfitCardSize = isTablet ? 164 : 110;
 
-// ✅ Breakpoint-based typography — no scaling, just gentle tiering
+// ---------------------------------------------------------------------------
+// 🔤 Breakpoint-based typography tiers
+// Fonts never scale automatically with screen width — only through fixed tiers.
+// This keeps typography visually consistent (Apple-style design philosophy).
+// ---------------------------------------------------------------------------
 const font = {
-  xs: isTablet ? 14 : isLargePhone ? 13 : 12,
-  sm: isTablet ? 15 : isLargePhone ? 14 : 13,
-  md: isTablet ? 17 : isLargePhone ? 16 : 15,
-  lg: isTablet ? 19 : isLargePhone ? 18 : 17,
-  xl: isTablet ? 22 : isLargePhone ? 20 : 18,
-  heading: isTablet ? 36 : isLargePhone ? 34 : 32,
+  xs: isTablet ? 14 : isLargePhone ? 13 : 12, // tiny captions
+  sm: isTablet ? 15 : isLargePhone ? 14 : 13, // labels, metadata
+  md: isTablet ? 17 : isLargePhone ? 16 : 15, // body text
+  lg: isTablet ? 19 : isLargePhone ? 18 : 17, // section titles
+  xl: isTablet ? 22 : isLargePhone ? 20 : 18, // large titles
+  heading: isTablet ? 36 : isLargePhone ? 34 : 32, // hero headers
 };
 
+// ---------------------------------------------------------------------------
+// 🎨 Global StyleSheet factory
+// Generates a complete theme-aware, responsive style map for your UI.
+// Each block is organized by functional category for clarity.
+// ---------------------------------------------------------------------------
 export const createGlobalStyles = (theme: Theme) =>
   StyleSheet.create({
+    // ============================================================
+    // 🌎 Core Layout Containers
+    // ============================================================
     screen: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.background, // entire screen background
     },
     container: {
       paddingTop: 20,
@@ -42,8 +81,12 @@ export const createGlobalStyles = (theme: Theme) =>
     centeredSection: {
       width: '100%',
       maxWidth: 720,
-      alignSelf: 'center',
+      alignSelf: 'center', // keeps sections centered on large devices
     },
+
+    // ============================================================
+    // 🪟 Modal Containers
+    // ============================================================
     modalSection: {
       width: '100%',
       backgroundColor: theme.colors.surface,
@@ -65,6 +108,10 @@ export const createGlobalStyles = (theme: Theme) =>
       alignSelf: 'center',
       borderRadius: 25,
     },
+
+    // ============================================================
+    // 💳 Card Styles (shadows, borders, background variants)
+    // ============================================================
     cardStyles1: {
       padding: 16,
       borderWidth: tokens.borderWidth.md,
@@ -96,6 +143,10 @@ export const createGlobalStyles = (theme: Theme) =>
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.md,
     },
+
+    // ============================================================
+    // 🧩 Layout Sections
+    // ============================================================
     section: {
       marginBottom: sectionMarginBottom,
       paddingHorizontal: responsivePadding,
@@ -124,6 +175,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: 30,
       paddingLeft: responsivePadding,
     },
+
+    // ============================================================
+    // 🏷️ Typography Styles
+    // ============================================================
     header: {
       paddingLeft: 20,
       fontSize: font.heading,
@@ -176,6 +231,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: 2,
       textTransform: 'uppercase',
     },
+
+    // ============================================================
+    // 🧱 Content Containers + Titles
+    // ============================================================
     styleContainer1: {
       flexDirection: 'column',
       justifyContent: 'center',
@@ -212,6 +271,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: -4,
       color: theme.colors.foreground,
     },
+
+    // ============================================================
+    // 🏷️ Labels + Subtext
+    // ============================================================
     label: {
       fontSize: font.xs,
       fontWeight: '500',
@@ -240,6 +303,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginTop: 2,
       color: theme.colors.foreground2,
     },
+
+    // ============================================================
+    // 🍔 Menus + List Sections
+    // ============================================================
     menuContainer1: {
       flexDirection: 'column',
       justifyContent: 'center',
@@ -270,6 +337,10 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '400',
       color: theme.colors.foreground,
     },
+
+    // ============================================================
+    // 💊 Pill Elements
+    // ============================================================
     labelContainer: {
       paddingVertical: 8,
       paddingHorizontal: 12,
@@ -345,6 +416,10 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       textAlign: 'center',
     },
+
+    // ============================================================
+    // 🔘 Buttons
+    // ============================================================
     buttonHome: {
       width: '90%',
       maxWidth: 270,
@@ -438,6 +513,10 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: '600',
       color: theme.colors.buttonText1,
     },
+
+    // ============================================================
+    // 🖼️ Image + Media
+    // ============================================================
     image1: {
       width: 92,
       height: 92,
@@ -474,11 +553,19 @@ export const createGlobalStyles = (theme: Theme) =>
       width: '100%',
       backgroundColor: theme.colors.foreground,
     },
+
+    // ============================================================
+    // 🧥 Outfit Cards + Lists
+    // ============================================================
     outfitCard: {
       width: outfitCardSize,
       marginRight: 12,
       alignItems: 'flex-start',
     },
+
+    // ============================================================
+    // 🎙️ Prompt Input (Voice/Chat Bar)
+    // ============================================================
     promptRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -492,6 +579,10 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.foreground,
       fontSize: font.md,
     },
+
+    // ============================================================
+    // ✍️ Utility + Miscellaneous
+    // ============================================================
     hrLine: {
       borderBottomWidth: 1,
       borderColor: 'rgba(74, 74, 74, 0.37)',
@@ -519,16 +610,17 @@ export const createGlobalStyles = (theme: Theme) =>
     },
   });
 
-/////////////////////
+//////////////////////
 
-// import {StyleSheet} from 'react-native';
+// import {StyleSheet, Dimensions} from 'react-native';
 // import {tokens} from './tokens/tokens';
 // import type {Theme} from '../context/ThemeContext';
-// import {Dimensions} from 'react-native';
 
-// const screenWidth = Dimensions.get('window').width;
+// const {width: screenWidth} = Dimensions.get('window');
 // const isTablet = screenWidth >= 768;
+// const isLargePhone = screenWidth >= 430; // iPhone Pro Max breakpoint
 
+// // 📐 Responsive constants
 // const responsivePadding = isTablet ? 38 : 20;
 // const sectionMarginBottom = isTablet ? 32 : 24;
 // const image1Width = isTablet ? 270 : 165;
@@ -536,7 +628,17 @@ export const createGlobalStyles = (theme: Theme) =>
 // const image2Width = isTablet ? 270 : 165;
 // const image2Height = isTablet ? 150 : 95;
 // const image4Size = isTablet ? 160 : 110;
-// const ouftiCardSize = isTablet ? 164 : 110;
+// const outfitCardSize = isTablet ? 164 : 110;
+
+// // ✅ Breakpoint-based typography — no scaling, just gentle tiering
+// const font = {
+//   xs: isTablet ? 14 : isLargePhone ? 13 : 12,
+//   sm: isTablet ? 15 : isLargePhone ? 14 : 13,
+//   md: isTablet ? 17 : isLargePhone ? 16 : 15,
+//   lg: isTablet ? 19 : isLargePhone ? 18 : 17,
+//   xl: isTablet ? 22 : isLargePhone ? 20 : 18,
+//   heading: isTablet ? 36 : isLargePhone ? 34 : 32,
+// };
 
 // export const createGlobalStyles = (theme: Theme) =>
 //   StyleSheet.create({
@@ -559,7 +661,7 @@ export const createGlobalStyles = (theme: Theme) =>
 //     modalSection: {
 //       width: '100%',
 //       backgroundColor: theme.colors.surface,
-//       paddingHorizontal: 20,
+//       paddingHorizontal: responsivePadding,
 //       maxWidth: 720,
 //       alignSelf: 'center',
 //       borderRadius: 25,
@@ -572,20 +674,13 @@ export const createGlobalStyles = (theme: Theme) =>
 //     },
 //     modalSection3: {
 //       width: '100%',
-//       paddingHorizontal: 20,
+//       paddingHorizontal: responsivePadding,
 //       maxWidth: 720,
 //       alignSelf: 'center',
 //       borderRadius: 25,
 //     },
 //     cardStyles1: {
 //       padding: 16,
-
-//       // shadowColor: '#000',
-//       // shadowOffset: {width: 5, height: 5},
-//       // shadowOpacity: 0.4,
-//       // shadowRadius: 5,
-//       // elevation: 14,
-
 //       borderWidth: tokens.borderWidth.md,
 //       borderColor: theme.colors.surfaceBorder,
 //       borderRadius: tokens.borderRadius.xl,
@@ -602,17 +697,11 @@ export const createGlobalStyles = (theme: Theme) =>
 //       borderRadius: tokens.borderRadius.xl,
 //     },
 //     cardStyles3: {
-//       // padding: 14,
-//       // shadowOffset: {width: 0, height: 6},
-//       // shadowOpacity: 0.1,
-//       // shadowRadius: 12,
-//       // elevation: 5,
 //       borderWidth: 1,
 //       borderColor: theme.colors.surfaceBorder,
 //       borderRadius: tokens.borderRadius.xl,
 //     },
 //     cardStyles4: {
-//       // padding: 14,
 //       shadowOffset: {width: 0, height: 6},
 //       shadowOpacity: 0.1,
 //       shadowRadius: 12,
@@ -638,33 +727,22 @@ export const createGlobalStyles = (theme: Theme) =>
 //     },
 //     section5: {
 //       width: '100%',
-//       // paddingHorizontal: 20,
 //       maxWidth: 720,
 //       alignSelf: 'center',
 //       borderRadius: 25,
 //     },
 //     section6: {
-//       // marginBottom: sectionMarginBottom,
 //       paddingHorizontal: responsivePadding,
 //     },
 //     sectionScroll: {
-//       // marginBottom: 26,
 //       marginBottom: 30,
 //       paddingLeft: responsivePadding,
 //     },
-//     // header: {
-//     //   paddingLeft: 20,
-//     //   fontSize: 30,
-//     //   fontWeight: '700',
-//     //   color: theme.colors.foreground,
-//     //   textTransform: 'uppercase',
-//     // },
 //     header: {
 //       paddingLeft: 20,
-//       fontSize: 34,
+//       fontSize: font.heading,
 //       fontWeight: '700',
 //       color: theme.colors.foreground,
-//       // textTransform: 'uppercase',
 //     },
 //     backContainer: {
 //       flexDirection: 'row',
@@ -672,57 +750,44 @@ export const createGlobalStyles = (theme: Theme) =>
 //       width: 100,
 //     },
 //     backText: {
-//       fontSize: 18,
+//       fontSize: font.md,
 //       fontWeight: '500',
 //       color: theme.colors.button3,
 //     },
 //     sectionTitle: {
-//       fontSize: 18,
+//       fontSize: font.lg,
 //       fontWeight: '800',
 //       lineHeight: 24,
 //       color: theme.colors.foreground,
 //       marginBottom: 8,
 //       textTransform: 'uppercase',
 //     },
-//     // sectionTitle: {
-//     //   fontSize: 22,
-//     //   fontWeight: '700',
-//     //   lineHeight: 24,
-//     //   color: theme.colors.foreground,
-//     //   marginBottom: 8,
-//     //   // textTransform: 'uppercase',
-//     // },
 //     sectionTitle2: {
-//       fontSize: 18,
+//       fontSize: font.md,
 //       fontWeight: '700',
 //       lineHeight: 24,
 //       color: theme.colors.foreground,
 //       marginBottom: 2,
-//       //  textTransform: 'uppercase',
 //     },
 //     sectionTitle3: {
-//       fontSize: 17,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       lineHeight: 24,
 //       color: theme.colors.foreground,
 //       marginBottom: 2,
-//       //  textTransform: 'uppercase',
 //     },
 //     sectionTitle4: {
-//       fontSize: 17,
+//       fontSize: font.sm,
 //       fontWeight: '400',
 //       lineHeight: 24,
 //       color: theme.colors.foreground,
-//       // paddingLeft: 20,
-//       //  textTransform: 'uppercase',
 //     },
 //     sectionTitle5: {
-//       fontSize: 18,
+//       fontSize: font.lg,
 //       fontWeight: '800',
 //       lineHeight: 24,
 //       color: theme.colors.foreground,
 //       marginBottom: 2,
-//       // paddingLeft: 20,
 //       textTransform: 'uppercase',
 //     },
 //     styleContainer1: {
@@ -737,54 +802,54 @@ export const createGlobalStyles = (theme: Theme) =>
 //       paddingBottom: 8,
 //     },
 //     title: {
-//       fontSize: 14,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //       marginBottom: 12,
 //     },
 //     title2: {
-//       fontSize: 13,
+//       fontSize: font.xs,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //       marginBottom: 12,
 //     },
 //     title3: {
-//       fontSize: 12,
+//       fontSize: font.xs,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //       marginBottom: 6,
 //       marginTop: 4,
 //     },
 //     titleBold: {
-//       fontSize: 19,
+//       fontSize: font.lg,
 //       fontWeight: '800',
 //       marginBottom: -4,
 //       color: theme.colors.foreground,
 //     },
 //     label: {
-//       fontSize: 12,
+//       fontSize: font.xs,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //     },
 //     label2: {
-//       fontSize: 13,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       width: '25%',
 //       color: theme.colors.foreground,
 //     },
 //     subLabel: {
-//       fontSize: 12,
+//       fontSize: font.xs,
 //       fontWeight: '500',
 //       marginTop: 2,
 //       color: theme.colors.foreground2,
 //     },
 //     cardLabel: {
-//       fontSize: 13,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //     },
 //     cardSubLabel: {
-//       fontSize: 12,
+//       fontSize: font.xs,
 //       fontWeight: '500',
 //       marginTop: 2,
 //       color: theme.colors.foreground2,
@@ -793,7 +858,6 @@ export const createGlobalStyles = (theme: Theme) =>
 //       flexDirection: 'column',
 //       justifyContent: 'center',
 //       marginTop: 8,
-//       // marginBottom: 20,
 //       backgroundColor: theme.colors.surface,
 //       borderRadius: tokens.borderRadius.md,
 //       paddingHorizontal: 16,
@@ -816,7 +880,7 @@ export const createGlobalStyles = (theme: Theme) =>
 //       paddingHorizontal: 26,
 //     },
 //     menuLabel: {
-//       fontSize: 18,
+//       fontSize: font.lg,
 //       fontWeight: '400',
 //       color: theme.colors.foreground,
 //     },
@@ -845,8 +909,6 @@ export const createGlobalStyles = (theme: Theme) =>
 //       paddingHorizontal: 18,
 //       paddingVertical: 9,
 //       borderRadius: 18,
-//       // borderWidth: tokens.borderWidth.hairline,
-//       // borderColor: theme.colors.surfaceBorder,
 //       marginRight: 8,
 //     },
 //     pill2: {
@@ -859,7 +921,7 @@ export const createGlobalStyles = (theme: Theme) =>
 //       marginRight: 8,
 //     },
 //     pillText: {
-//       fontSize: 14,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       color: theme.colors.background,
 //     },
@@ -873,11 +935,9 @@ export const createGlobalStyles = (theme: Theme) =>
 //       shadowOpacity: 0.1,
 //       shadowRadius: 12,
 //       elevation: 5,
-//       // borderWidth: tokens.borderWidth.hairline,
-//       // borderColor: theme.colors.surfaceBorder,
 //     },
 //     pillTextFixedWidth: {
-//       fontSize: 14,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //       textAlign: 'center',
@@ -890,13 +950,11 @@ export const createGlobalStyles = (theme: Theme) =>
 //       shadowOpacity: 0.1,
 //       shadowRadius: 12,
 //       elevation: 5,
-//       // borderWidth: tokens.borderWidth.hairline,
-//       // borderColor: theme.colors.surfaceBorder,
 //       alignSelf: 'flex-start',
 //       width: '23%',
 //     },
 //     pillTextFixedWidth2: {
-//       fontSize: 14,
+//       fontSize: font.sm,
 //       fontWeight: '500',
 //       color: theme.colors.foreground,
 //       textAlign: 'center',
@@ -911,7 +969,7 @@ export const createGlobalStyles = (theme: Theme) =>
 //       backgroundColor: 'black',
 //     },
 //     buttonHomeText: {
-//       fontSize: 18,
+//       fontSize: font.lg,
 //       fontWeight: '600',
 //       color: '#fff',
 //       textShadowColor: 'rgba(0,0,0,0.7)',
@@ -919,8 +977,6 @@ export const createGlobalStyles = (theme: Theme) =>
 //       textShadowRadius: 3,
 //     },
 //     buttonPrimary: {
-//       // width: '90%',
-//       // maxWidth: 160,
 //       backgroundColor: theme.colors.button1,
 //       borderRadius: tokens.borderRadius['2xl'],
 //       alignItems: 'center',
@@ -931,26 +987,15 @@ export const createGlobalStyles = (theme: Theme) =>
 //       shadowRadius: 4,
 //       elevation: 2,
 //       borderColor: theme.colors.surfaceBorder,
-//       //  paddingVertical: 11,
 //       paddingVertical: 13,
 //       borderWidth: 1,
 //     },
-
-//     // buttonPrimaryText: {
-//     //   fontSize: 15,
-//     //   fontWeight: '700',
-//     //   color: theme.colors.buttonText1,
-//     // },
-
 //     buttonPrimaryText: {
-//       fontSize: 16,
+//       fontSize: font.md,
 //       fontWeight: '600',
 //       color: theme.colors.buttonText1,
 //     },
-
 //     buttonSecondary: {
-//       // width: '90%',
-//       // maxWidth: 160,
 //       backgroundColor: theme.colors.button2,
 //       borderRadius: tokens.borderRadius['2xl'],
 //       alignItems: 'center',
@@ -961,12 +1006,11 @@ export const createGlobalStyles = (theme: Theme) =>
 //       shadowRadius: 4,
 //       elevation: 2,
 //       borderColor: theme.colors.surfaceBorder,
-//       //  paddingVertical: 11,
 //       paddingVertical: 13,
 //       borderWidth: 1,
 //     },
 //     buttonSecondaryText: {
-//       fontSize: 15,
+//       fontSize: font.sm,
 //       fontWeight: '600',
 //       color: '#fff',
 //     },
@@ -985,9 +1029,28 @@ export const createGlobalStyles = (theme: Theme) =>
 //       elevation: 2,
 //     },
 //     buttonTertiaryText: {
-//       fontSize: 15,
+//       fontSize: font.sm,
 //       fontWeight: '600',
 //       color: '#fff',
+//     },
+//     buttonPrimary4: {
+//       backgroundColor: theme.colors.button1,
+//       borderRadius: tokens.borderRadius['2xl'],
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       shadowColor: '#000',
+//       shadowOffset: {width: 0, height: 1},
+//       shadowOpacity: 0.1,
+//       shadowRadius: 4,
+//       elevation: 2,
+//       borderColor: theme.colors.surfaceBorder,
+//       paddingVertical: 8,
+//       borderWidth: 1,
+//     },
+//     buttonPrimaryText4: {
+//       fontSize: font.xs,
+//       fontWeight: '600',
+//       color: theme.colors.buttonText1,
 //     },
 //     image1: {
 //       width: 92,
@@ -1020,17 +1083,13 @@ export const createGlobalStyles = (theme: Theme) =>
 //       backgroundColor: theme.colors.surface,
 //       borderBottomWidth: tokens.borderWidth.md,
 //       borderBottomColor: theme.colors.surfaceBorder,
-//       // borderRadius: tokens.borderRadius.md,
 //     },
 //     image6: {
 //       width: '100%',
-//       // borderTopLeftRadius: 10,
-//       // borderTopRightRadius: 10,
 //       backgroundColor: theme.colors.foreground,
 //     },
-
 //     outfitCard: {
-//       width: ouftiCardSize,
+//       width: outfitCardSize,
 //       marginRight: 12,
 //       alignItems: 'flex-start',
 //     },
@@ -1040,13 +1099,12 @@ export const createGlobalStyles = (theme: Theme) =>
 //       backgroundColor: '#1a1a1a',
 //       borderRadius: tokens.borderRadius.md,
 //       paddingHorizontal: 12,
-//       // height: 38,
 //       width: '100%',
 //     },
 //     promptInput: {
 //       flex: 1,
 //       color: theme.colors.foreground,
-//       fontSize: 16,
+//       fontSize: font.md,
 //     },
 //     hrLine: {
 //       borderBottomWidth: 1,
@@ -1071,7 +1129,6 @@ export const createGlobalStyles = (theme: Theme) =>
 //       textAlign: 'left',
 //       marginTop: 0,
 //       lineHeight: 20,
-//       // paddingHorizontal: 20,
 //       maxWidth: 400,
 //     },
 //   });
