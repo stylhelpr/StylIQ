@@ -888,7 +888,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       </Text>
                       <Text
                         style={{
-                          fontSize: 16,
+                          // fontSize: 16,
+                          fontSize: tokens.fontSize.base,
                           color: theme.colors.foreground2,
                           textTransform: 'capitalize',
                         }}>
