@@ -24,7 +24,8 @@ const {width: SCREEN_WIDTH} = Dimensions.get('window');
 // -----------------------------------------------------------------------------
 // 📏 Constants: define the reference device and scaling limits
 // -----------------------------------------------------------------------------
-const BASE_WIDTH = 390; // iPhone 14 baseline device width
+// const BASE_WIDTH = 390; // iPhone 14 baseline device width
+const BASE_WIDTH = 360; // was 360
 const MIN_SCALE = 0.92; // prevent UI from shrinking too much on small devices
 const MAX_SCALE = 1.05; // prevent UI from blowing up on large phones
 
@@ -59,8 +60,13 @@ export const moderateScale = (size: number, factor = 0.5) =>
 // Instead, we round to the pixel grid for crisp text rendering.
 // Let users rely on Accessibility settings for larger text.
 // -----------------------------------------------------------------------------
-export const fontScale = (size: number) =>
-  Math.round(PixelRatio.roundToNearestPixel(size));
+// export const fontScale = (size: number) =>
+//   Math.round(PixelRatio.roundToNearestPixel(size));
+
+export const fontScale = (size: number) => {
+  const scaleFactor = PixelRatio.getFontScale(); // honors user accessibility text size
+  return Math.round(PixelRatio.roundToNearestPixel(size * scaleFactor));
+};
 
 // -----------------------------------------------------------------------------
 // 🧵 4️⃣ hairline

@@ -15,7 +15,7 @@
 // - Fonts here are static by design — typography scaling happens via responsiveTheme.
 // -----------------------------------------------------------------------------
 
-import {scale} from '../../utils/scale';
+import {fontScale, scale} from '../../utils/scale';
 
 // -----------------------------------------------------------------------------
 // 🎨 TOKEN DEFINITIONS
@@ -70,27 +70,49 @@ export const tokens = {
   // Fonts should remain static, not scaled by `scale()`.
   // Responsive adjustments happen in `responsiveTheme.ts` instead.
   // ---------------------------------------------------------------------------
+  // fontSize: {
+  //   xxxs: 9,
+  //   xxs: 10,
+  //   xs: 12,
+  //   sm: 14,
+  //   md: 15,
+  //   base: 16, // Default body size
+  //   lg: 18,
+  //   xl: 20,
+  //   xxl: 22,
+  //   '2xl': 24,
+  //   '2.5xl': 28,
+  //   '3xl': 30,
+  //   '3.5xl': 32,
+  //   '4xl': 36,
+  //   '5xl': 48,
+  //   '6xl': 56,
+  //   '7xl': 64,
+  //   '8xl': 80,
+  //   '9xl': 90,
+  //   '10xl': 104,
+  // },
   fontSize: {
-    xxxs: 9,
-    xxs: 10,
-    xs: 12,
-    sm: 14,
-    md: 15,
-    base: 16, // Default body size
-    lg: 18,
-    xl: 20,
-    xxl: 22,
-    '2xl': 24,
-    '2.5xl': 28,
-    '3xl': 30,
-    '3.5xl': 32,
-    '4xl': 36,
-    '5xl': 48,
-    '6xl': 56,
-    '7xl': 64,
-    '8xl': 80,
-    '9xl': 90,
-    '10xl': 104,
+    xxxs: fontScale(9),
+    xxs: fontScale(10),
+    xs: fontScale(12),
+    sm: fontScale(14),
+    md: fontScale(15),
+    base: fontScale(16),
+    lg: fontScale(18),
+    xl: fontScale(20),
+    xxl: fontScale(22),
+    '2xl': fontScale(24),
+    '2.5xl': fontScale(28),
+    '3xl': fontScale(30),
+    '3.5xl': fontScale(32),
+    '4xl': fontScale(36),
+    '5xl': fontScale(48),
+    '6xl': fontScale(56),
+    '7xl': fontScale(64),
+    '8xl': fontScale(80),
+    '9xl': fontScale(90),
+    '10xl': fontScale(104),
   },
 
   // ---------------------------------------------------------------------------

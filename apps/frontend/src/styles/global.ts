@@ -19,6 +19,10 @@
 import {StyleSheet, Dimensions} from 'react-native';
 import {tokens} from './tokens/tokens';
 import type {Theme} from '../context/ThemeContext';
+import {fontScale, scale} from '../utils/scale';
+// import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// const insets = useSafeAreaInsets();
+// screen: { paddingTop: insets.top, paddingBottom: insets.bottom + tokens.spacing.lg }
 
 // ---------------------------------------------------------------------------
 // 🧭 Device breakpoints
@@ -57,6 +61,14 @@ const outfitCardSize = isTablet ? 164 : 110;
 //   heading: isTablet ? 36 : isLargePhone ? 34 : 32, // hero headers
 // };
 
+// const font = {
+//   xs: isTablet ? tokens.fontSize.xs + 1 : tokens.fontSize.xs,
+//   sm: isTablet ? tokens.fontSize.sm + 1 : tokens.fontSize.sm,
+//   md: isTablet ? tokens.fontSize.base + 1 : tokens.fontSize.base,
+//   lg: isTablet ? tokens.fontSize.lg + 1 : tokens.fontSize.lg,
+//   xl: isTablet ? tokens.fontSize.xl + 2 : tokens.fontSize.xl,
+//   heading: isTablet ? tokens.fontSize['3xl'] : tokens.fontSize['2.5xl'],
+// };
 const font = {
   xs: isTablet ? tokens.fontSize.xs + 1 : tokens.fontSize.xs,
   sm: isTablet ? tokens.fontSize.sm + 1 : tokens.fontSize.sm,

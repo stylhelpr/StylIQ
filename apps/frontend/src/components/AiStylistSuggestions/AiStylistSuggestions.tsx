@@ -467,18 +467,18 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 flex: 1, // ✅ evenly share row space
                 marginRight: moderateScale(tokens.spacing.xsm),
                 paddingVertical: moderateScale(tokens.spacing.xsm),
-                borderRadius: tokens.borderRadius.sm,
-                backgroundColor: theme.colors.surface2,
+                borderRadius: tokens.borderRadius.md,
+                backgroundColor: theme.colors.button1,
                 borderWidth: theme.borderWidth.sm,
                 borderColor: theme.colors.surfaceBorder,
                 alignItems: 'center',
-                minWidth: 140,
+                minWidth: 150,
               }}>
               <Text
                 style={{
                   fontSize: fontScale(tokens.fontSize.sm),
                   fontWeight: tokens.fontWeight.semiBold,
-                  color: theme.colors.button1,
+                  color: theme.colors.buttonText1,
                 }}>
                 View Wardrobe Gaps
               </Text>
@@ -491,19 +491,19 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 flex: 1, // ✅ evenly share row space
                 marginLeft: moderateScale(tokens.spacing.xsm),
                 paddingVertical: moderateScale(tokens.spacing.xsm),
-                borderRadius: tokens.borderRadius.sm,
-                backgroundColor: theme.colors.surface2,
+                borderRadius: tokens.borderRadius.md,
+                backgroundColor: theme.colors.button1,
                 borderWidth: theme.borderWidth.sm,
                 borderColor: theme.colors.surfaceBorder,
                 alignItems: 'center',
-                minWidth: 140,
+                minWidth: 150,
                 marginTop: moderateScale(tokens.spacing.xsm), // ✅ only applies if wrapping occurs
               }}>
               <Text
                 style={{
                   fontSize: fontScale(tokens.fontSize.sm),
                   fontWeight: tokens.fontWeight.semiBold,
-                  color: theme.colors.button1,
+                  color: theme.colors.buttonText1,
                 }}>
                 Ask a Styling Question
               </Text>

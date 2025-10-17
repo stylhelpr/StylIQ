@@ -547,6 +547,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       paddingVertical: moderateScale(tokens.spacing.xxs),
       paddingHorizontal: moderateScale(tokens.spacing.sm2),
       borderRadius: tokens.borderRadius.md,
+      minWidth: moderateScale(72),
+      alignItems: 'center',
     },
     weatherTemp: {
       fontSize: fontScale(tokens.fontSize['2.5xl']),
@@ -911,7 +913,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <View style={styles.weatherTempContainer}>
                     <Text
                       style={{
-                        fontSize: fontScale(tokens.fontSize['3.5xl']),
+                        fontSize: moderateScale(
+                          isXS
+                            ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
+                            : isSM
+                            ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
+                            : isMD
+                            ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
+                            : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
+                        ),
                         fontWeight: tokens.fontWeight.extraBold,
                         color: theme.colors.buttonText1,
                       }}>
