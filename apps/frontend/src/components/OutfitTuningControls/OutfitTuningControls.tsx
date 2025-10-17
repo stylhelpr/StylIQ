@@ -19,6 +19,7 @@ import {tokens} from '../../styles/tokens/tokens';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import * as Animatable from 'react-native-animatable';
 import Voice from '@react-native-voice/voice';
+import {useWindowDimensions} from 'react-native';
 
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type, {
@@ -277,15 +278,27 @@ export default function OutfitTuningControls({
       backgroundColor: theme.colors.surface,
     },
     pillTextPrimary: {color: '#fff', fontWeight: '600', fontSize: 13},
+    // refineInputContainer: {
+    //   flexDirection: 'row',
+    //   alignItems: 'center',
+    //   width: 400,
+    //   borderRadius: tokens.borderRadius.md,
+    //   backgroundColor: theme.colors.surface3,
+    //   paddingHorizontal: 14,
+    //   marginTop: 10,
+    // },
     refineInputContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      width: 400,
+      alignSelf: 'center',
+      width: '95%', // ✅ proportional on all devices
+      maxWidth: 460, // ✅ wider cap for large phones
       borderRadius: tokens.borderRadius.md,
       backgroundColor: theme.colors.surface3,
       paddingHorizontal: 14,
       marginTop: 10,
     },
+
     refineInput: {
       paddingHorizontal: 0,
       paddingVertical: 12,
@@ -319,6 +332,8 @@ export default function OutfitTuningControls({
       fontSize: 12,
     },
   });
+
+  const {width} = useWindowDimensions();
 
   // voice state
   const [isListening, setIsListening] = useState(false);
@@ -461,10 +476,9 @@ export default function OutfitTuningControls({
                   borderWidth: tokens.borderWidth.xl,
                   borderColor: theme.colors.surfaceBorder,
                   backgroundColor: theme.colors.surface3,
-                  borderRadius: 20,
-                  width: 400,
-                  flexDirection: 'row',
-                  alignItems: 'center',
+                  borderRadius: 30,
+                  width: Math.min(width * 0.9, 460), // ✅ adaptive width that looks wide everywhere
+                  alignSelf: 'center',
                 },
               ]}>
               <TextInput

@@ -121,7 +121,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             marginBottom: open ? 4 : 20, // ✅ only when collapsed
           },
         ]}>
-        <View style={{marginBottom: 2}}>
+        <View style={{marginBottom: moderateScale(tokens.spacing.quark)}}>
           {title && (
             <TouchableOpacity
               activeOpacity={0.7}
@@ -136,9 +136,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   // globalStyles.sectionTitle,
                   {
                     color: theme.colors.foreground,
-                    fontSize: 16,
-                    fontWeight: '700',
-                    paddingHorizontal: 20,
+                    fontSize: fontScale(tokens.fontSize.lg),
+                    fontWeight: tokens.fontWeight.bold,
+                    paddingHorizontal: moderateScale(tokens.spacing.md2),
                     textTransform: 'none',
                   },
                 ]}>
@@ -160,7 +160,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   name="keyboard-arrow-down"
                   size={28}
                   color={theme.colors.foreground}
-                  style={{paddingHorizontal: 20}}
+                  style={{paddingHorizontal: moderateScale(tokens.spacing.md2)}}
                 />
               </Animated.View>
             </TouchableOpacity>
@@ -474,53 +474,53 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       left: 16,
       right: 16,
       backgroundColor: 'rgba(0,0,0,0.45)',
-      padding: 12,
+      padding: moderateScale(tokens.spacing.sm),
       borderRadius: tokens.borderRadius.md,
     },
     bannerText: {
-      fontSize: 17,
-      fontWeight: '600',
+      fontSize: fontScale(tokens.fontSize.base),
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
     },
     bannerSubtext: {
-      fontSize: 13,
-      fontWeight: '400',
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
-      marginTop: 4,
+      marginTop: moderateScale(tokens.spacing.quark),
     },
     bodyText: {
-      fontSize: 16,
-      fontWeight: '400',
+      fontSize: fontScale(tokens.fontSize.base),
+      fontWeight: tokens.fontWeight.normal,
       color: theme.colors.foreground,
     },
     subtext: {
-      fontSize: 13,
-      fontWeight: '400',
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.normal,
       color: theme.colors.foreground,
     },
     dailyLookText: {
-      fontSize: 14,
-      fontWeight: '400',
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.normal,
       color: theme.colors.foreground3,
       lineHeight: 22,
     },
     tryButton: {
       backgroundColor: theme.colors.button1,
-      paddingVertical: 10,
-      marginTop: 14,
+      paddingVertical: moderateScale(tokens.spacing.xsm),
+      marginTop: moderateScale(tokens.spacing.sm2),
       alignItems: 'center',
     },
     tryButtonText: {
-      fontSize: 17,
-      fontWeight: '600',
-      color: '#fff',
+      fontSize: fontScale(tokens.fontSize.lg),
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.buttonText1,
     },
     quickAccessItem: {
       alignItems: 'center',
       width: '40%',
       minWidth: 140,
       maxWidth: 185,
-      margin: 12,
+      margin: moderateScale(tokens.spacing.sm),
     },
     quickAccessButton: {
       backgroundColor: theme.colors.button1,
@@ -533,33 +533,33 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       justifyContent: 'space-between',
     },
     weatherCity: {
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: fontScale(tokens.fontSize.base),
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
-      marginBottom: 4,
+      marginBottom: moderateScale(tokens.spacing.nano),
     },
     weatherDesc: {
-      fontSize: 13,
+      fontSize: fontScale(tokens.fontSize.sm),
       color: theme.colors.foreground2,
     },
     weatherTempContainer: {
       backgroundColor: theme.colors.button1,
-      paddingVertical: 6,
-      paddingHorizontal: 14,
+      paddingVertical: moderateScale(tokens.spacing.xxs),
+      paddingHorizontal: moderateScale(tokens.spacing.sm2),
       borderRadius: tokens.borderRadius.md,
     },
     weatherTemp: {
-      fontSize: 28,
-      fontWeight: '800',
+      fontSize: fontScale(tokens.fontSize['2.5xl']),
+      fontWeight: tokens.fontWeight.extraBold,
       color: theme.colors.buttonText1,
     },
     weatherAdvice: {
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.bold,
       color: '#ffd369',
-      marginTop: 4,
+      marginTop: moderateScale(tokens.spacing.nano),
       lineHeight: 22,
-      paddingRight: 14,
+      paddingRight: moderateScale(tokens.spacing.sm2),
     },
     tagRow: {
       flexDirection: 'row',
@@ -568,8 +568,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     tag: {
       backgroundColor: theme.colors.surface,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.xxs),
       borderRadius: 20,
       shadowColor: '#000',
       shadowOpacity: 0.05,
@@ -577,38 +577,38 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       elevation: 2,
     },
     tagText: {
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
     },
     tooltip: {
       position: 'absolute',
       top: -38,
       backgroundColor: 'rgba(28,28,30,0.95)',
-      paddingHorizontal: 10,
-      paddingVertical: 6,
+      paddingHorizontal: moderateScale(tokens.spacing.xsm),
+      paddingVertical: moderateScale(tokens.spacing.xxs),
       borderRadius: 8,
       maxWidth: 180,
       zIndex: 999,
     },
     tooltipText: {
-      color: '#fff',
-      fontSize: 13,
+      color: theme.colors.buttonText1,
+      fontSize: fontScale(tokens.fontSize.sm),
       textAlign: 'center',
     },
     quickTooltip: {
       position: 'absolute',
       bottom: 60,
       backgroundColor: 'rgba(28,28,30,0.95)',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.xs),
       borderRadius: 8,
       maxWidth: 180,
       zIndex: 999,
     },
     quickTooltipText: {
-      color: '#fff',
-      fontSize: 13,
+      color: theme.colors.buttonText1,
+      fontSize: fontScale(tokens.fontSize.sm),
       textAlign: 'center',
     },
   });
@@ -739,14 +739,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            paddingHorizontal: 16,
-            marginBottom: 6,
+            paddingHorizontal: moderateScale(tokens.spacing.md),
+            marginBottom: moderateScale(tokens.spacing.xxs),
           }}>
           <Text
             style={{
               flex: 1,
-              fontSize: 17,
-              fontWeight: '800',
+              fontSize: fontScale(tokens.fontSize.base),
+              fontWeight: tokens.fontWeight.extraBold,
               color: theme.colors.foreground,
             }}
             numberOfLines={1}
@@ -759,7 +759,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           <AppleTouchFeedback
             onPress={() => navigate('Settings')}
             hapticStyle="impactLight"
-            style={{padding: 6, marginLeft: 10}}>
+            style={{
+              padding: moderateScale(tokens.spacing.xxs),
+              marginLeft: moderateScale(tokens.spacing.xsm),
+            }}>
             <Icon name="tune" size={22} color={theme.colors.button1} />
           </AppleTouchFeedback>
         </Animatable.View>
@@ -806,7 +809,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 left: 10,
                 right: 16,
                 backgroundColor: 'rgba(0,0,0,0.45)',
-                padding: 12,
+                padding: moderateScale(tokens.spacing.sm),
                 borderRadius: 16,
                 transform: [
                   {
@@ -851,7 +854,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               <View
                 style={[
                   globalStyles.cardStyles1,
-                  {paddingVertical: 18, paddingHorizontal: 20},
+                  {
+                    paddingVertical: moderateScale(tokens.spacing.md1),
+                    paddingHorizontal: moderateScale(tokens.spacing.md2),
+                  },
                 ]}>
                 <View
                   style={{
@@ -877,19 +883,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       })()}
                       size={36}
                       color={theme.colors.foreground}
-                      style={{marginRight: 10}}
+                      style={{marginRight: moderateScale(tokens.spacing.xsm)}}
                     />
                     <View>
                       <Text
                         style={[
                           styles.weatherCity,
-                          {fontSize: 20, fontWeight: '700'},
+                          {
+                            fontSize: fontScale(tokens.fontSize.xl),
+                            fontWeight: tokens.fontWeight.bold,
+                          },
                         ]}>
                         {weather.celsius.name}
                       </Text>
                       <Text
                         style={{
-                          // fontSize: 16,
                           fontSize: tokens.fontSize.base,
                           color: theme.colors.foreground2,
                           textTransform: 'capitalize',
@@ -903,13 +911,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <View style={styles.weatherTempContainer}>
                     <Text
                       style={{
-                        // fontSize: 34,
-                        // fontSize: tokens.fontSize['3.5xl'],
                         fontSize: fontScale(tokens.fontSize['3.5xl']),
-                        // fontWeight: '800',
                         fontWeight: tokens.fontWeight.extraBold,
                         color: theme.colors.buttonText1,
-                        // marginTop: moderateScale(tokens.spacing.md), // ✅ responsive margin
                       }}>
                       {Math.round(weather.fahrenheit.main.temp)}°F
                     </Text>
@@ -917,12 +921,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </View>
 
                 {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
-                <View style={{marginTop: 12}}>
+                <View style={{marginTop: moderateScale(tokens.spacing.sm)}}>
                   <Text
                     style={{
-                      fontSize: 15,
+                      fontSize: fontScale(tokens.fontSize.md),
                       color: theme.colors.foreground2,
-                      fontWeight: '500',
+                      fontWeight: tokens.fontWeight.medium,
                     }}>
                     {(() => {
                       const temp = weather.fahrenheit.main.temp;
@@ -998,23 +1002,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 hapticStyle="impactLight"
                 onPress={toggleMap}
                 style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
+                  paddingHorizontal: moderateScale(tokens.spacing.xsm),
+                  paddingVertical: moderateScale(tokens.spacing.xxs),
                   borderRadius: 20,
-                  // backgroundColor: theme.colors.surface3,
-                  // borderWidth: tokens.borderWidth.sm,
-                  // borderColor: theme.colors.surfaceBorder,
                 }}>
-                <View
-                  style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-                  {/* <Text
-                    style={{
-                      color: theme.colors.foreground,
-                      fontWeight: '700',
-                      fontSize: 13,
-                    }}>
-                    {mapOpen ? 'Close' : 'Open'}
-                  </Text> */}
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
                   <Animated.View style={{transform: [{rotateZ}]}}>
                     <Icon
                       name="keyboard-arrow-down"
@@ -1028,7 +1020,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
             <Animated.View
               style={{
-                marginTop: 8,
+                marginTop: moderateScale(tokens.spacing.xs),
                 height: mapHeight,
                 opacity: mapOpacity,
                 overflow: 'hidden',
@@ -1063,46 +1055,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             <View style={globalStyles.section}>
               <Text style={globalStyles.sectionTitle}>Quick Access</Text>
               <View style={[globalStyles.centeredSection]}>
-                {/* <View
-                  style={[
-                    globalStyles.cardStyles1,
-                    {
-                      padding: 10,
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      width: '100%',
-                    },
-                  ]}>
-                  {[
-                    {label: 'Style Me', screen: 'Outfit'},
-                    {label: 'Wardrobe', screen: 'Wardrobe'},
-                    {label: 'Add Clothes', screen: 'AddItem'},
-                    {label: 'Profile', screen: 'Profile'},
-                  ].map((btn, idx) => (
-                    <Animatable.View
-                      key={btn.screen}
-                      animation="zoomIn"
-                      delay={600 + idx * 100}
-                      duration={500}
-                      useNativeDriver
-                      style={styles.quickAccessItem}>
-                      <AppleTouchFeedback
-                        style={[globalStyles.buttonPrimary, {width: 160}]}
-                        hapticStyle="impactHeavy"
-                        onPress={() => navigate(btn.screen)}>
-                        <Text style={globalStyles.buttonPrimaryText}>
-                          {btn.label}
-                        </Text>
-                      </AppleTouchFeedback>
-                    </Animatable.View>
-                  ))}
-                </View> */}
                 <View
                   style={[
                     globalStyles.cardStyles1,
                     {
-                      padding: 20,
+                      padding: moderateScale(tokens.spacing.md2),
                       justifyContent: 'space-between',
                       flexDirection: 'row',
                       flexWrap: 'wrap',
@@ -1122,8 +1079,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       duration={500}
                       useNativeDriver
                       style={{
-                        width: '48%', // ✅ 2 per row on small screens, auto wraps cleanly
-                        marginBottom: 20,
+                        width: '48%',
+                        marginBottom: idx < 2 ? 20 : 0, // ✅ only apply margin to the first row
                       }}>
                       <AppleTouchFeedback
                         style={[
@@ -1176,7 +1133,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         <Text
           style={[
             globalStyles.sectionTitle,
-            {marginLeft: 20, marginBottom: 16},
+            {
+              marginLeft: moderateScale(tokens.spacing.md2),
+              marginBottom: moderateScale(tokens.spacing.md),
+            },
           ]}>
           Your Looks
         </Text>
@@ -1189,7 +1149,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               delay={800}
               duration={700}
               useNativeDriver
-              style={[globalStyles.sectionScroll, {marginBottom: 12}]}>
+              style={[
+                globalStyles.sectionScroll,
+                {marginBottom: moderateScale(tokens.spacing.sm)},
+              ]}>
               {/* <View style={{flexDirection: 'row'}}>
                 <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
               </View> */}
@@ -1209,7 +1172,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{paddingRight: 8}}>
+                  contentContainerStyle={{
+                    paddingRight: moderateScale(tokens.spacing.xs),
+                  }}>
                   {savedLooks.map((look, index) => (
                     <Animatable.View
                       key={look.id}
@@ -1251,14 +1216,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   onPress={() => setImageModalVisible(true)}
                   style={{
                     alignSelf: 'flex-end',
-                    marginTop: 8,
-                    marginRight: 12,
+                    marginTop: moderateScale(tokens.spacing.xs),
+                    marginRight: moderateScale(tokens.spacing.sm),
                   }}>
                   <Text
                     style={{
-                      fontSize: 13,
+                      fontSize: fontScale(tokens.fontSize.sm),
                       color: theme.colors.foreground,
-                      fontWeight: '700',
+                      fontWeight: tokens.fontWeight.bold,
                     }}>
                     See All Saved Looks
                   </Text>
@@ -1274,7 +1239,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             delay={1000}
             duration={700}
             useNativeDriver
-            style={{alignItems: 'center', marginBottom: 20}}>
+            style={{
+              alignItems: 'center',
+              marginBottom: moderateScale(tokens.spacing.md2),
+            }}>
             <AppleTouchFeedback
               style={[globalStyles.buttonPrimary4, {width: 90, marginTop: -12}]}
               hapticStyle="impactHeavy"
@@ -1290,7 +1258,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             animation="fadeIn"
             duration={400}
             useNativeDriver
-            style={{padding: 16, alignItems: 'center'}}>
+            style={{
+              padding: moderateScale(tokens.spacing.md),
+              alignItems: 'center',
+            }}>
             <Text style={{color: theme.colors.foreground2}}>
               Loading recent creations...
             </Text>
@@ -1342,16 +1313,23 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         right: 6,
                         backgroundColor: 'rgba(0,0,0,0.4)',
                         borderRadius: 20,
-                        padding: 6,
+                        padding: moderateScale(tokens.spacing.xxs),
                       }}>
-                      <Icon name="ios-share" size={20} color="#fff" />
+                      <Icon
+                        name="ios-share"
+                        size={20}
+                        color={theme.colors.buttonText1}
+                      />
                     </TouchableOpacity>
 
                     <Text
                       numberOfLines={1}
                       style={[
                         globalStyles.subLabel,
-                        {marginTop: 6, textAlign: 'center'},
+                        {
+                          marginTop: moderateScale(tokens.spacing.xxs),
+                          textAlign: 'center',
+                        },
                       ]}>
                       {(c.tags && c.tags.slice(0, 3).join(' ')) || 'AI Look'}
                     </Text>
@@ -1368,7 +1346,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             animation="fadeIn"
             duration={400}
             useNativeDriver
-            style={{padding: 16, alignItems: 'center'}}>
+            style={{
+              padding: moderateScale(tokens.spacing.md),
+              alignItems: 'center',
+            }}>
             <Text style={{color: theme.colors.foreground2}}>
               Loading recent vibes...
             </Text>
@@ -1426,7 +1407,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             right: 6,
                             backgroundColor: 'rgba(0,0,0,0.4)',
                             borderRadius: 20,
-                            padding: 6,
+                            padding: moderateScale(tokens.spacing.xxs),
                           }}>
                           <Icon name="ios-share" size={20} color="#fff" />
                         </TouchableOpacity>
@@ -1436,7 +1417,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         numberOfLines={1}
                         style={[
                           globalStyles.subLabel,
-                          {marginTop: 6, textAlign: 'center'},
+                          {
+                            marginTop: moderateScale(tokens.spacing.xxs),
+                            textAlign: 'center',
+                          },
                         ]}>
                         {vibe.query_used?.split(' ').slice(0, 3).join(' ') ||
                           'Recent'}

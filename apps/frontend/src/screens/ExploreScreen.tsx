@@ -39,6 +39,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+import {fontScale, moderateScale} from '../utils/scale';
 
 type Tab = 'For You' | 'Following';
 
@@ -87,33 +88,43 @@ export default function ExploreScreen() {
     addBox: {padding: 16, gap: 8},
     addTitle: {
       color: theme.colors.foreground,
-      fontWeight: '800',
-      fontSize: 16,
-      marginBottom: 12,
+      fontWeight: tokens.fontWeight.extraBold,
+      fontSize: fontScale(tokens.fontSize.base),
+      marginBottom: moderateScale(tokens.spacing.sm),
     },
-    addError: {color: theme.colors.error, fontSize: 12, marginBottom: 2},
+    addError: {
+      color: theme.colors.error,
+      fontSize: fontScale(tokens.fontSize.sm),
+      marginBottom: 2,
+    },
     addBtn: {
-      marginTop: 8,
+      marginTop: moderateScale(tokens.spacing.xs),
       backgroundColor: theme.colors.button1,
       borderRadius: 10,
-      paddingVertical: 10,
+      paddingVertical: moderateScale(tokens.spacing.sm),
       alignItems: 'center',
     },
-    addBtnText: {color: theme.colors.foreground, fontWeight: '800'},
+    addBtnText: {
+      color: theme.colors.foreground,
+      fontWeight: tokens.fontWeight.extraBold,
+    },
     resetBtn: {
-      marginTop: 8,
+      marginTop: moderateScale(tokens.spacing.xs),
       backgroundColor: theme.colors.surface2,
       borderRadius: 10,
-      paddingVertical: 10,
+      paddingVertical: moderateScale(tokens.spacing.xsm),
       alignItems: 'center',
       borderColor: theme.colors.surfaceBorder,
       borderWidth: theme.borderWidth.xl,
     },
-    resetText: {color: theme.colors.foreground, fontWeight: '700'},
+    resetText: {
+      color: theme.colors.foreground,
+      fontWeight: tokens.fontWeight.bold,
+    },
     topBar: {
-      paddingTop: 14,
-      paddingHorizontal: 16,
-      paddingBottom: 6,
+      paddingTop: moderateScale(tokens.spacing.sm2),
+      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingBottom: moderateScale(tokens.spacing.md),
       backgroundColor: theme.colors.background,
       flexDirection: 'row',
       alignItems: 'center',
@@ -130,8 +141,8 @@ export default function ExploreScreen() {
     },
     iconBtnText: {
       color: theme.colors.foreground,
-      fontWeight: '600',
-      fontSize: 11,
+      fontWeight: tokens.fontWeight.semiBold,
+      fontSize: fontScale(tokens.fontSize.xs),
       lineHeight: 20,
       marginTop: -2,
       textAlign: 'center',
@@ -144,11 +155,11 @@ export default function ExploreScreen() {
     },
     menuSheet: {
       marginTop: 230,
-      marginRight: 14,
+      marginRight: moderateScale(tokens.spacing.sm),
       width: 200,
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
-      paddingVertical: 8,
+      paddingVertical: moderateScale(tokens.spacing.xs),
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
       shadowColor: '#000',
@@ -159,85 +170,85 @@ export default function ExploreScreen() {
     },
     menuTitle: {
       color: theme.colors.foreground,
-      fontSize: 12,
-      fontWeight: '700',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      fontSize: fontScale(tokens.fontSize.xs),
+      fontWeight: tokens.fontWeight.bold,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.xxs),
     },
     menuItem: {
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.sm),
     },
     menuItemText: {
       color: theme.colors.foreground,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
     },
     manageBtn: {
       marginLeft: 'auto',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.xxs),
       borderRadius: 8,
       backgroundColor: 'rgba(89, 0, 255, 1)',
     },
     manageText: {color: theme.colors.foreground, fontWeight: '700'},
     sectionHeader: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingVertical: moderateScale(tokens.spacing.xs),
       backgroundColor: theme.colors.background,
     },
     sectionTitle: {
       color: theme.colors.button1,
-      fontWeight: '800',
-      fontSize: 20,
+      fontWeight: tokens.fontWeight.extraBold,
+      fontSize: fontScale(tokens.fontSize.xl),
     },
     modalRoot: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      marginTop: 80,
+      marginTop: moderateScale(tokens.spacing.mega),
     },
     modalHeader: {
       height: 48,
       borderBottomColor: 'rgba(255,255,255,0.1)',
       borderBottomWidth: StyleSheet.hairlineWidth,
-      paddingHorizontal: 12,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
     modalTitle: {
       color: theme.colors.foreground,
-      fontWeight: '800',
-      fontSize: 18,
+      fontWeight: tokens.fontWeight.extraBold,
+      fontSize: fontScale(tokens.fontSize.lg),
     },
-    done: {color: theme.colors.button1, fontWeight: '700'},
+    done: {color: theme.colors.button1, fontWeight: tokens.fontWeight.bold},
 
     input: {
       backgroundColor: theme.colors.surface3,
       borderRadius: 20,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.xsm),
       color: theme.colors.foreground,
-      marginBottom: 8,
+      marginBottom: moderateScale(tokens.spacing.xs),
     },
     rowToggle: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: 'rgba(255,255,255,0.06)',
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingHorizontal: moderateScale(tokens.spacing.sm),
+      paddingVertical: moderateScale(tokens.spacing.sm),
       borderRadius: 10,
     },
     rowToggleLabel: {
       color: theme.colors.foreground,
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.bold,
     },
     sourceRow: {
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginHorizontal: 12,
-      marginVertical: 6,
+      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingVertical: moderateScale(tokens.spacing.md),
+      marginHorizontal: moderateScale(tokens.spacing.md),
+      marginVertical: moderateScale(tokens.spacing.xxs),
       borderRadius: 14,
       backgroundColor: 'rgba(255,255,255,0.05)',
       borderWidth: StyleSheet.hairlineWidth,
@@ -248,12 +259,11 @@ export default function ExploreScreen() {
       shadowOffset: {width: 0, height: 4},
     },
     sourceRow2: {
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      marginHorizontal: 12,
-      marginVertical: 6,
+      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingVertical: moderateScale(tokens.spacing.sm),
+      marginHorizontal: moderateScale(tokens.spacing.sm),
+      marginVertical: moderateScale(tokens.spacing.xxs),
       backgroundColor: theme.colors.surface,
-
       borderRadius: tokens.borderRadius.md,
       borderColor: theme.colors.surfaceBorder,
       borderWidth: tokens.borderWidth.hairline,
@@ -270,7 +280,7 @@ export default function ExploreScreen() {
       alignItems: 'center',
       justifyContent: 'flex-start',
       flexWrap: 'wrap',
-      paddingVertical: 12,
+      paddingVertical: moderateScale(tokens.spacing.sm),
     },
 
     arrowGroup: {
@@ -293,40 +303,39 @@ export default function ExploreScreen() {
 
     toggleLabel: {
       color: theme.colors.foreground,
-      fontSize: 11,
-      marginBottom: 4,
+      fontSize: fontScale(tokens.fontSize.xs),
+      marginBottom: moderateScale(tokens.spacing.nano),
       opacity: 0.85,
     },
 
     sourceName: {
       color: theme.colors.foreground,
-      fontSize: 20,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       marginBottom: 8,
     },
     sourceName2: {
       color: theme.colors.foreground,
-      fontSize: 18,
-      fontWeight: '700',
+      fontSize: fontScale(tokens.fontSize.lg),
+      fontWeight: tokens.fontWeight.bold,
     },
     sourceUrl: {
       color: theme.colors.foreground,
-      fontSize: 15,
+      fontSize: fontScale(tokens.fontSize.md),
       lineHeight: 16,
       flexShrink: 1,
     },
     removeBtn: {
       backgroundColor: theme.colors.error,
       borderRadius: 8,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      marginLeft: 30,
+      paddingHorizontal: moderateScale(tokens.spacing.sm2),
+      paddingVertical: moderateScale(tokens.spacing.xs),
+      marginLeft: moderateScale(tokens.spacing.lg3),
     },
 
     removeText: {
       color: theme.colors.buttonText1,
-      fontWeight: '700',
-      fontSize: 13,
+      fontWeight: tokens.fontWeight.bold,
+      fontSize: fontScale(tokens.fontSize.sm),
     },
   });
 
@@ -959,7 +968,10 @@ export default function ExploreScreen() {
           easing="ease-out-cubic"
           style={[
             globalStyles.header,
-            {color: theme.colors.foreground, marginBottom: 20},
+            {
+              color: theme.colors.foreground,
+              marginBottom: moderateScale(tokens.spacing.md2),
+            },
           ]}>
           Fashion News
         </Animatable.Text>
@@ -982,7 +994,10 @@ export default function ExploreScreen() {
             <Text
               style={[
                 globalStyles.buttonPrimaryText,
-                {fontSize: 14, fontWeight: '700'},
+                {
+                  fontSize: fontScale(tokens.fontSize.sm),
+                  fontWeight: tokens.fontWeight.bold,
+                },
               ]}>
               Manage
             </Text>

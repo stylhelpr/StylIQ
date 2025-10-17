@@ -27,17 +27,31 @@ export const tokens = {
   // Automatically scaled via `scale()` to fit screen width gently.
   // ---------------------------------------------------------------------------
   spacing: {
-    xxs: scale(4), // micro spacing (tight elements)
-    sm: scale(8), // small gaps / padding
-    md: scale(16), // standard content padding
-    lg: scale(24), // section-level padding
-    xl: scale(32), // large outer spacing
-    xxl: scale(64), // hero sections / full-width layout padding
-    xxxl: scale(80), // extended hero spacing
-    card: scale(24), // card internal padding
-    icon: scale(24), // icon spacing
-    navbar: scale(72), // nav/header height
-    section: scale(64), // section-level layout spacing
+    /* ---------- Micro / Compact UI ---------- */
+    quark: scale(2), // hairline gap — icon overlaps, borders
+    nano: scale(4), // micro elements, divider spacing
+    xxs: scale(6), // text icon gap, tag padding
+    xs: scale(8), // tight controls, chip padding
+
+    /* ---------- Small-medium building blocks ---------- */
+    xsm: scale(10), // small cards, compact padding
+    sm: scale(12), // small cards, compact padding
+    sm2: scale(14), // small-medium transition
+    md: scale(16), // base spacing, form padding
+    md1: scale(18), // base spacing, form padding
+    md2: scale(20), // section breathing space
+    lg: scale(24), // card outer margin, section top
+    lg2: scale(28), // between sections
+    lg3: scale(30), // page padding, main containers
+
+    /* ---------- Large layout spacing ---------- */
+    xl: scale(32), // page padding, main containers
+    xl2: scale(40), // large blocks or modals
+    xxl: scale(48), // hero margins
+    xxxl: scale(64), // full-width sections
+    mega: scale(80), // major hero / splash areas
+    giga: scale(96), // landing banners, large safe-area padding
+    tera: scale(128), // massive screen edges, rare
   },
 
   // ---------------------------------------------------------------------------
@@ -57,6 +71,7 @@ export const tokens = {
   // Responsive adjustments happen in `responsiveTheme.ts` instead.
   // ---------------------------------------------------------------------------
   fontSize: {
+    xxxs: 9,
     xxs: 10,
     xs: 12,
     sm: 14,

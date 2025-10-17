@@ -7,6 +7,8 @@ import {useAppTheme} from '../../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
 import type {Screen} from '../../navigation/types';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+import {fontScale, moderateScale} from '../../utils/scale';
+import {tokens} from '../../styles/tokens/tokens';
 
 type Props = {
   navigate: (screen: Screen) => void;
@@ -54,45 +56,41 @@ export default function GlobalHeader({
     },
     header: {
       width: '100%',
-      paddingHorizontal: 16,
-      paddingTop: 0,
-      paddingBottom: 0,
+      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingTop: moderateScale(tokens.spacing.quark),
+      paddingBottom: moderateScale(tokens.spacing.quark),
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       backgroundColor: theme.colors.background,
     },
     iconRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: -5,
     },
     title: {
-      fontSize: 24,
-      fontWeight: '700',
+      fontSize: fontScale(tokens.fontSize['2xl']), // ✅ Responsive font size
+      fontWeight: tokens.fontWeight.extraBold,
       color: theme.colors.foreground,
-      marginTop: -4,
     },
     iconCircle: {
       backgroundColor: theme.colors.surface3,
-      padding: 8,
-      marginLeft: 10,
-      marginRight: 4,
+      padding: moderateScale(tokens.spacing.xxs),
+      marginLeft: moderateScale(tokens.spacing.xs),
       borderRadius: 24,
       alignItems: 'center',
       justifyContent: 'center',
     },
     iconCircle2: {
       backgroundColor: theme.colors.button1,
-      padding: 6,
-      marginLeft: 10,
-      marginRight: 4,
+      padding: moderateScale(tokens.spacing.xxs),
+      marginLeft: moderateScale(tokens.spacing.xs),
       borderRadius: 24,
       alignItems: 'center',
       justifyContent: 'center',
     },
     iconButton: {
-      marginLeft: 18,
+      marginLeft: moderateScale(tokens.spacing.md1),
     },
   });
 
@@ -181,6 +179,192 @@ export default function GlobalHeader({
     </SafeAreaView>
   );
 }
+
+//////////////////////
+
+// import React from 'react';
+// import {View, Text, StyleSheet, Animated} from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value; // 👈 accept scroll value
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🍎 Animated crossfade
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const searchOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [0, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 0;
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: theme.colors.background,
+//     },
+//     header: {
+//       width: '100%',
+//       paddingHorizontal: 16,
+//       paddingTop: 0,
+//       paddingBottom: 0,
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'flex-start',
+//       backgroundColor: theme.colors.background,
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       marginTop: -5,
+//     },
+//     title: {
+//       fontSize: 24,
+//       fontWeight: '700',
+//       color: theme.colors.foreground,
+//       marginTop: -4,
+//     },
+//     iconCircle: {
+//       backgroundColor: theme.colors.surface3,
+//       padding: 8,
+//       marginLeft: 10,
+//       marginRight: 4,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconCircle2: {
+//       backgroundColor: theme.colors.button1,
+//       padding: 6,
+//       marginLeft: 10,
+//       marginRight: 4,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconButton: {
+//       marginLeft: 18,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       <View style={styles.header}>
+//         {/* 🍎 Swap between "StylHelpr" and "Search Wardrobe Items" */}
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: searchOpacity},
+//             ]}>
+//             Search Wardrobe Items
+//           </Animated.Text>
+//         </View>
+
+//         <View style={styles.iconRow}>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Notifications')}>
+//             <Icon
+//               name="notifications-none"
+//               size={26}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Search')}>
+//             <Icon name="search" size={32} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle2}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('AiStylistChatScreen')}>
+//             <MaterialIcons
+//               name="smart-toy"
+//               size={18}
+//               color={theme.colors.buttonText1}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={[styles.iconButton, {marginRight: 6}]}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Planner')}>
+//             <Icon name="event-note" size={26} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Profile')}>
+//             <MaterialIcons
+//               name="person"
+//               size={13}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="notificationWarning"
+//             onPress={handleLogout}>
+//             <MaterialIcons
+//               name="logout"
+//               size={13}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
 
 /////////////////////
 
