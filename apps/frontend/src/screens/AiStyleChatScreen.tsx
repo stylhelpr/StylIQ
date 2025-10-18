@@ -754,6 +754,9 @@ export function AnimatedInputBar({
 }: any) {
   const {theme} = useAppTheme();
 
+  // Define a height state at the top of AnimatedInputBar
+  const [inputHeight, setInputHeight] = useState(42);
+
   // ✅ full stop + cancel helper
   const stopListeningCompletely = async () => {
     try {
@@ -782,7 +785,7 @@ export function AnimatedInputBar({
         paddingBottom: isTablet ? 24 : 16,
         backgroundColor: 'transparent',
       }}>
-      <View
+      {/* <View
         style={{
           flexDirection: 'row',
           alignItems: 'flex-end',
@@ -795,8 +798,24 @@ export function AnimatedInputBar({
           shadowOpacity: 0.08,
           shadowRadius: 5,
           shadowOffset: {width: 0, height: 2},
+        }}> */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          borderWidth: tokens.borderWidth.xl,
+          borderColor: theme.colors.surfaceBorder,
+          backgroundColor: theme.colors.surface3,
+          borderRadius: 22,
+          paddingLeft: 10,
+          paddingRight: 6,
+          paddingVertical: 4,
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 3,
+          shadowOffset: {width: 0, height: 1},
         }}>
-        <TextInput
+        {/* <TextInput
           ref={inputRef}
           value={input}
           onChangeText={setInput}
@@ -816,6 +835,35 @@ export function AnimatedInputBar({
             fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
             textAlignVertical: 'top',
             minHeight: 42,
+          }}
+        /> */}
+
+        <TextInput
+          ref={inputRef}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Ask for a look… event, vibe, weather"
+          placeholderTextColor={'#9c9c9cff'}
+          multiline
+          onContentSizeChange={e =>
+            setInputHeight(Math.min(e.nativeEvent.contentSize.height, 120))
+          }
+          numberOfLines={1} // ✅ keeps placeholder single-line
+          ellipsizeMode="tail" // ✅ truncates long placeholder instead of wrapping
+          keyboardAppearance="dark"
+          returnKeyType="send"
+          blurOnSubmit={false}
+          style={{
+            flex: 1,
+            color: theme.colors.foreground,
+            fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
+            paddingVertical: 6,
+            paddingHorizontal: 8,
+            minHeight: 42,
+            maxHeight: 120,
+            height: inputHeight,
+            textAlignVertical: 'top',
+            includeFontPadding: false,
           }}
         />
 

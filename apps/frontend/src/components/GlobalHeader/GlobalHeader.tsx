@@ -57,8 +57,8 @@ export default function GlobalHeader({
       width: '100%',
       paddingHorizontal: moderateScale(tokens.spacing.md),
       // ✅ add a small fixed buffer below the safe area for notch devices
-      paddingTop: moderateScale(tokens.spacing.sm),
-      paddingBottom: moderateScale(tokens.spacing.quark),
+      // paddingTop: moderateScale(tokens.spacing.quark),
+      // paddingBottom: moderateScale(tokens.spacing.quark),
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -126,7 +126,7 @@ export default function GlobalHeader({
             onPress={() => navigate('Notifications')}>
             <Icon
               name="notifications-none"
-              size={26}
+              size={27}
               color={theme.colors.primary}
             />
           </AppleTouchFeedback>
@@ -135,7 +135,7 @@ export default function GlobalHeader({
             style={styles.iconButton}
             hapticStyle="impactLight"
             onPress={() => navigate('Search')}>
-            <Icon name="search" size={31} color={theme.colors.primary} />
+            <Icon name="search" size={33} color={theme.colors.primary} />
           </AppleTouchFeedback>
 
           <AppleTouchFeedback
@@ -144,16 +144,16 @@ export default function GlobalHeader({
             onPress={() => navigate('AiStylistChatScreen')}>
             <MaterialIcons
               name="smart-toy"
-              size={17}
+              size={19}
               color={theme.colors.buttonText1}
             />
           </AppleTouchFeedback>
 
           <AppleTouchFeedback
-            style={[styles.iconButton]}
+            style={[styles.iconButton, {marginRight: -4}]}
             hapticStyle="impactLight"
             onPress={() => navigate('Planner')}>
-            <Icon name="event-note" size={27} color={theme.colors.primary} />
+            <Icon name="event-note" size={29} color={theme.colors.primary} />
           </AppleTouchFeedback>
 
           <AppleTouchFeedback
@@ -162,7 +162,7 @@ export default function GlobalHeader({
             onPress={() => navigate('Profile')}>
             <MaterialIcons
               name="person"
-              size={13}
+              size={15}
               color={theme.colors.primary}
             />
           </AppleTouchFeedback>
@@ -173,7 +173,7 @@ export default function GlobalHeader({
             onPress={handleLogout}>
             <MaterialIcons
               name="logout"
-              size={13}
+              size={15}
               color={theme.colors.primary}
             />
           </AppleTouchFeedback>

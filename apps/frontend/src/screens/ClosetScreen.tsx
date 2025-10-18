@@ -285,12 +285,13 @@ export default function ClosetScreen({navigate}: Props) {
       position: 'absolute',
       top: 50,
       right: 16,
-      width: 280,
+      width: 320, // slightly wider for readability
+      maxHeight: Dimensions.get('window').height * 0.7, // ⬆️ now up to 80% of screen height
       backgroundColor: theme.colors.surface,
       borderRadius: 16,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      elevation: 20, // ⬅️ same here
+      paddingVertical: 16, // ⬆️ a bit more breathing room inside
+      paddingHorizontal: 18,
+      elevation: 20,
       shadowColor: '#000',
       shadowOpacity: 0.25,
       shadowOffset: {width: 0, height: 4},
@@ -628,23 +629,27 @@ export default function ClosetScreen({navigate}: Props) {
                         ],
                       },
                     ]}>
-                    {CATEGORY_META.map(cat => (
-                      <TouchableOpacity
-                        key={cat.value}
-                        onPress={() => {
-                          hSelect();
-                          setSelectedCategory(cat.value as any);
-                          setMenuVisible(false);
-                        }}
-                        style={styles.optionRow}>
-                        <MaterialIcons
-                          name={cat.icon}
-                          size={20}
-                          color={theme.colors.foreground}
-                        />
-                        <Text style={styles.optionText}>{cat.label}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    <ScrollView
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{paddingBottom: 8}}>
+                      {CATEGORY_META.map(cat => (
+                        <TouchableOpacity
+                          key={cat.value}
+                          onPress={() => {
+                            hSelect();
+                            setSelectedCategory(cat.value as any);
+                            setMenuVisible(false);
+                          }}
+                          style={styles.optionRow}>
+                          <MaterialIcons
+                            name={cat.icon}
+                            size={20}
+                            color={theme.colors.foreground}
+                          />
+                          <Text style={styles.optionText}>{cat.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   </Animated.View>
                 )}
 
@@ -664,23 +669,27 @@ export default function ClosetScreen({navigate}: Props) {
                         ],
                       },
                     ]}>
-                    {sortOptions.map(opt => (
-                      <TouchableOpacity
-                        key={opt.value}
-                        onPress={() => {
-                          hSelect();
-                          setSortOption(opt.value as any);
-                          setMenuVisible(false);
-                        }}
-                        style={styles.optionRow}>
-                        <MaterialIcons
-                          name="sort"
-                          size={20}
-                          color={theme.colors.foreground}
-                        />
-                        <Text style={styles.optionText}>{opt.label}</Text>
-                      </TouchableOpacity>
-                    ))}
+                    <ScrollView
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{paddingBottom: 8}}>
+                      {sortOptions.map(opt => (
+                        <TouchableOpacity
+                          key={opt.value}
+                          onPress={() => {
+                            hSelect();
+                            setSortOption(opt.value as any);
+                            setMenuVisible(false);
+                          }}
+                          style={styles.optionRow}>
+                          <MaterialIcons
+                            name="sort"
+                            size={20}
+                            color={theme.colors.foreground}
+                          />
+                          <Text style={styles.optionText}>{opt.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   </Animated.View>
                 )}
               </>

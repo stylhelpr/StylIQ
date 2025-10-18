@@ -297,7 +297,10 @@ export default function SettingsScreen({navigate, goBack}: Props) {
           <View style={globalStyles.centeredSection}>
             <View style={[globalStyles.section2]}>
               <Text
-                style={[globalStyles.sectionTitle, {color: colors.foreground}]}>
+                style={[
+                  globalStyles.sectionTitle2,
+                  {color: colors.foreground},
+                ]}>
                 Notifications
               </Text>
 
@@ -305,7 +308,10 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 style={[
                   styles.enableRow,
                   globalStyles.cardStyles3,
-                  {borderWidth: tokens.borderWidth.md},
+                  {
+                    borderWidth: tokens.borderWidth.md,
+                    backgroundColor: theme.colors.surface,
+                  },
                 ]}>
                 <Text
                   style={[globalStyles.menuLabel, {color: colors.foreground}]}>
@@ -382,7 +388,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
               <View style={globalStyles.section2}>
                 <Text
                   style={[
-                    globalStyles.sectionTitle,
+                    globalStyles.sectionTitle2,
                     {color: colors.foreground},
                   ]}>
                   App Color Theme

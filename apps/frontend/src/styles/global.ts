@@ -93,7 +93,7 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background, // entire screen background
     },
     container: {
-      paddingTop: 20,
+      paddingTop: 5,
       paddingBottom: 60,
       width: '100%',
       alignSelf: 'center',
