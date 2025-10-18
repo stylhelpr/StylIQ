@@ -137,7 +137,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   {
                     color: theme.colors.foreground,
                     fontSize: fontScale(tokens.fontSize.lg),
-                    fontWeight: tokens.fontWeight.bold,
+                    fontWeight: '600',
                     paddingHorizontal: moderateScale(tokens.spacing.md2),
                     textTransform: 'none',
                   },
@@ -1240,26 +1240,28 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </TouchableOpacity>
               )}
             </Animatable.View>
+            {prefs.savedLooks && (
+              <Animatable.View
+                animation="fadeInUp"
+                delay={1000}
+                duration={700}
+                useNativeDriver
+                style={{
+                  alignItems: 'center',
+                  marginBottom: moderateScale(tokens.spacing.md2),
+                }}>
+                <AppleTouchFeedback
+                  style={[
+                    globalStyles.buttonPrimary4,
+                    {width: 90, marginTop: -12},
+                  ]}
+                  hapticStyle="impactHeavy"
+                  onPress={() => setSaveModalVisible(true)}>
+                  <Text style={globalStyles.buttonPrimaryText4}>Add Look</Text>
+                </AppleTouchFeedback>
+              </Animatable.View>
+            )}
           </CollapsibleSection>
-        )}
-
-        {prefs.savedLooks && (
-          <Animatable.View
-            animation="fadeInUp"
-            delay={1000}
-            duration={700}
-            useNativeDriver
-            style={{
-              alignItems: 'center',
-              marginBottom: moderateScale(tokens.spacing.md2),
-            }}>
-            <AppleTouchFeedback
-              style={[globalStyles.buttonPrimary4, {width: 90, marginTop: -12}]}
-              hapticStyle="impactHeavy"
-              onPress={() => setSaveModalVisible(true)}>
-              <Text style={globalStyles.buttonPrimaryText4}>Add Look</Text>
-            </AppleTouchFeedback>
-          </Animatable.View>
         )}
 
         {/* RECENT CREATED VIBES SECTION*/}

@@ -57,6 +57,45 @@ export class AiController {
     );
   }
 
+  // @Post('similar-looks')
+  // async findSimilar(@Body('imageUrl') rawUrl: string) {
+  //   if (!rawUrl) throw new Error('Missing imageUrl');
+  //   let imageUrl = rawUrl;
+
+  //   if (imageUrl.includes('_next/image') && imageUrl.includes('?url=')) {
+  //     const extracted = decodeURIComponent(
+  //       imageUrl.split('?url=')[1].split('&')[0],
+  //     );
+  //     imageUrl = extracted;
+  //   }
+
+  //   const serpUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(
+  //     imageUrl,
+  //   )}&hl=en&gl=us&api_key=${process.env.SERPAPI_KEY}`;
+
+  //   try {
+  //     const res = await fetch(serpUrl);
+  //     if (!res.ok) throw new Error(`SerpAPI failed (${res.status})`);
+  //     const json = await res.json();
+  //     const matches =
+  //       json?.visual_matches ||
+  //       json?.inline_images ||
+  //       json?.image_results ||
+  //       [];
+
+  //     if (!matches.length) return [];
+
+  //     return matches.slice(0, 10).map((m: any) => ({
+  //       title: m.title || m.source || 'Similar look',
+  //       image: m.thumbnail || m.original || m.image,
+  //       link: m.link || m.source,
+  //     }));
+  //   } catch (err: any) {
+  //     console.error('❌ [AI] similar-looks error:', err.message);
+  //     return [];
+  //   }
+  // }
+
   @Post('similar-looks')
   async findSimilar(@Body('imageUrl') rawUrl: string) {
     if (!rawUrl) throw new Error('Missing imageUrl');
@@ -77,6 +116,7 @@ export class AiController {
       const res = await fetch(serpUrl);
       if (!res.ok) throw new Error(`SerpAPI failed (${res.status})`);
       const json = await res.json();
+
       const matches =
         json?.visual_matches ||
         json?.inline_images ||
@@ -85,11 +125,63 @@ export class AiController {
 
       if (!matches.length) return [];
 
-      return matches.slice(0, 10).map((m: any) => ({
-        title: m.title || m.source || 'Similar look',
-        image: m.thumbnail || m.original || m.image,
-        link: m.link || m.source,
-      }));
+      return matches.slice(0, 12).map((m: any) => {
+        // 🏷️ Normalize Price
+        let price: string | null = null;
+
+        if (m.price) {
+          if (typeof m.price === 'string') {
+            price = m.price;
+          } else if (typeof m.price === 'object') {
+            const val = m.price.value || m.price.extracted_value;
+            const cur = m.price.currency || '';
+            if (val) {
+              const hasSymbol =
+                typeof val === 'string' && val.trim().startsWith('$');
+              price = hasSymbol
+                ? val
+                : `${cur && !val.toString().includes(cur) ? cur : ''}${val}`;
+            }
+          }
+        } else if (m.priceText) {
+          price = m.priceText;
+        }
+
+        // ✅ Cleanup duplicate or malformed symbols
+        if (price) {
+          price = price
+            .replace(/\*/g, '') // ← removes all asterisks
+            .replace(/\s+/g, ' ')
+            .replace(/^\$\$/, '$')
+            .replace(/^(\$ )/, '$')
+            .trim();
+        }
+
+        // 🏢 Normalize brand/source
+        const link = m.link || m.source || '';
+        const hostname = (() => {
+          try {
+            return link ? new URL(link).hostname.replace(/^www\./, '') : '';
+          } catch {
+            return '';
+          }
+        })();
+
+        const brand =
+          m.merchant ||
+          m.store ||
+          m.source ||
+          (hostname ? hostname.split('.')[0].toUpperCase() : 'Online Store');
+
+        return {
+          title: m.title || m.source || 'Similar Look',
+          image: m.thumbnail || m.original || m.image,
+          link,
+          brand,
+          price,
+          source: hostname || brand,
+        };
+      });
     } catch (err: any) {
       console.error('❌ [AI] similar-looks error:', err.message);
       return [];

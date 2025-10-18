@@ -134,25 +134,28 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             position: 'absolute',
             bottom: 10,
             alignSelf: 'center',
-            backgroundColor: theme.colors.button1,
+            backgroundColor: 'rgba(255,255,255,0.8)', // ← soft translucent “glass” layer
             borderRadius: tokens.borderRadius.lg,
-            paddingVertical: 6,
-            paddingHorizontal: 14,
             borderWidth: tokens.borderWidth.hairline,
-            borderColor: theme.colors.surfaceBorder,
+            borderColor: theme.colors.background, // ← faint glass edge highlight
+            paddingVertical: 9,
+            paddingHorizontal: 14,
             shadowColor: '#000',
-            shadowOpacity: 0.15,
-            shadowRadius: 3,
+            shadowOpacity: 0.25,
+            shadowRadius: 6,
             shadowOffset: {width: 0, height: 2},
+            backdropFilter: 'blur(4px)', // iOS-only visual cue (safe to leave in)
           }}>
           <Text
             style={{
-              color: theme.colors.buttonText1,
+              color: 'black',
               fontWeight: '700',
               fontSize: 13,
               letterSpacing: 0.2,
+              textShadowColor: 'rgba(0,0,0,0.0)', // gives text lift over light backgrounds
+              textShadowRadius: 2,
             }}>
-            Similar Looks →
+            Similar Items →
           </Text>
         </TouchableOpacity>
       </View>
@@ -482,7 +485,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                         globalStyles.sectionTitle,
                         {fontSize: 20, marginBottom: 10},
                       ]}>
-                      Similar Looks
+                      Similar Items
                     </Text>
 
                     {data.length === 0 ? (
@@ -492,7 +495,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                             color: theme.colors.foreground,
                             opacity: 0.7,
                           }}>
-                          No similar looks found.
+                          No similar items found.
                         </Text>
                       </View>
                     ) : (
@@ -521,21 +524,59 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                               borderColor: theme.colors.muted,
                               borderWidth: tokens.borderWidth.md,
                             }}>
-                            <Image
-                              source={{
-                                uri:
-                                  look.image ||
-                                  'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg',
-                              }}
-                              style={{
-                                width: '100%',
-                                height: 180,
-                                borderTopLeftRadius: tokens.borderRadius.lg,
-                                borderTopRightRadius: tokens.borderRadius.lg,
-                              }}
-                              resizeMode="cover"
-                            />
+                            {/* 🖼️ Product Image */}
+                            <View style={{position: 'relative'}}>
+                              <Image
+                                source={{
+                                  uri:
+                                    look.image ||
+                                    'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg',
+                                }}
+                                style={{
+                                  width: '100%',
+                                  height: 180,
+                                  borderTopLeftRadius: tokens.borderRadius.lg,
+                                  borderTopRightRadius: tokens.borderRadius.lg,
+                                  backgroundColor: theme.colors.surface2,
+                                }}
+                                resizeMode="cover"
+                              />
+
+                              {/* 🛒 Click to Buy Button Overlay */}
+                              <View
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 10,
+                                  alignSelf: 'center',
+                                  backgroundColor: 'rgba(255,255,255,0.8)',
+                                  borderRadius: tokens.borderRadius.lg,
+                                  borderWidth: tokens.borderWidth.hairline,
+                                  borderColor: theme.colors.background,
+                                  paddingVertical: 9,
+                                  paddingHorizontal: 14,
+                                  shadowColor: '#000',
+                                  shadowOpacity: 0.25,
+                                  shadowRadius: 6,
+                                  shadowOffset: {width: 0, height: 2},
+                                  backdropFilter: 'blur(4px)',
+                                }}>
+                                <Text
+                                  style={{
+                                    color: 'black',
+                                    fontWeight: '700',
+                                    fontSize: 13,
+                                    letterSpacing: 0.2,
+                                    textShadowColor: 'rgba(0,0,0,0.0)',
+                                    textShadowRadius: 2,
+                                  }}>
+                                  Click to Buy →
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* 🧾 Product Info Section */}
                             <View style={{padding: 8}}>
+                              {/* Title */}
                               <Text
                                 numberOfLines={1}
                                 style={{
@@ -545,6 +586,48 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                 }}>
                                 {look.title || 'Similar look'}
                               </Text>
+
+                              {/* Brand */}
+                              {look.brand ? (
+                                <Text
+                                  numberOfLines={1}
+                                  style={{
+                                    color: theme.colors.foreground,
+                                    opacity: 0.7,
+                                    fontSize: 11,
+                                    marginTop: 2,
+                                  }}>
+                                  {look.brand}
+                                </Text>
+                              ) : null}
+
+                              {/* Price */}
+                              {look.price ? (
+                                <Text
+                                  numberOfLines={1}
+                                  style={{
+                                    color: theme.colors.primary,
+                                    fontWeight: '600',
+                                    fontSize: 13,
+                                    marginTop: 4,
+                                  }}>
+                                  {look.price}
+                                </Text>
+                              ) : null}
+
+                              {/* Source */}
+                              {look.source ? (
+                                <Text
+                                  numberOfLines={1}
+                                  style={{
+                                    color: theme.colors.foreground,
+                                    opacity: 0.6,
+                                    fontSize: 10,
+                                    marginTop: 2,
+                                  }}>
+                                  Source: {look.source}
+                                </Text>
+                              ) : null}
                             </View>
                           </TouchableOpacity>
                         ))}

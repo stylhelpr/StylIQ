@@ -15,6 +15,7 @@ import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type WardrobeItem = {
   id: string;
@@ -85,6 +86,8 @@ export default function OutfitPlannerScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {
@@ -260,11 +263,14 @@ export default function OutfitPlannerScreen() {
   };
 
   return (
-    <View
-      style={[
-        globalStyles.container,
-        {backgroundColor: theme.colors.background},
-      ]}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        paddingBottom: 0, // ✅ prevent bottom extra padding
+      }}
+      edges={['top', 'left', 'right']} // 👈 exclude bottom
+    >
       <Text style={[globalStyles.header, {marginBottom: 8}]}>
         Planned Outfits
       </Text>
@@ -329,9 +335,10 @@ export default function OutfitPlannerScreen() {
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{
-                paddingBottom: 40,
                 paddingTop: 4,
-              }}>
+                paddingBottom: insets.bottom + 8, // 👈 ensures no black gap above nav
+              }}
+              style={{flexGrow: 1}}>
               {(outfitsByDate[selectedDate!] || []).map((o, index) => (
                 <View key={index} style={styles.card}>
                   <Text style={styles.name}>
@@ -367,9 +374,384 @@ export default function OutfitPlannerScreen() {
           </View>
         )}
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 }
+
+///////////////////////
+
+// import React, {useEffect, useState, useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   Image,
+//   StyleSheet,
+//   Animated,
+// } from 'react-native';
+// import {useAuth0} from 'react-native-auth0';
+// import {Calendar, DateObject} from 'react-native-calendars';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// type WardrobeItem = {
+//   id: string;
+//   name: string;
+//   image: string;
+//   mainCategory: string;
+//   subCategory: string;
+//   material: string;
+//   fit: string;
+//   color: string;
+//   size: string;
+//   notes: string;
+// };
+
+// type SavedOutfit = {
+//   id: string;
+//   name?: string;
+//   top: WardrobeItem | null;
+//   bottom: WardrobeItem | null;
+//   shoes: WardrobeItem | null;
+//   createdAt: string;
+//   tags?: string[];
+//   notes?: string;
+//   rating?: number;
+//   favorited?: boolean;
+//   plannedDate?: string;
+//   type?: 'custom' | 'ai';
+// };
+
+// // ───────── helpers ─────────
+// const getLocalDateKey = (iso: string) => {
+//   const d = new Date(iso);
+//   const y = d.getFullYear();
+//   const m = String(d.getMonth() + 1).padStart(2, '0');
+//   const day = String(d.getDate()).padStart(2, '0');
+//   return `${y}-${m}-${day}`;
+// };
+
+// const formatLocalTime = (iso?: string) => {
+//   if (!iso) return '';
+//   return new Date(iso).toLocaleTimeString(undefined, {
+//     hour: 'numeric',
+//     minute: '2-digit',
+//     timeZoneName: 'short',
+//   });
+// };
+
+// const h = (type: string) =>
+//   ReactNativeHapticFeedback.trigger(type, {
+//     enableVibrateFallback: true,
+//     ignoreAndroidSystemSettings: false,
+//   });
+
+// export default function OutfitPlannerScreen() {
+//   const {user} = useAuth0();
+//   const userId = useUUID() || user?.sub || '';
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const colors = theme.colors;
+
+//   // ✨ Fade animation for content
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+//   useEffect(() => {
+//     Animated.timing(fadeAnim, {
+//       toValue: 1,
+//       duration: 650,
+//       useNativeDriver: true,
+//     }).start();
+//   }, []);
+
+//   const styles = StyleSheet.create({
+//     screen: {
+//       flex: 1,
+//       backgroundColor: theme.colors.background,
+//     },
+//     card: {
+//       borderRadius: 16,
+//       padding: 14,
+//       marginBottom: 6,
+//       backgroundColor: theme.colors.surface3 ?? theme.colors.surface3,
+//       borderWidth: StyleSheet.hairlineWidth,
+//       borderColor: theme.colors.input2 ?? theme.colors.surfaceBorder,
+//     },
+//     name: {color: theme.colors.foreground, fontSize: 16, fontWeight: '600'},
+//     time: {color: theme.colors.foreground2, marginTop: 4, fontSize: 13},
+//     row: {flexDirection: 'row', marginTop: 10},
+//     thumb: {
+//       width: 68,
+//       height: 68,
+//       borderRadius: 12,
+//       marginRight: 8,
+//       borderWidth: theme.borderWidth?.md ?? StyleSheet.hairlineWidth,
+//       borderColor: theme.colors.surfaceBorder,
+//       backgroundColor: theme.colors.surface,
+//     },
+//     notes: {
+//       fontStyle: 'italic',
+//       color: theme.colors.foreground2,
+//       marginTop: 8,
+//       lineHeight: 18,
+//     },
+//     rating: {color: '#FFD700', marginTop: 6, fontSize: 16},
+//   });
+
+//   const [scheduledOutfits, setScheduledOutfits] = useState<SavedOutfit[]>([]);
+//   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+//   const [modalVisible, setModalVisible] = useState(false);
+
+//   const normalizeImageUrl = (url: string | undefined | null): string => {
+//     if (!url) return '';
+//     return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+//   };
+
+//   useEffect(() => {
+//     if (!userId) return;
+
+//     const fetchData = async () => {
+//       try {
+//         const [aiRes, customRes, scheduledRes] = await Promise.all([
+//           fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
+//           fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
+//           fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
+//         ]);
+
+//         if (!aiRes.ok || !customRes.ok || !scheduledRes.ok) {
+//           throw new Error('Failed to fetch outfit schedule data');
+//         }
+
+//         const [aiData, customData, scheduledData] = await Promise.all([
+//           aiRes.json(),
+//           customRes.json(),
+//           scheduledRes.json(),
+//         ]);
+
+//         const scheduleMap: Record<string, string> = {};
+//         for (const s of scheduledData) {
+//           if (s.ai_outfit_id) {
+//             scheduleMap[s.ai_outfit_id] = s.scheduled_for;
+//           } else if (s.custom_outfit_id) {
+//             scheduleMap[s.custom_outfit_id] = s.scheduled_for;
+//           }
+//         }
+
+//         const normalize = (o: any, isCustom: boolean): SavedOutfit | null => {
+//           const id = o.id;
+//           const plannedDate = scheduleMap[id];
+//           if (!plannedDate) return null;
+
+//           return {
+//             id,
+//             name: o.name || '',
+//             top: o.top
+//               ? {
+//                   id: o.top.id,
+//                   name: o.top.name,
+//                   image: normalizeImageUrl(o.top.image || o.top.image_url),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             bottom: o.bottom
+//               ? {
+//                   id: o.bottom.id,
+//                   name: o.bottom.name,
+//                   image: normalizeImageUrl(
+//                     o.bottom.image || o.bottom.image_url,
+//                   ),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             shoes: o.shoes
+//               ? {
+//                   id: o.shoes.id,
+//                   name: o.shoes.name,
+//                   image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
+//                   mainCategory: '',
+//                   subCategory: '',
+//                   material: '',
+//                   fit: '',
+//                   color: '',
+//                   size: '',
+//                   notes: '',
+//                 }
+//               : null,
+//             createdAt: o.created_at
+//               ? new Date(o.created_at).toISOString()
+//               : new Date().toISOString(),
+//             tags: o.tags || [],
+//             notes: o.notes || '',
+//             rating: o.rating ?? undefined,
+//             favorited: false,
+//             plannedDate,
+//             type: isCustom ? 'custom' : 'ai',
+//           };
+//         };
+
+//         const outfits = [
+//           ...aiData.map(o => normalize(o, false)),
+//           ...customData.map(o => normalize(o, true)),
+//         ].filter(Boolean) as SavedOutfit[];
+
+//         setScheduledOutfits(outfits);
+//       } catch (err) {
+//         console.error('❌ Failed to load calendar outfits:', err);
+//       }
+//     };
+
+//     fetchData();
+//   }, [userId]);
+
+//   const markedDates = scheduledOutfits.reduce((acc, outfit) => {
+//     const date = getLocalDateKey(outfit.plannedDate!);
+//     if (!acc[date]) acc[date] = {dots: []};
+//     acc[date].dots.push({
+//       color: outfit.type === 'ai' ? '#405de6' : '#00c6ae',
+//     });
+//     return acc;
+//   }, {} as Record<string, any>);
+
+//   const outfitsByDate = scheduledOutfits.reduce((acc, outfit) => {
+//     const date = getLocalDateKey(outfit.plannedDate!);
+//     if (!acc[date]) acc[date] = [];
+//     acc[date].push(outfit);
+//     return acc;
+//   }, {} as Record<string, SavedOutfit[]>);
+
+//   const handleDayPress = (day: DateObject) => {
+//     setSelectedDate(day.dateString);
+//     setModalVisible(true);
+//     h('selection');
+//   };
+
+//   return (
+//     <View
+//       style={[
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}>
+//       <Text style={[globalStyles.header, {marginBottom: 8}]}>
+//         Planned Outfits
+//       </Text>
+
+//       <Animated.View style={{opacity: fadeAnim, flex: 1}}>
+//         {/* 📅 Calendar with bottom border */}
+//         <View
+//           style={{
+//             borderBottomWidth: 1,
+//             borderBottomColor: theme.colors.surfaceBorder,
+//           }}>
+//           <Calendar
+//             onDayPress={handleDayPress}
+//             markedDates={{
+//               ...markedDates,
+//               ...(selectedDate
+//                 ? {
+//                     [selectedDate]: {
+//                       selected: true,
+//                       selectedColor: theme.colors.primary,
+//                     },
+//                   }
+//                 : {}),
+//             }}
+//             markingType="multi-dot"
+//             theme={{
+//               calendarBackground: theme.colors.background,
+//               textSectionTitleColor: theme.colors.foreground2,
+//               dayTextColor: theme.colors.foreground,
+//               todayTextColor: theme.colors.primary,
+//               selectedDayBackgroundColor: theme.colors.primary,
+//               selectedDayTextColor: '#fff',
+//               arrowColor: theme.colors.primary,
+//               monthTextColor: theme.colors.primary,
+//               textMonthFontWeight: 'bold',
+//               textDayFontSize: 16,
+//               textMonthFontSize: 18,
+//               textDayHeaderFontSize: 14,
+//               dotColor: theme.colors.primary,
+//               selectedDotColor: '#fff',
+//               disabledArrowColor: '#444',
+//             }}
+//           />
+//         </View>
+
+//         {/* 🪄 Directly below calendar */}
+//         {modalVisible && (
+//           <View
+//             style={{
+//               flex: 1,
+//               marginTop: 0,
+//               paddingTop: 2,
+//               paddingHorizontal: 16,
+//             }}>
+//             <View
+//               style={{
+//                 flexDirection: 'row',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//               }}></View>
+
+//             <ScrollView
+//               showsVerticalScrollIndicator={false}
+//               contentContainerStyle={{
+//                 paddingBottom: 40,
+//                 paddingTop: 4,
+//               }}>
+//               {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+//                 <View key={index} style={styles.card}>
+//                   <Text style={styles.name}>
+//                     {o.name?.trim() || 'Unnamed Outfit'}
+//                   </Text>
+//                   <Text style={styles.time}>
+//                     🕒 {formatLocalTime(o.plannedDate)}
+//                   </Text>
+
+//                   <View style={styles.row}>
+//                     {[o.top, o.bottom, o.shoes].map(item =>
+//                       item?.image ? (
+//                         <Image
+//                           key={item.id}
+//                           source={{uri: item.image}}
+//                           style={styles.thumb}
+//                           resizeMode="cover"
+//                         />
+//                       ) : null,
+//                     )}
+//                   </View>
+
+//                   {o.notes ? <Text style={styles.notes}>{o.notes}</Text> : null}
+
+//                   {typeof o.rating === 'number' && (
+//                     <Text style={styles.rating}>
+//                       {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
+//                     </Text>
+//                   )}
+//                 </View>
+//               ))}
+//             </ScrollView>
+//           </View>
+//         )}
+//       </Animated.View>
+//     </View>
+//   );
+// }
 
 //////////////////
 

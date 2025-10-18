@@ -451,6 +451,30 @@ const AiStylistSuggestions: React.FC<Props> = ({
             )}
           </SwipeableCard>
 
+          {/* 🧭 Subtle swipe hint */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginTop: moderateScale(tokens.spacing.md2),
+              opacity: 0.6,
+              marginRight: moderateScale(tokens.spacing.md2),
+            }}>
+            <Icon
+              name="chevron-left"
+              size={35}
+              color={theme.colors.foreground}
+              style={{marginTop: -7.5}}
+            />
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontSize: fontScale(tokens.fontSize.base),
+              }}>
+              Swipe suggestion left for new result
+            </Text>
+          </View>
+
           {/* 🔁 Secondary CTAs */}
           <View
             style={{
@@ -508,30 +532,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 Ask a Styling Question
               </Text>
             </TouchableOpacity>
-          </View>
-
-          {/* 🧭 Subtle swipe hint */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              marginTop: moderateScale(tokens.spacing.md2),
-              opacity: 0.6,
-              marginRight: moderateScale(tokens.spacing.md2),
-            }}>
-            <Icon
-              name="chevron-left"
-              size={35}
-              color={theme.colors.foreground}
-              style={{marginTop: -7.5}}
-            />
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontSize: fontScale(tokens.fontSize.base),
-              }}>
-              Swipe suggestion left for new result
-            </Text>
           </View>
         </Animatable.View>
       </ScrollView>

@@ -144,7 +144,7 @@ export default function SavedOutfitsScreen() {
       borderRadius: 20,
       width: '100%',
       maxWidth: 420,
-      borderWidth: StyleSheet.hairlineWidth,
+      borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
       shadowColor: '#000',
       shadowOpacity: 0.35,

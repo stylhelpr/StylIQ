@@ -243,7 +243,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       borderRadius: 25,
       padding: 11,
       shadowOffset: {width: 0, height: 6},
