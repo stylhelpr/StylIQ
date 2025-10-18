@@ -374,7 +374,7 @@ export default function AllSavedLooksModal({
             {
               transform: [{translateY}],
               width: '100%',
-              maxWidth: '94%',
+              maxWidth: '100%',
               height: '97%',
               alignSelf: 'center',
               borderRadius: tokens.borderRadius['2xl'],
@@ -386,7 +386,7 @@ export default function AllSavedLooksModal({
           pointerEvents="box-none">
           {/* ✖️ Close Button */}
           <TouchableOpacity
-            style={[styles.closeIcon, {marginTop: 6}]}
+            style={[styles.closeIcon, {marginTop: 10}]}
             onPress={handleClose}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
             <MaterialIcons
@@ -541,9 +541,9 @@ export default function AllSavedLooksModal({
                             ? '48%'
                             : '31.5%',
                         marginBottom: 16,
-                        borderRadius: tokens.borderRadius.lg,
+                        borderRadius: tokens.borderRadius.md,
                         backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.muted,
+                        borderColor: theme.colors.surfaceBorder,
                         borderWidth: tokens.borderWidth.md,
                         overflow: 'hidden',
                         shadowColor: '#000',
@@ -606,8 +606,8 @@ export default function AllSavedLooksModal({
                           paddingHorizontal: 12,
                           paddingTop: 6,
                           color: theme.colors.foreground,
-                          fontWeight: '700',
-                          fontSize: 14,
+                          fontWeight: '600',
+                          fontSize: 13,
                         }}
                         numberOfLines={1}>
                         {look.name || 'Unnamed Look'}

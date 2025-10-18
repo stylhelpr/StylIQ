@@ -1007,7 +1007,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-              <Text style={globalStyles.sectionTitle}>Current Location</Text>
+              <Text style={globalStyles.sectionTitle}>Your Location</Text>
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={toggleMap}
@@ -1148,7 +1148,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               marginBottom: moderateScale(tokens.spacing.md),
             },
           ]}>
-          Your Looks
+          Inspired Looks
         </Text>
 
         {/* Saved Looks Section */}

@@ -96,10 +96,10 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
       duration={400}
       style={{
         width: '48%',
-        borderColor: theme.colors.muted,
+        borderColor: theme.colors.surfaceBorder,
         borderWidth: tokens.borderWidth.md,
         marginBottom: tokens.spacing.md,
-        borderRadius: tokens.borderRadius.xl,
+        borderRadius: tokens.borderRadius.md,
         overflow: 'hidden',
         backgroundColor: theme.colors.surface,
       }}>
@@ -166,7 +166,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           paddingHorizontal: tokens.spacing.xsm,
           paddingVertical: tokens.spacing.xxs,
         }}>
-        {/* <Text
+        <Text
           numberOfLines={1}
           style={{
             color: theme.colors.foreground,
@@ -174,7 +174,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             fontSize: 14,
           }}>
           {item.name}
-        </Text> */}
+        </Text>
 
         {item.brand && (
           <Text
@@ -200,7 +200,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           </Text>
         )}
 
-        {item.source && (
+        {/* {item.source && (
           <Text
             numberOfLines={1}
             style={{
@@ -211,7 +211,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             }}>
             Source: {item.source}
           </Text>
-        )}
+        )} */}
 
         {/* 🛍️ Shop CTA */}
         {isRecommended && (
@@ -251,7 +251,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           backgroundColor: 'rgba(0,0,0,0.5)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: tokens.spacing.sm,
+          paddingVertical: tokens.spacing.sm,
         }}>
         <Animatable.View
           animation="fadeInUp"
@@ -425,14 +425,14 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                 backgroundColor: 'rgba(0,0,0,0.1)',
                 justifyContent: 'center',
                 alignItems: 'center',
-                padding: tokens.spacing.sm,
+                paddingVertical: tokens.spacing.sm,
               }}>
               <Animatable.View
                 animation="fadeInUp"
                 duration={250}
                 style={{
                   width: '100%',
-                  maxWidth: 700,
+                  maxWidth: '100%',
                   height: '90%',
                   borderRadius: tokens.borderRadius['2xl'],
                   overflow: 'hidden',
@@ -519,9 +519,9 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                               width: '48%',
                               marginBottom: tokens.spacing.sm2,
                               backgroundColor: theme.colors.surface,
-                              borderRadius: tokens.borderRadius.lg,
+                              borderRadius: tokens.borderRadius.md,
                               overflow: 'hidden',
-                              borderColor: theme.colors.muted,
+                              borderColor: theme.colors.surfaceBorder,
                               borderWidth: tokens.borderWidth.md,
                             }}>
                             {/* 🖼️ Product Image */}
@@ -616,7 +616,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                               ) : null}
 
                               {/* Source */}
-                              {look.source ? (
+                              {/* {look.source ? (
                                 <Text
                                   numberOfLines={1}
                                   style={{
@@ -627,7 +627,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                   }}>
                                   Source: {look.source}
                                 </Text>
-                              ) : null}
+                              ) : null} */}
                             </View>
                           </TouchableOpacity>
                         ))}

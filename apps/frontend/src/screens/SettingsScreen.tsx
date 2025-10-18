@@ -344,7 +344,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                     [
                       ['weather', 'Weather'],
                       ['aiSuggestions', 'Ai Suggestions'],
-                      ['locationMap', 'Location Map'],
+                      ['locationMap', 'Your Location'],
                       ['quickAccess', 'Quick Access'],
                       ['topFashionStories', 'Top Fashion Stories'],
                       ['recommendedItems', 'Recommended Items'],

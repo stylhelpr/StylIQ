@@ -42,14 +42,15 @@ export default function ShopModal({
           backgroundColor: 'rgba(0,0,0,0.6)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: tokens.spacing.sm,
+          paddingVertical: tokens.spacing.sm,
+          // padding: tokens.spacing.sm,
         }}>
         <Animatable.View
           animation="fadeInUp"
           duration={300}
           style={{
             width: '100%',
-            maxWidth: 700,
+            maxWidth: '100%',
             height: '90%',
             backgroundColor: theme.colors.background,
             borderRadius: tokens.borderRadius['2xl'],
@@ -118,9 +119,9 @@ export default function ShopModal({
                       width: '48%',
                       marginBottom: tokens.spacing.md,
                       backgroundColor: theme.colors.surface,
-                      borderRadius: tokens.borderRadius.lg,
+                      borderRadius: tokens.borderRadius.md,
                       overflow: 'hidden',
-                      borderColor: theme.colors.muted,
+                      borderColor: theme.colors.surfaceBorder,
                       borderWidth: tokens.borderWidth.md,
                     }}>
                     {/* 🖼️ Product Image */}

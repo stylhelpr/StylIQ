@@ -16,7 +16,7 @@ const DEFAULT_PREFS: HomePrefs = {
   weather: true,
   locationMap: true,
   aiSuggestions: true,
-  quickAccess: true,
+  quickAccess: false,
   topFashionStories: true,
   recommendedItems: true,
   savedLooks: true,

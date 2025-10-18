@@ -229,7 +229,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: moderateScale(tokens.spacing.md2),
-          paddingBottom: moderateScale(tokens.spacing.xl2), // extra breathing room for small screens
+          paddingBottom: moderateScale(tokens.spacing.md), // extra breathing room for small screens
         }}>
         <Animatable.View
           animation="fadeInUp"
