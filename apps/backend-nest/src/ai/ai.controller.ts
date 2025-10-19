@@ -12,9 +12,11 @@ import { FastifyRequest } from 'fastify';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
 import { Delete, Param } from '@nestjs/common';
+import { Readable } from 'stream';
 
 @Controller('ai')
 export class AiController {
+  aiService: any;
   constructor(private readonly service: AiService) {}
 
   @Post('chat')
@@ -215,15 +217,64 @@ export class AiController {
     }
   }
 
+  // @Get('tts')
+  // async textToSpeechGet(@Query('text') text: string, @Res() res: any) {
+  //   if (!text) throw new BadRequestException('Missing text');
+  //   const buffer = await this.service.generateSpeechBuffer(text);
+  //   res.raw.writeHead(200, {
+  //     'Content-Type': 'audio/mpeg',
+  //     'Content-Length': buffer.length,
+  //   });
+  //   res.raw.end(buffer);
+  // }
+
   @Get('tts')
-  async textToSpeechGet(@Query('text') text: string, @Res() res: any) {
-    if (!text) throw new BadRequestException('Missing text');
-    const buffer = await this.service.generateSpeechBuffer(text);
-    res.raw.writeHead(200, {
-      'Content-Type': 'audio/mpeg',
-      'Content-Length': buffer.length,
-    });
-    res.raw.end(buffer);
+  async streamTts(@Query('text') text: string, @Res() res: any) {
+    if (!text?.trim()) throw new BadRequestException('Missing text');
+
+    try {
+      console.log('🟡 [TTS] Generating speech stream for text:', text);
+      const webStream = await this.service.generateSpeechStream(text);
+      console.log('🟢 [TTS] Stream response type:', typeof webStream);
+
+      if (!webStream) {
+        console.error('❌ [TTS] No stream returned from service');
+        res.raw.writeHead(500);
+        res.raw.end('No stream returned');
+        return;
+      }
+
+      const nodeStream = Readable.fromWeb(webStream as any);
+
+      res.raw.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+      });
+
+      nodeStream.on('data', (chunk: Buffer) => {
+        res.raw.write(chunk);
+        if (res.raw.flush) res.raw.flush();
+      });
+
+      nodeStream.on('end', () => {
+        res.raw.end();
+        console.log('✅ [TTS] Stream finished');
+      });
+
+      nodeStream.on('error', (err: any) => {
+        console.error('❌ [TTS] Node stream error:', err);
+        if (!res.raw.headersSent) res.raw.writeHead(500);
+        res.raw.end();
+      });
+    } catch (err: any) {
+      console.error('❌ [AI Controller] TTS stream error:', err);
+      if (!res.raw.headersSent) {
+        res.raw.writeHead(500);
+        res.raw.end();
+      }
+    }
   }
 }
 
