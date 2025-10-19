@@ -1,0 +1,27 @@
+
+# node
+node_modules
+npm-debug.log
+.yarn
+.pnp.*
+
+# builds
+dist
+build
+coverage
+
+# VCS/IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# OS
+.DS_Store
+
+# mobile stuff from monorepo
+android
+ios
+
+# other app dirs not needed for backend build
+apps/frontend

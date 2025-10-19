@@ -1,0 +1,271 @@
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+platform :ios, '15.0'
+use_modular_headers!
+install! 'cocoapods', deterministic_uuids: false
+
+target 'StylIQ' do
+  config = use_native_modules!
+  ENV['RCT_NO_LAUNCH_PACKAGER'] = 'true'
+
+  flags = get_default_flags()
+
+  use_react_native!(
+    path: config[:reactNativePath],
+    hermes_enabled: true,
+    fabric_enabled: flags[:fabric_enabled],
+    flipper_configuration: FlipperConfiguration.disabled,
+    app_path: "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  # react-native-maps
+  pod 'react-native-maps', path: '../node_modules/react-native-maps'
+
+  # react-native-permissions
+  permissions_path = '../node_modules/react-native-permissions/ios'
+  pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+  pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
+  pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+  pod 'Permission-Microphone', :path => "#{permissions_path}/Microphone"
+  pod 'Permission-Calendars', :path => "#{permissions_path}/Calendars"
+
+  # react-native-voice
+  pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
+
+  target 'StylIQTests' do
+    inherit! :complete
+  end
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      mac_catalyst_enabled: false
+    )
+    __apply_Xcode_12_5_M1_post_install_workaround(installer)
+
+    # ✅ Ensure consistent build settings
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+        # Disable bitcode globally
+        config.build_settings['ENABLE_BITCODE'] = 'NO'
+
+        # Ensure dSYM is generated
+        config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+
+        # Force Hermes to generate debug symbols
+        if target.name == 'hermes-engine' || target.name.include?('hermes')
+          config.build_settings['GENERATE_DEBUG_SYMBOLS'] = 'YES'
+        end
+      end
+    end
+  end
+end
+
+
+
+
+
+# require_relative '../node_modules/react-native/scripts/react_native_pods'
+# require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+# platform :ios, '15.0'
+# install! 'cocoapods', deterministic_uuids: false
+
+# target 'StylIQ' do
+#   config = use_native_modules!
+#   ENV['RCT_NO_LAUNCH_PACKAGER'] = 'true'
+
+#   flags = get_default_flags()
+
+#   use_react_native!(
+#     path: config[:reactNativePath],
+#     hermes_enabled: true,
+#     fabric_enabled: flags[:fabric_enabled],
+#     flipper_configuration: FlipperConfiguration.disabled,
+#     app_path: "#{Pod::Config.instance.installation_root}/.."
+#   )
+
+#   # ✅ Optional: modular headers only if absolutely needed
+#   use_modular_headers!
+
+#   # react-native-maps
+#   pod 'react-native-maps', path: '../node_modules/react-native-maps'
+
+#   # react-native-permissions
+#   permissions_path = '../node_modules/react-native-permissions/ios'
+#   pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+#   pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
+#   pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+#   pod 'Permission-Microphone', :path => "#{permissions_path}/Microphone"
+#   pod 'Permission-Calendars', :path => "#{permissions_path}/Calendars"
+
+#   # react-native-voice
+#   pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
+
+#   target 'StylIQTests' do
+#     inherit! :complete
+#   end
+
+#   post_install do |installer|
+#     react_native_post_install(
+#       installer,
+#       mac_catalyst_enabled: false
+#     )
+
+#     # ✅ Apply consistent build settings
+#     installer.pods_project.targets.each do |target|
+#       target.build_configurations.each do |config|
+#         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+#         config.build_settings['ENABLE_BITCODE'] = 'NO'
+#         config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+
+#         if target.name == 'hermes-engine' || target.name.include?('hermes')
+#           config.build_settings['GENERATE_DEBUG_SYMBOLS'] = 'YES'
+#         end
+#       end
+#     end
+#   end
+# end
+
+
+
+
+
+
+# require_relative '../node_modules/react-native/scripts/react_native_pods'
+# require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+# platform :ios, '15.0'
+# use_modular_headers!
+# install! 'cocoapods', deterministic_uuids: false
+
+# target 'StylIQ' do
+#   config = use_native_modules!
+#   ENV['RCT_NO_LAUNCH_PACKAGER'] = 'true'
+
+#   flags = get_default_flags()
+
+#   use_react_native!(
+#     path: config[:reactNativePath],
+#     hermes_enabled: true,
+#     fabric_enabled: flags[:fabric_enabled],
+#     flipper_configuration: FlipperConfiguration.disabled,
+#     app_path: "#{Pod::Config.instance.installation_root}/.."
+#   )
+
+#   # react-native-maps
+#   pod 'react-native-maps', path: '../node_modules/react-native-maps'
+
+#   # react-native-permissions
+#   permissions_path = '../node_modules/react-native-permissions/ios'
+#   pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+#   pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
+#   pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+#   pod 'Permission-Microphone', :path => "#{permissions_path}/Microphone"
+#   pod 'Permission-Calendars', :path => "#{permissions_path}/Calendars"
+
+#   # react-native-voice
+#   pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
+
+#   target 'StylIQTests' do
+#     inherit! :complete
+#   end
+
+#   post_install do |installer|
+#     react_native_post_install(
+#       installer,
+#       mac_catalyst_enabled: false
+#     )
+#     __apply_Xcode_12_5_M1_post_install_workaround(installer)
+
+#     # ✅ Ensure proper build settings
+#     installer.pods_project.targets.each do |target|
+#       target.build_configurations.each do |config|
+#         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+#         # Disable bitcode everywhere
+#         config.build_settings['ENABLE_BITCODE'] = 'NO'
+
+#         # Ensure dSYM is generated for release builds
+#         config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+#       end
+#     end
+
+#     # ✅ Strip Bitcode from Hermes (if any sneaks through)
+#     installer.pods_project.targets.each do |target|
+#       if target.name == 'hermes-engine'
+#         phase = target.new_shell_script_build_phase('Strip Hermes Bitcode')
+#         phase.shell_script = <<-SCRIPT
+#           find "${TARGET_BUILD_DIR}/${TARGET_NAME}.app/Frameworks" -name '*.framework' -type d | while read -r framework; do
+#             binary="$framework/$(basename "$framework" .framework)"
+#             if [[ -f "$binary" ]]; then
+#               echo "Stripping bitcode from $binary"
+#               xcrun bitcode_strip -r "$binary" -o "$binary" || true
+#             fi
+#           done
+#         SCRIPT
+#       end
+#     end
+#   end
+# end
+
+
+
+
+
+# require_relative '../node_modules/react-native/scripts/react_native_pods'
+# require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+# platform :ios, '15.0'
+# use_modular_headers!
+# install! 'cocoapods', deterministic_uuids: false
+
+# target 'StylIQ' do
+#   config = use_native_modules!
+#   ENV['RCT_NO_LAUNCH_PACKAGER'] = 'true'
+
+#   flags = get_default_flags()
+
+#   use_react_native!(
+#     path: config[:reactNativePath],
+#     hermes_enabled: true,
+#     fabric_enabled: flags[:fabric_enabled],
+#     flipper_configuration: FlipperConfiguration.disabled,
+#     app_path: "#{Pod::Config.instance.installation_root}/.."
+#   )
+
+#   # react-native-maps
+#   pod 'react-native-maps', path: '../node_modules/react-native-maps'
+
+#   # react-native-permissions
+#   permissions_path = '../node_modules/react-native-permissions/ios'
+#   pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+#   pod 'Permission-PhotoLibrary', :path => "#{permissions_path}/PhotoLibrary"
+#   pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+#   pod 'Permission-Microphone', :path => "#{permissions_path}/Microphone"
+#   pod 'Permission-Calendars', :path => "#{permissions_path}/Calendars"
+
+#   # react-native-voice
+#   pod 'react-native-voice', path: '../node_modules/@react-native-voice/voice'
+
+#   target 'StylIQTests' do
+#     inherit! :complete
+#   end
+
+#   post_install do |installer|
+#     react_native_post_install(
+#       installer,
+#       mac_catalyst_enabled: false
+#     )
+#     __apply_Xcode_12_5_M1_post_install_workaround(installer)
+
+#     installer.pods_project.targets.each do |target|
+#       target.build_configurations.each do |config|
+#         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+#       end
+#     end
+#   end
+# end

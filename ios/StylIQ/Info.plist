@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>com.stylhelpr.stylhelpr.auth0</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+
+	<!-- ✅ URL Schemes: Auth0 + StylHelpr share -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<!-- Auth0 login callback -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>None</string>
+			<key>CFBundleURLName</key>
+			<string>auth0</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.stylhelpr.stylhelpr.auth0</string>
+			</array>
+		</dict>
+
+		<!-- StylHelpr share extension deep link -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>stylhelpr</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>stylhelpr</string>
+			</array>
+		</dict>
+	</array>
+
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>dev-xeaol4s5b2zd7wuz.us.auth0.com</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<false/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+
+	<key>NSCalendarsUsageDescription</key>
+	<string>We need access to your calendar to set style appointments and reminders.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera so you can take photos in the app.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to suggest friends and share style recommendations.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We use your location to show the weather near you</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to show the weather near you.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone for voice control.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need to save photos you take back to your library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library so you can pick existing images.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>We use reminders to notify you about style suggestions and events.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>We use speech recognition to let you control the app with your voice.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app uses local notifications to remind you about your styles.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>MaterialIcons.ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
+	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+<key>UISupportedInterfaceOrientations</key>
+<array>
+  <string>UIInterfaceOrientationPortrait</string>
+</array>
+
+<key>UISupportedInterfaceOrientations~ipad</key>
+<array>
+  <string>UIInterfaceOrientationPortrait</string>
+</array>
+
+<key>UIViewControllerBasedStatusBarAppearance</key>
+<false/>
+<key>NSFaceIDUsageDescription</key>
+<string>We use Face ID to securely log you into your account.</string>
+</dict>
+</plist>
