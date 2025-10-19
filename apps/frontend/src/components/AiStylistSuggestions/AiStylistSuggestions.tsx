@@ -263,7 +263,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 textTransform: 'uppercase',
               }}>
-              AI Style Suggestions
+              Suggestions
             </Text>
           </View>
 
@@ -305,8 +305,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             style={{
               backgroundColor: theme.colors.surface2,
               borderRadius: tokens.borderRadius.md,
-              borderWidth: theme.borderWidth.md,
-              borderColor: theme.colors.surfaceBorder,
+              borderWidth: theme.borderWidth.hairline,
+              borderColor: theme.colors.muted,
               padding: moderateScale(tokens.spacing.sm),
             }}>
             {loading && (

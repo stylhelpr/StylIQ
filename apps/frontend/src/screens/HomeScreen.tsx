@@ -981,6 +981,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </Animatable.View>
         )}
 
+        <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
+          AI Style Suggestions
+        </Text>
         {/* AI SUGGESTS SECTION */}
         {prefs.aiSuggestions &&
           typeof weather?.fahrenheit?.main?.temp === 'number' && (
@@ -1007,13 +1010,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}>
-              <Text style={globalStyles.sectionTitle}>Your Location</Text>
+              <Text
+                style={[
+                  globalStyles.sectionTitle,
+                  {paddingTop: moderateScale(tokens.spacing.nano)},
+                ]}>
+                Your Location
+              </Text>
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={toggleMap}
                 style={{
                   paddingHorizontal: moderateScale(tokens.spacing.xsm),
-                  paddingVertical: moderateScale(tokens.spacing.xxs),
+                  // paddingTop: moderateScale(tokens.spacing.xxs),
                   borderRadius: 20,
                 }}>
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -1030,7 +1039,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
             <Animated.View
               style={{
-                marginTop: moderateScale(tokens.spacing.xs),
+                // marginTop: moderateScale(tokens.spacing.xs),
                 height: mapHeight,
                 opacity: mapOpacity,
                 overflow: 'hidden',
@@ -1148,7 +1157,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               marginBottom: moderateScale(tokens.spacing.md),
             },
           ]}>
-          Inspired Looks
+          Your Inspired Looks
         </Text>
 
         {/* Saved Looks Section */}

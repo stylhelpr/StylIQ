@@ -8,6 +8,7 @@ import {
 import { FastifyRequest } from 'fastify';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
+import { Delete, Param } from '@nestjs/common';
 
 @Controller('ai')
 export class AiController {
@@ -175,6 +176,17 @@ export class AiController {
   async lookupBarcode(@Body('upc') upc: string) {
     if (!upc) throw new BadRequestException('Missing UPC');
     return this.service.lookupProductByBarcode(upc);
+  }
+
+  @Delete('chat/clear/:user_id')
+  async clearChat(@Param('user_id') user_id: string) {
+    return this.service.clearChatHistory(user_id);
+  }
+
+  /* 🧹 Soft reset (keep long-term memory but remove short-term messages) */
+  @Delete('chat/soft-reset/:user_id')
+  async softReset(@Param('user_id') user_id: string) {
+    return this.service.softResetChat(user_id);
   }
 }
 

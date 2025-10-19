@@ -659,24 +659,46 @@ export default function AiStylistChatScreen({navigate}: Props) {
             onPress={() => {
               h('impactLight');
               Alert.alert(
-                'Clear Chat?',
-                'This will erase your current conversation with the stylist.',
+                'Chat Options',
+                'Choose how you’d like to reset your stylist chat.',
                 [
                   {text: 'Cancel', style: 'cancel'},
+
+                  // 🧠 Soft Reset — keeps long-term stylist memory
                   {
-                    text: 'Clear Chat',
-                    style: 'destructive',
+                    text: 'Start New Chat',
                     onPress: async () => {
-                      await AsyncStorage.removeItem(`chat_thread:${userId}`);
-                      setMessages([
-                        {
-                          id: 'seed-1',
-                          role: 'assistant',
-                          text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
-                          createdAt: Date.now(),
-                        },
-                      ]);
-                      scrollToBottom();
+                      try {
+                        // 🔥 Call your backend soft reset endpoint
+                        await fetch(
+                          `${API_BASE_URL}/ai/chat/soft-reset/${userId}`,
+                          {
+                            method: 'DELETE',
+                          },
+                        );
+
+                        // 🧹 Also clear local thread cache
+                        await AsyncStorage.removeItem(`chat_thread:${userId}`);
+
+                        setMessages([
+                          {
+                            id: 'seed-1',
+                            role: 'assistant',
+                            text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+                            createdAt: Date.now(),
+                          },
+                        ]);
+
+                        h('impactLight');
+                        scrollToBottom();
+                        Alert.alert(
+                          'New chat started ✨',
+                          'Your stylist still remembers your preferences.',
+                        );
+                      } catch (err) {
+                        console.error('❌ Failed soft reset:', err);
+                        Alert.alert('Error', 'Could not start new chat.');
+                      }
                     },
                   },
                 ],
@@ -689,7 +711,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
               backgroundColor: theme.colors.surface,
             }}>
             <MaterialIcons
-              name="delete"
+              name="autorenew" // ♻️ better icon for "New Chat"
               size={22}
               color={theme.colors.foreground}
             />
