@@ -158,18 +158,34 @@ export class AiService {
   }
 
   /** 🔊 Build and return MP3 buffer for given text (Alloy voice) */
+  // async generateSpeechBuffer(text: string): Promise<Buffer> {
+  //   if (!text?.trim()) throw new BadRequestException('Empty text');
+
+  //   // OpenAI TTS → mp3 buffer (Alloy)
+  //   const resp = await this.openai.audio.speech.create({
+  //     model: 'gpt-4o-mini-tts',
+  //     voice: 'alloy',
+  //     input: text,
+  //     response_format: 'mp3',
+  //   });
+
+  //   // SDK returns a web Response-like object with arrayBuffer()
+  //   const arrayBuf = await resp.arrayBuffer();
+  //   return Buffer.from(arrayBuf);
+  // }
+
   async generateSpeechBuffer(text: string): Promise<Buffer> {
     if (!text?.trim()) throw new BadRequestException('Empty text');
 
-    // OpenAI TTS → mp3 buffer (Alloy)
+    // 👇 bypass outdated type definition safely
     const resp = await this.openai.audio.speech.create({
       model: 'gpt-4o-mini-tts',
       voice: 'alloy',
       input: text,
-      response_format: 'mp3',
-    });
 
-    // SDK returns a web Response-like object with arrayBuffer()
+      format: 'mp3',
+    } as any);
+
     const arrayBuf = await resp.arrayBuffer();
     return Buffer.from(arrayBuf);
   }

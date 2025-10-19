@@ -36,6 +36,20 @@ import {useResponsive} from '../hooks/useResponsive'; // ✅ shared adaptive hoo
 import {Linking} from 'react-native';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import Tts from 'react-native-tts';
+import {WebView} from 'react-native-webview';
+
+// --- Base64 polyfill for Hermes ---
+import {Buffer} from 'buffer';
+global.btoa =
+  global.btoa ||
+  function (str) {
+    return Buffer.from(str, 'binary').toString('base64');
+  };
+global.atob =
+  global.atob ||
+  function (b64) {
+    return Buffer.from(b64, 'base64').toString('binary');
+  };
 
 type Role = 'user' | 'assistant' | 'system';
 // type Message = {id: string; role: Role; text: string; createdAt: number};
@@ -48,18 +62,6 @@ type Message = {
   createdAt: number;
   images?: {imageUrl: string; title?: string; sourceLink?: string}[];
   links?: {label: string; url: string}[];
-};
-
-const speakResponse = async (text: string) => {
-  if (!text?.trim()) return;
-  try {
-    await Tts.stop();
-    await Tts.setDefaultLanguage('en-US');
-    await Tts.setDefaultRate(0.46);
-    await Tts.speak(text);
-  } catch (err) {
-    console.warn('[Voice Playback] Failed to speak:', err);
-  }
 };
 
 const SUGGESTIONS_DEFAULT = [
@@ -114,6 +116,8 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const inputRef = useRef<TextInput | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  const [ttsUrl, setTtsUrl] = useState<string | null>(null); // ✅ add this line
+
   /** 🎙️ Voice */
   const {speech, isRecording, startListening, stopListening} =
     useVoiceControl();
@@ -130,6 +134,57 @@ export default function AiStylistChatScreen({navigate}: Props) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // const speakResponse = async (text: string) => {
+  //   if (!text?.trim()) return;
+  //   try {
+  //     await Tts.stop();
+  //     await Tts.setDefaultLanguage('en-US');
+
+  //     // pick one of the installed voices; Alloy-like are usually enhanced Siri voices
+  //     const voices = await Tts.voices();
+  //     const alloyLike = voices.find(
+  //       v =>
+  //         v.name.toLowerCase().includes('samantha') ||
+  //         v.name.toLowerCase().includes('en-us') ||
+  //         v.name.toLowerCase().includes('enhanced'),
+  //     );
+  //     if (alloyLike) await Tts.setDefaultVoice(alloyLike.id);
+
+  //     await Tts.setDefaultRate(0.46);
+  //     await Tts.setDefaultPitch(1.0);
+
+  //     console.log('[Voice Playback] speaking with', alloyLike?.name);
+  //     await Tts.speak(text);
+  //   } catch (err) {
+  //     console.warn('[Voice Playback] Failed to speak:', err);
+  //   }
+  // };
+
+  const speakResponse = async (text: string) => {
+    if (!text?.trim()) return;
+    try {
+      const url = `${API_BASE_URL}/ai/tts?text=${encodeURIComponent(text)}`;
+      const html = `
+      <html>
+        <body style="margin:0;background:black;">
+          <audio id="a" autoplay playsinline>
+            <source src="${url}" type="audio/mpeg" />
+          </audio>
+          <script>
+            const a=document.getElementById('a');
+            a.play()
+              .then(()=>window.ReactNativeWebView.postMessage('playing'))
+              .catch(()=>setTimeout(()=>a.play().catch(()=>{}),1000));
+          </script>
+        </body>
+      </html>
+    `;
+      setTtsUrl(html); // store raw HTML instead of base64
+    } catch (err) {
+      console.warn('[Voice Playback] Failed Alloy playback:', err);
+    }
+  };
 
   /** 🔗 Helper to call your AI chat endpoint with user_id */
   async function callAiChatAPI(
@@ -806,6 +861,22 @@ export default function AiStylistChatScreen({navigate}: Props) {
             setWebModalVisible(false);
             setWebUrl(null);
           }}
+        />
+      )}
+      {ttsUrl && (
+        <WebView
+          originWhitelist={['*']}
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          javaScriptEnabled
+          onMessage={event => {
+            if (event.nativeEvent.data === 'playing') {
+              console.log('🔊 Alloy TTS started');
+              setTimeout(() => setTtsUrl(null), 8000);
+            }
+          }}
+          source={{html: ttsUrl}} // 👈 not data:text/
+          style={{width: 0, height: 0, opacity: 0}}
         />
       )}
     </SafeAreaView>

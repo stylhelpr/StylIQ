@@ -5,6 +5,8 @@ import {
   Req,
   Res,
   BadRequestException,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { AiService } from './ai.service';
@@ -211,6 +213,17 @@ export class AiController {
       });
       res.raw.end(fallback);
     }
+  }
+
+  @Get('tts')
+  async textToSpeechGet(@Query('text') text: string, @Res() res: any) {
+    if (!text) throw new BadRequestException('Missing text');
+    const buffer = await this.service.generateSpeechBuffer(text);
+    res.raw.writeHead(200, {
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': buffer.length,
+    });
+    res.raw.end(buffer);
   }
 }
 
