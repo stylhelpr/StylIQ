@@ -20,11 +20,8 @@
 	<string>1.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-
-	<!-- ✅ URL Schemes: Auth0 + StylHelpr share -->
 	<key>CFBundleURLTypes</key>
 	<array>
-		<!-- Auth0 login callback -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>None</string>
@@ -35,8 +32,6 @@
 				<string>com.stylhelpr.stylhelpr.auth0</string>
 			</array>
 		</dict>
-
-		<!-- StylHelpr share extension deep link -->
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
@@ -48,12 +43,10 @@
 			</array>
 		</dict>
 	</array>
-
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -76,13 +69,14 @@
 			</dict>
 		</dict>
 	</dict>
-
 	<key>NSCalendarsUsageDescription</key>
 	<string>We need access to your calendar to set style appointments and reminders.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera so you can take photos in the app.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>We need access to your contacts to suggest friends and share style recommendations.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID to securely log you into your account.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We use your location to show the weather near you</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -121,19 +115,11 @@
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
-<key>UISupportedInterfaceOrientations</key>
-<array>
-  <string>UIInterfaceOrientationPortrait</string>
-</array>
-
-<key>UISupportedInterfaceOrientations~ipad</key>
-<array>
-  <string>UIInterfaceOrientationPortrait</string>
-</array>
-
-<key>UIViewControllerBasedStatusBarAppearance</key>
-<false/>
-<key>NSFaceIDUsageDescription</key>
-<string>We use Face ID to securely log you into your account.</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
 </dict>
 </plist>

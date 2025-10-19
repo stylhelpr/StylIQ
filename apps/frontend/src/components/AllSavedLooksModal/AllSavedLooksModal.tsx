@@ -538,19 +538,11 @@ export default function AllSavedLooksModal({
                           numColumns === 1
                             ? '96%'
                             : numColumns === 2
-                            ? '48%'
+                            ? '49.6%'
                             : '31.5%',
                         marginBottom: 16,
-                        borderRadius: tokens.borderRadius.md,
                         backgroundColor: theme.colors.surface,
-                        borderColor: theme.colors.surfaceBorder,
-                        borderWidth: tokens.borderWidth.md,
                         overflow: 'hidden',
-                        shadowColor: '#000',
-                        shadowOpacity: 0.15,
-                        shadowRadius: 10,
-                        shadowOffset: {width: 0, height: 4},
-                        elevation: 6,
                       }}>
                       {/* 🖼️ Look Image */}
                       <Image
@@ -614,7 +606,6 @@ export default function AllSavedLooksModal({
                       </Text>
 
                       {/* ⚙️ Buttons */}
-
                       <View
                         style={{
                           paddingHorizontal: 10,

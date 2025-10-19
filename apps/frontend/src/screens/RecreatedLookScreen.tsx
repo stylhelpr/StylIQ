@@ -95,16 +95,19 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
       delay={idx * 70}
       duration={400}
       style={{
-        width: '48%',
-        borderColor: theme.colors.surfaceBorder,
-        borderWidth: tokens.borderWidth.md,
+        width: '49.6%',
+        aspectRatio: 3 / 4,
         marginBottom: tokens.spacing.md,
-        borderRadius: tokens.borderRadius.md,
         overflow: 'hidden',
         backgroundColor: theme.colors.surface,
       }}>
       {/* 🖼️ Product Image */}
-      <View style={{position: 'relative'}}>
+      <View
+        style={{
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
         <Image
           source={{
             uri:
@@ -113,9 +116,10 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           }}
           style={{
             width: '100%',
-            height: 190,
-            borderTopLeftRadius: tokens.borderRadius.xl,
-            borderTopRightRadius: tokens.borderRadius.xl,
+            height: '100%',
+            position: 'absolute',
+            top: 0,
+            left: 0,
             backgroundColor: theme.colors.surface2,
           }}
           resizeMode="cover"
@@ -134,17 +138,12 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             position: 'absolute',
             bottom: 10,
             alignSelf: 'center',
-            backgroundColor: 'rgba(255,255,255,0.8)', // ← soft translucent “glass” layer
+            backgroundColor: 'rgba(255,255,255,0.75)',
             borderRadius: tokens.borderRadius.lg,
             borderWidth: tokens.borderWidth.hairline,
-            borderColor: theme.colors.background, // ← faint glass edge highlight
-            paddingVertical: 9,
+            borderColor: theme.colors.background,
+            paddingVertical: 8,
             paddingHorizontal: 14,
-            shadowColor: '#000',
-            shadowOpacity: 0.25,
-            shadowRadius: 6,
-            shadowOffset: {width: 0, height: 2},
-            backdropFilter: 'blur(4px)', // iOS-only visual cue (safe to leave in)
           }}>
           <Text
             style={{
@@ -152,8 +151,6 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
               fontWeight: '700',
               fontSize: 13,
               letterSpacing: 0.2,
-              textShadowColor: 'rgba(0,0,0,0.0)', // gives text lift over light backgrounds
-              textShadowRadius: 2,
             }}>
             Similar Items →
           </Text>
@@ -516,16 +513,18 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                               setTimeout(() => openShopModal(look.link), 300);
                             }}
                             style={{
-                              width: '48%',
+                              width: '49.6%',
+                              aspectRatio: 3 / 4, // consistent tile ratio
                               marginBottom: tokens.spacing.sm2,
                               backgroundColor: theme.colors.surface,
-                              borderRadius: tokens.borderRadius.md,
                               overflow: 'hidden',
-                              borderColor: theme.colors.surfaceBorder,
-                              borderWidth: tokens.borderWidth.md,
                             }}>
-                            {/* 🖼️ Product Image */}
-                            <View style={{position: 'relative'}}>
+                            {/* 🖼️ Product Image (fills entire card) */}
+                            <View
+                              style={{
+                                flex: 1,
+                                position: 'relative',
+                              }}>
                               <Image
                                 source={{
                                   uri:
@@ -534,12 +533,13 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                 }}
                                 style={{
                                   width: '100%',
-                                  height: 180,
-                                  borderTopLeftRadius: tokens.borderRadius.lg,
-                                  borderTopRightRadius: tokens.borderRadius.lg,
+                                  height: '100%',
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
                                   backgroundColor: theme.colors.surface2,
                                 }}
-                                resizeMode="cover"
+                                resizeMode="cover" // ✅ fills the container, cropping edges if needed
                               />
 
                               {/* 🛒 Click to Buy Button Overlay */}
@@ -548,17 +548,12 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                   position: 'absolute',
                                   bottom: 10,
                                   alignSelf: 'center',
-                                  backgroundColor: 'rgba(255,255,255,0.8)',
+                                  backgroundColor: 'rgba(255,255,255,0.75)',
                                   borderRadius: tokens.borderRadius.lg,
                                   borderWidth: tokens.borderWidth.hairline,
-                                  borderColor: theme.colors.background,
-                                  paddingVertical: 9,
+                                  borderColor: 'black',
+                                  paddingVertical: 8,
                                   paddingHorizontal: 14,
-                                  shadowColor: '#000',
-                                  shadowOpacity: 0.25,
-                                  shadowRadius: 6,
-                                  shadowOffset: {width: 0, height: 2},
-                                  backdropFilter: 'blur(4px)',
                                 }}>
                                 <Text
                                   style={{
@@ -566,8 +561,6 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                     fontWeight: '700',
                                     fontSize: 13,
                                     letterSpacing: 0.2,
-                                    textShadowColor: 'rgba(0,0,0,0.0)',
-                                    textShadowRadius: 2,
                                   }}>
                                   Click to Buy →
                                 </Text>
@@ -601,19 +594,34 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                 </Text>
                               ) : null}
 
-                              {/* Price */}
-                              {look.price ? (
-                                <Text
-                                  numberOfLines={1}
-                                  style={{
-                                    color: theme.colors.primary,
-                                    fontWeight: '600',
-                                    fontSize: 13,
-                                    marginTop: 4,
-                                  }}>
-                                  {look.price}
-                                </Text>
-                              ) : null}
+                              {/* Price — reserve height even if missing */}
+                              <View
+                                style={{
+                                  height: 18,
+                                  marginTop: 4,
+                                  justifyContent: 'center',
+                                }}>
+                                {look.price ? (
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{
+                                      color: theme.colors.primary,
+                                      fontWeight: '600',
+                                      fontSize: 13,
+                                    }}>
+                                    {look.price}
+                                  </Text>
+                                ) : (
+                                  <Text
+                                    style={{
+                                      opacity: 0,
+                                      fontSize: 13,
+                                      fontWeight: '600',
+                                    }}>
+                                    placeholder
+                                  </Text>
+                                )}
+                              </View>
 
                               {/* Source */}
                               {/* {look.source ? (
