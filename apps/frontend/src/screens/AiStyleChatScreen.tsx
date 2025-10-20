@@ -39,6 +39,7 @@ import {WebView} from 'react-native-webview';
 import {ENABLE_REMOTE_TTS, API_BASE_URL} from '../config/api';
 import {globalTtsRef} from '../MainApp';
 import {isTtsEnabled} from '../utils/ttsToggle';
+import MascotAssistant from '../components/MascotAssistant/MascotAssistant';
 
 // ---- Persistent TTS Toggle ----
 const TTS_TOGGLE_KEY = 'tts_enabled';
@@ -665,6 +666,8 @@ export default function AiStylistChatScreen({navigate}: Props) {
             </TouchableOpacity>
           </AppleTouchFeedback>
         </View> */}
+
+          <MascotAssistant size={120} position={{top: 520, right: 0}} />
 
           <View
             style={{

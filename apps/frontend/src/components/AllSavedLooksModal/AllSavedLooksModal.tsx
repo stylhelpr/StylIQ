@@ -534,30 +534,27 @@ export default function AllSavedLooksModal({
                       delay={index * 60}
                       useNativeDriver
                       style={{
-                        width:
-                          numColumns === 1
-                            ? '96%'
-                            : numColumns === 2
-                            ? '49.6%'
-                            : '31.5%',
-                        marginBottom: 16,
+                        width: '49.6%',
+                        marginBottom: tokens.spacing.md,
                         backgroundColor: theme.colors.surface,
+                        borderWidth: tokens.borderWidth.hairline,
+                        borderColor: theme.colors.inputBorder,
+                        // borderRadius: tokens.borderRadius.md,
                         overflow: 'hidden',
                       }}>
-                      {/* 🖼️ Look Image */}
-                      <Image
-                        source={{uri: look.image_url}}
+                      {/* 🖼️ Image Section */}
+                      <View
                         style={{
                           width: '100%',
-                          height:
-                            numColumns === 1
-                              ? 240
-                              : numColumns === 2
-                              ? 190
-                              : 160,
-                        }}
-                        resizeMode="cover"
-                      />
+                          aspectRatio: 3 / 4,
+                          backgroundColor: theme.colors.surface,
+                        }}>
+                        <Image
+                          source={{uri: look.image_url}}
+                          style={{width: '100%', height: '100%'}}
+                          resizeMode="cover"
+                        />
+                      </View>
 
                       {/* 🏷️ Tags */}
                       {look.tags?.length > 0 && (
@@ -596,9 +593,9 @@ export default function AllSavedLooksModal({
                       <Text
                         style={{
                           paddingHorizontal: 12,
-                          paddingTop: 6,
+                          marginTop: 8,
                           color: theme.colors.foreground,
-                          fontWeight: '600',
+                          fontWeight: '500',
                           fontSize: 13,
                         }}
                         numberOfLines={1}>

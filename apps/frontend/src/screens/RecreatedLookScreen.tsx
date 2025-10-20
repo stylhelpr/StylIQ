@@ -96,16 +96,18 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
       duration={400}
       style={{
         width: '49.6%',
-        aspectRatio: 3 / 4,
         marginBottom: tokens.spacing.md,
-        overflow: 'hidden',
         backgroundColor: theme.colors.surface,
+        borderWidth: tokens.borderWidth.hairline,
+        borderColor: theme.colors.inputBorder,
+        overflow: 'hidden',
       }}>
       {/* 🖼️ Product Image */}
       <View
         style={{
-          flex: 1,
-          position: 'relative',
+          width: '100%',
+          aspectRatio: 3 / 4,
+          backgroundColor: theme.colors.surface,
           overflow: 'hidden',
         }}>
         <Image
@@ -118,9 +120,6 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             width: '100%',
             height: '100%',
             position: 'absolute',
-            top: 0,
-            left: 0,
-            backgroundColor: theme.colors.surface2,
           }}
           resizeMode="cover"
         />
@@ -141,7 +140,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             backgroundColor: 'rgba(255,255,255,0.75)',
             borderRadius: tokens.borderRadius.lg,
             borderWidth: tokens.borderWidth.hairline,
-            borderColor: theme.colors.background,
+            borderColor: 'black',
             paddingVertical: 8,
             paddingHorizontal: 14,
           }}>
@@ -167,8 +166,8 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           numberOfLines={1}
           style={{
             color: theme.colors.foreground,
-            fontWeight: '600',
-            fontSize: 14,
+            fontWeight: '400',
+            fontSize: 13,
           }}>
           {item.name}
         </Text>
@@ -179,7 +178,8 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             style={{
               color: theme.colors.foreground,
               opacity: 0.7,
-              fontSize: 12,
+              fontSize: 11,
+              marginTop: 6,
             }}>
             {item.brand}
           </Text>
@@ -191,7 +191,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
               color: theme.colors.primary,
               fontWeight: '700',
               fontSize: 13,
-              marginTop: 2,
+              marginTop: 6,
             }}>
             {item.price}
           </Text>
@@ -514,16 +514,19 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                             }}
                             style={{
                               width: '49.6%',
-                              aspectRatio: 3 / 4, // consistent tile ratio
-                              marginBottom: tokens.spacing.sm2,
+                              marginBottom: tokens.spacing.md,
                               backgroundColor: theme.colors.surface,
+                              borderWidth: tokens.borderWidth.hairline,
+                              borderColor: theme.colors.inputBorder,
                               overflow: 'hidden',
                             }}>
                             {/* 🖼️ Product Image (fills entire card) */}
                             <View
                               style={{
-                                flex: 1,
-                                position: 'relative',
+                                width: '100%',
+                                aspectRatio: 3 / 4,
+                                backgroundColor: theme.colors.surface,
+                                overflow: 'hidden',
                               }}>
                               <Image
                                 source={{
@@ -535,9 +538,6 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                   width: '100%',
                                   height: '100%',
                                   position: 'absolute',
-                                  top: 0,
-                                  left: 0,
-                                  backgroundColor: theme.colors.surface2,
                                 }}
                                 resizeMode="cover" // ✅ fills the container, cropping edges if needed
                               />
@@ -574,7 +574,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                 numberOfLines={1}
                                 style={{
                                   color: theme.colors.foreground,
-                                  fontWeight: '600',
+                                  fontWeight: '400',
                                   fontSize: 13,
                                 }}>
                                 {look.title || 'Similar look'}
@@ -588,40 +588,34 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                     color: theme.colors.foreground,
                                     opacity: 0.7,
                                     fontSize: 11,
-                                    marginTop: 2,
+                                    marginTop: 6,
                                   }}>
                                   {look.brand}
                                 </Text>
                               ) : null}
 
                               {/* Price — reserve height even if missing */}
-                              <View
-                                style={{
-                                  height: 18,
-                                  marginTop: 4,
-                                  justifyContent: 'center',
-                                }}>
-                                {look.price ? (
-                                  <Text
-                                    numberOfLines={1}
-                                    style={{
-                                      color: theme.colors.primary,
-                                      fontWeight: '600',
-                                      fontSize: 13,
-                                    }}>
-                                    {look.price}
-                                  </Text>
-                                ) : (
-                                  <Text
-                                    style={{
-                                      opacity: 0,
-                                      fontSize: 13,
-                                      fontWeight: '600',
-                                    }}>
-                                    placeholder
-                                  </Text>
-                                )}
-                              </View>
+
+                              {look.price ? (
+                                <Text
+                                  numberOfLines={1}
+                                  style={{
+                                    fontWeight: '700',
+                                    fontSize: 13,
+                                    marginTop: 6,
+                                  }}>
+                                  {look.price}
+                                </Text>
+                              ) : (
+                                <Text
+                                  style={{
+                                    opacity: 0,
+                                    fontSize: 13,
+                                    fontWeight: '700',
+                                  }}>
+                                  placeholder
+                                </Text>
+                              )}
 
                               {/* Source */}
                               {/* {look.source ? (

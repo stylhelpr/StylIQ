@@ -119,9 +119,10 @@ export default function ShopModal({
                       width: '49.6%',
                       marginBottom: tokens.spacing.md,
                       backgroundColor: theme.colors.surface,
-                      // borderWidth: tokens.borderWidth.hairline,
-                      // borderColor: theme.colors.muted,
+                      borderWidth: tokens.borderWidth.hairline,
+                      borderColor: theme.colors.inputBorder,
                       overflow: 'hidden',
+                      // borderRadius: tokens.borderRadius.md,
                     }}>
                     {/* 🖼️ Product Image (consistent aspect ratio) */}
                     <View
@@ -172,7 +173,7 @@ export default function ShopModal({
                         numberOfLines={1}
                         style={{
                           color: theme.colors.foreground,
-                          fontWeight: '600',
+                          fontWeight: '400',
                           fontSize: 13,
                         }}>
                         {item.name}
@@ -184,7 +185,7 @@ export default function ShopModal({
                             color: theme.colors.foreground,
                             opacity: 0.7,
                             fontSize: 11,
-                            marginTop: 2,
+                            marginTop: 6,
                           }}>
                           {item.brand}
                         </Text>
@@ -193,9 +194,9 @@ export default function ShopModal({
                         <Text
                           style={{
                             color: theme.colors.primary,
-                            fontWeight: '600',
+                            fontWeight: '700',
                             fontSize: 13,
-                            marginTop: 4,
+                            marginTop: 6,
                           }}>
                           {item.price}
                         </Text>

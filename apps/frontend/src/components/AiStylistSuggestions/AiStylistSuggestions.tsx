@@ -20,6 +20,7 @@ import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
 import SwipeableCard from '../../components/SwipeableCard/SwipeableCard';
 import {fontScale, moderateScale} from '../../utils/scale';
+import MascotAssistant from '../../components/MascotAssistant/MascotAssistant';
 
 type Props = {
   weather: any;
@@ -231,6 +232,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
           paddingHorizontal: moderateScale(tokens.spacing.md2),
           paddingBottom: moderateScale(tokens.spacing.md), // extra breathing room for small screens
         }}>
+        <MascotAssistant size={75} position={{top: 13, right: 110}} />
+
         <Animatable.View
           animation="fadeInUp"
           delay={200}
