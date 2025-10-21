@@ -46,6 +46,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
       width: 160,
       marginRight: 12,
       borderRadius: tokens.borderRadius.md,
+      // borderRadius: tokens.borderRadius['2xl'],
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
       borderWidth: tokens.borderWidth.md,

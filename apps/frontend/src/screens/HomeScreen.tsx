@@ -137,7 +137,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   {
                     color: theme.colors.foreground,
                     fontSize: fontScale(tokens.fontSize.lg),
-                    fontWeight: '600',
+                    fontWeight: '700',
                     paddingHorizontal: moderateScale(tokens.spacing.md2),
                     textTransform: 'none',
                   },
@@ -981,9 +981,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           </Animatable.View>
         )}
 
-        <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
-          AI Style Suggestions
-        </Text>
         {/* AI SUGGESTS SECTION */}
         {prefs.aiSuggestions &&
           typeof weather?.fahrenheit?.main?.temp === 'number' && (

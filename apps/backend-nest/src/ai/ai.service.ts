@@ -215,18 +215,20 @@ export class AiService {
     return buffer;
   }
 
+  //  'alloy','ash','ballad','coral','echo','fable','nova','onyx','sage','shimmer','verse'
+
   /** 🎧 Stream version for immediate browser playback */
   async generateSpeechStream(text: string) {
     if (!text?.trim()) throw new BadRequestException('Empty text');
 
     const response = await this.openai.audio.speech.create({
       model: 'gpt-4o-mini-tts',
-      voice: 'alloy',
+      voice: 'coral',
       input: text,
       format: 'mp3',
       stream: true, // <—— critical flag for live stream
       // 🔧 optional fine-tuning parameters:
-      speed: 1.1, // 1.0 = normal, higher = faster, 0.8 = slower
+      speed: 1.0, // 1.0 = normal, higher = faster, 0.8 = slower
       pitch: 1.0, // 1.0 = default, higher = brighter tone
     } as any);
 

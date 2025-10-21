@@ -7,11 +7,8 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import {WebView} from 'react-native-webview';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {tokens} from '../../styles/tokens/tokens';
@@ -34,6 +31,8 @@ export default function ShopModal({
 
   if (!visible) return null;
 
+  const hasResults = results && results.length > 0;
+
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View
@@ -43,21 +42,19 @@ export default function ShopModal({
           justifyContent: 'center',
           alignItems: 'center',
           paddingVertical: tokens.spacing.sm,
-          // padding: tokens.spacing.sm,
         }}>
         <Animatable.View
           animation="fadeInUp"
           duration={300}
           style={{
             width: '100%',
-            maxWidth: '100%',
             height: '90%',
             backgroundColor: theme.colors.background,
             borderRadius: tokens.borderRadius['2xl'],
             overflow: 'hidden',
             padding: tokens.spacing.md,
           }}>
-          {/* Close */}
+          {/* ✖️ Close */}
           <TouchableOpacity
             onPress={() => {
               ReactNativeHapticFeedback.trigger('impactLight');
@@ -79,24 +76,50 @@ export default function ShopModal({
             />
           </TouchableOpacity>
 
-          {/* Product Grid */}
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text
-              numberOfLines={1}
-              style={[globalStyles.sectionTitle, {marginTop: 0}]}>
-              Shop the Vibe
-            </Text>
+          {/* 🛍️ Header */}
+          <Text
+            numberOfLines={1}
+            style={[
+              globalStyles.sectionTitle,
+              {marginTop: 0, marginBottom: tokens.spacing.md},
+            ]}>
+            Shop the Vibe
+          </Text>
 
-            {results.length === 0 ? (
-              <View style={{flex: 1, alignItems: 'center', marginTop: 50}}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {!hasResults ? (
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  marginTop: 60,
+                  paddingHorizontal: 20,
+                }}>
+                <MaterialIcons
+                  name="search-off"
+                  size={48}
+                  color={theme.colors.foreground2}
+                />
                 <Text
                   style={{
                     color: theme.colors.foreground,
-                    marginTop: 12,
-                    opacity: 0.7,
+                    fontWeight: '600',
+                    fontSize: 15,
+                    marginTop: 14,
                   }}>
-                  Fetching products...
+                  No matching products found
+                </Text>
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    opacity: 0.6,
+                    fontSize: 13,
+                    textAlign: 'center',
+                    marginTop: 6,
+                    lineHeight: 20,
+                  }}>
+                  Try simplifying your prompt, e.g. “men flannel shirt” or
+                  “casual plaid shirt”.
                 </Text>
               </View>
             ) : (
@@ -121,50 +144,39 @@ export default function ShopModal({
                       backgroundColor: theme.colors.surface,
                       borderWidth: tokens.borderWidth.hairline,
                       borderColor: theme.colors.inputBorder,
+                      borderRadius: tokens.borderRadius.md,
                       overflow: 'hidden',
-                      // borderRadius: tokens.borderRadius.md,
                     }}>
-                    {/* 🖼️ Product Image (consistent aspect ratio) */}
-                    <View
-                      style={{
-                        width: '100%',
-                        aspectRatio: 3 / 4,
-                        backgroundColor: theme.colors.surface,
-                        overflow: 'hidden',
-                      }}>
-                      <Image
-                        source={{uri: item.image}}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          position: 'absolute',
-                        }}
-                        resizeMode="cover"
-                      />
+                    {/* 🖼️ Product Image */}
+                    <Image
+                      source={{uri: item.image}}
+                      style={{width: '100%', aspectRatio: 3 / 4}}
+                      resizeMode="cover"
+                    />
 
-                      {/* 💎 Click to Buy Button */}
-                      <View
+                    {/* 💎 Click to Buy Overlay */}
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        position: 'absolute',
+                        bottom: 10,
+                        alignSelf: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.75)',
+                        borderRadius: tokens.borderRadius.lg,
+                        borderWidth: tokens.borderWidth.hairline,
+                        borderColor: 'black',
+                        paddingVertical: 8,
+                        paddingHorizontal: 14,
+                      }}>
+                      <Text
                         style={{
-                          position: 'absolute',
-                          bottom: 10,
-                          alignSelf: 'center',
-                          backgroundColor: 'rgba(255,255,255,0.75)',
-                          borderRadius: tokens.borderRadius.lg,
-                          borderWidth: tokens.borderWidth.hairline,
-                          borderColor: 'black',
-                          paddingVertical: 8,
-                          paddingHorizontal: 14,
+                          color: 'black',
+                          fontWeight: '700',
+                          fontSize: 13,
+                          letterSpacing: 0.2,
                         }}>
-                        <Text
-                          style={{
-                            color: 'black',
-                            fontWeight: '700',
-                            fontSize: 13,
-                            letterSpacing: 0.2,
-                          }}>
-                          Click to Buy →
-                        </Text>
-                      </View>
+                        Click to Buy →
+                      </Text>
                     </View>
 
                     {/* 🧾 Product Info */}
@@ -173,7 +185,7 @@ export default function ShopModal({
                         numberOfLines={1}
                         style={{
                           color: theme.colors.foreground,
-                          fontWeight: '400',
+                          fontWeight: '500',
                           fontSize: 13,
                         }}>
                         {item.name}
@@ -185,7 +197,7 @@ export default function ShopModal({
                             color: theme.colors.foreground,
                             opacity: 0.7,
                             fontSize: 11,
-                            marginTop: 6,
+                            marginTop: 4,
                           }}>
                           {item.brand}
                         </Text>
@@ -201,17 +213,6 @@ export default function ShopModal({
                           {item.price}
                         </Text>
                       )}
-                      {/* {item.source && (
-                        <Text
-                          style={{
-                            color: theme.colors.foreground,
-                            opacity: 0.6,
-                            fontSize: 10,
-                            marginTop: 2,
-                          }}>
-                          Source: {item.source}
-                        </Text>
-                      )} */}
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -220,7 +221,7 @@ export default function ShopModal({
           </ScrollView>
         </Animatable.View>
 
-        {/* WebView modal */}
+        {/* 🌐 WebView Modal */}
         <IntegratedShopOverlay
           visible={!!shopUrl}
           onClose={() => setShopUrl(null)}

@@ -226,13 +226,16 @@ const AiStylistSuggestions: React.FC<Props> = ({
         flex: 1,
         backgroundColor: theme.colors.background, // maintain theme
       }}>
+      <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
+        AI Style Suggestions
+      </Text>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: moderateScale(tokens.spacing.md2),
           paddingBottom: moderateScale(tokens.spacing.md), // extra breathing room for small screens
         }}>
-        <MascotAssistant size={75} position={{top: 13, right: 110}} />
+        <MascotAssistant position={{top: -40, right: 95}} size={67} />
 
         <Animatable.View
           animation="fadeInUp"
@@ -241,7 +244,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
           useNativeDriver
           style={{
             backgroundColor: theme.colors.surface,
-            borderRadius: tokens.borderRadius.md,
+            // borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.borderRadius['2xl'],
             borderWidth: theme.borderWidth.md,
             borderColor: theme.colors.surfaceBorder,
             padding: moderateScale(tokens.spacing.md1),
@@ -455,7 +459,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </SwipeableCard>
 
           {/* 🧭 Subtle swipe hint */}
-          <View
+          {/* <View
             style={{
               flexDirection: 'row',
               justifyContent: 'center',
@@ -476,7 +480,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}>
               Swipe suggestion left for new result
             </Text>
-          </View>
+          </View> */}
 
           {/* 🔁 Secondary CTAs */}
           <View

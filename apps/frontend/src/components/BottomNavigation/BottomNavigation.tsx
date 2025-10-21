@@ -117,16 +117,6 @@ const BottomNavigation = ({
           onPress={() => current !== 'SavedOutfits' && navigate('SavedOutfits')}
           isActive={current === 'SavedOutfits'}
         />
-
-        {/* <TabButton
-          icon="qr-code-scanner"
-          label="Barcode"
-          onPress={() =>
-            current !== 'BarcodeScannerScreen' &&
-            navigate('BarcodeScannerScreen')
-          }
-          isActive={current === 'BarcodeScannerScreen'}
-        /> */}
       </View>
     </SafeAreaView>
   );

@@ -1,16 +1,34 @@
 import React, {useEffect, useRef} from 'react';
-import {Animated, Easing, Image, StyleSheet, ViewStyle} from 'react-native';
+import {Animated, Easing, Image, Dimensions, ViewStyle} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// 📏 Baseline (iPhone 14 = 390 × 844)
+const BASE_WIDTH = 390;
+const BASE_HEIGHT = 844;
+const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+
+const scaleX = SCREEN_WIDTH / BASE_WIDTH;
+const scaleY = SCREEN_HEIGHT / BASE_HEIGHT;
+
+// 🧠 Visual “finesse” curves (keep elements optically identical)
+function finesseY(v: number) {
+  return v * scaleY * 0.96 + (SCREEN_HEIGHT > 850 ? 4 : 0); // subtle vertical trim
+}
+function finesseX(v: number) {
+  return v * scaleX * 1.02; // slight optical expansion on wide devices
+}
 
 type Props = {
   size?: number;
-  position?: ViewStyle; // allows custom position like { top: 50, left: 20 }
+  position?: ViewStyle; // {bottom, right, top, left}
 };
 
 export default function MascotAssistant({
   size = 120,
-  position = {bottom: 70, right: 0},
+  position = {bottom: 80, right: 20},
 }: Props) {
   const float = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.loop(
@@ -31,32 +49,69 @@ export default function MascotAssistant({
     ).start();
   }, [float]);
 
+  const normalized: ViewStyle = {};
+  if (position.top !== undefined)
+    normalized.top = finesseY(position.top) + insets.top;
+  if (position.bottom !== undefined)
+    normalized.bottom = finesseY(position.bottom) + insets.bottom;
+  if (position.left !== undefined) normalized.left = finesseX(position.left);
+  if (position.right !== undefined) normalized.right = finesseX(position.right);
+
+  const style: ViewStyle = {
+    position: 'absolute',
+    zIndex: 9999,
+    elevation: 9999,
+    transform: [{translateY: float}],
+    ...normalized,
+  };
+
   return (
-    <Animated.View
-      style={[styles.container, position, {transform: [{translateY: float}]}]}>
+    <Animated.View style={style}>
       <Image
         source={require('../../assets/animations/AnimaBot.gif')}
-        style={{width: size, height: size, resizeMode: 'contain'}}
+        style={{
+          width: size * scaleX * 0.98,
+          height: size * scaleX * 0.98,
+          resizeMode: 'contain',
+        }}
       />
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    zIndex: 9999,
-    elevation: 9999,
-  },
-});
-
-///////////////
+///////////////////
 
 // import React, {useEffect, useRef} from 'react';
-// import {Animated, Easing, Image, StyleSheet} from 'react-native';
+// import {
+//   Animated,
+//   Easing,
+//   Image,
+//   StyleSheet,
+//   ViewStyle,
+//   Dimensions,
+// } from 'react-native';
+// import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-// export default function MascotAssistant() {
+// // 🧭 Baseline iPhone 14 size
+// const BASE_WIDTH = 390;
+// const BASE_HEIGHT = 844;
+
+// // simple scale helpers
+// const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+// const scaleX = SCREEN_WIDTH / BASE_WIDTH;
+// const scaleY = SCREEN_HEIGHT / BASE_HEIGHT;
+
+// type Props = {
+//   size?: number;
+//   position?: ViewStyle; // e.g. { bottom: 70, right: 10 }
+// };
+
+// export default function MascotAssistant({
+//   size = 120,
+//   position = {bottom: 80, right: 20},
+// }: Props) {
 //   const float = useRef(new Animated.Value(0)).current;
+//   const insets = useSafeAreaInsets();
 
 //   useEffect(() => {
 //     Animated.loop(
@@ -77,91 +132,35 @@ const styles = StyleSheet.create({
 //     ).start();
 //   }, [float]);
 
+//   // 📏 normalize position across devices
+//   const normalizedPosition: ViewStyle = {};
+//   if (position.top !== undefined)
+//     normalizedPosition.top = position.top * scaleY + insets.top;
+//   if (position.bottom !== undefined)
+//     normalizedPosition.bottom = position.bottom * scaleY + insets.bottom;
+//   if (position.left !== undefined)
+//     normalizedPosition.left = position.left * scaleX;
+//   if (position.right !== undefined)
+//     normalizedPosition.right = position.right * scaleX;
+
+//   const positionStyle: ViewStyle = {
+//     position: 'absolute',
+//     zIndex: 9999,
+//     elevation: 9999,
+//     transform: [{translateY: float}],
+//     ...normalizedPosition,
+//   };
+
 //   return (
-//     <Animated.View
-//       style={[styles.container, {transform: [{translateY: float}]}]}>
+//     <Animated.View style={positionStyle}>
 //       <Image
 //         source={require('../../assets/animations/AnimaBot.gif')}
-//         style={styles.mascot}
+//         style={{
+//           width: size * scaleX,
+//           height: size * scaleX,
+//           resizeMode: 'contain',
+//         }}
 //       />
 //     </Animated.View>
 //   );
 // }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     position: 'absolute',
-//     bottom: 70,
-//     right: 0,
-//     zIndex: 9999,
-//     elevation: 9999,
-//   },
-//   mascot: {
-//     width: 120,
-//     height: 120,
-//     resizeMode: 'contain',
-//   },
-// });
-
-///////////////////////
-
-// import React, {useEffect, useRef} from 'react';
-// import {Animated, Easing, Image, StyleSheet, Dimensions} from 'react-native';
-
-// const {width, height} = Dimensions.get('window');
-
-// export default function MascotAssistant() {
-//   const x = useRef(new Animated.Value(width * 0.7)).current;
-//   const y = useRef(new Animated.Value(height * 0.7)).current;
-
-//   function moveRandomly() {
-//     const nextX = Math.random() * (width - 150);
-//     const nextY = Math.random() * (height - 250);
-
-//     Animated.timing(x, {
-//       toValue: nextX,
-//       duration: 3000,
-//       easing: Easing.inOut(Easing.ease),
-//       useNativeDriver: true,
-//     }).start();
-
-//     Animated.timing(y, {
-//       toValue: nextY,
-//       duration: 3000,
-//       easing: Easing.inOut(Easing.ease),
-//       useNativeDriver: true,
-//     }).start(() => moveRandomly());
-//   }
-
-//   useEffect(() => {
-//     moveRandomly();
-//   }, []);
-
-//   return (
-//     <Animated.View
-//       style={[
-//         styles.container,
-//         {
-//           transform: [{translateX: x}, {translateY: y}],
-//         },
-//       ]}>
-//       <Image
-//         source={require('../../assets/animations/AnimaBot.gif')}
-//         style={styles.mascot}
-//       />
-//     </Animated.View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     position: 'absolute',
-//     zIndex: 9999,
-//     elevation: 9999,
-//   },
-//   mascot: {
-//     width: 150,
-//     height: 150,
-//     resizeMode: 'contain',
-//   },
-// });

@@ -138,6 +138,7 @@ export const createGlobalStyles = (theme: Theme) =>
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xl,
+      // borderRadius: tokens.borderRadius['2xl'],
       backgroundColor: theme.colors.surface,
     },
     cardStyles2: {

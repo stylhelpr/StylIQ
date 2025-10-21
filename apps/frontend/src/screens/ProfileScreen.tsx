@@ -247,7 +247,7 @@ export default function ProfileScreen({navigate}: Props) {
     },
     settingsButton: {
       position: 'absolute',
-      bottom: 0,
+      bottom: -8,
       right: 16,
       zIndex: 10,
       padding: 8,
@@ -337,7 +337,7 @@ export default function ProfileScreen({navigate}: Props) {
           animation="rotate"
           iterationCount="infinite"
           duration={16000}>
-          <Icon name="settings" size={24} color={theme.colors.button1} />
+          <Icon name="settings" size={26} color={theme.colors.button1} />
         </Animatable.View>
       </AppleTouchFeedback>
 

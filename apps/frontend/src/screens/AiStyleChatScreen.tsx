@@ -17,6 +17,7 @@ import {
   Image,
   Alert,
   Modal,
+  Easing,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -106,6 +107,18 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const userId = useUUID();
   const [profilePicture, setProfilePicture] = useState<string>('');
 
+  const [inputHeight, setInputHeight] = useState(42);
+  const animatedHeight = useRef(new Animated.Value(42)).current;
+
+  useEffect(() => {
+    Animated.timing(animatedHeight, {
+      toValue: inputHeight,
+      duration: 150,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false,
+    }).start();
+  }, [inputHeight]);
+
   /** 🌐 State */
   const [messages, setMessages] = useState<Message[]>(() => [
     {
@@ -174,46 +187,76 @@ export default function AiStylistChatScreen({navigate}: Props) {
   //   }
   // };
 
+  // const speakResponse = async (text: string) => {
+  //   console.log('🔇 Voice globally disabled');
+  //   return; // 🛑 nothing happens
+  // };
+
+  // /** 🔗 Helper to call your AI chat endpoint with user_id */
+  // async function callAiChatAPI(
+  //   historyForApi: Message[],
+  //   userMsg: Message,
+  //   userId: string,
+  // ) {
+  //   console.log('🧠 Sending to AI Chat API', {
+  //     userId,
+  //     messageCount: historyForApi.length,
+  //   });
+
+  //   const res = await fetch(`${API_BASE_URL}/ai/chat`, {
+  //     method: 'POST',
+  //     headers: {'Content-Type': 'application/json'},
+  //     body: JSON.stringify({
+  //       user_id: userId || 'anonymous', // ✅ guarantees not null
+  //       messages: historyForApi.map(m => ({
+  //         role: m.role,
+  //         content: m.text,
+  //       })),
+  //     }),
+  //   });
+
+  //   if (!res.ok) {
+  //     console.error('❌ Chat API failed', res.status);
+  //     throw new Error('Chat API failed');
+  //   }
+
+  //   const json = await res.json();
+  //   return {
+  //     text: json.reply,
+  //     images: json.images ?? [],
+  //     links: json.links ?? [],
+  //   };
+  // }
+
   const speakResponse = async (text: string) => {
-    console.log('🔇 Voice globally disabled');
-    return; // 🛑 nothing happens
-  };
+    const voiceEnabledStored = await AsyncStorage.getItem('voiceEnabled');
+    const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
-  /** 🔗 Helper to call your AI chat endpoint with user_id */
-  async function callAiChatAPI(
-    historyForApi: Message[],
-    userMsg: Message,
-    userId: string,
-  ) {
-    console.log('🧠 Sending to AI Chat API', {
-      userId,
-      messageCount: historyForApi.length,
-    });
-
-    const res = await fetch(`${API_BASE_URL}/ai/chat`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        user_id: userId || 'anonymous', // ✅ guarantees not null
-        messages: historyForApi.map(m => ({
-          role: m.role,
-          content: m.text,
-        })),
-      }),
-    });
-
-    if (!res.ok) {
-      console.error('❌ Chat API failed', res.status);
-      throw new Error('Chat API failed');
+    if (!voiceGloballyEnabled) {
+      console.log('🔇 Hard cutoff: Voice disabled from Settings');
+      return; // ✅ prevents all TTS or API calls
     }
 
-    const json = await res.json();
-    return {
-      text: json.reply,
-      images: json.images ?? [],
-      links: json.links ?? [],
-    };
-  }
+    const enabled = await getTtsEnabled();
+    if (!enabled) {
+      console.log('🔕 Voice toggle off — skipping TTS');
+      return;
+    }
+
+    try {
+      const url = `${API_BASE_URL}/ai/tts?text=${encodeURIComponent(text)}`;
+      const js = `
+      (function() {
+        const html = "<audio src='${url}' autoplay playsinline></audio>";
+        document.body.innerHTML = html;
+      })();
+      true;
+    `;
+      globalTtsRef.current?.current?.injectJavaScript(js);
+    } catch (err) {
+      console.warn('❌ TTS injection failed:', err);
+    }
+  };
 
   useEffect(() => {
     const s1 = Keyboard.addListener('keyboardWillShow', scrollToBottom);
@@ -667,7 +710,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
           </AppleTouchFeedback>
         </View> */}
 
-          <MascotAssistant size={120} position={{top: 520, right: 0}} />
+          <MascotAssistant position={{bottom: 40, right: 10}} size={80} />
 
           <View
             style={{
@@ -791,7 +834,6 @@ export default function AiStylistChatScreen({navigate}: Props) {
               </TouchableOpacity>
             </View>
           </View>
-
           {/* 💬 Main Scroll */}
           <View style={{flex: 1}}>
             <Animated.ScrollView
@@ -990,20 +1032,6 @@ export function AnimatedInputBar({
         paddingBottom: isTablet ? 24 : 16,
         backgroundColor: 'transparent',
       }}>
-      {/* <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          borderWidth: tokens.borderWidth.xl,
-          borderColor: theme.colors.surfaceBorder,
-          backgroundColor: theme.colors.surface3,
-          borderRadius: 22,
-          paddingHorizontal: 10,
-          shadowColor: '#000',
-          shadowOpacity: 0.08,
-          shadowRadius: 5,
-          shadowOffset: {width: 0, height: 2},
-        }}> */}
       <View
         style={{
           flexDirection: 'row',
@@ -1020,29 +1048,6 @@ export function AnimatedInputBar({
           shadowRadius: 3,
           shadowOffset: {width: 0, height: 1},
         }}>
-        {/* <TextInput
-          ref={inputRef}
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask for a look… event, vibe, weather"
-          placeholderTextColor={'#9c9c9cff'}
-          multiline
-          scrollEnabled={false}
-          keyboardAppearance="dark"
-          returnKeyType="send"
-          blurOnSubmit={false}
-          style={{
-            flex: 1,
-            color: theme.colors.foreground,
-            paddingHorizontal: 8,
-            paddingTop: isTablet ? 14 : 10,
-            paddingBottom: isTablet ? 14 : 10,
-            fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
-            textAlignVertical: 'top',
-            minHeight: 42,
-          }}
-        /> */}
-
         <TextInput
           ref={inputRef}
           value={input}
@@ -1050,39 +1055,32 @@ export function AnimatedInputBar({
           placeholder="Ask for a look… event, vibe, weather"
           placeholderTextColor={'#9c9c9cff'}
           multiline
-          onContentSizeChange={e =>
-            setInputHeight(Math.min(e.nativeEvent.contentSize.height, 120))
-          }
+          onContentSizeChange={e => {
+            const newHeight = Math.min(
+              e.nativeEvent.contentSize.height + 4,
+              130,
+            );
+            setInputHeight(newHeight);
+          }}
           numberOfLines={1} // ✅ keeps placeholder single-line
           ellipsizeMode="tail" // ✅ truncates long placeholder instead of wrapping
           keyboardAppearance="dark"
           returnKeyType="send"
           blurOnSubmit={false}
-          // style={{
-          //   flex: 1,
-          //   color: theme.colors.foreground,
-          //   fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
-          //   paddingVertical: 6,
-          //   paddingHorizontal: 8,
-          //   minHeight: 42,
-          //   maxHeight: 120,
-          //   height: inputHeight,
-          //   textAlignVertical: 'top',
-          //   includeFontPadding: false,
-          // }}
           style={{
             flex: 1,
+            paddingTop: 10, // ⬆️ a bit more breathing room
+            paddingBottom: 10,
+            lineHeight: 22,
+            includeFontPadding: false,
+            textAlignVertical: 'top',
+            overflow: 'visible', // ✅ ensures first line never clips
             color: theme.colors.foreground,
             fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
-            paddingTop: 15, // ✅ slightly more than before
-            paddingBottom: 8,
             paddingHorizontal: 8,
             minHeight: 42,
             maxHeight: 120,
             height: inputHeight,
-            textAlignVertical: 'top', // ✅ ensures text sticks to top, not center
-            includeFontPadding: false, // ✅ removes Android baseline clipping
-            lineHeight: 22, // ✅ keeps vertical rhythm clean
           }}
         />
 
