@@ -387,7 +387,10 @@ export default function AllSavedLooksModal({
           {/* ✖️ Close Button */}
           <TouchableOpacity
             style={[styles.closeIcon, {marginTop: 10}]}
-            onPress={handleClose}
+            onPress={() => {
+              ReactNativeHapticFeedback.trigger('impactMedium');
+              handleClose();
+            }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
             <MaterialIcons
               name="close"
@@ -449,9 +452,10 @@ export default function AllSavedLooksModal({
                 justifyContent: 'flex-start',
                 width: '100%',
               }}>
-              <TouchableOpacity
+              <AppleTouchFeedback
+                hapticStyle="impactMedium"
                 onPress={() => setPersonalizedMode(false)}
-                activeOpacity={0.8}
+                // activeOpacity={0.8}
                 style={{
                   paddingVertical: 9,
                   paddingHorizontal: 10,
@@ -472,11 +476,12 @@ export default function AllSavedLooksModal({
                   }}>
                   Match Mode
                 </Text>
-              </TouchableOpacity>
+              </AppleTouchFeedback>
 
-              <TouchableOpacity
+              <AppleTouchFeedback
+                hapticStyle="impactMedium"
                 onPress={() => setPersonalizedMode(true)}
-                activeOpacity={0.8}
+                // activeOpacity={0.8}
                 style={{
                   paddingVertical: 9,
                   paddingHorizontal: 10,
@@ -496,7 +501,7 @@ export default function AllSavedLooksModal({
                   }}>
                   Personalized Mode
                 </Text>
-              </TouchableOpacity>
+              </AppleTouchFeedback>
             </View>
           </View>
 
@@ -538,8 +543,8 @@ export default function AllSavedLooksModal({
                         marginBottom: tokens.spacing.md,
                         backgroundColor: theme.colors.surface,
                         borderWidth: tokens.borderWidth.hairline,
-                        borderColor: theme.colors.inputBorder,
-                        // borderRadius: tokens.borderRadius.md,
+                        // borderColor: theme.colors.inputBorder,
+                        borderRadius: tokens.borderRadius.md,
                         overflow: 'hidden',
                       }}>
                       {/* 🖼️ Image Section */}

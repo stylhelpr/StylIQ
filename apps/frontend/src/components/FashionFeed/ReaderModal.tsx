@@ -13,7 +13,8 @@ import {
 import {WebView} from 'react-native-webview';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 import {BlurView} from '@react-native-community/blur';
 import {useGlobalStyles} from '../..//styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
@@ -175,7 +176,10 @@ export default function ReaderModal({
           {/* ❌ Floating close button ABOVE gesture zone */}
           <TouchableOpacity
             style={[styles.closeIcon]}
-            onPress={handleClose}
+            onPress={() => {
+              ReactNativeHapticFeedback.trigger('impactMedium');
+              handleClose();
+            }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
             <MaterialIcons
               name="close"

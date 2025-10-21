@@ -207,6 +207,34 @@ export default function ClosetScreen({navigate}: Props) {
     };
   }, []);
 
+  // 🧠 Expanding FAB state (move these near your other useStates at top of ClosetScreen)
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleFab = () => {
+    ReactNativeHapticFeedback.trigger('impactMedium', {
+      enableVibrateFallback: true,
+    });
+    Animated.spring(fabAnim, {
+      toValue: fabOpen ? 0 : 1,
+      useNativeDriver: false, // ✅ FIX — bottom can now animate safely
+      friction: 6,
+      tension: 40,
+    }).start();
+    setFabOpen(!fabOpen);
+  };
+
+  const fabItemOffset = (index: number) =>
+    fabAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -70 * (index + 1)],
+    });
+
+  const fabOpacity = fabAnim.interpolate({
+    inputRange: [0, 0.6, 1],
+    outputRange: [0, 0.9, 1],
+  });
+
   // const numColumns = Math.floor(screenWidth / (160 + 20.8 * 2)) || 1;
   // const imageSize =
   //   (screenWidth - 20.8 * (numColumns - 1) - 20.8 * 1.5) / numColumns;
@@ -367,7 +395,12 @@ export default function ClosetScreen({navigate}: Props) {
               setMenuVisible(prev => !prev);
               setMenuView('main');
             }}>
-            <MaterialIcons name="more-vert" size={32} color="white" />
+            {/* <MaterialIcons name="more-vert" size={32} color="white" /> */}
+            <MaterialIcons
+              name="filter-list"
+              size={33}
+              color={theme.colors.buttonText1}
+            />
           </AppleTouchFeedback>
         </View>
       </View>
@@ -538,93 +571,101 @@ export default function ClosetScreen({navigate}: Props) {
         ))}
       </ScrollView>
 
-      {/* ➕ Add Item FAB */}
+      {/* 🍏 Expanding FAB Menu (fixed hooks version) */}
       <Animated.View
         style={{
           transform: [{translateY: fabBounce}],
           position: 'absolute',
-          // bottom: 24,
-          bottom: 170,
+          bottom: 24,
           right: 24,
         }}>
+        {[
+          {
+            icon: 'qr-code-scanner',
+            onPress: () => navigate('BarcodeScannerScreen'),
+          },
+          {icon: 'search', onPress: () => navigate('Search')},
+          {icon: 'add', onPress: () => navigate('AddItem')},
+        ].map((btn, index) => (
+          <Animated.View
+            key={index}
+            style={{
+              position: 'absolute',
+              // Start above main FAB (64px base + 70px per step)
+              bottom: 64 + 70 * index,
+              opacity: fabOpacity,
+              transform: [
+                {
+                  translateY: fabAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -10 * (index + 1)],
+                  }),
+                },
+                {scale: fabAnim},
+              ],
+            }}>
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={() => {
+                toggleFab();
+                btn.onPress();
+              }}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 26,
+                backgroundColor: theme.colors.button1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 17,
+                borderWidth: theme.borderWidth.hairline,
+                borderColor: theme.colors.secondary,
+                marginLeft: 6,
+              }}>
+              <MaterialIcons
+                name={btn.icon}
+                size={26}
+                color={theme.colors.buttonText1}
+              />
+            </AppleTouchFeedback>
+          </Animated.View>
+        ))}
+
+        {/* Main FAB */}
         <AppleTouchFeedback
           hapticStyle="impactHeavy"
-          onPress={() => navigate('AddItem')}
+          onPress={toggleFab}
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
+            width: 64,
+            height: 64,
+            borderRadius: 32,
             backgroundColor: theme.colors.button1,
             alignItems: 'center',
             justifyContent: 'center',
             borderWidth: theme.borderWidth.hairline,
             borderColor: theme.colors.secondary,
+            shadowColor: '#000',
+            shadowOpacity: 0.25,
+            shadowOffset: {width: 0, height: 6},
+            shadowRadius: 10,
           }}>
-          <MaterialIcons
-            name="add"
-            size={28}
-            color={theme.colors.buttonText1}
-          />
-        </AppleTouchFeedback>
-      </Animated.View>
-
-      {/* 📷 Search Scanner FAB */}
-      <Animated.View
-        style={{
-          transform: [{translateY: fabBounce}],
-          position: 'absolute',
-          // bottom: 170,
-          bottom: 96,
-          right: 24,
-        }}>
-        <AppleTouchFeedback
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('Search')}
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            backgroundColor: theme.colors.button1 ?? '#444',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: theme.borderWidth.hairline,
-            borderColor: theme.colors.secondary,
-          }}>
-          <MaterialIcons
-            name="search"
-            size={26}
-            color={theme.colors.buttonText1}
-          />
-        </AppleTouchFeedback>
-      </Animated.View>
-
-      {/* 📷 Barcode Scanner FAB */}
-      <Animated.View
-        style={{
-          transform: [{translateY: fabBounce}],
-          position: 'absolute',
-          // bottom: 96,
-          bottom: 24,
-          right: 24,
-        }}>
-        <AppleTouchFeedback
-          hapticStyle="impactHeavy"
-          onPress={() => navigate('BarcodeScannerScreen')}
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            backgroundColor: theme.colors.button1 ?? '#444',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: theme.borderWidth.hairline,
-            borderColor: theme.colors.secondary,
-          }}>
-          <MaterialIcons
-            name="qr-code-scanner"
-            size={26}
-            color={theme.colors.buttonText1}
-          />
+          <Animated.View
+            style={{
+              transform: [
+                {
+                  rotate: fabAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '45deg'],
+                  }),
+                },
+              ],
+            }}>
+            <MaterialIcons
+              name="add"
+              size={32}
+              color={theme.colors.buttonText1}
+            />
+          </Animated.View>
         </AppleTouchFeedback>
       </Animated.View>
 
@@ -653,7 +694,7 @@ export default function ClosetScreen({navigate}: Props) {
                       }}>
                       <MaterialIcons
                         name="filter-list"
-                        size={22}
+                        size={24}
                         color={theme.colors.foreground}
                       />
                       <Text style={styles.mainOptionText}>Filter</Text>

@@ -122,7 +122,7 @@ export default function ShopModal({
                       borderWidth: tokens.borderWidth.hairline,
                       borderColor: theme.colors.inputBorder,
                       overflow: 'hidden',
-                      // borderRadius: tokens.borderRadius.md,
+                      borderRadius: tokens.borderRadius.md,
                     }}>
                     {/* 🖼️ Product Image (consistent aspect ratio) */}
                     <View

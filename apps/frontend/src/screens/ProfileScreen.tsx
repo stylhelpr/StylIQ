@@ -315,7 +315,7 @@ export default function ProfileScreen({navigate}: Props) {
       lineHeight: 18,
     },
     linkText: {
-      color: '#4ea1f2',
+      color: theme.colors.button1,
       fontSize: 16,
       marginTop: 4,
     },
@@ -332,7 +332,7 @@ export default function ProfileScreen({navigate}: Props) {
           if (global.goingBack) return;
           navigate('Settings', {goBack: () => navigate('Profile')});
         }}
-        hapticStyle="selection">
+        hapticStyle="impactMedium">
         <Animatable.View
           animation="rotate"
           iterationCount="infinite"

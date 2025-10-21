@@ -100,6 +100,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
         backgroundColor: theme.colors.surface,
         borderWidth: tokens.borderWidth.hairline,
         borderColor: theme.colors.inputBorder,
+        borderRadius: tokens.borderRadius.md,
         overflow: 'hidden',
       }}>
       {/* 🖼️ Product Image */}
@@ -518,6 +519,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                               backgroundColor: theme.colors.surface,
                               borderWidth: tokens.borderWidth.hairline,
                               borderColor: theme.colors.inputBorder,
+                              borderRadius: tokens.borderRadius.md,
                               overflow: 'hidden',
                             }}>
                             {/* 🖼️ Product Image (fills entire card) */}
@@ -603,6 +605,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                     fontWeight: '700',
                                     fontSize: 13,
                                     marginTop: 6,
+                                    color: theme.colors.foreground,
                                   }}>
                                   {look.price}
                                 </Text>
