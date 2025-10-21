@@ -335,8 +335,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             style={{
               backgroundColor: theme.colors.surface2,
               borderRadius: tokens.borderRadius.md,
-              borderWidth: theme.borderWidth.hairline,
-              borderColor: theme.colors.muted,
+              // borderWidth: theme.borderWidth.hairline,
+              // borderColor: theme.colors.muted,
               padding: moderateScale(tokens.spacing.sm),
             }}>
             {loading && (
@@ -534,6 +534,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 minWidth: 170,
+
+                // shadowColor: '#000',
+                // shadowOffset: {width: 8, height: 10},
+                // shadowOpacity: 0.5,
+                // shadowRadius: 5,
+                // elevation: 6,
               }}>
               <Text
                 style={{
@@ -562,6 +568,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 minWidth: 170,
+
+                // shadowColor: '#000',
+                // shadowOffset: {width: 8, height: 10},
+                // shadowOpacity: 0.5,
+                // shadowRadius: 5,
+                // elevation: 6,
               }}>
               <Text
                 style={{

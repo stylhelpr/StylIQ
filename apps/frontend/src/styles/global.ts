@@ -140,6 +140,17 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.xl,
       // borderRadius: tokens.borderRadius['2xl'],
       backgroundColor: theme.colors.surface,
+      // shadowColor: 'rgb(0, 0, 0)',
+      // shadowOffset: {width: 6, height: 9},
+      // shadowOpacity: 0.9,
+      // shadowRadius: 7,
+      // elevation: 6,
+
+      // shadowColor: '#000',
+      // shadowOffset: {width: 8, height: 10},
+      // shadowOpacity: 0.5,
+      // shadowRadius: 5,
+      // elevation: 6,
     },
     cardStyles2: {
       padding: 14,
