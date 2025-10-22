@@ -131,6 +131,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 fontSize: fontScale(tokens.fontSize.lg),
                 fontWeight: tokens.fontWeight.bold,
                 paddingHorizontal: moderateScale(tokens.spacing.md2),
+                marginBottom: moderateScale(tokens.spacing.sm),
               }}>
               {title}
             </Text>
@@ -1255,14 +1256,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             <View>
                               <Image
                                 source={{uri: look.image_url}}
-                                style={[
-                                  globalStyles.image4,
-                                  {
-                                    borderColor: theme.colors.surfaceBorder,
-                                    borderWidth: tokens.borderWidth.md,
-                                    borderRadius: tokens.borderRadius.md,
-                                  },
-                                ]}
+                                style={[globalStyles.image8]}
                                 resizeMode="cover"
                               />
                             </View>
@@ -1371,11 +1365,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           <Image
                             source={{uri: c.source_image_url}}
                             style={[
-                              globalStyles.image4,
+                              globalStyles.image8,
                               {
                                 borderColor: theme.colors.surfaceBorder,
                                 borderWidth: tokens.borderWidth.md,
-                                borderRadius: tokens.borderRadius.md,
+                                // borderRadius: tokens.borderRadius.md,
                               },
                             ]}
                             resizeMode="cover"
@@ -1476,11 +1470,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             <Image
                               source={{uri: vibe.image_url}}
                               style={[
-                                globalStyles.image4,
+                                globalStyles.image8,
                                 {
                                   borderColor: theme.colors.surfaceBorder,
                                   borderWidth: tokens.borderWidth.md,
-                                  borderRadius: tokens.borderRadius.md,
+                                  // borderRadius: tokens.borderRadius.md,
                                 },
                               ]}
                               resizeMode="cover"

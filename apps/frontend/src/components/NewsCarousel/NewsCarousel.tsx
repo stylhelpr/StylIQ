@@ -154,12 +154,13 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
               <Text
                 style={{
                   color: theme.colors.foreground,
-                  fontSize: 14,
+                  fontSize: 12,
                   fontWeight: '700',
                   marginHorizontal: 10,
-                  marginTop: 8,
+                  marginTop: 6,
+                  // marginBottom: 8,
                 }}
-                numberOfLines={2}>
+                numberOfLines={1}>
                 {a.title || 'Untitled'}
               </Text>
               <Text
@@ -167,7 +168,7 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
                   fontSize: 12,
                   color: theme.colors.foreground2,
                   marginHorizontal: 10,
-                  marginBottom: 10,
+                  marginBottom: 6,
                   marginTop: 4,
                   fontWeight: '500',
                 }}
