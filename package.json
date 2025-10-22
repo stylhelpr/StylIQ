@@ -37,6 +37,7 @@
     "fast-xml-parser": "^5.2.5",
     "puppeteer": "^24.22.3",
     "react": "18.1.0",
+    "react-dom": "18.1.0",
     "react-native": "0.70.10",
     "react-native-add-calendar-event": "^5.0.0",
     "react-native-animatable": "^1.4.0",
