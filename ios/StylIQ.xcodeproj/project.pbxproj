@@ -232,19 +232,19 @@
 			buildPhases = (
 				C19AB05F7CAC424BE5ABE195 /* [CP] Check Pods Manifest.lock */,
 				FD10A7F022414F080027D42C /* Start Packager */,
+				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
-				13B07F8E1A680F5B00A75B9A /* Resources */,
-				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				C2115CAB2E88E17F00871CF8 /* Embed Foundation Extensions */,
-				C2115CB02E88E52F00871CF8 /* CopyFiles */,
-				C2E625F52E8F609B003F367F /* Fix Hermes Framework */,
-				C20047E32E8383AF005702BE /* Strip Bitcode From Embedded Frameworks */,
-				C2799AB22E83881E0034D74E /* Generate Hermes dSYM */,
-				C2E625F62E8F60E2003F367F /* Fix Hermes Headers */,
 				E864C7C2EDA391FAC61D3261 /* [CP] Embed Pods Frameworks */,
+				C2E625F52E8F609B003F367F /* Fix Hermes Framework */,
+				C2799AB22E83881E0034D74E /* Generate Hermes dSYM */,
+				C20047E32E8383AF005702BE /* Strip Bitcode From Embedded Frameworks */,
+				C2E625F62E8F60E2003F367F /* Fix Hermes Headers */,
 				F9F7EFD0B0B6571E864307B7 /* [CP] Copy Pods Resources */,
+				13B07F8E1A680F5B00A75B9A /* Resources */,
 				0CD7178DF6F55B4E82E80BD5 /* [CP-User] [RNFB] Core Configuration */,
+				C2115CB02E88E52F00871CF8 /* CopyFiles */,
 			);
 			buildRules = (
 			);
