@@ -45,7 +45,7 @@ jobs:
       - name: Build and Push Docker image
         run: |
           IMAGE="us-central1-docker.pkg.dev/stylhelpr-prod/backend/api:latest"
-          docker build -t "$IMAGE" -f apps/backend-nest/Dockerfile apps/backend-nest
+          docker build -t "$IMAGE" -f apps/backend-nest/Dockerfile .
           docker push "$IMAGE"
 
       # 5) Deploy to Cloud Run (keeps existing env/secrets on the service)
