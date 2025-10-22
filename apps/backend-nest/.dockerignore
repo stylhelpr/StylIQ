@@ -25,3 +25,7 @@ ios
 
 # other app dirs not needed for backend build
 apps/frontend
+
+# include backend for build context
+!apps/backend-nest/**
+!apps/backend-nest/Dockerfile
