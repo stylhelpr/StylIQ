@@ -134,7 +134,7 @@ export const tokens = {
   borderRadius: {
     none: 0,
     sm: 8,
-    md: 20,
+    md: 12,
     lg: 16,
     xl: 20,
     '2xl': 32,

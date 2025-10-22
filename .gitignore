@@ -91,3 +91,13 @@ stylhelpr-prod-12ff0cbcc3ed.json
 .env.*
 
 * text=auto
+
+
+# re-include backend package files
+!apps/backend-nest/package.json
+!apps/backend-nest/package-lock.json
+
+# include backend config files required for build
+!apps/backend-nest/tsconfig.json
+!apps/backend-nest/tsconfig.build.json
+!apps/backend-nest/nest-cli.json
