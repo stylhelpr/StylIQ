@@ -20,9 +20,9 @@ ENV NODE_ENV=production \
 
 RUN apk add --no-cache dumb-init curl ca-certificates
 
-# Copy backend package files again
-COPY apps/backend-nest/package*.json ./
-RUN npm ci --omit=dev
+# Copy backend package files (ensure both JSON files are present)
+COPY apps/backend-nest/package.json apps/backend-nest/package-lock.json ./
+RUN ls -la && npm ci --omit=dev
 
 # Copy built dist folder from build stage
 COPY --from=build /app/dist ./dist
