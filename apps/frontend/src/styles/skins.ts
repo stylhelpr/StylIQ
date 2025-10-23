@@ -189,7 +189,7 @@ export const skins = {
       surface2: '#f4f4f4ff',
       surface3: '#d7d7d7ff',
 
-      surfaceBorder: 'rgba(163, 163, 163, 0.09)',
+      surfaceBorder: 'rgba(163, 163, 163, 0.27)',
       // surfaceBorder: 'rgba(163, 163, 163, 0)',
 
       pillDark1: 'rgba(40, 40, 40, 1)',

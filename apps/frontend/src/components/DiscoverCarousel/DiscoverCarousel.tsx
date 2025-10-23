@@ -156,7 +156,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
               }}>
               <Image
                 source={{uri: item.image_url}}
-                style={globalStyles.image5}
+                style={globalStyles.image7}
                 resizeMode="cover"
                 onError={() => console.warn('⚠️ image failed', item.image_url)}
               />

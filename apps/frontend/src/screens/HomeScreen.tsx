@@ -131,7 +131,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 fontSize: fontScale(tokens.fontSize.lg),
                 fontWeight: tokens.fontWeight.bold,
                 paddingHorizontal: moderateScale(tokens.spacing.md2),
-                marginBottom: moderateScale(tokens.spacing.sm),
+                marginBottom: moderateScale(tokens.spacing.xsm),
               }}>
               {title}
             </Text>
@@ -1364,14 +1364,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           style={{alignItems: 'center'}}>
                           <Image
                             source={{uri: c.source_image_url}}
-                            style={[
-                              globalStyles.image8,
-                              {
-                                borderColor: theme.colors.surfaceBorder,
-                                borderWidth: tokens.borderWidth.md,
-                                // borderRadius: tokens.borderRadius.md,
-                              },
-                            ]}
+                            style={[globalStyles.image8]}
                             resizeMode="cover"
                           />
                         </AppleTouchFeedback>
@@ -1469,14 +1462,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             style={{alignItems: 'center'}}>
                             <Image
                               source={{uri: vibe.image_url}}
-                              style={[
-                                globalStyles.image8,
-                                {
-                                  borderColor: theme.colors.surfaceBorder,
-                                  borderWidth: tokens.borderWidth.md,
-                                  // borderRadius: tokens.borderRadius.md,
-                                },
-                              ]}
+                              style={[globalStyles.image8]}
                               resizeMode="cover"
                             />
                             {/* 👇 Add share button */}

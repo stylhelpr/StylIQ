@@ -95,11 +95,11 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
       delay={idx * 70}
       duration={400}
       style={{
-        width: '49.6%',
-        marginBottom: tokens.spacing.md,
+        width: '49.0%',
+        marginBottom: tokens.spacing.xsm,
         backgroundColor: theme.colors.surface,
-        borderWidth: tokens.borderWidth.hairline,
-        borderColor: theme.colors.inputBorder,
+        borderWidth: tokens.borderWidth.md,
+        borderColor: theme.colors.surfaceBorder,
         borderRadius: tokens.borderRadius.md,
         overflow: 'hidden',
       }}>
@@ -189,7 +189,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
         {item.price && (
           <Text
             style={{
-              color: theme.colors.primary,
+              color: theme.colors.foreground,
               fontWeight: '700',
               fontSize: 13,
               marginTop: 6,
@@ -514,11 +514,11 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                               setTimeout(() => openShopModal(look.link), 300);
                             }}
                             style={{
-                              width: '49.6%',
-                              marginBottom: tokens.spacing.md,
+                              width: '49.0%',
+                              marginBottom: tokens.spacing.xsm,
                               backgroundColor: theme.colors.surface,
-                              borderWidth: tokens.borderWidth.hairline,
-                              borderColor: theme.colors.inputBorder,
+                              borderWidth: tokens.borderWidth.md,
+                              borderColor: theme.colors.surfaceBorder,
                               borderRadius: tokens.borderRadius.md,
                               overflow: 'hidden',
                             }}>

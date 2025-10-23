@@ -574,21 +574,14 @@ export default function ProfileScreen({navigate}: Props) {
                   <View>
                     <Image
                       source={{uri: look.image_url}}
-                      style={[
-                        globalStyles.image4,
-                        {
-                          borderColor: theme.colors.surfaceBorder,
-                          borderWidth: tokens.borderWidth.md,
-                          borderRadius: tokens.borderRadius.md,
-                        },
-                      ]}
+                      style={[globalStyles.image8]}
                       resizeMode="cover"
                     />
                   </View>
                   <Animatable.Text
                     animation="fadeIn"
                     delay={2500 + index * 100}
-                    style={[globalStyles.label, {marginTop: 6}]}
+                    style={[globalStyles.subLabel]}
                     numberOfLines={1}>
                     {look.name}
                   </Animatable.Text>

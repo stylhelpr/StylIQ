@@ -116,13 +116,13 @@ export default function ShopModal({
                     }}
                     activeOpacity={0.85}
                     style={{
-                      width: '49.6%',
-                      marginBottom: tokens.spacing.md,
+                      width: '49.0%',
+                      marginBottom: tokens.spacing.xsm,
                       backgroundColor: theme.colors.surface,
-                      borderWidth: tokens.borderWidth.hairline,
-                      borderColor: theme.colors.inputBorder,
-                      overflow: 'hidden',
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.surfaceBorder,
                       borderRadius: tokens.borderRadius.md,
+                      overflow: 'hidden',
                     }}>
                     {/* 🖼️ Product Image (consistent aspect ratio) */}
                     <View
