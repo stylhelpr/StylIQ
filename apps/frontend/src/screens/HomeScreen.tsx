@@ -50,6 +50,7 @@ import PersonalizedShopModal from '../components/PersonalizedShopModal/Personali
 import RecreatedLookScreen from './RecreatedLookScreen';
 import {Camera} from 'react-native-vision-camera';
 import {useResponsive} from '../hooks/useResponsive';
+import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -1159,6 +1160,29 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             </View>
           </Animatable.View>
         )}
+
+        {/* LIQUID GLASS */}
+        <View style={{position: 'relative', margin: 22}}>
+          <Image
+            source={{
+              uri: 'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?auto=format&fit=crop&w=1200&q=80',
+            }}
+            style={[
+              StyleSheet.absoluteFillObject,
+              {borderRadius: 32, opacity: 0.9},
+            ]}
+            resizeMode="cover"
+          />
+
+          <LiquidGlassCard>
+            <Text style={{color: '#fff', fontWeight: '600', fontSize: 18}}>
+              Welcome to StylHelpr
+            </Text>
+            <Text style={{color: '#ddd', marginTop: 6}}>
+              Your personal AI fashion concierge
+            </Text>
+          </LiquidGlassCard>
+        </View>
 
         {/* Top Fashion Stories / News Carousel */}
         {prefs.topFashionStories && (
