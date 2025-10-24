@@ -91,12 +91,12 @@ export async function markRead(userId: string, id: string) {
   // (optional) mark as read in backend later if needed
 }
 
-export async function markAllRead() {
+export async function markAllRead(userId: string) {
   const list = await loadInbox();
   await saveInbox(list.map(n => ({...n, read: true})));
 }
 
-export async function clearAll() {
+export async function clearAll(userId: string) {
   await AsyncStorage.removeItem(INBOX_KEY);
   notifySubscribers(); // ✅ Also notify listeners here
 }
