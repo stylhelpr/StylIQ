@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {StyleSheet, View, AppState} from 'react-native';
 import MapView, {Marker, Region, PROVIDER_DEFAULT} from 'react-native-maps';
 import Geolocation, {
   GeoError,
@@ -9,19 +9,21 @@ import {ensureLocationPermission} from '../../utils/permissions';
 
 type Props = {
   height?: number;
-  useCustomPin?: boolean; // optional extra pin on top of the blue dot
+  useCustomPin?: boolean;
+  enabled?: boolean;
 };
 
 export default function LiveLocationMap({
   height = 220,
   useCustomPin = false,
+  enabled = true,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const watchIdRef = useRef<number | null>(null);
+  const appState = useRef(AppState.currentState);
 
   const [coord, setCoord] = useState<{lat: number; lng: number} | null>(null);
   const [region, setRegion] = useState<Region>({
-    // Default to South Bay LA so initial render isn’t ocean
     latitude: 33.89,
     longitude: -118.31,
     latitudeDelta: 0.015,
@@ -30,6 +32,7 @@ export default function LiveLocationMap({
 
   const centerOn = useCallback((pos: GeoPosition) => {
     const {latitude, longitude} = pos.coords;
+    console.log('📍 Position fix:', latitude, longitude);
     const next: Region = {
       latitude,
       longitude,
@@ -44,45 +47,81 @@ export default function LiveLocationMap({
   useEffect(() => {
     let mounted = true;
 
+    if (!enabled) {
+      console.log('🛑 Location tracking disabled — clearing all watchers');
+      if (watchIdRef.current != null) {
+        Geolocation.clearWatch(watchIdRef.current);
+        console.log('🧹 Cleared watch ID:', watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      Geolocation.stopObserving();
+      console.log('🧩 Observers stopped.');
+      return;
+    }
+
+    console.log('✅ Location tracking enabled — requesting permission');
     (async () => {
       const ok = await ensureLocationPermission();
-      if (!ok || !mounted) return;
+      if (!ok || !mounted) {
+        console.log('⚠️ Permission denied or component unmounted early');
+        return;
+      }
 
-      // Initial fix
       Geolocation.getCurrentPosition(
         pos => {
           if (!mounted) return;
+          console.log('📍 Initial position received');
           centerOn(pos);
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        (_err: GeoError) => {},
+        (err: GeoError) => console.warn('❌ getCurrentPosition error:', err),
         {enableHighAccuracy: true, timeout: 15000, maximumAge: 2000},
       );
 
-      // Live updates
       watchIdRef.current = Geolocation.watchPosition(
         pos => {
           if (!mounted) return;
+          console.log(
+            '🛰️ watchPosition update:',
+            pos.coords.latitude,
+            pos.coords.longitude,
+          );
           centerOn(pos);
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        (_err: GeoError) => {},
+        (err: GeoError) => console.warn('❌ watchPosition error:', err),
         {
           enableHighAccuracy: true,
-          distanceFilter: 5, // meters; tune for battery/smoothness
-          interval: 5000, // Android
-          fastestInterval: 2000, // Android
+          distanceFilter: 10,
+          interval: 8000,
+          fastestInterval: 4000,
+          showsBackgroundLocationIndicator: false,
         },
       );
+      console.log('🎯 Geolocation watcher started, ID:', watchIdRef.current);
     })();
+
+    // optional: stop updates when app backgrounded
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active' && watchIdRef.current != null) {
+        console.log('📴 App backgrounded — stopping GPS updates');
+        Geolocation.clearWatch(watchIdRef.current);
+        Geolocation.stopObserving();
+        watchIdRef.current = null;
+      }
+      appState.current = state;
+    });
 
     return () => {
       mounted = false;
-      if (watchIdRef.current != null)
+      if (watchIdRef.current != null) {
+        console.log('🧹 Cleanup → clearing watcher ID:', watchIdRef.current);
         Geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      console.log('🧩 Cleanup → stopping all observers.');
       Geolocation.stopObserving();
+      sub.remove();
     };
-  }, [centerOn]);
+  }, [centerOn, enabled]);
 
   return (
     <View style={[styles.container, {height}]}>
@@ -90,14 +129,14 @@ export default function LiveLocationMap({
         ref={r => (mapRef.current = r)}
         style={StyleSheet.absoluteFill}
         provider={PROVIDER_DEFAULT}
-        showsUserLocation
-        followsUserLocation
+        showsUserLocation={enabled}
+        followsUserLocation={enabled}
         showsCompass
         rotateEnabled={false}
         initialRegion={region}
         onMapReady={() => mapRef.current?.animateToRegion(region, 250)}
       />
-      {useCustomPin && coord ? (
+      {enabled && useCustomPin && coord ? (
         <Marker
           coordinate={{latitude: coord.lat, longitude: coord.lng}}
           title="You"
@@ -115,6 +154,272 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
+
+//////////////////////
+
+// // src/components/LiveLocationMap/LiveLocationMap.tsx
+// // -----------------------------------------------------------------------------
+// // 🗺️ LiveLocationMap — Power-optimized, toggleable live GPS map
+// // -----------------------------------------------------------------------------
+// // • Fully disables GPS tracking when `enabled` = false
+// // • Uses safe cleanup for both watch + observing
+// // • Gracefully handles permissions
+// // • Animates to region on fix
+// // -----------------------------------------------------------------------------
+
+// import React, {useCallback, useEffect, useRef, useState} from 'react';
+// import {StyleSheet, View} from 'react-native';
+// import MapView, {Marker, Region, PROVIDER_DEFAULT} from 'react-native-maps';
+// import Geolocation, {
+//   GeoError,
+//   GeoPosition,
+// } from 'react-native-geolocation-service';
+// import {ensureLocationPermission} from '../../utils/permissions';
+
+// type Props = {
+//   height?: number;
+//   useCustomPin?: boolean; // optional extra pin on top of the blue dot
+//   enabled?: boolean; // ✅ NEW: toggle to completely disable location updates
+// };
+
+// export default function LiveLocationMap({
+//   height = 220,
+//   useCustomPin = false,
+//   enabled = true,
+// }: Props) {
+//   const mapRef = useRef<MapView | null>(null);
+//   const watchIdRef = useRef<number | null>(null);
+
+//   const [coord, setCoord] = useState<{lat: number; lng: number} | null>(null);
+//   const [region, setRegion] = useState<Region>({
+//     // Default to South Bay LA so initial render isn’t ocean
+//     latitude: 33.89,
+//     longitude: -118.31,
+//     latitudeDelta: 0.015,
+//     longitudeDelta: 0.015,
+//   });
+
+//   const centerOn = useCallback((pos: GeoPosition) => {
+//     const {latitude, longitude} = pos.coords;
+//     const next: Region = {
+//       latitude,
+//       longitude,
+//       latitudeDelta: 0.015,
+//       longitudeDelta: 0.015,
+//     };
+//     setCoord({lat: latitude, lng: longitude});
+//     setRegion(next);
+//     mapRef.current?.animateToRegion(next, 500);
+//   }, []);
+
+//   useEffect(() => {
+//     let mounted = true;
+
+//     // ✅ When toggle is OFF, clear any existing watchers and bail out early
+//     if (!enabled) {
+//       if (watchIdRef.current != null) {
+//         Geolocation.clearWatch(watchIdRef.current);
+//         watchIdRef.current = null;
+//       }
+//       Geolocation.stopObserving();
+//       return;
+//     }
+
+//     (async () => {
+//       const ok = await ensureLocationPermission();
+//       if (!ok || !mounted) return;
+
+//       // 🔹 One-time initial fix
+//       Geolocation.getCurrentPosition(
+//         pos => {
+//           if (!mounted) return;
+//           centerOn(pos);
+//         },
+//         (_err: GeoError) => {},
+//         {enableHighAccuracy: true, timeout: 15000, maximumAge: 2000},
+//       );
+
+//       // 🔹 Continuous updates
+//       watchIdRef.current = Geolocation.watchPosition(
+//         pos => {
+//           if (!mounted) return;
+//           centerOn(pos);
+//         },
+//         (_err: GeoError) => {},
+//         {
+//           enableHighAccuracy: true,
+//           distanceFilter: 10, // 🔧 adjust for balance (5–25m typical)
+//           interval: 8000, // Android: update every 8s
+//           fastestInterval: 4000, // Android min interval
+//           showsBackgroundLocationIndicator: false,
+//         },
+//       );
+//     })();
+
+//     // ✅ Cleanup: clear watcher + stop observer
+//     return () => {
+//       mounted = false;
+//       if (watchIdRef.current != null) {
+//         Geolocation.clearWatch(watchIdRef.current);
+//         watchIdRef.current = null;
+//       }
+//       Geolocation.stopObserving();
+//     };
+//   }, [centerOn, enabled]);
+
+//   return (
+//     <View style={[styles.container, {height}]}>
+//       <MapView
+//         ref={r => (mapRef.current = r)}
+//         style={StyleSheet.absoluteFill}
+//         provider={PROVIDER_DEFAULT}
+//         showsUserLocation={enabled} // ✅ only show blue dot when active
+//         followsUserLocation={enabled}
+//         showsCompass
+//         rotateEnabled={false}
+//         initialRegion={region}
+//         onMapReady={() => mapRef.current?.animateToRegion(region, 250)}
+//       />
+
+//       {/* Optional user pin */}
+//       {enabled && useCustomPin && coord ? (
+//         <Marker
+//           coordinate={{latitude: coord.lat, longitude: coord.lng}}
+//           title="You"
+//           description="Current location"
+//         />
+//       ) : null}
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     width: '100%',
+//     borderRadius: 16,
+//     overflow: 'hidden',
+//   },
+// });
+
+//////////////////
+
+// import React, {useCallback, useEffect, useRef, useState} from 'react';
+// import {StyleSheet, View} from 'react-native';
+// import MapView, {Marker, Region, PROVIDER_DEFAULT} from 'react-native-maps';
+// import Geolocation, {
+//   GeoError,
+//   GeoPosition,
+// } from 'react-native-geolocation-service';
+// import {ensureLocationPermission} from '../../utils/permissions';
+
+// type Props = {
+//   height?: number;
+//   useCustomPin?: boolean; // optional extra pin on top of the blue dot
+// };
+
+// export default function LiveLocationMap({
+//   height = 220,
+//   useCustomPin = false,
+// }: Props) {
+//   const mapRef = useRef<MapView | null>(null);
+//   const watchIdRef = useRef<number | null>(null);
+
+//   const [coord, setCoord] = useState<{lat: number; lng: number} | null>(null);
+//   const [region, setRegion] = useState<Region>({
+//     // Default to South Bay LA so initial render isn’t ocean
+//     latitude: 33.89,
+//     longitude: -118.31,
+//     latitudeDelta: 0.015,
+//     longitudeDelta: 0.015,
+//   });
+
+//   const centerOn = useCallback((pos: GeoPosition) => {
+//     const {latitude, longitude} = pos.coords;
+//     const next: Region = {
+//       latitude,
+//       longitude,
+//       latitudeDelta: 0.015,
+//       longitudeDelta: 0.015,
+//     };
+//     setCoord({lat: latitude, lng: longitude});
+//     setRegion(next);
+//     mapRef.current?.animateToRegion(next, 500);
+//   }, []);
+
+//   useEffect(() => {
+//     let mounted = true;
+
+//     (async () => {
+//       const ok = await ensureLocationPermission();
+//       if (!ok || !mounted) return;
+
+//       // Initial fix
+//       Geolocation.getCurrentPosition(
+//         pos => {
+//           if (!mounted) return;
+//           centerOn(pos);
+//         },
+//         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+//         (_err: GeoError) => {},
+//         {enableHighAccuracy: true, timeout: 15000, maximumAge: 2000},
+//       );
+
+//       // Live updates
+//       watchIdRef.current = Geolocation.watchPosition(
+//         pos => {
+//           if (!mounted) return;
+//           centerOn(pos);
+//         },
+//         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+//         (_err: GeoError) => {},
+//         {
+//           enableHighAccuracy: true,
+//           distanceFilter: 5, // meters; tune for battery/smoothness
+//           interval: 5000, // Android
+//           fastestInterval: 2000, // Android
+//         },
+//       );
+//     })();
+
+//     return () => {
+//       mounted = false;
+//       if (watchIdRef.current != null)
+//         Geolocation.clearWatch(watchIdRef.current);
+//       Geolocation.stopObserving();
+//     };
+//   }, [centerOn]);
+
+//   return (
+//     <View style={[styles.container, {height}]}>
+//       <MapView
+//         ref={r => (mapRef.current = r)}
+//         style={StyleSheet.absoluteFill}
+//         provider={PROVIDER_DEFAULT}
+//         showsUserLocation
+//         followsUserLocation
+//         showsCompass
+//         rotateEnabled={false}
+//         initialRegion={region}
+//         onMapReady={() => mapRef.current?.animateToRegion(region, 250)}
+//       />
+//       {useCustomPin && coord ? (
+//         <Marker
+//           coordinate={{latitude: coord.lat, longitude: coord.lng}}
+//           title="You"
+//           description="Current location"
+//         />
+//       ) : null}
+//     </View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     width: '100%',
+//     borderRadius: 16,
+//     overflow: 'hidden',
+//   },
+// });
 
 //////////////////
 

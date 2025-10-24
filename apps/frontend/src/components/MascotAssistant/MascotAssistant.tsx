@@ -10,9 +10,12 @@ import {
   Text,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {API_BASE_URL} from '../../config/api';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
+import Tts from 'react-native-tts';
+import {globalTtsRef} from '../../MainApp';
 
 // 📏 Baseline (iPhone 14 = 390 × 844)
 const BASE_WIDTH = 390;
@@ -91,7 +94,8 @@ export default function MascotAssistant({
   };
 
   // 💭 Toggle thought bubble
-  const handlePress = () => {
+  const handlePress = async () => {
+    // Toggle the bubble first
     if (showBubble) {
       Animated.timing(bubbleAnim, {
         toValue: 0,
@@ -108,7 +112,59 @@ export default function MascotAssistant({
         useNativeDriver: true,
       }).start();
     }
+    // Now trigger speech
+    console.log('🧠 Mascot tapped');
+    // try {
+    //   await Tts.stop();
+    //   await new Promise(r => setTimeout(r, 150));
+    //   const msg = message || 'Hey there! I’m your AI stylist.';
+    //   await Tts.speak(msg);
+    // } catch (err) {
+    //   console.log('❌ TTS error:', err);
+    // }
   };
+
+  // const handlePress = async () => {
+  //   // Toggle the bubble first
+  //   if (showBubble) {
+  //     Animated.timing(bubbleAnim, {
+  //       toValue: 0,
+  //       duration: 200,
+  //       easing: Easing.out(Easing.ease),
+  //       useNativeDriver: true,
+  //     }).start(() => setShowBubble(false));
+  //   } else {
+  //     setShowBubble(true);
+  //     Animated.spring(bubbleAnim, {
+  //       toValue: 1,
+  //       friction: 6,
+  //       tension: 140,
+  //       useNativeDriver: true,
+  //     }).start();
+  //   }
+
+  //   // 🎤 Play the Alloy GPT voice from your backend
+  //   try {
+  //     console.log('🧠 Mascot tapped');
+  //     const text = message || 'Hey there! I’m your AI stylist.';
+
+  //     // ✅ Same as stylist’s TTS endpoint
+  //     const url = `${API_BASE_URL}/ai/tts?text=${encodeURIComponent(text)}`;
+  //     console.log('🎧 Fetching Alloy GPT voice:', url);
+
+  //     // 🪄 simplest: use an invisible WebView to autoplay (same as stylist)
+  //     const js = `
+  //     (function() {
+  //       const html = "<audio src='${url}' autoplay playsinline></audio>";
+  //       document.body.innerHTML = html;
+  //     })();
+  //     true;
+  //   `;
+  //     globalTtsRef.current?.current?.injectJavaScript(js);
+  //   } catch (err) {
+  //     console.log('❌ Alloy GPT playback error:', err);
+  //   }
+  // };
 
   // 🔢 Numeric values for offsets
   const rightNum = getNum(position.right, 20);
@@ -190,6 +246,7 @@ export default function MascotAssistant({
     </>
   );
 }
+
 //////////////////
 
 // import React, {useEffect, useRef} from 'react';

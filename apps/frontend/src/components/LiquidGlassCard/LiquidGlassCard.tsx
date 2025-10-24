@@ -93,11 +93,11 @@ const LiquidGlassCard: React.FC<Props> = ({
       shadowRadius: 8,
       shadowOffset: {width: 0, height: 6},
       elevation: 6,
-      borderColor: theme.colors.muted,
-      borderWidth: tokens.borderWidth.lg,
+      borderColor: theme.colors.foreground,
+      borderWidth: tokens.borderWidth.hairline,
     },
     content: {
-      padding: 60,
+      // padding: 60,
     },
   });
 

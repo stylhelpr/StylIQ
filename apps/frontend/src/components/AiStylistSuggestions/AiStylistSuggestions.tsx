@@ -256,7 +256,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           <MascotAssistant
             position={{bottom: 0, right: 0}}
             size={67}
-            message="How may I help? ✨"
+            message="How can I help?"
           />
         </View>
 
@@ -507,9 +507,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View> */}
 
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
+          {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
           <View
             style={{
-              flexDirection: isXS || width < 390 ? 'column' : 'row', // stack on small screens
+              flexDirection:
+                isXS || isSM || width < 380 ? 'column' : isMD ? 'row' : 'row', // regular + large phones use row
               justifyContent: 'center',
               alignItems: 'center',
               marginTop: moderateScale(tokens.spacing.md1),
@@ -520,26 +522,29 @@ const AiStylistSuggestions: React.FC<Props> = ({
               hapticStyle="impactHeavy"
               onPress={() => navigate('Wardrobe')}
               style={{
-                flex: isXS || width < 390 ? undefined : 1,
-                width: isXS || width < 390 ? '100%' : undefined,
+                flex: isXS || isSM ? undefined : 1,
+                width: isXS || isSM ? '100%' : undefined,
                 marginRight:
-                  isXS || width < 390 ? 0 : moderateScale(tokens.spacing.xsm),
+                  isXS || isSM
+                    ? 0
+                    : isMD
+                    ? moderateScale(tokens.spacing.xxs) // tighter on regular phones
+                    : moderateScale(tokens.spacing.xsm),
                 marginBottom:
-                  isXS || width < 390 ? moderateScale(tokens.spacing.xs) : 0,
-                paddingVertical: moderateScale(tokens.spacing.xsm),
+                  isXS || isSM ? moderateScale(tokens.spacing.xs) : 0,
+                paddingVertical: isMD
+                  ? moderateScale(tokens.spacing.xsm) // slightly shorter buttons
+                  : moderateScale(tokens.spacing.xsm),
+                paddingHorizontal: isMD
+                  ? moderateScale(tokens.spacing.xs) // slightly shorter buttons
+                  : moderateScale(tokens.spacing.xsm),
                 borderRadius: tokens.borderRadius.md,
                 backgroundColor: theme.colors.button1,
                 borderWidth: theme.borderWidth.sm,
                 borderColor: theme.colors.surfaceBorder,
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: 170,
-
-                // shadowColor: '#000',
-                // shadowOffset: {width: 8, height: 10},
-                // shadowOpacity: 0.5,
-                // shadowRadius: 5,
-                // elevation: 6,
+                minWidth: isMD ? 150 : 170, // narrower for 390–429 px phones
               }}>
               <Text
                 style={{
@@ -556,24 +561,27 @@ const AiStylistSuggestions: React.FC<Props> = ({
               hapticStyle="impactHeavy"
               onPress={() => navigate('AiStylistChatScreen')}
               style={{
-                flex: isXS || width < 390 ? undefined : 1,
-                width: isXS || width < 390 ? '100%' : undefined,
+                flex: isXS || isSM ? undefined : 1,
+                width: isXS || isSM ? '100%' : undefined,
                 marginLeft:
-                  isXS || width < 390 ? 0 : moderateScale(tokens.spacing.xsm),
-                paddingVertical: moderateScale(tokens.spacing.xsm),
+                  isXS || isSM
+                    ? 0
+                    : isMD
+                    ? moderateScale(tokens.spacing.xxs)
+                    : moderateScale(tokens.spacing.xsm),
+                paddingVertical: isMD
+                  ? moderateScale(tokens.spacing.xsm) // slightly shorter buttons
+                  : moderateScale(tokens.spacing.xsm),
+                paddingHorizontal: isMD
+                  ? moderateScale(tokens.spacing.xs) // slightly shorter buttons
+                  : moderateScale(tokens.spacing.xsm),
                 borderRadius: tokens.borderRadius.md,
                 backgroundColor: theme.colors.button1,
                 borderWidth: theme.borderWidth.sm,
                 borderColor: theme.colors.surfaceBorder,
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: 170,
-
-                // shadowColor: '#000',
-                // shadowOffset: {width: 8, height: 10},
-                // shadowOpacity: 0.5,
-                // shadowRadius: 5,
-                // elevation: 6,
+                minWidth: isMD ? 150 : 170,
               }}>
               <Text
                 style={{

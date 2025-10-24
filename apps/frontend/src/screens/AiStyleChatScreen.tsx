@@ -723,7 +723,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
             <MascotAssistant
               position={{bottom: 0, right: 0}}
               size={80}
-              message="How may I help? ✨"
+              message="How can I help?"
             />
           </View>
 

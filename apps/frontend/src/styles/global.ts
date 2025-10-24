@@ -28,9 +28,15 @@ import {fontScale, scale} from '../utils/scale';
 // 🧭 Device breakpoints
 // Determines device class once at load time. Used for static style tiers.
 // ---------------------------------------------------------------------------
+// const {width: screenWidth} = Dimensions.get('window');
+// const isLargePhone = screenWidth >= 430; // iPhone Pro Max & similar large phones
+// const isTablet = screenWidth >= 768; // Tablets / iPads / large foldables
+
 const {width: screenWidth} = Dimensions.get('window');
-const isTablet = screenWidth >= 768; // Tablets / iPads / large foldables
-const isLargePhone = screenWidth >= 430; // iPhone Pro Max & similar large phones
+export const isSmallPhone = screenWidth <= 380; // SE, 13 mini
+export const isRegularPhone = screenWidth > 380 && screenWidth < 430; // 11–17 normal
+export const isLargePhone = screenWidth >= 430 && screenWidth < 768; // Plus / Pro Max
+export const isTablet = screenWidth >= 768; // iPads
 
 // ---------------------------------------------------------------------------
 // 📐 Responsive constants
@@ -616,6 +622,14 @@ export const createGlobalStyles = (theme: Theme) =>
       borderColor: theme.colors.surfaceBorder,
       borderWidth: tokens.borderWidth.md,
     },
+    image10: {
+      width: '100%',
+      height: isTablet ? 160 : isLargePhone ? 165 : 165,
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.sm,
+      borderBottomWidth: tokens.borderWidth.md,
+      borderBottomColor: theme.colors.surfaceBorder,
+    },
     bgContainer1: {
       height: isTablet ? 260 : isLargePhone ? 305 : 260,
       borderRadius: tokens.borderRadius.xl,
@@ -653,6 +667,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
 
     outfitCard2: {
+      // width: isTablet ? 160 : isLargePhone ? 180 : 160,
       width: isTablet ? 160 : isLargePhone ? 180 : 160,
       marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
       alignItems: 'flex-start',
@@ -674,6 +689,17 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.lg,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
+    },
+
+    outfitCard4: {
+      width: isTablet ? 160 : isLargePhone ? 183 : isRegularPhone ? 180 : 160,
+      marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
+      alignItems: 'flex-start',
+      backgroundColor: theme.colors.surface2,
+      overflow: 'hidden',
+      borderRadius: tokens.borderRadius.lg,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
     },
 
     // ============================================================

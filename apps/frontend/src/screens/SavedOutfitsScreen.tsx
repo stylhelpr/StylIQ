@@ -804,7 +804,7 @@ export default function SavedOutfitsScreen() {
   // }
 
   return (
-    <View
+    <SafeAreaView
       style={[
         globalStyles.screen,
         globalStyles.container,
@@ -1798,7 +1798,7 @@ export default function SavedOutfitsScreen() {
           </SafeAreaView>
         )}
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
