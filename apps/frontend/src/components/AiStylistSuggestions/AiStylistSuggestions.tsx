@@ -24,6 +24,7 @@ import MascotAssistant from '../../components/MascotAssistant/MascotAssistant';
 import {useResponsive} from '../../hooks/useResponsive';
 import {useWindowDimensions} from 'react-native';
 import {index} from '../../../../backend-nest/dist/pinecone/pineconeUtils';
+import {useAiSuggestionVoiceCommands} from '../../utils/VoiceContext';
 
 type Props = {
   weather: any;
@@ -82,6 +83,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
       console.log('⏸️ Weather not ready, skipping AI fetch.');
       return;
     }
+
+    // 🎙️ Enable voice commands for this screen
+    useAiSuggestionVoiceCommands(fetchSuggestion, navigate);
 
     try {
       setLoading(true);

@@ -27,6 +27,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
+import {useClosetVoiceCommands} from '../utils/VoiceContext';
 
 type WardrobeItem = {
   id: string;
@@ -313,6 +314,17 @@ export default function ClosetScreen({navigate}: Props) {
     },
   });
 
+  // const openSubmenu = (view: 'filter' | 'sort') => {
+  //   setMenuView(view);
+  //   submenuOpacity.setValue(0);
+  //   Animated.timing(submenuOpacity, {
+  //     toValue: 1,
+  //     duration: 180,
+  //     useNativeDriver: true,
+  //   }).start();
+  // };
+
+  // 2️⃣ Handler function (this is TypeScript, not JSX)
   const openSubmenu = (view: 'filter' | 'sort') => {
     setMenuView(view);
     submenuOpacity.setValue(0);
@@ -322,6 +334,13 @@ export default function ClosetScreen({navigate}: Props) {
       useNativeDriver: true,
     }).start();
   };
+
+  useClosetVoiceCommands(
+    openSubmenu,
+    setMenuVisible,
+    setSelectedCategory,
+    setSortOption,
+  );
 
   return (
     <SafeAreaView
