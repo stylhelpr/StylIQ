@@ -79,7 +79,7 @@ export const routeVoiceCommand = async (
     return go('PreferenceStrength', 'Preference Strength');
   if (includesAny(['proportions', 'body proportions']))
     return go('Proportions', 'Proportions');
-  if (includesAny(['search', 'find'])) return go('SearchScreen', 'Search');
+  if (includesAny(['search', 'find'])) return go('Search', 'Search');
   if (includesAny(['skin tone', 'complexion']))
     return go('SkinTone', 'Skin Tone');
   if (includesAny(['style icon'])) return go('StyleIcon', 'Style Icon');

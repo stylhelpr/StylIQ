@@ -180,6 +180,166 @@ export default LiquidGlassCard;
 //   useColorScheme,
 // } from 'react-native';
 // import {BlurView} from '@react-native-community/blur';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {useGlobalStyles} from '../..//styles/useGlobalStyles';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {useAppTheme} from '../../context/ThemeContext';
+
+// type AppleMaterial =
+//   | 'systemUltraThinMaterial'
+//   | 'systemThinMaterial'
+//   | 'systemMaterial'
+//   | 'systemChromeMaterial';
+
+// interface Props {
+//   children?: React.ReactNode;
+//   style?: StyleProp<ViewStyle>;
+//   borderRadius?: number;
+//   blurAmount?: number;
+//   blurType?: AppleMaterial;
+//   blurOpacity?: number;
+// }
+
+// const LiquidGlassCard: React.FC<Props> = ({
+//   children,
+//   style,
+//   borderRadius = tokens.borderRadius['2xl'],
+//   blurAmount = 8,
+//   blurType = 'systemUltraThinMaterial',
+//   blurOpacity = 0.85,
+// }) => {
+//   const shimmer = useRef(new Animated.Value(0)).current;
+//   const colorScheme = useColorScheme();
+//   const isDark = colorScheme === 'dark';
+//   const {theme, setSkin} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   // Continuous “living” shimmer loop
+//   useEffect(() => {
+//     Animated.loop(
+//       Animated.sequence([
+//         Animated.timing(shimmer, {
+//           toValue: 1,
+//           duration: 8000,
+//           easing: Easing.inOut(Easing.sin),
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(shimmer, {
+//           toValue: 0,
+//           duration: 8000,
+//           easing: Easing.inOut(Easing.sin),
+//           useNativeDriver: true,
+//         }),
+//       ]),
+//     ).start();
+//   }, [shimmer]);
+
+//   // Interpolated tint + highlight shimmer
+//   const shimmerTint = shimmer.interpolate({
+//     inputRange: [0, 1],
+//     outputRange: ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.08)'],
+//   });
+
+//   const rimHighlight = shimmer.interpolate({
+//     inputRange: [0, 1],
+//     outputRange: ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.28)'],
+//   });
+
+//   const styles = StyleSheet.create({
+//     card: {
+//       overflow: 'hidden',
+//       shadowColor: '#000',
+//       shadowOpacity: Platform.OS === 'ios' ? 0.05 : 0.12,
+//       shadowRadius: 8,
+//       shadowOffset: {width: 0, height: 6},
+//       elevation: 6,
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//     },
+//     content: {
+//       // padding: 60,
+//     },
+//   });
+
+//   return (
+//     <View style={[styles.card, {borderRadius}, style]}>
+//       {/* 🧊 True Apple Blur */}
+//       <BlurView
+//         style={[StyleSheet.absoluteFill, {borderRadius, opacity: blurOpacity}]}
+//         blurType={blurType as any}
+//         blurAmount={blurAmount}
+//         reducedTransparencyFallbackColor="transparent"
+//       />
+
+//       {/* 💫 Dynamic Specular Shimmer */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[
+//           StyleSheet.absoluteFill,
+//           {
+//             borderRadius,
+//             backgroundColor: shimmerTint,
+//             transform: [
+//               {
+//                 translateX: shimmer.interpolate({
+//                   inputRange: [0, 1],
+//                   outputRange: [-20, 20],
+//                 }),
+//               },
+//             ],
+//           },
+//         ]}
+//       />
+
+//       {/* 🌈 Adaptive Refraction Rim */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[
+//           StyleSheet.absoluteFill,
+//           {
+//             borderRadius,
+//             borderWidth: 0.75,
+//             borderColor: rimHighlight,
+//             // slight adaptive tint by color mode
+//             shadowColor: isDark
+//               ? 'rgba(255,255,255,0.15)'
+//               : 'rgba(255,255,255,0.35)',
+//           },
+//         ]}
+//       />
+
+//       {/* 📦 Foreground content */}
+//       <View style={styles.content}>{children}</View>
+//     </View>
+//   );
+// };
+
+// export default LiquidGlassCard;
+
+//////////////////
+
+// // src/components/LiquidGlassCard/LiquidGlassCard.tsx
+// // -----------------------------------------------------------------------------
+// // 🪩 LiquidGlassCard — Full Apple-grade Implementation
+// // -----------------------------------------------------------------------------
+// // • True iOS “systemUltraThinMaterial” blur (UIVisualEffectView)
+// // • Animated specular shimmer & refractive rim
+// // • Adaptive tint based on appearance (light/dark)
+// // • Ultra-low-opacity shadow for realistic floating depth
+// // -----------------------------------------------------------------------------
+
+// import React, {useRef, useEffect} from 'react';
+// import {
+//   View,
+//   Animated,
+//   Easing,
+//   StyleSheet,
+//   StyleProp,
+//   ViewStyle,
+//   Platform,
+//   useColorScheme,
+// } from 'react-native';
+// import {BlurView} from '@react-native-community/blur';
 
 // type AppleMaterial =
 //   | 'systemUltraThinMaterial'

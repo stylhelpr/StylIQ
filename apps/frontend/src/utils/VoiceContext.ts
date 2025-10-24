@@ -150,6 +150,9 @@ export function useClosetVoiceCommands(
       if (
         (text.includes('filter') ||
           text.includes('filters') ||
+          text.includes('show only') ||
+          text.includes('show me') ||
+          text.includes('show') ||
           text.includes('filter wardrobe')) &&
         !Object.keys(categories).some(k => text.includes(k))
       ) {
