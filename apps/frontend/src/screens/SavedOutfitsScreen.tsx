@@ -38,6 +38,7 @@ import {addOutfitToCalendar, removeCalendarEvent} from '../utils/calendar';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import SwipeableCard from '../components/SwipeableCard/SwipeableCard';
 import {Share} from 'react-native';
+import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 
 type SavedOutfit = {
   id: string;
@@ -804,14 +805,15 @@ export default function SavedOutfitsScreen() {
   // }
 
   return (
-    <SafeAreaView
-      style={[
-        globalStyles.screen,
-        globalStyles.container,
-        {backgroundColor: theme.colors.background},
-      ]}>
-      {/* 📱 Header */}
-      {/* <Animatable.Text
+    <GradientBackground>
+      <SafeAreaView
+        style={[
+          globalStyles.screen,
+          globalStyles.container,
+          // {backgroundColor: theme.colors.background},
+        ]}>
+        {/* 📱 Header */}
+        {/* <Animatable.Text
         animation="fadeInDown"
         duration={800}
         delay={100}
@@ -823,17 +825,17 @@ export default function SavedOutfitsScreen() {
         Saved Outfits
       </Animatable.Text> */}
 
-      <Text
-        style={[
-          globalStyles.header,
-          globalStyles.section,
-          {color: theme.colors.primary},
-        ]}>
-        Saved Outfits
-      </Text>
+        <Text
+          style={[
+            globalStyles.header,
+            globalStyles.section,
+            {color: theme.colors.primary},
+          ]}>
+          Saved Outfits
+        </Text>
 
-      {/* 🔀 Sort Bar */}
-      {/* <Animatable.View
+        {/* 🔀 Sort Bar */}
+        {/* <Animatable.View
         animation="fadeInDown"
         delay={300}
         duration={800}
@@ -910,895 +912,904 @@ export default function SavedOutfitsScreen() {
         </View>
       </Animatable.View> */}
 
-      <Animatable.View
-        animation="fadeInDown"
-        delay={300}
-        duration={800}
-        style={[globalStyles.section]}>
-        <Text
-          style={[globalStyles.label, {marginBottom: 12, textAlign: 'left'}]}>
-          Sort by:
-        </Text>
+        <Animatable.View
+          animation="fadeInDown"
+          delay={300}
+          duration={800}
+          style={[globalStyles.section]}>
+          <Text
+            style={[globalStyles.label, {marginBottom: 12, textAlign: 'left'}]}>
+            Sort by:
+          </Text>
 
-        {/* Responsive pills in one fixed row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'nowrap', // ✅ never wrap to next line
-          }}>
-          {(
-            [
-              {key: 'newest', label: 'Newest'},
-              {key: 'favorites', label: 'Favorites'},
-              {key: 'planned', label: 'Planned'},
-              {key: 'stars', label: 'Rating'},
-            ] as const
-          ).map(({key, label}, idx) => {
-            // dynamically size each pill to fit any phone width
-            const screenWidth = Dimensions.get('window').width;
-            const totalSpacing = 12 * 3 + 32; // margins + section padding
-            const pillWidth = (screenWidth - totalSpacing) / 4;
-
-            return (
-              <Animatable.View
-                key={key}
-                animation={{
-                  from: {opacity: 0, translateX: 40},
-                  to: {opacity: 1, translateX: 0},
-                }}
-                delay={150 + idx * 100}
-                duration={600}
-                easing="ease-out-cubic">
-                <TouchableOpacity
-                  onPress={() => {
-                    hSelect();
-                    setSortType(key);
-                  }}
-                  activeOpacity={0.8}
-                  style={{
-                    backgroundColor:
-                      sortType === key
-                        ? theme.colors.foreground
-                        : theme.colors.surface3,
-                    paddingVertical: 9,
-                    borderRadius: 22,
-                    width: pillWidth, // ✅ auto width fits all screens
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="clip"
-                    adjustsFontSizeToFit={false}
-                    style={{
-                      color:
-                        sortType === key
-                          ? theme.colors.background
-                          : theme.colors.foreground2,
-                      fontSize: 14,
-                      fontWeight: '600',
-                      textAlign: 'center',
-                    }}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              </Animatable.View>
-            );
-          })}
-        </View>
-      </Animatable.View>
-
-      {/* 🪩 Dramatic Parallax ScrollView */}
-      <Animated.ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{paddingBottom: 160, alignItems: 'center'}}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {y: scrollY}}}],
-          {useNativeDriver: true},
-        )}>
-        <View style={{width: '100%', maxWidth: 420, alignSelf: 'center'}}>
-          {sortedOutfits.length === 0 ? (
-            <View style={{flexDirection: 'row', alignSelf: 'center'}}>
-              <Text style={globalStyles.missingDataMessage1}>
-                No saved outfits.
-              </Text>
-              <TooltipBubble
-                message='You don’t have any saved outfits yet. Tap "Wardrobe" in the bottom navigation bar to head to the Wardrobe screen, and
-              then tap "Build an Outfit". Once you build your first outfit, it will appear back here automatically.'
-                position="top"
-              />
-            </View>
-          ) : (
-            sortedOutfits.map((outfit, index) => {
-              // 🎞️ Compute parallax transform for each card
-              const inputRange = [-1, 0, 200 * index, 200 * (index + 2)];
-              const scale = scrollY.interpolate({
-                inputRange,
-                outputRange: [1, 1, 1, 0.9],
-                extrapolate: 'clamp',
-              });
-              const translateY = scrollY.interpolate({
-                inputRange,
-                outputRange: [0, 0, 0, -20],
-                extrapolate: 'clamp',
-              });
+          {/* Responsive pills in one fixed row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'nowrap', // ✅ never wrap to next line
+            }}>
+            {(
+              [
+                {key: 'newest', label: 'Newest'},
+                {key: 'favorites', label: 'Favorites'},
+                {key: 'planned', label: 'Planned'},
+                {key: 'stars', label: 'Rating'},
+              ] as const
+            ).map(({key, label}, idx) => {
+              // dynamically size each pill to fit any phone width
+              const screenWidth = Dimensions.get('window').width;
+              const totalSpacing = 12 * 3 + 32; // margins + section padding
+              const pillWidth = (screenWidth - totalSpacing) / 4;
 
               return (
-                <SwipeableCard
-                  key={outfit.id}
-                  deleteThreshold={0.15}
-                  onSwipeLeft={() => {
-                    setPendingDeleteId(outfit.id);
-                    setShowDeleteConfirm(true);
+                <Animatable.View
+                  key={key}
+                  animation={{
+                    from: {opacity: 0, translateX: 40},
+                    to: {opacity: 1, translateX: 0},
                   }}
-                  deleteBackground={
-                    <View
+                  delay={150 + idx * 100}
+                  duration={600}
+                  easing="ease-out-cubic">
+                  <TouchableOpacity
+                    onPress={() => {
+                      hSelect();
+                      setSortType(key);
+                    }}
+                    activeOpacity={0.8}
+                    style={{
+                      backgroundColor:
+                        sortType === key
+                          ? theme.colors.foreground
+                          : theme.colors.surface3,
+                      paddingVertical: 9,
+                      borderRadius: 22,
+                      width: pillWidth, // ✅ auto width fits all screens
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    <Text
+                      numberOfLines={1}
+                      ellipsizeMode="clip"
+                      adjustsFontSizeToFit={false}
                       style={{
-                        flex: 1,
-                        alignItems: 'flex-end',
-                        justifyContent: 'center',
-                        paddingRight: 24,
+                        color:
+                          sortType === key
+                            ? theme.colors.background
+                            : theme.colors.foreground2,
+                        fontSize: 14,
+                        fontWeight: '600',
+                        textAlign: 'center',
                       }}>
-                      <MaterialIcons
-                        name="delete"
-                        size={28}
-                        color={theme.colors.error}
-                      />
-                    </View>
-                  }>
-                  <Animatable.View
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                </Animatable.View>
+              );
+            })}
+          </View>
+        </Animatable.View>
+
+        {/* 🪩 Dramatic Parallax ScrollView */}
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: 160, alignItems: 'center'}}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{nativeEvent: {contentOffset: {y: scrollY}}}],
+            {useNativeDriver: true},
+          )}>
+          <View style={{width: '100%', maxWidth: 420, alignSelf: 'center'}}>
+            {sortedOutfits.length === 0 ? (
+              <View style={{flexDirection: 'row', alignSelf: 'center'}}>
+                <Text style={globalStyles.missingDataMessage1}>
+                  No saved outfits.
+                </Text>
+                <TooltipBubble
+                  message='You don’t have any saved outfits yet. Tap "Wardrobe" in the bottom navigation bar to head to the Wardrobe screen, and
+              then tap "Build an Outfit". Once you build your first outfit, it will appear back here automatically.'
+                  position="top"
+                />
+              </View>
+            ) : (
+              sortedOutfits.map((outfit, index) => {
+                // 🎞️ Compute parallax transform for each card
+                const inputRange = [-1, 0, 200 * index, 200 * (index + 2)];
+                const scale = scrollY.interpolate({
+                  inputRange,
+                  outputRange: [1, 1, 1, 0.9],
+                  extrapolate: 'clamp',
+                });
+                const translateY = scrollY.interpolate({
+                  inputRange,
+                  outputRange: [0, 0, 0, -20],
+                  extrapolate: 'clamp',
+                });
+
+                return (
+                  <SwipeableCard
                     key={outfit.id}
-                    animation="fadeInUp"
-                    delay={150 + index * 120}
-                    duration={800}
-                    easing="ease-out-cubic"
-                    style={{transform: [{scale}, {translateY}]}}>
-                    <ViewShot
-                      ref={ref => (viewRefs.current[outfit.id] = ref)}
-                      options={{format: 'png', quality: 0.9}}>
-                      <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() => setFullScreenOutfit(outfit)}
-                        style={[styles.card, globalStyles.cardStyles1]}>
-                        {/* 🧵 Outfit Header Row */}
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}>
-                          <View style={{flex: 1, marginRight: 12}}>
-                            <Text
-                              style={[
-                                globalStyles.titleBold,
-                                {fontSize: 20, color: theme.colors.foreground},
-                              ]}>
-                              {outfit.name?.trim() || 'Unnamed Outfit'}
-                            </Text>
-
-                            {/* 🗓️ Date & Time Info */}
-                            {(outfit.createdAt || outfit.plannedDate) && (
-                              <View style={{marginTop: 6}}>
-                                {outfit.plannedDate && (
-                                  <Text
-                                    style={[
-                                      styles.timestamp,
-                                      {
-                                        fontSize: 13,
-                                        fontWeight: '600',
-                                        color: theme.colors.foreground2,
-                                      },
-                                    ]}>
-                                    {`Planned for ${new Date(
-                                      outfit.plannedDate,
-                                    ).toLocaleString([], {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                    })}`}
-                                  </Text>
-                                )}
-                                {outfit.createdAt && (
-                                  <Text
-                                    style={[
-                                      styles.timestamp,
-                                      {
-                                        fontSize: 12,
-                                        color: theme.colors.muted,
-                                      },
-                                    ]}>
-                                    {`Saved ${new Date(
-                                      outfit.createdAt,
-                                    ).toLocaleDateString([], {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}`}
-                                  </Text>
-                                )}
-                              </View>
-                            )}
-                          </View>
-
-                          {/* ❤️ & ✏️ Buttons */}
+                    deleteThreshold={0.15}
+                    onSwipeLeft={() => {
+                      setPendingDeleteId(outfit.id);
+                      setShowDeleteConfirm(true);
+                    }}
+                    deleteBackground={
+                      <View
+                        style={{
+                          flex: 1,
+                          alignItems: 'flex-end',
+                          justifyContent: 'center',
+                          paddingRight: 24,
+                        }}>
+                        <MaterialIcons
+                          name="delete"
+                          size={28}
+                          color={theme.colors.error}
+                        />
+                      </View>
+                    }>
+                    <Animatable.View
+                      key={outfit.id}
+                      animation="fadeInUp"
+                      delay={150 + index * 120}
+                      duration={800}
+                      easing="ease-out-cubic"
+                      style={{transform: [{scale}, {translateY}]}}>
+                      <ViewShot
+                        ref={ref => (viewRefs.current[outfit.id] = ref)}
+                        options={{format: 'png', quality: 0.9}}>
+                        <TouchableOpacity
+                          activeOpacity={0.9}
+                          onPress={() => setFullScreenOutfit(outfit)}
+                          style={[styles.card, globalStyles.cardStyles1]}>
+                          {/* 🧵 Outfit Header Row */}
                           <View
                             style={{
                               flexDirection: 'row',
+                              justifyContent: 'space-between',
                               alignItems: 'center',
                             }}>
-                            {/* ✏️ Edit */}
-                            <AppleTouchFeedback
-                              hapticStyle="impactLight"
-                              onPress={e => {
-                                hSelect();
-                                setEditingOutfitId(outfit.id);
-                                setEditedName(outfit.name || '');
-                              }}
-                              style={{
-                                padding: 8,
-                                borderRadius: 14,
-                                backgroundColor:
-                                  theme.colors.input2 ?? 'rgba(43,43,43,1)',
-                                marginRight: 6,
-                              }}>
-                              <MaterialIcons
-                                name="edit"
-                                size={20}
-                                color={theme.colors.foreground}
-                              />
-                            </AppleTouchFeedback>
-
-                            {/* ❤️ Favorite */}
-                            <AppleTouchFeedback
-                              hapticStyle="impactLight"
-                              onPress={e => {
-                                hSelect();
-                                toggleFavorite(
-                                  outfit.id,
-                                  outfit.type === 'custom'
-                                    ? 'custom'
-                                    : 'suggestion',
-                                  setCombinedOutfits,
-                                );
-                              }}
-                              style={{
-                                padding: 8,
-                                borderRadius: 14,
-                                backgroundColor:
-                                  theme.colors.input2 ?? 'rgba(43,43,43,1)',
-                              }}>
-                              <MaterialIcons
-                                name="favorite"
-                                size={20}
-                                color={
-                                  favorites.some(
-                                    f =>
-                                      f.id === outfit.id &&
-                                      f.source ===
-                                        (outfit.type === 'custom'
-                                          ? 'custom'
-                                          : 'suggestion'),
-                                  )
-                                    ? 'red'
-                                    : theme.colors.foreground
-                                }
-                              />
-                            </AppleTouchFeedback>
-                            {/* 📤 Share */}
-                            <AppleTouchFeedback
-                              hapticStyle="impactLight"
-                              onPress={() => handleShareOutfit(outfit)}
-                              style={{
-                                padding: 8,
-                                borderRadius: 14,
-                                backgroundColor:
-                                  theme.colors.input2 ?? 'rgba(43,43,43,1)',
-                                marginLeft: 6,
-                              }}>
-                              <MaterialIcons
-                                name="ios-share"
-                                size={20}
-                                color={theme.colors.primary}
-                              />
-                            </AppleTouchFeedback>
-                          </View>
-                        </View>
-
-                        {/* 👕 Outfit Images */}
-                        <View style={styles.imageRow}>
-                          {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
-                            i?.image ? (
-                              <Image
-                                key={i.id}
-                                source={{uri: i.image}}
+                            <View style={{flex: 1, marginRight: 12}}>
+                              <Text
                                 style={[
-                                  globalStyles.image1,
+                                  globalStyles.titleBold,
                                   {
-                                    marginRight: 12,
-                                    borderRadius: 12,
-                                    marginBottom: 8,
-                                    marginTop: -6,
+                                    fontSize: 20,
+                                    color: theme.colors.foreground,
                                   },
-                                ]}
-                              />
-                            ) : null,
-                          )}
-                        </View>
+                                ]}>
+                                {outfit.name?.trim() || 'Unnamed Outfit'}
+                              </Text>
 
-                        {/* 📝 Notes */}
-                        {outfit.notes?.trim() && (
-                          <Text style={styles.notes}>
-                            “{outfit.notes.trim()}”
-                          </Text>
-                        )}
+                              {/* 🗓️ Date & Time Info */}
+                              {(outfit.createdAt || outfit.plannedDate) && (
+                                <View style={{marginTop: 6}}>
+                                  {outfit.plannedDate && (
+                                    <Text
+                                      style={[
+                                        styles.timestamp,
+                                        {
+                                          fontSize: 13,
+                                          fontWeight: '600',
+                                          color: theme.colors.foreground2,
+                                        },
+                                      ]}>
+                                      {`Planned for ${new Date(
+                                        outfit.plannedDate,
+                                      ).toLocaleString([], {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                      })}`}
+                                    </Text>
+                                  )}
+                                  {outfit.createdAt && (
+                                    <Text
+                                      style={[
+                                        styles.timestamp,
+                                        {
+                                          fontSize: 12,
+                                          color: theme.colors.muted,
+                                        },
+                                      ]}>
+                                      {`Saved ${new Date(
+                                        outfit.createdAt,
+                                      ).toLocaleDateString([], {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })}`}
+                                    </Text>
+                                  )}
+                                </View>
+                              )}
+                            </View>
 
-                        {/* 📅 Schedule & Cancel Buttons – keep them working */}
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            marginTop: 10,
-                          }}>
-                          <AppleTouchFeedback
-                            hapticStyle="impactLight"
-                            onPress={e => {
-                              setPlanningOutfitId(outfit.id);
-                              const now = new Date();
-                              setSelectedTempDate(now);
-                              setSelectedTempTime(now);
-                              setShowDatePicker(true);
-                            }}
-                            style={{
-                              backgroundColor: theme.colors.button1,
-                              borderRadius: 18,
-                              paddingVertical: 8,
-                              paddingHorizontal: 12,
-                              marginRight: 10,
-                            }}>
-                            <Text
-                              style={{
-                                color: theme.colors.foreground,
-                                fontWeight: '600',
-                                fontSize: 13,
-                              }}>
-                              📅 Schedule This Outfit
-                            </Text>
-                          </AppleTouchFeedback>
-
-                          {outfit.plannedDate && (
-                            <AppleTouchFeedback
-                              hapticStyle="impactLight"
-                              onPress={e => {
-                                cancelPlannedOutfit(outfit.id);
-                              }}
+                            {/* ❤️ & ✏️ Buttons */}
+                            <View
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                paddingVertical: 7,
-                                paddingHorizontal: 12,
-                                borderRadius: 18,
-                                backgroundColor:
-                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                               }}>
-                              <MaterialIcons
-                                name="close"
-                                size={19}
-                                color="red"
-                                style={{marginRight: 6}}
-                              />
+                              {/* ✏️ Edit */}
+                              <AppleTouchFeedback
+                                hapticStyle="impactLight"
+                                onPress={e => {
+                                  hSelect();
+                                  setEditingOutfitId(outfit.id);
+                                  setEditedName(outfit.name || '');
+                                }}
+                                style={{
+                                  padding: 8,
+                                  borderRadius: 14,
+                                  backgroundColor:
+                                    theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                  marginRight: 6,
+                                }}>
+                                <MaterialIcons
+                                  name="edit"
+                                  size={20}
+                                  color={theme.colors.foreground}
+                                />
+                              </AppleTouchFeedback>
+
+                              {/* ❤️ Favorite */}
+                              <AppleTouchFeedback
+                                hapticStyle="impactLight"
+                                onPress={e => {
+                                  hSelect();
+                                  toggleFavorite(
+                                    outfit.id,
+                                    outfit.type === 'custom'
+                                      ? 'custom'
+                                      : 'suggestion',
+                                    setCombinedOutfits,
+                                  );
+                                }}
+                                style={{
+                                  padding: 8,
+                                  borderRadius: 14,
+                                  backgroundColor:
+                                    theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                }}>
+                                <MaterialIcons
+                                  name="favorite"
+                                  size={20}
+                                  color={
+                                    favorites.some(
+                                      f =>
+                                        f.id === outfit.id &&
+                                        f.source ===
+                                          (outfit.type === 'custom'
+                                            ? 'custom'
+                                            : 'suggestion'),
+                                    )
+                                      ? 'red'
+                                      : theme.colors.foreground
+                                  }
+                                />
+                              </AppleTouchFeedback>
+                              {/* 📤 Share */}
+                              <AppleTouchFeedback
+                                hapticStyle="impactLight"
+                                onPress={() => handleShareOutfit(outfit)}
+                                style={{
+                                  padding: 8,
+                                  borderRadius: 14,
+                                  backgroundColor:
+                                    theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                  marginLeft: 6,
+                                }}>
+                                <MaterialIcons
+                                  name="ios-share"
+                                  size={20}
+                                  color={theme.colors.primary}
+                                />
+                              </AppleTouchFeedback>
+                            </View>
+                          </View>
+
+                          {/* 👕 Outfit Images */}
+                          <View style={styles.imageRow}>
+                            {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                              i?.image ? (
+                                <Image
+                                  key={i.id}
+                                  source={{uri: i.image}}
+                                  style={[
+                                    globalStyles.image1,
+                                    {
+                                      marginRight: 12,
+                                      borderRadius: 12,
+                                      marginBottom: 8,
+                                      marginTop: -6,
+                                    },
+                                  ]}
+                                />
+                              ) : null,
+                            )}
+                          </View>
+
+                          {/* 📝 Notes */}
+                          {outfit.notes?.trim() && (
+                            <Text style={styles.notes}>
+                              “{outfit.notes.trim()}”
+                            </Text>
+                          )}
+
+                          {/* 📅 Schedule & Cancel Buttons – keep them working */}
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              flexWrap: 'wrap',
+                              marginTop: 10,
+                            }}>
+                            <AppleTouchFeedback
+                              hapticStyle="impactLight"
+                              onPress={e => {
+                                setPlanningOutfitId(outfit.id);
+                                const now = new Date();
+                                setSelectedTempDate(now);
+                                setSelectedTempTime(now);
+                                setShowDatePicker(true);
+                              }}
+                              style={{
+                                backgroundColor: theme.colors.button1,
+                                borderRadius: 18,
+                                paddingVertical: 8,
+                                paddingHorizontal: 12,
+                                marginRight: 10,
+                              }}>
                               <Text
                                 style={{
                                   color: theme.colors.foreground,
                                   fontWeight: '600',
                                   fontSize: 13,
                                 }}>
-                                Cancel Schedule
+                                📅 Schedule This Outfit
                               </Text>
                             </AppleTouchFeedback>
-                          )}
-                        </View>
 
-                        {/* 🏷️ Tags */}
-                        {(outfit.tags || []).length > 0 && (
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              flexWrap: 'wrap',
-                              marginTop: 8,
-                            }}>
-                            {outfit.tags?.map(tag => (
-                              <View
-                                key={tag}
+                            {outfit.plannedDate && (
+                              <AppleTouchFeedback
+                                hapticStyle="impactLight"
+                                onPress={e => {
+                                  cancelPlannedOutfit(outfit.id);
+                                }}
                                 style={{
-                                  paddingHorizontal: 10,
-                                  paddingVertical: 6,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 7,
+                                  paddingHorizontal: 12,
+                                  borderRadius: 18,
                                   backgroundColor:
-                                    theme.colors.input2 ?? 'rgba(43,43,43,1)',
-                                  borderRadius: 16,
-                                  marginRight: 6,
-                                  marginBottom: 6,
+                                    theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                                 }}>
+                                <MaterialIcons
+                                  name="close"
+                                  size={19}
+                                  color="red"
+                                  style={{marginRight: 6}}
+                                />
                                 <Text
                                   style={{
-                                    fontSize: 12,
                                     color: theme.colors.foreground,
+                                    fontWeight: '600',
+                                    fontSize: 13,
                                   }}>
-                                  #{tag}
+                                  Cancel Schedule
                                 </Text>
-                              </View>
-                            ))}
+                              </AppleTouchFeedback>
+                            )}
                           </View>
-                        )}
-                      </TouchableOpacity>
-                    </ViewShot>
-                  </Animatable.View>
-                </SwipeableCard>
-              );
-            })
-          )}
-        </View>
-      </Animated.ScrollView>
-      {/* 📝 Edit Name Modal */}
-      {editingOutfitId && (
-        <BlurView
-          style={styles.modalContainer}
-          blurType="dark"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <Animatable.View
-            animation="zoomIn"
-            duration={600}
-            style={styles.modalContent}>
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontWeight: '700',
-                fontSize: 16,
-              }}>
-              Edit Outfit Name
-            </Text>
-            <TextInput
-              value={editedName}
-              onChangeText={setEditedName}
-              placeholder="Enter new name"
-              placeholderTextColor={theme.colors.foreground3}
-              style={styles.input}
-            />
-            <View style={styles.modalActions}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setEditingOutfitId(null);
-                  setEditedName('');
+
+                          {/* 🏷️ Tags */}
+                          {(outfit.tags || []).length > 0 && (
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                flexWrap: 'wrap',
+                                marginTop: 8,
+                              }}>
+                              {outfit.tags?.map(tag => (
+                                <View
+                                  key={tag}
+                                  style={{
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 6,
+                                    backgroundColor:
+                                      theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                    borderRadius: 16,
+                                    marginRight: 6,
+                                    marginBottom: 6,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      fontSize: 12,
+                                      color: theme.colors.foreground,
+                                    }}>
+                                    #{tag}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      </ViewShot>
+                    </Animatable.View>
+                  </SwipeableCard>
+                );
+              })
+            )}
+          </View>
+        </Animated.ScrollView>
+        {/* 📝 Edit Name Modal */}
+        {editingOutfitId && (
+          <BlurView
+            style={styles.modalContainer}
+            blurType="dark"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
+            <Animatable.View
+              animation="zoomIn"
+              duration={600}
+              style={styles.modalContent}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontWeight: '700',
+                  fontSize: 16,
                 }}>
-                <Text style={{color: theme.colors.foreground, marginRight: 24}}>
-                  Cancel
-                </Text>
-              </AppleTouchFeedback>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={handleNameSave}>
-                <Text style={{color: theme.colors.primary, fontWeight: '700'}}>
-                  Save
-                </Text>
-              </AppleTouchFeedback>
-            </View>
-          </Animatable.View>
-        </BlurView>
-      )}
-
-      {/* 📅 Step 1: Date Picker — Dramatic Blur Bottom Sheet */}
-      {showDatePicker && planningOutfitId && (
-        <BlurView
-          style={styles.overlay}
-          blurType="dark"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <Animatable.View
-            animation="slideInUp"
-            duration={650}
-            easing="ease-out-cubic"
-            style={[styles.sheetContainer]}>
-            <View style={styles.grabber} />
-            <View style={styles.sheetHeaderRow}>
-              <Text style={styles.sheetTitle}>📆 Pick a date</Text>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={resetPlanFlow}
-                style={styles.sheetPill}>
-                <Text style={styles.sheetPillText}>Close</Text>
-              </AppleTouchFeedback>
-            </View>
-
-            <DateTimePicker
-              value={selectedTempDate || new Date()}
-              mode="date"
-              display="spinner"
-              themeVariant="dark"
-              textColor={theme.colors.foreground}
-              onChange={(e, d) => d && setSelectedTempDate(new Date(d))}
-              style={{marginVertical: -10}}
-            />
-
-            <View style={styles.sheetFooterRow}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={resetPlanFlow}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.surface},
-                ]}>
-                <Text style={styles.sheetPillText}>Cancel</Text>
-              </AppleTouchFeedback>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setShowDatePicker(false);
-                  setShowTimePicker(true);
-                }}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.background},
-                ]}>
-                <Text
-                  style={{color: theme.colors.foreground, fontWeight: '800'}}>
-                  Next: Time
-                </Text>
-              </AppleTouchFeedback>
-            </View>
-          </Animatable.View>
-        </BlurView>
-      )}
-
-      {/* ⏰ Step 2: Time Picker — Dramatic Blur Bottom Sheet */}
-      {showTimePicker && planningOutfitId && (
-        <BlurView
-          style={styles.overlay}
-          blurType="dark"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <Animatable.View
-            animation="slideInUp"
-            duration={650}
-            easing="ease-out-cubic"
-            style={[styles.sheetContainer]}>
-            <View style={styles.grabber} />
-            <View style={styles.sheetHeaderRow}>
-              <Text style={styles.sheetTitle}>⏱️ Pick a time</Text>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={resetPlanFlow}
-                style={styles.sheetPill}>
-                <Text style={styles.sheetPillText}>Close</Text>
-              </AppleTouchFeedback>
-            </View>
-
-            <DateTimePicker
-              value={selectedTempTime || new Date()}
-              mode="time"
-              display="spinner"
-              themeVariant="dark"
-              textColor={theme.colors.foreground}
-              onChange={(e, t) => t && setSelectedTempTime(new Date(t))}
-              style={{marginVertical: -10}}
-            />
-
-            <View style={styles.sheetFooterRow}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={resetPlanFlow}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.input2},
-                ]}>
-                <Text style={styles.sheetPillText}>Cancel</Text>
-              </AppleTouchFeedback>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={commitSchedule}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.button1},
-                ]}>
-                <Text
-                  style={{color: theme.colors.buttonText1, fontWeight: '800'}}>
-                  Done
-                </Text>
-              </AppleTouchFeedback>
-            </View>
-          </Animatable.View>
-        </BlurView>
-      )}
-
-      {/* 🧼 Undo Toast */}
-      {lastDeletedOutfit && (
-        <Animatable.View
-          animation="bounceInUp"
-          duration={800}
-          easing="ease-out-back"
-          style={styles.toast}>
-          <Text style={{color: theme.colors.foreground}}>Outfit deleted</Text>
-          <AppleTouchFeedback
-            hapticStyle="impactLight"
-            onPress={async () => {
-              const updated = [...combinedOutfits, lastDeletedOutfit];
-              const manual = updated.filter(o => !o.favorited);
-              const favs = updated.filter(o => o.favorited);
-              await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
-              await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
-              setCombinedOutfits(updated);
-              setLastDeletedOutfit(null);
-            }}>
-            <Text style={{color: theme.colors.primary, fontWeight: '700'}}>
-              Undo
-            </Text>
-          </AppleTouchFeedback>
-        </Animatable.View>
-      )}
-
-      {/* 🗑 Delete Confirmation */}
-      {showDeleteConfirm && pendingDeleteId && (
-        <BlurView
-          style={styles.modalContainer}
-          blurType="dark"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <Animatable.View
-            animation="zoomIn"
-            duration={500}
-            style={styles.modalContent}>
-            <Text
-              style={{
-                fontSize: 16,
-                color: theme.colors.foreground,
-                fontWeight: '700',
-                marginBottom: 8,
-              }}>
-              Delete this outfit?
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: theme.colors.foreground2,
-                marginBottom: 18,
-              }}>
-              This action cannot be undone.
-            </Text>
-            <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setShowDeleteConfirm(false);
-                  setPendingDeleteId(null);
-                }}>
-                <Text
-                  style={{
-                    color: theme.colors.foreground,
-                    marginHorizontal: 16,
+                Edit Outfit Name
+              </Text>
+              <TextInput
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder="Enter new name"
+                placeholderTextColor={theme.colors.foreground3}
+                style={styles.input}
+              />
+              <View style={styles.modalActions}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setEditingOutfitId(null);
+                    setEditedName('');
                   }}>
-                  Cancel
-                </Text>
-              </AppleTouchFeedback>
-              <AppleTouchFeedback
-                hapticStyle="notificationWarning"
-                onPress={() => {
-                  if (pendingDeleteId) handleDelete(pendingDeleteId);
-                  setShowDeleteConfirm(false);
-                  setPendingDeleteId(null);
-                }}>
-                <Text style={{color: theme.colors.error, fontWeight: '800'}}>
-                  Delete
-                </Text>
-              </AppleTouchFeedback>
-            </View>
-          </Animatable.View>
-        </BlurView>
-      )}
+                  <Text
+                    style={{color: theme.colors.foreground, marginRight: 24}}>
+                    Cancel
+                  </Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={handleNameSave}>
+                  <Text
+                    style={{color: theme.colors.primary, fontWeight: '700'}}>
+                    Save
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </Animatable.View>
+          </BlurView>
+        )}
 
-      {/* 🖼 Full-Screen Outfit Modal — IMMERSIVE VERSION */}
-      <Modal
-        visible={!!fullScreenOutfit}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setFullScreenOutfit(null)}>
-        {fullScreenOutfit && (
-          <SafeAreaView style={{flex: 1, backgroundColor: 'transparent'}}>
-            <Animated.View
-              style={{
-                flex: 1,
-                backgroundColor: '#000',
-                transform: [{translateY}],
-                width: '100%',
-                height: '100%',
+        {/* 📅 Step 1: Date Picker — Dramatic Blur Bottom Sheet */}
+        {showDatePicker && planningOutfitId && (
+          <BlurView
+            style={styles.overlay}
+            blurType="dark"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
+            <Animatable.View
+              animation="slideInUp"
+              duration={650}
+              easing="ease-out-cubic"
+              style={[styles.sheetContainer]}>
+              <View style={styles.grabber} />
+              <View style={styles.sheetHeaderRow}>
+                <Text style={styles.sheetTitle}>📆 Pick a date</Text>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={resetPlanFlow}
+                  style={styles.sheetPill}>
+                  <Text style={styles.sheetPillText}>Close</Text>
+                </AppleTouchFeedback>
+              </View>
+
+              <DateTimePicker
+                value={selectedTempDate || new Date()}
+                mode="date"
+                display="spinner"
+                themeVariant="dark"
+                textColor={theme.colors.foreground}
+                onChange={(e, d) => d && setSelectedTempDate(new Date(d))}
+                style={{marginVertical: -10}}
+              />
+
+              <View style={styles.sheetFooterRow}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={resetPlanFlow}
+                  style={[
+                    styles.sheetPill,
+                    {backgroundColor: theme.colors.surface},
+                  ]}>
+                  <Text style={styles.sheetPillText}>Cancel</Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setShowDatePicker(false);
+                    setShowTimePicker(true);
+                  }}
+                  style={[
+                    styles.sheetPill,
+                    {backgroundColor: theme.colors.background},
+                  ]}>
+                  <Text
+                    style={{color: theme.colors.foreground, fontWeight: '800'}}>
+                    Next: Time
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </Animatable.View>
+          </BlurView>
+        )}
+
+        {/* ⏰ Step 2: Time Picker — Dramatic Blur Bottom Sheet */}
+        {showTimePicker && planningOutfitId && (
+          <BlurView
+            style={styles.overlay}
+            blurType="dark"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
+            <Animatable.View
+              animation="slideInUp"
+              duration={650}
+              easing="ease-out-cubic"
+              style={[styles.sheetContainer]}>
+              <View style={styles.grabber} />
+              <View style={styles.sheetHeaderRow}>
+                <Text style={styles.sheetTitle}>⏱️ Pick a time</Text>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={resetPlanFlow}
+                  style={styles.sheetPill}>
+                  <Text style={styles.sheetPillText}>Close</Text>
+                </AppleTouchFeedback>
+              </View>
+
+              <DateTimePicker
+                value={selectedTempTime || new Date()}
+                mode="time"
+                display="spinner"
+                themeVariant="dark"
+                textColor={theme.colors.foreground}
+                onChange={(e, t) => t && setSelectedTempTime(new Date(t))}
+                style={{marginVertical: -10}}
+              />
+
+              <View style={styles.sheetFooterRow}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={resetPlanFlow}
+                  style={[
+                    styles.sheetPill,
+                    {backgroundColor: theme.colors.input2},
+                  ]}>
+                  <Text style={styles.sheetPillText}>Cancel</Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={commitSchedule}
+                  style={[
+                    styles.sheetPill,
+                    {backgroundColor: theme.colors.button1},
+                  ]}>
+                  <Text
+                    style={{
+                      color: theme.colors.buttonText1,
+                      fontWeight: '800',
+                    }}>
+                    Done
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </Animatable.View>
+          </BlurView>
+        )}
+
+        {/* 🧼 Undo Toast */}
+        {lastDeletedOutfit && (
+          <Animatable.View
+            animation="bounceInUp"
+            duration={800}
+            easing="ease-out-back"
+            style={styles.toast}>
+            <Text style={{color: theme.colors.foreground}}>Outfit deleted</Text>
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={async () => {
+                const updated = [...combinedOutfits, lastDeletedOutfit];
+                const manual = updated.filter(o => !o.favorited);
+                const favs = updated.filter(o => o.favorited);
+                await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
+                await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+                setCombinedOutfits(updated);
+                setLastDeletedOutfit(null);
               }}>
-              {/* ✨ Backdrop */}
-              <Animatable.View
-                animation="fadeIn"
-                duration={300}
-                style={[StyleSheet.absoluteFill, {backgroundColor: '#000'}]}
-              />
+              <Text style={{color: theme.colors.primary, fontWeight: '700'}}>
+                Undo
+              </Text>
+            </AppleTouchFeedback>
+          </Animatable.View>
+        )}
 
-              {/* ✖️ Close Button ABOVE gesture zone */}
-              <TouchableOpacity
+        {/* 🗑 Delete Confirmation */}
+        {showDeleteConfirm && pendingDeleteId && (
+          <BlurView
+            style={styles.modalContainer}
+            blurType="dark"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
+            <Animatable.View
+              animation="zoomIn"
+              duration={500}
+              style={styles.modalContent}>
+              <Text
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 20,
-                  zIndex: 20,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  borderRadius: 50,
-                  paddingHorizontal: 8,
-                  paddingVertical: 6,
-                }}
-                onPress={handleClose}
-                hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-                <Text style={{color: '#fff', fontSize: 20}}>✕</Text>
-              </TouchableOpacity>
-
-              {/* 🟥 Swipe Gesture Zone */}
-              <View
-                {...panResponder.panHandlers}
-                style={{
-                  position: 'absolute',
-                  top: 28,
-                  height: 280,
-                  width: '100%',
-                  zIndex: 999,
-                  // backgroundColor: 'rgba(255,0,0,0.3)', // debug
-                }}
-                onStartShouldSetResponder={() => true}
-              />
-
-              {/* 📸 Outfit Scroll Content */}
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={{flex: 1, width: '100%'}}
-                contentContainerStyle={{
-                  paddingBottom: 180,
-                  alignItems: 'center',
-                  paddingHorizontal: 24,
+                  fontSize: 16,
+                  color: theme.colors.foreground,
+                  fontWeight: '700',
+                  marginBottom: 8,
                 }}>
-                {/* 🧥 Outfit Name */}
-                <Animatable.Text
-                  animation="fadeInDown"
-                  delay={200}
+                Delete this outfit?
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: theme.colors.foreground2,
+                  marginBottom: 18,
+                }}>
+                This action cannot be undone.
+              </Text>
+              <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setShowDeleteConfirm(false);
+                    setPendingDeleteId(null);
+                  }}>
+                  <Text
+                    style={{
+                      color: theme.colors.foreground,
+                      marginHorizontal: 16,
+                    }}>
+                    Cancel
+                  </Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  hapticStyle="notificationWarning"
+                  onPress={() => {
+                    if (pendingDeleteId) handleDelete(pendingDeleteId);
+                    setShowDeleteConfirm(false);
+                    setPendingDeleteId(null);
+                  }}>
+                  <Text style={{color: theme.colors.error, fontWeight: '800'}}>
+                    Delete
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </Animatable.View>
+          </BlurView>
+        )}
+
+        {/* 🖼 Full-Screen Outfit Modal — IMMERSIVE VERSION */}
+        <Modal
+          visible={!!fullScreenOutfit}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setFullScreenOutfit(null)}>
+          {fullScreenOutfit && (
+            <SafeAreaView style={{flex: 1, backgroundColor: 'transparent'}}>
+              <Animated.View
+                style={{
+                  flex: 1,
+                  backgroundColor: '#000',
+                  transform: [{translateY}],
+                  width: '100%',
+                  height: '100%',
+                }}>
+                {/* ✨ Backdrop */}
+                <Animatable.View
+                  animation="fadeIn"
+                  duration={300}
+                  style={[StyleSheet.absoluteFill, {backgroundColor: '#000'}]}
+                />
+
+                {/* ✖️ Close Button ABOVE gesture zone */}
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 20,
+                    zIndex: 20,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    borderRadius: 50,
+                    paddingHorizontal: 8,
+                    paddingVertical: 6,
+                  }}
+                  onPress={handleClose}
+                  hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+                  <Text style={{color: '#fff', fontSize: 20}}>✕</Text>
+                </TouchableOpacity>
+
+                {/* 🟥 Swipe Gesture Zone */}
+                <View
+                  {...panResponder.panHandlers}
+                  style={{
+                    position: 'absolute',
+                    top: 28,
+                    height: 280,
+                    width: '100%',
+                    zIndex: 999,
+                    // backgroundColor: 'rgba(255,0,0,0.3)', // debug
+                  }}
+                  onStartShouldSetResponder={() => true}
+                />
+
+                {/* 📸 Outfit Scroll Content */}
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  style={{flex: 1, width: '100%'}}
+                  contentContainerStyle={{
+                    paddingBottom: 180,
+                    alignItems: 'center',
+                    paddingHorizontal: 24,
+                  }}>
+                  {/* 🧥 Outfit Name */}
+                  <Animatable.Text
+                    animation="fadeInDown"
+                    delay={200}
+                    duration={700}
+                    style={{
+                      fontSize: 28,
+                      fontWeight: '800',
+                      color: '#fff',
+                      textAlign: 'center',
+                      marginTop: 25,
+                      marginBottom: 20,
+                      letterSpacing: 0.5,
+                    }}>
+                    {fullScreenOutfit.name || 'Unnamed Outfit'}
+                  </Animatable.Text>
+
+                  {/* 👕 Outfit Images */}
+                  {[
+                    fullScreenOutfit.top,
+                    fullScreenOutfit.bottom,
+                    fullScreenOutfit.shoes,
+                  ].map(
+                    (i, idx) =>
+                      i?.image && (
+                        <Animatable.Image
+                          key={i.id || idx}
+                          source={{uri: i.image}}
+                          animation="fadeInUp"
+                          delay={300 + idx * 200}
+                          duration={800}
+                          style={{
+                            width: '100%',
+                            height: 400,
+                            maxWidth: 400,
+                            borderRadius: 20,
+                            marginBottom: 28,
+                            shadowColor: '#000',
+                            shadowOpacity: 0.35,
+                            shadowRadius: 24,
+                            shadowOffset: {width: 0, height: 14},
+                          }}
+                          resizeMode="cover"
+                        />
+                      ),
+                  )}
+
+                  {/* 📝 Notes */}
+                  {fullScreenOutfit.notes?.trim() && (
+                    <Animatable.Text
+                      animation="fadeInUp"
+                      delay={700}
+                      duration={800}
+                      style={{
+                        fontStyle: 'italic',
+                        fontSize: 16,
+                        color: 'rgba(255,255,255,0.9)',
+                        textAlign: 'center',
+                        marginTop: 10,
+                        lineHeight: 22,
+                      }}>
+                      “{fullScreenOutfit.notes.trim()}”
+                    </Animatable.Text>
+                  )}
+
+                  {/* 🏷️ Tags */}
+                  {fullScreenOutfit.tags?.length ? (
+                    <Animatable.View
+                      animation="fadeInUp"
+                      delay={900}
+                      duration={800}
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                        marginTop: 24,
+                      }}>
+                      {fullScreenOutfit.tags.map(tag => (
+                        <View
+                          key={tag}
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            borderRadius: 20,
+                            paddingHorizontal: 14,
+                            paddingVertical: 6,
+                            margin: 6,
+                          }}>
+                          <Text
+                            style={{
+                              color: '#fff',
+                              fontSize: 14,
+                              fontWeight: '600',
+                              letterSpacing: 0.2,
+                            }}>
+                            #{tag}
+                          </Text>
+                        </View>
+                      ))}
+                    </Animatable.View>
+                  ) : null}
+                </ScrollView>
+
+                {/* 🪩 Frosted Bottom Panel */}
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={400}
                   duration={700}
                   style={{
-                    fontSize: 28,
-                    fontWeight: '800',
-                    color: '#fff',
-                    textAlign: 'center',
-                    marginTop: 25,
-                    marginBottom: 20,
-                    letterSpacing: 0.5,
+                    position: 'absolute',
+                    bottom: 0,
+                    width: '100%',
+                    // paddingVertical: 28,
+                    // paddingHorizontal: 24,
+                    // borderTopLeftRadius: 26,
+                    // borderTopRightRadius: 26,
+                    // backgroundColor:
+                    //   Platform.OS === 'android'
+                    //     ? 'rgba(20,20,20,0.9)'
+                    //     : 'transparent',
+                    // shadowColor: '#000',
+                    // shadowOpacity: 0.4,
+                    // shadowRadius: 30,
+                    // shadowOffset: {width: 0, height: -10},
                   }}>
-                  {fullScreenOutfit.name || 'Unnamed Outfit'}
-                </Animatable.Text>
-
-                {/* 👕 Outfit Images */}
-                {[
-                  fullScreenOutfit.top,
-                  fullScreenOutfit.bottom,
-                  fullScreenOutfit.shoes,
-                ].map(
-                  (i, idx) =>
-                    i?.image && (
-                      <Animatable.Image
-                        key={i.id || idx}
-                        source={{uri: i.image}}
-                        animation="fadeInUp"
-                        delay={300 + idx * 200}
-                        duration={800}
-                        style={{
-                          width: '100%',
-                          height: 400,
-                          maxWidth: 400,
-                          borderRadius: 20,
-                          marginBottom: 28,
-                          shadowColor: '#000',
-                          shadowOpacity: 0.35,
-                          shadowRadius: 24,
-                          shadowOffset: {width: 0, height: 14},
-                        }}
-                        resizeMode="cover"
-                      />
-                    ),
-                )}
-
-                {/* 📝 Notes */}
-                {fullScreenOutfit.notes?.trim() && (
-                  <Animatable.Text
-                    animation="fadeInUp"
-                    delay={700}
-                    duration={800}
-                    style={{
-                      fontStyle: 'italic',
-                      fontSize: 16,
-                      color: 'rgba(255,255,255,0.9)',
-                      textAlign: 'center',
-                      marginTop: 10,
-                      lineHeight: 22,
-                    }}>
-                    “{fullScreenOutfit.notes.trim()}”
-                  </Animatable.Text>
-                )}
-
-                {/* 🏷️ Tags */}
-                {fullScreenOutfit.tags?.length ? (
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={900}
-                    duration={800}
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      justifyContent: 'center',
-                      marginTop: 24,
-                    }}>
-                    {fullScreenOutfit.tags.map(tag => (
-                      <View
-                        key={tag}
-                        style={{
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          borderRadius: 20,
-                          paddingHorizontal: 14,
-                          paddingVertical: 6,
-                          margin: 6,
-                        }}>
-                        <Text
-                          style={{
-                            color: '#fff',
-                            fontSize: 14,
-                            fontWeight: '600',
-                            letterSpacing: 0.2,
-                          }}>
-                          #{tag}
-                        </Text>
-                      </View>
-                    ))}
-                  </Animatable.View>
-                ) : null}
-              </ScrollView>
-
-              {/* 🪩 Frosted Bottom Panel */}
-              <Animatable.View
-                animation="fadeInUp"
-                delay={400}
-                duration={700}
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  width: '100%',
-                  // paddingVertical: 28,
-                  // paddingHorizontal: 24,
-                  // borderTopLeftRadius: 26,
-                  // borderTopRightRadius: 26,
-                  // backgroundColor:
-                  //   Platform.OS === 'android'
-                  //     ? 'rgba(20,20,20,0.9)'
-                  //     : 'transparent',
-                  // shadowColor: '#000',
-                  // shadowOpacity: 0.4,
-                  // shadowRadius: 30,
-                  // shadowOffset: {width: 0, height: -10},
-                }}>
-                {Platform.OS === 'ios' && (
-                  <BlurView
-                    style={StyleSheet.absoluteFill}
-                    blurType="systemMaterialDark"
-                    blurAmount={30}
-                  />
-                )}
-              </Animatable.View>
-            </Animated.View>
-          </SafeAreaView>
-        )}
-      </Modal>
-    </SafeAreaView>
+                  {Platform.OS === 'ios' && (
+                    <BlurView
+                      style={StyleSheet.absoluteFill}
+                      blurType="systemMaterialDark"
+                      blurAmount={30}
+                    />
+                  )}
+                </Animatable.View>
+              </Animated.View>
+            </SafeAreaView>
+          )}
+        </Modal>
+      </SafeAreaView>
+    </GradientBackground>
   );
 }
 

@@ -7,13 +7,13 @@
 // • Organized by feature tier (Navigation → AI → Shopping → Personality)
 // -----------------------------------------------------------------------------
 
-import {fetchWeather} from '../utils/travelWeather';
+import {fetchWeather} from '../travelWeather';
 import React, {useState, useEffect, useRef} from 'react';
 import {
   scheduleLocalNotification,
   initializeNotifications,
-} from '../utils/notificationService';
-import {API_BASE_URL} from '../config/api';
+} from '../notificationService';
+import {API_BASE_URL} from '../../config/api';
 import {Alert} from 'react-native';
 
 // ✅ Define voice command entries

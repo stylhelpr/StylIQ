@@ -52,7 +52,7 @@ export async function getRouteMidpoints(
 }
 
 // Fetch weather at a location
-export async function fetchWeather(lat: number, lon: number) {
+export async function fetchWeather(lat: number, lon: number, p0: string) {
   const cleanKey = OPENWEATHER_API_KEY?.trim();
   console.log('🔑 OPENWEATHER_API_KEY:', OPENWEATHER_API_KEY);
   console.log('🌍 Fetching weather for:', {lat, lon});

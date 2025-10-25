@@ -11,12 +11,12 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AppleTouchFeedback from './AppleTouchFeedback/AppleTouchFeedback';
 import {useVoiceControl} from '../hooks/useVoiceControl';
 import {useAppTheme} from '../context/ThemeContext';
-import {routeVoiceCommand} from '../utils/voiceCommandRouter';
+import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {moderateScale} from '../utils/scale';
 import LiquidGlassCard from './LiquidGlassCard/LiquidGlassCard';
 import type {Screen} from '../navigation/types';
-import {VoiceTarget} from '../utils/voiceTarget';
+import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 const BUTTON_SIZE = 78;

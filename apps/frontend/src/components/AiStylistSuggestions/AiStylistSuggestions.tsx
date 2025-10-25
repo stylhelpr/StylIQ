@@ -24,7 +24,7 @@ import MascotAssistant from '../../components/MascotAssistant/MascotAssistant';
 import {useResponsive} from '../../hooks/useResponsive';
 import {useWindowDimensions} from 'react-native';
 import {index} from '../../../../backend-nest/dist/pinecone/pineconeUtils';
-import {useAiSuggestionVoiceCommands} from '../../utils/VoiceContext';
+import {useAiSuggestionVoiceCommands} from '../../utils/VoiceUtils/VoiceContext';
 
 type Props = {
   weather: any;
@@ -237,7 +237,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
     <SafeAreaView
       style={{
         flex: 1,
-        backgroundColor: theme.colors.background, // maintain theme
       }}>
       <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
         AI Style Suggestions

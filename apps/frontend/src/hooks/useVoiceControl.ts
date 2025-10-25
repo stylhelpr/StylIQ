@@ -17,11 +17,11 @@ import Voice, {
 } from '@react-native-voice/voice';
 import {PermissionsAndroid, Platform, NativeModules} from 'react-native';
 import Tts from 'react-native-tts';
-import {VoiceBus} from '../utils/VoiceBus';
-import {VoiceTarget} from '../utils/voiceTarget';
-import {routeVoiceCommand} from '../utils/voiceCommandRouter';
+import {VoiceBus} from '../utils/VoiceUtils/VoiceBus';
+import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
+import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
 import {globalNavigate} from '../MainApp';
-import {instantSpeak} from '../utils/instantTts';
+import {instantSpeak} from '../utils/VoiceUtils/instantTts';
 
 const DEBUG = true;
 const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
@@ -116,7 +116,7 @@ export const useVoiceControl = () => {
     }
     setIsRecording(false);
     VoiceBus.stopListening();
-    instantSpeak('Got it');
+    // instantSpeak('Got it');
   };
 
   // 💬 Commit final recognized text
@@ -133,14 +133,14 @@ export const useVoiceControl = () => {
 
     if (VoiceTarget.currentSetter && !looksLikeCommand) {
       VoiceTarget.applyText(text);
-      instantSpeak('Done'); // 👈 confirm text applied
+      // instantSpeak('Done'); // 👈 confirm text applied
     } else {
       try {
         await routeVoiceCommand(text, globalNavigate);
-        instantSpeak('Okay'); // 👈 confirm navigation/command
+        // instantSpeak('Okay'); // 👈 confirm navigation/command
       } catch (err) {
         console.log('⚠️ routeVoiceCommand failed', err);
-        instantSpeak("Sorry, I didn't catch that");
+        // instantSpeak("Sorry, I didn't catch that");
       }
     }
   };

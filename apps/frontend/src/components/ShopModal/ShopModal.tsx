@@ -119,7 +119,7 @@ export default function ShopModal({
                       width: '49.0%',
                       marginBottom: tokens.spacing.xsm,
                       backgroundColor: theme.colors.surface,
-                      borderWidth: tokens.borderWidth.xxl,
+                      borderWidth: tokens.borderWidth.lg,
                       borderColor: theme.colors.surfaceBorder,
                       borderRadius: tokens.borderRadius.md,
                       overflow: 'hidden',

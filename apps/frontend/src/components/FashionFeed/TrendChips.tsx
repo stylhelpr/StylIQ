@@ -41,7 +41,7 @@ export default function TrendChips({
     wrap: {
       paddingHorizontal: 12,
       paddingVertical: 8,
-      backgroundColor: theme.colors.background,
+      // backgroundColor: theme.colors.background,
     },
     row: {
       gap: 8,

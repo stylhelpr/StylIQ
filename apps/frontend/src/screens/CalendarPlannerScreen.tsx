@@ -16,6 +16,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 
 type WardrobeItem = {
   id: string;
@@ -101,8 +102,15 @@ export default function OutfitPlannerScreen() {
       backgroundColor: theme.colors.surface3 ?? theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.input2 ?? theme.colors.surfaceBorder,
+      display: 'flex',
+      // alignItems: 'center',
+      // marginHorizontal: 80,
     },
-    name: {color: theme.colors.foreground, fontSize: 16, fontWeight: '600'},
+    name: {
+      color: theme.colors.foreground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
     time: {color: theme.colors.foreground2, marginTop: 4, fontSize: 13},
     row: {flexDirection: 'row', marginTop: 10},
     thumb: {
@@ -263,118 +271,124 @@ export default function OutfitPlannerScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: theme.colors.background,
-        paddingBottom: 0, // ✅ prevent bottom extra padding
-      }}
-      edges={['top', 'left', 'right']} // 👈 exclude bottom
-    >
-      <Text style={[globalStyles.header, {marginBottom: 8}]}>
-        Planned Outfits
-      </Text>
+    <GradientBackground>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          // backgroundColor: theme.colors.background,
+          paddingBottom: 0, // ✅ prevent bottom extra padding
+        }}
+        edges={['top', 'left', 'right']} // 👈 exclude bottom
+      >
+        <Text style={[globalStyles.header, {marginBottom: 8}]}>
+          Planned Outfits
+        </Text>
 
-      <Animated.View style={{opacity: fadeAnim, flex: 1}}>
-        {/* 📅 Calendar with bottom border */}
-        <View
-          style={{
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.surfaceBorder,
-          }}>
-          <Calendar
-            onDayPress={handleDayPress}
-            markedDates={{
-              ...markedDates,
-              ...(selectedDate
-                ? {
-                    [selectedDate]: {
-                      selected: true,
-                      selectedColor: theme.colors.primary,
-                    },
-                  }
-                : {}),
-            }}
-            markingType="multi-dot"
-            theme={{
-              calendarBackground: theme.colors.background,
-              textSectionTitleColor: theme.colors.foreground2,
-              dayTextColor: theme.colors.foreground,
-              todayTextColor: theme.colors.primary,
-              selectedDayBackgroundColor: theme.colors.primary,
-              selectedDayTextColor: '#fff',
-              arrowColor: theme.colors.primary,
-              monthTextColor: theme.colors.primary,
-              textMonthFontWeight: 'bold',
-              textDayFontSize: 16,
-              textMonthFontSize: 18,
-              textDayHeaderFontSize: 14,
-              dotColor: theme.colors.primary,
-              selectedDotColor: '#fff',
-              disabledArrowColor: '#444',
-            }}
-          />
-        </View>
-
-        {/* 🪄 Directly below calendar */}
-        {modalVisible && (
+        <Animated.View style={{opacity: fadeAnim, flex: 1}}>
+          {/* 📅 Calendar with bottom border */}
           <View
             style={{
-              flex: 1,
-              marginTop: 0,
-              paddingTop: 2,
-              paddingHorizontal: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.surfaceBorder,
             }}>
+            <Calendar
+              onDayPress={handleDayPress}
+              markedDates={{
+                ...markedDates,
+                ...(selectedDate
+                  ? {
+                      [selectedDate]: {
+                        selected: true,
+                        selectedColor: theme.colors.primary,
+                      },
+                    }
+                  : {}),
+              }}
+              markingType="multi-dot"
+              theme={{
+                calendarBackground: theme.colors.background,
+                textSectionTitleColor: theme.colors.foreground2,
+                dayTextColor: theme.colors.foreground,
+                todayTextColor: theme.colors.primary,
+                selectedDayBackgroundColor: theme.colors.primary,
+                selectedDayTextColor: '#fff',
+                arrowColor: theme.colors.primary,
+                monthTextColor: theme.colors.primary,
+                textMonthFontWeight: 'bold',
+                textDayFontSize: 16,
+                textMonthFontSize: 18,
+                textDayHeaderFontSize: 14,
+                dotColor: theme.colors.primary,
+                selectedDotColor: '#fff',
+                disabledArrowColor: '#444',
+              }}
+            />
+          </View>
+
+          {/* 🪄 Directly below calendar */}
+          {modalVisible && (
             <View
               style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}></View>
+                flex: 1,
+                marginTop: 0,
+                paddingTop: 2,
+                paddingHorizontal: 16,
+              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{
+                    paddingTop: 4,
+                    paddingBottom: insets.bottom + 8, // 👈 ensures no black gap above nav
+                  }}
+                  style={{flexGrow: 1}}>
+                  {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+                    <View key={index} style={styles.card}>
+                      <View>
+                        <Text style={styles.name}>
+                          {o.name?.trim() || 'Unnamed Outfit'}
+                        </Text>
+                        <Text style={styles.time}>
+                          🕒 {formatLocalTime(o.plannedDate)}
+                        </Text>
 
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{
-                paddingTop: 4,
-                paddingBottom: insets.bottom + 8, // 👈 ensures no black gap above nav
-              }}
-              style={{flexGrow: 1}}>
-              {(outfitsByDate[selectedDate!] || []).map((o, index) => (
-                <View key={index} style={styles.card}>
-                  <Text style={styles.name}>
-                    {o.name?.trim() || 'Unnamed Outfit'}
-                  </Text>
-                  <Text style={styles.time}>
-                    🕒 {formatLocalTime(o.plannedDate)}
-                  </Text>
+                        <View style={styles.row}>
+                          {[o.top, o.bottom, o.shoes].map(item =>
+                            item?.image ? (
+                              <Image
+                                key={item.id}
+                                source={{uri: item.image}}
+                                style={styles.thumb}
+                                resizeMode="cover"
+                              />
+                            ) : null,
+                          )}
+                        </View>
 
-                  <View style={styles.row}>
-                    {[o.top, o.bottom, o.shoes].map(item =>
-                      item?.image ? (
-                        <Image
-                          key={item.id}
-                          source={{uri: item.image}}
-                          style={styles.thumb}
-                          resizeMode="cover"
-                        />
-                      ) : null,
-                    )}
-                  </View>
+                        {o.notes ? (
+                          <Text style={styles.notes}>{o.notes}</Text>
+                        ) : null}
 
-                  {o.notes ? <Text style={styles.notes}>{o.notes}</Text> : null}
-
-                  {typeof o.rating === 'number' && (
-                    <Text style={styles.rating}>
-                      {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
-                    </Text>
-                  )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-      </Animated.View>
-    </SafeAreaView>
+                        {typeof o.rating === 'number' && (
+                          <Text style={styles.rating}>
+                            {'⭐'.repeat(o.rating)} {'☆'.repeat(5 - o.rating)}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+      </SafeAreaView>
+    </GradientBackground>
   );
 }
 

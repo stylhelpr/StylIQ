@@ -58,7 +58,7 @@ class AssistantSessionManager {
     VoiceBus.emit('status', {speech: cmd, isRecording: false});
 
     // Route through global router (the same one used for voice nav)
-    import('../utils/voiceCommandRouter')
+    import('./voiceCommandRouter')
 
       .then(mod => mod.routeVoiceCommand(cmd, this.fakeNavigate))
       .catch(err => console.log('Routing failed:', err))

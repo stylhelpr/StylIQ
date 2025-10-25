@@ -24,7 +24,7 @@ import * as Haptics from 'react-native-haptic-feedback';
 import {useAppTheme} from '../../context/ThemeContext';
 import {moderateScale, fontScale} from '../../utils/scale';
 import {tokens} from '../../styles/tokens/tokens';
-import {VoiceBus} from '../../utils/VoiceBus';
+import {VoiceBus} from '../../utils/VoiceUtils/VoiceBus';
 
 const {width} = Dimensions.get('window');
 

@@ -96,7 +96,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     screen: {
       flex: 1,
-      backgroundColor: theme.colors.background, // entire screen background
+      // backgroundColor: theme.colors.background, // entire screen background
     },
     container: {
       paddingTop: isTablet ? 10 : isLargePhone ? 8 : 5,
@@ -141,6 +141,10 @@ export const createGlobalStyles = (theme: Theme) =>
     sectionScroll: {
       marginBottom: isTablet ? 36 : isLargePhone ? 32 : 28,
       paddingLeft: isTablet ? 38 : isLargePhone ? 26 : 20,
+    },
+    sectionScroll2: {
+      marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 26 : 16,
     },
 
     // ============================================================
@@ -681,7 +685,8 @@ export const createGlobalStyles = (theme: Theme) =>
     outfitCard3: {
       // width: 220,
       // width: 275,
-      width: isTablet ? 275 : isLargePhone ? 275 : 230,
+      // width: isTablet ? 275 : isLargePhone ? 275 : 230,
+      width: isTablet ? 275 : isLargePhone ? 235 : 230,
       marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,
@@ -695,11 +700,11 @@ export const createGlobalStyles = (theme: Theme) =>
       width: isTablet ? 160 : isLargePhone ? 183 : isRegularPhone ? 180 : 160,
       marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
       alignItems: 'flex-start',
-      backgroundColor: theme.colors.surface2,
+      backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       borderRadius: tokens.borderRadius.lg,
       borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.muted,
+      borderColor: theme.colors.surfaceBorder,
     },
 
     // ============================================================

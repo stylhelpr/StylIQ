@@ -60,14 +60,10 @@ export const skins = {
       //  pillTextColor1: 'rgba(0, 255, 21, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#9000ffff',
+      buttonGradientStart: '#ff0000ff',
       buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#bc00afff',
-      surfaceGradientEnd: '#7C4DFF',
-      // buttonGradientStart: '#FF00FF',
-      // buttonGradientEnd: '#7C4DFF',
-      // surfaceGradientStart: '#FF00FF',
-      // surfaceGradientEnd: '#7C4DFF',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 16,

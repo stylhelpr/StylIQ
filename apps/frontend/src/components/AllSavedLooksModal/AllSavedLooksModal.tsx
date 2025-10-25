@@ -544,7 +544,7 @@ export default function AllSavedLooksModal({
                         backgroundColor: theme.colors.surface,
                         borderWidth: tokens.borderWidth.md,
                         borderColor: theme.colors.surfaceBorder,
-                        borderRadius: tokens.borderRadius.xxl,
+                        borderRadius: tokens.borderRadius.lg,
                         overflow: 'hidden',
                       }}>
                       {/* 🖼️ Image Section */}

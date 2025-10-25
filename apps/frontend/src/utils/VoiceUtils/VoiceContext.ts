@@ -1,5 +1,5 @@
 import React from 'react';
-import {VoiceBus} from '../utils/VoiceBus';
+import {VoiceBus} from './VoiceBus';
 import {MainCategory} from '@types/categoryTypes';
 
 /**
