@@ -249,7 +249,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           paddingBottom: moderateScale(tokens.spacing.md), // extra breathing room for small screens
         }}>
         {/* 🧠 Floating Mascot — always on top */}
-        <View
+        {/* <View
           style={{
             position: 'absolute',
             top: 132,
@@ -262,7 +262,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             size={67}
             message="How can I help?"
           />
-        </View>
+        </View> */}
 
         <Animatable.View
           animation="fadeInUp"

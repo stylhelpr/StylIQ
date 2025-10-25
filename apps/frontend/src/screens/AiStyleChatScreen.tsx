@@ -712,7 +712,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
         </View> */}
 
           {/* 🧠 Floating Mascot — always on top */}
-          <View
+          {/* <View
             style={{
               position: 'absolute',
               bottom: 40,
@@ -725,7 +725,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
               size={80}
               message="How can I help?"
             />
-          </View>
+          </View> */}
 
           <View
             style={{

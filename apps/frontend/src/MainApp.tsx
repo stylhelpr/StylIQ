@@ -95,7 +95,7 @@
 
 // export default MainApp;
 
-////////////////////////
+////////////////////////////
 
 // src/MainApp.tsx
 // -----------------------------------------------------------------------------
@@ -114,6 +114,13 @@ import FloatingMicButton from './components/FloatingMicButton';
 import {VoiceOverlay} from './components/VoiceOverlay/VoiceOverlay';
 import {VoiceBus} from './utils/VoiceBus';
 import {VoiceTarget} from './utils/voiceTarget';
+import {initInstantTts, instantSpeak} from './utils/instantTts';
+import WeatherPromptOverlay from './components/WeatherPromptOverlay/WeatherPromptOverlay';
+
+// 🔊 Export global WebView ref so other files can inject JS speech
+export const globalTtsRef: {current: React.RefObject<WebView> | null} = {
+  current: null,
+};
 
 // ✅ Create a global proxy for navigation
 export let globalNavigate = (_screen: string, _params?: any) => {
@@ -122,10 +129,18 @@ export let globalNavigate = (_screen: string, _params?: any) => {
 
 const MainApp = () => {
   const ref = useRef<WebView>(null);
+  globalTtsRef.current = ref; // ✅ assign once
+
   const [speech, setSpeech] = useState('');
   const [isRecording, setIsRecording] = useState(false);
 
-  // 🧠 Listen for voice overlay status updates
+  // 🔊 Initialize TTS once
+  useEffect(() => {
+    initInstantTts(); // preload Siri / Google voice
+    instantSpeak('Ready.'); // optional startup cue
+  }, []);
+
+  // 🔁 Sync overlay with recognition
   useEffect(() => {
     const handle = ({speech, isRecording}: any) => {
       setSpeech(speech);
@@ -135,36 +150,62 @@ const MainApp = () => {
     return () => VoiceBus.off('status', handle);
   }, []);
 
-  // 🧭 dynamically inject navigate from RootNavigator
+  // 🗣️ Sync overlay + recording state with TTS events
+  useEffect(() => {
+    const handleTtsStart = () => {
+      setIsRecording(false); // stop listening while TTS speaks
+    };
+    const handleTtsFinish = () => {
+      setIsRecording(false); // reset overlay after speech
+    };
+
+    VoiceBus.on('tts-start', handleTtsStart);
+    VoiceBus.on('tts-finish', handleTtsFinish);
+
+    return () => {
+      VoiceBus.off('tts-start', handleTtsStart);
+      VoiceBus.off('tts-finish', handleTtsFinish);
+    };
+  }, []);
+
+  // 🌤️ Weather overlay event binding
+  const [weatherData, setWeatherData] = useState<any>(null);
+  const [weatherVisible, setWeatherVisible] = useState(false);
+
+  useEffect(() => {
+    const handleWeather = (payload: any) => {
+      setWeatherData(payload);
+      setWeatherVisible(true);
+    };
+    VoiceBus.on('weather', handleWeather);
+    return () => VoiceBus.off('weather', handleWeather);
+  }, []);
+
+  // 🧭 Global navigation proxy
   const setGlobalNavigate = (navFn: any) => {
     globalNavigate = (screen: string, params?: any) => {
-      // 🛑 Stop any active listening or stuck overlay before navigation
       VoiceBus.emit('stopListening');
       VoiceTarget.clear();
-
-      // slight delay ensures the voice overlay unmounts before switching
-      setTimeout(() => {
-        navFn(screen, params);
-      }, 80);
+      setTimeout(() => navFn(screen, params), 80);
     };
   };
+  console.log('🌡️ Weather overlay data:', weatherData);
 
   return (
     <View style={styles.root}>
-      {/* 🎧 Global overlay for active speech recognition */}
-      <VoiceOverlay
-        isListening={isRecording}
-        partialText={speech}
-        pointerEvents="none"
-      />
-
-      {/* 🔹 Root app navigation (registers globalNavigate callback) */}
+      <VoiceOverlay isListening={isRecording} partialText={speech} />
       <RootNavigator registerNavigate={setGlobalNavigate} />
-
-      {/* 🔹 Floating voice mic, usable across all screens */}
       <FloatingMicButton navigate={globalNavigate} />
 
-      {/* 🔹 Hidden WebView used for TTS playback buffer */}
+      <WeatherPromptOverlay
+        visible={weatherVisible}
+        city={weatherData?.city || 'Los Angeles'}
+        temperature={weatherData?.temperature || 0}
+        condition={weatherData?.condition || 'Clear skies'}
+        onHide={() => setWeatherVisible(false)}
+      />
+
+      {/* Hidden WebView used for GPT-style TTS playback */}
       <View pointerEvents="none" style={styles.ttsContainer}>
         <WebView
           ref={ref}
@@ -194,6 +235,186 @@ const styles = StyleSheet.create({
 });
 
 export default MainApp;
+
+////////////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, StyleSheet} from 'react-native';
+// import {WebView} from 'react-native-webview';
+// import RootNavigator from './navigation/RootNavigator';
+// import FloatingMicButton from './components/FloatingMicButton';
+// import {VoiceOverlay} from './components/VoiceOverlay/VoiceOverlay';
+// import {VoiceBus} from './utils/VoiceBus';
+// import {VoiceTarget} from './utils/voiceTarget';
+// import {initInstantTts, instantSpeak} from './utils/instantTts'; // 👈 add this line
+
+// export let globalNavigate = (_screen: string, _params?: any) => {
+//   console.warn('⚠️ globalNavigate called before RootNavigator initialized');
+// };
+
+// const MainApp = () => {
+//   const ref = useRef<WebView>(null);
+//   const [speech, setSpeech] = useState('');
+//   const [isRecording, setIsRecording] = useState(false);
+
+//   // 🔊 Initialize TTS once
+//   useEffect(() => {
+//     initInstantTts(); // 👈 preload Siri / Google voice
+//     instantSpeak('Ready.'); // 👈 optional startup cue
+//   }, []);
+
+//   useEffect(() => {
+//     const handle = ({speech, isRecording}: any) => {
+//       setSpeech(speech);
+//       setIsRecording(isRecording);
+//     };
+//     VoiceBus.on('status', handle);
+//     return () => VoiceBus.off('status', handle);
+//   }, []);
+
+//   const setGlobalNavigate = (navFn: any) => {
+//     globalNavigate = (screen: string, params?: any) => {
+//       VoiceBus.emit('stopListening');
+//       VoiceTarget.clear();
+//       setTimeout(() => navFn(screen, params), 80);
+//     };
+//   };
+
+//   return (
+//     <View style={styles.root}>
+//       <VoiceOverlay isListening={isRecording} partialText={speech} />
+//       <RootNavigator registerNavigate={setGlobalNavigate} />
+//       <FloatingMicButton navigate={globalNavigate} />
+
+//       <View pointerEvents="none" style={styles.ttsContainer}>
+//         <WebView
+//           ref={ref}
+//           originWhitelist={['*']}
+//           allowsInlineMediaPlayback
+//           mediaPlaybackRequiresUserAction={false}
+//           javaScriptEnabled
+//           source={{html: '<html><body></body></html>'}}
+//           style={styles.hiddenWebView}
+//         />
+//       </View>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   root: {flex: 1},
+//   ttsContainer: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     zIndex: -9999,
+//   },
+//   hiddenWebView: {width: 1, height: 1, opacity: 0},
+// });
+
+// export default MainApp;
+
+//////////////////////
+
+// // src/MainApp.tsx
+// // -----------------------------------------------------------------------------
+// // 🎤 MainApp — Global entrypoint
+// // -----------------------------------------------------------------------------
+// // • Hosts RootNavigator and FloatingMicButton
+// // • Manages voice overlay + WebView TTS renderer
+// // • Ensures all voice sessions stop cleanly on navigation
+// // -----------------------------------------------------------------------------
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, StyleSheet} from 'react-native';
+// import {WebView} from 'react-native-webview';
+// import RootNavigator from './navigation/RootNavigator';
+// import FloatingMicButton from './components/FloatingMicButton';
+// import {VoiceOverlay} from './components/VoiceOverlay/VoiceOverlay';
+// import {VoiceBus} from './utils/VoiceBus';
+// import {VoiceTarget} from './utils/voiceTarget';
+
+// // ✅ Create a global proxy for navigation
+// export let globalNavigate = (_screen: string, _params?: any) => {
+//   console.warn('⚠️ globalNavigate called before RootNavigator initialized');
+// };
+
+// const MainApp = () => {
+//   const ref = useRef<WebView>(null);
+//   const [speech, setSpeech] = useState('');
+//   const [isRecording, setIsRecording] = useState(false);
+
+//   // 🧠 Listen for voice overlay status updates
+//   useEffect(() => {
+//     const handle = ({speech, isRecording}: any) => {
+//       setSpeech(speech);
+//       setIsRecording(isRecording);
+//     };
+//     VoiceBus.on('status', handle);
+//     return () => VoiceBus.off('status', handle);
+//   }, []);
+
+//   // 🧭 dynamically inject navigate from RootNavigator
+//   const setGlobalNavigate = (navFn: any) => {
+//     globalNavigate = (screen: string, params?: any) => {
+//       // 🛑 Stop any active listening or stuck overlay before navigation
+//       VoiceBus.emit('stopListening');
+//       VoiceTarget.clear();
+
+//       // slight delay ensures the voice overlay unmounts before switching
+//       setTimeout(() => {
+//         navFn(screen, params);
+//       }, 80);
+//     };
+//   };
+
+//   return (
+//     <View style={styles.root}>
+//       {/* 🎧 Global overlay for active speech recognition */}
+//       <VoiceOverlay
+//         isListening={isRecording}
+//         partialText={speech}
+//         pointerEvents="none"
+//       />
+
+//       {/* 🔹 Root app navigation (registers globalNavigate callback) */}
+//       <RootNavigator registerNavigate={setGlobalNavigate} />
+
+//       {/* 🔹 Floating voice mic, usable across all screens */}
+//       <FloatingMicButton navigate={globalNavigate} />
+
+//       {/* 🔹 Hidden WebView used for TTS playback buffer */}
+//       <View pointerEvents="none" style={styles.ttsContainer}>
+//         <WebView
+//           ref={ref}
+//           originWhitelist={['*']}
+//           allowsInlineMediaPlayback
+//           mediaPlaybackRequiresUserAction={false}
+//           javaScriptEnabled
+//           source={{html: '<html><body></body></html>'}}
+//           style={styles.hiddenWebView}
+//         />
+//       </View>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   root: {flex: 1},
+//   ttsContainer: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     zIndex: -9999,
+//   },
+//   hiddenWebView: {width: 1, height: 1, opacity: 0},
+// });
+
+// export default MainApp;
 
 ///////////////////////////////
 
