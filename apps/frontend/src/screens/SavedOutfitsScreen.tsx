@@ -1155,6 +1155,7 @@ export default function SavedOutfitsScreen() {
                         <View
                           style={{
                             flexDirection: 'row',
+                            justifyContent: 'center',
                             flexWrap: 'wrap',
                             marginTop: 10,
                           }}>
@@ -1171,7 +1172,7 @@ export default function SavedOutfitsScreen() {
                               backgroundColor: theme.colors.button1,
                               borderRadius: 18,
                               paddingVertical: 8,
-                              paddingHorizontal: 12,
+                              paddingHorizontal: 8,
                               marginRight: 10,
                             }}>
                             <Text

@@ -213,8 +213,8 @@
 				00E356EA1AD99517003FC87E /* Sources */,
 				00E356EB1AD99517003FC87E /* Frameworks */,
 				00E356EC1AD99517003FC87E /* Resources */,
-				64565CDC65570717740DD99C /* [CP] Embed Pods Frameworks */,
 				D5FB22CEE6059554854850D3 /* [CP] Copy Pods Resources */,
+				4259F9C86D1265CDC0288120 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -236,7 +236,6 @@
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				C2115CAB2E88E17F00871CF8 /* Embed Foundation Extensions */,
-				E864C7C2EDA391FAC61D3261 /* [CP] Embed Pods Frameworks */,
 				C2E625F52E8F609B003F367F /* Fix Hermes Framework */,
 				C2799AB22E83881E0034D74E /* Generate Hermes dSYM */,
 				C20047E32E8383AF005702BE /* Strip Bitcode From Embedded Frameworks */,
@@ -245,6 +244,7 @@
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				0CD7178DF6F55B4E82E80BD5 /* [CP-User] [RNFB] Core Configuration */,
 				C2115CB02E88E52F00871CF8 /* CopyFiles */,
+				4798CB3B11B610623612140D /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -365,7 +365,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		64565CDC65570717740DD99C /* [CP] Embed Pods Frameworks */ = {
+		4259F9C86D1265CDC0288120 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -380,6 +380,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		4798CB3B11B610623612140D /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		C19AB05F7CAC424BE5ABE195 /* [CP] Check Pods Manifest.lock */ = {
@@ -492,23 +509,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ-StylIQTests/Pods-StylIQ-StylIQTests-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		E864C7C2EDA391FAC61D3261 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		F9F7EFD0B0B6571E864307B7 /* [CP] Copy Pods Resources */ = {

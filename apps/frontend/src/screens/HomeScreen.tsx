@@ -797,7 +797,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             numberOfLines={1}
             ellipsizeMode="tail">
             {firstName
-              ? `Hey ${firstName}, Ready to Get Styled Today?`
+              ? `Hey ${firstName}, ready to get styled today?`
               : 'Hey there, ready to get styled today?'}
           </Text>
 
@@ -1185,7 +1185,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             duration={700}
             useNativeDriver
             style={globalStyles.sectionScroll}>
-            <Text style={[globalStyles.sectionTitle]}>Top Stories</Text>
+            <Text style={[globalStyles.sectionTitle]}>Top Fashion Stories</Text>
             <NewsCarousel onOpenArticle={openArticle} />
           </Animatable.View>
         )}
@@ -1219,7 +1219,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             {/* SAVED LOOKS SECTION */}
             {(savedLooks.length > 0 || true) && ( // ✅ always show the section
               <CollapsibleSection
-                title="Saved Looks"
+                title="Your Saved Looks"
                 open={savedOpen}
                 onToggle={async newState => {
                   setSavedOpen(newState);
@@ -1314,14 +1314,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   useNativeDriver
                   style={{
                     alignItems: 'center',
-                    // marginBottom: moderateScale(tokens.spacing.md2),
+                    marginBottom: moderateScale(tokens.spacing.md2),
                   }}>
                   <AppleTouchFeedback
                     style={[globalStyles.buttonPrimary4, {width: 90}]}
                     hapticStyle="impactHeavy"
                     onPress={() => setSaveModalVisible(true)}>
                     <Text style={globalStyles.buttonPrimaryText4}>
-                      Add Look
+                      Add Image
                     </Text>
                   </AppleTouchFeedback>
                 </Animatable.View>
@@ -1346,7 +1346,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
             {!loadingCreations && recentCreations.length > 0 && (
               <CollapsibleSection
-                title="Created Vibes"
+                title="Recently Created Looks"
                 open={createdOpen}
                 onToggle={async newState => {
                   setCreatedOpen(newState);
@@ -1439,7 +1439,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
             {!loadingVibes && recentVibes.length > 0 && (
               <CollapsibleSection
-                title="Shopped Vibes"
+                title="Recently Shopped Looks"
                 open={shoppedOpen}
                 onToggle={async newState => {
                   setShoppedOpen(newState);

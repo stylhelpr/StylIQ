@@ -367,7 +367,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 ]}>
                 <Text
                   style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-                  Enable Notifications
+                  Notifications
                 </Text>
                 <Switch
                   value={notificationsEnabled}
@@ -395,12 +395,12 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   {(
                     [
                       ['weather', 'Weather'],
-                      ['aiSuggestions', 'AI Suggestions'],
-                      ['locationMap', 'Your Location'],
+                      ['aiSuggestions', 'Suggestions'],
+                      ['locationMap', 'Location'],
                       ['quickAccess', 'Quick Access'],
-                      ['topFashionStories', 'Top Fashion Stories'],
-                      ['recommendedItems', 'Recommended Items'],
-                      ['inspiredLooks', 'Your Inspired Looks'],
+                      ['topFashionStories', 'Top Stories'],
+                      ['recommendedItems', 'Recommended'],
+                      ['inspiredLooks', 'Inspired Looks'],
                     ] as const
                   ).map(([key, label], idx, arr) => (
                     <View
@@ -501,7 +501,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   globalStyles.sectionTitle2,
                   {color: colors.foreground},
                 ]}>
-                AI Voice
+                AI Chat Voice
               </Text>
               <View
                 style={[
@@ -525,7 +525,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                       globalStyles.menuLabel,
                       {color: theme.colors.foreground},
                     ]}>
-                    Enable Voice
+                    AI Chat Voice
                   </Text>
                   <Switch
                     value={voiceEnabled}
@@ -570,7 +570,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                       globalStyles.menuLabel,
                       {color: theme.colors.foreground},
                     ]}>
-                    Enable Location Services
+                    Location Services
                   </Text>
                   <Switch
                     value={prefs.locationEnabled}
