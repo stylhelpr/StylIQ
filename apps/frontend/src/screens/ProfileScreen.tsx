@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   Dimensions,
+  Pressable,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
@@ -323,324 +324,328 @@ export default function ProfileScreen({navigate}: Props) {
   });
 
   return (
-    <GradientBackground>
-      <ScrollView style={[styles.screen, globalStyles.container]}>
-        <Text style={globalStyles.header}>Profile</Text>
+    // <GradientBackground>
+    <ScrollView
+      style={[
+        styles.screen,
+        globalStyles.container,
+        {backgroundColor: theme.colors.background},
+      ]}>
+      <Text style={globalStyles.header}>Profile</Text>
 
-        {/* Settings Icon */}
-        <AppleTouchFeedback
-          style={styles.settingsButton}
-          onPress={() => {
-            if (global.goingBack) return;
-            navigate('Settings', {goBack: () => navigate('Profile')});
-          }}
-          hapticStyle="impactMedium">
+      {/* Settings Icon */}
+      <AppleTouchFeedback
+        style={styles.settingsButton}
+        onPress={() => {
+          if (global.goingBack) return;
+          navigate('Settings', {goBack: () => navigate('Profile')});
+        }}
+        hapticStyle="impactMedium">
+        <Animatable.View
+          animation="rotate"
+          iterationCount="infinite"
+          duration={16000}>
+          <Icon name="settings" size={26} color={theme.colors.button1} />
+        </Animatable.View>
+      </AppleTouchFeedback>
+
+      {/* Header Row */}
+      <Animatable.View
+        animation="fadeInUp"
+        delay={300}
+        style={globalStyles.section}>
+        <View style={styles.headerRow}>
+          {/* Avatar */}
           <Animatable.View
-            animation="rotate"
+            animation="pulse"
             iterationCount="infinite"
-            duration={16000}>
-            <Icon name="settings" size={26} color={theme.colors.button1} />
+            duration={5000}
+            style={styles.avatarWrapper}>
+            <View style={styles.avatarBorder}>
+              {profilePicture ? (
+                <Image source={{uri: profileUri}} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.initialsText}>{initials}</Text>
+                </View>
+              )}
+            </View>
           </Animatable.View>
-        </AppleTouchFeedback>
 
-        {/* Header Row */}
-        <Animatable.View
-          animation="fadeInUp"
-          delay={300}
-          style={globalStyles.section}>
-          <View style={styles.headerRow}>
-            {/* Avatar */}
-            <Animatable.View
-              animation="pulse"
-              iterationCount="infinite"
-              duration={5000}
-              style={styles.avatarWrapper}>
-              <View style={styles.avatarBorder}>
-                {profilePicture ? (
-                  <Image source={{uri: profileUri}} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatar}>
-                    <Text style={styles.initialsText}>{initials}</Text>
-                  </View>
-                )}
-              </View>
-            </Animatable.View>
-
-            {/* Stats */}
-            <Animatable.View
-              animation="fadeIn"
-              delay={500}
-              style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Animatable.Text
-                  animation="bounceIn"
-                  delay={600}
-                  style={styles.statNumber}>
-                  {totalItems}
-                </Animatable.Text>
-                <Text style={styles.statLabel}>Wardrobe Items</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Animatable.Text
-                  animation="bounceIn"
-                  delay={800}
-                  style={styles.statNumber}>
-                  {totalCustomOutfits}
-                </Animatable.Text>
-                <Text style={styles.statLabel}>Outfits</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Animatable.Text
-                  animation="bounceIn"
-                  delay={1000}
-                  style={styles.statNumber}>
-                  {totalFavorites}
-                </Animatable.Text>
-                <Text style={styles.statLabel}>Favorites</Text>
-              </View>
-            </Animatable.View>
-          </View>
-
-          {/* Bio Section */}
+          {/* Stats */}
           <Animatable.View
-            animation="fadeInUp"
-            delay={1200}
-            style={styles.bioContainer}>
-            <Text style={styles.nameText}>
-              {(userProfile?.first_name || '') +
-                ' ' +
-                (userProfile?.last_name || '')}
-            </Text>
-            {userProfile?.fashion_level && (
-              <Text style={styles.bioText}>{userProfile.fashion_level}</Text>
-            )}
-            {userProfile?.profession && (
-              <Text style={styles.bioText}>{userProfile.profession}</Text>
-            )}
-            <Text style={styles.linkText}>{userProfile?.email}</Text>
+            animation="fadeIn"
+            delay={500}
+            style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Animatable.Text
+                animation="bounceIn"
+                delay={600}
+                style={styles.statNumber}>
+                {totalItems}
+              </Animatable.Text>
+              <Text style={styles.statLabel}>Wardrobe Items</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Animatable.Text
+                animation="bounceIn"
+                delay={800}
+                style={styles.statNumber}>
+                {totalCustomOutfits}
+              </Animatable.Text>
+              <Text style={styles.statLabel}>Outfits</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Animatable.Text
+                animation="bounceIn"
+                delay={1000}
+                style={styles.statNumber}>
+                {totalFavorites}
+              </Animatable.Text>
+              <Text style={styles.statLabel}>Favorites</Text>
+            </View>
           </Animatable.View>
-        </Animatable.View>
+        </View>
 
-        {/* Style Profile CTA */}
+        {/* Bio Section */}
         <Animatable.View
           animation="fadeInUp"
-          delay={1400}
-          style={globalStyles.section}>
-          <Text style={globalStyles.sectionTitle}>Style Profile</Text>
-          <View style={{alignItems: 'center'}}>
-            <AppleTouchFeedback
-              onPress={() => navigate('StyleProfileScreen')}
-              hapticStyle="impactMedium"
-              style={[
-                globalStyles.buttonPrimary,
-                {
-                  minWidth: 200,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: 4,
-                },
-              ]}>
-              <Icon
-                name="person-outline"
-                size={20}
-                color={theme.colors.buttonText1}
-                style={{marginRight: 8}}
-              />
-              <Text
-                style={{
-                  color: theme.colors.buttonText1,
-                  fontSize: 16,
-                  fontWeight: '500',
-                  flexShrink: 1,
-                  textAlign: 'center',
-                }}
-                numberOfLines={1}>
-                Edit Style Profile
-              </Text>
-            </AppleTouchFeedback>
-          </View>
+          delay={1200}
+          style={styles.bioContainer}>
+          <Text style={styles.nameText}>
+            {(userProfile?.first_name || '') +
+              ' ' +
+              (userProfile?.last_name || '')}
+          </Text>
+          {userProfile?.fashion_level && (
+            <Text style={styles.bioText}>{userProfile.fashion_level}</Text>
+          )}
+          {userProfile?.profession && (
+            <Text style={styles.bioText}>{userProfile.profession}</Text>
+          )}
+          <Text style={styles.linkText}>{userProfile?.email}</Text>
         </Animatable.View>
+      </Animatable.View>
 
-        {/* Style Tags */}
-        <Animatable.View
-          animation="fadeInLeft"
-          delay={1600}
-          style={globalStyles.sectionScroll}>
-          <Text style={globalStyles.sectionTitle}>Style Tags</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{paddingRight: 8}}>
-            {styleTags.length === 0 ? (
-              <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                <Text style={globalStyles.missingDataMessage1}>
-                  No saved styles.
-                </Text>
-                <TooltipBubble
-                  message='No styles added yet. Tap the "Edit Style Profile" button above and head over there to add your favorite styles.'
-                  position="top"
-                />
-              </View>
-            ) : (
-              styleTags.map((tag, index) => (
-                <Animatable.View
-                  key={tag}
-                  animation="bounceInRight"
-                  delay={1700 + index * 80}
-                  useNativeDriver
-                  style={[
-                    globalStyles.pill,
-                    {backgroundColor: theme.colors.error},
-                  ]}>
-                  <Text style={globalStyles.pillText}>#{tag}</Text>
-                </Animatable.View>
-              ))
-            )}
-          </ScrollView>
-        </Animatable.View>
+      {/* Style Profile CTA */}
+      <Animatable.View
+        animation="fadeInUp"
+        delay={1400}
+        style={globalStyles.section}>
+        <Text style={globalStyles.sectionTitle}>Style Profile</Text>
+        <View style={{alignItems: 'center'}}>
+          <AppleTouchFeedback
+            onPress={() => navigate('StyleProfileScreen')}
+            hapticStyle="impactMedium"
+            style={[
+              globalStyles.buttonPrimary,
+              {
+                minWidth: 200,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 4,
+              },
+            ]}>
+            <Icon
+              name="person-outline"
+              size={20}
+              color={theme.colors.buttonText1}
+              style={{marginRight: 8}}
+            />
+            <Text
+              style={{
+                color: theme.colors.buttonText1,
+                fontSize: 16,
+                fontWeight: '500',
+                flexShrink: 1,
+                textAlign: 'center',
+              }}
+              numberOfLines={1}>
+              Edit Style Profile
+            </Text>
+          </AppleTouchFeedback>
+        </View>
+      </Animatable.View>
 
-        {/* Favorite Brands */}
-        <Animatable.View
-          animation="fadeInRight"
-          delay={1900}
-          style={globalStyles.sectionScroll}>
-          <Text style={[globalStyles.sectionTitle]}>Saved Brand Tags</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{paddingRight: 8}}>
-            {favoriteBrands.length === 0 ? (
-              <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                <Text style={globalStyles.missingDataMessage1}>
-                  No saved brands.
-                </Text>
-                <TooltipBubble
-                  message='No brands added yet. Tap the "Edit Style Profile" button above and head over there to add your favorite brands.'
-                  position="top"
-                />
-              </View>
-            ) : (
-              favoriteBrands.map((brand, index) => (
-                <Animatable.View
-                  key={brand}
-                  animation="bounceInLeft"
-                  delay={2000 + index * 90}
-                  useNativeDriver
-                  style={[
-                    globalStyles.pill,
-                    {backgroundColor: theme.colors.error},
-                  ]}>
-                  <Text style={globalStyles.pillText}>#{brand}</Text>
-                </Animatable.View>
-              ))
-            )}
-          </ScrollView>
-        </Animatable.View>
-
-        {/* Saved Looks */}
-        <Animatable.View
-          animation="fadeInUpBig"
-          delay={2200}
-          style={globalStyles.sectionScroll}>
-          <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
-          {savedLooks.length === 0 ? (
+      {/* Style Tags */}
+      <Animatable.View
+        animation="fadeInLeft"
+        delay={1600}
+        style={globalStyles.sectionScroll}>
+        <Text style={globalStyles.sectionTitle}>Style Tags</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{paddingRight: 8}}>
+          {styleTags.length === 0 ? (
             <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
               <Text style={globalStyles.missingDataMessage1}>
-                No saved looks.
+                No saved styles.
               </Text>
               <TooltipBubble
-                message='You haven’t saved any looks yet. Tap "Home" in the bottom navigation bar and then tap "Add Look" to add your favorite looks.'
+                message='No styles added yet. Tap the "Edit Style Profile" button above and head over there to add your favorite styles.'
                 position="top"
               />
             </View>
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{paddingRight: 8}}>
-              {savedLooks.map((look, index) => (
-                <Animatable.View
-                  key={look.id}
-                  animation="zoomInUp"
-                  delay={2300 + index * 120}
-                  useNativeDriver
-                  style={globalStyles.outfitCard}>
-                  <AppleTouchFeedback
-                    hapticStyle="impactLight"
-                    onPress={() => {
-                      setSelectedLook(look);
-                      setPreviewVisible(true);
-                    }}
-                    style={{alignItems: 'center'}}>
-                    <View>
-                      <Image
-                        source={{uri: look.image_url}}
-                        style={[globalStyles.image8]}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Animatable.Text
-                      animation="fadeIn"
-                      delay={2500 + index * 100}
-                      style={[globalStyles.subLabel]}
-                      numberOfLines={1}>
-                      {look.name}
-                    </Animatable.Text>
-                  </AppleTouchFeedback>
-                </Animatable.View>
-              ))}
-            </ScrollView>
+            styleTags.map((tag, index) => (
+              <Animatable.View
+                key={tag}
+                animation="bounceInRight"
+                delay={1700 + index * 80}
+                useNativeDriver
+                style={[
+                  globalStyles.pill,
+                  {backgroundColor: theme.colors.error},
+                ]}>
+                <Text style={globalStyles.pillText}>#{tag}</Text>
+              </Animatable.View>
+            ))
           )}
-        </Animatable.View>
+        </ScrollView>
+      </Animatable.View>
 
-        {/* Footer */}
-        <Animatable.View
-          animation="fadeIn"
-          delay={2800}
-          style={[globalStyles.section, {paddingTop: 8}]}>
-          <AppleTouchFeedback
-            hapticStyle="impactLight"
-            onPress={() => navigate('ContactScreen')}>
-            <Animatable.Text
-              animation="pulse"
-              iterationCount="infinite"
-              duration={5000}
-              style={{
-                textAlign: 'center',
-                color: theme.colors.foreground,
-                fontSize: 13,
-                paddingVertical: 8,
-              }}>
-              Contact Support
-            </Animatable.Text>
-          </AppleTouchFeedback>
+      {/* Favorite Brands */}
+      <Animatable.View
+        animation="fadeInRight"
+        delay={1900}
+        style={globalStyles.sectionScroll}>
+        <Text style={[globalStyles.sectionTitle]}>Saved Brand Tags</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{paddingRight: 8}}>
+          {favoriteBrands.length === 0 ? (
+            <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+              <Text style={globalStyles.missingDataMessage1}>
+                No saved brands.
+              </Text>
+              <TooltipBubble
+                message='No brands added yet. Tap the "Edit Style Profile" button above and head over there to add your favorite brands.'
+                position="top"
+              />
+            </View>
+          ) : (
+            favoriteBrands.map((brand, index) => (
+              <Animatable.View
+                key={brand}
+                animation="bounceInLeft"
+                delay={2000 + index * 90}
+                useNativeDriver
+                style={[
+                  globalStyles.pill,
+                  {backgroundColor: theme.colors.error},
+                ]}>
+                <Text style={globalStyles.pillText}>#{brand}</Text>
+              </Animatable.View>
+            ))
+          )}
+        </ScrollView>
+      </Animatable.View>
 
-          <AppleTouchFeedback
-            hapticStyle="impactLight"
-            onPress={() => navigate('AboutScreen')}>
-            <Animatable.Text
-              animation="fadeInUp"
-              delay={3000}
-              style={{
-                textAlign: 'center',
-                color: theme.colors.foreground,
-                fontSize: 12,
-                opacity: 0.8,
-                paddingBottom: 16,
-              }}>
-              About StylHelpr
-            </Animatable.Text>
-          </AppleTouchFeedback>
-        </Animatable.View>
+      {/* Saved Looks */}
+      <Animatable.View
+        animation="fadeInUpBig"
+        delay={2200}
+        style={globalStyles.sectionScroll}>
+        <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
+        {savedLooks.length === 0 ? (
+          <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+            <Text style={globalStyles.missingDataMessage1}>
+              No saved looks.
+            </Text>
+            <TooltipBubble
+              message='You haven’t saved any looks yet. Tap "Home" in the bottom navigation bar and then tap "Add Look" to add your favorite looks.'
+              position="top"
+            />
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{paddingRight: 8}}>
+            {savedLooks.map((look, index) => (
+              <Animatable.View
+                key={look.id}
+                animation="zoomInUp"
+                delay={2300 + index * 120}
+                useNativeDriver
+                style={globalStyles.outfitCard}>
+                <Pressable
+                  onPress={() => {
+                    setSelectedLook(look);
+                    setPreviewVisible(true);
+                  }}
+                  style={{alignItems: 'center'}}>
+                  <View>
+                    <Image
+                      source={{uri: look.image_url}}
+                      style={[globalStyles.image8]}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <Animatable.Text
+                    animation="fadeIn"
+                    delay={2500 + index * 100}
+                    style={[globalStyles.subLabel]}
+                    numberOfLines={1}>
+                    {look.name}
+                  </Animatable.Text>
+                </Pressable>
+              </Animatable.View>
+            ))}
+          </ScrollView>
+        )}
+      </Animatable.View>
 
-        <SavedLookPreviewModal
-          visible={previewVisible}
-          look={selectedLook}
-          onClose={() => setPreviewVisible(false)}
-        />
-      </ScrollView>
-    </GradientBackground>
+      {/* Footer */}
+      <Animatable.View
+        animation="fadeIn"
+        delay={2800}
+        style={[globalStyles.section, {paddingTop: 8}]}>
+        <AppleTouchFeedback
+          hapticStyle="impactLight"
+          onPress={() => navigate('ContactScreen')}>
+          <Animatable.Text
+            animation="pulse"
+            iterationCount="infinite"
+            duration={5000}
+            style={{
+              textAlign: 'center',
+              color: theme.colors.foreground,
+              fontSize: 13,
+              paddingVertical: 8,
+            }}>
+            Contact Support
+          </Animatable.Text>
+        </AppleTouchFeedback>
+
+        <AppleTouchFeedback
+          hapticStyle="impactLight"
+          onPress={() => navigate('AboutScreen')}>
+          <Animatable.Text
+            animation="fadeInUp"
+            delay={3000}
+            style={{
+              textAlign: 'center',
+              color: theme.colors.foreground,
+              fontSize: 12,
+              opacity: 0.8,
+              paddingBottom: 16,
+            }}>
+            About StylHelpr
+          </Animatable.Text>
+        </AppleTouchFeedback>
+      </Animatable.View>
+
+      <SavedLookPreviewModal
+        visible={previewVisible}
+        look={selectedLook}
+        onClose={() => setPreviewVisible(false)}
+      />
+    </ScrollView>
+    // </GradientBackground>
   );
 }
 

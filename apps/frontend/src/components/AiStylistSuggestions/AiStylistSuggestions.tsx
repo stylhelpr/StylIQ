@@ -8,6 +8,7 @@ import {
   Switch,
   SafeAreaView,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
@@ -83,9 +84,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
       console.log('⏸️ Weather not ready, skipping AI fetch.');
       return;
     }
-
-    // 🎙️ Enable voice commands for this screen
-    useAiSuggestionVoiceCommands(fetchSuggestion, navigate);
 
     try {
       setLoading(true);
@@ -239,13 +237,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
         flex: 1,
       }}>
       <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
-        AI Style Suggestions
+        Suggestions
       </Text>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: moderateScale(tokens.spacing.md2),
-          paddingBottom: moderateScale(tokens.spacing.md), // extra breathing room for small screens
+          paddingHorizontal: moderateScale(tokens.spacing.lg),
+          paddingBottom: moderateScale(tokens.spacing.lg2), // extra breathing room for small screens
         }}>
         {/* 🧠 Floating Mascot — always on top */}
         {/* <View
@@ -270,8 +268,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           useNativeDriver
           style={{
             backgroundColor: theme.colors.surface,
-            // borderRadius: tokens.borderRadius.md,
-            borderRadius: tokens.borderRadius['2xl'],
+            borderRadius: tokens.borderRadius.xxl,
             borderWidth: theme.borderWidth.md,
             borderColor: theme.colors.surfaceBorder,
             padding: moderateScale(tokens.spacing.md1),
@@ -337,9 +334,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
             deleteThreshold={0.08}
             style={{
               backgroundColor: theme.colors.surface2,
-              borderRadius: tokens.borderRadius.md,
-              // borderWidth: theme.borderWidth.hairline,
-              // borderColor: theme.colors.muted,
+              borderRadius: tokens.borderRadius.xl,
+              borderWidth: theme.borderWidth.hairline,
+              borderColor: theme.colors.muted,
               padding: moderateScale(tokens.spacing.sm),
             }}>
             {loading && (
@@ -450,10 +447,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 </Animatable.View>
 
                 {/* 👇 Collapse / Expand toggle */}
-                <AppleTouchFeedback
-                  hapticStyle="impactHeavy"
+                <Pressable
                   onPress={toggleExpanded}
-                  activeOpacity={0.8}
                   style={{
                     alignItems: 'center',
                     paddingVertical: moderateScale(tokens.spacing.xsm),
@@ -480,7 +475,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       color={theme.colors.button1}
                     />
                   </Animatable.View>
-                </AppleTouchFeedback>
+                </Pressable>
               </>
             )}
           </SwipeableCard>

@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Modal,
+  Pressable,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {fetchWeather} from '../utils/travelWeather';
@@ -53,6 +54,7 @@ import {useResponsive} from '../hooks/useResponsive';
 import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
 import {useHomeVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -78,6 +80,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const globalStyles = useGlobalStyles();
   const [weather, setWeather] = useState<any>(null);
   const userId = useUUID();
+
+  const insets = useSafeAreaInsets();
+  const MAP_BASE_HEIGHT = moderateScale(250); // allow more breathing room
 
   useEffect(() => {
     (async () => {
@@ -116,7 +121,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <View
         style={{
           overflow: 'hidden',
-          // backgroundColor: theme.colors.background,
           marginBottom: open ? 4 : 20,
         }}>
         {title && (
@@ -126,7 +130,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
-              alignItems: 'flex-start',
+              alignItems: 'center',
+              marginBottom: moderateScale(tokens.spacing.xs),
             }}>
             <Text
               style={{
@@ -134,7 +139,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 fontSize: fontScale(tokens.fontSize.lg),
                 fontWeight: tokens.fontWeight.bold,
                 paddingHorizontal: moderateScale(tokens.spacing.md2),
-                marginBottom: moderateScale(tokens.spacing.xsm),
               }}>
               {title}
             </Text>
@@ -149,13 +153,20 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     }),
                   },
                 ],
+                marginRight: 24,
               }}>
-              <Icon
-                name="keyboard-arrow-down"
-                size={28}
-                color={theme.colors.foreground}
-                style={{paddingHorizontal: moderateScale(tokens.spacing.md2)}}
-              />
+              <View
+                style={{
+                  backgroundColor: theme.colors.surface3,
+                  borderRadius: 50,
+                  padding: 1,
+                }}>
+                <Icon
+                  name="keyboard-arrow-down"
+                  size={25}
+                  color={theme.colors.foreground}
+                />
+              </View>
             </Animated.View>
           </TouchableOpacity>
         )}
@@ -216,7 +227,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   // DEAFULT OPEN STATE
   const [mapVisible, setMapVisible] = useState(true);
   const chevron = useRef(new Animated.Value(1)).current;
-  const mapHeight = useRef(new Animated.Value(moderateScale(220))).current;
+  const mapHeight = useRef(new Animated.Value(MAP_BASE_HEIGHT)).current;
   const mapOpacity = useRef(new Animated.Value(1)).current;
   const [mapOpen, setMapOpen] = useState(true);
 
@@ -472,7 +483,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
       Animated.parallel([
         Animated.timing(mapHeight, {
-          toValue: 220,
+          toValue: MAP_BASE_HEIGHT,
           duration: 320,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: false,
@@ -751,853 +762,824 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   };
 
   return (
-    <GradientBackground>
-      <View style={{flex: 1}}>
-        <Animated.ScrollView
-          // style={[globalStyles.screen]}
-          contentContainerStyle={globalStyles.container}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{nativeEvent: {contentOffset: {y: scrollY}}}],
-            {
-              useNativeDriver: true,
-            },
-          )}>
-          {/* Header Row: Greeting + Menu */}
-          <Animatable.View
-            animation="fadeInDown"
-            duration={600}
-            delay={100}
-            useNativeDriver
+    // <GradientBackground>
+    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <Animated.ScrollView
+        // style={[globalStyles.screen]}
+        contentContainerStyle={globalStyles.container}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {
+            useNativeDriver: true,
+          },
+        )}>
+        {/* Header Row: Greeting + Menu */}
+        <Animatable.View
+          animation="fadeInDown"
+          duration={600}
+          delay={100}
+          useNativeDriver
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: moderateScale(tokens.spacing.md),
+            marginBottom: moderateScale(tokens.spacing.xxs),
+          }}>
+          <Text
             style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: moderateScale(tokens.spacing.md),
-              marginBottom: moderateScale(tokens.spacing.xxs),
+              flex: 1,
+              fontSize: fontScale(tokens.fontSize.base),
+              fontWeight: tokens.fontWeight.extraBold,
+              color: theme.colors.foreground,
+            }}
+            numberOfLines={1}
+            ellipsizeMode="tail">
+            {firstName
+              ? `Hey ${firstName}, Ready to Get Styled Today?`
+              : 'Hey there, ready to get styled today?'}
+          </Text>
+
+          <AppleTouchFeedback
+            onPress={() => navigate('Settings')}
+            hapticStyle="impactLight"
+            style={{
+              padding: moderateScale(tokens.spacing.xxs),
+              marginLeft: moderateScale(tokens.spacing.xsm),
             }}>
-            <Text
+            <Icon name="tune" size={22} color={theme.colors.button1} />
+          </AppleTouchFeedback>
+        </Animatable.View>
+
+        {/* Banner with ambient parallax + reveal */}
+        {/* <View style={globalStyles.section}> */}
+        <View style={{marginBottom: 22}}>
+          <Animated.View
+            style={{
+              // overflow: 'hidden',
+              // shadowOffset: {width: 0, height: 6},
+              // shadowOpacity: 0.1,
+              // shadowRadius: 12,
+              // elevation: 5,
+              // borderWidth: tokens.borderWidth.md,
+              // borderColor: theme.colors.surfaceBorder,
+              // borderRadius: tokens.borderRadius.xl,
+              // backgroundColor: theme.colors.surface,
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: [0, -10],
+                    extrapolate: 'clamp',
+                  }),
+                },
+                {
+                  scale: scrollY.interpolate({
+                    inputRange: [-50, 0, 100],
+                    outputRange: [1.05, 1, 0.97],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            }}>
+            <Image
+              source={require('../assets/images/video-still-1.png')}
               style={{
-                flex: 1,
-                fontSize: fontScale(tokens.fontSize.base),
-                fontWeight: tokens.fontWeight.extraBold,
-                color: theme.colors.foreground,
+                width: '100%',
+                height: moderateScale(200), // scales proportionally across SE → Pro Max
               }}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {firstName
-                ? `Hey ${firstName}, Ready to Get Styled Today?`
-                : 'Hey there, ready to get styled today?'}
-            </Text>
-
-            <AppleTouchFeedback
-              onPress={() => navigate('Settings')}
-              hapticStyle="impactLight"
-              style={{
-                padding: moderateScale(tokens.spacing.xxs),
-                marginLeft: moderateScale(tokens.spacing.xsm),
-              }}>
-              <Icon name="tune" size={22} color={theme.colors.button1} />
-            </AppleTouchFeedback>
-          </Animatable.View>
-
-          {/* Banner with ambient parallax + reveal */}
-          {/* <View style={globalStyles.section}> */}
-          <View style={{marginBottom: 22}}>
+              resizeMode="cover"
+            />
             <Animated.View
               style={{
-                // overflow: 'hidden',
-                // shadowOffset: {width: 0, height: 6},
-                // shadowOpacity: 0.1,
-                // shadowRadius: 12,
-                // elevation: 5,
-                // borderWidth: tokens.borderWidth.md,
-                // borderColor: theme.colors.surfaceBorder,
-                // borderRadius: tokens.borderRadius.xl,
-                // backgroundColor: theme.colors.surface,
+                position: 'absolute',
+                bottom: 10,
+                left: 10,
+                right: 16,
+                backgroundColor: 'rgba(0,0,0,0.45)',
+                padding: moderateScale(tokens.spacing.sm),
+                borderRadius: 16,
                 transform: [
                   {
                     translateY: scrollY.interpolate({
                       inputRange: [0, 100],
-                      outputRange: [0, -10],
-                      extrapolate: 'clamp',
-                    }),
-                  },
-                  {
-                    scale: scrollY.interpolate({
-                      inputRange: [-50, 0, 100],
-                      outputRange: [1.05, 1, 0.97],
+                      outputRange: [0, -4],
                       extrapolate: 'clamp',
                     }),
                   },
                 ],
               }}>
-              <Image
-                source={require('../assets/images/video-still-1.png')}
-                style={{
-                  width: '100%',
-                  height: moderateScale(200), // scales proportionally across SE → Pro Max
-                }}
-                resizeMode="cover"
-              />
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  bottom: 10,
-                  left: 10,
-                  right: 16,
-                  backgroundColor: 'rgba(0,0,0,0.45)',
-                  padding: moderateScale(tokens.spacing.sm),
-                  borderRadius: 16,
-                  transform: [
-                    {
-                      translateY: scrollY.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: [0, -4],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ],
-                }}>
-                <Animatable.Text
-                  animation="fadeInDown"
-                  delay={200}
-                  style={[
-                    styles.bannerText,
-                    {color: theme.colors.buttonText1},
-                  ]}>
-                  Discover Your Signature Look
-                </Animatable.Text>
-                <Animatable.Text
-                  animation="fadeIn"
-                  delay={400}
-                  style={[
-                    styles.bannerSubtext,
-                    {color: theme.colors.buttonText1},
-                  ]}>
-                  Curated just for you this season.
-                </Animatable.Text>
-              </Animated.View>
+              <Animatable.Text
+                animation="fadeInDown"
+                delay={200}
+                style={[styles.bannerText, {color: theme.colors.buttonText1}]}>
+                Discover Your Signature Look
+              </Animatable.Text>
+              <Animatable.Text
+                animation="fadeIn"
+                delay={400}
+                style={[
+                  styles.bannerSubtext,
+                  {color: theme.colors.buttonText1},
+                ]}>
+                Curated just for you this season.
+              </Animatable.Text>
             </Animated.View>
-          </View>
+          </Animated.View>
+        </View>
 
-          {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
-          {prefs.weather && (
-            <Animatable.View
-              animation="fadeInUp"
-              duration={700}
-              delay={200}
-              useNativeDriver
-              style={globalStyles.section}>
-              <Text style={globalStyles.sectionTitle}>Weather</Text>
+        {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
+        {prefs.weather && (
+          <Animatable.View
+            animation="fadeInUp"
+            duration={700}
+            delay={200}
+            useNativeDriver
+            style={globalStyles.section}>
+            <Text style={globalStyles.sectionTitle}>Weather</Text>
 
-              {weather && (
+            {weather && (
+              <View
+                style={[
+                  globalStyles.cardStyles1,
+                  {
+                    paddingVertical: moderateScale(tokens.spacing.md1),
+                    paddingHorizontal: moderateScale(tokens.spacing.md2),
+                  },
+                ]}>
                 <View
-                  style={[
-                    globalStyles.cardStyles1,
-                    {
-                      paddingVertical: moderateScale(tokens.spacing.md1),
-                      paddingHorizontal: moderateScale(tokens.spacing.md2),
-                    },
-                  ]}>
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                  {/* 🌤️ Left column — City, Condition, Icon */}
                   <View
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
+                      flex: 1,
                     }}>
-                    {/* 🌤️ Left column — City, Condition, Icon */}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        flex: 1,
-                      }}>
-                      <Icon
-                        name={(() => {
-                          const condition = weather.celsius.weather[0].main;
-                          if (condition === 'Rain') return 'umbrella';
-                          if (condition === 'Snow') return 'ac-unit';
-                          if (condition === 'Clouds') return 'wb-cloudy';
-                          if (condition === 'Clear') return 'wb-sunny';
-                          return 'wb-sunny';
-                        })()}
-                        size={36}
-                        color={theme.colors.foreground}
-                        style={{marginRight: moderateScale(tokens.spacing.xsm)}}
-                      />
-                      <View>
-                        <Text
-                          style={[
-                            styles.weatherCity,
-                            {
-                              fontSize: fontScale(tokens.fontSize.xl),
-                              fontWeight: tokens.fontWeight.bold,
-                            },
-                          ]}>
-                          {weather.celsius.name}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: fontScale(tokens.fontSize.base),
-                            color: theme.colors.foreground2,
-                            textTransform: 'capitalize',
-                          }}>
-                          {weather.celsius.weather[0].description}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* 🌡️ Right column — Big Temp */}
-                    <View
-                      style={[
-                        styles.weatherTempContainer,
-                        // {
-                        //   shadowColor: '#000',
-                        //   shadowOffset: {width: 8, height: 10},
-                        //   shadowOpacity: 0.5,
-                        //   shadowRadius: 5,
-                        //   elevation: 6,
-                        // },
-                      ]}>
+                    <Icon
+                      name={(() => {
+                        const condition = weather.celsius.weather[0].main;
+                        if (condition === 'Rain') return 'umbrella';
+                        if (condition === 'Snow') return 'ac-unit';
+                        if (condition === 'Clouds') return 'wb-cloudy';
+                        if (condition === 'Clear') return 'wb-sunny';
+                        return 'wb-sunny';
+                      })()}
+                      size={36}
+                      color={theme.colors.foreground}
+                      style={{marginRight: moderateScale(tokens.spacing.xsm)}}
+                    />
+                    <View>
+                      <Text
+                        style={[
+                          styles.weatherCity,
+                          {
+                            fontSize: fontScale(tokens.fontSize.xl),
+                            fontWeight: tokens.fontWeight.bold,
+                          },
+                        ]}>
+                        {weather.celsius.name}
+                      </Text>
                       <Text
                         style={{
-                          fontSize: moderateScale(
-                            isXS
-                              ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
-                              : isSM
-                              ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
-                              : isMD
-                              ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
-                              : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
-                          ),
-                          fontWeight: tokens.fontWeight.extraBold,
-                          color: theme.colors.buttonText1,
+                          fontSize: fontScale(tokens.fontSize.base),
+                          color: theme.colors.foreground2,
+                          textTransform: 'capitalize',
                         }}>
-                        {Math.round(weather.fahrenheit.main.temp)}°F
+                        {weather.celsius.weather[0].description}
                       </Text>
                     </View>
                   </View>
 
-                  {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
-                  <View style={{marginTop: moderateScale(tokens.spacing.sm)}}>
+                  {/* 🌡️ Right column — Big Temp */}
+                  <View
+                    style={[
+                      styles.weatherTempContainer,
+                      // {
+                      //   shadowColor: '#000',
+                      //   shadowOffset: {width: 8, height: 10},
+                      //   shadowOpacity: 0.5,
+                      //   shadowRadius: 5,
+                      //   elevation: 6,
+                      // },
+                    ]}>
                     <Text
                       style={{
-                        fontSize: fontScale(tokens.fontSize.md),
-                        color: theme.colors.foreground2,
-                        fontWeight: tokens.fontWeight.medium,
+                        fontSize: moderateScale(
+                          isXS
+                            ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
+                            : isSM
+                            ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
+                            : isMD
+                            ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
+                            : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
+                        ),
+                        fontWeight: tokens.fontWeight.extraBold,
+                        color: theme.colors.buttonText1,
                       }}>
-                      {(() => {
-                        const temp = weather.fahrenheit.main.temp;
-                        const condition = weather.celsius.weather[0].main;
-
-                        if (temp < 25) return '❄️ Brutally Cold';
-                        if (temp < 32)
-                          return condition === 'Snow'
-                            ? '🌨 Freezing & Snowy'
-                            : '🥶 Freezing';
-                        if (temp < 40)
-                          return condition === 'Clouds'
-                            ? '☁️ Bitter & Overcast'
-                            : '🧤 Bitter Cold';
-                        if (temp < 50)
-                          return condition === 'Rain'
-                            ? '🌧 Cold & Wet'
-                            : '🧥 Chilly';
-                        if (temp < 60)
-                          return condition === 'Clouds'
-                            ? '🌥 Cool & Cloudy'
-                            : '🌤 Crisp & Cool';
-                        if (temp < 70)
-                          return condition === 'Clear'
-                            ? '☀️ Mild & Bright'
-                            : '🌤 Mild';
-                        if (temp < 80)
-                          return condition === 'Clear'
-                            ? '☀️ Warm & Clear'
-                            : '🌦 Warm';
-                        if (temp < 90)
-                          return condition === 'Rain'
-                            ? '🌦 Hot & Humid'
-                            : '🔥 Hot';
-                        if (temp < 100) return '🥵 Very Hot';
-                        return '🌋 Extreme Heat';
-                      })()}
+                      {Math.round(weather.fahrenheit.main.temp)}°F
                     </Text>
                   </View>
                 </View>
-              )}
-            </Animatable.View>
+
+                {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
+                <View style={{marginTop: moderateScale(tokens.spacing.sm)}}>
+                  <Text
+                    style={{
+                      fontSize: fontScale(tokens.fontSize.md),
+                      color: theme.colors.foreground2,
+                      fontWeight: tokens.fontWeight.medium,
+                    }}>
+                    {(() => {
+                      const temp = weather.fahrenheit.main.temp;
+                      const condition = weather.celsius.weather[0].main;
+
+                      if (temp < 25) return '❄️ Brutally Cold';
+                      if (temp < 32)
+                        return condition === 'Snow'
+                          ? '🌨 Freezing & Snowy'
+                          : '🥶 Freezing';
+                      if (temp < 40)
+                        return condition === 'Clouds'
+                          ? '☁️ Bitter & Overcast'
+                          : '🧤 Bitter Cold';
+                      if (temp < 50)
+                        return condition === 'Rain'
+                          ? '🌧 Cold & Wet'
+                          : '🧥 Chilly';
+                      if (temp < 60)
+                        return condition === 'Clouds'
+                          ? '🌥 Cool & Cloudy'
+                          : '🌤 Crisp & Cool';
+                      if (temp < 70)
+                        return condition === 'Clear'
+                          ? '☀️ Mild & Bright'
+                          : '🌤 Mild';
+                      if (temp < 80)
+                        return condition === 'Clear'
+                          ? '☀️ Warm & Clear'
+                          : '🌦 Warm';
+                      if (temp < 90)
+                        return condition === 'Rain'
+                          ? '🌦 Hot & Humid'
+                          : '🔥 Hot';
+                      if (temp < 100) return '🥵 Very Hot';
+                      return '🌋 Extreme Heat';
+                    })()}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </Animatable.View>
+        )}
+
+        {/* AI SUGGESTS SECTION */}
+        {prefs.aiSuggestions &&
+          typeof weather?.fahrenheit?.main?.temp === 'number' && (
+            <AiStylistSuggestions
+              theme={theme}
+              weather={weather}
+              globalStyles={globalStyles}
+              navigate={navigate}
+              wardrobe={wardrobe}
+            />
           )}
 
-          {/* AI SUGGESTS SECTION */}
-          {prefs.aiSuggestions &&
-            typeof weather?.fahrenheit?.main?.temp === 'number' && (
-              <AiStylistSuggestions
-                theme={theme}
-                weather={weather}
-                globalStyles={globalStyles}
-                navigate={navigate}
-                wardrobe={wardrobe}
-              />
-            )}
+        {/* Map Section — collapsible with animated height & fade */}
+        {prefs.locationMap && (
+          <Animatable.View
+            animation="fadeInUp"
+            delay={300}
+            duration={700}
+            useNativeDriver
+            style={globalStyles.section}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+              <Text
+                style={[
+                  globalStyles.sectionTitle,
+                  {paddingTop: moderateScale(tokens.spacing.nano)},
+                ]}>
+                Location
+              </Text>
+              <AppleTouchFeedback
+                hapticStyle="impactLight"
+                onPress={toggleMap}
+                style={{
+                  paddingHorizontal: moderateScale(tokens.spacing.xsm),
+                }}>
+                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <Animated.View style={{transform: [{rotateZ}]}}>
+                    <Icon
+                      name="keyboard-arrow-down"
+                      size={30}
+                      color={theme.colors.foreground}
+                    />
+                  </Animated.View>
+                </View>
+              </AppleTouchFeedback>
+            </View>
 
-          {/* Map Section — collapsible with animated height & fade */}
-          {prefs.locationMap && (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={300}
-              duration={700}
-              useNativeDriver
-              style={globalStyles.section}>
+            <Animated.View
+              style={{
+                height: mapHeight,
+                opacity: mapOpacity,
+                overflow: 'hidden',
+              }}>
               <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <Text
-                  style={[
-                    globalStyles.sectionTitle,
-                    {paddingTop: moderateScale(tokens.spacing.nano)},
-                  ]}>
-                  Your Location
-                </Text>
-                <AppleTouchFeedback
-                  hapticStyle="impactLight"
-                  onPress={toggleMap}
-                  style={{
-                    paddingHorizontal: moderateScale(tokens.spacing.xsm),
-                    // paddingTop: moderateScale(tokens.spacing.xxs),
-                    borderRadius: 20,
-                  }}>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Animated.View style={{transform: [{rotateZ}]}}>
-                      <Icon
-                        name="keyboard-arrow-down"
-                        size={30}
-                        color={theme.colors.foreground}
-                      />
-                    </Animated.View>
-                  </View>
-                </AppleTouchFeedback>
+                style={[
+                  {
+                    borderWidth: tokens.borderWidth.hairline,
+                    borderColor: theme.colors.surfaceBorder,
+                    borderRadius: tokens.borderRadius['2xl'],
+                    overflow: 'hidden',
+                  },
+                ]}>
+                {prefs.locationEnabled && (
+                  <LiveLocationMap
+                    height={MAP_BASE_HEIGHT - insets.bottom - moderateScale(10)}
+                    useCustomPin={false}
+                    postHeartbeat={false}
+                  />
+                )}
               </View>
+            </Animated.View>
+          </Animatable.View>
+        )}
 
-              <Animated.View
-                style={{
-                  // marginTop: moderateScale(tokens.spacing.xs),
-                  height: mapHeight,
-                  opacity: mapOpacity,
-                  overflow: 'hidden',
-                }}>
+        {/* Quick Access Section */}
+        {prefs.quickAccess && (
+          <Animatable.View
+            animation="fadeInUp"
+            delay={500}
+            duration={700}
+            useNativeDriver
+            style={globalStyles.centeredSection}>
+            <View style={globalStyles.section}>
+              <Text style={globalStyles.sectionTitle}>Quick Access</Text>
+              <View style={[globalStyles.centeredSection]}>
                 <View
                   style={[
                     globalStyles.cardStyles1,
                     {
-                      padding: 1,
-                      borderColor: theme.colors.surfaceBorder,
-                      overflow: 'hidden',
+                      padding: moderateScale(tokens.spacing.md2),
+                      justifyContent: 'space-between',
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      width: '100%',
                     },
                   ]}>
-                  {prefs.locationEnabled && (
-                    <LiveLocationMap
-                      height={moderateScale(220)}
-                      useCustomPin={false}
-                      postHeartbeat={false}
-                    />
-                  )}
-                </View>
-              </Animated.View>
-            </Animatable.View>
-          )}
-
-          {/* Quick Access Section */}
-          {prefs.quickAccess && (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={500}
-              duration={700}
-              useNativeDriver
-              style={globalStyles.centeredSection}>
-              <View style={globalStyles.section}>
-                <Text style={globalStyles.sectionTitle}>Quick Access</Text>
-                <View style={[globalStyles.centeredSection]}>
-                  <View
-                    style={[
-                      globalStyles.cardStyles1,
-                      {
-                        padding: moderateScale(tokens.spacing.md2),
-                        justifyContent: 'space-between',
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        width: '100%',
-                      },
-                    ]}>
-                    {[
-                      {label: 'Style Me', screen: 'Outfit'},
-                      {label: 'Wardrobe', screen: 'Wardrobe'},
-                      {label: 'Add Clothes', screen: 'AddItem'},
-                      {label: 'Profile', screen: 'Profile'},
-                    ].map((btn, idx) => (
-                      <Animatable.View
-                        key={btn.screen}
-                        animation="zoomIn"
-                        delay={600 + idx * 100}
-                        duration={500}
-                        useNativeDriver
-                        style={{
-                          width: buttonWidth, // already computed responsively above
-                          marginBottom:
-                            idx < 2 ? moderateScale(tokens.spacing.md) : 0,
-                        }}>
-                        <AppleTouchFeedback
-                          style={[
-                            globalStyles.buttonPrimary,
-                            {
-                              width: '100%',
-                              justifyContent: 'center',
-                            },
-                          ]}
-                          hapticStyle="impactHeavy"
-                          onPress={() => navigate(btn.screen)}>
-                          <Text style={globalStyles.buttonPrimaryText}>
-                            {btn.label}
-                          </Text>
-                        </AppleTouchFeedback>
-                      </Animatable.View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            </Animatable.View>
-          )}
-
-          {/* Top Fashion Stories / News Carousel */}
-          {prefs.topFashionStories && (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={600}
-              duration={700}
-              useNativeDriver
-              style={globalStyles.sectionScroll2}>
-              <Text style={[globalStyles.sectionTitle]}>
-                Top Fashion Stories
-              </Text>
-              <NewsCarousel onOpenArticle={openArticle} />
-            </Animatable.View>
-          )}
-
-          {/* Discover / Recommended Items */}
-          {prefs.recommendedItems && (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={700}
-              duration={700}
-              useNativeDriver
-              style={globalStyles.sectionScroll2}>
-              <Text style={[globalStyles.sectionTitle]}>Recommended Items</Text>
-              <DiscoverCarousel onOpenItem={openArticle} />
-            </Animatable.View>
-          )}
-
-          {prefs.inspiredLooks && (
-            <>
-              <Text
-                style={[
-                  globalStyles.sectionTitle,
-                  {
-                    marginLeft: moderateScale(tokens.spacing.md2),
-                    marginBottom: moderateScale(tokens.spacing.md),
-                  },
-                ]}>
-                Your Inspired Looks
-              </Text>
-
-              {/* SAVED LOOKS SECTION */}
-              {(savedLooks.length > 0 || true) && ( // ✅ always show the section
-                <CollapsibleSection
-                  title="Saved Looks"
-                  open={savedOpen}
-                  onToggle={async newState => {
-                    setSavedOpen(newState);
-                    await AsyncStorage.setItem(
-                      'savedLooksOpen',
-                      JSON.stringify(newState),
-                    );
-                  }}>
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={800}
-                    duration={700}
-                    useNativeDriver
-                    style={[
-                      globalStyles.sectionScroll,
-                      {marginBottom: moderateScale(tokens.spacing.sm)},
-                    ]}>
-                    {savedLooks.length === 0 ? (
-                      <View
-                        style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                        <Text style={globalStyles.missingDataMessage1}>
-                          No saved looks.
-                        </Text>
-                        <TooltipBubble
-                          message='You haven’t saved any looks yet. Tap the "Add Look" button below to add your
-              favorite looks.'
-                          position="top"
-                        />
-                      </View>
-                    ) : (
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{
-                          paddingRight: moderateScale(tokens.spacing.xs),
-                        }}>
-                        {savedLooks.map((look, index) => (
-                          <Animatable.View
-                            key={look.id}
-                            animation="fadeInUp"
-                            delay={900 + index * 100}
-                            useNativeDriver
-                            style={globalStyles.outfitCard}>
-                            <AppleTouchFeedback
-                              hapticStyle="impactLight"
-                              onPress={() => {
-                                setSelectedLook(look);
-                                setPreviewVisible(true);
-                              }}
-                              style={{alignItems: 'center'}}>
-                              <View>
-                                <Image
-                                  source={{uri: look.image_url}}
-                                  style={[globalStyles.image8]}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                              <Text
-                                style={[globalStyles.subLabel]}
-                                numberOfLines={1}>
-                                {look.name}
-                              </Text>
-                            </AppleTouchFeedback>
-                          </Animatable.View>
-                        ))}
-                      </ScrollView>
-                    )}
-                    {savedLooks.length > 0 && (
+                  {[
+                    {label: 'Style Me', screen: 'Outfit'},
+                    {label: 'Wardrobe', screen: 'Wardrobe'},
+                    {label: 'Add Clothes', screen: 'AddItem'},
+                    {label: 'Profile', screen: 'Profile'},
+                  ].map((btn, idx) => (
+                    <Animatable.View
+                      key={btn.screen}
+                      animation="zoomIn"
+                      delay={600 + idx * 100}
+                      duration={500}
+                      useNativeDriver
+                      style={{
+                        width: buttonWidth, // already computed responsively above
+                        marginBottom:
+                          idx < 2 ? moderateScale(tokens.spacing.md) : 0,
+                      }}>
                       <AppleTouchFeedback
+                        style={[
+                          globalStyles.buttonPrimary,
+                          {
+                            width: '100%',
+                            justifyContent: 'center',
+                          },
+                        ]}
                         hapticStyle="impactHeavy"
-                        onPress={() => setImageModalVisible(true)}
-                        style={{
-                          alignSelf: 'flex-end',
-                          marginTop: moderateScale(tokens.spacing.xs),
-                          marginRight: moderateScale(tokens.spacing.sm),
-                        }}>
-                        <Text
-                          style={{
-                            fontSize: fontScale(tokens.fontSize.sm),
-                            color: theme.colors.foreground,
-                            fontWeight: tokens.fontWeight.bold,
-                          }}>
-                          See All Saved Looks
+                        onPress={() => navigate(btn.screen)}>
+                        <Text style={globalStyles.buttonPrimaryText}>
+                          {btn.label}
                         </Text>
                       </AppleTouchFeedback>
-                    )}
-                  </Animatable.View>
+                    </Animatable.View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </Animatable.View>
+        )}
 
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={1000}
-                    duration={700}
-                    useNativeDriver
-                    style={{
-                      alignItems: 'center',
-                      marginBottom: moderateScale(tokens.spacing.md2),
-                    }}>
-                    <AppleTouchFeedback
-                      style={[globalStyles.buttonPrimary4, {width: 90}]}
-                      hapticStyle="impactHeavy"
-                      onPress={() => setSaveModalVisible(true)}>
-                      <Text style={globalStyles.buttonPrimaryText4}>
-                        Add Look
+        {/* Top Fashion Stories / News Carousel */}
+        {prefs.topFashionStories && (
+          <Animatable.View
+            animation="fadeInUp"
+            delay={600}
+            duration={700}
+            useNativeDriver
+            style={globalStyles.sectionScroll}>
+            <Text style={[globalStyles.sectionTitle]}>Top Stories</Text>
+            <NewsCarousel onOpenArticle={openArticle} />
+          </Animatable.View>
+        )}
+
+        {/* Discover / Recommended Items */}
+        {prefs.recommendedItems && (
+          <Animatable.View
+            animation="fadeInUp"
+            delay={700}
+            duration={700}
+            useNativeDriver
+            style={globalStyles.sectionScroll}>
+            <Text style={[globalStyles.sectionTitle]}>Recommended</Text>
+            <DiscoverCarousel onOpenItem={openArticle} />
+          </Animatable.View>
+        )}
+
+        {prefs.inspiredLooks && (
+          <>
+            <Text
+              style={[
+                globalStyles.sectionTitle,
+                {
+                  marginLeft: moderateScale(tokens.spacing.md2),
+                  marginBottom: moderateScale(tokens.spacing.xs),
+                },
+              ]}>
+              Inspired Looks
+            </Text>
+
+            {/* SAVED LOOKS SECTION */}
+            {(savedLooks.length > 0 || true) && ( // ✅ always show the section
+              <CollapsibleSection
+                title="Saved Looks"
+                open={savedOpen}
+                onToggle={async newState => {
+                  setSavedOpen(newState);
+                  await AsyncStorage.setItem(
+                    'savedLooksOpen',
+                    JSON.stringify(newState),
+                  );
+                }}>
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={800}
+                  duration={700}
+                  useNativeDriver
+                  style={[
+                    globalStyles.sectionScroll2,
+                    {marginBottom: moderateScale(tokens.spacing.sm)},
+                  ]}>
+                  {savedLooks.length === 0 ? (
+                    <View
+                      style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+                      <Text style={globalStyles.missingDataMessage1}>
+                        No saved looks.
                       </Text>
-                    </AppleTouchFeedback>
-                  </Animatable.View>
-                </CollapsibleSection>
-              )}
-
-              {/* RECENTLY CREATED VIBE SECTION*/}
-              {loadingCreations && (
-                <Animatable.View
-                  animation="fadeIn"
-                  duration={400}
-                  useNativeDriver
-                  style={{
-                    padding: moderateScale(tokens.spacing.md),
-                    alignItems: 'center',
-                  }}>
-                  <Text style={{color: theme.colors.foreground2}}>
-                    Loading recent creations...
-                  </Text>
-                </Animatable.View>
-              )}
-
-              {!loadingCreations && recentCreations.length > 0 && (
-                <CollapsibleSection
-                  title="Recently Created Vibe"
-                  open={createdOpen}
-                  onToggle={async newState => {
-                    setCreatedOpen(newState);
-                    await AsyncStorage.setItem(
-                      'createdVibeOpen',
-                      JSON.stringify(newState),
-                    );
-                  }}>
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={150}
-                    duration={600}
-                    useNativeDriver
-                    style={globalStyles.sectionScroll}>
+                      <TooltipBubble
+                        message='You haven’t saved any looks yet. Tap the "Add Look" button below to add your
+              favorite looks.'
+                        position="top"
+                      />
+                    </View>
+                  ) : (
                     <ScrollView
                       horizontal
-                      showsHorizontalScrollIndicator={false}>
-                      {recentCreations.map(c => (
-                        <TouchableOpacity
-                          key={c.id}
-                          onPress={() =>
-                            navigate('RecreatedLook', {
-                              data: c.generated_outfit,
-                            })
-                          }
-                          style={globalStyles.outfitCard}>
-                          <AppleTouchFeedback
-                            hapticStyle="impactLight"
-                            onPress={() => {
-                              ReactNativeHapticFeedback.trigger('impactLight');
-                              navigate('RecreatedLook', {
-                                data: c.generated_outfit,
-                              });
-                            }}
-                            style={{alignItems: 'center'}}>
-                            <Image
-                              source={{uri: c.source_image_url}}
-                              style={[globalStyles.image8]}
-                              resizeMode="cover"
-                            />
-                          </AppleTouchFeedback>
-                          {/* 👇 ADD THIS just below the image */}
-                          <TouchableOpacity
-                            onPress={() => handleShareVibe(c)}
-                            style={{
-                              position: 'absolute',
-                              top: 6,
-                              right: 6,
-                              backgroundColor: 'rgba(0,0,0,0.4)',
-                              borderRadius: 20,
-                              padding: moderateScale(tokens.spacing.xxs),
-                            }}>
-                            <Icon
-                              name="ios-share"
-                              size={20}
-                              color={theme.colors.buttonText1}
-                            />
-                          </TouchableOpacity>
-
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              globalStyles.subLabel,
-                              {
-                                marginTop: moderateScale(tokens.spacing.xxs),
-                                textAlign: 'center',
-                              },
-                            ]}>
-                            {(c.tags && c.tags.slice(0, 3).join(' ')) ||
-                              'AI Look'}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </Animatable.View>
-                </CollapsibleSection>
-              )}
-
-              {/* RECENTLY SHOPPED VIBES SECTION */}
-              {loadingVibes && (
-                <Animatable.View
-                  animation="fadeIn"
-                  duration={400}
-                  useNativeDriver
-                  style={{
-                    padding: moderateScale(tokens.spacing.md),
-                    alignItems: 'center',
-                  }}>
-                  <Text style={{color: theme.colors.foreground2}}>
-                    Loading recent vibes...
-                  </Text>
-                </Animatable.View>
-              )}
-
-              {!loadingVibes && recentVibes.length > 0 && (
-                <CollapsibleSection
-                  title="Recently Shopped Vibe"
-                  open={shoppedOpen}
-                  onToggle={async newState => {
-                    setShoppedOpen(newState);
-                    await AsyncStorage.setItem(
-                      'shoppedVibeOpen',
-                      JSON.stringify(newState),
-                    );
-                  }}>
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={150}
-                    duration={600}
-                    useNativeDriver
-                    style={globalStyles.sectionScroll}>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}>
-                      {recentVibes.map((vibe, index) => (
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{
+                        paddingRight: moderateScale(tokens.spacing.xs),
+                      }}>
+                      {savedLooks.map((look, index) => (
                         <Animatable.View
-                          key={vibe.id || index}
-                          animation="fadeIn"
-                          delay={200 + index * 80}
-                          duration={400}
+                          key={look.id}
+                          animation="fadeInUp"
+                          delay={900 + index * 100}
                           useNativeDriver
                           style={globalStyles.outfitCard}>
-                          <TouchableOpacity
-                            activeOpacity={0.85}
+                          <Pressable
                             onPress={() => {
-                              ReactNativeHapticFeedback.trigger('impactMedium');
-                              handleShopModal([vibe.query_used]);
-                            }}>
-                            <AppleTouchFeedback
-                              hapticStyle="impactMedium"
-                              onPress={() => {
-                                ReactNativeHapticFeedback.trigger(
-                                  'impactMedium',
-                                );
-                                handleShopModal([vibe.query_used]);
-                              }}
-                              style={{alignItems: 'center'}}>
+                              setSelectedLook(look);
+                              setPreviewVisible(true);
+                            }}
+                            style={{alignItems: 'center'}}>
+                            <View>
                               <Image
-                                source={{uri: vibe.image_url}}
+                                source={{uri: look.image_url}}
                                 style={[globalStyles.image8]}
                                 resizeMode="cover"
                               />
-                              {/* 👇 Add share button */}
-                              <TouchableOpacity
-                                onPress={() => handleShareVibe(vibe)}
-                                style={{
-                                  position: 'absolute',
-                                  top: 6,
-                                  right: 6,
-                                  backgroundColor: 'rgba(0,0,0,0.4)',
-                                  borderRadius: 20,
-                                  padding: moderateScale(tokens.spacing.xxs),
-                                }}>
-                                <Icon name="ios-share" size={20} color="#fff" />
-                              </TouchableOpacity>
-                            </AppleTouchFeedback>
-
+                            </View>
                             <Text
-                              numberOfLines={1}
-                              style={[
-                                globalStyles.subLabel,
-                                {
-                                  marginTop: moderateScale(tokens.spacing.xxs),
-                                  textAlign: 'center',
-                                },
-                              ]}>
-                              {vibe.query_used
-                                ?.split(' ')
-                                .slice(0, 3)
-                                .join(' ') || 'Recent'}
+                              style={[globalStyles.subLabel]}
+                              numberOfLines={1}>
+                              {look.name}
                             </Text>
-                          </TouchableOpacity>
+                          </Pressable>
                         </Animatable.View>
                       ))}
                     </ScrollView>
-                  </Animatable.View>
-                </CollapsibleSection>
-              )}
-            </>
-          )}
+                  )}
+                  {savedLooks.length > 0 && (
+                    <AppleTouchFeedback
+                      hapticStyle="impactHeavy"
+                      onPress={() => setImageModalVisible(true)}
+                      style={{
+                        alignSelf: 'flex-end',
+                        marginTop: moderateScale(tokens.spacing.xs),
+                        marginRight: moderateScale(tokens.spacing.sm),
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.sm),
+                          color: theme.colors.foreground,
+                          fontWeight: tokens.fontWeight.bold,
+                        }}>
+                        See All Saved Looks
+                      </Text>
+                    </AppleTouchFeedback>
+                  )}
+                </Animatable.View>
 
-          <SaveLookModal
-            visible={saveModalVisible}
-            onClose={() => setSaveModalVisible(false)}
-          />
-          <SavedLookPreviewModal
-            visible={previewVisible}
-            look={selectedLook}
-            onClose={() => setPreviewVisible(false)}
-          />
-          <ReaderModal
-            visible={readerVisible}
-            url={readerUrl}
-            title={readerTitle}
-            onClose={() => setReaderVisible(false)}
-          />
-          <AllSavedLooksModal
-            visible={imageModalVisible}
-            onClose={() => setImageModalVisible(false)}
-            savedLooks={savedLooks}
-            recreateLook={handleRecreateLook}
-            openShopModal={handleShopModal}
-            shopResults={shopResults}
-            openPersonalizedShopModal={openPersonalizedShopModal} // ✅ add this
-          />
-          <ShopModal
-            visible={shopVisible}
-            onClose={() => setShopVisible(false)}
-            results={shopResults}
-          />
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={1000}
+                  duration={700}
+                  useNativeDriver
+                  style={{
+                    alignItems: 'center',
+                    // marginBottom: moderateScale(tokens.spacing.md2),
+                  }}>
+                  <AppleTouchFeedback
+                    style={[globalStyles.buttonPrimary4, {width: 90}]}
+                    hapticStyle="impactHeavy"
+                    onPress={() => setSaveModalVisible(true)}>
+                    <Text style={globalStyles.buttonPrimaryText4}>
+                      Add Look
+                    </Text>
+                  </AppleTouchFeedback>
+                </Animatable.View>
+              </CollapsibleSection>
+            )}
 
-          {/* <PersonalizedShopModal
+            {/* RECENTLY CREATED VIBE SECTION*/}
+            {loadingCreations && (
+              <Animatable.View
+                animation="fadeIn"
+                duration={400}
+                useNativeDriver
+                style={{
+                  padding: moderateScale(tokens.spacing.md),
+                  alignItems: 'center',
+                }}>
+                <Text style={{color: theme.colors.foreground2}}>
+                  Loading recent creations...
+                </Text>
+              </Animatable.View>
+            )}
+
+            {!loadingCreations && recentCreations.length > 0 && (
+              <CollapsibleSection
+                title="Created Vibes"
+                open={createdOpen}
+                onToggle={async newState => {
+                  setCreatedOpen(newState);
+                  await AsyncStorage.setItem(
+                    'createdVibeOpen',
+                    JSON.stringify(newState),
+                  );
+                }}>
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={150}
+                  duration={600}
+                  useNativeDriver
+                  style={globalStyles.sectionScroll2}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {recentCreations.map(c => (
+                      <TouchableOpacity
+                        key={c.id}
+                        onPress={() =>
+                          navigate('RecreatedLook', {
+                            data: c.generated_outfit,
+                          })
+                        }
+                        style={globalStyles.outfitCard}>
+                        <Pressable
+                          onPress={() => {
+                            navigate('RecreatedLook', {
+                              data: c.generated_outfit,
+                            });
+                          }}
+                          style={{alignItems: 'center'}}>
+                          <Image
+                            source={{uri: c.source_image_url}}
+                            style={[globalStyles.image8]}
+                            resizeMode="cover"
+                          />
+                        </Pressable>
+                        {/* 👇 ADD THIS just below the image */}
+                        <TouchableOpacity
+                          onPress={() => handleShareVibe(c)}
+                          style={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            backgroundColor: 'rgba(0,0,0,0.4)',
+                            borderRadius: 20,
+                            padding: 6,
+                          }}>
+                          <Icon
+                            name="ios-share"
+                            size={20}
+                            color={theme.colors.buttonText1}
+                          />
+                        </TouchableOpacity>
+
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            globalStyles.subLabel,
+                            {
+                              marginTop: moderateScale(tokens.spacing.xxs),
+                              textAlign: 'center',
+                            },
+                          ]}>
+                          {(c.tags && c.tags.slice(0, 3).join(' ')) ||
+                            'AI Look'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </Animatable.View>
+              </CollapsibleSection>
+            )}
+
+            {/* RECENTLY SHOPPED VIBES SECTION */}
+            {loadingVibes && (
+              <Animatable.View
+                animation="fadeIn"
+                duration={400}
+                useNativeDriver
+                style={{
+                  padding: moderateScale(tokens.spacing.md),
+                  alignItems: 'center',
+                }}>
+                <Text style={{color: theme.colors.foreground2}}>
+                  Loading recent vibes...
+                </Text>
+              </Animatable.View>
+            )}
+
+            {!loadingVibes && recentVibes.length > 0 && (
+              <CollapsibleSection
+                title="Shopped Vibes"
+                open={shoppedOpen}
+                onToggle={async newState => {
+                  setShoppedOpen(newState);
+                  await AsyncStorage.setItem(
+                    'shoppedVibeOpen',
+                    JSON.stringify(newState),
+                  );
+                }}>
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={150}
+                  duration={600}
+                  useNativeDriver
+                  style={globalStyles.sectionScroll}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {recentVibes.map((vibe, index) => (
+                      <TouchableOpacity
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          handleShopModal([vibe.query_used]);
+                        }}
+                        style={globalStyles.outfitCard}>
+                        <Pressable
+                          onPress={() => {
+                            handleShopModal([vibe.query_used]);
+                          }}
+                          style={{alignItems: 'center'}}>
+                          <Image
+                            source={{uri: vibe.image_url}}
+                            style={[globalStyles.image8]}
+                            resizeMode="cover"
+                          />
+                        </Pressable>
+                        {/* 👇 Add share button */}
+                        <TouchableOpacity
+                          onPress={() => handleShareVibe(vibe)}
+                          style={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            backgroundColor: 'rgba(0,0,0,0.4)',
+                            borderRadius: 20,
+                            padding: moderateScale(tokens.spacing.xxs),
+                          }}>
+                          <Icon name="ios-share" size={20} color="#fff" />
+                        </TouchableOpacity>
+
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            globalStyles.subLabel,
+                            {
+                              marginTop: moderateScale(tokens.spacing.xxs),
+                              textAlign: 'center',
+                            },
+                          ]}>
+                          {vibe.query_used?.split(' ').slice(0, 3).join(' ') ||
+                            'Recent'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </Animatable.View>
+              </CollapsibleSection>
+            )}
+          </>
+        )}
+
+        <SaveLookModal
+          visible={saveModalVisible}
+          onClose={() => setSaveModalVisible(false)}
+        />
+        <SavedLookPreviewModal
+          visible={previewVisible}
+          look={selectedLook}
+          onClose={() => setPreviewVisible(false)}
+        />
+        <ReaderModal
+          visible={readerVisible}
+          url={readerUrl}
+          title={readerTitle}
+          onClose={() => setReaderVisible(false)}
+        />
+        <AllSavedLooksModal
+          visible={imageModalVisible}
+          onClose={() => setImageModalVisible(false)}
+          savedLooks={savedLooks}
+          recreateLook={handleRecreateLook}
+          openShopModal={handleShopModal}
+          shopResults={shopResults}
+          openPersonalizedShopModal={openPersonalizedShopModal} // ✅ add this
+        />
+        <ShopModal
+          visible={shopVisible}
+          onClose={() => setShopVisible(false)}
+          results={shopResults}
+        />
+
+        {/* <PersonalizedShopModal
           visible={personalizedVisible}
           onClose={() => setPersonalizedVisible(false)}
           purchases={personalizedPurchases}
         /> */}
-          <PersonalizedShopModal
-            visible={personalizedVisible}
-            onClose={() => setPersonalizedVisible(false)}
-            purchases={
-              personalizedPurchases?.purchases ??
-              personalizedPurchases?.suggested_purchases ??
-              []
-            }
-            recreatedOutfit={
-              personalizedPurchases?.recreatedOutfit ??
-              personalizedPurchases?.recreated_outfit ??
-              []
-            }
-            styleNote={
-              personalizedPurchases?.styleNote ??
-              personalizedPurchases?.style_note ??
-              ''
-            }
-          />
+        <PersonalizedShopModal
+          visible={personalizedVisible}
+          onClose={() => setPersonalizedVisible(false)}
+          purchases={
+            personalizedPurchases?.purchases ??
+            personalizedPurchases?.suggested_purchases ??
+            []
+          }
+          recreatedOutfit={
+            personalizedPurchases?.recreatedOutfit ??
+            personalizedPurchases?.recreated_outfit ??
+            []
+          }
+          styleNote={
+            personalizedPurchases?.styleNote ??
+            personalizedPurchases?.style_note ??
+            ''
+          }
+        />
 
-          {showRecreatedModal && recreatedData && (
-            <Modal
-              visible={showRecreatedModal}
-              animationType="slide"
-              transparent={false}
-              presentationStyle="fullScreen"
-              statusBarTranslucent
-              onRequestClose={() => setShowRecreatedModal(false)}>
-              <RecreatedLookScreen
-                route={{params: {data: recreatedData}}}
-                navigation={{goBack: () => setShowRecreatedModal(false)}}
-              />
-            </Modal>
-          )}
-        </Animated.ScrollView>
-      </View>
-    </GradientBackground>
+        {showRecreatedModal && recreatedData && (
+          <Modal
+            visible={showRecreatedModal}
+            animationType="slide"
+            transparent={false}
+            presentationStyle="fullScreen"
+            statusBarTranslucent
+            onRequestClose={() => setShowRecreatedModal(false)}>
+            <RecreatedLookScreen
+              route={{params: {data: recreatedData}}}
+              navigation={{goBack: () => setShowRecreatedModal(false)}}
+            />
+          </Modal>
+        )}
+      </Animated.ScrollView>
+    </View>
+    // </GradientBackground>
   );
 };
 

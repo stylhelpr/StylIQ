@@ -523,7 +523,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   <Text
                     style={[
                       globalStyles.menuLabel,
-                      {color: theme.colors.buttonText1},
+                      {color: theme.colors.foreground},
                     ]}>
                     Enable Voice
                   </Text>
@@ -568,7 +568,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   <Text
                     style={[
                       globalStyles.menuLabel,
-                      {color: theme.colors.buttonText1},
+                      {color: theme.colors.foreground},
                     ]}>
                     Enable Location Services
                   </Text>

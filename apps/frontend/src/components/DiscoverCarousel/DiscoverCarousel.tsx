@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Pressable,
 } from 'react-native';
 import {API_BASE_URL} from '../../config/api';
 import {useUUID} from '../../context/UUIDContext';
@@ -144,9 +145,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
                 },
               ],
             }}>
-            <AppleTouchFeedback
+            <Pressable
               style={globalStyles.outfitCard2}
-              hapticStyle="impactLight"
               onPress={() => {
                 if (onOpenItem) {
                   onOpenItem(item.link, item.title);
@@ -184,7 +184,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
                 ]}>
                 {item.brand || 'Brand'}
               </Text>
-            </AppleTouchFeedback>
+            </Pressable>
           </Animated.View>
         ))
       )}

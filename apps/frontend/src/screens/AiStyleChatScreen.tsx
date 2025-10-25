@@ -508,211 +508,161 @@ export default function AiStylistChatScreen({navigate}: Props) {
     });
 
     return (
-      <GradientBackground>
-        <Animated.View key={m.id} style={{transform: [{translateX}]}}>
+      // <GradientBackground>
+      <Animated.View key={m.id} style={{transform: [{translateX}]}}>
+        <Animatable.View
+          animation={isUser ? 'fadeInRight' : 'fadeInLeft'}
+          duration={420}
+          delay={idx * 90}
+          easing="ease-out-cubic"
+          style={[
+            bubble.row,
+            {
+              marginVertical: isTablet ? 14 : 10,
+              transform: [{scale: 0.98}],
+            },
+          ]}>
+          {/* 🤖 Assistant icon */}
+          {!isUser && (
+            <View
+              style={{
+                width: isTablet ? 44 : 36,
+                height: isTablet ? 44 : 36,
+                borderRadius: 22,
+                backgroundColor: theme.colors.button1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                alignSelf: 'flex-end',
+                marginRight: 6,
+                borderWidth: 1,
+                borderColor: theme.colors.surfaceBorder,
+              }}>
+              <MaterialIcons
+                name="smart-toy"
+                size={isTablet ? 28 : 22}
+                color={theme.colors.buttonText1}
+              />
+            </View>
+          )}
+
+          {/* 💬 Bubble */}
           <Animatable.View
-            animation={isUser ? 'fadeInRight' : 'fadeInLeft'}
+            animation="zoomIn"
+            delay={idx * 90 + 80}
             duration={420}
-            delay={idx * 90}
             easing="ease-out-cubic"
-            style={[
-              bubble.row,
-              {
-                marginVertical: isTablet ? 14 : 10,
-                transform: [{scale: 0.98}],
-              },
-            ]}>
-            {/* 🤖 Assistant icon */}
-            {!isUser && (
-              <View
-                style={{
-                  width: isTablet ? 44 : 36,
-                  height: isTablet ? 44 : 36,
-                  borderRadius: 22,
-                  backgroundColor: theme.colors.button1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  alignSelf: 'flex-end',
-                  marginRight: 6,
-                  borderWidth: 1,
-                  borderColor: theme.colors.surfaceBorder,
-                }}>
-                <MaterialIcons
-                  name="smart-toy"
-                  size={isTablet ? 28 : 22}
-                  color={theme.colors.buttonText1}
-                />
-              </View>
+            style={bubble.bubble}>
+            <Text style={bubble.text}>{m.text}</Text>
+            <Text style={bubble.time}>
+              {dayjs(m.createdAt).format('h:mm A')}
+            </Text>
+
+            {/* 🖼️ Visual inspo images */}
+            {(m.images?.length ?? 0) > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{marginTop: 8}}>
+                {m.images?.map((img, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => {
+                      h('impactLight');
+                      if (img.sourceLink) {
+                        setWebUrl(img.sourceLink);
+                        setWebModalVisible(true);
+                      } else {
+                        setImageUri(img.imageUrl);
+                        setImageModalVisible(true);
+                      }
+                    }}
+                    style={{
+                      marginRight: 8,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      borderWidth: tokens.borderWidth.hairline,
+                      borderColor: theme.colors.surfaceBorder,
+                    }}>
+                    <Image
+                      source={{uri: img.imageUrl}}
+                      style={{width: 140, height: 160}}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             )}
 
-            {/* 💬 Bubble */}
-            <Animatable.View
-              animation="zoomIn"
-              delay={idx * 90 + 80}
-              duration={420}
-              easing="ease-out-cubic"
-              style={bubble.bubble}>
-              <Text style={bubble.text}>{m.text}</Text>
-              <Text style={bubble.time}>
-                {dayjs(m.createdAt).format('h:mm A')}
-              </Text>
-
-              {/* 🖼️ Visual inspo images */}
-              {(m.images?.length ?? 0) > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{marginTop: 8}}>
-                  {m.images?.map((img, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      onPress={() => {
-                        h('impactLight');
-                        if (img.sourceLink) {
-                          setWebUrl(img.sourceLink);
-                          setWebModalVisible(true);
-                        } else {
-                          setImageUri(img.imageUrl);
-                          setImageModalVisible(true);
-                        }
-                      }}
-                      style={{
-                        marginRight: 8,
-                        borderRadius: 12,
-                        overflow: 'hidden',
-                        borderWidth: tokens.borderWidth.hairline,
-                        borderColor: theme.colors.surfaceBorder,
-                      }}>
-                      <Image
-                        source={{uri: img.imageUrl}}
-                        style={{width: 140, height: 160}}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-
-              {/* 🔗 Optional product / shop links */}
-              {(m.links?.length ?? 0) > 0 && (
-                <View style={{marginTop: 8}}>
-                  {m.links?.map((l, i) => (
-                    <Text
-                      key={i}
-                      onPress={() => {
-                        h('impactLight');
-                        setWebUrl(l.url);
-                        setWebModalVisible(true);
-                      }}
-                      style={{
-                        color: theme.colors.primary,
-                        textDecorationLine: 'underline',
-                        fontSize: 15,
-                        marginVertical: 2,
-                      }}>
-                      {l.label}
-                    </Text>
-                  ))}
-                </View>
-              )}
-            </Animatable.View>
-
-            {/* 👤 User avatar */}
-            {isUser && (
-              <View
-                style={{
-                  width: isTablet ? 44 : 38,
-                  height: isTablet ? 44 : 38,
-                  borderRadius: 50,
-                  overflow: 'hidden',
-                  backgroundColor: theme.colors.background,
-                  alignSelf: 'flex-end',
-                }}>
-                {profilePicture ? (
-                  <Image
-                    source={{uri: profilePicture}}
-                    style={{width: '100%', height: '100%'}}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <MaterialIcons
-                    name="person"
-                    size={isTablet ? 28 : 22}
-                    color={theme.colors.foreground2}
-                    style={{alignSelf: 'center', marginTop: 6}}
-                  />
-                )}
+            {/* 🔗 Optional product / shop links */}
+            {(m.links?.length ?? 0) > 0 && (
+              <View style={{marginTop: 8}}>
+                {m.links?.map((l, i) => (
+                  <Text
+                    key={i}
+                    onPress={() => {
+                      h('impactLight');
+                      setWebUrl(l.url);
+                      setWebModalVisible(true);
+                    }}
+                    style={{
+                      color: theme.colors.primary,
+                      textDecorationLine: 'underline',
+                      fontSize: 15,
+                      marginVertical: 2,
+                    }}>
+                    {l.label}
+                  </Text>
+                ))}
               </View>
             )}
           </Animatable.View>
-        </Animated.View>
-      </GradientBackground>
+
+          {/* 👤 User avatar */}
+          {isUser && (
+            <View
+              style={{
+                width: isTablet ? 44 : 38,
+                height: isTablet ? 44 : 38,
+                borderRadius: 50,
+                overflow: 'hidden',
+                backgroundColor: theme.colors.background,
+                alignSelf: 'flex-end',
+              }}>
+              {profilePicture ? (
+                <Image
+                  source={{uri: profilePicture}}
+                  style={{width: '100%', height: '100%'}}
+                  resizeMode="cover"
+                />
+              ) : (
+                <MaterialIcons
+                  name="person"
+                  size={isTablet ? 28 : 22}
+                  color={theme.colors.foreground2}
+                  style={{alignSelf: 'center', marginTop: 6}}
+                />
+              )}
+            </View>
+          )}
+        </Animatable.View>
+      </Animated.View>
+      // </GradientBackground>
     );
   };
 
   return (
     <>
       <SafeAreaView
-        style={[globalStyles.screen]}
+        style={[
+          globalStyles.screen,
+          {backgroundColor: theme.colors.background},
+        ]}
         edges={['top', 'left', 'right']}>
         <KeyboardAvoidingView
-          style={{flex: 1}}
+          style={{flex: 1, backgroundColor: theme.colors.background}}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 40 : 0}>
           {/* 🧠 Header */}
-          {/* <View style={stylesHeader(theme, isTablet).header}>
-          <View style={stylesHeader(theme, isTablet).headerLeft}>
-            <View
-              style={[
-                stylesHeader(theme, isTablet).presenceDot,
-                {backgroundColor: theme.colors.success},
-              ]}
-            />
-            <Text
-              style={[
-                globalStyles.header,
-                {fontSize: isTablet ? 38 : isLargePhone ? 36 : 34},
-              ]}>
-              AI Stylist Chat
-            </Text>
-          </View>
-          <AppleTouchFeedback type="light">
-            <TouchableOpacity
-              style={stylesHeader(theme, isTablet).iconButton}
-              onPress={() => {
-                h('impactLight');
-                Alert.alert(
-                  'Clear Chat?',
-                  'This will erase your current conversation with the stylist.',
-                  [
-                    {text: 'Cancel', style: 'cancel'},
-                    {
-                      text: 'Clear Chat',
-                      style: 'destructive',
-                      onPress: async () => {
-                        await AsyncStorage.removeItem(`chat_thread:${userId}`);
-                        setMessages([
-                          {
-                            id: 'seed-1',
-                            role: 'assistant',
-                            text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
-                            createdAt: Date.now(),
-                          },
-                        ]);
-                        scrollToBottom();
-                      },
-                    },
-                  ],
-                );
-              }}>
-              <MaterialIcons
-                name="delete"
-                size={isTablet ? 28 : 22}
-                color={theme.colors.foreground}
-              />
-            </TouchableOpacity>
-          </AppleTouchFeedback>
-        </View> */}
 
           {/* 🧠 Floating Mascot — always on top */}
           {/* <View

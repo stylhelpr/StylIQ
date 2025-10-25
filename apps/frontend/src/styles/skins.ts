@@ -60,8 +60,8 @@ export const skins = {
       //  pillTextColor1: 'rgba(0, 255, 21, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#ff0000ff',
-      buttonGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
       surfaceGradientStart: '#000000ff',
       surfaceGradientEnd: '#000000ff',
     },
@@ -106,10 +106,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens, // ✅ matches other skins
     borderRadius: 12,
@@ -152,10 +152,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 16,
@@ -211,10 +211,10 @@ export const skins = {
       pillTextColor1: 'rgba(0, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 8,
@@ -257,10 +257,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 6,
@@ -303,10 +303,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 8,
@@ -353,14 +353,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#9000ffff',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#ea00ffff',
-      surfaceGradientEnd: '#7C4DFF',
-      // buttonGradientStart: '#FF00FF',
-      // buttonGradientEnd: '#7C4DFF',
-      // surfaceGradientStart: '#FF00FF',
-      // surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 20,
@@ -404,10 +400,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 14,
@@ -450,10 +446,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 16,
@@ -496,10 +492,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 14,
@@ -542,10 +538,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 12,
@@ -588,10 +584,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 12,
@@ -639,14 +635,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#9000ffff',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#ea00ffff',
-      surfaceGradientEnd: '#7C4DFF',
-      // buttonGradientStart: '#FF00FF',
-      // buttonGradientEnd: '#7C4DFF',
-      // surfaceGradientStart: '#FF00FF',
-      // surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 20,
@@ -689,10 +681,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 20,
@@ -735,10 +727,10 @@ export const skins = {
       pillTextColor1: 'rgba(255, 0, 0, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 14,
@@ -789,10 +781,10 @@ export const skins = {
       pillTextColor1: '#FF80FF',
 
       // ✅ NEW gradient keys
-      buttonGradientStart: '#FF00FF',
-      buttonGradientEnd: '#7C4DFF',
-      surfaceGradientStart: '#FF00FF',
-      surfaceGradientEnd: '#7C4DFF',
+      buttonGradientStart: '#000000ff',
+      buttonGradientEnd: '#000000ff',
+      surfaceGradientStart: '#000000ff',
+      surfaceGradientEnd: '#000000ff',
     },
     ...tokens,
     borderRadius: 20,

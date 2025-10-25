@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Pressable,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {useUUID} from '../../context/UUIDContext';
 import {useFeedSources} from '../../hooks/useFeedSources';
@@ -129,9 +131,8 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
               opacity: fade,
               transform: [{translateY: translate}],
             }}>
-            <AppleTouchFeedback
+            <Pressable
               style={globalStyles.outfitCard3}
-              hapticStyle="impactLight"
               onPress={() => {
                 if (a.link) {
                   if (onOpenArticle) onOpenArticle(a.link, a.title);
@@ -175,7 +176,7 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
                 numberOfLines={1}>
                 {a.source || 'Fashion News'}
               </Text>
-            </AppleTouchFeedback>
+            </Pressable>
           </Animated.View>
         );
       })}

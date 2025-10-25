@@ -36,12 +36,12 @@ export default function SwipeableCard({
   const panX = useRef(new Animated.Value(0)).current;
   const panY = useRef(new Animated.Value(0)).current;
 
-  const triggerHaptic = () => {
-    ReactNativeHapticFeedback.trigger('impactLight', {
-      enableVibrateFallback: true,
-      ignoreAndroidSystemSettings: false,
-    });
-  };
+  // const triggerHaptic = () => {
+  //   ReactNativeHapticFeedback.trigger('impactLight', {
+  //     enableVibrateFallback: true,
+  //     ignoreAndroidSystemSettings: false,
+  //   });
+  // };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -77,7 +77,7 @@ export default function SwipeableCard({
           g.dy > SCREEN_HEIGHT * 0.1 || (g.vy > 0.2 && g.dy > 32);
 
         if (shouldSwipeRight && onSwipeRight) {
-          triggerHaptic();
+          // triggerHaptic();
           Animated.timing(panX, {
             toValue: SCREEN_WIDTH + 80,
             duration: 180,
@@ -88,7 +88,7 @@ export default function SwipeableCard({
             onSwipeRight();
           });
         } else if (shouldSwipeLeft && onSwipeLeft) {
-          triggerHaptic();
+          // triggerHaptic();
           Animated.timing(panX, {
             toValue: -SCREEN_WIDTH - 80,
             duration: 180,
@@ -99,7 +99,7 @@ export default function SwipeableCard({
             onSwipeLeft();
           });
         } else if (shouldSwipeDown && onSwipeDown) {
-          triggerHaptic();
+          // triggerHaptic();
           Animated.timing(panY, {
             toValue: SCREEN_HEIGHT + 60,
             duration: 220,

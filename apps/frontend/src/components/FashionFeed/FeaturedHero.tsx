@@ -39,8 +39,6 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
     bgImg: {
       width: '100%',
       height: '100%',
-      borderWidth: 1,
-      borderColor: theme.colors.surfaceBorder,
       transform: [{scale: 1}],
     },
     overlay: {

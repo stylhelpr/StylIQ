@@ -116,7 +116,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     section: {
       marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 26 : 16,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 24 : 16,
     },
     section2: {
       marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
@@ -140,11 +140,11 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     sectionScroll: {
       marginBottom: isTablet ? 36 : isLargePhone ? 32 : 28,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 26 : 20,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 24 : 22,
     },
     sectionScroll2: {
-      marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 26 : 16,
+      marginBottom: isTablet ? 22 : isLargePhone ? 8 : 8,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 24 : 22,
     },
 
     // ============================================================
@@ -177,7 +177,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     cardStyles1: {
       padding: isTablet ? 20 : isLargePhone ? 18 : 14,
-      borderWidth: tokens.borderWidth.lg,
+      borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius['2xl'],
       backgroundColor: theme.colors.surface,
@@ -189,6 +189,12 @@ export const createGlobalStyles = (theme: Theme) =>
 
       // shadowColor: '#000',
       // shadowOffset: {width: 8, height: 10},
+      // shadowOpacity: 0.5,
+      // shadowRadius: 5,
+      // elevation: 6,
+
+      // shadowColor: '#000',
+      // shadowOffset: {width: 8, height: 9},
       // shadowOpacity: 0.5,
       // shadowRadius: 5,
       // elevation: 6,
@@ -612,11 +618,11 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.lg,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.surfaceBorder,
-      width: isTablet ? 160 : isLargePhone ? 117 : 115,
+      width: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 105,
       // height: isTablet ? 160 : isLargePhone ? 175 : 145,
       // height: isTablet ? 160 : isLargePhone ? 140 : 125,
       // height: isTablet ? 160 : isLargePhone ? 155 : 145,
-      height: isTablet ? 160 : isLargePhone ? 115 : 115,
+      height: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 115 : 105,
     },
     image9: {
       width: isTablet ? 189 : isLargePhone ? 189 : 166.5,
@@ -630,7 +636,7 @@ export const createGlobalStyles = (theme: Theme) =>
       width: '100%',
       height: isTablet ? 160 : isLargePhone ? 165 : 165,
       backgroundColor: theme.colors.surface,
-      borderRadius: tokens.borderRadius.sm,
+      // borderRadius: tokens.borderRadius.sm,
       borderBottomWidth: tokens.borderWidth.md,
       borderBottomColor: theme.colors.surfaceBorder,
     },
@@ -665,7 +671,8 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     outfitCard: {
       // width: outfitCardSize,
-      marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
+      // marginRight: isTablet ? 16 : isLargePhone ? 12 : 10,
+      marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
       // borderRadius: tokens.borderRadius.lg,
     },
@@ -673,7 +680,7 @@ export const createGlobalStyles = (theme: Theme) =>
     outfitCard2: {
       // width: isTablet ? 160 : isLargePhone ? 180 : 160,
       width: isTablet ? 160 : isLargePhone ? 180 : 160,
-      marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
+      marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface2,
       overflow: 'hidden',
@@ -687,7 +694,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // width: 275,
       // width: isTablet ? 275 : isLargePhone ? 275 : 230,
       width: isTablet ? 275 : isLargePhone ? 235 : 230,
-      marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
+      marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
@@ -697,8 +704,8 @@ export const createGlobalStyles = (theme: Theme) =>
     },
 
     outfitCard4: {
-      width: isTablet ? 160 : isLargePhone ? 183 : isRegularPhone ? 180 : 160,
-      marginRight: isTablet ? 16 : isLargePhone ? 11 : 10,
+      width: isTablet ? 160 : isLargePhone ? 189 : isRegularPhone ? 184 : 165,
+      // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',

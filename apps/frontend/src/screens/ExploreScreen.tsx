@@ -212,7 +212,7 @@ export default function ExploreScreen() {
     },
     modalRoot: {
       flex: 1,
-      // backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.background,
       marginTop: moderateScale(tokens.spacing.mega),
     },
     modalHeader: {
@@ -969,242 +969,263 @@ export default function ExploreScreen() {
   };
 
   return (
-    <GradientBackground>
-      <View>
-        <ScrollView
-          ref={scrollRef} // 👈 add this
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading || sourcesLoading}
-              onRefresh={refresh}
-              tintColor="#fff"
-            />
-          }
-          contentContainerStyle={[
-            globalStyles.container,
-            // {backgroundColor: theme.colors.background},
+    // <GradientBackground>
+    <View>
+      <ScrollView
+        ref={scrollRef} // 👈 add this
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading || sourcesLoading}
+            onRefresh={refresh}
+            tintColor="#fff"
+          />
+        }
+        contentContainerStyle={[
+          globalStyles.container,
+          {backgroundColor: theme.colors.background},
+        ]}>
+        <Animatable.Text
+          animation="fadeInDown"
+          duration={900}
+          delay={100}
+          easing="ease-out-cubic"
+          style={[
+            globalStyles.header,
+            {
+              color: theme.colors.foreground,
+              marginBottom: moderateScale(tokens.spacing.md2),
+            },
           ]}>
-          <Animatable.Text
-            animation="fadeInDown"
-            duration={900}
-            delay={100}
-            easing="ease-out-cubic"
-            style={[
-              globalStyles.header,
-              {
-                color: theme.colors.foreground,
-                marginBottom: moderateScale(tokens.spacing.md2),
-              },
-            ]}>
-            Fashion News
-          </Animatable.Text>
+          Fashion News
+        </Animatable.Text>
+        <View
+          style={[
+            styles.topBar,
+            {
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            },
+          ]}>
           <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginBottom: 10,
+            }}>
+            <Segmented
+              tab={tab}
+              onChange={t => {
+                triggerSelection();
+                setTab(t);
+              }}
+            />
+            {/* manual spacing between Segmented + Manage button */}
+            <View style={{width: moderateScale(tokens.spacing.sm)}} />
+            <AppleTouchFeedback
+              onPress={() => setMenuOpen(true)}
+              style={styles.iconBtn}
+              hapticStyle="impactLight">
+              <Text style={styles.iconBtnText}>Manage</Text>
+            </AppleTouchFeedback>
+          </View>
+        </View>
+
+        {hero && (
+          <FeaturedHero
+            title={hero.title}
+            source={hero.source}
+            image={hero.image}
+            onPress={() => {
+              setOpenUrl(hero.link);
+              setOpenTitle(hero.title);
+            }}
+          />
+        )}
+
+        {tab === 'For You' && (
+          <TrendChips
+            items={visibleChips.map(c => c.label)} // 👈 changed here
+            selected={activeChipLabel}
+            onTap={label => {
+              triggerSelection();
+              setActiveChipLabel(prev =>
+                prev?.toLowerCase() === label.toLowerCase() ? null : label,
+              );
+            }}
+            onMore={() => {
+              triggerSelection();
+              setManageBrandsOpen(true);
+            }}
+          />
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text
             style={[
-              styles.topBar,
+              globalStyles.sectionTitle,
               {
-                flexWrap: 'wrap',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                color: theme.colors.button1,
+                marginTop: -7,
+                marginBottom: 2,
               },
             ]}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 10,
-              }}>
-              <Segmented
-                tab={tab}
-                onChange={t => {
-                  triggerSelection();
-                  setTab(t);
-                }}
-              />
-              {/* manual spacing between Segmented + Manage button */}
-              <View style={{width: moderateScale(tokens.spacing.sm)}} />
-              <AppleTouchFeedback
-                onPress={() => setMenuOpen(true)}
-                style={styles.iconBtn}
-                hapticStyle="impactLight">
-                <Text style={styles.iconBtnText}>Manage</Text>
-              </AppleTouchFeedback>
-            </View>
-          </View>
+            {tab === 'For You' ? 'Recommended for you' : 'Following'}
+          </Text>
+        </View>
 
-          {hero && (
-            <FeaturedHero
-              title={hero.title}
-              source={hero.source}
-              image={hero.image}
+        <View style={[{paddingHorizontal: 16}]}>
+          {list.map(item => (
+            <ArticleCard
+              key={item.id}
+              title={item.title}
+              source={item.source}
+              image={item.image}
+              time={
+                item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
+              }
               onPress={() => {
-                setOpenUrl(hero.link);
-                setOpenTitle(hero.title);
+                setOpenUrl(item.link);
+                setOpenTitle(item.title);
               }}
             />
-          )}
+          ))}
+        </View>
 
-          {tab === 'For You' && (
-            <TrendChips
-              items={visibleChips.map(c => c.label)} // 👈 changed here
-              selected={activeChipLabel}
-              onTap={label => {
-                triggerSelection();
-                setActiveChipLabel(prev =>
-                  prev?.toLowerCase() === label.toLowerCase() ? null : label,
-                );
-              }}
-              onMore={() => {
-                triggerSelection();
-                setManageBrandsOpen(true);
-              }}
-            />
-          )}
+        {tab === 'For You' && list.length === 0 && (
+          <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+            <View style={{flexDirection: 'row'}}>
+              <Text style={globalStyles.missingDataMessage1}>
+                No stories found.
+              </Text>
 
-          <View style={styles.sectionHeader}>
-            <Text
-              style={[
-                globalStyles.sectionTitle,
-                {
-                  color: theme.colors.button1,
-                  marginTop: -7,
-                  marginBottom: 2,
-                },
-              ]}>
-              {tab === 'For You' ? 'Recommended for you' : 'Following'}
-            </Text>
-          </View>
-
-          <View style={[{paddingHorizontal: 16}]}>
-            {list.map(item => (
-              <ArticleCard
-                key={item.id}
-                title={item.title}
-                source={item.source}
-                image={item.image}
-                time={
-                  item.publishedAt
-                    ? dayjs(item.publishedAt).fromNow()
-                    : undefined
-                }
-                onPress={() => {
-                  setOpenUrl(item.link);
-                  setOpenTitle(item.title);
-                }}
-              />
-            ))}
-          </View>
-
-          {tab === 'For You' && list.length === 0 && (
-            <View style={{paddingHorizontal: 16, paddingTop: 8}}>
-              <View style={{flexDirection: 'row'}}>
-                <Text style={globalStyles.missingDataMessage1}>
-                  No stories found.
-                </Text>
-
-                <View style={{alignSelf: 'flex-start'}}>
-                  <TooltipBubble
-                    message='No fashion news feeds chosen yet. Tap the
+              <View style={{alignSelf: 'flex-start'}}>
+                <TooltipBubble
+                  message='No fashion news feeds chosen yet. Tap the
               "Manage" button above, and click on "Feeds" or "Brands".'
-                    position="top"
-                  />
-                </View>
+                  position="top"
+                />
               </View>
             </View>
-          )}
-        </ScrollView>
+          </View>
+        )}
+      </ScrollView>
 
-        <ReaderModal
-          visible={!!openUrl}
-          url={openUrl}
-          title={openTitle}
-          onClose={() => setOpenUrl(undefined)}
-        />
+      <ReaderModal
+        visible={!!openUrl}
+        url={openUrl}
+        title={openTitle}
+        onClose={() => setOpenUrl(undefined)}
+      />
 
-        {/* Feeds modal */}
-        <Modal
-          visible={manageOpen}
-          animationType="slide"
-          onRequestClose={() => setManageOpen(false)}>
-          <View style={styles.modalRoot}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Feeds</Text>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => setManageOpen(false)}>
-                <Text style={styles.done}>Done</Text>
-              </AppleTouchFeedback>
-            </View>
-            <ScrollView contentContainerStyle={{paddingBottom: 32}}>
-              {orderedSources.map((src: FeedSource, idx: number) => {
-                const notifyOn = followingSet.has(src.name.toLowerCase());
-                return (
-                  <View
-                    key={src.id}
-                    style={[
-                      styles.sourceRow,
-                      {backgroundColor: theme.colors.surface},
-                    ]}>
-                    {/* 🧠 TOP LINE: Name + URL */}
-                    <View>
-                      <TextInput
-                        defaultValue={`${idx + 1}. ${src.name}`}
-                        placeholder="Name"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
-                        onEndEditing={e =>
-                          renameSource(
-                            src.id,
-                            e.nativeEvent.text.replace(/^\d+\.\s*/, ''),
-                          )
-                        }
-                        style={styles.sourceName}
-                      />
-                      <Text
-                        style={styles.sourceUrl}
-                        numberOfLines={1}
-                        ellipsizeMode="tail">
-                        {src.url}
-                      </Text>
+      {/* Feeds modal */}
+      <Modal
+        visible={manageOpen}
+        animationType="slide"
+        onRequestClose={() => setManageOpen(false)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Feeds</Text>
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={() => setManageOpen(false)}>
+              <Text style={styles.done}>Done</Text>
+            </AppleTouchFeedback>
+          </View>
+          <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+            {orderedSources.map((src: FeedSource, idx: number) => {
+              const notifyOn = followingSet.has(src.name.toLowerCase());
+              return (
+                <View
+                  key={src.id}
+                  style={[
+                    styles.sourceRow,
+                    {backgroundColor: theme.colors.surface},
+                  ]}>
+                  {/* 🧠 TOP LINE: Name + URL */}
+                  <View>
+                    <TextInput
+                      defaultValue={`${idx + 1}. ${src.name}`}
+                      placeholder="Name"
+                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      onEndEditing={e =>
+                        renameSource(
+                          src.id,
+                          e.nativeEvent.text.replace(/^\d+\.\s*/, ''),
+                        )
+                      }
+                      style={styles.sourceName}
+                    />
+                    <Text
+                      style={styles.sourceUrl}
+                      numberOfLines={1}
+                      ellipsizeMode="tail">
+                      {src.url}
+                    </Text>
+                  </View>
+
+                  {/* ⚙️ SECOND ROW: Controls */}
+                  <View style={[styles.sourceControls]}>
+                    {/* Order controls */}
+                    <View style={styles.arrowGroup}>
+                      <AppleTouchFeedback
+                        onPress={() => moveSource(src.name, 'up')}
+                        hapticStyle="selection"
+                        style={styles.arrowBtn}>
+                        <MaterialIcons
+                          name="arrow-upward"
+                          size={24}
+                          color={theme.colors.buttonText1}
+                        />
+                      </AppleTouchFeedback>
+                      <AppleTouchFeedback
+                        onPress={() => moveSource(src.name, 'down')}
+                        hapticStyle="selection"
+                        style={[styles.arrowBtn, {marginLeft: 10}]}>
+                        <MaterialIcons
+                          name="arrow-downward"
+                          size={24}
+                          color={theme.colors.buttonText1}
+                        />
+                      </AppleTouchFeedback>
                     </View>
 
-                    {/* ⚙️ SECOND ROW: Controls */}
-                    <View style={[styles.sourceControls]}>
-                      {/* Order controls */}
-                      <View style={styles.arrowGroup}>
-                        <AppleTouchFeedback
-                          onPress={() => moveSource(src.name, 'up')}
-                          hapticStyle="selection"
-                          style={styles.arrowBtn}>
-                          <MaterialIcons
-                            name="arrow-upward"
-                            size={24}
-                            color={theme.colors.buttonText1}
-                          />
-                        </AppleTouchFeedback>
-                        <AppleTouchFeedback
-                          onPress={() => moveSource(src.name, 'down')}
-                          hapticStyle="selection"
-                          style={[styles.arrowBtn, {marginLeft: 10}]}>
-                          <MaterialIcons
-                            name="arrow-downward"
-                            size={24}
-                            color={theme.colors.buttonText1}
-                          />
-                        </AppleTouchFeedback>
-                      </View>
+                    {/* Read toggle */}
+                    <View
+                      style={[
+                        styles.toggleItem,
+                        {paddingBottom: 14, marginLeft: 10},
+                      ]}>
+                      <Text style={styles.toggleLabel}>Read</Text>
+                      <Switch
+                        value={!!src.enabled}
+                        onValueChange={v => {
+                          triggerSelection();
+                          toggleSource(src.id, v);
+                        }}
+                        trackColor={{
+                          false: 'rgba(255,255,255,0.18)',
+                          true: '#0A84FF',
+                        }}
+                        thumbColor="#fff"
+                      />
+                    </View>
 
-                      {/* Read toggle */}
-                      <View
-                        style={[
-                          styles.toggleItem,
-                          {paddingBottom: 14, marginLeft: 10},
-                        ]}>
-                        <Text style={styles.toggleLabel}>Read</Text>
+                    {/* Notify toggle */}
+                    <View
+                      style={
+                        (styles.toggleItem, {paddingBottom: 14, marginLeft: 10})
+                      }>
+                      <View style={styles.toggleItem}>
+                        <Text style={styles.toggleLabel}>Notify</Text>
                         <Switch
-                          value={!!src.enabled}
+                          value={notifyOn}
                           onValueChange={v => {
                             triggerSelection();
-                            toggleSource(src.id, v);
+                            v
+                              ? followSource(src.name)
+                              : unfollowSource(src.name);
                           }}
                           trackColor={{
                             false: 'rgba(255,255,255,0.18)',
@@ -1213,525 +1234,496 @@ export default function ExploreScreen() {
                           thumbColor="#fff"
                         />
                       </View>
-
-                      {/* Notify toggle */}
-                      <View
-                        style={
-                          (styles.toggleItem,
-                          {paddingBottom: 14, marginLeft: 10})
-                        }>
-                        <View style={styles.toggleItem}>
-                          <Text style={styles.toggleLabel}>Notify</Text>
-                          <Switch
-                            value={notifyOn}
-                            onValueChange={v => {
-                              triggerSelection();
-                              v
-                                ? followSource(src.name)
-                                : unfollowSource(src.name);
-                            }}
-                            trackColor={{
-                              false: 'rgba(255,255,255,0.18)',
-                              true: '#0A84FF',
-                            }}
-                            thumbColor="#fff"
-                          />
-                        </View>
-                      </View>
-
-                      {/* Remove button */}
-                      <AppleTouchFeedback
-                        onPress={() => removeSource(src.id)}
-                        style={styles.removeBtn}
-                        hapticStyle="impactLight">
-                        <Text style={styles.removeText}>Remove</Text>
-                      </AppleTouchFeedback>
                     </View>
-                  </View>
-                );
-              })}
 
-              <View style={styles.addBox}>
-                <Text style={styles.addTitle}>Add Feed</Text>
+                    {/* Remove button */}
+                    <AppleTouchFeedback
+                      onPress={() => removeSource(src.id)}
+                      style={styles.removeBtn}
+                      hapticStyle="impactLight">
+                      <Text style={styles.removeText}>Remove</Text>
+                    </AppleTouchFeedback>
+                  </View>
+                </View>
+              );
+            })}
+
+            <View style={styles.addBox}>
+              <Text style={styles.addTitle}>Add Feed</Text>
+              <Text
+                style={[
+                  globalStyles.label,
+                  {
+                    paddingHorizontal: 1,
+                    marginBottom: 17,
+                    fontSize: 12,
+                    fontWeight: '400',
+                    color: theme.colors.foreground,
+                  },
+                ]}>
+                Paste any site URL (like a brand homepage or magazine). We’ll
+                try to detect its feed automatically — or paste a known RSS feed
+                URL directly.
+              </Text>
+
+              {!!addError && <Text style={styles.addError}>{addError}</Text>}
+              <TextInput
+                value={newName}
+                onChangeText={setNewName}
+                placeholder="Display name (optional)"
+                placeholderTextColor={theme.colors.muted}
+                style={styles.input}
+              />
+              <TextInput
+                value={newUrl}
+                onChangeText={setNewUrl}
+                placeholder="Website URL or Brand Name"
+                placeholderTextColor={theme.colors.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[styles.input, {marginTop: 4}]}
+              />
+
+              {loadingDiscover && (
                 <Text
-                  style={[
-                    globalStyles.label,
-                    {
-                      paddingHorizontal: 1,
-                      marginBottom: 17,
-                      fontSize: 12,
-                      fontWeight: '400',
-                      color: theme.colors.foreground,
-                    },
-                  ]}>
-                  Paste any site URL (like a brand homepage or magazine). We’ll
-                  try to detect its feed automatically — or paste a known RSS
-                  feed URL directly.
+                  style={{
+                    color: theme.colors.foreground,
+                    textAlign: 'center',
+                    paddingTop: 8,
+                  }}>
+                  Looking for feeds…
                 </Text>
+              )}
 
-                {!!addError && <Text style={styles.addError}>{addError}</Text>}
-                <TextInput
-                  value={newName}
-                  onChangeText={setNewName}
-                  placeholder="Display name (optional)"
-                  placeholderTextColor={theme.colors.muted}
-                  style={styles.input}
-                />
-                <TextInput
-                  value={newUrl}
-                  onChangeText={setNewUrl}
-                  placeholder="Website URL or Brand Name"
-                  placeholderTextColor={theme.colors.muted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={[styles.input, {marginTop: 4}]}
-                />
+              {!!discoverError && (
+                <Text
+                  style={{
+                    color: theme.colors.error,
+                    textAlign: 'center',
+                    marginBottom: 10,
+                  }}>
+                  {discoverError}
+                </Text>
+              )}
 
-                {loadingDiscover && (
+              {discoveredFeeds.length > 0 && (
+                <View style={{marginTop: 10}}>
                   <Text
                     style={{
                       color: theme.colors.foreground,
-                      textAlign: 'center',
-                      paddingTop: 8,
+                      fontWeight: '700',
+                      marginBottom: 8,
                     }}>
-                    Looking for feeds…
+                    Feeds Found:
                   </Text>
-                )}
-
-                {!!discoverError && (
-                  <Text
-                    style={{
-                      color: theme.colors.error,
-                      textAlign: 'center',
-                      marginBottom: 10,
-                    }}>
-                    {discoverError}
-                  </Text>
-                )}
-
-                {discoveredFeeds.length > 0 && (
-                  <View style={{marginTop: 10}}>
-                    <Text
+                  {discoveredFeeds.map((f, idx) => (
+                    <AppleTouchFeedback
+                      key={idx}
+                      onPress={() => {
+                        setNewUrl(f.href);
+                        setAddError(null);
+                      }}
+                      hapticStyle="selection"
                       style={{
-                        color: theme.colors.foreground,
-                        fontWeight: '700',
-                        marginBottom: 8,
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 8,
+                        backgroundColor: theme.colors.surface3,
+                        marginBottom: 6,
                       }}>
-                      Feeds Found:
-                    </Text>
-                    {discoveredFeeds.map((f, idx) => (
-                      <AppleTouchFeedback
-                        key={idx}
-                        onPress={() => {
-                          setNewUrl(f.href);
-                          setAddError(null);
-                        }}
-                        hapticStyle="selection"
+                      <Text
                         style={{
-                          paddingVertical: 8,
-                          paddingHorizontal: 12,
-                          borderRadius: 8,
-                          backgroundColor: theme.colors.surface3,
-                          marginBottom: 6,
+                          color: theme.colors.button1,
+                          fontWeight: '700',
                         }}>
-                        <Text
-                          style={{
-                            color: theme.colors.button1,
-                            fontWeight: '700',
-                          }}>
-                          {f.title || f.href}
-                        </Text>
-                        <Text
-                          style={{
-                            color: theme.colors.foreground,
-                            fontSize: 12,
-                          }}>
-                          {f.href}
-                        </Text>
-                      </AppleTouchFeedback>
-                    ))}
-                  </View>
-                )}
+                        {f.title || f.href}
+                      </Text>
+                      <Text
+                        style={{
+                          color: theme.colors.foreground,
+                          fontSize: 12,
+                        }}>
+                        {f.href}
+                      </Text>
+                    </AppleTouchFeedback>
+                  ))}
+                </View>
+              )}
 
-                {/* 🔎 Discover button */}
-                <AppleTouchFeedback
-                  hapticStyle="impactLight"
-                  onPress={async () => {
-                    if (!newUrl) {
-                      setAddError('Enter a brand name or website first');
-                      return;
-                    }
-                    setAddError(null);
-                    setDiscoverError(null);
-                    setDiscoveredFeeds([]);
-                    setLoadingDiscover(true);
+              {/* 🔎 Discover button */}
+              <AppleTouchFeedback
+                hapticStyle="impactLight"
+                onPress={async () => {
+                  if (!newUrl) {
+                    setAddError('Enter a brand name or website first');
+                    return;
+                  }
+                  setAddError(null);
+                  setDiscoverError(null);
+                  setDiscoveredFeeds([]);
+                  setLoadingDiscover(true);
 
-                    try {
-                      // 🔎 Detect if the input is a URL or brand name
-                      const looksLikeUrl =
-                        /^https?:\/\//i.test(newUrl) || newUrl.includes('.');
-                      const queryParam = looksLikeUrl
-                        ? `url=${encodeURIComponent(newUrl)}`
-                        : `brand=${encodeURIComponent(newUrl)}`;
+                  try {
+                    // 🔎 Detect if the input is a URL or brand name
+                    const looksLikeUrl =
+                      /^https?:\/\//i.test(newUrl) || newUrl.includes('.');
+                    const queryParam = looksLikeUrl
+                      ? `url=${encodeURIComponent(newUrl)}`
+                      : `brand=${encodeURIComponent(newUrl)}`;
 
-                      const res = await fetch(
-                        `${API_BASE_URL}/feeds/discover?${queryParam}`,
-                      );
-                      const json = await res.json();
+                    const res = await fetch(
+                      `${API_BASE_URL}/feeds/discover?${queryParam}`,
+                    );
+                    const json = await res.json();
 
-                      if (json?.feeds?.length) {
-                        setDiscoveredFeeds(json.feeds);
-                      } else {
-                        setDiscoverError(
-                          looksLikeUrl
-                            ? 'No feeds found for this URL.'
-                            : 'No feeds found for this brand.',
-                        );
-                      }
-                    } catch (e: any) {
+                    if (json?.feeds?.length) {
+                      setDiscoveredFeeds(json.feeds);
+                    } else {
                       setDiscoverError(
-                        e?.message ?? 'Failed to discover feeds',
+                        looksLikeUrl
+                          ? 'No feeds found for this URL.'
+                          : 'No feeds found for this brand.',
                       );
-                    } finally {
-                      setLoadingDiscover(false);
+                    }
+                  } catch (e: any) {
+                    setDiscoverError(e?.message ?? 'Failed to discover feeds');
+                  } finally {
+                    setLoadingDiscover(false);
+                  }
+                }}
+                style={[
+                  globalStyles.buttonPrimary,
+                  {
+                    marginTop: 22,
+                    width: 200,
+                    alignSelf: 'center',
+                  },
+                ]}>
+                <Text style={globalStyles.buttonPrimaryText}>
+                  Discover Feeds
+                </Text>
+              </AppleTouchFeedback>
+
+              <View style={{alignItems: 'center'}}>
+                <AppleTouchFeedback
+                  hapticStyle="impactMedium"
+                  onPress={() => {
+                    setAddError(null);
+                    try {
+                      addSource(newName, newUrl);
+                      setNewName('');
+                      setNewUrl('');
+                      setDiscoveredFeeds([]);
+                    } catch (e: any) {
+                      setAddError(e?.message ?? 'Could not add feed');
                     }
                   }}
                   style={[
                     globalStyles.buttonPrimary,
+                    {marginBottom: 12, width: 200, marginTop: 12},
+                  ]}>
+                  <Text style={globalStyles.buttonPrimaryText}>Add Feed</Text>
+                </AppleTouchFeedback>
+
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={resetSourceOrderAZ}
+                  style={[
+                    globalStyles.buttonPrimary,
                     {
-                      marginTop: 22,
+                      backgroundColor: theme.colors.surface3,
+                      marginBottom: 12,
                       width: 200,
-                      alignSelf: 'center',
                     },
                   ]}>
                   <Text style={globalStyles.buttonPrimaryText}>
-                    Discover Feeds
+                    Reset Order (A–Z)
                   </Text>
                 </AppleTouchFeedback>
-
-                <View style={{alignItems: 'center'}}>
-                  <AppleTouchFeedback
-                    hapticStyle="impactMedium"
-                    onPress={() => {
-                      setAddError(null);
-                      try {
-                        addSource(newName, newUrl);
-                        setNewName('');
-                        setNewUrl('');
-                        setDiscoveredFeeds([]);
-                      } catch (e: any) {
-                        setAddError(e?.message ?? 'Could not add feed');
-                      }
-                    }}
-                    style={[
-                      globalStyles.buttonPrimary,
-                      {marginBottom: 12, width: 200, marginTop: 12},
-                    ]}>
-                    <Text style={globalStyles.buttonPrimaryText}>Add Feed</Text>
-                  </AppleTouchFeedback>
-
-                  <AppleTouchFeedback
-                    hapticStyle="impactLight"
-                    onPress={resetSourceOrderAZ}
-                    style={[
-                      globalStyles.buttonPrimary,
-                      {
-                        backgroundColor: theme.colors.surface3,
-                        marginBottom: 12,
-                        width: 200,
-                      },
-                    ]}>
-                    <Text style={globalStyles.buttonPrimaryText}>
-                      Reset Order (A–Z)
-                    </Text>
-                  </AppleTouchFeedback>
-                </View>
               </View>
-            </ScrollView>
-          </View>
-        </Modal>
-
-        {/* Brands modal */}
-        <Modal
-          visible={manageBrandsOpen}
-          animationType="slide"
-          onRequestClose={() => setManageBrandsOpen(false)}>
-          <View style={styles.modalRoot}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Brands</Text>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => setManageBrandsOpen(false)}>
-                <Text style={styles.done}>Done</Text>
-              </AppleTouchFeedback>
             </View>
-            <View style={{padding: 12}}>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Brands modal */}
+      <Modal
+        visible={manageBrandsOpen}
+        animationType="slide"
+        onRequestClose={() => setManageBrandsOpen(false)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Brands</Text>
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={() => setManageBrandsOpen(false)}>
+              <Text style={styles.done}>Done</Text>
+            </AppleTouchFeedback>
+          </View>
+          <View style={{padding: 12}}>
+            <TextInput
+              value={brandSearch}
+              onChangeText={setBrandSearch}
+              placeholder="Search your wardrobe brands…"
+              placeholderTextColor={theme.colors.muted}
+              style={styles.input}
+            />
+          </View>
+
+          <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+            {wardrobeBrands.length === 0 ? (
+              <View style={{paddingHorizontal: 12, paddingTop: 8}}>
+                <Text style={{color: 'rgba(255,255,255,0.7)'}}>
+                  No brands found yet.
+                </Text>
+              </View>
+            ) : (
+              Array.from(
+                new Set([...wardrobeBrands].sort((a, b) => a.localeCompare(b))),
+              )
+                .filter(
+                  b => b && b.toLowerCase().includes(brandSearch.toLowerCase()),
+                )
+                .map(brand => {
+                  const show = chipAllowlist[brand] !== false;
+                  return (
+                    <View key={brand} style={[styles.sourceRow2]}>
+                      <View style={{flex: 1}}>
+                        <Text style={styles.sourceName2}>{brand}</Text>
+                      </View>
+                      <Text
+                        style={{
+                          color: theme.colors.foreground,
+                          marginRight: 8,
+                          fontWeight: '500',
+                          fontSize: 13,
+                        }}>
+                        Visible
+                      </Text>
+                      <Switch
+                        value={show}
+                        onValueChange={v => {
+                          triggerSelection();
+                          setChipAllowlist(prev => ({...prev, [brand]: v}));
+                        }}
+                        trackColor={{
+                          false: 'rgba(255,255,255,0.18)',
+                          true: '#0A84FF',
+                        }}
+                        thumbColor="#fff"
+                      />
+                    </View>
+                  );
+                })
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}>
+        {/* Root layer */}
+        <View style={styles.menuBackdrop}>
+          {/* Backdrop: closes on tap */}
+          <ScrollView
+            // a full-screen, non-scrolling layer that can receive the tap
+            style={StyleSheet.absoluteFillObject}
+            contentContainerStyle={{flex: 1}}
+            scrollEnabled={false}
+            onTouchStart={() => setMenuOpen(false)}
+          />
+
+          {/* Sheet: on top; taps DO NOT close */}
+          <View style={styles.menuSheet}>
+            {/* <Text style={styles.menuTitle}>Manage</Text> */}
+
+            <AppleTouchFeedback
+              style={styles.menuItem}
+              hapticStyle="impactLight"
+              onPress={() => {
+                setMenuOpen(false);
+                setNotifOpen(true);
+              }}>
+              <Text style={styles.menuItemText}>Notifications</Text>
+            </AppleTouchFeedback>
+
+            <AppleTouchFeedback
+              style={styles.menuItem}
+              hapticStyle="impactLight"
+              onPress={() => {
+                setMenuOpen(false);
+                setManageBrandsOpen(true);
+              }}>
+              <Text style={styles.menuItemText}>Brands</Text>
+            </AppleTouchFeedback>
+
+            <AppleTouchFeedback
+              style={styles.menuItem}
+              hapticStyle="impactLight"
+              onPress={() => {
+                setMenuOpen(false);
+                setManageOpen(true);
+              }}>
+              <Text style={styles.menuItemText}>Feeds</Text>
+            </AppleTouchFeedback>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Notifications prefs modal */}
+      <Modal
+        visible={notifOpen}
+        animationType="slide"
+        onRequestClose={() => setNotifOpen(false)}>
+        <View style={styles.modalRoot}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Notifications</Text>
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={() => setNotifOpen(false)}>
+              <Text style={styles.done}>Done</Text>
+            </AppleTouchFeedback>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{
+              padding: 16,
+            }}>
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                marginBottom: 10,
+                borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
+              }}>
+              <RowToggle
+                label="Enable Push"
+                value={pushEnabled}
+                onChange={async v => {
+                  triggerSelection();
+                  setPushEnabled(v);
+                  await AsyncStorage.setItem(
+                    'notificationsEnabled',
+                    v ? 'true' : 'false',
+                  );
+                  savePrefs({push_enabled: v});
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                marginBottom: 10,
+                borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
+              }}>
+              <RowToggle
+                label="Realtime for Following"
+                value={followingRealtime}
+                onChange={v => {
+                  triggerSelection();
+                  setFollowingRealtime(v);
+                  savePrefs({following_realtime: v});
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                marginBottom: 10,
+                borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
+              }}>
+              <RowToggle
+                label="Realtime for Brands (For You)"
+                value={brandsRealtime}
+                onChange={v => {
+                  triggerSelection();
+                  setBrandsRealtime(v);
+                  savePrefs({brands_realtime: v});
+                }}
+              />
+            </View>
+
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                marginBottom: 10,
+                borderRadius: tokens.borderRadius.md,
+                borderColor: theme.colors.surfaceBorder,
+                borderWidth: tokens.borderWidth.hairline,
+              }}>
+              <RowToggle
+                label="Breaking Fashion News"
+                value={breakingRealtime}
+                onChange={v => {
+                  triggerSelection();
+                  setBreakingRealtime(v);
+                  savePrefs({breaking_realtime: v});
+                }}
+              />
+            </View>
+
+            <View style={{gap: 6}}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontWeight: '700',
+                  marginBottom: 12,
+                  marginTop: 20,
+                }}>
+                Daily Digest Hour (0–23)
+              </Text>
               <TextInput
-                value={brandSearch}
-                onChangeText={setBrandSearch}
-                placeholder="Search your wardrobe brands…"
+                value={String(digestHour)}
+                onChangeText={txt => {
+                  const n = Math.max(0, Math.min(23, Number(txt) || 0));
+                  setDigestHour(n);
+                }}
+                onEndEditing={() => savePrefs({digest_hour: digestHour})}
+                keyboardType="number-pad"
+                placeholder="8"
                 placeholderTextColor={theme.colors.muted}
                 style={styles.input}
               />
             </View>
-
-            <ScrollView contentContainerStyle={{paddingBottom: 32}}>
-              {wardrobeBrands.length === 0 ? (
-                <View style={{paddingHorizontal: 12, paddingTop: 8}}>
-                  <Text style={{color: 'rgba(255,255,255,0.7)'}}>
-                    No brands found yet.
-                  </Text>
-                </View>
-              ) : (
-                Array.from(
-                  new Set(
-                    [...wardrobeBrands].sort((a, b) => a.localeCompare(b)),
-                  ),
-                )
-                  .filter(
-                    b =>
-                      b && b.toLowerCase().includes(brandSearch.toLowerCase()),
-                  )
-                  .map(brand => {
-                    const show = chipAllowlist[brand] !== false;
-                    return (
-                      <View key={brand} style={[styles.sourceRow2]}>
-                        <View style={{flex: 1}}>
-                          <Text style={styles.sourceName2}>{brand}</Text>
-                        </View>
-                        <Text
-                          style={{
-                            color: theme.colors.foreground,
-                            marginRight: 8,
-                            fontWeight: '500',
-                            fontSize: 13,
-                          }}>
-                          Visible
-                        </Text>
-                        <Switch
-                          value={show}
-                          onValueChange={v => {
-                            triggerSelection();
-                            setChipAllowlist(prev => ({...prev, [brand]: v}));
-                          }}
-                          trackColor={{
-                            false: 'rgba(255,255,255,0.18)',
-                            true: '#0A84FF',
-                          }}
-                          thumbColor="#fff"
-                        />
-                      </View>
-                    );
-                  })
-              )}
-            </ScrollView>
-          </View>
-        </Modal>
-
-        <Modal
-          visible={menuOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setMenuOpen(false)}>
-          {/* Root layer */}
-          <View style={styles.menuBackdrop}>
-            {/* Backdrop: closes on tap */}
-            <ScrollView
-              // a full-screen, non-scrolling layer that can receive the tap
-              style={StyleSheet.absoluteFillObject}
-              contentContainerStyle={{flex: 1}}
-              scrollEnabled={false}
-              onTouchStart={() => setMenuOpen(false)}
-            />
-
-            {/* Sheet: on top; taps DO NOT close */}
-            <View style={styles.menuSheet}>
-              {/* <Text style={styles.menuTitle}>Manage</Text> */}
-
-              <AppleTouchFeedback
-                style={styles.menuItem}
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setMenuOpen(false);
-                  setNotifOpen(true);
-                }}>
-                <Text style={styles.menuItemText}>Notifications</Text>
-              </AppleTouchFeedback>
-
-              <AppleTouchFeedback
-                style={styles.menuItem}
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setMenuOpen(false);
-                  setManageBrandsOpen(true);
-                }}>
-                <Text style={styles.menuItemText}>Brands</Text>
-              </AppleTouchFeedback>
-
-              <AppleTouchFeedback
-                style={styles.menuItem}
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setMenuOpen(false);
-                  setManageOpen(true);
-                }}>
-                <Text style={styles.menuItemText}>Feeds</Text>
-              </AppleTouchFeedback>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Notifications prefs modal */}
-        <Modal
-          visible={notifOpen}
-          animationType="slide"
-          onRequestClose={() => setNotifOpen(false)}>
-          <View style={styles.modalRoot}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Notifications</Text>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => setNotifOpen(false)}>
-                <Text style={styles.done}>Done</Text>
-              </AppleTouchFeedback>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={{
-                padding: 16,
-              }}>
-              <View
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  marginBottom: 10,
-                  borderRadius: tokens.borderRadius.md,
-                  borderColor: theme.colors.surfaceBorder,
-                  borderWidth: tokens.borderWidth.hairline,
-                }}>
-                <RowToggle
-                  label="Enable Push"
-                  value={pushEnabled}
-                  onChange={async v => {
-                    triggerSelection();
-                    setPushEnabled(v);
-                    await AsyncStorage.setItem(
-                      'notificationsEnabled',
-                      v ? 'true' : 'false',
-                    );
-                    savePrefs({push_enabled: v});
-                  }}
-                />
-              </View>
-
-              <View
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  marginBottom: 10,
-                  borderRadius: tokens.borderRadius.md,
-                  borderColor: theme.colors.surfaceBorder,
-                  borderWidth: tokens.borderWidth.hairline,
-                }}>
-                <RowToggle
-                  label="Realtime for Following"
-                  value={followingRealtime}
-                  onChange={v => {
-                    triggerSelection();
-                    setFollowingRealtime(v);
-                    savePrefs({following_realtime: v});
-                  }}
-                />
-              </View>
-
-              <View
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  marginBottom: 10,
-                  borderRadius: tokens.borderRadius.md,
-                  borderColor: theme.colors.surfaceBorder,
-                  borderWidth: tokens.borderWidth.hairline,
-                }}>
-                <RowToggle
-                  label="Realtime for Brands (For You)"
-                  value={brandsRealtime}
-                  onChange={v => {
-                    triggerSelection();
-                    setBrandsRealtime(v);
-                    savePrefs({brands_realtime: v});
-                  }}
-                />
-              </View>
-
-              <View
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  marginBottom: 10,
-                  borderRadius: tokens.borderRadius.md,
-                  borderColor: theme.colors.surfaceBorder,
-                  borderWidth: tokens.borderWidth.hairline,
-                }}>
-                <RowToggle
-                  label="Breaking Fashion News"
-                  value={breakingRealtime}
-                  onChange={v => {
-                    triggerSelection();
-                    setBreakingRealtime(v);
-                    savePrefs({breaking_realtime: v});
-                  }}
-                />
-              </View>
-
-              <View style={{gap: 6}}>
-                <Text
-                  style={{
-                    color: theme.colors.foreground,
-                    fontWeight: '700',
-                    marginBottom: 12,
-                    marginTop: 20,
-                  }}>
-                  Daily Digest Hour (0–23)
-                </Text>
-                <TextInput
-                  value={String(digestHour)}
-                  onChangeText={txt => {
-                    const n = Math.max(0, Math.min(23, Number(txt) || 0));
-                    setDigestHour(n);
-                  }}
-                  onEndEditing={() => savePrefs({digest_hour: digestHour})}
-                  keyboardType="number-pad"
-                  placeholder="8"
-                  placeholderTextColor={theme.colors.muted}
-                  style={styles.input}
-                />
-              </View>
-            </ScrollView>
-          </View>
-        </Modal>
-        {/* 🆙 Scroll-to-top button */}
-        <AppleTouchFeedback
-          onPress={() => {
-            scrollRef.current?.scrollTo({y: 0, animated: true});
-            triggerSelection();
-          }}
-          style={{
-            position: 'absolute',
-            bottom: 40,
-            right: 20,
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: '#000',
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            shadowOffset: {width: 0, height: 4},
-          }}
-          hapticStyle="impactLight">
-          <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
-        </AppleTouchFeedback>
-      </View>
-    </GradientBackground>
+          </ScrollView>
+        </View>
+      </Modal>
+      {/* 🆙 Scroll-to-top button */}
+      <AppleTouchFeedback
+        onPress={() => {
+          scrollRef.current?.scrollTo({y: 0, animated: true});
+          triggerSelection();
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 40,
+          right: 20,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          shadowOffset: {width: 0, height: 4},
+        }}
+        hapticStyle="impactLight">
+        <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
+      </AppleTouchFeedback>
+    </View>
+    // </GradientBackground>
   );
 }
 

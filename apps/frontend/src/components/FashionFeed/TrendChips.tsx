@@ -113,11 +113,11 @@ export default function TrendChips({
                   <Pressable
                     onPressIn={() => {
                       handlePressIn();
-                      ReactNativeHapticFeedback.trigger('impactLight');
+                      // ReactNativeHapticFeedback.trigger('impactLight');
                     }}
                     onPressOut={handlePressOut}
                     onPress={() => {
-                      ReactNativeHapticFeedback.trigger('impactMedium');
+                      // ReactNativeHapticFeedback.trigger('impactMedium');
                       onTap?.(term);
                     }}
                     style={[
@@ -144,7 +144,7 @@ export default function TrendChips({
               useNativeDriver>
               <Pressable
                 onPress={() => {
-                  ReactNativeHapticFeedback.trigger('impactMedium'); // 👈 haptic on “More”
+                  // ReactNativeHapticFeedback.trigger('impactMedium'); // 👈 haptic on “More”
                   onMore?.();
                 }}
                 style={[styles.chip, styles.moreChip]}

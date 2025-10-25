@@ -92,7 +92,7 @@ export default function ArticleCard({
       speed: 30,
       bounciness: 8,
     }).start();
-    ReactNativeHapticFeedback.trigger('impactLight');
+    // ReactNativeHapticFeedback.trigger('impactLight');
   };
 
   const handlePressOut = () => {
@@ -105,7 +105,7 @@ export default function ArticleCard({
   };
 
   const handlePress = () => {
-    ReactNativeHapticFeedback.trigger('impactMedium');
+    // ReactNativeHapticFeedback.trigger('impactMedium');
     onPress();
   };
 
