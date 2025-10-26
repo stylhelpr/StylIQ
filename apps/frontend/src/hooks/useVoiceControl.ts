@@ -1,3 +1,320 @@
+// // src/hooks/useVoiceControl.ts
+// // -----------------------------------------------------------------------------
+// // 🎙️ useVoiceControl — unified voice recognition + instant TTS feedback
+// // -----------------------------------------------------------------------------
+// // ✅ Fixes & Enhancements
+// //  • Fixes iOS crash: "IsFormatSampleRateAndChannelCountValid(format)"
+// //  • Automatically switches AVAudioSession to PlayAndRecord when mic starts
+// //  • Restores silent Ambient mode after recording
+// //  • Keeps overlay + voice state fully synced
+// // -----------------------------------------------------------------------------
+
+// import {useEffect, useRef, useState} from 'react';
+// import Voice, {
+//   SpeechErrorEvent,
+//   SpeechResultsEvent,
+//   SpeechStartEvent,
+// } from '@react-native-voice/voice';
+// import {PermissionsAndroid, Platform} from 'react-native';
+// import Tts from 'react-native-tts';
+// import AudioSession from 'react-native-audio-session';
+// import {VoiceBus} from '../utils/VoiceUtils/VoiceBus';
+// import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
+// import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
+// import {globalNavigate} from '../MainApp';
+// import {instantSpeak} from '../utils/VoiceUtils/instantTts';
+
+// const DEBUG = true;
+// const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
+
+// export const useVoiceControl = () => {
+//   const [speech, setSpeech] = useState('');
+//   const [isRecording, setIsRecording] = useState(false);
+//   const finalRef = useRef('');
+//   const silenceTimer = useRef<NodeJS.Timeout | null>(null);
+
+//   // 🔒 Mic permission
+//   const requestMic = async () => {
+//     if (Platform.OS === 'android') {
+//       const granted = await PermissionsAndroid.request(
+//         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+//         {
+//           title: 'Microphone Permission',
+//           message: 'StylHelpr needs access to your microphone for voice input.',
+//           buttonPositive: 'OK',
+//         },
+//       );
+//       return granted === PermissionsAndroid.RESULTS.GRANTED;
+//     }
+//     return true;
+//   };
+
+//   // 🎧 Prepare iOS audio session for recording (final version)
+//   const prepareAudioSession = async () => {
+//     if (Platform.OS !== 'ios') return;
+//     try {
+//       // Set category to PlayAndRecord
+//       await AudioSession.setCategory('PlayAndRecord');
+
+//       // Route output to speaker if possible
+//       if (AudioSession.overrideOutputAudioPort) {
+//         await AudioSession.overrideOutputAudioPort('speaker');
+//       }
+
+//       // ✅ Explicitly define hardware format to avoid invalid input errors
+//       if (AudioSession.setPreferredSampleRate) {
+//         await AudioSession.setPreferredSampleRate(44100);
+//       }
+//       if (AudioSession.setPreferredInputNumberOfChannels) {
+//         await AudioSession.setPreferredInputNumberOfChannels(1);
+//       }
+
+//       // Activate session
+//       await AudioSession.setActive(true);
+//       log('🎙️ AudioSession → PlayAndRecord (mic ready, 44.1 kHz / mono)');
+//     } catch (err) {
+//       log('⚠️ prepareAudioSession failed', err);
+//     }
+//   };
+
+//   // 🔇 Restore silent playback mode after mic use
+//   const restoreAmbientSession = async () => {
+//     if (Platform.OS !== 'ios') return;
+//     try {
+//       await AudioSession.setCategory('Ambient');
+//       await AudioSession.setActive(false);
+//       log('🔇 AudioSession → Ambient (silent playback restored)');
+//     } catch (err) {
+//       log('⚠️ restoreAmbientSession failed', err);
+//     }
+//   };
+
+//   // 📡 Overlay sync
+//   useEffect(() => {
+//     if (isRecording) VoiceBus.startListening();
+//     else VoiceBus.stopListening();
+//   }, [isRecording]);
+
+//   // 🧹 Full destroy (stuck sessions, nav)
+//   const forceStop = async (source = 'forceStop') => {
+//     log('🧹 forceStop()', source);
+//     try {
+//       await Voice.stop();
+//     } catch {}
+//     try {
+//       await Voice.destroy();
+//     } catch {}
+//     setIsRecording(false);
+//     VoiceBus.stopListening();
+//     if (silenceTimer.current) clearTimeout(silenceTimer.current);
+//   };
+
+//   // 🎙️ Start listening
+//   const startListening = async () => {
+//     if (isRecording) {
+//       log('🎙️ Already recording, ignoring duplicate start');
+//       return;
+//     }
+
+//     try {
+//       await Tts.stop();
+//       await forceStop('pre-start');
+
+//       if (Platform.OS === 'ios') {
+//         await prepareAudioSession();
+//         // 🕓 small delay prevents invalid input format on cold start
+//         await new Promise(res => setTimeout(res, 200));
+//       }
+
+//       finalRef.current = '';
+//       setSpeech('');
+//       VoiceBus.startListening();
+
+//       await Voice.start('en-US', {
+//         sampleRate: 44100,
+//         channels: 1,
+//         audioSource: 1,
+//         bitRate: 16000,
+//       });
+
+//       setIsRecording(true);
+//       log('✅ Voice listening started');
+//     } catch (err) {
+//       log('Voice.start ERROR', err);
+//       setIsRecording(false);
+//     }
+//   };
+
+//   // 🛑 Stop listening
+//   const stopListening = async (from = '') => {
+//     log('🛑 stopListening()', from);
+//     try {
+//       await Voice.stop();
+//     } catch (err) {
+//       log('Voice.stop ERROR', err);
+//     }
+//     setIsRecording(false);
+//     VoiceBus.stopListening();
+//     await restoreAmbientSession();
+//   };
+
+//   // 💬 Commit recognized text
+//   const commitIfAny = async (source: string) => {
+//     const text = finalRef.current.trim();
+//     if (!text) return;
+
+//     log('💬 commitIfAny', source, '=>', text);
+//     setSpeech(text);
+//     VoiceBus.updateSpeech(text);
+
+//     const looksLikeCommand = /^(go to|open|show me|take me to)\b/i.test(text);
+//     if (looksLikeCommand) VoiceTarget.lock();
+
+//     if (VoiceTarget.currentSetter && !looksLikeCommand) {
+//       VoiceTarget.applyText(text);
+//     } else {
+//       try {
+//         await routeVoiceCommand(text, globalNavigate);
+//       } catch (err) {
+//         console.log('⚠️ routeVoiceCommand failed', err);
+//       }
+//     }
+//   };
+
+//   // 🔗 Speech listeners
+//   useEffect(() => {
+//     Voice.onSpeechStart = (e: SpeechStartEvent) => {
+//       log('onSpeechStart', e);
+//       setIsRecording(true);
+//     };
+
+//     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
+//       const text = e.value?.[0] || '';
+//       finalRef.current = text;
+//       setSpeech(text);
+//       VoiceBus.updateSpeech(text);
+
+//       const looksLikeCommand = /^(go to|open|show me|take me to)\b/i.test(
+//         text.trim(),
+//       );
+
+//       if (looksLikeCommand) {
+//         if (!VoiceTarget.locked) VoiceTarget.lock();
+//       } else {
+//         VoiceTarget.applyText(text);
+//       }
+
+//       if (silenceTimer.current) clearTimeout(silenceTimer.current);
+//       silenceTimer.current = setTimeout(() => {
+//         log('⏱️ Silence detected, committing...');
+//         stopListening('auto-end');
+//         commitIfAny('silence');
+//       }, 2500);
+//     };
+
+//     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+//       const text = e.value?.[0] || '';
+//       finalRef.current = text;
+//       setSpeech(text);
+//       VoiceBus.updateSpeech(text);
+//       VoiceTarget.applyText(text);
+//     };
+
+//     Voice.onSpeechEnd = () => {
+//       log('onSpeechEnd (grace period delay)');
+//       if (silenceTimer.current) clearTimeout(silenceTimer.current);
+//       silenceTimer.current = setTimeout(() => {
+//         stopListening('speechEnd');
+//         commitIfAny('speechEnd');
+//       }, 1000);
+//     };
+
+//     Voice.onSpeechError = (e: SpeechErrorEvent) => {
+//       log('onSpeechError', e);
+//       setIsRecording(false);
+//       VoiceBus.stopListening();
+//       restoreAmbientSession();
+//     };
+
+//     const handleStop = async () => {
+//       await forceStop('VoiceBus.stopListening');
+//       VoiceTarget.clear();
+//       await restoreAmbientSession();
+//     };
+
+//     VoiceBus.on('stopListening', handleStop);
+
+//     return () => {
+//       log('🧹 Cleanup voice listeners');
+//       Voice.destroy().then(Voice.removeAllListeners);
+//       VoiceBus.off('stopListening', handleStop);
+//       if (silenceTimer.current) clearTimeout(silenceTimer.current);
+//       restoreAmbientSession();
+//     };
+//   }, []);
+
+//   const handleSend = async (onSend?: (text: string) => void) => {
+//     log('handleSend()');
+//     await stopListening('handleSend');
+//     const text = finalRef.current.trim() || speech.trim();
+//     if (text) onSend?.(text);
+//     setSpeech('');
+//     finalRef.current = '';
+//   };
+
+//   const startVoiceCommand = async (onCommand: (text: string) => void) => {
+//     log('[VOICE] startVoiceCommand()');
+//     await forceStop('pre-command');
+//     await startListening();
+
+//     let lastSpeech = '';
+//     let stableCount = 0;
+//     let hasCommitted = false;
+
+//     const commitWatcher = setInterval(() => {
+//       const current = finalRef.current.trim();
+//       if (current === lastSpeech && current.length > 0) stableCount++;
+//       else {
+//         stableCount = 0;
+//         lastSpeech = current;
+//       }
+
+//       if (stableCount >= 3 && !isRecording && current) {
+//         hasCommitted = true;
+//         clearInterval(commitWatcher);
+//         stopListening('stable-final');
+//         log('[VOICE] ✅ Finalized phrase:', current);
+//         VoiceBus.updateSpeech(current);
+//         onCommand(current);
+//       }
+//     }, 500);
+
+//     setTimeout(() => {
+//       if (!hasCommitted) {
+//         clearInterval(commitWatcher);
+//         const final = finalRef.current.trim();
+//         if (final) {
+//           log('[VOICE] ⚠️ Timeout fallback phrase:', final);
+//           stopListening('timeout');
+//           VoiceBus.updateSpeech(final);
+//           onCommand(final);
+//         }
+//       }
+//     }, 3000);
+//   };
+
+//   return {
+//     speech,
+//     isRecording,
+//     startListening,
+//     stopListening,
+//     handleSend,
+//     startVoiceCommand,
+//   };
+// };
+
+////////////////
+
 // src/hooks/useVoiceControl.ts
 // -----------------------------------------------------------------------------
 // 🎙️ useVoiceControl — unified voice recognition + instant TTS feedback
