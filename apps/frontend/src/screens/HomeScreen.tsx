@@ -532,17 +532,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     bodyText: {
       fontSize: fontScale(tokens.fontSize.base),
-      fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground,
     },
     subtext: {
       fontSize: fontScale(tokens.fontSize.sm),
-      fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground,
     },
     dailyLookText: {
       fontSize: fontScale(tokens.fontSize.sm),
-      fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground3,
       lineHeight: 22,
     },
@@ -594,7 +594,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     weatherTemp: {
       fontSize: fontScale(tokens.fontSize['2.5xl']),
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
       color: theme.colors.buttonText1,
     },
     weatherAdvice: {

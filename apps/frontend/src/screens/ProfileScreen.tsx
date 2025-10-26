@@ -279,7 +279,7 @@ export default function ProfileScreen({navigate}: Props) {
     },
     initialsText: {
       color: theme.colors.foreground,
-      fontWeight: '800',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 30,
       letterSpacing: 0.5,
     },
@@ -293,21 +293,21 @@ export default function ProfileScreen({navigate}: Props) {
       marginRight: screenWidth >= 768 ? 32 : 0,
     },
     statNumber: {
-      fontWeight: 'bold',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 17,
       color: theme.colors.foreground2,
     },
     statLabel: {
       fontSize: 14,
       color: theme.colors.foreground3,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
     },
     bioContainer: {
       marginTop: 8,
     },
     nameText: {
       color: theme.colors.foreground,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 17,
     },
     bioText: {
@@ -457,7 +457,7 @@ export default function ProfileScreen({navigate}: Props) {
               style={{
                 color: theme.colors.buttonText1,
                 fontSize: 16,
-                fontWeight: '500',
+                fontWeight: tokens.fontWeight.medium,
                 flexShrink: 1,
                 textAlign: 'center',
               }}

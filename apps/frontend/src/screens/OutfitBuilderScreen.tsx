@@ -239,7 +239,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       borderRadius: 8,
       paddingVertical: 6,
     },
-    clearButtonText: {color: theme.colors.buttonText1, fontWeight: '500'},
+    clearButtonText: {
+      color: theme.colors.buttonText1,
+      fontWeight: tokens.fontWeight.medium,
+    },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -283,7 +286,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
     saveText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.buttonText1,
     },
     cancelButton: {
@@ -295,7 +298,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
     cancelText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.buttonText1,
     },
     modalContent: {
@@ -321,7 +324,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       borderRadius: 8,
       alignItems: 'center',
     },
-    modalButtonText: {fontWeight: '600', color: theme.colors.buttonText1},
+    modalButtonText: {
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.buttonText1,
+    },
   });
 
   if (isLoading) {
@@ -499,7 +505,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                     <Text
                       style={{
                         fontSize: 18,
-                        fontWeight: '600',
+                        fontWeight: tokens.fontWeight.semiBold,
                         color: theme.colors.foreground,
                         marginBottom: 6,
                       }}>

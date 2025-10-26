@@ -109,7 +109,7 @@ export default function OutfitPlannerScreen() {
     name: {
       color: theme.colors.foreground,
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
     },
     time: {color: theme.colors.foreground2, marginTop: 4, fontSize: 13},
     row: {flexDirection: 'row', marginTop: 10},
@@ -315,7 +315,7 @@ export default function OutfitPlannerScreen() {
               selectedDayTextColor: '#fff',
               arrowColor: theme.colors.primary,
               monthTextColor: theme.colors.primary,
-              textMonthFontWeight: 'bold',
+              textMonthFontWeight: tokens.fontWeight.bold,
               textDayFontSize: 16,
               textMonthFontSize: 18,
               textDayHeaderFontSize: 14,

@@ -94,7 +94,7 @@ export default function SavedOutfitsScreen() {
       color: theme.colors.foreground3,
       marginTop: 4,
       marginBottom: 4,
-      fontWeight: '500',
+      fontWeight: tokens.fontWeight.medium,
       letterSpacing: 0.2,
     },
 
@@ -230,7 +230,7 @@ export default function SavedOutfitsScreen() {
 
     sheetTitle: {
       fontSize: 18,
-      fontWeight: '800',
+      fontWeight: tokens.fontWeight.extraBold,
       color: theme.colors.foreground,
       letterSpacing: 0.3,
     },
@@ -244,7 +244,7 @@ export default function SavedOutfitsScreen() {
 
     sheetPillText: {
       color: theme.colors.foreground3 ?? '#EAEAEA',
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       letterSpacing: 0.2,
     },
 
@@ -455,7 +455,7 @@ export default function SavedOutfitsScreen() {
                 style={{
                   color: '#fff',
                   fontSize: 12,
-                  fontWeight: '700',
+                  fontWeight: tokens.fontWeight.bold,
                   letterSpacing: 0.3,
                 }}>
                 StylHelpr
@@ -890,7 +890,7 @@ export default function SavedOutfitsScreen() {
                           ? theme.colors.background
                           : theme.colors.foreground2,
                       fontSize: 14,
-                      fontWeight: '600',
+                      fontWeight: tokens.fontWeight.semiBold,
                       textAlign: 'center',
                     }}>
                     {label}
@@ -1010,7 +1010,7 @@ export default function SavedOutfitsScreen() {
                                       styles.timestamp,
                                       {
                                         fontSize: 13,
-                                        fontWeight: '600',
+                                        fontWeight: tokens.fontWeight.semiBold,
                                         color: theme.colors.foreground2,
                                       },
                                     ]}>
@@ -1184,7 +1184,7 @@ export default function SavedOutfitsScreen() {
                             <Text
                               style={{
                                 color: theme.colors.foreground,
-                                fontWeight: '600',
+                                fontWeight: tokens.fontWeight.semiBold,
                                 fontSize: 13,
                               }}>
                               📅 Schedule Outfit
@@ -1217,7 +1217,7 @@ export default function SavedOutfitsScreen() {
                               <Text
                                 style={{
                                   color: theme.colors.foreground,
-                                  fontWeight: '600',
+                                  fontWeight: tokens.fontWeight.semiBold,
                                   fontSize: 13,
                                 }}>
                                 Cancel Schedule
@@ -1280,7 +1280,7 @@ export default function SavedOutfitsScreen() {
             <Text
               style={{
                 color: theme.colors.foreground,
-                fontWeight: '700',
+                fontWeight: tokens.fontWeight.bold,
                 fontSize: 16,
               }}>
               Edit Outfit Name
@@ -1306,7 +1306,11 @@ export default function SavedOutfitsScreen() {
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={handleNameSave}>
-                <Text style={{color: theme.colors.primary, fontWeight: '700'}}>
+                <Text
+                  style={{
+                    color: theme.colors.primary,
+                    fontWeight: tokens.fontWeight.bold,
+                  }}>
                   Save
                 </Text>
               </AppleTouchFeedback>
@@ -1369,7 +1373,10 @@ export default function SavedOutfitsScreen() {
                   {backgroundColor: theme.colors.background},
                 ]}>
                 <Text
-                  style={{color: theme.colors.foreground, fontWeight: '800'}}>
+                  style={{
+                    color: theme.colors.foreground,
+                    fontWeight: tokens.fontWeight.bold,
+                  }}>
                   Next: Time
                 </Text>
               </AppleTouchFeedback>
@@ -1431,7 +1438,7 @@ export default function SavedOutfitsScreen() {
                 <Text
                   style={{
                     color: theme.colors.buttonText1,
-                    fontWeight: '800',
+                    fontWeight: tokens.fontWeight.bold,
                   }}>
                   Done
                 </Text>
@@ -1460,7 +1467,11 @@ export default function SavedOutfitsScreen() {
               setCombinedOutfits(updated);
               setLastDeletedOutfit(null);
             }}>
-            <Text style={{color: theme.colors.primary, fontWeight: '700'}}>
+            <Text
+              style={{
+                color: theme.colors.primary,
+                fontWeight: tokens.fontWeight.bold,
+              }}>
               Undo
             </Text>
           </AppleTouchFeedback>
@@ -1482,7 +1493,7 @@ export default function SavedOutfitsScreen() {
               style={{
                 fontSize: 16,
                 color: theme.colors.foreground,
-                fontWeight: '700',
+                fontWeight: tokens.fontWeight.bold,
                 marginBottom: 8,
               }}>
               Delete this outfit?
@@ -1517,7 +1528,11 @@ export default function SavedOutfitsScreen() {
                   setShowDeleteConfirm(false);
                   setPendingDeleteId(null);
                 }}>
-                <Text style={{color: theme.colors.error, fontWeight: '800'}}>
+                <Text
+                  style={{
+                    color: theme.colors.error,
+                    fontWeight: tokens.fontWeight.bold,
+                  }}>
                   Delete
                 </Text>
               </AppleTouchFeedback>
@@ -1596,7 +1611,7 @@ export default function SavedOutfitsScreen() {
                   duration={700}
                   style={{
                     fontSize: 28,
-                    fontWeight: '800',
+                    fontWeight: tokens.fontWeight.bold,
                     color: '#fff',
                     textAlign: 'center',
                     marginTop: 25,
@@ -1680,7 +1695,7 @@ export default function SavedOutfitsScreen() {
                           style={{
                             color: '#fff',
                             fontSize: 14,
-                            fontWeight: '600',
+                            fontWeight: tokens.fontWeight.semiBold,
                             letterSpacing: 0.2,
                           }}>
                           #{tag}

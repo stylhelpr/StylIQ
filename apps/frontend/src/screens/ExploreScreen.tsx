@@ -90,7 +90,7 @@ export default function ExploreScreen() {
     addBox: {padding: 16, gap: 8},
     addTitle: {
       color: theme.colors.foreground,
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
       fontSize: fontScale(tokens.fontSize.base),
       marginBottom: moderateScale(tokens.spacing.sm),
     },
@@ -108,7 +108,7 @@ export default function ExploreScreen() {
     },
     addBtnText: {
       color: theme.colors.foreground,
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
     },
     resetBtn: {
       marginTop: moderateScale(tokens.spacing.xs),
@@ -200,7 +200,10 @@ export default function ExploreScreen() {
       borderRadius: 8,
       backgroundColor: 'rgba(89, 0, 255, 1)',
     },
-    manageText: {color: theme.colors.foreground, fontWeight: '700'},
+    manageText: {
+      color: theme.colors.foreground,
+      fontWeight: tokens.fontWeight.bold,
+    },
     sectionHeader: {
       paddingHorizontal: moderateScale(tokens.spacing.md),
       paddingVertical: moderateScale(tokens.spacing.xs),
@@ -227,7 +230,7 @@ export default function ExploreScreen() {
     },
     modalTitle: {
       color: theme.colors.foreground,
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
       fontSize: fontScale(tokens.fontSize.lg),
     },
     done: {color: theme.colors.button1, fontWeight: tokens.fontWeight.bold},
@@ -1259,7 +1262,7 @@ export default function ExploreScreen() {
                     paddingHorizontal: 1,
                     marginBottom: 17,
                     fontSize: 12,
-                    fontWeight: '400',
+                    fontWeight: tokens.fontWeight.normal,
                     color: theme.colors.foreground,
                   },
                 ]}>
@@ -1313,7 +1316,7 @@ export default function ExploreScreen() {
                   <Text
                     style={{
                       color: theme.colors.foreground,
-                      fontWeight: '700',
+                      fontWeight: tokens.fontWeight.bold,
                       marginBottom: 8,
                     }}>
                     Feeds Found:
@@ -1336,7 +1339,7 @@ export default function ExploreScreen() {
                       <Text
                         style={{
                           color: theme.colors.button1,
-                          fontWeight: '700',
+                          fontWeight: tokens.fontWeight.bold,
                         }}>
                         {f.title || f.href}
                       </Text>
@@ -1497,7 +1500,7 @@ export default function ExploreScreen() {
                         style={{
                           color: theme.colors.foreground,
                           marginRight: 8,
-                          fontWeight: '500',
+                          fontWeight: tokens.fontWeight.medium,
                           fontSize: 13,
                         }}>
                         Visible
@@ -1678,7 +1681,7 @@ export default function ExploreScreen() {
               <Text
                 style={{
                   color: theme.colors.foreground,
-                  fontWeight: '700',
+                  fontWeight: tokens.fontWeight.bold,
                   marginBottom: 12,
                   marginTop: 20,
                 }}>
@@ -1753,7 +1756,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
     itemActive: {backgroundColor: theme.colors.background},
     itemText: {
       color: theme.colors.foreground3,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: fontScale(tokens.fontSize.sm),
     },
     itemTextActive: {color: theme.colors.foreground},

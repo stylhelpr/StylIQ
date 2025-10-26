@@ -20,7 +20,7 @@ import {useUUID} from '../context/UUIDContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {analyzeImage, autoCreateWithAI} from '../api/analyzeImage';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {tokens} from '@tokens/tokens';
+import {tokens} from '../styles/tokens/tokens';
 import {ActivityIndicator} from 'react-native';
 
 // --- input normalizers (unchanged) ---
@@ -267,7 +267,7 @@ export default function AddItemScreen({
     helperText: {
       color: theme.colors.foreground,
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
       marginTop: 16,
       marginBottom: 16,
       paddingHorizontal: 12,

@@ -599,7 +599,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
               style={{
                 color: theme.colors.foreground,
                 fontSize: 16,
-                fontWeight: '600',
+                fontWeight: tokens.fontWeight.semiBold,
                 marginBottom: 12,
               }}>
               Saving your changes…
@@ -634,7 +634,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
               style={{
                 color: theme.colors.foreground,
                 fontSize: 16,
-                fontWeight: '600',
+                fontWeight: tokens.fontWeight.semiBold,
                 marginBottom: 12,
               }}>
               Deleting item…

@@ -116,18 +116,18 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     section: {
       marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 18 : 16,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 18 : 18,
     },
     section2: {
       marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
     },
     section3: {
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 26 : 20,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 26 : 26,
       marginTop: isTablet ? 26 : isLargePhone ? 22 : 18,
       marginBottom: isTablet ? 26 : isLargePhone ? 22 : 18,
     },
     section4: {
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 26 : 16,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 26 : 26,
     },
     section5: {
       width: '100%',
@@ -140,11 +140,11 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     sectionScroll: {
       marginBottom: isTablet ? 36 : isLargePhone ? 32 : 28,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : 22,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : 18,
     },
     sectionScroll2: {
       marginBottom: isTablet ? 22 : isLargePhone ? 8 : 8,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : 22,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : 18,
     },
 
     // ============================================================
@@ -325,29 +325,29 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     label: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
     },
     label2: {
       fontSize: font.sm,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       width: '25%',
       color: theme.colors.foreground,
     },
     subLabel: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       marginTop: 2,
       color: theme.colors.foreground2,
     },
     cardLabel: {
       fontSize: font.sm,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
     },
     cardSubLabel: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.medium,
+      fontWeight: tokens.fontWeight.semiBold,
       marginTop: 2,
       color: theme.colors.foreground2,
     },

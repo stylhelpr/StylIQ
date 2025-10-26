@@ -92,7 +92,7 @@ export default function ReaderModal({
     },
     title: {
       color: '#fff',
-      fontWeight: '800',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 17,
       flex: 1,
       textAlign: 'left',

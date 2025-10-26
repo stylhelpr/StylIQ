@@ -89,7 +89,7 @@ export default function NotificationsScreen({
     },
     pillText: {
       color: theme.colors.buttonText1,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 13,
     },
     actionBtn: {
@@ -102,14 +102,14 @@ export default function NotificationsScreen({
     actionDanger: {backgroundColor: theme.colors.error},
     actionText: {
       color: theme.colors.buttonText1,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 13,
     },
     center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
     empty: {paddingHorizontal: 16, paddingTop: 40},
     emptyBig: {
       color: theme.colors.foreground,
-      fontWeight: '800',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 18,
       marginBottom: 6,
       textAlign: 'center',
@@ -435,13 +435,13 @@ export default function NotificationsScreen({
                           flexDirection: 'row',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          marginBottom: 8,
+                          marginBottom: 12,
                           paddingHorizontal: 4,
                         }}>
                         <Text
                           style={{
                             fontSize: 22,
-                            fontWeight: '500',
+                            fontWeight: tokens.fontWeight.medium,
                             color: theme.colors.foreground,
                           }}>
                           {section}
@@ -473,7 +473,7 @@ export default function NotificationsScreen({
                             <Text
                               style={{
                                 color: theme.colors.buttonText1,
-                                fontWeight: '400',
+                                fontWeight: tokens.fontWeight.medium,
                                 fontSize: 13,
                                 marginRight: 4,
                               }}>
