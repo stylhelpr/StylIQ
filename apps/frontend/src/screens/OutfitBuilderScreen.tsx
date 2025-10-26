@@ -97,7 +97,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
   const handleSave = () => {
     if (selectedItems.length === 0) return;
-    h('impactMedium');
+    h('impactLight');
     setShowNameModal(true);
   };
 
@@ -401,7 +401,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                 hSelect();
                 setSelectedItems([]);
               }}
-              hapticStyle="impactLight"
               style={styles.clearButton}>
               <Text style={styles.clearButtonText}>Clear Selection</Text>
             </AppleTouchFeedback>
@@ -464,7 +463,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                     : '#999',
                 },
               ]}
-              hapticStyle={selectedItems.length ? 'impactMedium' : undefined}
+              hapticStyle={selectedItems.length ? 'impactLight' : undefined}
               onPress={handleSave}
               disabled={selectedItems.length === 0}>
               <Text style={styles.saveText}>
@@ -536,7 +535,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
                       <AppleTouchFeedback
                         onPress={finalizeSave}
-                        hapticStyle="impactMedium"
+                        hapticStyle="impactLight"
                         style={[
                           globalStyles.buttonPrimary,
                           {paddingHorizontal: 20},

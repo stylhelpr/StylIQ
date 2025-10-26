@@ -153,26 +153,25 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
                 </View>
               )}
               <Text
-                style={{
-                  color: theme.colors.foreground,
-                  fontSize: 12,
-                  fontWeight: '700',
-                  marginHorizontal: 10,
-                  marginTop: 6,
-                  // marginBottom: 8,
-                }}
+                style={[
+                  globalStyles.cardLabel,
+                  {
+                    marginHorizontal: 10,
+                    marginTop: 6,
+                  },
+                ]}
                 numberOfLines={1}>
                 {a.title || 'Untitled'}
               </Text>
               <Text
-                style={{
-                  fontSize: 12,
-                  color: theme.colors.foreground2,
-                  marginHorizontal: 10,
-                  marginBottom: 6,
-                  marginTop: 4,
-                  fontWeight: '500',
-                }}
+                style={[
+                  globalStyles.cardSubLabel,
+                  {
+                    marginHorizontal: 10,
+                    marginBottom: 8,
+                    marginTop: 4,
+                  },
+                ]}
                 numberOfLines={1}>
                 {a.source || 'Fashion News'}
               </Text>

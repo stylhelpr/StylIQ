@@ -673,7 +673,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // width: outfitCardSize,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : 10,
       marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
-      alignItems: 'flex-start',
+      // alignItems: 'flex-start',
       // borderRadius: tokens.borderRadius.lg,
     },
 

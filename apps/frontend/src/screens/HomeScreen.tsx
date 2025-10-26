@@ -588,7 +588,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       backgroundColor: theme.colors.button1,
       paddingVertical: moderateScale(tokens.spacing.xxs),
       paddingHorizontal: moderateScale(tokens.spacing.sm2),
-      borderRadius: tokens.borderRadius.xxl,
+      borderRadius: tokens.borderRadius.xl,
       minWidth: moderateScale(72),
       alignItems: 'center',
     },
@@ -1278,7 +1278,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               />
                             </View>
                             <Text
-                              style={[globalStyles.subLabel]}
+                              style={[
+                                globalStyles.subLabel,
+                                {marginTop: 4, textAlign: 'center'},
+                              ]}
                               numberOfLines={1}>
                               {look.name}
                             </Text>
@@ -1406,10 +1409,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           numberOfLines={1}
                           style={[
                             globalStyles.subLabel,
-                            {
-                              marginTop: moderateScale(tokens.spacing.xxs),
-                              textAlign: 'center',
-                            },
+                            {marginTop: 4, textAlign: 'center'},
                           ]}>
                           {(c.tags && c.tags.slice(0, 3).join(' ')) ||
                             'AI Look'}
@@ -1491,10 +1491,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           numberOfLines={1}
                           style={[
                             globalStyles.subLabel,
-                            {
-                              marginTop: moderateScale(tokens.spacing.xxs),
-                              textAlign: 'center',
-                            },
+                            {marginTop: 4, textAlign: 'center'},
                           ]}>
                           {vibe.query_used?.split(' ').slice(0, 3).join(' ') ||
                             'Recent'}

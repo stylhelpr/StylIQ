@@ -21,6 +21,7 @@ import {useSimilarLooks} from '../hooks/useSimilarLooks';
 import FrostedCard from '../components/FrostedCard/FrostedCard';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {fontScale, moderateScale} from '../utils/scale';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = width / 2 - tokens.spacing.md * 1.5;
@@ -262,7 +263,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             borderRadius: tokens.borderRadius['2xl'],
             overflow: 'hidden',
             // paddingTop: insets.top + 20,
-            paddingHorizontal: tokens.spacing.md,
+            paddingHorizontal: moderateScale(tokens.spacing.md1),
           }}>
           {/* ❌ Close */}
           <TouchableOpacity
@@ -435,7 +436,8 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                   borderRadius: tokens.borderRadius['2xl'],
                   overflow: 'hidden',
                   backgroundColor: theme.colors.background,
-                  padding: tokens.spacing.md,
+                  paddingVertical: tokens.spacing.md,
+                  paddingHorizontal: moderateScale(tokens.spacing.md1),
                 }}>
                 {/* Close */}
                 <TouchableOpacity

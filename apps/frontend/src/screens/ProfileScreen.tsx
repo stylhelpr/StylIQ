@@ -549,7 +549,7 @@ export default function ProfileScreen({navigate}: Props) {
         animation="fadeInUpBig"
         delay={2200}
         style={globalStyles.sectionScroll}>
-        <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
+        <Text style={[globalStyles.sectionTitle]}>Your Saved Looks</Text>
         {savedLooks.length === 0 ? (
           <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
             <Text style={globalStyles.missingDataMessage1}>
@@ -588,7 +588,10 @@ export default function ProfileScreen({navigate}: Props) {
                   <Animatable.Text
                     animation="fadeIn"
                     delay={2500 + index * 100}
-                    style={[globalStyles.subLabel]}
+                    style={[
+                      globalStyles.subLabel,
+                      {marginTop: 4, textAlign: 'center'},
+                    ]}
                     numberOfLines={1}>
                     {look.name}
                   </Animatable.Text>
