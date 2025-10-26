@@ -26,7 +26,7 @@ import ViewShot from 'react-native-view-shot';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PushNotification from 'react-native-push-notification';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-
+import {fontScale, moderateScale} from '../utils/scale';
 import {useAppTheme} from '../context/ThemeContext';
 import {useFavorites} from '../hooks/useFavorites';
 import {useUUID} from '../context/UUIDContext';
@@ -911,7 +911,12 @@ export default function SavedOutfitsScreen() {
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
           {useNativeDriver: true},
         )}>
-        <View style={{width: '100%', maxWidth: 420, alignSelf: 'center'}}>
+        <View
+          style={{
+            width: '100%',
+            paddingHorizontal: moderateScale(tokens.spacing.md1),
+            alignSelf: 'center',
+          }}>
           {sortedOutfits.length === 0 ? (
             <View style={{flexDirection: 'row', alignSelf: 'center'}}>
               <Text style={globalStyles.missingDataMessage1}>
@@ -969,7 +974,6 @@ export default function SavedOutfitsScreen() {
                     easing="ease-out-cubic"
                     style={{
                       transform: [{scale}, {translateY}],
-                      paddingHorizontal: 6,
                     }}>
                     <ViewShot
                       ref={ref => (viewRefs.current[outfit.id] = ref)}
@@ -1174,6 +1178,8 @@ export default function SavedOutfitsScreen() {
                               paddingVertical: 8,
                               paddingHorizontal: 8,
                               marginRight: 10,
+                              width: 160,
+                              alignItems: 'center',
                             }}>
                             <Text
                               style={{
@@ -1181,7 +1187,7 @@ export default function SavedOutfitsScreen() {
                                 fontWeight: '600',
                                 fontSize: 13,
                               }}>
-                              📅 Schedule This Outfit
+                              📅 Schedule Outfit
                             </Text>
                           </AppleTouchFeedback>
 
@@ -1197,6 +1203,8 @@ export default function SavedOutfitsScreen() {
                                 paddingVertical: 7,
                                 paddingHorizontal: 12,
                                 borderRadius: 18,
+                                width: 160,
+                                alignItems: 'center',
                                 backgroundColor:
                                   theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                               }}>

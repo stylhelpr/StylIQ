@@ -30,6 +30,8 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import * as Animatable from 'react-native-animatable';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {fontScale, moderateScale} from '../utils/scale';
+import {tokens} from '../styles/tokens/tokens';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 
 if (
@@ -68,7 +70,7 @@ export default function NotificationsScreen({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 16,
+      paddingHorizontal: moderateScale(tokens.spacing.md1),
       paddingTop: 22,
       paddingBottom: 4,
     },
@@ -491,11 +493,6 @@ export default function NotificationsScreen({
                           style={{
                             borderRadius: 20,
                             overflow: 'hidden',
-                            // shadowColor: '#000',
-                            // shadowOpacity: 0.08,
-                            // shadowRadius: 12,
-                            // shadowOffset: {width: 0, height: 4},
-                            // elevation: 3,
                           }}>
                           <NotificationCard
                             n={n}

@@ -13,8 +13,10 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
-import {useGlobalStyles} from '../styles/useGlobalStyles';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {fontScale, moderateScale} from '../utils/scale';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 
@@ -288,6 +290,7 @@ export default function OutfitPlannerScreen() {
           style={{
             borderBottomWidth: 1,
             borderBottomColor: theme.colors.surfaceBorder,
+            // paddingHorizontal: moderateScale(tokens.spacing.md1),
           }}>
           <Calendar
             onDayPress={handleDayPress}
@@ -330,7 +333,7 @@ export default function OutfitPlannerScreen() {
               flex: 1,
               marginTop: 0,
               paddingTop: 2,
-              paddingHorizontal: 16,
+              paddingHorizontal: moderateScale(tokens.spacing.md1),
             }}>
             <View
               style={{

@@ -40,6 +40,7 @@ import {WebView} from 'react-native-webview';
 import {ENABLE_REMOTE_TTS, API_BASE_URL} from '../config/api';
 import {globalTtsRef} from '../MainApp';
 import {isTtsEnabled} from '../utils/ttsToggle';
+import {fontScale, moderateScale} from '../utils/scale';
 import MascotAssistant from '../components/MascotAssistant/MascotAssistant';
 import MorphingCircle from '../components/MorphingCircle/MorphingCircle';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
@@ -312,7 +313,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const handleMicPressIn = useCallback(async () => {
     if (!(await prepareAudio())) return;
     setIsHolding(true);
-    h('impactLight');
+    // h('impactLight');
     startListening();
   }, [startListening]);
   const handleMicPressOut = useCallback(() => {
@@ -485,7 +486,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const sendToOutfitSafe = useCallback(() => {
     if (!canSendToOutfit) return;
     if (!assistantPrompt) return;
-    h('impactMedium');
+    h('impactLight');
     const payload = {
       seedPrompt: assistantPrompt,
       autogenerate: true,
@@ -520,6 +521,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
             {
               marginVertical: isTablet ? 14 : 10,
               transform: [{scale: 0.98}],
+              // paddingHorizontal: moderateScale(tokens.spacing.md1),
             },
           ]}>
           {/* 🤖 Assistant icon */}
@@ -1074,7 +1076,7 @@ export function AnimatedInputBar({
         {/* ❌ Clear Button */}
         {input.length > 0 && (
           <AppleTouchFeedback
-            hapticStyle="impactMedium"
+            hapticStyle="impactLight"
             onPress={resetField}
             style={{
               width: isTablet ? 40 : 32,
@@ -1115,7 +1117,7 @@ export function AnimatedInputBar({
 
         {/* 📤 Send Button */}
         <AppleTouchFeedback
-          hapticStyle="impactMedium"
+          hapticStyle="impactLight"
           onPress={async () => {
             await stopListeningCompletely(); // ✅ stop voice first
             onSend(); // ✅ send message

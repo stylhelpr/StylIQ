@@ -453,7 +453,7 @@ export default function AllSavedLooksModal({
                 width: '100%',
               }}>
               <AppleTouchFeedback
-                hapticStyle="impactMedium"
+                hapticStyle="impactLight"
                 onPress={() => setPersonalizedMode(false)}
                 // activeOpacity={0.8}
                 style={{
@@ -479,7 +479,7 @@ export default function AllSavedLooksModal({
               </AppleTouchFeedback>
 
               <AppleTouchFeedback
-                hapticStyle="impactMedium"
+                hapticStyle="impactLight"
                 onPress={() => setPersonalizedMode(true)}
                 // activeOpacity={0.8}
                 style={{
@@ -625,13 +625,10 @@ export default function AllSavedLooksModal({
                           <TouchableOpacity
                             activeOpacity={0.8}
                             onPressIn={() =>
-                              ReactNativeHapticFeedback.trigger(
-                                'impactMedium',
-                                {
-                                  enableVibrateFallback: true,
-                                  ignoreAndroidSystemSettings: false,
-                                },
-                              )
+                              ReactNativeHapticFeedback.trigger('impactLight', {
+                                enableVibrateFallback: true,
+                                ignoreAndroidSystemSettings: false,
+                              })
                             }
                             onPress={() => handleRecreatePress(look)}
                             disabled={loading}

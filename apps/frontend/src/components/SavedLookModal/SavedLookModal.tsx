@@ -63,7 +63,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
 
   const handleSave = async () => {
     if (!url || !userId) return;
-    h('impactMedium');
+    h('impactLight');
 
     try {
       const res = await fetch(`${API_BASE_URL}/saved-looks`, {

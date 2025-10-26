@@ -38,6 +38,7 @@ const BottomNavigation = ({
       justifyContent: 'space-around',
       alignItems: 'center',
       width: '100%',
+      // paddingHorizontal: moderateScale(tokens.spacing.md1),
     },
     tabButton: {
       width: 72,
@@ -50,7 +51,7 @@ const BottomNavigation = ({
       fontSize: fontScale(tokens.fontSize.xxxs),
       color: theme.colors.foreground,
       fontWeight: '300',
-      marginTop: 0,
+      marginTop: 2,
     },
     activeLabel: {
       fontSize: fontScale(tokens.fontSize.xxs),

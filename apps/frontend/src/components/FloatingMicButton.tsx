@@ -73,9 +73,9 @@ export default function FloatingMicButton({navigate}: Props) {
       }),
       onPanResponderRelease: () => {
         pan.flattenOffset();
-        ReactNativeHapticFeedback.trigger('impactLight', {
-          enableVibrateFallback: true,
-        });
+        // ReactNativeHapticFeedback.trigger('impactLight', {
+        //   enableVibrateFallback: true,
+        // });
 
         const finalX = Math.min(
           Math.max(0, (pan.x as any)._value),
@@ -102,12 +102,12 @@ export default function FloatingMicButton({navigate}: Props) {
     // 🧠 If any input field has registered as the current voice target, insert text there
     if (VoiceTarget.currentSetter) {
       VoiceTarget.applyText(lower);
-      ReactNativeHapticFeedback.trigger('impactLight');
+      // ReactNativeHapticFeedback.trigger('impactLight');
       return;
     }
 
     // 🧭 Otherwise, route normally
-    ReactNativeHapticFeedback.trigger('impactLight');
+    // ReactNativeHapticFeedback.trigger('impactLight');
     await routeVoiceCommand(lower, navigate);
   };
 
@@ -153,7 +153,7 @@ export default function FloatingMicButton({navigate}: Props) {
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          hapticStyle="impactMedium"
+          // hapticStyle="impactLight"
           onPress={() => startVoiceCommand(handleVoiceCommand)}>
           <MaterialIcons
             name="mic"

@@ -242,7 +242,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: moderateScale(tokens.spacing.lg),
+          paddingHorizontal: moderateScale(tokens.spacing.md1),
           paddingBottom: moderateScale(tokens.spacing.lg2), // extra breathing room for small screens
         }}>
         {/* 🧠 Floating Mascot — always on top */}
@@ -269,7 +269,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             backgroundColor: theme.colors.surface,
             borderRadius: tokens.borderRadius.xxl,
-            borderWidth: theme.borderWidth.md,
+            borderWidth: theme.borderWidth.hairline,
             borderColor: theme.colors.surfaceBorder,
             padding: moderateScale(tokens.spacing.md1),
           }}>
@@ -517,7 +517,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             }}>
             {/* 👚 View Wardrobe Gaps */}
             <AppleTouchFeedback
-              hapticStyle="impactHeavy"
+              hapticStyle="impactLight"
               onPress={() => navigate('Wardrobe')}
               style={{
                 flex: isXS || isSM ? undefined : 1,
@@ -556,7 +556,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
             {/* 💬 Ask a Styling Question */}
             <AppleTouchFeedback
-              hapticStyle="impactHeavy"
+              hapticStyle="impactLight"
               onPress={() => navigate('AiStylistChatScreen')}
               style={{
                 flex: isXS || isSM ? undefined : 1,

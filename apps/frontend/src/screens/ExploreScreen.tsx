@@ -12,6 +12,7 @@ import {
   Switch,
   Alert,
   Platform,
+  Pressable,
 } from 'react-native';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -53,7 +54,7 @@ type Chip = {
 
 const triggerSelection = () =>
   ReactNativeHapticFeedback.trigger('selection', {
-    enableVibrateFallback: true,
+    enableVibrateFallback: false,
     ignoreAndroidSystemSettings: false,
   });
 
@@ -1017,7 +1018,7 @@ export default function ExploreScreen() {
             <Segmented
               tab={tab}
               onChange={t => {
-                triggerSelection();
+                // triggerSelection();
                 setTab(t);
               }}
             />
@@ -1026,7 +1027,8 @@ export default function ExploreScreen() {
             <AppleTouchFeedback
               onPress={() => setMenuOpen(true)}
               style={styles.iconBtn}
-              hapticStyle="impactLight">
+              // hapticStyle="impactLight"
+            >
               <Text style={styles.iconBtnText}>Manage</Text>
             </AppleTouchFeedback>
           </View>
@@ -1049,13 +1051,13 @@ export default function ExploreScreen() {
             items={visibleChips.map(c => c.label)} // 👈 changed here
             selected={activeChipLabel}
             onTap={label => {
-              triggerSelection();
+              // triggerSelection();
               setActiveChipLabel(prev =>
                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
               );
             }}
             onMore={() => {
-              triggerSelection();
+              // triggerSelection();
               setManageBrandsOpen(true);
             }}
           />
@@ -1075,7 +1077,7 @@ export default function ExploreScreen() {
           </Text>
         </View>
 
-        <View style={[{paddingHorizontal: 16}]}>
+        <View style={[{paddingHorizontal: 18}]}>
           {list.map(item => (
             <ArticleCard
               key={item.id}
@@ -1406,7 +1408,7 @@ export default function ExploreScreen() {
 
               <View style={{alignItems: 'center'}}>
                 <AppleTouchFeedback
-                  hapticStyle="impactMedium"
+                  hapticStyle="impactLight"
                   onPress={() => {
                     setAddError(null);
                     try {
@@ -1702,7 +1704,6 @@ export default function ExploreScreen() {
       <AppleTouchFeedback
         onPress={() => {
           scrollRef.current?.scrollTo({y: 0, animated: true});
-          triggerSelection();
         }}
         style={{
           position: 'absolute',
@@ -1718,8 +1719,7 @@ export default function ExploreScreen() {
           shadowOpacity: 0.3,
           shadowRadius: 8,
           shadowOffset: {width: 0, height: 4},
-        }}
-        hapticStyle="impactLight">
+        }}>
         <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
       </AppleTouchFeedback>
     </View>

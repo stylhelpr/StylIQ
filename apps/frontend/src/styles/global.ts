@@ -116,7 +116,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // ============================================================
     section: {
       marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 24 : 16,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 18 : 16,
     },
     section2: {
       marginBottom: isTablet ? 32 : isLargePhone ? 28 : 22,
@@ -136,15 +136,15 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.md,
     },
     section6: {
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 26 : 20,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 18 : 18,
     },
     sectionScroll: {
       marginBottom: isTablet ? 36 : isLargePhone ? 32 : 28,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 24 : 22,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : 22,
     },
     sectionScroll2: {
       marginBottom: isTablet ? 22 : isLargePhone ? 8 : 8,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 24 : 22,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : 22,
     },
 
     // ============================================================
@@ -153,8 +153,8 @@ export const createGlobalStyles = (theme: Theme) =>
     modalSection: {
       width: '100%',
       backgroundColor: theme.colors.surface,
-      paddingHorizontal: responsivePadding,
-      maxWidth: isTablet ? 820 : 720,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 18 : 18,
+      // maxWidth: isTablet ? 820 : 720,
       alignSelf: 'center',
       borderRadius: tokens.borderRadius.md,
     },
@@ -166,7 +166,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     modalSection3: {
       width: '100%',
-      paddingHorizontal: isTablet ? 38 : isLargePhone ? 28 : 20,
+      paddingHorizontal: isTablet ? 38 : isLargePhone ? 18 : 18,
       maxWidth: isTablet ? 820 : 720,
       alignSelf: 'center',
       borderRadius: tokens.borderRadius.md,
@@ -205,7 +205,7 @@ export const createGlobalStyles = (theme: Theme) =>
       shadowOpacity: 0.1,
       shadowRadius: 12,
       elevation: 5,
-      borderWidth: tokens.borderWidth.md,
+      borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.md,
     },
@@ -228,7 +228,7 @@ export const createGlobalStyles = (theme: Theme) =>
     // 🏷️ Typography Styles
     // ============================================================
     header: {
-      paddingLeft: isTablet ? 24 : isLargePhone ? 22 : 20,
+      paddingLeft: isTablet ? 24 : isLargePhone ? 18 : 20,
       fontSize: font.heading,
       fontWeight: tokens.fontWeight.bold,
       color: theme.colors.foreground,
@@ -378,7 +378,7 @@ export const createGlobalStyles = (theme: Theme) =>
     menuSection3: {
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.md,
-      paddingHorizontal: isTablet ? 32 : isLargePhone ? 28 : 24,
+      paddingHorizontal: isTablet ? 32 : isLargePhone ? 18 : 24,
     },
     menuLabel: {
       fontSize: font.lg,
@@ -616,7 +616,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // height: image4Size,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.lg,
-      borderWidth: tokens.borderWidth.md,
+      borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       width: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 105,
       // height: isTablet ? 160 : isLargePhone ? 175 : 145,
@@ -686,7 +686,7 @@ export const createGlobalStyles = (theme: Theme) =>
       overflow: 'hidden',
       borderRadius: tokens.borderRadius.lg,
       borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      borderColor: theme.colors.muted,
     },
 
     outfitCard3: {
@@ -700,11 +700,11 @@ export const createGlobalStyles = (theme: Theme) =>
       overflow: 'hidden',
       borderRadius: tokens.borderRadius.lg,
       borderWidth: tokens.borderWidth.hairline,
-      borderColor: theme.colors.surfaceBorder,
+      borderColor: theme.colors.muted,
     },
 
     outfitCard4: {
-      width: isTablet ? 160 : isLargePhone ? 189 : isRegularPhone ? 184 : 165,
+      width: isTablet ? 160 : isLargePhone ? 195 : isRegularPhone ? 184 : 165,
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       alignItems: 'flex-start',
       backgroundColor: theme.colors.surface,

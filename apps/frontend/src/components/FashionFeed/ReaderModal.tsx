@@ -177,7 +177,7 @@ export default function ReaderModal({
           <TouchableOpacity
             style={[styles.closeIcon]}
             onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactMedium');
+              ReactNativeHapticFeedback.trigger('impactLight');
               handleClose();
             }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>

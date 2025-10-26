@@ -734,7 +734,7 @@ export default function AddItemScreen({
                 }}>
                 <AppleTouchFeedback
                   onPress={handleSave}
-                  hapticStyle="impactMedium"
+                  hapticStyle="impactLight"
                   style={[
                     globalStyles.buttonPrimary,
                     {

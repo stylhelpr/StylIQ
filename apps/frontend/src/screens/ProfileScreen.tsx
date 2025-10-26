@@ -340,7 +340,7 @@ export default function ProfileScreen({navigate}: Props) {
           if (global.goingBack) return;
           navigate('Settings', {goBack: () => navigate('Profile')});
         }}
-        hapticStyle="impactMedium">
+        hapticStyle="impactLight">
         <Animatable.View
           animation="rotate"
           iterationCount="infinite"
@@ -436,7 +436,7 @@ export default function ProfileScreen({navigate}: Props) {
         <View style={{alignItems: 'center'}}>
           <AppleTouchFeedback
             onPress={() => navigate('StyleProfileScreen')}
-            hapticStyle="impactMedium"
+            hapticStyle="impactLight"
             style={[
               globalStyles.buttonPrimary,
               {

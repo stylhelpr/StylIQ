@@ -878,7 +878,7 @@ export default function ClosetScreen({navigate}: Props) {
             />
 
             <AppleTouchFeedback
-              hapticStyle="impactMedium"
+              hapticStyle="impactLight"
               onPress={async () => {
                 if (selectedItemToEdit) {
                   await fetch(
@@ -917,7 +917,7 @@ export default function ClosetScreen({navigate}: Props) {
             </AppleTouchFeedback>
 
             <AppleTouchFeedback
-              hapticStyle="impactHeavy"
+              hapticStyle="impactLight"
               onPress={() => {
                 Alert.alert(
                   'Delete Item',
