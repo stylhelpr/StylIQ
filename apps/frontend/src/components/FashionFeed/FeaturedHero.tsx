@@ -32,7 +32,7 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
 
   const styles = StyleSheet.create({
     wrap: {
-      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingHorizontal: moderateScale(tokens.spacing.md1),
       paddingTop: moderateScale(tokens.spacing.xs),
       paddingBottom: moderateScale(tokens.spacing.nano),
     },

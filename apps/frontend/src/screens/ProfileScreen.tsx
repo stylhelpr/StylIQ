@@ -279,7 +279,7 @@ export default function ProfileScreen({navigate}: Props) {
     },
     initialsText: {
       color: theme.colors.foreground,
-      fontWeight: '800',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 30,
       letterSpacing: 0.5,
     },
@@ -293,21 +293,21 @@ export default function ProfileScreen({navigate}: Props) {
       marginRight: screenWidth >= 768 ? 32 : 0,
     },
     statNumber: {
-      fontWeight: 'bold',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 17,
       color: theme.colors.foreground2,
     },
     statLabel: {
       fontSize: 14,
       color: theme.colors.foreground3,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
     },
     bioContainer: {
       marginTop: 8,
     },
     nameText: {
       color: theme.colors.foreground,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 17,
     },
     bioText: {
@@ -340,7 +340,7 @@ export default function ProfileScreen({navigate}: Props) {
           if (global.goingBack) return;
           navigate('Settings', {goBack: () => navigate('Profile')});
         }}
-        hapticStyle="impactMedium">
+        hapticStyle="impactLight">
         <Animatable.View
           animation="rotate"
           iterationCount="infinite"
@@ -436,7 +436,7 @@ export default function ProfileScreen({navigate}: Props) {
         <View style={{alignItems: 'center'}}>
           <AppleTouchFeedback
             onPress={() => navigate('StyleProfileScreen')}
-            hapticStyle="impactMedium"
+            hapticStyle="impactLight"
             style={[
               globalStyles.buttonPrimary,
               {
@@ -457,7 +457,7 @@ export default function ProfileScreen({navigate}: Props) {
               style={{
                 color: theme.colors.buttonText1,
                 fontSize: 16,
-                fontWeight: '500',
+                fontWeight: tokens.fontWeight.medium,
                 flexShrink: 1,
                 textAlign: 'center',
               }}
@@ -549,7 +549,7 @@ export default function ProfileScreen({navigate}: Props) {
         animation="fadeInUpBig"
         delay={2200}
         style={globalStyles.sectionScroll}>
-        <Text style={[globalStyles.sectionTitle]}>Saved Looks</Text>
+        <Text style={[globalStyles.sectionTitle]}>Your Saved Looks</Text>
         {savedLooks.length === 0 ? (
           <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
             <Text style={globalStyles.missingDataMessage1}>
@@ -588,7 +588,10 @@ export default function ProfileScreen({navigate}: Props) {
                   <Animatable.Text
                     animation="fadeIn"
                     delay={2500 + index * 100}
-                    style={[globalStyles.subLabel]}
+                    style={[
+                      globalStyles.subLabel,
+                      {marginTop: 4, textAlign: 'center'},
+                    ]}
                     numberOfLines={1}>
                     {look.name}
                   </Animatable.Text>

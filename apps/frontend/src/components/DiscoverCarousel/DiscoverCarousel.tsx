@@ -164,7 +164,6 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
                 style={[
                   globalStyles.cardLabel,
                   {
-                    color: theme.colors.foreground,
                     marginHorizontal: 10,
                     marginTop: 6,
                   },
@@ -176,7 +175,6 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
                 style={[
                   globalStyles.cardSubLabel,
                   {
-                    color: theme.colors.foreground2,
                     marginHorizontal: 10,
                     marginBottom: 8,
                     marginTop: 4,

@@ -97,7 +97,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
   const handleSave = () => {
     if (selectedItems.length === 0) return;
-    h('impactMedium');
+    h('impactLight');
     setShowNameModal(true);
   };
 
@@ -239,7 +239,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       borderRadius: 8,
       paddingVertical: 6,
     },
-    clearButtonText: {color: theme.colors.buttonText1, fontWeight: '500'},
+    clearButtonText: {
+      color: theme.colors.buttonText1,
+      fontWeight: tokens.fontWeight.medium,
+    },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -283,7 +286,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
     saveText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.buttonText1,
     },
     cancelButton: {
@@ -295,7 +298,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
     cancelText: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.buttonText1,
     },
     modalContent: {
@@ -321,7 +324,10 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       borderRadius: 8,
       alignItems: 'center',
     },
-    modalButtonText: {fontWeight: '600', color: theme.colors.buttonText1},
+    modalButtonText: {
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.buttonText1,
+    },
   });
 
   if (isLoading) {
@@ -401,7 +407,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                 hSelect();
                 setSelectedItems([]);
               }}
-              hapticStyle="impactLight"
               style={styles.clearButton}>
               <Text style={styles.clearButtonText}>Clear Selection</Text>
             </AppleTouchFeedback>
@@ -464,7 +469,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                     : '#999',
                 },
               ]}
-              hapticStyle={selectedItems.length ? 'impactMedium' : undefined}
+              hapticStyle={selectedItems.length ? 'impactLight' : undefined}
               onPress={handleSave}
               disabled={selectedItems.length === 0}>
               <Text style={styles.saveText}>
@@ -500,7 +505,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
                     <Text
                       style={{
                         fontSize: 18,
-                        fontWeight: '600',
+                        fontWeight: tokens.fontWeight.semiBold,
                         color: theme.colors.foreground,
                         marginBottom: 6,
                       }}>
@@ -536,7 +541,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
                       <AppleTouchFeedback
                         onPress={finalizeSave}
-                        hapticStyle="impactMedium"
+                        hapticStyle="impactLight"
                         style={[
                           globalStyles.buttonPrimary,
                           {paddingHorizontal: 20},

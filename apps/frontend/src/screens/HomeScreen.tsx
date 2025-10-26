@@ -2152,17 +2152,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     },
     bodyText: {
       fontSize: fontScale(tokens.fontSize.base),
-      fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground,
     },
     subtext: {
       fontSize: fontScale(tokens.fontSize.sm),
-      fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground,
     },
     dailyLookText: {
       fontSize: fontScale(tokens.fontSize.sm),
-      fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
       color: theme.colors.foreground3,
       lineHeight: 22,
     },
@@ -2208,13 +2208,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       backgroundColor: theme.colors.button1,
       paddingVertical: moderateScale(tokens.spacing.xxs),
       paddingHorizontal: moderateScale(tokens.spacing.sm2),
-      borderRadius: tokens.borderRadius.md,
+      borderRadius: tokens.borderRadius.xl,
       minWidth: moderateScale(72),
       alignItems: 'center',
     },
     weatherTemp: {
       fontSize: fontScale(tokens.fontSize['2.5xl']),
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
       color: theme.colors.buttonText1,
     },
     weatherAdvice: {
@@ -2434,18 +2434,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
         {/* Banner with ambient parallax + reveal */}
         {/* <View style={globalStyles.section}> */}
-        <View style={{marginBottom: 22}}>
+        <View
+          style={{
+            marginBottom: 22,
+            paddingHorizontal: moderateScale(tokens.spacing.md1),
+          }}>
           <Animated.View
             style={{
-              // overflow: 'hidden',
-              // shadowOffset: {width: 0, height: 6},
-              // shadowOpacity: 0.1,
-              // shadowRadius: 12,
-              // elevation: 5,
-              // borderWidth: tokens.borderWidth.md,
-              // borderColor: theme.colors.surfaceBorder,
-              // borderRadius: tokens.borderRadius.xl,
-              // backgroundColor: theme.colors.surface,
+              overflow: 'hidden',
+
+              borderWidth: tokens.borderWidth.hairline,
+              borderColor: theme.colors.surfaceBorder,
+              borderRadius: tokens.borderRadius.xxl,
+
               transform: [
                 {
                   translateY: scrollY.interpolate({
@@ -2897,7 +2898,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               />
                             </View>
                             <Text
-                              style={[globalStyles.subLabel]}
+                              style={[
+                                globalStyles.subLabel,
+                                {marginTop: 4, textAlign: 'center'},
+                              ]}
                               numberOfLines={1}>
                               {look.name}
                             </Text>
@@ -2907,8 +2911,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     </ScrollView>
                   )}
                   {savedLooks.length > 0 && (
-                    <AppleTouchFeedback
-                      hapticStyle="impactHeavy"
+                    <Pressable
                       onPress={() => setImageModalVisible(true)}
                       style={{
                         alignSelf: 'flex-end',
@@ -2923,7 +2926,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         }}>
                         See All Saved Looks
                       </Text>
-                    </AppleTouchFeedback>
+                    </Pressable>
                   )}
                 </Animatable.View>
 
@@ -2938,7 +2941,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   }}>
                   <AppleTouchFeedback
                     style={[globalStyles.buttonPrimary4, {width: 90}]}
-                    hapticStyle="impactHeavy"
+                    hapticStyle="impactLight"
                     onPress={() => setSaveModalVisible(true)}>
                     <Text style={globalStyles.buttonPrimaryText4}>
                       Add Image
@@ -3026,10 +3029,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           numberOfLines={1}
                           style={[
                             globalStyles.subLabel,
-                            {
-                              marginTop: moderateScale(tokens.spacing.xxs),
-                              textAlign: 'center',
-                            },
+                            {marginTop: 4, textAlign: 'center'},
                           ]}>
                           {(c.tags && c.tags.slice(0, 3).join(' ')) ||
                             'AI Look'}
@@ -3111,10 +3111,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           numberOfLines={1}
                           style={[
                             globalStyles.subLabel,
-                            {
-                              marginTop: moderateScale(tokens.spacing.xxs),
-                              textAlign: 'center',
-                            },
+                            {marginTop: 4, textAlign: 'center'},
                           ]}>
                           {vibe.query_used?.split(' ').slice(0, 3).join(' ') ||
                             'Recent'}

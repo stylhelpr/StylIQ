@@ -28,6 +28,7 @@ import {useUUID} from '../../context/UUIDContext';
 import {API_BASE_URL} from '../../config/api';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {fontScale, moderateScale} from '../../utils/scale';
 import LinearGradient from 'react-native-linear-gradient';
 
 const {height} = Dimensions.get('window');
@@ -110,6 +111,7 @@ export default function AllSavedLooksModal({
       elevation: 12,
       maxWidth: '94%',
       alignSelf: 'center',
+      paddingHorizontal: moderateScale(tokens.spacing.md1),
     },
     closeIcon: {
       position: 'absolute',
@@ -201,7 +203,7 @@ export default function AllSavedLooksModal({
         console.log('💎 Personalized result:', data);
 
         setSuccessState('recreate');
-        ReactNativeHapticFeedback.trigger('impactMedium');
+        ReactNativeHapticFeedback.trigger('impactLight');
 
         if (openPersonalizedShopModal) {
           // ✅ keep backend keys (snake_case)
@@ -223,7 +225,7 @@ export default function AllSavedLooksModal({
       // 🧥 Standard (Match Image) path
       // -------------------------------
       console.log('🧥 Standard Recreate triggered →', look.image_url);
-      ReactNativeHapticFeedback.trigger('impactMedium');
+      ReactNativeHapticFeedback.trigger('impactLight');
 
       if (recreateLook) {
         await recreateLook({
@@ -388,7 +390,7 @@ export default function AllSavedLooksModal({
           <TouchableOpacity
             style={[styles.closeIcon, {marginTop: 10}]}
             onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactMedium');
+              ReactNativeHapticFeedback.trigger('impactLight');
               handleClose();
             }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
@@ -409,7 +411,6 @@ export default function AllSavedLooksModal({
           {/* 🌫️ Header */}
           <View
             style={{
-              paddingHorizontal: 16,
               paddingVertical: 10,
               borderBottomColor: 'rgba(255,255,255,0.08)',
               borderBottomWidth: StyleSheet.hairlineWidth,
@@ -453,7 +454,7 @@ export default function AllSavedLooksModal({
                 width: '100%',
               }}>
               <AppleTouchFeedback
-                hapticStyle="impactMedium"
+                hapticStyle="impactLight"
                 onPress={() => setPersonalizedMode(false)}
                 // activeOpacity={0.8}
                 style={{
@@ -479,7 +480,7 @@ export default function AllSavedLooksModal({
               </AppleTouchFeedback>
 
               <AppleTouchFeedback
-                hapticStyle="impactMedium"
+                hapticStyle="impactLight"
                 onPress={() => setPersonalizedMode(true)}
                 // activeOpacity={0.8}
                 style={{
@@ -524,8 +525,6 @@ export default function AllSavedLooksModal({
                   flexDirection: 'row',
                   flexWrap: 'wrap',
                   justifyContent: width <= 360 ? 'center' : 'space-between',
-                  paddingHorizontal: 14,
-                  // paddingTop: 10,
                   paddingBottom: insets.bottom + 120,
                 }}>
                 {/* 🔹 Adaptive Grid Cards */}
@@ -625,13 +624,10 @@ export default function AllSavedLooksModal({
                           <TouchableOpacity
                             activeOpacity={0.8}
                             onPressIn={() =>
-                              ReactNativeHapticFeedback.trigger(
-                                'impactMedium',
-                                {
-                                  enableVibrateFallback: true,
-                                  ignoreAndroidSystemSettings: false,
-                                },
-                              )
+                              ReactNativeHapticFeedback.trigger('impactLight', {
+                                enableVibrateFallback: true,
+                                ignoreAndroidSystemSettings: false,
+                              })
                             }
                             onPress={() => handleRecreatePress(look)}
                             disabled={loading}

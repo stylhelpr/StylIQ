@@ -12,6 +12,7 @@ import {
   Switch,
   Alert,
   Platform,
+  Pressable,
 } from 'react-native';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -53,7 +54,7 @@ type Chip = {
 
 const triggerSelection = () =>
   ReactNativeHapticFeedback.trigger('selection', {
-    enableVibrateFallback: true,
+    enableVibrateFallback: false,
     ignoreAndroidSystemSettings: false,
   });
 
@@ -89,7 +90,7 @@ export default function ExploreScreen() {
     addBox: {padding: 16, gap: 8},
     addTitle: {
       color: theme.colors.foreground,
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
       fontSize: fontScale(tokens.fontSize.base),
       marginBottom: moderateScale(tokens.spacing.sm),
     },
@@ -107,7 +108,7 @@ export default function ExploreScreen() {
     },
     addBtnText: {
       color: theme.colors.foreground,
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
     },
     resetBtn: {
       marginTop: moderateScale(tokens.spacing.xs),
@@ -199,7 +200,10 @@ export default function ExploreScreen() {
       borderRadius: 8,
       backgroundColor: 'rgba(89, 0, 255, 1)',
     },
-    manageText: {color: theme.colors.foreground, fontWeight: '700'},
+    manageText: {
+      color: theme.colors.foreground,
+      fontWeight: tokens.fontWeight.bold,
+    },
     sectionHeader: {
       paddingHorizontal: moderateScale(tokens.spacing.md),
       paddingVertical: moderateScale(tokens.spacing.xs),
@@ -226,7 +230,7 @@ export default function ExploreScreen() {
     },
     modalTitle: {
       color: theme.colors.foreground,
-      fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
       fontSize: fontScale(tokens.fontSize.lg),
     },
     done: {color: theme.colors.button1, fontWeight: tokens.fontWeight.bold},
@@ -1017,7 +1021,7 @@ export default function ExploreScreen() {
             <Segmented
               tab={tab}
               onChange={t => {
-                triggerSelection();
+                // triggerSelection();
                 setTab(t);
               }}
             />
@@ -1026,7 +1030,8 @@ export default function ExploreScreen() {
             <AppleTouchFeedback
               onPress={() => setMenuOpen(true)}
               style={styles.iconBtn}
-              hapticStyle="impactLight">
+              // hapticStyle="impactLight"
+            >
               <Text style={styles.iconBtnText}>Manage</Text>
             </AppleTouchFeedback>
           </View>
@@ -1049,13 +1054,13 @@ export default function ExploreScreen() {
             items={visibleChips.map(c => c.label)} // 👈 changed here
             selected={activeChipLabel}
             onTap={label => {
-              triggerSelection();
+              // triggerSelection();
               setActiveChipLabel(prev =>
                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
               );
             }}
             onMore={() => {
-              triggerSelection();
+              // triggerSelection();
               setManageBrandsOpen(true);
             }}
           />
@@ -1075,7 +1080,7 @@ export default function ExploreScreen() {
           </Text>
         </View>
 
-        <View style={[{paddingHorizontal: 16}]}>
+        <View style={[{paddingHorizontal: 18}]}>
           {list.map(item => (
             <ArticleCard
               key={item.id}
@@ -1257,7 +1262,7 @@ export default function ExploreScreen() {
                     paddingHorizontal: 1,
                     marginBottom: 17,
                     fontSize: 12,
-                    fontWeight: '400',
+                    fontWeight: tokens.fontWeight.normal,
                     color: theme.colors.foreground,
                   },
                 ]}>
@@ -1311,7 +1316,7 @@ export default function ExploreScreen() {
                   <Text
                     style={{
                       color: theme.colors.foreground,
-                      fontWeight: '700',
+                      fontWeight: tokens.fontWeight.bold,
                       marginBottom: 8,
                     }}>
                     Feeds Found:
@@ -1334,7 +1339,7 @@ export default function ExploreScreen() {
                       <Text
                         style={{
                           color: theme.colors.button1,
-                          fontWeight: '700',
+                          fontWeight: tokens.fontWeight.bold,
                         }}>
                         {f.title || f.href}
                       </Text>
@@ -1406,7 +1411,7 @@ export default function ExploreScreen() {
 
               <View style={{alignItems: 'center'}}>
                 <AppleTouchFeedback
-                  hapticStyle="impactMedium"
+                  hapticStyle="impactLight"
                   onPress={() => {
                     setAddError(null);
                     try {
@@ -1495,7 +1500,7 @@ export default function ExploreScreen() {
                         style={{
                           color: theme.colors.foreground,
                           marginRight: 8,
-                          fontWeight: '500',
+                          fontWeight: tokens.fontWeight.medium,
                           fontSize: 13,
                         }}>
                         Visible
@@ -1676,7 +1681,7 @@ export default function ExploreScreen() {
               <Text
                 style={{
                   color: theme.colors.foreground,
-                  fontWeight: '700',
+                  fontWeight: tokens.fontWeight.bold,
                   marginBottom: 12,
                   marginTop: 20,
                 }}>
@@ -1702,7 +1707,6 @@ export default function ExploreScreen() {
       <AppleTouchFeedback
         onPress={() => {
           scrollRef.current?.scrollTo({y: 0, animated: true});
-          triggerSelection();
         }}
         style={{
           position: 'absolute',
@@ -1718,8 +1722,7 @@ export default function ExploreScreen() {
           shadowOpacity: 0.3,
           shadowRadius: 8,
           shadowOffset: {width: 0, height: 4},
-        }}
-        hapticStyle="impactLight">
+        }}>
         <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
       </AppleTouchFeedback>
     </View>
@@ -1753,7 +1756,7 @@ function Segmented({tab, onChange}: {tab: Tab; onChange: (t: Tab) => void}) {
     itemActive: {backgroundColor: theme.colors.background},
     itemText: {
       color: theme.colors.foreground3,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: fontScale(tokens.fontSize.sm),
     },
     itemTextActive: {color: theme.colors.foreground},

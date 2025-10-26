@@ -312,7 +312,7 @@ export default function ClosetScreen({navigate}: Props) {
     mainOptionText: {
       fontSize: 17,
       color: theme.colors.foreground,
-      fontWeight: '600',
+      fontWeight: tokens.fontWeight.semiBold,
     },
   });
 
@@ -555,7 +555,7 @@ export default function ClosetScreen({navigate}: Props) {
                             style={{
                               color: theme.colors.foreground,
                               fontSize: 14,
-                              fontWeight: '500',
+                              fontWeight: tokens.fontWeight.medium,
                             }}>
                             Try On
                           </Text>
@@ -878,7 +878,7 @@ export default function ClosetScreen({navigate}: Props) {
             />
 
             <AppleTouchFeedback
-              hapticStyle="impactMedium"
+              hapticStyle="impactLight"
               onPress={async () => {
                 if (selectedItemToEdit) {
                   await fetch(
@@ -909,7 +909,7 @@ export default function ClosetScreen({navigate}: Props) {
               <Text
                 style={{
                   fontSize: 16,
-                  fontWeight: '600',
+                  fontWeight: tokens.fontWeight.semiBold,
                   color: theme.colors.background,
                 }}>
                 Save Changes
@@ -917,7 +917,7 @@ export default function ClosetScreen({navigate}: Props) {
             </AppleTouchFeedback>
 
             <AppleTouchFeedback
-              hapticStyle="impactHeavy"
+              hapticStyle="impactLight"
               onPress={() => {
                 Alert.alert(
                   'Delete Item',
@@ -946,7 +946,7 @@ export default function ClosetScreen({navigate}: Props) {
                 style={{
                   color: '#fff',
                   textAlign: 'center',
-                  fontWeight: '600',
+                  fontWeight: tokens.fontWeight.semiBold,
                 }}>
                 Delete Item
               </Text>

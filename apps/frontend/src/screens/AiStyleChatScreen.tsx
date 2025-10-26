@@ -40,6 +40,7 @@ import {WebView} from 'react-native-webview';
 import {ENABLE_REMOTE_TTS, API_BASE_URL} from '../config/api';
 import {globalTtsRef} from '../MainApp';
 import {isTtsEnabled} from '../utils/ttsToggle';
+import {fontScale, moderateScale} from '../utils/scale';
 import MascotAssistant from '../components/MascotAssistant/MascotAssistant';
 import MorphingCircle from '../components/MorphingCircle/MorphingCircle';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
@@ -312,7 +313,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const handleMicPressIn = useCallback(async () => {
     if (!(await prepareAudio())) return;
     setIsHolding(true);
-    h('impactLight');
+    // h('impactLight');
     startListening();
   }, [startListening]);
   const handleMicPressOut = useCallback(() => {
@@ -485,7 +486,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const sendToOutfitSafe = useCallback(() => {
     if (!canSendToOutfit) return;
     if (!assistantPrompt) return;
-    h('impactMedium');
+    h('impactLight');
     const payload = {
       seedPrompt: assistantPrompt,
       autogenerate: true,
@@ -520,6 +521,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
             {
               marginVertical: isTablet ? 14 : 10,
               transform: [{scale: 0.98}],
+              // paddingHorizontal: moderateScale(tokens.spacing.md1),
             },
           ]}>
           {/* 🤖 Assistant icon */}
@@ -691,6 +693,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
               borderBottomColor: theme.colors.surfaceBorder,
               marginTop:
                 Platform.OS === 'ios' ? (insets.top > 44 ? -34 : -4) : 0,
+              marginBottom: 6,
             }}>
             {/* 👈 Left side */}
             <View
@@ -715,7 +718,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 style={[
                   globalStyles.header,
                   {
-                    fontSize: width < 360 ? 22 : width < 400 ? 28 : 34,
+                    // fontSize: width < 360 ? 22 : width < 400 ? 28 : 34,
                     flexShrink: 1,
                     color: theme.colors.foreground,
                   },
@@ -1074,7 +1077,7 @@ export function AnimatedInputBar({
         {/* ❌ Clear Button */}
         {input.length > 0 && (
           <AppleTouchFeedback
-            hapticStyle="impactMedium"
+            hapticStyle="impactLight"
             onPress={resetField}
             style={{
               width: isTablet ? 40 : 32,
@@ -1115,7 +1118,7 @@ export function AnimatedInputBar({
 
         {/* 📤 Send Button */}
         <AppleTouchFeedback
-          hapticStyle="impactMedium"
+          hapticStyle="impactLight"
           onPress={async () => {
             await stopListeningCompletely(); // ✅ stop voice first
             onSend(); // ✅ send message
@@ -7044,7 +7047,7 @@ function stylesUserBubble(
       color: theme.colors.foreground,
       fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
       lineHeight: isTablet ? 24 : 22,
-      fontWeight: '500',
+      fontWeight: tokens.fontWeight.medium,
       letterSpacing: 0.2,
     },
     time: {

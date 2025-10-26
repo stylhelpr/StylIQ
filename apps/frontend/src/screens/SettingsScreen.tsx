@@ -30,6 +30,7 @@ import {useUUID} from '../context/UUIDContext'; // 👈 to get userId
 import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useWindowDimensions} from 'react-native';
+import {fontScale, moderateScale} from '../utils/scale';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -297,7 +298,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
           style: 'destructive',
           onPress: async () => {
             try {
-              h('impactHeavy');
+              h('impact');
               const res = await fetch(
                 `${API_BASE_URL}/ai/chat/clear/${userId}`,
                 {
@@ -335,7 +336,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
             ]}>
             <AppleTouchFeedback
               onPress={safeGoBack}
-              hapticStyle="impactMedium"
+              hapticStyle="impactLight"
               style={{alignSelf: 'flex-start'}}>
               <MaterialIcons
                 name="arrow-back"
@@ -348,33 +349,37 @@ export default function SettingsScreen({navigate, goBack}: Props) {
 
           <View style={globalStyles.centeredSection}>
             <View style={[globalStyles.section2]}>
-              <Text
-                style={[
-                  globalStyles.sectionTitle2,
-                  {color: colors.foreground},
-                ]}>
-                Notifications
-              </Text>
-
-              <View
-                style={[
-                  styles.enableRow,
-                  globalStyles.cardStyles3,
-                  {
-                    borderWidth: tokens.borderWidth.md,
-                    backgroundColor: theme.colors.surface,
-                  },
-                ]}>
+              <View style={globalStyles.section2}>
                 <Text
-                  style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-                  Notifications
+                  style={[
+                    globalStyles.sectionTitle2,
+                    {color: colors.foreground, marginBottom: 10},
+                  ]}>
+                  App Color Theme
                 </Text>
-                <Switch
-                  value={notificationsEnabled}
-                  onValueChange={handleToggleNotifications}
-                  trackColor={{false: colors.muted, true: theme.colors.button1}}
-                  ios_backgroundColor={colors.muted}
-                />
+
+                <View
+                  style={[
+                    globalStyles.menuSection2,
+                    globalStyles.cardStyles3,
+                    {
+                      backgroundColor: colors.surface,
+                      borderWidth: tokens.borderWidth.md,
+                    },
+                  ]}>
+                  <AppleTouchFeedback
+                    onPress={() => setModalVisible(true)}
+                    hapticStyle="impactLight"
+                    style={[{backgroundColor: colors.surface}]}>
+                    <Text
+                      style={[
+                        globalStyles.menuLabel,
+                        {color: colors.foreground},
+                      ]}>
+                      {currentLabel}
+                    </Text>
+                  </AppleTouchFeedback>
+                </View>
               </View>
 
               <View style={[globalStyles.section2]}>
@@ -437,36 +442,40 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 </View>
               </View>
 
-              <View style={globalStyles.section2}>
+              <View>
                 <Text
                   style={[
                     globalStyles.sectionTitle2,
-                    {color: colors.foreground, marginBottom: 10},
+                    {color: colors.foreground, marginBottom: 12},
                   ]}>
-                  App Color Theme
+                  Notifications
                 </Text>
 
                 <View
                   style={[
-                    globalStyles.menuSection2,
+                    styles.enableRow,
                     globalStyles.cardStyles3,
                     {
-                      backgroundColor: colors.surface,
                       borderWidth: tokens.borderWidth.md,
+                      backgroundColor: theme.colors.surface,
                     },
                   ]}>
-                  <AppleTouchFeedback
-                    onPress={() => setModalVisible(true)}
-                    hapticStyle="impactMedium"
-                    style={[{backgroundColor: colors.surface}]}>
-                    <Text
-                      style={[
-                        globalStyles.menuLabel,
-                        {color: colors.foreground},
-                      ]}>
-                      {currentLabel}
-                    </Text>
-                  </AppleTouchFeedback>
+                  <Text
+                    style={[
+                      globalStyles.menuLabel,
+                      {color: colors.foreground},
+                    ]}>
+                    Notifications
+                  </Text>
+                  <Switch
+                    value={notificationsEnabled}
+                    onValueChange={handleToggleNotifications}
+                    trackColor={{
+                      false: colors.muted,
+                      true: theme.colors.button1,
+                    }}
+                    ios_backgroundColor={colors.muted}
+                  />
                 </View>
               </View>
 
@@ -486,7 +495,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   ]}>
                   <AppleTouchFeedback
                     onPress={handleClearChatHistory}
-                    hapticStyle="impactHeavy"
+                    hapticStyle="impactLight"
                     style={[globalStyles.menuSection1]}>
                     <Text
                       style={[globalStyles.menuLabel, {color: colors.error}]}>
@@ -513,7 +522,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 <View
                   style={[
                     globalStyles.menuSection1,
-                    globalStyles.hrLine,
+
                     {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
@@ -613,7 +622,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
 
                   <AppleTouchFeedback
                     onPress={resetApp}
-                    hapticStyle="impactHeavy"
+                    hapticStyle="impactLight"
                     style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                     <Text
                       style={[globalStyles.menuLabel, {color: colors.error}]}>
@@ -623,7 +632,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
 
                   <AppleTouchFeedback
                     onPress={handleDeleteAccount}
-                    hapticStyle="impactHeavy"
+                    hapticStyle="impactLight"
                     style={[globalStyles.menuSection1]}>
                     <Text
                       style={[globalStyles.menuLabel, {color: colors.error}]}>
@@ -650,7 +659,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   ]}>
                   <AppleTouchFeedback
                     onPress={() => navigate('ContactScreen')}
-                    hapticStyle="impactMedium"
+                    hapticStyle="impactLight"
                     style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                     <Text
                       style={[
@@ -681,7 +690,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
 
                   <AppleTouchFeedback
                     onPress={() => navigate('FeedbackScreen')}
-                    hapticStyle="impactMedium"
+                    hapticStyle="impactLight"
                     style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                     <Text
                       style={[globalStyles.menuLabel, {color: colors.primary}]}>

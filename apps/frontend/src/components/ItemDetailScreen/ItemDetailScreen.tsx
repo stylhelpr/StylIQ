@@ -544,7 +544,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         <View style={styles.buttonRow}>
           <AppleTouchFeedback
             style={[useGlobalStyles().buttonPrimary, styles.buttonHalf]}
-            hapticStyle="impactMedium"
+            hapticStyle="impactLight"
             onPress={() => updateMutation.mutate()}>
             <Text style={useGlobalStyles().buttonPrimaryText}>
               Save Changes
@@ -569,7 +569,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
               useGlobalStyles().buttonPrimary,
               {backgroundColor: 'red', marginTop: 16, width: 150},
             ]}
-            hapticStyle="impactHeavy"
+            hapticStyle="impactLight"
             onPress={handleDelete}>
             <Text style={useGlobalStyles().buttonPrimaryText}>Delete Item</Text>
           </AppleTouchFeedback>
@@ -599,7 +599,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
               style={{
                 color: theme.colors.foreground,
                 fontSize: 16,
-                fontWeight: '600',
+                fontWeight: tokens.fontWeight.semiBold,
                 marginBottom: 12,
               }}>
               Saving your changes…
@@ -634,7 +634,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
               style={{
                 color: theme.colors.foreground,
                 fontSize: 16,
-                fontWeight: '600',
+                fontWeight: tokens.fontWeight.semiBold,
                 marginBottom: 12,
               }}>
               Deleting item…

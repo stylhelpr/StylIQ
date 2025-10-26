@@ -21,6 +21,7 @@ import {API_BASE_URL} from '../../config/api';
 import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 const {height, width} = Dimensions.get('window');
 
@@ -241,12 +242,36 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
             },
           ]}>
           {/* Close button ABOVE gesture zone */}
-          <TouchableOpacity
+
+          {/* <TouchableOpacity
             style={[
               styles.closeIcon,
               {backgroundColor: theme.colors.foreground, marginTop: 4},
             ]}
             onPress={handleClose}
+            hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+            <Text
+              style={{
+                color: theme.colors.background,
+                fontSize: 18,
+                fontWeight: '900',
+              }}>
+              ✕
+            </Text>
+          </TouchableOpacity> */}
+
+          <TouchableOpacity
+            style={[
+              styles.closeIcon,
+              {backgroundColor: theme.colors.foreground, marginTop: 4},
+            ]}
+            onPress={() => {
+              ReactNativeHapticFeedback.trigger('impactLight', {
+                enableVibrateFallback: true,
+                ignoreAndroidSystemSettings: false,
+              });
+              handleClose();
+            }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
             <Text
               style={{

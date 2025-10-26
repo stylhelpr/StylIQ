@@ -11,6 +11,8 @@ import type {AppNotification} from '../../storage/notifications';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {fontScale, moderateScale} from '../../utils/scale';
+import {tokens} from '../../styles/tokens/tokens';
 
 const SWIPE_THRESHOLD = 70;
 const DELETE_BUTTON_WIDTH = 88;

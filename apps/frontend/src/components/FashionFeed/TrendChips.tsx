@@ -64,7 +64,10 @@ export default function TrendChips({
       shadowOpacity: 0.45,
       shadowRadius: 10,
     },
-    label: {color: theme.colors.pillTextColor1, fontWeight: '600'},
+    label: {
+      color: theme.colors.pillTextColor1,
+      fontWeight: tokens.fontWeight.semiBold,
+    },
     labelActive: {color: theme.colors.button1},
     moreChip: {backgroundColor: theme.colors.pillDark2},
   });

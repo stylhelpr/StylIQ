@@ -297,7 +297,7 @@ export default function StyleProfileScreen({navigate}: Props) {
                   <AppleTouchFeedback
                     key={screen}
                     onPress={() => navigate(screen as string)}
-                    hapticStyle="impactMedium"
+                    hapticStyle="impactLight"
                     style={[
                       styles.settingsItem,
                       isFirst && styles.firstItem,
