@@ -324,6 +324,8 @@ PODS:
     - glog
   - react-native-add-calendar-event (5.0.0):
     - React-Core
+  - react-native-audio-session (0.0.6):
+    - React-Core
   - react-native-biometrics (3.0.1):
     - React-Core
   - react-native-blur (4.4.1):
@@ -492,6 +494,7 @@ DEPENDENCIES:
   - React-jsinspector (from `../node_modules/react-native/ReactCommon/jsinspector`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - react-native-add-calendar-event (from `../node_modules/react-native-add-calendar-event`)
+  - react-native-audio-session (from `../node_modules/react-native-audio-session`)
   - react-native-biometrics (from `../node_modules/react-native-biometrics`)
   - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
   - "react-native-cameraroll (from `../node_modules/@react-native-camera-roll/camera-roll`)"
@@ -611,6 +614,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   react-native-add-calendar-event:
     :path: "../node_modules/react-native-add-calendar-event"
+  react-native-audio-session:
+    :path: "../node_modules/react-native-audio-session"
   react-native-biometrics:
     :path: "../node_modules/react-native-biometrics"
   react-native-blur:
@@ -738,6 +743,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 2a1985769123b199c195a96f46478b35db139712
   React-logger: d6b8c2a104ac0c237408297085a3f59d6bd514ca
   react-native-add-calendar-event: 4eb42bdf84beb58de81f6d2ce1778a7632223dfe
+  react-native-audio-session: 09b7928375f9e8a83563c634ca83f318685a6f18
   react-native-biometrics: 43ed5b828646a7862dbc7945556446be00798e7d
   react-native-blur: 31d3c608b337f9d15d356148e0d88549fbf5fdc7
   react-native-cameraroll: 7cbef6db236e62e945bfdc0844f4373c0b76789b
