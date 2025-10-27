@@ -106,6 +106,7 @@
 // • Ensures all voice sessions stop cleanly on navigation
 // -----------------------------------------------------------------------------
 
+import WeatherBus from './utils/WeatherBus';
 import React, {useState, useRef, useEffect} from 'react';
 import {View, StyleSheet} from 'react-native';
 import {WebView} from 'react-native-webview';
@@ -117,6 +118,7 @@ import {VoiceTarget} from './utils/VoiceUtils/voiceTarget';
 import {initInstantTts, instantSpeak} from './utils/VoiceUtils/instantTts';
 import WeatherPromptOverlay from './components/WeatherPromptOverlay/WeatherPromptOverlay';
 import {syncNativeCalendarToBackend} from './utils/calendarSync';
+import WeatherOverlay from './components/WeatherOverlay/WeatherOverlay';
 
 // 🔊 Export global WebView ref so other files can inject JS speech
 export const globalTtsRef: {current: React.RefObject<WebView> | null} = {
@@ -220,8 +222,8 @@ const MainApp = () => {
     <View style={styles.root}>
       <VoiceOverlay isListening={isRecording} partialText={speech} />
       <RootNavigator registerNavigate={setGlobalNavigate} />
+      <WeatherOverlay />
       <FloatingMicButton navigate={globalNavigate} />
-
       <WeatherPromptOverlay
         visible={weatherVisible}
         city={weatherData?.city || 'Los Angeles'}
@@ -229,7 +231,6 @@ const MainApp = () => {
         condition={weatherData?.condition || 'Clear skies'}
         onHide={() => setWeatherVisible(false)}
       />
-
       {/* Hidden WebView used for GPT-style TTS playback */}
       <View pointerEvents="none" style={styles.ttsContainer}>
         <WebView

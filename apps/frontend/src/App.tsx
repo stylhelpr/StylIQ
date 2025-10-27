@@ -1,3 +1,4 @@
+import './utils/WeatherBus';
 import {LogBox} from 'react-native';
 
 /// 🔀 Flip this when you want logs back
