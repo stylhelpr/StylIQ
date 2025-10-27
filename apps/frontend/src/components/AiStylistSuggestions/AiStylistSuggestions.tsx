@@ -481,7 +481,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </SwipeableCard>
 
           {/* 🧭 Subtle swipe hint */}
-          {/* <View
+          <View
             style={{
               flexDirection: 'row',
               justifyContent: 'center',
@@ -502,7 +502,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}>
               Swipe suggestion left for new result
             </Text>
-          </View> */}
+          </View>
 
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}

@@ -2678,7 +2678,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             delay={300}
             duration={700}
             useNativeDriver
-            style={globalStyles.section}>
+            style={[
+              globalStyles.section,
+              {
+                marginBottom: mapOpen
+                  ? moderateScale(tokens.spacing.quark)
+                  : moderateScale(20), // collapse extra gap when closed
+              },
+            ]}>
             <View
               style={{
                 flexDirection: 'row',
