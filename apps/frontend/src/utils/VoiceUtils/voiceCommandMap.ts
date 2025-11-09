@@ -89,7 +89,7 @@ export const voiceCommandMap = [
   },
 
   // ---------------------------------------------------------------------------
-  // 👗 TIER 2 — Wardrobe-Aware Styling (AI)
+  // 👗 TIER 2 — Wardrobe-Aware Styling (AI) /
   // ---------------------------------------------------------------------------
   {
     keywords: ['plan my outfit for today', 'today outfit', 'today look'],
