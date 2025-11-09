@@ -1,82 +1,28 @@
-// android/build.gradle
+// ==========================================================
+// StylHelpr Root Gradle Build — React Native 0.82 / Gradle 8.10.2
+// ==========================================================
 
 buildscript {
-    ext {
-        buildToolsVersion = "34.0.0"
-        minSdkVersion = 21
-        compileSdkVersion = 34
-        targetSdkVersion = 34
-
-        // ✅ Match the Kotlin version RN 0.70.10 expects
-        kotlinVersion = '1.6.10'
-
-        // ✅ NDK version compatibility (handles Apple Silicon too)
-        ndkVersion = System.properties['os.arch'] == "aarch64" ? "24.0.8215888" : "21.4.7075529"
-    }
-
     repositories {
         google()
         mavenCentral()
-        // ✅ Add JitPack so Gradle can resolve any GitHub-hosted dependencies
-        maven { url "https://www.jitpack.io" }
-    }
-
-    dependencies {
-        // ✅ Android Gradle plugin compatible with RN 0.70.x
-        classpath("com.android.tools.build:gradle:7.4.2")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("de.undercouch:gradle-download-task:5.0.1")
-    }
-}
-
-allprojects {
-    repositories {
-        // 👇 Must include all of these to resolve RN + third-party libs
-        google()
-        mavenCentral()
-
-        // ✅ GitHub-hosted libraries
-        maven { url 'https://www.jitpack.io' }
-
-        // ✅ React Native internals
+        gradlePluginPortal()
+        // ✅ Add RN’s internal Maven path to avoid “prefer settings repositories” error
         maven { url("$rootDir/../node_modules/react-native/android") }
-        maven { url("$rootDir/../node_modules/jsc-android/dist") }
-
-        // ✅ Avoid duplicate React artifacts
-        mavenCentral {
-            content {
-                excludeGroup "com.facebook.react"
-            }
-        }
     }
-
-    // ✅ 🔥 Workaround: bypass dead android-scalablevideoview dependency
-    configurations.all {
-        resolutionStrategy.dependencySubstitution {
-            // 👇 Replace the missing dependency with a harmless stub to allow build to succeed
-            substitute module("com.yqritc:android-scalablevideoview:1.0.4") with module("androidx.annotation:annotation:1.5.0")
-        }
+    dependencies {
+        // ✅ Use AGP 8.6.1 for RN 0.82 — confirmed stable with Gradle 8.10+
+        classpath("com.android.tools.build:gradle:8.6.1")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.0")
+        // ⚠️ DO NOT add the React plugin here — handled via includeBuild()
     }
 }
 
-// ✅ ✅ ✅ Force Java 11 and Kotlin JVM 11 for ALL subprojects (fixes Auth0 compile error)
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty("android")) {
-            project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_11
-                    targetCompatibility JavaVersion.VERSION_11
-                }
-            }
-        }
-        if (project.plugins.hasPlugin("kotlin-android")) {
-            project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                kotlinOptions {
-                    jvmTarget = "11"
-                }
-            }
-        }
-    }
+plugins {
+    // ✅ React Native plugin (0.82.1)
+    id("com.facebook.react") version "0.82.1" apply false
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }

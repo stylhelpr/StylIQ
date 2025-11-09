@@ -1,0 +1,307 @@
+  $ /Users/giffinmike/.nvm/versions/node/v20.11.0/bin/node -p require.resolve(     "react-native/scripts/react_native_pods.rb",     {paths: [process.argv[1]]},   ) /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+  /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native/scripts/react_native_pods.rb
+[VisionCamera] Thank you for using VisionCamera ❤️
+[VisionCamera] If you enjoy using VisionCamera, please consider sponsoring this project: https://github.com/sponsors/mrousavy
+[VisionCamera] $VCEnableLocation is not set, enabling CLLocation APIs by default...
+[VisionCamera] $VCEnableFrameProcessors is not set, enabling Frame Processors if Worklets is installed...
+[VisionCamera] react-native-worklets-core not found - Frame Processors are disabled!
+Found 31 modules for target `StylIQ`
+link_native_modules! {ios_packages: [{configurations: [], name: "@react-native-async-storage/async-storage", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-async-storage/async-storage", path: "../node_modules/@react-native-async-storage/async-storage", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec", script_phases: []}, {configurations: [], name: "@react-native-camera-roll/camera-roll", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-camera-roll/camera-roll", path: "../node_modules/@react-native-camera-roll/camera-roll", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-camera-roll/camera-roll/react-native-cameraroll.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/blur", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/blur", path: "../node_modules/@react-native-community/blur", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/blur/react-native-blur.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/datetimepicker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/datetimepicker", path: "../node_modules/@react-native-community/datetimepicker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/datetimepicker/RNDateTimePicker.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/geolocation", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/geolocation", path: "../node_modules/@react-native-community/geolocation", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/geolocation/react-native-geolocation.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/push-notification-ios", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/push-notification-ios", path: "../node_modules/@react-native-community/push-notification-ios", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/push-notification-ios/RNCPushNotificationIOS.podspec", script_phases: []}, {configurations: [], name: "@react-native-firebase/app", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-firebase/app", path: "../node_modules/@react-native-firebase/app", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-firebase/app/RNFBApp.podspec", script_phases: [{"name" => "[RNFB] Core Configuration", "path" => "./ios_config.sh", "execution_position" => "after_compile", "input_files" => ["$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)"]}]}, {configurations: [], name: "@react-native-firebase/messaging", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-firebase/messaging", path: "../node_modules/@react-native-firebase/messaging", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-firebase/messaging/RNFBMessaging.podspec", script_phases: []}, {configurations: [], name: "@react-native-picker/picker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-picker/picker", path: "../node_modules/@react-native-picker/picker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-picker/picker/RNCPicker.podspec", script_phases: []}, {configurations: [], name: "@react-native-voice/voice", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-voice/voice", path: "../node_modules/@react-native-voice/voice", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-voice/voice/react-native-voice.podspec", script_phases: []}, {configurations: [], name: "react-native-add-calendar-event", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-add-calendar-event", path: "../node_modules/react-native-add-calendar-event", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-add-calendar-event/react-native-add-calendar-event.podspec", script_phases: []}, {configurations: [], name: "react-native-auth0", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-auth0", path: "../node_modules/react-native-auth0", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-auth0/A0Auth0.podspec", script_phases: []}, {configurations: [], name: "react-native-biometrics", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-biometrics", path: "../node_modules/react-native-biometrics", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-biometrics/react-native-biometrics.podspec", script_phases: []}, {configurations: [], name: "react-native-calendar-events", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-calendar-events", path: "../node_modules/react-native-calendar-events", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-calendar-events/RNCalendarEvents.podspec", script_phases: []}, {configurations: [], name: "react-native-contacts", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-contacts", path: "../node_modules/react-native-contacts", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-contacts/react-native-contacts.podspec", script_phases: []}, {configurations: [], name: "react-native-date-picker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-date-picker", path: "../node_modules/react-native-date-picker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-date-picker/react-native-date-picker.podspec", script_phases: []}, {configurations: [], name: "react-native-device-info", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-device-info", path: "../node_modules/react-native-device-info", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-device-info/RNDeviceInfo.podspec", script_phases: []}, {configurations: [], name: "react-native-geolocation-service", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-geolocation-service", path: "../node_modules/react-native-geolocation-service", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-geolocation-service/react-native-geolocation-service.podspec", script_phases: []}, {configurations: [], name: "react-native-haptic-feedback", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-haptic-feedback", path: "../node_modules/react-native-haptic-feedback", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-haptic-feedback/RNReactNativeHapticFeedback.podspec", script_phases: []}, {configurations: [], name: "react-native-image-picker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-image-picker", path: "../node_modules/react-native-image-picker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-image-picker/react-native-image-picker.podspec", script_phases: []}, {configurations: [], name: "react-native-linear-gradient", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-linear-gradient", path: "../node_modules/react-native-linear-gradient", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-linear-gradient/BVLinearGradient.podspec", script_phases: []}, {configurations: [], name: "react-native-maps", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-maps", path: "../node_modules/react-native-maps", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-maps/react-native-maps.podspec", script_phases: []}, {configurations: [], name: "react-native-orientation-locker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-orientation-locker", path: "../node_modules/react-native-orientation-locker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-orientation-locker/react-native-orientation-locker.podspec", script_phases: []}, {configurations: [], name: "react-native-permissions", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-permissions", path: "../node_modules/react-native-permissions", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-permissions/RNPermissions.podspec", script_phases: []}, {configurations: [], name: "react-native-safe-area-context", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-safe-area-context", path: "../node_modules/react-native-safe-area-context", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec", script_phases: []}, {configurations: [], name: "react-native-tts", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-tts", path: "../node_modules/react-native-tts", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-tts/TextToSpeech.podspec", script_phases: []}, {configurations: [], name: "react-native-vector-icons", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vector-icons", path: "../node_modules/react-native-vector-icons", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vector-icons/RNVectorIcons.podspec", script_phases: []}, {configurations: [], name: "react-native-video", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-video", path: "../node_modules/react-native-video", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-video/react-native-video.podspec", script_phases: []}, {configurations: [], name: "react-native-view-shot", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-view-shot", path: "../node_modules/react-native-view-shot", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-view-shot/react-native-view-shot.podspec", script_phases: []}, {configurations: [], name: "react-native-vision-camera", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vision-camera", path: "../node_modules/react-native-vision-camera", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vision-camera/VisionCamera.podspec", script_phases: []}, {configurations: [], name: "react-native-webview", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-webview", path: "../node_modules/react-native-webview", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-webview/react-native-webview.podspec", script_phases: []}], ios_project_root_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios", react_native_path: "../node_modules/react-native"}
+Adding a custom script phase for Pod RNFBApp: [RNFB] Core Configuration
+[VisionCamera] Thank you for using VisionCamera ❤️
+[VisionCamera] If you enjoy using VisionCamera, please consider sponsoring this project: https://github.com/sponsors/mrousavy
+[VisionCamera] $VCEnableLocation is not set, enabling CLLocation APIs by default...
+[VisionCamera] $VCEnableFrameProcessors is not set, enabling Frame Processors if Worklets is installed...
+[VisionCamera] react-native-worklets-core not found - Frame Processors are disabled!
+Auto-linking React Native modules for target `StylIQ`: A0Auth0, BVLinearGradient, RNCAsyncStorage, RNCPicker, RNCPushNotificationIOS, RNCalendarEvents, RNDateTimePicker, RNDeviceInfo, RNFBApp, RNFBMessaging, RNPermissions, RNReactNativeHapticFeedback, RNVectorIcons, TextToSpeech, VisionCamera, react-native-add-calendar-event, react-native-biometrics, react-native-blur, react-native-cameraroll, react-native-contacts, react-native-date-picker, react-native-geolocation, react-native-geolocation-service, react-native-image-picker, react-native-maps, react-native-orientation-locker, react-native-safe-area-context, react-native-video, react-native-view-shot, react-native-voice, and react-native-webview
+Framework build type is static library
+[ReactNativeDependencies] Setting up ReactNativeDependencies...
+[ReactNativeDependencies] Building from source: true
+[ReactNativeDependencies] Source: 
+[ReactNativeCore] Setting up ReactNativeCore...
+[ReactNativeCore] Building from source: true
+[ReactNativeCore] Source: 
+Configuring the target with the Legacy Architecture
+  $ /Users/giffinmike/.nvm/versions/node/v20.11.0/bin/node ./../node_modules/react-native/scripts/generate-codegen-artifacts.js -p /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/.. -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios -t ios
+  [36m[1m[Codegen][0m Analyzing /Users/giffinmike/Git/StylIQ-NEW-INSTALL/package.json[0m
+  [36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+  [36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+  [36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the project dependencies.[0m
+  [36m[1m[Codegen][0m Found @react-native-async-storage/async-storage[0m
+  [36m[1m[Codegen][0m Found @react-native-camera-roll/camera-roll[0m
+  [36m[1m[Codegen][0m Found @react-native-community/blur[0m
+  [36m[1m[Codegen][0m Found @react-native-community/datetimepicker[0m
+  [36m[1m[Codegen][0m Found @react-native-community/geolocation[0m
+  [36m[1m[Codegen][0m Found @react-native-picker/picker[0m
+  [36m[1m[Codegen][0m Found react-native[0m
+  [36m[1m[Codegen][0m Found react-native-contacts[0m
+  [36m[1m[Codegen][0m Found react-native-date-picker[0m
+  [36m[1m[Codegen][0m Found react-native-haptic-feedback[0m
+  [36m[1m[Codegen][0m Found react-native-image-picker[0m
+  [36m[1m[Codegen][0m Found react-native-permissions[0m
+  [36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+  [36m[1m[Codegen][0m Found react-native-vector-icons[0m
+  [36m[1m[Codegen][0m Found react-native-webview[0m
+  [36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+  [36m[1m[Codegen][0m Processing rnasyncstorage[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage[0m
+  [36m[1m[Codegen][0m Processing rncameraroll[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for rncameraroll[0m
+  [36m[1m[Codegen][0m Processing rnblurview[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for rnblurview[0m
+  [36m[1m[Codegen][0m Processing RNDateTimePickerCGen[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNDateTimePickerCGen[0m
+  [36m[1m[Codegen][0m Processing RNCGeolocationSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNCGeolocationSpec[0m
+  [36m[1m[Codegen][0m Processing rnpicker[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos for rnpicker[0m
+  [36m[1m[Codegen][0m Processing FBReactNativeSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Processing RNContactsSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNContactsSpec[0m
+  [36m[1m[Codegen][0m Processing RNDatePickerSpecs[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNDatePickerSpecs[0m
+  [36m[1m[Codegen][0m Processing RNHapticFeedbackSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNHapticFeedbackSpec[0m
+  [36m[1m[Codegen][0m Processing RNImagePickerSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNImagePickerSpec[0m
+  [36m[1m[Codegen][0m Processing rnpermissions[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, tvos for rnpermissions[0m
+  [36m[1m[Codegen][0m Processing safeareacontext[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+  [36m[1m[Codegen][0m Processing RNVectorIconsSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for RNVectorIconsSpec[0m
+  [36m[1m[Codegen][0m Processing RNCWebViewSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, visionos for RNCWebViewSpec[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnasyncstorage - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rncameraroll - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnblurview - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNDateTimePickerCGen - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNCGeolocationSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnpicker - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m [33m[Codegen - FBReactNativeSpec] Skipping iOS code generation for FBReactNativeSpec as it has been generated already.[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNContactsSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNDatePickerSpecs - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNHapticFeedbackSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNImagePickerSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnpermissions - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNVectorIconsSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNCWebViewSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h[0m
+  [36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm[0m
+  [36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.h[0m
+  [36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.mm[0m
+  [36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.h[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.mm[0m
+  [36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactAppDependencyProvider.podspec[0m
+  [36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactCodegen.podspec[0m
+  [36m[1m[Codegen][0m [33mDone.[0m
+[36m[1m[Codegen][0m Analyzing /Users/giffinmike/Git/StylIQ-NEW-INSTALL/package.json[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+[36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the project dependencies.[0m
+[36m[1m[Codegen][0m Found @react-native-async-storage/async-storage[0m
+[36m[1m[Codegen][0m Found @react-native-camera-roll/camera-roll[0m
+[36m[1m[Codegen][0m Found @react-native-community/blur[0m
+[36m[1m[Codegen][0m Found @react-native-community/datetimepicker[0m
+[36m[1m[Codegen][0m Found @react-native-community/geolocation[0m
+[36m[1m[Codegen][0m Found @react-native-picker/picker[0m
+[36m[1m[Codegen][0m Found react-native[0m
+[36m[1m[Codegen][0m Found react-native-contacts[0m
+[36m[1m[Codegen][0m Found react-native-date-picker[0m
+[36m[1m[Codegen][0m Found react-native-haptic-feedback[0m
+[36m[1m[Codegen][0m Found react-native-image-picker[0m
+[36m[1m[Codegen][0m Found react-native-permissions[0m
+[36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+[36m[1m[Codegen][0m Found react-native-vector-icons[0m
+[36m[1m[Codegen][0m Found react-native-webview[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+[36m[1m[Codegen][0m Processing rnasyncstorage[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage[0m
+[36m[1m[Codegen][0m Processing rncameraroll[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for rncameraroll[0m
+[36m[1m[Codegen][0m Processing rnblurview[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for rnblurview[0m
+[36m[1m[Codegen][0m Processing RNDateTimePickerCGen[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNDateTimePickerCGen[0m
+[36m[1m[Codegen][0m Processing RNCGeolocationSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNCGeolocationSpec[0m
+[36m[1m[Codegen][0m Processing rnpicker[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos for rnpicker[0m
+[36m[1m[Codegen][0m Processing FBReactNativeSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Processing RNContactsSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNContactsSpec[0m
+[36m[1m[Codegen][0m Processing RNDatePickerSpecs[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNDatePickerSpecs[0m
+[36m[1m[Codegen][0m Processing RNHapticFeedbackSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNHapticFeedbackSpec[0m
+[36m[1m[Codegen][0m Processing RNImagePickerSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNImagePickerSpec[0m
+[36m[1m[Codegen][0m Processing rnpermissions[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos for rnpermissions[0m
+[36m[1m[Codegen][0m Processing safeareacontext[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+[36m[1m[Codegen][0m Processing RNVectorIconsSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for RNVectorIconsSpec[0m
+[36m[1m[Codegen][0m Processing RNCWebViewSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, visionos for RNCWebViewSpec[0m
+[36m[1m[Codegen][0m Generating Native Code for rnasyncstorage - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rncameraroll - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnblurview - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNDateTimePickerCGen - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNCGeolocationSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnpicker - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m [33m[Codegen - FBReactNativeSpec] Skipping iOS code generation for FBReactNativeSpec as it has been generated already.[0m
+[36m[1m[Codegen][0m Generating Native Code for RNContactsSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNDatePickerSpecs - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNHapticFeedbackSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNImagePickerSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnpermissions - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNVectorIconsSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNCWebViewSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.h[0m
+[36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.mm[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactAppDependencyProvider.podspec[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactCodegen.podspec[0m
+[36m[1m[Codegen][0m [33mDone.[0m
+  Preparing
+
+Updating local specs repositories
+  CDN: trunk Relative path: CocoaPods-version.yml exists! Returning local because checking is only performed in repo update
+
+Updating spec repo `trunk`
+  CDN: trunk Relative path: deprecated_podspecs.txt, has ETag? W/"690171b4-d2513"
+  CDN: trunk Relative path not modified: deprecated_podspecs.txt
+  CDN: trunk Going to update 16 files
+  CDN: trunk Relative path: CocoaPods-version.yml, has ETag? "690171b4-38"
+  CDN: trunk Relative path: all_pods_versions_0_3_5.txt, has ETag? W/"690171b4-d8a"
+  CDN: trunk Relative path: all_pods_versions_0_6_a.txt, has ETag? W/"690171b5-5f0"
+  CDN: trunk Relative path: all_pods_versions_0_8_4.txt, has ETag? W/"690171b5-46b"
+  CDN: trunk Relative path: all_pods_versions_0_b_5.txt, has ETag? W/"690171b4-735"
+  CDN: trunk Relative path: all_pods_versions_2_a_7.txt, has ETag? W/"690171b4-149e"
+  CDN: trunk Relative path: all_pods_versions_2_d_6.txt, has ETag? W/"690171b4-94e"
+  CDN: trunk Relative path: all_pods_versions_2_f_7.txt, has ETag? W/"690171b4-5d2"
+  CDN: trunk Relative path: all_pods_versions_4_7_f.txt, has ETag? W/"690171b4-a16"
+  CDN: trunk Relative path: all_pods_versions_6_1_e.txt, has ETag? W/"690171b4-576"
+  CDN: trunk Relative path: all_pods_versions_7_3_e.txt, has ETag? W/"690171b4-54e"
+  CDN: trunk Relative path: all_pods_versions_7_9_1.txt, has ETag? W/"690171b4-47e"
+  CDN: trunk Relative path: all_pods_versions_8_b_d.txt, has ETag? W/"690171b5-80e"
+  CDN: trunk Relative path: all_pods_versions_9_d_4.txt, has ETag? W/"690171b4-f46"
+  CDN: trunk Relative path: all_pods_versions_a_9_3.txt, has ETag? W/"690171b4-850"
+  CDN: trunk Relative path: Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json, has ETag? W/"2eb-IbzaktiYenFBxISqSP0K8kfHCIE"
+  CDN: trunk Relative path not modified: CocoaPods-version.yml
+  CDN: trunk Relative path not modified: all_pods_versions_0_3_5.txt
+  CDN: trunk Redirecting from https://cdn.cocoapods.org/Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json to https://cdn.jsdelivr.net/cocoa/Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json
+  CDN: trunk Relative path not modified: all_pods_versions_0_6_a.txt
+  CDN: trunk Relative path not modified: all_pods_versions_2_d_6.txt
+  CDN: trunk Relative path not modified: all_pods_versions_0_b_5.txt
+  CDN: trunk Relative path not modified: all_pods_versions_2_f_7.txt
+  CDN: trunk Relative path not modified: all_pods_versions_7_3_e.txt
+  CDN: trunk Relative path not modified: all_pods_versions_2_a_7.txt
+  CDN: trunk Relative path not modified: all_pods_versions_4_7_f.txt
+  CDN: trunk Relative path not modified: all_pods_versions_6_1_e.txt
+  CDN: trunk Relative path not modified: all_pods_versions_0_8_4.txt
+  CDN: trunk Relative path not modified: all_pods_versions_8_b_d.txt
+  CDN: trunk Relative path not modified: all_pods_versions_9_d_4.txt
+  CDN: trunk Relative path not modified: all_pods_versions_7_9_1.txt
+  CDN: trunk Relative path not modified: all_pods_versions_a_9_3.txt
+  CDN: trunk Relative path not modified: Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json
+
+Analyzing dependencies
+
+Inspecting targets to integrate
+  Using `ARCHS` setting to build architectures of target `Pods-StylIQ`: (``)
+[!] There are multiple dependencies with different sources for `A0Auth0` in `Podfile`:
+
+- A0Auth0 (from `../node_modules/react-native-auth0`)
+- A0Auth0 (from `/Users/giffinmike/Git/node_modules/react-native-auth0`)
+
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/analyzer.rb:985:in 'block in Pod::Installer::Analyzer#verify_no_pods_with_different_sources!'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/analyzer.rb:984:in 'Hash#each'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/analyzer.rb:984:in 'Pod::Installer::Analyzer#verify_no_pods_with_different_sources!'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/analyzer.rb:970:in 'Pod::Installer::Analyzer#fetch_external_sources'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer/analyzer.rb:118:in 'Pod::Installer::Analyzer#analyze'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:422:in 'Pod::Installer#analyze'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:244:in 'block in Pod::Installer#resolve_dependencies'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/user_interface.rb:64:in 'Pod::UserInterface.section'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:243:in 'Pod::Installer#resolve_dependencies'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/installer.rb:162:in 'Pod::Installer#install!'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/command/install.rb:52:in 'Pod::Command::Install#run'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/claide-1.1.0/lib/claide/command.rb:334:in 'CLAide::Command.run'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/lib/cocoapods/command.rb:52:in 'Pod::Command.run'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/gems/cocoapods-1.16.2/bin/pod:55:in '<top (required)>'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/bin/pod:25:in 'Kernel#load'
+/opt/homebrew/Cellar/cocoapods/1.16.2_1/libexec/bin/pod:25:in '<main>'

@@ -20,6 +20,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type WardrobeItem = {
   id: string;
@@ -37,6 +38,8 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   const userId = useUUID();
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  const insets = useSafeAreaInsets();
 
   const [selectedItems, setSelectedItems] = useState<WardrobeItem[]>([]);
   const [showNameModal, setShowNameModal] = useState(false);
@@ -358,6 +361,12 @@ export default function OutfitBuilderScreen({navigate}: Props) {
         {backgroundColor: theme.colors.background},
       ]}
       contentContainerStyle={{paddingBottom: 120, flexGrow: 1}}>
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <View style={globalStyles.sectionTitle}>
         <Text style={globalStyles.header}>Build Your Outfit</Text>
       </View>

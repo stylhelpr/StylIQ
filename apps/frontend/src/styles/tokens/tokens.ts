@@ -141,6 +141,8 @@ export const tokens = {
     xxl: 24,
     xxxl: 28,
     '2xl': 32,
+    '3xl': 36,
+    '4xl': 40,
     full: 9999, // circular / pill shapes
     default: 8, // fallback
     // none: 0,

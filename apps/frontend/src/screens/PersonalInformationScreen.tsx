@@ -19,6 +19,8 @@ import {API_BASE_URL} from '../config/api';
 import {useUUID} from '../context/UUIDContext';
 import {useAuth0} from 'react-native-auth0';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SafeScreenWrapper from '../components/SafeScreenWrapper';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
 
@@ -35,6 +37,8 @@ export default function PersonalInformationScreen({navigate}: any) {
   const userId = useUUID();
   const {user} = useAuth0();
   const sub = user?.sub;
+
+  const insets = useSafeAreaInsets();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -355,6 +359,12 @@ export default function PersonalInformationScreen({navigate}: any) {
         {backgroundColor: colors.background, opacity: fadeAnim},
       ]}
       contentContainerStyle={styles.content}>
+      <View
+        style={{
+          height: insets.top + 56, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <Text style={[styles.title, {color: colors.primary}]}>
         Personal Information
       </Text>

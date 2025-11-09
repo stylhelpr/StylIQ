@@ -30,6 +30,9 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import * as Animatable from 'react-native-animatable';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {fontScale, moderateScale} from '../utils/scale';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {tokens} from '../styles/tokens/tokens';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 
 if (
@@ -41,7 +44,7 @@ if (
 
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type, {
-    enableVibrateFallback: true,
+    // enableVibrateFallback: true,
     ignoreAndroidSystemSettings: false,
   });
 
@@ -53,6 +56,8 @@ export default function NotificationsScreen({
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const userId = useUUID() ?? '';
+
+  const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +73,7 @@ export default function NotificationsScreen({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 16,
+      paddingHorizontal: moderateScale(tokens.spacing.md1),
       paddingTop: 22,
       paddingBottom: 4,
     },
@@ -87,7 +92,7 @@ export default function NotificationsScreen({
     },
     pillText: {
       color: theme.colors.buttonText1,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 13,
     },
     actionBtn: {
@@ -100,14 +105,14 @@ export default function NotificationsScreen({
     actionDanger: {backgroundColor: theme.colors.error},
     actionText: {
       color: theme.colors.buttonText1,
-      fontWeight: '700',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 13,
     },
     center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
     empty: {paddingHorizontal: 16, paddingTop: 40},
     emptyBig: {
       color: theme.colors.foreground,
-      fontWeight: '800',
+      fontWeight: tokens.fontWeight.bold,
       fontSize: 18,
       marginBottom: 6,
       textAlign: 'center',
@@ -178,452 +183,1090 @@ export default function NotificationsScreen({
 
   return (
     // <GradientBackground>
-    <ScrollView
+    <SafeAreaView
       style={[
         globalStyles.container,
-        {backgroundColor: theme.colors.background},
+        {flex: 1, backgroundColor: theme.colors.background},
       ]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={theme.colors.foreground}
-          colors={[theme.colors.primary]}
-          progressViewOffset={32}
-        />
-      }
-      contentContainerStyle={{paddingBottom: 32}}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled">
-      <View style={globalStyles.sectionTitle}>
-        <Text style={globalStyles.header}>Notifications</Text>
-      </View>
-
-      <Animatable.View
-        animation="fadeInUp"
-        delay={200}
-        duration={700}
-        style={styles.headerRow}>
-        <Animatable.View
-          animation="slideInLeft"
-          delay={300}
-          style={styles.leftGroup}>
-          <AppleTouchFeedback
-            onPress={() => {
-              if (filter !== 'all') h('selection');
-              setFilter('all');
-            }}
-            hapticStyle="impactLight"
-            style={[styles.pill, filter === 'all' && styles.pillActive]}>
-            <Animatable.Text
-              animation={filter === 'all' ? 'pulse' : undefined}
-              iterationCount="infinite"
-              duration={2500}
-              style={styles.pillText}>
-              All
-            </Animatable.Text>
-          </AppleTouchFeedback>
-
-          <AppleTouchFeedback
-            onPress={() => {
-              if (filter !== 'unread') h('selection');
-              setFilter('unread');
-            }}
-            hapticStyle="impactLight"
-            style={[styles.pill, filter === 'unread' && styles.pillActive]}>
-            <Animatable.Text
-              animation={filter === 'unread' ? 'pulse' : undefined}
-              iterationCount="infinite"
-              duration={2500}
-              style={styles.pillText}>
-              Unread
-            </Animatable.Text>
-          </AppleTouchFeedback>
-        </Animatable.View>
+      edges={['left', 'right']}>
+      {/* 🔹 Spacer to match old navbar height */}
+      <View
+        style={{
+          height: insets.top + 53,
+          backgroundColor: theme.colors.background,
+        }}
+      />
+      <ScrollView
+        style={[
+          globalStyles.container,
+          {backgroundColor: theme.colors.background},
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.foreground}
+            colors={[theme.colors.primary]}
+            progressViewOffset={32}
+          />
+        }
+        contentContainerStyle={{paddingBottom: 32}}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        <View style={globalStyles.sectionTitle}>
+          <Text style={globalStyles.header}>Notifications</Text>
+        </View>
 
         <Animatable.View
-          animation="slideInRight"
-          delay={400}
-          style={styles.rightGroup}>
-          <AppleTouchFeedback
-            onPress={async () => {
-              h('impactMedium');
-              await markAllRead(userId);
-              await load();
-              h('notificationSuccess');
-            }}
-            hapticStyle="impactMedium"
-            style={styles.actionBtn}>
-            <Animatable.Text
-              animation="fadeIn"
-              duration={800}
-              style={styles.actionText}>
-              Mark All
-            </Animatable.Text>
-          </AppleTouchFeedback>
-
-          <AppleTouchFeedback
-            onPress={() => {
-              h('impactHeavy');
-              Alert.alert(
-                'Clear All Notifications?',
-                'This will permanently delete all your notifications and cannot be undone.',
-                [
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                    onPress: () => h('selection'),
-                  },
-                  {
-                    text: 'Delete All',
-                    style: 'destructive',
-                    onPress: async () => {
-                      h('notificationWarning');
-                      await clearAll(userId);
-                      await load();
-                    },
-                  },
-                ],
-                {cancelable: true},
-              );
-            }}
-            hapticStyle="impactHeavy"
-            style={[styles.actionBtn, styles.actionDanger]}>
-            <Animatable.Text
-              animation="fadeIn"
-              duration={800}
-              style={styles.actionText}>
-              Clear All
-            </Animatable.Text>
-          </AppleTouchFeedback>
-        </Animatable.View>
-      </Animatable.View>
-
-      {loading ? (
-        <Animatable.View
-          animation="fadeIn"
-          iterationCount="infinite"
-          duration={1600}
-          style={styles.center}>
-          <ActivityIndicator color={theme.colors.primary} size="large" />
-        </Animatable.View>
-      ) : (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.colors.foreground}
-            />
-          }
-          contentContainerStyle={{padding: 16, paddingBottom: 32}}
-          showsVerticalScrollIndicator={false}>
-          {filtered.length === 0 ? (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={300}
-              duration={800}
-              style={styles.empty}>
+          animation="fadeInUp"
+          delay={200}
+          duration={700}
+          style={styles.headerRow}>
+          <Animatable.View
+            animation="slideInLeft"
+            delay={300}
+            style={styles.leftGroup}>
+            <AppleTouchFeedback
+              onPress={() => {
+                if (filter !== 'all') h('selection');
+                setFilter('all');
+              }}
+              // hapticStyle="impactLight"
+              style={[styles.pill, filter === 'all' && styles.pillActive]}>
               <Animatable.Text
-                animation="pulse"
+                animation={filter === 'all' ? 'pulse' : undefined}
                 iterationCount="infinite"
-                duration={4000}
-                style={[styles.emptyBig, {lineHeight: 28}]}>
-                {filter === 'unread'
-                  ? "You're all caught up — No unread notifications!"
-                  : 'No notifications yet'}
-                <TooltipBubble
-                  message='Tap "Saved Outfits" in the bottom navigation bar and head to the Saved Outfits screen to schedule an outfit, then you will receive those notifications here.'
-                  position="top"
-                />
+                duration={2500}
+                style={styles.pillText}>
+                All
               </Animatable.Text>
+            </AppleTouchFeedback>
+
+            <AppleTouchFeedback
+              onPress={() => {
+                if (filter !== 'unread') h('selection');
+                setFilter('unread');
+              }}
+              // hapticStyle="impactLight"
+              style={[styles.pill, filter === 'unread' && styles.pillActive]}>
+              <Animatable.Text
+                animation={filter === 'unread' ? 'pulse' : undefined}
+                iterationCount="infinite"
+                duration={2500}
+                style={styles.pillText}>
+                Unread
+              </Animatable.Text>
+            </AppleTouchFeedback>
+          </Animatable.View>
+
+          <Animatable.View
+            animation="slideInRight"
+            delay={400}
+            style={styles.rightGroup}>
+            <AppleTouchFeedback
+              onPress={async () => {
+                // h('impactMedium');
+                await markAllRead(userId);
+                await load();
+                // h('notificationSuccess');
+              }}
+              // hapticStyle="impactLight"
+              style={styles.actionBtn}>
               <Animatable.Text
                 animation="fadeIn"
-                delay={500}
-                style={styles.emptySub}>
-                {filter === 'unread'
-                  ? 'All your notifications have been read.'
-                  : 'You’ll see outfit reminders, weather changes, and brand news here.'}
+                duration={800}
+                style={styles.actionText}>
+                Mark All
               </Animatable.Text>
-            </Animatable.View>
-          ) : (
-            <>
-              {(() => {
-                const sources: {[key: string]: AppNotification[]} = {
-                  'Scheduled Outfits': [],
-                  'News Stories': [],
-                  'Weather Alerts': [],
-                  'Care Reminders': [],
-                  'Fashion News Stories': [],
-                };
+            </AppleTouchFeedback>
 
-                filtered.forEach(n => {
-                  const cat = (n.category || '').toLowerCase();
-                  const title = (n.title || '').toLowerCase();
-                  const message = (n.message || '').toLowerCase();
+            <AppleTouchFeedback
+              onPress={() => {
+                // h('impactHeavy');
+                Alert.alert(
+                  'Clear All Notifications?',
+                  'This will permanently delete all your notifications and cannot be undone.',
+                  [
+                    {
+                      text: 'Cancel',
+                      style: 'cancel',
+                      onPress: () => h('selection'),
+                    },
+                    {
+                      text: 'Delete All',
+                      style: 'destructive',
+                      onPress: async () => {
+                        h('notificationWarning');
+                        await clearAll(userId);
+                        await load();
+                      },
+                    },
+                  ],
+                  {cancelable: true},
+                );
+              }}
+              // hapticStyle="impactLight"
+              style={[styles.actionBtn, styles.actionDanger]}>
+              <Animatable.Text
+                animation="fadeIn"
+                duration={800}
+                style={styles.actionText}>
+                Clear All
+              </Animatable.Text>
+            </AppleTouchFeedback>
+          </Animatable.View>
+        </Animatable.View>
 
-                  if (
-                    cat === 'scheduled_outfit' ||
-                    title.includes('outfit') ||
-                    message.includes('outfit') ||
-                    message.includes('reminder') ||
-                    message.includes('planned')
-                  ) {
-                    sources['Scheduled Outfits'].push(n);
-                  } else if (
-                    cat === 'news' ||
-                    title.includes('news') ||
-                    message.includes('headline') ||
-                    message.includes('story')
-                  ) {
-                    sources['News Stories'].push(n);
-                  } else if (
-                    cat === 'weather' ||
-                    title.includes('weather') ||
-                    message.includes('forecast') ||
-                    message.includes('temperature')
-                  ) {
-                    sources['Weather Alerts'].push(n);
-                  } else if (
-                    cat === 'care' ||
-                    title.includes('care') ||
-                    message.includes('wash') ||
-                    message.includes('laundry')
-                  ) {
-                    sources['Care Reminders'].push(n);
-                  } else {
-                    sources['Fashion News Stories'].push(n);
-                  }
-                });
+        {loading ? (
+          <Animatable.View
+            animation="fadeIn"
+            iterationCount="infinite"
+            duration={1600}
+            style={styles.center}>
+            <ActivityIndicator color={theme.colors.primary} size="large" />
+          </Animatable.View>
+        ) : (
+          <ScrollView
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.foreground}
+              />
+            }
+            contentContainerStyle={{padding: 16, paddingBottom: 32}}
+            showsVerticalScrollIndicator={false}>
+            {filtered.length === 0 ? (
+              <Animatable.View
+                animation="fadeInUp"
+                delay={300}
+                duration={800}
+                style={styles.empty}>
+                <Animatable.Text
+                  animation="pulse"
+                  iterationCount="infinite"
+                  duration={4000}
+                  style={[styles.emptyBig, {lineHeight: 28}]}>
+                  {filter === 'unread'
+                    ? "You're all caught up — No unread notifications!"
+                    : 'No notifications yet'}
+                  <TooltipBubble
+                    message='Tap "Saved Outfits" in the bottom navigation bar and head to the Saved Outfits screen to schedule an outfit, then you will receive those notifications here.'
+                    position="top"
+                  />
+                </Animatable.Text>
+                <Animatable.Text
+                  animation="fadeIn"
+                  delay={500}
+                  style={styles.emptySub}>
+                  {filter === 'unread'
+                    ? 'All your notifications have been read.'
+                    : 'You’ll see outfit reminders, weather changes, and brand news here.'}
+                </Animatable.Text>
+              </Animatable.View>
+            ) : (
+              <>
+                {(() => {
+                  const sources: {[key: string]: AppNotification[]} = {
+                    'Scheduled Outfits': [],
+                    'News Stories': [],
+                    'Weather Alerts': [],
+                    'Care Reminders': [],
+                    'Fashion News Stories': [],
+                  };
 
-                const order = [
-                  'Scheduled Outfits',
-                  'News Stories',
-                  'Weather Alerts',
-                  'Care Reminders',
-                  'Fashion News Stories',
-                ];
+                  filtered.forEach(n => {
+                    const cat = (n.category || '').toLowerCase();
+                    const title = (n.title || '').toLowerCase();
+                    const message = (n.message || '').toLowerCase();
 
-                const toggleGroup = (section: string) => {
-                  LayoutAnimation.configureNext(
-                    LayoutAnimation.create(
-                      300,
-                      LayoutAnimation.Types.easeInEaseOut,
-                      LayoutAnimation.Properties.opacity,
-                    ),
-                  );
-                  setExpandedGroups(prev => ({
-                    ...prev,
-                    [section]: !prev[section],
-                  }));
-                  h('selection');
-                };
+                    if (
+                      cat === 'scheduled_outfit' ||
+                      title.includes('outfit') ||
+                      message.includes('outfit') ||
+                      message.includes('reminder') ||
+                      message.includes('planned')
+                    ) {
+                      sources['Scheduled Outfits'].push(n);
+                    } else if (
+                      cat === 'news' ||
+                      title.includes('news') ||
+                      message.includes('headline') ||
+                      message.includes('story')
+                    ) {
+                      sources['News Stories'].push(n);
+                    } else if (
+                      cat === 'weather' ||
+                      title.includes('weather') ||
+                      message.includes('forecast') ||
+                      message.includes('temperature')
+                    ) {
+                      sources['Weather Alerts'].push(n);
+                    } else if (
+                      cat === 'care' ||
+                      title.includes('care') ||
+                      message.includes('wash') ||
+                      message.includes('laundry')
+                    ) {
+                      sources['Care Reminders'].push(n);
+                    } else {
+                      sources['Fashion News Stories'].push(n);
+                    }
+                  });
 
-                return order.map(section => {
-                  const list = sources[section];
-                  if (!list || list.length === 0) return null;
+                  const order = [
+                    'Scheduled Outfits',
+                    'News Stories',
+                    'Weather Alerts',
+                    'Care Reminders',
+                    'Fashion News Stories',
+                  ];
 
-                  const expanded = expandedGroups[section] ?? false;
-                  const visibleItems = expanded ? list : list.slice(0, 2);
+                  const toggleGroup = (section: string) => {
+                    LayoutAnimation.configureNext(
+                      LayoutAnimation.create(
+                        300,
+                        LayoutAnimation.Types.easeInEaseOut,
+                        LayoutAnimation.Properties.opacity,
+                      ),
+                    );
+                    setExpandedGroups(prev => ({
+                      ...prev,
+                      [section]: !prev[section],
+                    }));
+                    h('selection');
+                  };
 
-                  return (
-                    <View key={section} style={{marginBottom: 18}}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: 8,
-                          paddingHorizontal: 4,
-                        }}>
-                        <Text
+                  return order.map(section => {
+                    const list = sources[section];
+                    if (!list || list.length === 0) return null;
+
+                    const expanded = expandedGroups[section] ?? false;
+                    const visibleItems = expanded ? list : list.slice(0, 2);
+
+                    return (
+                      <View key={section} style={{marginBottom: 18}}>
+                        <View
                           style={{
-                            fontSize: 22,
-                            fontWeight: '500',
-                            color: theme.colors.foreground,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: 12,
+                            paddingHorizontal: 4,
                           }}>
-                          {section}
-                        </Text>
-
-                        {list.length > 3 && (
-                          <AppleTouchFeedback
-                            onPress={() => toggleGroup(section)}
-                            hapticStyle="impactLight"
+                          <Text
                             style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              paddingVertical: 2,
-                              paddingHorizontal: 6,
-                              backgroundColor: theme.colors.button1,
-                              borderRadius: 20,
+                              fontSize: 22,
+                              fontWeight: tokens.fontWeight.medium,
+                              color: theme.colors.foreground,
                             }}>
-                            <MaterialIcons
-                              name="keyboard-arrow-down"
-                              size={28}
-                              color={theme.colors.buttonText1}
+                            {section}
+                          </Text>
+
+                          {list.length > 3 && (
+                            <AppleTouchFeedback
+                              onPress={() => toggleGroup(section)}
+                              hapticStyle="impactLight"
                               style={{
-                                marginTop: 1,
-                                transform: [
-                                  {rotate: expanded ? '180deg' : '0deg'},
-                                ],
-                              }}
-                            />
-                            <Text
-                              style={{
-                                color: theme.colors.buttonText1,
-                                fontWeight: '400',
-                                fontSize: 13,
-                                marginRight: 4,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                paddingVertical: 2,
+                                paddingHorizontal: 6,
+                                backgroundColor: theme.colors.button1,
+                                borderRadius: 20,
                               }}>
-                              {expanded ? 'Show Less' : 'Show More'}
-                            </Text>
-                          </AppleTouchFeedback>
-                        )}
-                      </View>
+                              <MaterialIcons
+                                name="keyboard-arrow-down"
+                                size={28}
+                                color={theme.colors.buttonText1}
+                                style={{
+                                  marginTop: 1,
+                                  transform: [
+                                    {rotate: expanded ? '180deg' : '0deg'},
+                                  ],
+                                }}
+                              />
+                              <Text
+                                style={{
+                                  color: theme.colors.buttonText1,
+                                  fontWeight: tokens.fontWeight.medium,
+                                  fontSize: 13,
+                                  marginRight: 4,
+                                }}>
+                                {expanded ? 'Show Less' : 'Show More'}
+                              </Text>
+                            </AppleTouchFeedback>
+                          )}
+                        </View>
 
-                      {visibleItems.map((n, index) => (
-                        <Animatable.View
-                          key={n.id}
-                          animation="fadeInUp"
-                          duration={500}
-                          delay={index * 60}
-                          useNativeDriver
-                          style={{
-                            borderRadius: 20,
-                            overflow: 'hidden',
-                            // shadowColor: '#000',
-                            // shadowOpacity: 0.08,
-                            // shadowRadius: 12,
-                            // shadowOffset: {width: 0, height: 4},
-                            // elevation: 3,
-                          }}>
-                          <NotificationCard
-                            n={n}
-                            onPress={async () => {
-                              h('selection');
-                              await markRead(userId, n.id);
+                        {visibleItems.map((n, index) => (
+                          <Animatable.View
+                            key={n.id}
+                            animation="fadeInUp"
+                            duration={500}
+                            delay={index * 60}
+                            useNativeDriver
+                            style={{
+                              borderRadius: 20,
+                              overflow: 'hidden',
+                            }}>
+                            <NotificationCard
+                              n={n}
+                              onPress={async () => {
+                                h('selection');
+                                await markRead(userId, n.id);
 
-                              if (n.deeplink) {
-                                try {
-                                  await Linking.openURL(n.deeplink);
-                                  return;
-                                } catch (e) {
-                                  console.error(
-                                    '❌ Failed to open deeplink:',
-                                    e,
-                                  );
+                                if (n.deeplink) {
+                                  try {
+                                    await Linking.openURL(n.deeplink);
+                                    return;
+                                  } catch (e) {
+                                    console.error(
+                                      '❌ Failed to open deeplink:',
+                                      e,
+                                    );
+                                  }
                                 }
-                              }
 
-                              if (n?.data?.screen) {
-                                navigate(n.data.screen);
-                                return;
-                              }
+                                if (n?.data?.screen) {
+                                  navigate(n.data.screen);
+                                  return;
+                                }
 
-                              switch ((n.category || '').toLowerCase()) {
-                                case 'news':
+                                switch ((n.category || '').toLowerCase()) {
+                                  case 'news':
+                                    navigate('FashionFeedScreen');
+                                    return;
+                                  case 'outfit':
+                                  case 'scheduled_outfit':
+                                    navigate('SavedOutfitsScreen');
+                                    return;
+                                  case 'weather':
+                                    navigate('WeatherScreen');
+                                    return;
+                                  case 'care':
+                                    navigate('CareRemindersScreen');
+                                    return;
+                                }
+
+                                const title = (n.title || '').toLowerCase();
+                                const msg = (n.message || '').toLowerCase();
+
+                                if (
+                                  title.includes('outfit') ||
+                                  msg.includes('outfit')
+                                ) {
+                                  navigate('SavedOutfits');
+                                  return;
+                                }
+
+                                if (
+                                  title.includes('news') ||
+                                  msg.includes('headline')
+                                ) {
                                   navigate('FashionFeedScreen');
                                   return;
-                                case 'outfit':
-                                case 'scheduled_outfit':
-                                  navigate('SavedOutfitsScreen');
-                                  return;
-                                case 'weather':
+                                }
+
+                                if (
+                                  title.includes('weather') ||
+                                  msg.includes('forecast')
+                                ) {
                                   navigate('WeatherScreen');
                                   return;
-                                case 'care':
+                                }
+
+                                if (
+                                  title.includes('care') ||
+                                  msg.includes('laundry')
+                                ) {
                                   navigate('CareRemindersScreen');
                                   return;
-                              }
+                                }
 
-                              const title = (n.title || '').toLowerCase();
-                              const msg = (n.message || '').toLowerCase();
-
-                              if (
-                                title.includes('outfit') ||
-                                msg.includes('outfit')
-                              ) {
-                                navigate('SavedOutfits');
-                                return;
-                              }
-
-                              if (
-                                title.includes('news') ||
-                                msg.includes('headline')
-                              ) {
-                                navigate('FashionFeedScreen');
-                                return;
-                              }
-
-                              if (
-                                title.includes('weather') ||
-                                msg.includes('forecast')
-                              ) {
-                                navigate('WeatherScreen');
-                                return;
-                              }
-
-                              if (
-                                title.includes('care') ||
-                                msg.includes('laundry')
-                              ) {
-                                navigate('CareRemindersScreen');
-                                return;
-                              }
-
-                              Alert.alert(
-                                'Unknown notification',
-                                `No screen mapped for:\nCategory: ${n.category}\nTitle: ${n.title}`,
-                              );
-                            }}
-                            onDelete={async id => {
-                              Alert.alert(
-                                'Delete Notification?',
-                                'Are you sure you want to delete this notification?',
-                                [
-                                  {
-                                    text: 'Cancel',
-                                    style: 'cancel',
-                                    onPress: () => h('selection'),
-                                  },
-                                  {
-                                    text: 'Delete',
-                                    style: 'destructive',
-                                    onPress: async () => {
-                                      try {
-                                        h('impactHeavy');
-                                        await markRead(userId, id);
-                                        const updated = items.filter(
-                                          item => item.id !== id,
-                                        );
-                                        setItems(updated);
-                                      } catch (err) {
-                                        console.error(
-                                          '❌ Failed to delete notification:',
-                                          err,
-                                        );
-                                      }
+                                Alert.alert(
+                                  'Unknown notification',
+                                  `No screen mapped for:\nCategory: ${n.category}\nTitle: ${n.title}`,
+                                );
+                              }}
+                              onDelete={async id => {
+                                Alert.alert(
+                                  'Delete Notification?',
+                                  'Are you sure you want to delete this notification?',
+                                  [
+                                    {
+                                      text: 'Cancel',
+                                      style: 'cancel',
+                                      onPress: () => h('selection'),
                                     },
-                                  },
-                                ],
-                                {cancelable: true},
-                              );
-                            }}
-                          />
-                        </Animatable.View>
-                      ))}
-                    </View>
-                  );
-                });
-              })()}
-            </>
-          )}
-        </ScrollView>
-      )}
-    </ScrollView>
+                                    {
+                                      text: 'Delete',
+                                      style: 'destructive',
+                                      onPress: async () => {
+                                        try {
+                                          h('impactHeavy');
+                                          await markRead(userId, id);
+                                          const updated = items.filter(
+                                            item => item.id !== id,
+                                          );
+                                          setItems(updated);
+                                        } catch (err) {
+                                          console.error(
+                                            '❌ Failed to delete notification:',
+                                            err,
+                                          );
+                                        }
+                                      },
+                                    },
+                                  ],
+                                  {cancelable: true},
+                                );
+                              }}
+                            />
+                          </Animatable.View>
+                        ))}
+                      </View>
+                    );
+                  });
+                })()}
+              </>
+            )}
+          </ScrollView>
+        )}
+      </ScrollView>
+    </SafeAreaView>
     // </GradientBackground>
   );
 }
+
+/////////////////////
+
+// import React, {useEffect, useState, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   ScrollView,
+//   ActivityIndicator,
+//   RefreshControl,
+//   Linking,
+//   Alert,
+//   LayoutAnimation,
+//   UIManager,
+//   Platform,
+// } from 'react-native';
+// import messaging from '@react-native-firebase/messaging';
+// import {useUUID} from '../context/UUIDContext';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {
+//   loadInbox as loadNotifications,
+//   markRead,
+//   markAllRead,
+//   clearAll,
+//   AppNotification,
+//   addToInbox,
+// } from '../utils/notificationInbox';
+// import NotificationCard from '../components/Notifications/NotificationCard';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import * as Animatable from 'react-native-animatable';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+
+// if (
+//   Platform.OS === 'android' &&
+//   UIManager.setLayoutAnimationEnabledExperimental
+// ) {
+//   UIManager.setLayoutAnimationEnabledExperimental(true);
+// }
+
+// const h = (type: string) =>
+//   ReactNativeHapticFeedback.trigger(type, {
+//     enableVibrateFallback: true,
+//     ignoreAndroidSystemSettings: false,
+//   });
+
+// export default function NotificationsScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const userId = useUUID() ?? '';
+
+//   const [items, setItems] = useState<AppNotification[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [refreshing, setRefreshing] = useState(false);
+//   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+//   const [expandedGroups, setExpandedGroups] = useState<{
+//     [key: string]: boolean;
+//   }>({});
+
+//   const styles = StyleSheet.create({
+//     screen: {flex: 1},
+//     headerRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 16,
+//       paddingTop: 22,
+//       paddingBottom: 4,
+//     },
+//     leftGroup: {flexDirection: 'row', alignItems: 'center'},
+//     rightGroup: {flexDirection: 'row', alignItems: 'center'},
+//     pill: {
+//       paddingHorizontal: 18,
+//       paddingVertical: 8,
+//       borderRadius: 20,
+//       backgroundColor: theme.colors.pillDark1,
+//       marginRight: 8,
+//     },
+//     pillActive: {
+//       backgroundColor: theme.colors.button1,
+//       borderColor: theme.colors.surfaceBorder,
+//     },
+//     pillText: {
+//       color: theme.colors.buttonText1,
+//       fontWeight: '700',
+//       fontSize: 13,
+//     },
+//     actionBtn: {
+//       paddingHorizontal: 18,
+//       paddingVertical: 8,
+//       borderRadius: 20,
+//       backgroundColor: theme.colors.pillDark1,
+//       marginLeft: 8,
+//     },
+//     actionDanger: {backgroundColor: theme.colors.error},
+//     actionText: {
+//       color: theme.colors.buttonText1,
+//       fontWeight: '700',
+//       fontSize: 13,
+//     },
+//     center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+//     empty: {paddingHorizontal: 16, paddingTop: 40},
+//     emptyBig: {
+//       color: theme.colors.foreground,
+//       fontWeight: '800',
+//       fontSize: 18,
+//       marginBottom: 6,
+//       textAlign: 'center',
+//     },
+//     emptySub: {color: theme.colors.muted, textAlign: 'center'},
+//   });
+
+//   const load = useCallback(async () => {
+//     const list = await loadNotifications(userId);
+//     list.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+//     setItems(list);
+//     setLoading(false);
+//   }, [userId]);
+
+//   useEffect(() => {
+//     load();
+//   }, [load]);
+
+//   useEffect(() => {
+//     const unsubscribeFg = messaging().onMessage(async msg => {
+//       await addToInbox({
+//         user_id: userId,
+//         id: msg.messageId || `${Date.now()}`,
+//         title: msg.notification?.title || msg.data?.title,
+//         message:
+//           msg.notification?.body || msg.data?.body || msg.data?.message || '',
+//         timestamp: new Date().toISOString(),
+//         category:
+//           (msg.data?.category as AppNotification['category']) ?? 'other',
+//         deeplink: msg.data?.deeplink,
+//         data: msg.data,
+//         read: false,
+//       });
+//       await load();
+//       h('impactLight');
+//     });
+
+//     const unsubscribeOpen = messaging().onNotificationOpenedApp(async msg => {
+//       await addToInbox({
+//         user_id: userId,
+//         id: msg.messageId || `${Date.now()}`,
+//         title: msg.notification?.title || msg.data?.title,
+//         message:
+//           msg.notification?.body || msg.data?.body || msg.data?.message || '',
+//         timestamp: new Date().toISOString(),
+//         category:
+//           (msg.data?.category as AppNotification['category']) ?? 'other',
+//         deeplink: msg.data?.deeplink,
+//         data: msg.data,
+//         read: false,
+//       });
+//       await load();
+//     });
+
+//     return () => {
+//       unsubscribeFg();
+//       unsubscribeOpen();
+//     };
+//   }, [load, userId]);
+
+//   const onRefresh = useCallback(async () => {
+//     setRefreshing(true);
+//     await load();
+//     setRefreshing(false);
+//   }, [load]);
+
+//   const filtered = filter === 'unread' ? items.filter(n => !n.read) : items;
+
+//   return (
+//     // <GradientBackground>
+//     <ScrollView
+//       style={[
+//         globalStyles.container,
+//         {backgroundColor: theme.colors.background},
+//       ]}
+//       refreshControl={
+//         <RefreshControl
+//           refreshing={refreshing}
+//           onRefresh={onRefresh}
+//           tintColor={theme.colors.foreground}
+//           colors={[theme.colors.primary]}
+//           progressViewOffset={32}
+//         />
+//       }
+//       contentContainerStyle={{paddingBottom: 32}}
+//       showsVerticalScrollIndicator={false}
+//       keyboardShouldPersistTaps="handled">
+//       <View style={globalStyles.sectionTitle}>
+//         <Text style={globalStyles.header}>Notifications</Text>
+//       </View>
+
+//       <Animatable.View
+//         animation="fadeInUp"
+//         delay={200}
+//         duration={700}
+//         style={styles.headerRow}>
+//         <Animatable.View
+//           animation="slideInLeft"
+//           delay={300}
+//           style={styles.leftGroup}>
+//           <AppleTouchFeedback
+//             onPress={() => {
+//               if (filter !== 'all') h('selection');
+//               setFilter('all');
+//             }}
+//             hapticStyle="impactLight"
+//             style={[styles.pill, filter === 'all' && styles.pillActive]}>
+//             <Animatable.Text
+//               animation={filter === 'all' ? 'pulse' : undefined}
+//               iterationCount="infinite"
+//               duration={2500}
+//               style={styles.pillText}>
+//               All
+//             </Animatable.Text>
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             onPress={() => {
+//               if (filter !== 'unread') h('selection');
+//               setFilter('unread');
+//             }}
+//             hapticStyle="impactLight"
+//             style={[styles.pill, filter === 'unread' && styles.pillActive]}>
+//             <Animatable.Text
+//               animation={filter === 'unread' ? 'pulse' : undefined}
+//               iterationCount="infinite"
+//               duration={2500}
+//               style={styles.pillText}>
+//               Unread
+//             </Animatable.Text>
+//           </AppleTouchFeedback>
+//         </Animatable.View>
+
+//         <Animatable.View
+//           animation="slideInRight"
+//           delay={400}
+//           style={styles.rightGroup}>
+//           <AppleTouchFeedback
+//             onPress={async () => {
+//               h('impactMedium');
+//               await markAllRead(userId);
+//               await load();
+//               h('notificationSuccess');
+//             }}
+//             hapticStyle="impactMedium"
+//             style={styles.actionBtn}>
+//             <Animatable.Text
+//               animation="fadeIn"
+//               duration={800}
+//               style={styles.actionText}>
+//               Mark All
+//             </Animatable.Text>
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             onPress={() => {
+//               h('impactHeavy');
+//               Alert.alert(
+//                 'Clear All Notifications?',
+//                 'This will permanently delete all your notifications and cannot be undone.',
+//                 [
+//                   {
+//                     text: 'Cancel',
+//                     style: 'cancel',
+//                     onPress: () => h('selection'),
+//                   },
+//                   {
+//                     text: 'Delete All',
+//                     style: 'destructive',
+//                     onPress: async () => {
+//                       h('notificationWarning');
+//                       await clearAll(userId);
+//                       await load();
+//                     },
+//                   },
+//                 ],
+//                 {cancelable: true},
+//               );
+//             }}
+//             hapticStyle="impactHeavy"
+//             style={[styles.actionBtn, styles.actionDanger]}>
+//             <Animatable.Text
+//               animation="fadeIn"
+//               duration={800}
+//               style={styles.actionText}>
+//               Clear All
+//             </Animatable.Text>
+//           </AppleTouchFeedback>
+//         </Animatable.View>
+//       </Animatable.View>
+
+//       {loading ? (
+//         <Animatable.View
+//           animation="fadeIn"
+//           iterationCount="infinite"
+//           duration={1600}
+//           style={styles.center}>
+//           <ActivityIndicator color={theme.colors.primary} size="large" />
+//         </Animatable.View>
+//       ) : (
+//         <ScrollView
+//           refreshControl={
+//             <RefreshControl
+//               refreshing={refreshing}
+//               onRefresh={onRefresh}
+//               tintColor={theme.colors.foreground}
+//             />
+//           }
+//           contentContainerStyle={{padding: 16, paddingBottom: 32}}
+//           showsVerticalScrollIndicator={false}>
+//           {filtered.length === 0 ? (
+//             <Animatable.View
+//               animation="fadeInUp"
+//               delay={300}
+//               duration={800}
+//               style={styles.empty}>
+//               <Animatable.Text
+//                 animation="pulse"
+//                 iterationCount="infinite"
+//                 duration={4000}
+//                 style={[styles.emptyBig, {lineHeight: 28}]}>
+//                 {filter === 'unread'
+//                   ? "You're all caught up — No unread notifications!"
+//                   : 'No notifications yet'}
+//                 <TooltipBubble
+//                   message='Tap "Saved Outfits" in the bottom navigation bar and head to the Saved Outfits screen to schedule an outfit, then you will receive those notifications here.'
+//                   position="top"
+//                 />
+//               </Animatable.Text>
+//               <Animatable.Text
+//                 animation="fadeIn"
+//                 delay={500}
+//                 style={styles.emptySub}>
+//                 {filter === 'unread'
+//                   ? 'All your notifications have been read.'
+//                   : 'You’ll see outfit reminders, weather changes, and brand news here.'}
+//               </Animatable.Text>
+//             </Animatable.View>
+//           ) : (
+//             <>
+//               {(() => {
+//                 const sources: {[key: string]: AppNotification[]} = {
+//                   'Scheduled Outfits': [],
+//                   'News Stories': [],
+//                   'Weather Alerts': [],
+//                   'Care Reminders': [],
+//                   'Fashion News Stories': [],
+//                 };
+
+//                 filtered.forEach(n => {
+//                   const cat = (n.category || '').toLowerCase();
+//                   const title = (n.title || '').toLowerCase();
+//                   const message = (n.message || '').toLowerCase();
+
+//                   if (
+//                     cat === 'scheduled_outfit' ||
+//                     title.includes('outfit') ||
+//                     message.includes('outfit') ||
+//                     message.includes('reminder') ||
+//                     message.includes('planned')
+//                   ) {
+//                     sources['Scheduled Outfits'].push(n);
+//                   } else if (
+//                     cat === 'news' ||
+//                     title.includes('news') ||
+//                     message.includes('headline') ||
+//                     message.includes('story')
+//                   ) {
+//                     sources['News Stories'].push(n);
+//                   } else if (
+//                     cat === 'weather' ||
+//                     title.includes('weather') ||
+//                     message.includes('forecast') ||
+//                     message.includes('temperature')
+//                   ) {
+//                     sources['Weather Alerts'].push(n);
+//                   } else if (
+//                     cat === 'care' ||
+//                     title.includes('care') ||
+//                     message.includes('wash') ||
+//                     message.includes('laundry')
+//                   ) {
+//                     sources['Care Reminders'].push(n);
+//                   } else {
+//                     sources['Fashion News Stories'].push(n);
+//                   }
+//                 });
+
+//                 const order = [
+//                   'Scheduled Outfits',
+//                   'News Stories',
+//                   'Weather Alerts',
+//                   'Care Reminders',
+//                   'Fashion News Stories',
+//                 ];
+
+//                 const toggleGroup = (section: string) => {
+//                   LayoutAnimation.configureNext(
+//                     LayoutAnimation.create(
+//                       300,
+//                       LayoutAnimation.Types.easeInEaseOut,
+//                       LayoutAnimation.Properties.opacity,
+//                     ),
+//                   );
+//                   setExpandedGroups(prev => ({
+//                     ...prev,
+//                     [section]: !prev[section],
+//                   }));
+//                   h('selection');
+//                 };
+
+//                 return order.map(section => {
+//                   const list = sources[section];
+//                   if (!list || list.length === 0) return null;
+
+//                   const expanded = expandedGroups[section] ?? false;
+//                   const visibleItems = expanded ? list : list.slice(0, 2);
+
+//                   return (
+//                     <View key={section} style={{marginBottom: 18}}>
+//                       <View
+//                         style={{
+//                           flexDirection: 'row',
+//                           alignItems: 'center',
+//                           justifyContent: 'space-between',
+//                           marginBottom: 8,
+//                           paddingHorizontal: 4,
+//                         }}>
+//                         <Text
+//                           style={{
+//                             fontSize: 22,
+//                             fontWeight: '500',
+//                             color: theme.colors.foreground,
+//                           }}>
+//                           {section}
+//                         </Text>
+
+//                         {list.length > 3 && (
+//                           <AppleTouchFeedback
+//                             onPress={() => toggleGroup(section)}
+//                             hapticStyle="impactLight"
+//                             style={{
+//                               flexDirection: 'row',
+//                               alignItems: 'center',
+//                               paddingVertical: 2,
+//                               paddingHorizontal: 6,
+//                               backgroundColor: theme.colors.button1,
+//                               borderRadius: 20,
+//                             }}>
+//                             <MaterialIcons
+//                               name="keyboard-arrow-down"
+//                               size={28}
+//                               color={theme.colors.buttonText1}
+//                               style={{
+//                                 marginTop: 1,
+//                                 transform: [
+//                                   {rotate: expanded ? '180deg' : '0deg'},
+//                                 ],
+//                               }}
+//                             />
+//                             <Text
+//                               style={{
+//                                 color: theme.colors.buttonText1,
+//                                 fontWeight: '400',
+//                                 fontSize: 13,
+//                                 marginRight: 4,
+//                               }}>
+//                               {expanded ? 'Show Less' : 'Show More'}
+//                             </Text>
+//                           </AppleTouchFeedback>
+//                         )}
+//                       </View>
+
+//                       {visibleItems.map((n, index) => (
+//                         <Animatable.View
+//                           key={n.id}
+//                           animation="fadeInUp"
+//                           duration={500}
+//                           delay={index * 60}
+//                           useNativeDriver
+//                           style={{
+//                             borderRadius: 20,
+//                             overflow: 'hidden',
+//                             // shadowColor: '#000',
+//                             // shadowOpacity: 0.08,
+//                             // shadowRadius: 12,
+//                             // shadowOffset: {width: 0, height: 4},
+//                             // elevation: 3,
+//                           }}>
+//                           <NotificationCard
+//                             n={n}
+//                             onPress={async () => {
+//                               h('selection');
+//                               await markRead(userId, n.id);
+
+//                               if (n.deeplink) {
+//                                 try {
+//                                   await Linking.openURL(n.deeplink);
+//                                   return;
+//                                 } catch (e) {
+//                                   console.error(
+//                                     '❌ Failed to open deeplink:',
+//                                     e,
+//                                   );
+//                                 }
+//                               }
+
+//                               if (n?.data?.screen) {
+//                                 navigate(n.data.screen);
+//                                 return;
+//                               }
+
+//                               switch ((n.category || '').toLowerCase()) {
+//                                 case 'news':
+//                                   navigate('FashionFeedScreen');
+//                                   return;
+//                                 case 'outfit':
+//                                 case 'scheduled_outfit':
+//                                   navigate('SavedOutfitsScreen');
+//                                   return;
+//                                 case 'weather':
+//                                   navigate('WeatherScreen');
+//                                   return;
+//                                 case 'care':
+//                                   navigate('CareRemindersScreen');
+//                                   return;
+//                               }
+
+//                               const title = (n.title || '').toLowerCase();
+//                               const msg = (n.message || '').toLowerCase();
+
+//                               if (
+//                                 title.includes('outfit') ||
+//                                 msg.includes('outfit')
+//                               ) {
+//                                 navigate('SavedOutfits');
+//                                 return;
+//                               }
+
+//                               if (
+//                                 title.includes('news') ||
+//                                 msg.includes('headline')
+//                               ) {
+//                                 navigate('FashionFeedScreen');
+//                                 return;
+//                               }
+
+//                               if (
+//                                 title.includes('weather') ||
+//                                 msg.includes('forecast')
+//                               ) {
+//                                 navigate('WeatherScreen');
+//                                 return;
+//                               }
+
+//                               if (
+//                                 title.includes('care') ||
+//                                 msg.includes('laundry')
+//                               ) {
+//                                 navigate('CareRemindersScreen');
+//                                 return;
+//                               }
+
+//                               Alert.alert(
+//                                 'Unknown notification',
+//                                 `No screen mapped for:\nCategory: ${n.category}\nTitle: ${n.title}`,
+//                               );
+//                             }}
+//                             onDelete={async id => {
+//                               Alert.alert(
+//                                 'Delete Notification?',
+//                                 'Are you sure you want to delete this notification?',
+//                                 [
+//                                   {
+//                                     text: 'Cancel',
+//                                     style: 'cancel',
+//                                     onPress: () => h('selection'),
+//                                   },
+//                                   {
+//                                     text: 'Delete',
+//                                     style: 'destructive',
+//                                     onPress: async () => {
+//                                       try {
+//                                         h('impactHeavy');
+//                                         await markRead(userId, id);
+//                                         const updated = items.filter(
+//                                           item => item.id !== id,
+//                                         );
+//                                         setItems(updated);
+//                                       } catch (err) {
+//                                         console.error(
+//                                           '❌ Failed to delete notification:',
+//                                           err,
+//                                         );
+//                                       }
+//                                     },
+//                                   },
+//                                 ],
+//                                 {cancelable: true},
+//                               );
+//                             }}
+//                           />
+//                         </Animatable.View>
+//                       ))}
+//                     </View>
+//                   );
+//                 });
+//               })()}
+//             </>
+//           )}
+//         </ScrollView>
+//       )}
+//     </ScrollView>
+//     // </GradientBackground>
+//   );
+// }
 
 ////////////////////
 

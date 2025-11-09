@@ -127,7 +127,7 @@ export default function SwipeableCard({
       {deleteBackground && (
         <View
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             {zIndex: 0, justifyContent: 'center'},
           ]}>
           {deleteBackground}

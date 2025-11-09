@@ -1,0 +1,259 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace ios/StylIQ.xcworkspace -scheme StylIQ -configuration Debug -destination "platform=iOS Simulator,name=iPhone 16 Pro Max" -derivedDataPath ios/build
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'StylIQ' in project 'StylIQ' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/Images.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 8081665810378b8e56da2c4fa3592897
+Build description path: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/XCBuildData/8081665810378b8e56da2c4fa3592897.xcbuilddata
+CreateBuildDirectory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-create-build-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products
+
+CreateBuildDirectory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-create-build-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
+
+CreateBuildDirectory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-create-build-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-create-build-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-create-build-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-create-build-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ-026fa42a3c936f2b5fa507b317ce4ce9-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ-026fa42a3c936f2b5fa507b317ce4ce9-VFS-iphonesimulator/all-product-headers.yaml
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Script-FD10A7F022414F080027D42C.sh (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Script-FD10A7F022414F080027D42C.sh
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-all-target-headers.hmap (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.DependencyStaticMetadataFileList (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Script-00DD1BFF1BD5951E006B06BC.sh (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Script-00DD1BFF1BD5951E006B06BC.sh
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.DependencyMetadataFileList (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-generated-files.hmap (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-generated-files.hmap
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-project-headers.hmap (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-project-headers.hmap
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-own-target-headers.hmap (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.hmap (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.hmap
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-all-non-framework-target-headers.hmap (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ_const_extract_protocols.json (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.SwiftFileList (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.SwiftFileList
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.SwiftConstValuesFileList (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ-OutputFileMap.json (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.LinkFileList (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.LinkFileList
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+-target arm64-apple-ios18.0-simulator '-std=gnu99' -fmodules -gmodules '-fmodules-cache-path=/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/ModuleCache.noindex' -fpascal-strings -O0 -fno-common '-DDEBUG=1' -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -g -iquote /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-generated-files.hmap -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-own-target-headers.hmap -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-all-target-headers.hmap -iquote /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-project-headers.hmap -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/include -I/ReactCommon/ReactCommon.framework/Headers -I/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core -I/React-runtimeexecutor/React_runtimeexecutor.framework/Headers -I/React-runtimeexecutor/React_runtimeexecutor.framework/Headers/platform/ios -I/ReactCommon-Samples/ReactCommon_Samples.framework/Headers -I/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios -I/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx -I/React-NativeModulesApple/React_NativeModulesApple.framework/Headers -I/React-graphics/React_graphics.framework/Headers -I/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources-normal/arm64 -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/arm64 -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources -F/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator -F/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/System/Library/Frameworks
+
+MkDir /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /bin/mkdir -p /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/Entitlements-Simulated.plist (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/Entitlements-Simulated.plist
+
+WriteAuxiliaryFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/StylIQ_vers.c (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    write-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/StylIQ_vers.c
+
+ProcessProductPackaging /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/StylIQ.entitlements /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app.xcent (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    
+    Entitlements:
+    
+    {
+}
+    
+    builtin-productPackagingUtility /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/StylIQ.entitlements -entitlements -format xml -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app.xcent
+
+ProcessProductPackaging /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/StylIQ.entitlements /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app-Simulated.xcent (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "VS7XWZXJ53.com.stylhelpr.stylhelpr";
+    "aps-environment" = development;
+}
+    
+    builtin-productPackagingUtility /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/StylIQ.entitlements -entitlements -format xml -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app-Simulated.xcent
+
+ProcessProductPackagingDER /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app.xcent /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app.xcent.der (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /usr/bin/derq query -f xml -i /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app.xcent -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app.xcent.der --raw
+
+ProcessProductPackagingDER /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app-Simulated.xcent /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app-Simulated.xcent.der (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /usr/bin/derq query -f xml -i /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app-Simulated.xcent -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ.app-Simulated.xcent.der --raw
+
+GenerateAssetSymbols /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/Images.xcassets (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/Images.xcassets --compile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_dependencies --output-partial-info-plist /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_generated_info.plist --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --minimum-deployment-target 18.0 --platform iphonesimulator --bundle-identifier com.stylhelpr.stylhelpr --generate-swift-asset-symbol-extensions NO --generate-swift-asset-symbols /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CpResource /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app/PrivacyInfo.xcprivacy /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/PrivacyInfo.xcprivacy (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/PrivacyInfo.xcprivacy /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app
+
+CopyPlistFile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app/GoogleService-Info.plist /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/GoogleService-Info.plist (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-copyPlist --convert binary1 --outdir /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app -- /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/GoogleService-Info.plist
+
+CompileStoryboard /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/LaunchScreen.storyboard (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --errors --warnings --notices --module StylIQ --output-partial-info-plist /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/LaunchScreen-SBPartialInfo.plist --auto-activate-custom-fonts --target-device iphone --minimum-deployment-target 18.0 --output-format human-readable-text /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/LaunchScreen.storyboard --compilation-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:2:8: error: Unable to find module dependency: 'React'
+import React
+       ^
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:2:8: note: a dependency of main module 'StylIQ'
+import React
+       ^
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:3:8: error: Unable to find module dependency: 'React_RCTAppDelegate'
+import React_RCTAppDelegate
+       ^
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:3:8: note: a dependency of main module 'StylIQ'
+import React_RCTAppDelegate
+       ^
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:4:8: error: Unable to find module dependency: 'ReactAppDependencyProvider'
+import ReactAppDependencyProvider
+       ^
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:4:8: note: a dependency of main module 'StylIQ'
+import ReactAppDependencyProvider
+       ^
+
+MkDir /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_output/thinned (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /bin/mkdir -p /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_output/thinned
+
+MkDir /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_output/unthinned (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /bin/mkdir -p /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_output/unthinned
+
+CompileAssetCatalogVariant thinned /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/StylIQ.app /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/Images.xcassets (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/Images.xcassets --compile /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone17,2 --filter-for-device-os-version 26.0.1 --development-region en --target-device iphone --minimum-deployment-target 18.0 --platform iphonesimulator
+
+SwiftDriver StylIQ normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StylIQ' from project 'StylIQ')
+    cd /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StylIQ -Onone -enforce-exclusivity\=checked @/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios18.0-simulator -g -module-cache-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator -F /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/System/Library/Frameworks -c -j16 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/ModuleCache.noindex -sdk-module-cache-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ_const_extract_protocols.json -Xcc -iquote -Xcc /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-generated-files.hmap -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-own-target-headers.hmap -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-all-target-headers.hmap -Xcc -iquote -Xcc /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/StylIQ-project-headers.hmap -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Products/Debug-iphonesimulator/include -Xcc -I/ReactCommon/ReactCommon.framework/Headers -Xcc -I/ReactCommon/ReactCommon.framework/Headers/react/nativemodule/core -Xcc -I/React-runtimeexecutor/React_runtimeexecutor.framework/Headers -Xcc -I/React-runtimeexecutor/React_runtimeexecutor.framework/Headers/platform/ios -Xcc -I/ReactCommon-Samples/ReactCommon_Samples.framework/Headers -Xcc -I/ReactCommon-Samples/ReactCommon_Samples.framework/Headers/platform/ios -Xcc -I/React-Fabric/React_Fabric.framework/Headers/react/renderer/components/view/platform/cxx -Xcc -I/React-NativeModulesApple/React_NativeModulesApple.framework/Headers -Xcc -I/React-graphics/React_graphics.framework/Headers -Xcc -I/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources-normal/arm64 -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources/arm64 -Xcc -I/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/Build/Intermediates.noindex/StylIQ.build/Debug-iphonesimulator/StylIQ.build/Objects-normal/arm64/StylIQ-Swift.h -working-directory /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios -experimental-emit-module-separately -disable-cmo
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:2:8: error: Unable to find module dependency: 'React'
+import React
+       ^ (in target 'StylIQ' from project 'StylIQ')
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:2:8: note: A dependency of main module 'StylIQ'
+import React
+       ^ (in target 'StylIQ' from project 'StylIQ')
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:3:8: error: Unable to find module dependency: 'React_RCTAppDelegate'
+import React_RCTAppDelegate
+       ^ (in target 'StylIQ' from project 'StylIQ')
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:3:8: note: A dependency of main module 'StylIQ'
+import React_RCTAppDelegate
+       ^ (in target 'StylIQ' from project 'StylIQ')
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:4:8: error: Unable to find module dependency: 'ReactAppDependencyProvider'
+import ReactAppDependencyProvider
+       ^ (in target 'StylIQ' from project 'StylIQ')
+/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ/AppDelegate.swift:4:8: note: A dependency of main module 'StylIQ'
+import ReactAppDependencyProvider
+       ^ (in target 'StylIQ' from project 'StylIQ')
+
+warning: Run script build phase 'Bundle React Native code and images' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'StylIQ' from project 'StylIQ')
+warning: Run script build phase 'Start Packager' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'StylIQ' from project 'StylIQ')
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftDriver StylIQ normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StylIQ' from project 'StylIQ')
+	Building workspace StylIQ with scheme StylIQ and configuration Debug
+(2 failures)

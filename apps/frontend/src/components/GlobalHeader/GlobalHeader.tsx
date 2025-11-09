@@ -1,3 +1,297 @@
+import React, {useState, useRef, useEffect} from 'react';
+import {View, Text, StyleSheet, Animated, Platform} from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useAppTheme} from '../../context/ThemeContext';
+import {useAuth0} from 'react-native-auth0';
+import type {Screen} from '../../navigation/types';
+import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+import {fontScale, moderateScale} from '../../utils/scale';
+import {tokens} from '../../styles/tokens/tokens';
+import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+type Props = {
+  navigate: (screen: Screen) => void;
+  showSettings?: boolean;
+  scrollY?: Animated.Value;
+};
+
+export default function GlobalHeader({
+  navigate,
+  showSettings = false,
+  scrollY,
+}: Props) {
+  const {theme} = useAppTheme();
+  const {clearSession} = useAuth0();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(-10)).current;
+
+  const handleLogout = async () => {
+    try {
+      await clearSession();
+      navigate('Login');
+    } catch (e) {
+      console.error('Logout failed:', e);
+    }
+  };
+
+  // 🔹 Dropdown animation
+  useEffect(() => {
+    if (menuOpen) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: -10,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [menuOpen]);
+
+  // 🔹 Scroll fade for title
+  const stylHelprOpacity = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, 60],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+      })
+    : 1;
+
+  // 🔹 Subtle top gradient (for depth)
+  const gradientOpacity = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, 120],
+        outputRange: [0.08, 0.12],
+        extrapolate: 'clamp',
+      })
+    : 0.1;
+
+  const isiOS25OrLower =
+    Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
+
+  const getTintColor = () =>
+    theme.mode === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.44)';
+
+  const styles = StyleSheet.create({
+    safeArea: {
+      backgroundColor: 'transparent',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 999,
+    },
+    gradientOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 110,
+      backgroundColor: 'rgba(0, 0, 0, 0)',
+      opacity: 0.1,
+    },
+    header: {
+      width: '100%',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: moderateScale(tokens.spacing.md),
+      paddingVertical: 10,
+      backgroundColor: 'transparent',
+    },
+    title: {
+      fontSize: fontScale(tokens.fontSize['2xl']),
+      fontWeight: tokens.fontWeight.extraBold,
+      color: theme.colors.foreground,
+    },
+    iconRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      position: 'relative',
+      zIndex: 100,
+    },
+    glassButton: {
+      width: 35,
+      height: 35,
+      borderRadius: 21,
+      marginLeft: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.foreground,
+    },
+    dropdown: {
+      position: 'absolute',
+      top: 48,
+      right: 0,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 6,
+      elevation: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      zIndex: 200,
+      borderColor: theme.colors.muted,
+      borderWidth: tokens.borderWidth.hairline,
+    },
+    dropdownItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+    },
+    dropdownText: {
+      marginLeft: 8,
+      color: theme.colors.foreground,
+      fontSize: 15,
+    },
+  });
+
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      {/* 🔹 Subtle depth overlay */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.gradientOverlay, {opacity: gradientOpacity}]}
+      />
+
+      <View style={styles.header}>
+        <View
+          style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+          <Animated.Text
+            style={[
+              styles.title,
+              {position: 'absolute', opacity: stylHelprOpacity},
+            ]}>
+            StylHelpr
+          </Animated.Text>
+        </View>
+
+        <View style={styles.iconRow}>
+          {[
+            {
+              name: 'notifications-none',
+              action: () => navigate('Notifications'),
+            },
+            {name: 'videocam', action: () => navigate('VideoFeedScreen')},
+            {
+              name: 'smart-toy',
+              action: () => navigate('AiStylistChatScreen'),
+              tint: theme.colors.button1,
+              innerColor: theme.colors.buttonText1,
+            },
+            {name: 'event-note', action: () => navigate('Planner')},
+            {
+              name: 'menu',
+              action: () => setMenuOpen(prev => !prev),
+            },
+          ].map((icon, idx) => (
+            <AppleTouchFeedback
+              key={idx}
+              hapticStyle="impactLight"
+              onPress={icon.action}>
+              {isLiquidGlassSupported && !isiOS25OrLower ? (
+                <LiquidGlassView
+                  style={styles.glassButton}
+                  effect="clear"
+                  tintColor={getTintColor()}
+                  colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
+                  <MaterialIcons
+                    name={icon.name}
+                    size={22}
+                    color={icon.innerColor || theme.colors.buttonText1}
+                  />
+                </LiquidGlassView>
+              ) : (
+                // 🔹 Fallback for iOS 25 and lower or unsupported devices
+                <View
+                  style={[
+                    styles.glassButton,
+                    {
+                      backgroundColor: 'rgba(0, 0, 0, 0.48)',
+                      borderColor: theme.colors.muted,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.15,
+                      shadowRadius: 4,
+                      shadowOffset: {width: 0, height: 2},
+                    },
+                  ]}>
+                  <MaterialIcons
+                    name={icon.name}
+                    size={22}
+                    color={icon.innerColor || theme.colors.buttonText1}
+                  />
+                </View>
+              )}
+            </AppleTouchFeedback>
+          ))}
+
+          {menuOpen && (
+            <Animated.View
+              style={[
+                styles.dropdown,
+                {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+              ]}>
+              <AppleTouchFeedback
+                hapticStyle="impactLight"
+                onPress={() => {
+                  setMenuOpen(false);
+                  navigate('Profile');
+                }}
+                style={styles.dropdownItem}>
+                <MaterialIcons
+                  name="person"
+                  size={19}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.dropdownText}>Profile</Text>
+              </AppleTouchFeedback>
+
+              <AppleTouchFeedback
+                hapticStyle="notificationWarning"
+                onPress={() => {
+                  setMenuOpen(false);
+                  handleLogout();
+                }}
+                style={styles.dropdownItem}>
+                <MaterialIcons
+                  name="logout"
+                  size={18}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.dropdownText}>Log Out</Text>
+              </AppleTouchFeedback>
+            </Animated.View>
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+////////////////
+
 // import React, {useState, useRef, useEffect} from 'react';
 // import {View, Text, StyleSheet, Animated} from 'react-native';
 // import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -9,9 +303,7 @@
 // import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 // import {fontScale, moderateScale} from '../../utils/scale';
 // import {tokens} from '../../styles/tokens/tokens';
-// import {useVoiceControl} from '../../hooks/useVoiceControl';
-// import {routeVoiceCommand} from '../../utils/voiceCommandRouter';
-// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
 
 // type Props = {
 //   navigate: (screen: Screen) => void;
@@ -30,19 +322,6 @@
 //   const fadeAnim = useRef(new Animated.Value(0)).current;
 //   const slideAnim = useRef(new Animated.Value(-10)).current;
 
-//   const {speech, startVoiceCommand, isRecording} = useVoiceControl();
-
-//   const handleVoiceCommand = async (cmd: string) => {
-//     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Global voice command received:', lower);
-
-//     // haptic feedback
-//     ReactNativeHapticFeedback.trigger('impactLight');
-
-//     // 🔹 Basic navigational commands
-//     await routeVoiceCommand(lower, navigate);
-//   };
-
 //   const handleLogout = async () => {
 //     try {
 //       await clearSession();
@@ -52,7 +331,7 @@
 //     }
 //   };
 
-//   // 🔹 Animate dropdown open/close
+//   // 🔹 Dropdown animation
 //   useEffect(() => {
 //     if (menuOpen) {
 //       Animated.parallel([
@@ -81,8 +360,9 @@
 //         }),
 //       ]).start();
 //     }
-//   }, [menuOpen, fadeAnim, slideAnim]);
+//   }, [menuOpen]);
 
+//   // 🔹 Scroll fade for title
 //   const stylHelprOpacity = scrollY
 //     ? scrollY.interpolate({
 //         inputRange: [0, 60],
@@ -91,54 +371,46 @@
 //       })
 //     : 1;
 
-//   const searchOpacity = scrollY
+//   // 🔹 Subtle top gradient (for depth)
+//   const gradientOpacity = scrollY
 //     ? scrollY.interpolate({
-//         inputRange: [0, 60],
-//         outputRange: [0, 1],
+//         inputRange: [0, 120],
+//         outputRange: [0.08, 0.12],
 //         extrapolate: 'clamp',
 //       })
-//     : 0;
+//     : 0.1;
 
 //   const styles = StyleSheet.create({
 //     safeArea: {
-//       backgroundColor: theme.colors.background,
-//       zIndex: 50,
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     gradientOverlay: {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       height: 110,
+//       backgroundColor: 'rgba(0, 0, 0, 0)',
+//       opacity: 0.1,
 //     },
 //     header: {
 //       width: '100%',
-//       paddingHorizontal: moderateScale(tokens.spacing.md),
-//       marginBottom: 8,
 //       flexDirection: 'row',
 //       justifyContent: 'space-between',
 //       alignItems: 'center',
-//       backgroundColor: theme.colors.background,
-//       zIndex: 50,
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
 //     },
 //     title: {
 //       fontSize: fontScale(tokens.fontSize['2xl']),
 //       fontWeight: tokens.fontWeight.extraBold,
 //       color: theme.colors.foreground,
-//     },
-//     iconCircle: {
-//       backgroundColor: theme.colors.surface3,
-//       padding: moderateScale(tokens.spacing.nano),
-//       marginLeft: moderateScale(tokens.spacing.md2),
-//       borderColor: theme.colors.foreground,
-//       borderWidth: tokens.borderWidth.hairline,
-//       borderRadius: 24,
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//     },
-//     iconCircle2: {
-//       backgroundColor: theme.colors.button1,
-//       padding: moderateScale(tokens.spacing.nano),
-//       marginRight: moderateScale(tokens.spacing.xsm),
-//       marginLeft: moderateScale(tokens.spacing.sm),
-//       borderColor: theme.colors.foreground,
-//       borderWidth: tokens.borderWidth.hairline,
-//       borderRadius: 24,
-//       alignItems: 'center',
-//       justifyContent: 'center',
 //     },
 //     iconRow: {
 //       flexDirection: 'row',
@@ -146,14 +418,16 @@
 //       position: 'relative',
 //       zIndex: 100,
 //     },
-//     iconButton: {
-//       marginHorizontal: moderateScale(tokens.spacing.xs),
-//       borderColor: theme.colors.foreground,
-//       borderWidth: tokens.borderWidth.hairline,
-//       padding: moderateScale(tokens.spacing.nano),
-//       borderRadius: 24,
-//       justifyContent: 'center',
+//     glassButton: {
+//       width: 35,
+//       height: 35,
+//       borderRadius: 21,
+//       marginLeft: 20,
 //       alignItems: 'center',
+//       justifyContent: 'center',
+//       overflow: 'hidden',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.foreground,
 //     },
 //     dropdown: {
 //       position: 'absolute',
@@ -168,11 +442,13 @@
 //       paddingVertical: 6,
 //       paddingHorizontal: 10,
 //       zIndex: 200,
+//       borderColor: theme.colors.muted,
+//       borderWidth: tokens.borderWidth.hairline,
 //     },
 //     dropdownItem: {
 //       flexDirection: 'row',
 //       alignItems: 'center',
-//       paddingVertical: 10,
+//       paddingVertical: 14,
 //     },
 //     dropdownText: {
 //       marginLeft: 8,
@@ -183,398 +459,67 @@
 
 //   return (
 //     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Subtle depth overlay */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[styles.gradientOverlay, {opacity: gradientOpacity}]}
+//       />
+
 //       <View style={styles.header}>
 //         <View
 //           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
 //           <Animated.Text
 //             style={[
 //               styles.title,
-//               // {position: 'absolute', opacity: stylHelprOpacity},
-//               {
-//                 position: 'absolute',
-//                 opacity: stylHelprOpacity,
-//                 fontSize: fontScale(tokens.fontSize['2xl']),
-//               },
+//               {position: 'absolute', opacity: stylHelprOpacity},
 //             ]}>
 //             StylHelpr
 //           </Animated.Text>
 //         </View>
 
-//         {/* 🔹 Right Side Icons + Hamburger Menu */}
 //         <View style={styles.iconRow}>
-//           <AppleTouchFeedback
-//             style={{
-//               backgroundColor: 'purple',
-//               borderRadius: 50,
-//               borderWidth: 2,
-//               borderColor: 'white',
-//             }}
-//             hapticStyle="impactMedium"
-//             onPress={() =>
-//               startVoiceCommand(text => routeVoiceCommand(text, navigate))
-//             }>
-//             <MaterialIcons
-//               name="mic"
-//               size={50}
-//               color={
-//                 isRecording ? theme.colors.primary : theme.colors.buttonText1
-//               }
-//             />
-//           </AppleTouchFeedback>
+//           {[
+//             {
+//               name: 'notifications-none',
+//               action: () => navigate('Notifications'),
+//             },
+//             {name: 'videocam', action: () => navigate('VideoFeedScreen')},
+//             {
+//               name: 'smart-toy',
+//               action: () => navigate('AiStylistChatScreen'),
+//               tint: theme.colors.button1,
+//               innerColor: theme.colors.buttonText1,
+//             },
+//             {name: 'event-note', action: () => navigate('Planner')},
+//             {
+//               name: 'menu',
+//               action: () => setMenuOpen(prev => !prev),
+//             },
+//           ].map((icon, idx) => (
+//             <AppleTouchFeedback
+//               key={idx}
+//               hapticStyle="impactLight"
+//               onPress={icon.action}>
+//               <LiquidGlassView
+//                 style={styles.glassButton}
+//                 // interactive
+//                 effect="clear"
+//                 tintColor="rgba(0, 0, 0, 0.44)"
+//                 colorScheme="system">
+//                 <MaterialIcons
+//                   name={icon.name}
+//                   size={22}
+//                   color={icon.innerColor || theme.colors.buttonText1}
+//                 />
+//               </LiquidGlassView>
+//             </AppleTouchFeedback>
+//           ))}
 
-//           <AppleTouchFeedback
-//             style={styles.iconButton}
-//             hapticStyle="impactLight"
-//             onPress={() => navigate('Notifications')}>
-//             <Icon
-//               name="notifications-none"
-//               size={22}
-//               color={theme.colors.primary}
-//             />
-//           </AppleTouchFeedback>
-
-//           <AppleTouchFeedback
-//             style={styles.iconCircle2}
-//             hapticStyle="impactLight"
-//             onPress={() => navigate('AiStylistChatScreen')}>
-//             <MaterialIcons
-//               name="smart-toy"
-//               size={21}
-//               color={theme.colors.buttonText1}
-//             />
-//           </AppleTouchFeedback>
-
-//           <AppleTouchFeedback
-//             style={[styles.iconButton, {marginRight: -4}]}
-//             hapticStyle="impactLight"
-//             onPress={() => navigate('Planner')}>
-//             <Icon name="event-note" size={21} color={theme.colors.primary} />
-//           </AppleTouchFeedback>
-
-//           {/* 🍔 Hamburger Menu */}
-//           <AppleTouchFeedback
-//             style={styles.iconCircle}
-//             hapticStyle="impactMedium"
-//             onPress={() => setMenuOpen(prev => !prev)}>
-//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
-//           </AppleTouchFeedback>
-
-//           {/* 🔽 Animated Dropdown */}
 //           {menuOpen && (
 //             <Animated.View
 //               style={[
 //                 styles.dropdown,
-//                 {
-//                   opacity: fadeAnim,
-//                   transform: [{translateY: slideAnim}],
-//                 },
-//               ]}>
-//               <AppleTouchFeedback
-//                 hapticStyle="impactLight"
-//                 onPress={() => {
-//                   setMenuOpen(false);
-//                   navigate('Profile');
-//                 }}
-//                 style={styles.dropdownItem}>
-//                 <MaterialIcons
-//                   name="person"
-//                   size={19}
-//                   color={theme.colors.primary}
-//                 />
-//                 <Text style={styles.dropdownText}>Profile</Text>
-//               </AppleTouchFeedback>
-
-//               <AppleTouchFeedback
-//                 hapticStyle="notificationWarning"
-//                 onPress={() => {
-//                   setMenuOpen(false);
-//                   handleLogout();
-//                 }}
-//                 style={styles.dropdownItem}>
-//                 <MaterialIcons
-//                   name="logout"
-//                   size={18}
-//                   color={theme.colors.primary}
-//                 />
-//                 <Text style={styles.dropdownText}>Log Out</Text>
-//               </AppleTouchFeedback>
-//             </Animated.View>
-//           )}
-//         </View>
-//       </View>
-//     </SafeAreaView>
-//   );
-// }
-
-//////////////////////
-
-// import React, {useState, useRef, useEffect} from 'react';
-// import {View, Text, StyleSheet, Animated} from 'react-native';
-// import Icon from 'react-native-vector-icons/MaterialIcons';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-// import {SafeAreaView} from 'react-native-safe-area-context';
-// import {useAppTheme} from '../../context/ThemeContext';
-// import {useAuth0} from 'react-native-auth0';
-// import type {Screen} from '../../navigation/types';
-// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
-// import {fontScale, moderateScale} from '../../utils/scale';
-// import {tokens} from '../../styles/tokens/tokens';
-// import {useVoiceControl} from '../../hooks/useVoiceControl';
-// import {routeVoiceCommand} from '../../utils/voiceCommandRouter';
-// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-// import {VoiceOverlay} from '../VoiceOverlay/VoiceOverlay';
-
-// type Props = {
-//   navigate: (screen: Screen) => void;
-//   showSettings?: boolean;
-//   scrollY?: Animated.Value;
-// };
-
-// export default function GlobalHeader({
-//   navigate,
-//   showSettings = false,
-//   scrollY,
-// }: Props) {
-//   const {theme} = useAppTheme();
-//   const {clearSession} = useAuth0();
-//   const [menuOpen, setMenuOpen] = useState(false);
-//   const fadeAnim = useRef(new Animated.Value(0)).current;
-//   const slideAnim = useRef(new Animated.Value(-10)).current;
-
-//   const {startVoiceCommand, isRecording} = useVoiceControl();
-
-//   const handleVoiceCommand = async (cmd: string) => {
-//     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Global voice command received:', lower);
-
-//     // haptic feedback
-//     ReactNativeHapticFeedback.trigger('impactLight');
-
-//     // 🔹 Basic navigational commands
-//     await routeVoiceCommand(lower, navigate);
-//   };
-
-//   const handleLogout = async () => {
-//     try {
-//       await clearSession();
-//       navigate('Login');
-//     } catch (e) {
-//       console.error('Logout failed:', e);
-//     }
-//   };
-
-//   // 🔹 Animate dropdown open/close
-//   useEffect(() => {
-//     if (menuOpen) {
-//       Animated.parallel([
-//         Animated.timing(fadeAnim, {
-//           toValue: 1,
-//           duration: 180,
-//           useNativeDriver: true,
-//         }),
-//         Animated.timing(slideAnim, {
-//           toValue: 0,
-//           duration: 180,
-//           useNativeDriver: true,
-//         }),
-//       ]).start();
-//     } else {
-//       Animated.parallel([
-//         Animated.timing(fadeAnim, {
-//           toValue: 0,
-//           duration: 120,
-//           useNativeDriver: true,
-//         }),
-//         Animated.timing(slideAnim, {
-//           toValue: -10,
-//           duration: 120,
-//           useNativeDriver: true,
-//         }),
-//       ]).start();
-//     }
-//   }, [menuOpen, fadeAnim, slideAnim]);
-
-//   const stylHelprOpacity = scrollY
-//     ? scrollY.interpolate({
-//         inputRange: [0, 60],
-//         outputRange: [1, 0],
-//         extrapolate: 'clamp',
-//       })
-//     : 1;
-
-//   const searchOpacity = scrollY
-//     ? scrollY.interpolate({
-//         inputRange: [0, 60],
-//         outputRange: [0, 1],
-//         extrapolate: 'clamp',
-//       })
-//     : 0;
-
-//   const styles = StyleSheet.create({
-//     safeArea: {
-//       backgroundColor: theme.colors.background,
-//       zIndex: 50,
-//     },
-//     header: {
-//       width: '100%',
-//       paddingHorizontal: moderateScale(tokens.spacing.md),
-//       marginBottom: 8,
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       alignItems: 'center',
-//       backgroundColor: theme.colors.background,
-//       zIndex: 50,
-//     },
-//     title: {
-//       fontSize: fontScale(tokens.fontSize['2xl']),
-//       fontWeight: tokens.fontWeight.extraBold,
-//       color: theme.colors.foreground,
-//     },
-//     iconCircle: {
-//       backgroundColor: theme.colors.surface3,
-//       padding: moderateScale(tokens.spacing.nano),
-//       marginLeft: moderateScale(tokens.spacing.md2),
-//       borderColor: theme.colors.foreground,
-//       borderWidth: tokens.borderWidth.hairline,
-//       borderRadius: 24,
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//     },
-//     iconCircle2: {
-//       backgroundColor: theme.colors.button1,
-//       padding: moderateScale(tokens.spacing.nano),
-//       marginRight: moderateScale(tokens.spacing.xsm),
-//       marginLeft: moderateScale(tokens.spacing.sm),
-//       borderColor: theme.colors.foreground,
-//       borderWidth: tokens.borderWidth.hairline,
-//       borderRadius: 24,
-//       alignItems: 'center',
-//       justifyContent: 'center',
-//     },
-//     iconRow: {
-//       flexDirection: 'row',
-//       alignItems: 'center',
-//       position: 'relative',
-//       zIndex: 100,
-//     },
-//     iconButton: {
-//       marginHorizontal: moderateScale(tokens.spacing.xs),
-//       borderColor: theme.colors.foreground,
-//       borderWidth: tokens.borderWidth.hairline,
-//       padding: moderateScale(tokens.spacing.nano),
-//       borderRadius: 24,
-//       justifyContent: 'center',
-//       alignItems: 'center',
-//     },
-//     dropdown: {
-//       position: 'absolute',
-//       top: 48,
-//       right: 0,
-//       backgroundColor: theme.colors.surface,
-//       borderRadius: 16,
-//       shadowColor: '#000',
-//       shadowOpacity: 0.1,
-//       shadowRadius: 6,
-//       elevation: 6,
-//       paddingVertical: 6,
-//       paddingHorizontal: 10,
-//       zIndex: 200,
-//     },
-//     dropdownItem: {
-//       flexDirection: 'row',
-//       alignItems: 'center',
-//       paddingVertical: 10,
-//     },
-//     dropdownText: {
-//       marginLeft: 8,
-//       color: theme.colors.foreground,
-//       fontSize: 15,
-//     },
-//   });
-
-//   return (
-//     <SafeAreaView edges={['top']} style={styles.safeArea}>
-//       <View style={styles.header}>
-//         <View
-//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
-//           <Animated.Text
-//             style={[
-//               styles.title,
-//               // {position: 'absolute', opacity: stylHelprOpacity},
-//               {
-//                 position: 'absolute',
-//                 opacity: stylHelprOpacity,
-//                 fontSize: fontScale(tokens.fontSize['2xl']),
-//               },
-//             ]}>
-//             StylHelpr
-//           </Animated.Text>
-//         </View>
-
-//         {/* 🔹 Right Side Icons + Hamburger Menu */}
-//         <View style={styles.iconRow}>
-//           <AppleTouchFeedback
-//             style={{
-//               backgroundColor: 'purple',
-//               borderRadius: 50,
-//               borderWidth: 2,
-//               borderColor: 'white',
-//             }}
-//             hapticStyle="impactLight"
-//             onPress={() => startVoiceCommand(handleVoiceCommand)}>
-//             <MaterialIcons
-//               name={isRecording ? 'graphic-eq' : 'keyboard-voice'}
-//               size={51}
-//               color={theme.colors.buttonText1}
-//             />
-//           </AppleTouchFeedback>
-
-//           <AppleTouchFeedback
-//             style={styles.iconButton}
-//             hapticStyle="impactLight"
-//             onPress={() => navigate('Notifications')}>
-//             <Icon
-//               name="notifications-none"
-//               size={22}
-//               color={theme.colors.primary}
-//             />
-//           </AppleTouchFeedback>
-
-//           <AppleTouchFeedback
-//             style={styles.iconCircle2}
-//             hapticStyle="impactLight"
-//             onPress={() => navigate('AiStylistChatScreen')}>
-//             <MaterialIcons
-//               name="smart-toy"
-//               size={21}
-//               color={theme.colors.buttonText1}
-//             />
-//           </AppleTouchFeedback>
-
-//           <AppleTouchFeedback
-//             style={[styles.iconButton, {marginRight: -4}]}
-//             hapticStyle="impactLight"
-//             onPress={() => navigate('Planner')}>
-//             <Icon name="event-note" size={21} color={theme.colors.primary} />
-//           </AppleTouchFeedback>
-
-//           {/* 🍔 Hamburger Menu */}
-//           <AppleTouchFeedback
-//             style={styles.iconCircle}
-//             hapticStyle="impactMedium"
-//             onPress={() => setMenuOpen(prev => !prev)}>
-//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
-//           </AppleTouchFeedback>
-
-//           {/* 🔽 Animated Dropdown */}
-//           {menuOpen && (
-//             <Animated.View
-//               style={[
-//                 styles.dropdown,
-//                 {
-//                   opacity: fadeAnim,
-//                   transform: [{translateY: slideAnim}],
-//                 },
+//                 {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
 //               ]}>
 //               <AppleTouchFeedback
 //                 hapticStyle="impactLight"
@@ -615,277 +560,1453 @@
 
 ////////////////////
 
-import React, {useState, useRef, useEffect} from 'react';
-import {View, Text, StyleSheet, Animated} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {useAppTheme} from '../../context/ThemeContext';
-import {useAuth0} from 'react-native-auth0';
-import type {Screen} from '../../navigation/types';
-import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
-import {fontScale, moderateScale} from '../../utils/scale';
-import {tokens} from '../../styles/tokens/tokens';
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated} from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
 
-type Props = {
-  navigate: (screen: Screen) => void;
-  showSettings?: boolean;
-  scrollY?: Animated.Value;
-};
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
 
-export default function GlobalHeader({
-  navigate,
-  showSettings = false,
-  scrollY,
-}: Props) {
-  const {theme} = useAppTheme();
-  const {clearSession} = useAuth0();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(-10)).current;
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
 
-  const handleLogout = async () => {
-    try {
-      await clearSession();
-      navigate('Login');
-    } catch (e) {
-      console.error('Logout failed:', e);
-    }
-  };
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
 
-  // 🔹 Animate dropdown open/close
-  useEffect(() => {
-    if (menuOpen) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: -10,
-          duration: 120,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [menuOpen, fadeAnim, slideAnim]);
+//   // 🔹 Animate dropdown open/close
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen, fadeAnim, slideAnim]);
 
-  const stylHelprOpacity = scrollY
-    ? scrollY.interpolate({
-        inputRange: [0, 60],
-        outputRange: [1, 0],
-        extrapolate: 'clamp',
-      })
-    : 1;
+//   // 🔹 Scroll fade for title
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
 
-  const searchOpacity = scrollY
-    ? scrollY.interpolate({
-        inputRange: [0, 60],
-        outputRange: [0, 1],
-        extrapolate: 'clamp',
-      })
-    : 0;
+//   // 🔹 Subtle top gradient fade (Hulu/Apple style)
+//   const gradientOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 120],
+//         outputRange: [0.08, 0.12],
+//         extrapolate: 'clamp',
+//       })
+//     : 0.1;
 
-  const styles = StyleSheet.create({
-    safeArea: {
-      backgroundColor: theme.colors.background,
-      zIndex: 50,
-    },
-    header: {
-      width: '100%',
-      paddingHorizontal: moderateScale(tokens.spacing.md),
-      marginBottom: 8,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: theme.colors.background,
-      zIndex: 50,
-    },
-    title: {
-      fontSize: fontScale(tokens.fontSize['2xl']),
-      fontWeight: tokens.fontWeight.extraBold,
-      color: theme.colors.foreground,
-    },
-    iconCircle: {
-      backgroundColor: theme.colors.surface3,
-      padding: moderateScale(tokens.spacing.nano),
-      marginLeft: moderateScale(tokens.spacing.md2),
-      borderColor: theme.colors.foreground,
-      borderWidth: tokens.borderWidth.hairline,
-      borderRadius: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    iconCircle2: {
-      backgroundColor: theme.colors.button1,
-      padding: moderateScale(tokens.spacing.nano),
-      marginRight: moderateScale(tokens.spacing.xsm),
-      marginLeft: moderateScale(tokens.spacing.sm),
-      borderColor: theme.colors.foreground,
-      borderWidth: tokens.borderWidth.hairline,
-      borderRadius: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    iconRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      position: 'relative',
-      zIndex: 100,
-    },
-    iconButton: {
-      marginHorizontal: moderateScale(tokens.spacing.xs),
-      borderColor: theme.colors.foreground,
-      borderWidth: tokens.borderWidth.hairline,
-      padding: moderateScale(tokens.spacing.nano),
-      borderRadius: 24,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    dropdown: {
-      position: 'absolute',
-      top: 48,
-      right: 0,
-      backgroundColor: theme.colors.surface,
-      borderRadius: 16,
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-      elevation: 6,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      zIndex: 200,
-    },
-    dropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 10,
-    },
-    dropdownText: {
-      marginLeft: 8,
-      color: theme.colors.foreground,
-      fontSize: 15,
-    },
-  });
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     gradientOverlay: {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       height: 110,
+//       backgroundColor: 'rgba(0, 0, 0, 0)',
+//       opacity: 0.1,
+//     },
+//     header: {
+//       width: '100%',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       paddingHorizontal: moderateScale(tokens.spacing.md1),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconCircle: {
+//       backgroundColor: theme.colors.surface3,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginLeft: moderateScale(tokens.spacing.md2),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.md,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconCircle2: {
+//       backgroundColor: theme.colors.button1,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginRight: moderateScale(tokens.spacing.xsm),
+//       marginLeft: moderateScale(tokens.spacing.sm),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.md,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     iconButton: {
+//       marginHorizontal: moderateScale(tokens.spacing.xs),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.md,
+//       padding: moderateScale(tokens.spacing.nano),
+//       borderRadius: 24,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 10,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
 
-  return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <View style={styles.header}>
-        <View
-          style={{position: 'relative', height: 28, justifyContent: 'center'}}>
-          <Animated.Text
-            style={[
-              styles.title,
-              // {position: 'absolute', opacity: stylHelprOpacity},
-              {
-                position: 'absolute',
-                opacity: stylHelprOpacity,
-                fontSize: fontScale(tokens.fontSize['2xl']),
-              },
-            ]}>
-            StylHelpr
-          </Animated.Text>
-        </View>
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Subtle top fade overlay (like Hulu) */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[
+//           styles.gradientOverlay,
+//           {
+//             opacity: gradientOpacity,
+//           },
+//         ]}
+//       />
 
-        {/* 🔹 Right Side Icons + Hamburger Menu */}
-        <View style={styles.iconRow}>
-          <AppleTouchFeedback
-            style={styles.iconButton}
-            hapticStyle="impactLight"
-            onPress={() => navigate('Notifications')}>
-            <Icon
-              name="notifications-none"
-              size={22}
-              color={theme.colors.primary}
-            />
-          </AppleTouchFeedback>
+//       {/* 🔹 Header content */}
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
 
-          <AppleTouchFeedback
-            style={styles.iconCircle2}
-            hapticStyle="impactLight"
-            onPress={() => navigate('AiStylistChatScreen')}>
-            <MaterialIcons
-              name="smart-toy"
-              size={21}
-              color={theme.colors.buttonText1}
-            />
-          </AppleTouchFeedback>
+//         <View style={styles.iconRow}>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Notifications')}>
+//             <Icon
+//               name="notifications-none"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
 
-          <AppleTouchFeedback
-            style={[styles.iconButton, {marginRight: -4}]}
-            hapticStyle="impactLight"
-            onPress={() => navigate('Planner')}>
-            <Icon name="event-note" size={21} color={theme.colors.primary} />
-          </AppleTouchFeedback>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('VideoFeedScreen')}>
+//             <MaterialIcons
+//               name="videocam"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
 
-          {/* 🍔 Hamburger Menu */}
-          <AppleTouchFeedback
-            style={styles.iconCircle}
-            hapticStyle="impactMedium"
-            onPress={() => setMenuOpen(prev => !prev)}>
-            <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
-          </AppleTouchFeedback>
+//           <AppleTouchFeedback
+//             style={styles.iconCircle2}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('AiStylistChatScreen')}>
+//             <MaterialIcons
+//               name="smart-toy"
+//               size={21}
+//               color={theme.colors.buttonText1}
+//             />
+//           </AppleTouchFeedback>
 
-          {/* 🔽 Animated Dropdown */}
-          {menuOpen && (
-            <Animated.View
-              style={[
-                styles.dropdown,
-                {
-                  opacity: fadeAnim,
-                  transform: [{translateY: slideAnim}],
-                },
-              ]}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setMenuOpen(false);
-                  navigate('Profile');
-                }}
-                style={styles.dropdownItem}>
-                <MaterialIcons
-                  name="person"
-                  size={19}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.dropdownText}>Profile</Text>
-              </AppleTouchFeedback>
+//           <AppleTouchFeedback
+//             style={[styles.iconButton, {marginRight: -4}]}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Planner')}>
+//             <Icon name="event-note" size={21} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
 
-              <AppleTouchFeedback
-                hapticStyle="notificationWarning"
-                onPress={() => {
-                  setMenuOpen(false);
-                  handleLogout();
-                }}
-                style={styles.dropdownItem}>
-                <MaterialIcons
-                  name="logout"
-                  size={18}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.dropdownText}>Log Out</Text>
-              </AppleTouchFeedback>
-            </Animated.View>
-          )}
-        </View>
-      </View>
-    </SafeAreaView>
-  );
-}
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="impactLight"
+//             onPress={() => setMenuOpen(prev => !prev)}>
+//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+////////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated, Platform} from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {BlurView} from '@react-native-community/blur';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+//   enableBlur?: boolean; // optional toggle for frosted glass look
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+//   enableBlur = true,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Animate dropdown open/close
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen, fadeAnim, slideAnim]);
+
+//   // 🔹 Scroll animations for Apple-style fade
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   // Optional blur fade intensity
+//   const blurOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 100],
+//         outputRange: [0.3, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     header: {
+//       width: '100%',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       paddingHorizontal: moderateScale(tokens.spacing.md1),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconCircle: {
+//       backgroundColor: theme.colors.surface3,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginLeft: moderateScale(tokens.spacing.md2),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconCircle2: {
+//       backgroundColor: theme.colors.button1,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginRight: moderateScale(tokens.spacing.xsm),
+//       marginLeft: moderateScale(tokens.spacing.sm),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     iconButton: {
+//       marginHorizontal: moderateScale(tokens.spacing.xs),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       padding: moderateScale(tokens.spacing.nano),
+//       borderRadius: 24,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 10,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//     blurWrapper: {
+//       ...StyleSheet.absoluteFillObject,
+//       overflow: 'hidden',
+//       borderBottomWidth: 0.3,
+//       borderColor: 'rgba(255,255,255,0.15)',
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Frosted background (optional) */}
+//       {enableBlur && (
+//         <Animated.View
+//           style={[styles.blurWrapper, {opacity: blurOpacity}]}
+//           pointerEvents="none">
+//           <BlurView
+//             style={StyleSheet.absoluteFill}
+//             blurType={Platform.OS === 'ios' ? 'light' : 'dark'}
+//             blurAmount={25}
+//             reducedTransparencyFallbackColor="rgba(255,255,255,0.05)"
+//           />
+//         </Animated.View>
+//       )}
+
+//       <View style={styles.header}>
+//         {/* 🔹 Left Title */}
+//         <View
+//           style={{
+//             position: 'relative',
+//             height: 28,
+//             justifyContent: 'center',
+//           }}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         {/* 🔹 Right Side Icons + Hamburger Menu */}
+//         <View style={styles.iconRow}>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Notifications')}>
+//             <Icon
+//               name="notifications-none"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('VideoFeedScreen')}>
+//             <MaterialIcons
+//               name="videocam"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle2}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('AiStylistChatScreen')}>
+//             <MaterialIcons
+//               name="smart-toy"
+//               size={21}
+//               color={theme.colors.buttonText1}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={[styles.iconButton, {marginRight: -4}]}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Planner')}>
+//             <Icon name="event-note" size={21} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🍔 Hamburger Menu */}
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="impactLight"
+//             onPress={() => setMenuOpen(prev => !prev)}>
+//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🔽 Animated Dropdown */}
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {
+//                   opacity: fadeAnim,
+//                   transform: [{translateY: slideAnim}],
+//                 },
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+//////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated} from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Animate dropdown open/close
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen, fadeAnim, slideAnim]);
+
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const searchOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [0, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 0;
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: theme.colors.background,
+//       zIndex: 50,
+//     },
+//     header: {
+//       width: '100%',
+//       paddingHorizontal: moderateScale(tokens.spacing.md1),
+//       marginBottom: 14,
+//       paddingVertical: 4,
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       backgroundColor: theme.colors.background,
+//       zIndex: 50,
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconCircle: {
+//       backgroundColor: theme.colors.surface3,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginLeft: moderateScale(tokens.spacing.md2),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconCircle2: {
+//       backgroundColor: theme.colors.button1,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginRight: moderateScale(tokens.spacing.xsm),
+//       marginLeft: moderateScale(tokens.spacing.sm),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     iconButton: {
+//       marginHorizontal: moderateScale(tokens.spacing.xs),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       padding: moderateScale(tokens.spacing.nano),
+//       borderRadius: 24,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 10,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               // {position: 'absolute', opacity: stylHelprOpacity},
+//               {
+//                 position: 'absolute',
+//                 opacity: stylHelprOpacity,
+//                 fontSize: fontScale(tokens.fontSize['2xl']),
+//               },
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         {/* 🔹 Right Side Icons + Hamburger Menu */}
+//         <View style={styles.iconRow}>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Notifications')}>
+//             <Icon
+//               name="notifications-none"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('VideoFeedScreen')}>
+//             <MaterialIcons
+//               name="videocam"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle2}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('AiStylistChatScreen')}>
+//             <MaterialIcons
+//               name="smart-toy"
+//               size={21}
+//               color={theme.colors.buttonText1}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={[styles.iconButton, {marginRight: -4}]}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Planner')}>
+//             <Icon name="event-note" size={21} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🍔 Hamburger Menu */}
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="impactLight"
+//             onPress={() => setMenuOpen(prev => !prev)}>
+//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🔽 Animated Dropdown */}
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {
+//                   opacity: fadeAnim,
+//                   transform: [{translateY: slideAnim}],
+//                 },
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+//////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated} from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Animate dropdown open/close
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen, fadeAnim, slideAnim]);
+
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const searchOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [0, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 0;
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: theme.colors.background,
+//       zIndex: 50,
+//     },
+//     header: {
+//       width: '100%',
+//       paddingHorizontal: moderateScale(tokens.spacing.md1),
+//       marginBottom: 14,
+//       paddingVertical: 4,
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       backgroundColor: theme.colors.background,
+//       zIndex: 50,
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconCircle: {
+//       backgroundColor: theme.colors.surface3,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginLeft: moderateScale(tokens.spacing.md2),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconCircle2: {
+//       backgroundColor: theme.colors.button1,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginRight: moderateScale(tokens.spacing.xsm),
+//       marginLeft: moderateScale(tokens.spacing.sm),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     iconButton: {
+//       marginHorizontal: moderateScale(tokens.spacing.xs),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       padding: moderateScale(tokens.spacing.nano),
+//       borderRadius: 24,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 10,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               // {position: 'absolute', opacity: stylHelprOpacity},
+//               {
+//                 position: 'absolute',
+//                 opacity: stylHelprOpacity,
+//                 fontSize: fontScale(tokens.fontSize['2xl']),
+//               },
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         {/* 🔹 Right Side Icons + Hamburger Menu */}
+//         <View style={styles.iconRow}>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Notifications')}>
+//             <Icon
+//               name="notifications-none"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle2}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('AiStylistChatScreen')}>
+//             <MaterialIcons
+//               name="smart-toy"
+//               size={21}
+//               color={theme.colors.buttonText1}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={[styles.iconButton, {marginRight: -4}]}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Planner')}>
+//             <Icon name="event-note" size={21} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🍔 Hamburger Menu */}
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="impactLight"
+//             onPress={() => setMenuOpen(prev => !prev)}>
+//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🔽 Animated Dropdown */}
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {
+//                   opacity: fadeAnim,
+//                   transform: [{translateY: slideAnim}],
+//                 },
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+/////////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated} from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Animate dropdown open/close
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen, fadeAnim, slideAnim]);
+
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const searchOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [0, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 0;
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: theme.colors.background,
+//       zIndex: 50,
+//     },
+//     header: {
+//       width: '100%',
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       marginBottom: 8,
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       backgroundColor: theme.colors.background,
+//       zIndex: 50,
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconCircle: {
+//       backgroundColor: theme.colors.surface3,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginLeft: moderateScale(tokens.spacing.md2),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconCircle2: {
+//       backgroundColor: theme.colors.button1,
+//       padding: moderateScale(tokens.spacing.nano),
+//       marginRight: moderateScale(tokens.spacing.xsm),
+//       marginLeft: moderateScale(tokens.spacing.sm),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderRadius: 24,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     iconButton: {
+//       marginHorizontal: moderateScale(tokens.spacing.xs),
+//       borderColor: theme.colors.foreground,
+//       borderWidth: tokens.borderWidth.hairline,
+//       padding: moderateScale(tokens.spacing.nano),
+//       borderRadius: 24,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 10,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               // {position: 'absolute', opacity: stylHelprOpacity},
+//               {
+//                 position: 'absolute',
+//                 opacity: stylHelprOpacity,
+//                 fontSize: fontScale(tokens.fontSize['2xl']),
+//               },
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         {/* 🔹 Right Side Icons + Hamburger Menu */}
+//         <View style={styles.iconRow}>
+//           <AppleTouchFeedback
+//             style={styles.iconButton}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Notifications')}>
+//             <Icon
+//               name="notifications-none"
+//               size={22}
+//               color={theme.colors.primary}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={styles.iconCircle2}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('AiStylistChatScreen')}>
+//             <MaterialIcons
+//               name="smart-toy"
+//               size={21}
+//               color={theme.colors.buttonText1}
+//             />
+//           </AppleTouchFeedback>
+
+//           <AppleTouchFeedback
+//             style={[styles.iconButton, {marginRight: -4}]}
+//             hapticStyle="impactLight"
+//             onPress={() => navigate('Planner')}>
+//             <Icon name="event-note" size={21} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🍔 Hamburger Menu */}
+//           <AppleTouchFeedback
+//             style={styles.iconCircle}
+//             hapticStyle="impactMedium"
+//             onPress={() => setMenuOpen(prev => !prev)}>
+//             <MaterialIcons name="menu" size={22} color={theme.colors.primary} />
+//           </AppleTouchFeedback>
+
+//           {/* 🔽 Animated Dropdown */}
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {
+//                   opacity: fadeAnim,
+//                   transform: [{translateY: slideAnim}],
+//                 },
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
 
 ////////////////////////
 

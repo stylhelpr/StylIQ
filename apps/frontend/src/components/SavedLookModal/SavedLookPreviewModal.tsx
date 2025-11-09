@@ -11,7 +11,6 @@ import {
   Animated,
   PanResponder,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -21,6 +20,7 @@ import {API_BASE_URL} from '../../config/api';
 import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 const {height, width} = Dimensions.get('window');
 

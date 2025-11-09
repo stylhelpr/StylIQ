@@ -5,7 +5,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Animated,
   Dimensions,
   PanResponder,
@@ -16,6 +15,7 @@ import {
 import {BlurView} from '@react-native-community/blur';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 type Props = {
   children?: React.ReactNode;
@@ -33,7 +33,7 @@ export default function FrostedCard({children, style}: Props) {
       marginBottom: 16,
     },
     fallback: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(255,255,255,0.04)',
     },
     content: {
@@ -55,7 +55,7 @@ export default function FrostedCard({children, style}: Props) {
         style,
       ]}>
       <BlurView
-        style={{...StyleSheet.absoluteFillObject}}
+        style={{...StyleSheet.absoluteFill}}
         blurType={theme.isDark ? 'dark' : 'light'}
         blurAmount={20}
         reducedTransparencyFallbackColor={theme.background}

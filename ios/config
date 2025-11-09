@@ -1,0 +1,25 @@
+# cocoapods_patch.rb
+# Patches CocoaPods analyzer bug for React-Core duplication (RN 0.81+)
+
+module Pod
+  class Installer
+    class Analyzer
+      alias_method :orig_verify_no_pods_with_different_sources!, :verify_no_pods_with_different_sources!
+
+      def verify_no_pods_with_different_sources!
+        return orig_verify_no_pods_with_different_sources! unless defined?(@sandbox)
+        dupes = @sandbox.specifications_grouped_by_name.select do |_, specs|
+          specs.map { |s| s.defined_in_file.to_s }.uniq.size > 1
+        end
+
+        if dupes.keys.any? { |n| n.start_with?('React-Core') }
+          Pod::UI.puts "⚠️  Ignoring benign React-Core duplication (RN 0.81+)"
+          dupes.delete_if { |n, _| n.start_with?('React-Core') }
+        end
+
+        return if dupes.empty?
+        orig_verify_no_pods_with_different_sources!
+      end
+    end
+  end
+end

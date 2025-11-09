@@ -1,0 +1,22 @@
+name: StylIQ
+options:
+  bundleIdPrefix: com.stylhelpr
+  deploymentTarget:
+    iOS: '16.0'
+targets:
+  StylIQ:
+    type: application
+    platform: iOS
+    sources:
+      - StylIQ
+    resources:
+      - StylIQ/Assets.xcassets
+    info:
+      path: StylIQ/Info.plist
+    settings:
+      base:
+        SWIFT_VERSION: 5.0
+        IPHONEOS_DEPLOYMENT_TARGET: 16.0
+        PRODUCT_BUNDLE_IDENTIFIER: com.stylhelpr.styliq
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0

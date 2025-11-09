@@ -9,6 +9,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -36,6 +37,8 @@ export default function AppearanceScreen({navigate}: Props) {
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {styleProfile, updateProfile, refetch} = useStyleProfile(userId);
+
+  const insets = useSafeAreaInsets();
 
   const [selectedValues, setSelectedValues] = useState<{[key: string]: string}>(
     {},
@@ -77,6 +80,12 @@ export default function AppearanceScreen({navigate}: Props) {
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Appearance
       </Text>
@@ -107,7 +116,7 @@ export default function AppearanceScreen({navigate}: Props) {
               <View
                 style={[
                   globalStyles.styleContainer1,
-                  globalStyles.cardStyles3,
+
                   {borderWidth: tokens.borderWidth.md},
                 ]}>
                 <View style={globalStyles.pillContainer}>

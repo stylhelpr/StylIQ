@@ -9,6 +9,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -30,6 +31,8 @@ export default function ClimateScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
+
+  const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
@@ -65,6 +68,12 @@ export default function ClimateScreen({navigate}: Props) {
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Climate
       </Text>
@@ -92,7 +101,7 @@ export default function ClimateScreen({navigate}: Props) {
             <View
               style={[
                 globalStyles.styleContainer1,
-                globalStyles.cardStyles3,
+
                 {borderWidth: tokens.borderWidth.md},
               ]}>
               <View style={globalStyles.pillContainer}>

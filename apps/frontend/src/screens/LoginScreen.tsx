@@ -46,12 +46,12 @@ export default function LoginScreen({
       alignItems: 'center',
     },
     imageBackground: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       width: '100%',
       height: '100%',
     },
     imageOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(0, 0, 0, 0.45)',
       zIndex: 1,
     },

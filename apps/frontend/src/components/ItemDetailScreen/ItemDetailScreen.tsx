@@ -20,6 +20,7 @@ import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFe
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {ActivityIndicator} from 'react-native';
 import {fontScale, moderateScale} from '../../utils/scale';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {
   route: any;
@@ -80,6 +81,8 @@ export default function ItemDetailScreen({route, navigation}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const queryClient = useQueryClient();
+
+  const insets = useSafeAreaInsets();
 
   const {itemId, item: routeItem} = route.params;
   const item = useMemo(
@@ -378,9 +381,19 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
   return (
     <ScrollView
-      style={[useGlobalStyles().screen, useGlobalStyles().section6]}
+      style={[
+        useGlobalStyles().screen,
+        useGlobalStyles().section6,
+        {marginBottom: 80},
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled">
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <View
         style={[
           useGlobalStyles().modalSection,

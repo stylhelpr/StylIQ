@@ -1,6 +1,5 @@
 import React, {useEffect, useState, useRef} from 'react';
 import {
-  SafeAreaView,
   Text,
   Pressable,
   View,
@@ -30,6 +29,7 @@ import VoiceControlComponent from './components/VoiceControlComponent/VoiceContr
 import ImagePickerGrid from './components/ImagePickerGrid/ImagePickerGrid';
 import AddReminderButton from './components/AddReminderButon/AddReminderButton';
 import {theme} from './styles/tokens/theme';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import ResponsiveContainer from './components/ResponsiveContainer';
 import RootNavigator from './navigation/RootNavigator';
 import GestureImage from './components/GestureImage/GestureImage';

@@ -34,7 +34,7 @@ export const TooltipBubble: React.FC<TooltipBubbleProps> = ({
       marginHorizontal: 8,
     },
     fullscreenOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'transparent',
     },
     tooltip: {

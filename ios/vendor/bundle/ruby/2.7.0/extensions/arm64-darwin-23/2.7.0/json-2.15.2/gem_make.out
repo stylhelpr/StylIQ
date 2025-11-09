@@ -1,0 +1,26 @@
+current directory: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/vendor/bundle/ruby/2.7.0/gems/json-2.15.2/ext/json/ext/parser
+/Users/giffinmike/.rbenv/versions/2.7.5/bin/ruby -I /Users/giffinmike/.rbenv/versions/2.7.5/lib/ruby/2.7.0 -r ./siteconf20251028-82386-x563yw.rb extconf.rb
+checking for rb_enc_interned_str() in ruby/encoding.h... no
+checking for rb_hash_new_capa() in ruby.h... no
+checking for rb_hash_bulk_insert() in ruby.h... yes
+checking for strnlen() in string.h... yes
+checking for whether -std=c99 is accepted as CFLAGS... yes
+checking for arm_neon.h... yes
+checking for cpuid.h... no
+creating Makefile
+
+current directory: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/vendor/bundle/ruby/2.7.0/gems/json-2.15.2/ext/json/ext/parser
+make "DESTDIR=" clean
+
+current directory: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/vendor/bundle/ruby/2.7.0/gems/json-2.15.2/ext/json/ext/parser
+make "DESTDIR="
+compiling parser.c
+parser.c:1274:1: warning: non-void function does not return a value in all control paths [-Wreturn-type]
+ 1274 | }
+      | ^
+1 warning generated.
+linking shared-object json/ext/parser.bundle
+
+current directory: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/vendor/bundle/ruby/2.7.0/gems/json-2.15.2/ext/json/ext/parser
+make "DESTDIR=" install
+/usr/bin/install -c -m 0755 parser.bundle ./.gem.20251028-82386-ylu2r2/json/ext

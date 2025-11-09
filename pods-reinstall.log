@@ -1,0 +1,1488 @@
+  $ /Users/giffinmike/.nvm/versions/node/v20.11.0/bin/node -p require.resolve("react-native/scripts/react_native_pods.rb", { paths: [process.argv[1]] }) /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios
+  /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native/scripts/react_native_pods.rb
+[VisionCamera] Thank you for using VisionCamera ❤️
+[VisionCamera] If you enjoy using VisionCamera, please consider sponsoring this project: https://github.com/sponsors/mrousavy
+[VisionCamera] $VCEnableLocation is not set, enabling CLLocation APIs by default...
+[VisionCamera] $VCEnableFrameProcessors is not set, enabling Frame Processors if Worklets is installed...
+[VisionCamera] react-native-worklets-core found at /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-worklets-core, Frame Processors are enabled!
+Found 27 modules for target `StylIQ`
+link_native_modules! {ios_packages: [{configurations: [], name: "@react-native-async-storage/async-storage", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-async-storage/async-storage", path: "../node_modules/@react-native-async-storage/async-storage", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec", script_phases: []}, {configurations: [], name: "@react-native-camera-roll/camera-roll", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-camera-roll/camera-roll", path: "../node_modules/@react-native-camera-roll/camera-roll", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-camera-roll/camera-roll/react-native-cameraroll.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/blur", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/blur", path: "../node_modules/@react-native-community/blur", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/blur/react-native-blur.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/datetimepicker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/datetimepicker", path: "../node_modules/@react-native-community/datetimepicker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/datetimepicker/RNDateTimePicker.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/geolocation", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/geolocation", path: "../node_modules/@react-native-community/geolocation", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/geolocation/react-native-geolocation.podspec", script_phases: []}, {configurations: [], name: "@react-native-community/push-notification-ios", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/push-notification-ios", path: "../node_modules/@react-native-community/push-notification-ios", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-community/push-notification-ios/RNCPushNotificationIOS.podspec", script_phases: []}, {configurations: [], name: "@react-native-picker/picker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-picker/picker", path: "../node_modules/@react-native-picker/picker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-picker/picker/RNCPicker.podspec", script_phases: []}, {configurations: [], name: "@react-native-voice/voice", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-voice/voice", path: "../node_modules/@react-native-voice/voice", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/@react-native-voice/voice/react-native-voice.podspec", script_phases: []}, {configurations: [], name: "react-native-add-calendar-event", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-add-calendar-event", path: "../node_modules/react-native-add-calendar-event", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-add-calendar-event/react-native-add-calendar-event.podspec", script_phases: []}, {configurations: [], name: "react-native-biometrics", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-biometrics", path: "../node_modules/react-native-biometrics", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-biometrics/react-native-biometrics.podspec", script_phases: []}, {configurations: [], name: "react-native-calendar-events", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-calendar-events", path: "../node_modules/react-native-calendar-events", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-calendar-events/RNCalendarEvents.podspec", script_phases: []}, {configurations: [], name: "react-native-contacts", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-contacts", path: "../node_modules/react-native-contacts", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-contacts/react-native-contacts.podspec", script_phases: []}, {configurations: [], name: "react-native-device-info", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-device-info", path: "../node_modules/react-native-device-info", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-device-info/RNDeviceInfo.podspec", script_phases: []}, {configurations: [], name: "react-native-geolocation-service", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-geolocation-service", path: "../node_modules/react-native-geolocation-service", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-geolocation-service/react-native-geolocation-service.podspec", script_phases: []}, {configurations: [], name: "react-native-haptic-feedback", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-haptic-feedback", path: "../node_modules/react-native-haptic-feedback", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-haptic-feedback/RNReactNativeHapticFeedback.podspec", script_phases: []}, {configurations: [], name: "react-native-image-picker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-image-picker", path: "../node_modules/react-native-image-picker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-image-picker/react-native-image-picker.podspec", script_phases: []}, {configurations: [], name: "react-native-maps", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-maps", path: "../node_modules/react-native-maps", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-maps/react-native-maps.podspec", script_phases: []}, {configurations: [], name: "react-native-orientation-locker", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-orientation-locker", path: "../node_modules/react-native-orientation-locker", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-orientation-locker/react-native-orientation-locker.podspec", script_phases: []}, {configurations: [], name: "react-native-permissions", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-permissions", path: "../node_modules/react-native-permissions", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-permissions/RNPermissions.podspec", script_phases: []}, {configurations: [], name: "react-native-safe-area-context", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-safe-area-context", path: "../node_modules/react-native-safe-area-context", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec", script_phases: []}, {configurations: [], name: "react-native-tts", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-tts", path: "../node_modules/react-native-tts", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-tts/TextToSpeech.podspec", script_phases: []}, {configurations: [], name: "react-native-vector-icons", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vector-icons", path: "../node_modules/react-native-vector-icons", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vector-icons/RNVectorIcons.podspec", script_phases: []}, {configurations: [], name: "react-native-video", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-video", path: "../node_modules/react-native-video", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-video/react-native-video.podspec", script_phases: []}, {configurations: [], name: "react-native-view-shot", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-view-shot", path: "../node_modules/react-native-view-shot", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-view-shot/react-native-view-shot.podspec", script_phases: []}, {configurations: [], name: "react-native-vision-camera", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vision-camera", path: "../node_modules/react-native-vision-camera", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-vision-camera/VisionCamera.podspec", script_phases: []}, {configurations: [], name: "react-native-webview", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-webview", path: "../node_modules/react-native-webview", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-webview/react-native-webview.podspec", script_phases: []}, {configurations: [], name: "react-native-worklets-core", root: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-worklets-core", path: "../node_modules/react-native-worklets-core", podspec_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-worklets-core/react-native-worklets-core.podspec", script_phases: []}], ios_project_root_path: "/Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios", react_native_path: "../node_modules/react-native"}
+[VisionCamera] Thank you for using VisionCamera ❤️
+[VisionCamera] If you enjoy using VisionCamera, please consider sponsoring this project: https://github.com/sponsors/mrousavy
+[VisionCamera] $VCEnableLocation is not set, enabling CLLocation APIs by default...
+[VisionCamera] $VCEnableFrameProcessors is not set, enabling Frame Processors if Worklets is installed...
+[VisionCamera] react-native-worklets-core found at /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-worklets-core, Frame Processors are enabled!
+Auto-linking React Native modules for target `StylIQ`: RNCAsyncStorage, RNCPicker, RNCPushNotificationIOS, RNCalendarEvents, RNDateTimePicker, RNDeviceInfo, RNPermissions, RNReactNativeHapticFeedback, RNVectorIcons, TextToSpeech, VisionCamera, react-native-add-calendar-event, react-native-biometrics, react-native-blur, react-native-cameraroll, react-native-contacts, react-native-geolocation, react-native-geolocation-service, react-native-image-picker, react-native-maps, react-native-orientation-locker, react-native-safe-area-context, react-native-video, react-native-view-shot, react-native-voice, react-native-webview, and react-native-worklets-core
+Framework build type is static framework
+[ReactNativeDependencies] Setting up ReactNativeDependencies...
+[ReactNativeDependencies] Building from source: true
+[ReactNativeDependencies] Source: 
+[ReactNativeCore] Setting up ReactNativeCore...
+[ReactNativeCore] Building from source: true
+[ReactNativeCore] Source: 
+Configuring the target with the Legacy Architecture
+  $ /Users/giffinmike/.nvm/versions/node/v20.11.0/bin/node ./../node_modules/react-native/scripts/generate-codegen-artifacts.js -p /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/.. -o /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios -t ios
+  [36m[1m[Codegen][0m Analyzing /Users/giffinmike/Git/StylIQ-NEW-INSTALL/package.json[0m
+  [36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+  [36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+  [36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+  [36m[1m[Codegen][0m Found @react-native-async-storage/async-storage[0m
+  [36m[1m[Codegen][0m Found @react-native-camera-roll/camera-roll[0m
+  [36m[1m[Codegen][0m Found @react-native-community/blur[0m
+  [36m[1m[Codegen][0m Found @react-native-community/datetimepicker[0m
+  [36m[1m[Codegen][0m Found @react-native-community/geolocation[0m
+  [36m[1m[Codegen][0m Found @react-native-picker/picker[0m
+  [36m[1m[Codegen][0m Found react-native-contacts[0m
+  [36m[1m[Codegen][0m Found react-native-haptic-feedback[0m
+  [36m[1m[Codegen][0m Found react-native-image-picker[0m
+  [36m[1m[Codegen][0m Found react-native-permissions[0m
+  [36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+  [36m[1m[Codegen][0m Found react-native-vector-icons[0m
+  [36m[1m[Codegen][0m Found react-native-webview[0m
+  [36m[1m[Codegen][0m Found react-native-worklets-core[0m
+  [36m[1m[Codegen][0m Processing rnasyncstorage[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage[0m
+  [36m[1m[Codegen][0m Processing rncameraroll[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for rncameraroll[0m
+  [36m[1m[Codegen][0m Processing rnblurview[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for rnblurview[0m
+  [36m[1m[Codegen][0m Processing RNDateTimePickerCGen[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNDateTimePickerCGen[0m
+  [36m[1m[Codegen][0m Processing RNCGeolocationSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNCGeolocationSpec[0m
+  [36m[1m[Codegen][0m Processing rnpicker[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos for rnpicker[0m
+  [36m[1m[Codegen][0m Processing RNContactsSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNContactsSpec[0m
+  [36m[1m[Codegen][0m Processing RNHapticFeedbackSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNHapticFeedbackSpec[0m
+  [36m[1m[Codegen][0m Processing RNImagePickerSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNImagePickerSpec[0m
+  [36m[1m[Codegen][0m Processing rnpermissions[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, tvos for rnpermissions[0m
+  [36m[1m[Codegen][0m Processing safeareacontext[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+  [36m[1m[Codegen][0m Processing RNVectorIconsSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for RNVectorIconsSpec[0m
+  [36m[1m[Codegen][0m Processing RNCWebViewSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios, macos, visionos for RNCWebViewSpec[0m
+  [36m[1m[Codegen][0m Processing RNWorkletsSpec[0m
+  [36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+  [36m[1m[Codegen][0m Supported Apple platforms: ios for RNWorkletsSpec[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnasyncstorage - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rncameraroll - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnblurview - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNDateTimePickerCGen - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNCGeolocationSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnpicker - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNContactsSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNHapticFeedbackSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNImagePickerSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for rnpermissions - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNVectorIconsSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNCWebViewSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating Native Code for RNWorkletsSpec - ios[0m
+  [36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+  [36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h[0m
+  [36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm[0m
+  [36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.h[0m
+  [36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.mm[0m
+  [36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.h[0m
+  [36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.mm[0m
+  [36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactAppDependencyProvider.podspec[0m
+  [36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactCodegen.podspec[0m
+  [36m[1m[Codegen][0m [33mDone.[0m
+[36m[1m[Codegen][0m Analyzing /Users/giffinmike/Git/StylIQ-NEW-INSTALL/package.json[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+[36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+[36m[1m[Codegen][0m Found @react-native-async-storage/async-storage[0m
+[36m[1m[Codegen][0m Found @react-native-camera-roll/camera-roll[0m
+[36m[1m[Codegen][0m Found @react-native-community/blur[0m
+[36m[1m[Codegen][0m Found @react-native-community/datetimepicker[0m
+[36m[1m[Codegen][0m Found @react-native-community/geolocation[0m
+[36m[1m[Codegen][0m Found @react-native-picker/picker[0m
+[36m[1m[Codegen][0m Found react-native-contacts[0m
+[36m[1m[Codegen][0m Found react-native-haptic-feedback[0m
+[36m[1m[Codegen][0m Found react-native-image-picker[0m
+[36m[1m[Codegen][0m Found react-native-permissions[0m
+[36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+[36m[1m[Codegen][0m Found react-native-vector-icons[0m
+[36m[1m[Codegen][0m Found react-native-webview[0m
+[36m[1m[Codegen][0m Found react-native-worklets-core[0m
+[36m[1m[Codegen][0m Processing rnasyncstorage[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnasyncstorage[0m
+[36m[1m[Codegen][0m Processing rncameraroll[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for rncameraroll[0m
+[36m[1m[Codegen][0m Processing rnblurview[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for rnblurview[0m
+[36m[1m[Codegen][0m Processing RNDateTimePickerCGen[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNDateTimePickerCGen[0m
+[36m[1m[Codegen][0m Processing RNCGeolocationSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, visionos for RNCGeolocationSpec[0m
+[36m[1m[Codegen][0m Processing rnpicker[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos for rnpicker[0m
+[36m[1m[Codegen][0m Processing RNContactsSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNContactsSpec[0m
+[36m[1m[Codegen][0m Processing RNHapticFeedbackSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNHapticFeedbackSpec[0m
+[36m[1m[Codegen][0m Processing RNImagePickerSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNImagePickerSpec[0m
+[36m[1m[Codegen][0m Processing rnpermissions[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos for rnpermissions[0m
+[36m[1m[Codegen][0m Processing safeareacontext[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+[36m[1m[Codegen][0m Processing RNVectorIconsSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, tvos, visionos for RNVectorIconsSpec[0m
+[36m[1m[Codegen][0m Processing RNCWebViewSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, visionos for RNCWebViewSpec[0m
+[36m[1m[Codegen][0m Processing RNWorkletsSpec[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios for RNWorkletsSpec[0m
+[36m[1m[Codegen][0m Generating Native Code for rnasyncstorage - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rncameraroll - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnblurview - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNDateTimePickerCGen - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNCGeolocationSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnpicker - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNContactsSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNHapticFeedbackSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNImagePickerSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for rnpermissions - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNVectorIconsSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNCWebViewSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating Native Code for RNWorkletsSpec - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.h[0m
+[36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/RCTAppDependencyProvider.mm[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactAppDependencyProvider.podspec[0m
+[36m[1m[Codegen][0m Generated podspec: /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/build/generated/ios/ReactCodegen.podspec[0m
+[36m[1m[Codegen][0m [33mDone.[0m
+  Preparing
+
+Updating local specs repositories
+  CDN: trunk Relative path: CocoaPods-version.yml exists! Returning local because checking is only performed in repo update
+
+Updating spec repo `trunk`
+  CDN: trunk Relative path: deprecated_podspecs.txt, has ETag? W/"6905993d-d2513"
+  CDN: trunk Relative path downloaded: deprecated_podspecs.txt, save ETag: W/"690618ee-d2513"
+  CDN: trunk Going to update 8 files
+  CDN: trunk Relative path: CocoaPods-version.yml, has ETag? "6905993d-38"
+  CDN: trunk Relative path: all_pods_versions_0_b_5.txt, has ETag? W/"6905993d-735"
+  CDN: trunk Relative path: all_pods_versions_2_a_7.txt, has ETag? W/"690596ae-14be"
+  CDN: trunk Relative path: all_pods_versions_7_3_e.txt, has ETag? W/"690596ae-54e"
+  CDN: trunk Relative path: all_pods_versions_9_d_4.txt, has ETag? W/"690596ae-f4d"
+  CDN: trunk Relative path: all_pods_versions_a_9_3.txt, has ETag? W/"6905993d-850"
+  CDN: trunk Relative path: all_pods_versions_e_d_4.txt, has ETag? W/"6905993d-6f5"
+  CDN: trunk Relative path: Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json, has ETag? W/"2eb-IbzaktiYenFBxISqSP0K8kfHCIE"
+  CDN: trunk Relative path downloaded: CocoaPods-version.yml, save ETag: "690618ee-38"
+  CDN: trunk Redirecting from https://cdn.cocoapods.org/Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json to https://cdn.jsdelivr.net/cocoa/Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json
+  CDN: trunk Relative path downloaded: all_pods_versions_0_b_5.txt, save ETag: W/"690618ee-735"
+  CDN: trunk Relative path downloaded: all_pods_versions_2_a_7.txt, save ETag: W/"690618ee-14be"
+  CDN: trunk Relative path downloaded: all_pods_versions_e_d_4.txt, save ETag: W/"690618ee-6f5"
+  CDN: trunk Relative path downloaded: all_pods_versions_9_d_4.txt, save ETag: W/"690618ee-f4d"
+  CDN: trunk Relative path downloaded: all_pods_versions_7_3_e.txt, save ETag: W/"690618ee-54e"
+  CDN: trunk Relative path downloaded: all_pods_versions_a_9_3.txt, save ETag: W/"690618ee-850"
+  CDN: trunk Relative path not modified: Specs/2/a/7/Auth0/0.0.10/Auth0.podspec.json
+
+Analyzing dependencies
+
+Inspecting targets to integrate
+  Using `ARCHS` setting to build architectures of target `Pods-StylIQ`: (``)
+
+Fetching external sources
+-> Fetching podspec for `DoubleConversion` from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`
+-> Fetching podspec for `FBLazyVector` from `../node_modules/react-native/Libraries/FBLazyVector`
+-> Fetching podspec for `RCT-Folly` from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`
+-> Fetching podspec for `RCTDeprecation` from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`
+-> Fetching podspec for `RCTRequired` from `../node_modules/react-native/Libraries/Required`
+-> Fetching podspec for `RCTTypeSafety` from `../node_modules/react-native/Libraries/TypeSafety`
+-> Fetching podspec for `RNCAsyncStorage` from `../node_modules/@react-native-async-storage/async-storage`
+-> Fetching podspec for `RNCPicker` from `../node_modules/@react-native-picker/picker`
+-> Fetching podspec for `RNCPushNotificationIOS` from `../node_modules/@react-native-community/push-notification-ios`
+-> Fetching podspec for `RNCalendarEvents` from `../node_modules/react-native-calendar-events`
+-> Fetching podspec for `RNDateTimePicker` from `../node_modules/@react-native-community/datetimepicker`
+-> Fetching podspec for `RNDeviceInfo` from `../node_modules/react-native-device-info`
+-> Fetching podspec for `RNPermissions` from `../node_modules/react-native-permissions`
+-> Fetching podspec for `RNReactNativeHapticFeedback` from `../node_modules/react-native-haptic-feedback`
+-> Fetching podspec for `RNVectorIcons` from `../node_modules/react-native-vector-icons`
+-> Fetching podspec for `React` from `../node_modules/react-native/`
+-> Fetching podspec for `React-Core` from `../node_modules/react-native/`
+-> Fetching podspec for `React-CoreModules` from `../node_modules/react-native/React/CoreModules`
+-> Fetching podspec for `React-Fabric` from `../node_modules/react-native/ReactCommon`
+-> Fetching podspec for `React-FabricComponents` from `../node_modules/react-native/ReactCommon`
+-> Fetching podspec for `React-FabricImage` from `../node_modules/react-native/ReactCommon`
+-> Fetching podspec for `React-ImageManager` from `../node_modules/react-native/ReactCommon/react/renderer/imagemanager/platform/ios`
+-> Fetching podspec for `React-Mapbuffer` from `../node_modules/react-native/ReactCommon`
+-> Fetching podspec for `React-NativeModulesApple` from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`
+-> Fetching podspec for `React-RCTActionSheet` from `../node_modules/react-native/Libraries/ActionSheetIOS`
+-> Fetching podspec for `React-RCTAnimation` from `../node_modules/react-native/Libraries/NativeAnimation`
+-> Fetching podspec for `React-RCTAppDelegate` from `../node_modules/react-native/Libraries/AppDelegate`
+-> Fetching podspec for `React-RCTBlob` from `../node_modules/react-native/Libraries/Blob`
+-> Fetching podspec for `React-RCTFBReactNativeSpec` from `../node_modules/react-native/React`
+-> Fetching podspec for `React-RCTFabric` from `../node_modules/react-native/React`
+-> Fetching podspec for `React-RCTImage` from `../node_modules/react-native/Libraries/Image`
+-> Fetching podspec for `React-RCTLinking` from `../node_modules/react-native/Libraries/LinkingIOS`
+-> Fetching podspec for `React-RCTNetwork` from `../node_modules/react-native/Libraries/Network`
+-> Fetching podspec for `React-RCTRuntime` from `../node_modules/react-native/React/Runtime`
+-> Fetching podspec for `React-RCTSettings` from `../node_modules/react-native/Libraries/Settings`
+-> Fetching podspec for `React-RCTText` from `../node_modules/react-native/Libraries/Text`
+-> Fetching podspec for `React-RCTVibration` from `../node_modules/react-native/Libraries/Vibration`
+-> Fetching podspec for `React-RuntimeApple` from `../node_modules/react-native/ReactCommon/react/runtime/platform/ios`
+-> Fetching podspec for `React-RuntimeCore` from `../node_modules/react-native/ReactCommon/react/runtime`
+-> Fetching podspec for `React-RuntimeHermes` from `../node_modules/react-native/ReactCommon/react/runtime`
+-> Fetching podspec for `React-callinvoker` from `../node_modules/react-native/ReactCommon/callinvoker`
+-> Fetching podspec for `React-cxxreact` from `../node_modules/react-native/ReactCommon/cxxreact`
+-> Fetching podspec for `React-debug` from `../node_modules/react-native/ReactCommon/react/debug`
+-> Fetching podspec for `React-defaultsnativemodule` from `../node_modules/react-native/ReactCommon/react/nativemodule/defaults`
+-> Fetching podspec for `React-domnativemodule` from `../node_modules/react-native/ReactCommon/react/nativemodule/dom`
+-> Fetching podspec for `React-featureflags` from `../node_modules/react-native/ReactCommon/react/featureflags`
+-> Fetching podspec for `React-featureflagsnativemodule` from `../node_modules/react-native/ReactCommon/react/nativemodule/featureflags`
+-> Fetching podspec for `React-graphics` from `../node_modules/react-native/ReactCommon/react/renderer/graphics`
+-> Fetching podspec for `React-hermes` from `../node_modules/react-native/ReactCommon/hermes`
+-> Fetching podspec for `React-idlecallbacksnativemodule` from `../node_modules/react-native/ReactCommon/react/nativemodule/idlecallbacks`
+-> Fetching podspec for `React-jserrorhandler` from `../node_modules/react-native/ReactCommon/jserrorhandler`
+-> Fetching podspec for `React-jsi` from `../node_modules/react-native/ReactCommon/jsi`
+-> Fetching podspec for `React-jsiexecutor` from `../node_modules/react-native/ReactCommon/jsiexecutor`
+-> Fetching podspec for `React-jsinspector` from `../node_modules/react-native/ReactCommon/jsinspector-modern`
+-> Fetching podspec for `React-jsinspectorcdp` from `../node_modules/react-native/ReactCommon/jsinspector-modern/cdp`
+-> Fetching podspec for `React-jsinspectornetwork` from `../node_modules/react-native/ReactCommon/jsinspector-modern/network`
+-> Fetching podspec for `React-jsinspectortracing` from `../node_modules/react-native/ReactCommon/jsinspector-modern/tracing`
+-> Fetching podspec for `React-jsitooling` from `../node_modules/react-native/ReactCommon/jsitooling`
+-> Fetching podspec for `React-jsitracing` from `../node_modules/react-native/ReactCommon/hermes/executor/`
+-> Fetching podspec for `React-logger` from `../node_modules/react-native/ReactCommon/logger`
+-> Fetching podspec for `React-microtasksnativemodule` from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`
+-> Fetching podspec for `React-oscompat` from `../node_modules/react-native/ReactCommon/oscompat`
+-> Fetching podspec for `React-perflogger` from `../node_modules/react-native/ReactCommon/reactperflogger`
+-> Fetching podspec for `React-performancetimeline` from `../node_modules/react-native/ReactCommon/react/performance/timeline`
+-> Fetching podspec for `React-rendererconsistency` from `../node_modules/react-native/ReactCommon/react/renderer/consistency`
+-> Fetching podspec for `React-renderercss` from `../node_modules/react-native/ReactCommon/react/renderer/css`
+-> Fetching podspec for `React-rendererdebug` from `../node_modules/react-native/ReactCommon/react/renderer/debug`
+-> Fetching podspec for `React-runtimeexecutor` from `../node_modules/react-native/ReactCommon/runtimeexecutor`
+-> Fetching podspec for `React-runtimescheduler` from `../node_modules/react-native/ReactCommon/react/renderer/runtimescheduler`
+-> Fetching podspec for `React-timing` from `../node_modules/react-native/ReactCommon/react/timing`
+-> Fetching podspec for `React-utils` from `../node_modules/react-native/ReactCommon/react/utils`
+-> Fetching podspec for `ReactAppDependencyProvider` from `build/generated/ios`
+-> Fetching podspec for `ReactCodegen` from `build/generated/ios`
+-> Fetching podspec for `ReactCommon` from `../node_modules/react-native/ReactCommon`
+-> Fetching podspec for `TextToSpeech` from `../node_modules/react-native-tts`
+-> Fetching podspec for `VisionCamera` from `../node_modules/react-native-vision-camera`
+[VisionCamera] Thank you for using VisionCamera ❤️
+[VisionCamera] If you enjoy using VisionCamera, please consider sponsoring this project: https://github.com/sponsors/mrousavy
+[VisionCamera] $VCEnableLocation is not set, enabling CLLocation APIs by default...
+[VisionCamera] $VCEnableFrameProcessors is not set, enabling Frame Processors if Worklets is installed...
+[VisionCamera] react-native-worklets-core found at /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native-worklets-core, Frame Processors are enabled!
+-> Fetching podspec for `Yoga` from `../node_modules/react-native/ReactCommon/yoga`
+-> Fetching podspec for `boost` from `../node_modules/react-native/third-party-podspecs/boost.podspec`
+-> Fetching podspec for `fast_float` from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`
+-> Fetching podspec for `fmt` from `../node_modules/react-native/third-party-podspecs/fmt.podspec`
+-> Fetching podspec for `glog` from `../node_modules/react-native/third-party-podspecs/glog.podspec`
+-> Fetching podspec for `hermes-engine` from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
+  $ /Users/giffinmike/.nvm/versions/node/v20.11.0/bin/node -p require.resolve(     "react-native",     {paths: [process.argv[1]]},     ) /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native/sdks/hermes-engine
+  /Users/giffinmike/Git/StylIQ-NEW-INSTALL/node_modules/react-native/index.js
+[Hermes] Using release tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-hermes-ios-debug.tar.gz
+-> Fetching podspec for `react-native-add-calendar-event` from `../node_modules/react-native-add-calendar-event`
+-> Fetching podspec for `react-native-biometrics` from `../node_modules/react-native-biometrics`
+-> Fetching podspec for `react-native-blur` from `../node_modules/@react-native-community/blur`
+-> Fetching podspec for `react-native-cameraroll` from `../node_modules/@react-native-camera-roll/camera-roll`
+-> Fetching podspec for `react-native-contacts` from `../node_modules/react-native-contacts`
+-> Fetching podspec for `react-native-geolocation` from `../node_modules/@react-native-community/geolocation`
+-> Fetching podspec for `react-native-geolocation-service` from `../node_modules/react-native-geolocation-service`
+-> Fetching podspec for `react-native-image-picker` from `../node_modules/react-native-image-picker`
+-> Fetching podspec for `react-native-maps` from `../node_modules/react-native-maps`
+-> Fetching podspec for `react-native-orientation-locker` from `../node_modules/react-native-orientation-locker`
+-> Fetching podspec for `react-native-safe-area-context` from `../node_modules/react-native-safe-area-context`
+-> Fetching podspec for `react-native-video` from `../node_modules/react-native-video`
+-> Fetching podspec for `react-native-view-shot` from `../node_modules/react-native-view-shot`
+-> Fetching podspec for `react-native-voice` from `../node_modules/@react-native-voice/voice`
+-> Fetching podspec for `react-native-webview` from `../node_modules/react-native-webview`
+-> Fetching podspec for `react-native-worklets-core` from `../node_modules/react-native-worklets-core`
+
+Resolving dependencies of `Podfile`
+  CDN: trunk Relative path: all_pods_versions_a_9_3.txt modified during this run! Returning local
+  CDN: trunk Relative path: Specs/a/9/3/SocketRocket/0.7.1/SocketRocket.podspec.json exists! Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: all_pods_versions_0_b_5.txt modified during this run! Returning local
+  CDN: trunk Relative path: Specs/0/b/5/PromisesObjC/2.4.0/PromisesObjC.podspec.json exists! Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: all_pods_versions_e_d_4.txt modified during this run! Returning local
+  CDN: trunk Relative path: Specs/e/d/4/PromisesSwift/2.4.0/PromisesSwift.podspec.json exists! Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/a/9/3/SocketRocket/0.7.1/SocketRocket.podspec.json exists! Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/a/9/3/SocketRocket/0.7.1/SocketRocket.podspec.json exists! Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/0/b/5/PromisesObjC/2.4.0/PromisesObjC.podspec.json exists! Returning local because checking is only performed in repo update
+  CDN: trunk Relative path: Specs/e/d/4/PromisesSwift/2.4.0/PromisesSwift.podspec.json exists! Returning local because checking is only performed in repo update
+
+Comparing resolved specification to the sandbox manifest
+  A DoubleConversion
+  A FBLazyVector
+  A PromisesObjC
+  A PromisesSwift
+  A RCT-Folly
+  A RCTDeprecation
+  A RCTRequired
+  A RCTTypeSafety
+  A RNCAsyncStorage
+  A RNCPicker
+  A RNCPushNotificationIOS
+  A RNCalendarEvents
+  A RNDateTimePicker
+  A RNDeviceInfo
+  A RNPermissions
+  A RNReactNativeHapticFeedback
+  A RNVectorIcons
+  A React
+  A React-Core
+  A React-CoreModules
+  A React-Fabric
+  A React-FabricComponents
+  A React-FabricImage
+  A React-ImageManager
+  A React-Mapbuffer
+  A React-NativeModulesApple
+  A React-RCTActionSheet
+  A React-RCTAnimation
+  A React-RCTAppDelegate
+  A React-RCTBlob
+  A React-RCTFBReactNativeSpec
+  A React-RCTFabric
+  A React-RCTImage
+  A React-RCTLinking
+  A React-RCTNetwork
+  A React-RCTRuntime
+  A React-RCTSettings
+  A React-RCTText
+  A React-RCTVibration
+  A React-RuntimeApple
+  A React-RuntimeCore
+  A React-RuntimeHermes
+  A React-callinvoker
+  A React-cxxreact
+  A React-debug
+  A React-defaultsnativemodule
+  A React-domnativemodule
+  A React-featureflags
+  A React-featureflagsnativemodule
+  A React-graphics
+  A React-hermes
+  A React-idlecallbacksnativemodule
+  A React-jserrorhandler
+  A React-jsi
+  A React-jsiexecutor
+  A React-jsinspector
+  A React-jsinspectorcdp
+  A React-jsinspectornetwork
+  A React-jsinspectortracing
+  A React-jsitooling
+  A React-jsitracing
+  A React-logger
+  A React-microtasksnativemodule
+  A React-oscompat
+  A React-perflogger
+  A React-performancetimeline
+  A React-rendererconsistency
+  A React-renderercss
+  A React-rendererdebug
+  A React-runtimeexecutor
+  A React-runtimescheduler
+  A React-timing
+  A React-utils
+  A ReactAppDependencyProvider
+  A ReactCodegen
+  A ReactCommon
+  A SocketRocket
+  A TextToSpeech
+  A VisionCamera
+  A Yoga
+  A boost
+  A fast_float
+  A fmt
+  A glog
+  A hermes-engine
+  A react-native-add-calendar-event
+  A react-native-biometrics
+  A react-native-blur
+  A react-native-cameraroll
+  A react-native-contacts
+  A react-native-geolocation
+  A react-native-geolocation-service
+  A react-native-image-picker
+  A react-native-maps
+  A react-native-orientation-locker
+  A react-native-safe-area-context
+  A react-native-video
+  A react-native-view-shot
+  A react-native-voice
+  A react-native-webview
+  A react-native-worklets-core
+
+Downloading dependencies
+
+-> Installing DoubleConversion (1.1.6)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/google/double-conversion.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-jzfilb --template= --single-branch --depth 1 --branch v1.1.6
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-jzfilb/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/DoubleConversion/77f51e588bfe0e5c4fa6e9c580da62c6-cb417
+ > Running prepare command
+   $ /bin/bash -c  set -e mv src double-conversion
+  > Copying DoubleConversion from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/DoubleConversion/77f51e588bfe0e5c4fa6e9c580da62c6-cb417` to `Pods/DoubleConversion`
+
+-> Installing FBLazyVector (0.81.5)
+
+-> Installing PromisesObjC (2.4.0)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/google/promises.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-jwbwdn --template= --single-branch --depth 1 --branch 2.4.0
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-jwbwdn/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/Release/PromisesObjC/2.4.0-f5707
+  > Copying PromisesObjC from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/Release/PromisesObjC/2.4.0-f5707` to `Pods/PromisesObjC`
+
+-> Installing PromisesSwift (2.4.0)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/google/promises.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-zczw3r --template= --single-branch --depth 1 --branch 2.4.0
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-zczw3r/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/Release/PromisesSwift/2.4.0-9d773
+  > Copying PromisesSwift from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/Release/PromisesSwift/2.4.0-9d773` to `Pods/PromisesSwift`
+
+-> Installing RCT-Folly (2024.11.18.00)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/facebook/folly.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-rkgcdc --template= --single-branch --depth 1 --branch v2024.11.18.00
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-rkgcdc/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/RCT-Folly/5456eaeed7ed94cba6507f2b03c47dc1-846fd
+ > Running prepare command
+   $ /bin/bash -c  set -e echo '#pragma once  #define FOLLY_MOBILE 1 #define FOLLY_USE_LIBCPP 1 #define FOLLY_HAVE_PTHREAD 1 #define FOLLY_CFG_NO_COROUTINES 1 #define FOLLY_HAVE_CLOCK_GETTIME 1  #pragma clang diagnostic ignored "-Wcomma"' > folly/folly-config.h
+  > Copying RCT-Folly from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/RCT-Folly/5456eaeed7ed94cba6507f2b03c47dc1-846fd` to `Pods/RCT-Folly`
+
+-> Installing RCTDeprecation (0.81.5)
+
+-> Installing RCTRequired (0.81.5)
+
+-> Installing RCTTypeSafety (0.81.5)
+
+-> Installing RNCAsyncStorage (2.2.0)
+
+-> Installing RNCPicker (2.11.4)
+
+-> Installing RNCPushNotificationIOS (1.11.0)
+
+-> Installing RNCalendarEvents (2.2.0)
+
+-> Installing RNDateTimePicker (8.5.0)
+
+-> Installing RNDeviceInfo (14.1.1)
+
+-> Installing RNPermissions (3.10.1)
+
+-> Installing RNReactNativeHapticFeedback (2.3.3)
+
+-> Installing RNVectorIcons (10.3.0)
+
+-> Installing React (0.81.5)
+
+-> Installing React-Core (0.81.5)
+
+-> Installing React-CoreModules (0.81.5)
+
+-> Installing React-Fabric (0.81.5)
+
+-> Installing React-FabricComponents (0.81.5)
+
+-> Installing React-FabricImage (0.81.5)
+
+-> Installing React-ImageManager (0.81.5)
+
+-> Installing React-Mapbuffer (0.81.5)
+
+-> Installing React-NativeModulesApple (0.81.5)
+
+-> Installing React-RCTActionSheet (0.81.5)
+
+-> Installing React-RCTAnimation (0.81.5)
+
+-> Installing React-RCTAppDelegate (0.81.5)
+
+-> Installing React-RCTBlob (0.81.5)
+
+-> Installing React-RCTFBReactNativeSpec (0.81.5)
+
+-> Installing React-RCTFabric (0.81.5)
+
+-> Installing React-RCTImage (0.81.5)
+
+-> Installing React-RCTLinking (0.81.5)
+
+-> Installing React-RCTNetwork (0.81.5)
+
+-> Installing React-RCTRuntime (0.81.5)
+
+-> Installing React-RCTSettings (0.81.5)
+
+-> Installing React-RCTText (0.81.5)
+
+-> Installing React-RCTVibration (0.81.5)
+
+-> Installing React-RuntimeApple (0.81.5)
+
+-> Installing React-RuntimeCore (0.81.5)
+
+-> Installing React-RuntimeHermes (0.81.5)
+
+-> Installing React-callinvoker (0.81.5)
+
+-> Installing React-cxxreact (0.81.5)
+
+-> Installing React-debug (0.81.5)
+
+-> Installing React-defaultsnativemodule (0.81.5)
+
+-> Installing React-domnativemodule (0.81.5)
+
+-> Installing React-featureflags (0.81.5)
+
+-> Installing React-featureflagsnativemodule (0.81.5)
+
+-> Installing React-graphics (0.81.5)
+
+-> Installing React-hermes (0.81.5)
+
+-> Installing React-idlecallbacksnativemodule (0.81.5)
+
+-> Installing React-jserrorhandler (0.81.5)
+
+-> Installing React-jsi (0.81.5)
+
+-> Installing React-jsiexecutor (0.81.5)
+
+-> Installing React-jsinspector (0.81.5)
+
+-> Installing React-jsinspectorcdp (0.81.5)
+
+-> Installing React-jsinspectornetwork (0.81.5)
+
+-> Installing React-jsinspectortracing (0.81.5)
+
+-> Installing React-jsitooling (0.81.5)
+
+-> Installing React-jsitracing (0.81.5)
+
+-> Installing React-logger (0.81.5)
+
+-> Installing React-microtasksnativemodule (0.81.5)
+
+-> Installing React-oscompat (0.81.5)
+
+-> Installing React-perflogger (0.81.5)
+
+-> Installing React-performancetimeline (0.81.5)
+
+-> Installing React-rendererconsistency (0.81.5)
+
+-> Installing React-renderercss (0.81.5)
+
+-> Installing React-rendererdebug (0.81.5)
+
+-> Installing React-runtimeexecutor (0.81.5)
+
+-> Installing React-runtimescheduler (0.81.5)
+
+-> Installing React-timing (0.81.5)
+
+-> Installing React-utils (0.81.5)
+
+-> Installing ReactAppDependencyProvider (0.81.5)
+
+-> Installing ReactCodegen (0.81.5)
+
+-> Installing ReactCommon (0.81.5)
+
+-> Installing SocketRocket (0.7.1)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/facebook/SocketRocket.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-ucsp2z --template= --single-branch --depth 1 --branch 0.7.1
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-ucsp2z/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/Release/SocketRocket/0.7.1-d4aab
+  > Copying SocketRocket from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/Release/SocketRocket/0.7.1-d4aab` to `Pods/SocketRocket`
+
+-> Installing TextToSpeech (4.1.1)
+
+-> Installing VisionCamera (4.7.2)
+
+-> Installing Yoga (0.0.0)
+
+-> Installing boost (1.84.0)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/react-native-community/boost-for-react-native /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-ddscla --template= --single-branch --depth 1 --branch v1.84.0
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-ddscla/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/boost/5abf4351d19e14b47513e0fede2147e2-7e761
+  > Copying boost from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/boost/5abf4351d19e14b47513e0fede2147e2-7e761` to `Pods/boost`
+
+-> Installing fast_float (8.0.0)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/fastfloat/fast_float.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-1et0ef --template= --single-branch --depth 1 --branch v8.0.0
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-1et0ef/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/fast_float/112fa79a55c193cdced1e49cf75b3454-b32c7
+  > Copying fast_float from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/fast_float/112fa79a55c193cdced1e49cf75b3454-b32c7` to `Pods/fast_float`
+
+-> Installing fmt (11.0.2)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/fmtlib/fmt.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-64fhme --template= --single-branch --depth 1 --branch 11.0.2
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-64fhme/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/fmt/4ba9726609ff00555176ecfb2faed015-a40bb
+  > Copying fmt from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/fmt/4ba9726609ff00555176ecfb2faed015-a40bb` to `Pods/fmt`
+
+-> Installing glog (0.3.5)
+ > Git download
+ > Git download
+     $ /opt/homebrew/bin/git clone https://github.com/google/glog.git /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-pahabj --template= --single-branch --depth 1 --branch v0.3.5
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-pahabj/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/glog/2263bd123499e5b93b5efe24871be317-56839
+ > Running prepare command
+   $ /bin/bash -c  set -e #!/bin/bash # Copyright (c) Meta Platforms, Inc. and affiliates. # # This source code is licensed under the MIT license found in the # LICENSE file in the root directory of this source tree.  set -e  PLATFORM_NAME="${PLATFORM_NAME:-iphoneos}" CURRENT_ARCH="${CURRENT_ARCH}"  if [ -z "$CURRENT_ARCH" ] || [ "$CURRENT_ARCH" == "undefined_arch" ]; then     # Xcode 10 beta sets CURRENT_ARCH to "undefined_arch", this leads to incorrect linker arg.     # it's better to rely on platform name as fallback because architecture differs between simulator and device      if [[ "$PLATFORM_NAME" == *"simulator"* ]]; then         CURRENT_ARCH="x86_64"     else         CURRENT_ARCH="arm64"     fi fi  # @lint-ignore-every TXT2 Tab Literal if [ "$CURRENT_ARCH" == "arm64" ]; then     cat <<\EOF >>fix_glog_0.3.5_apple_silicon.patch diff --git a/config.sub b/config.sub index 1761d8b..43fa2e8 100755 --- a/config.sub +++ b/config.sub @@ -1096,6 +1096,9 @@ case $basic_machine in  		basic_machine=z8k-unknown  		os=-sim  		;; +	arm64-*) +		basic_machine=$(echo $basic_machine | sed 's/arm64/aarch64/') +		;;  	none)  		basic_machine=none-none  		os=-none EOF      patch -p1 config.sub fix_glog_0.3.5_apple_silicon.patch fi  XCRUN="$(which xcrun || true)" if [ -n "$XCRUN" ]; then   export CC="$(xcrun -find -sdk $PLATFORM_NAME cc) -arch $CURRENT_ARCH -isysroot $(xcrun -sdk $PLATFORM_NAME --show-sdk-path)"   export CXX="$CC" else   export CC="$CC:-$(which gcc)"   export CXX="$CXX:-$(which g++ || true)" fi export CXX="$CXX:-$CC"  # Remove automake symlink if it exists if [ -h "test-driver" ]; then     rm test-driver fi  # Manually disable gflags include to fix issue https://github.com/facebook/react-native/issues/28446 sed -i.bak -e 's/\@ac_cv_have_libgflags\@/0/' src/glog/logging.h.in && rm src/glog/logging.h.in.bak sed -i.bak -e 's/HAVE_LIB_GFLAGS/HAVE_LIB_GFLAGS_DISABLED/' src/config.h.in && rm src/config.h.in.bak  ./configure --host arm-apple-darwin || true  cat << EOF >> src/config.h /* Add in so we have Apple Target Conditionals */ #ifdef __APPLE__ #include <TargetConditionals.h> #include <Availability.h> #endif  /* Special configuration for AppleTVOS */ #if TARGET_OS_TV #undef HAVE_SYSCALL_H #undef HAVE_SYS_SYSCALL_H #undef OS_MACOSX /* NO_THREADS needed right now for Xcode 16 */ #define NO_THREADS #endif  /* Special configuration for ucontext */ #undef HAVE_UCONTEXT_H #undef PC_FROM_UCONTEXT #if defined(__x86_64__) #define PC_FROM_UCONTEXT uc_mcontext->__ss.__rip #elif defined(__i386__) #define PC_FROM_UCONTEXT uc_mcontext->__ss.__eip #endif EOF  # Prepare exported header include EXPORTED_INCLUDE_DIR="exported/glog" mkdir -p exported/glog cp -f src/glog/log_severity.h "$EXPORTED_INCLUDE_DIR/" cp -f src/glog/logging.h "$EXPORTED_INCLUDE_DIR/" cp -f src/glog/raw_logging.h "$EXPORTED_INCLUDE_DIR/" cp -f src/glog/stl_logging.h "$EXPORTED_INCLUDE_DIR/" cp -f src/glog/vlog_is_on.h "$EXPORTED_INCLUDE_DIR/"
+   patching file config.sub
+   checking for a BSD-compatible install... /usr/bin/install -c
+   checking whether build environment is sane... yes
+   checking for arm-apple-darwin-strip... no
+   checking for strip... strip
+   checking for a thread-safe mkdir -p... ./install-sh -c -d
+   checking for gawk... no
+   checking for mawk... no
+   checking for nawk... no
+   checking for awk... awk
+   checking whether make sets $(MAKE)... yes
+   checking whether make supports nested variables... yes
+   checking for arm-apple-darwin-gcc... /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk
+   checking whether the C compiler works... yes
+   checking for C compiler default output file name... a.out
+   checking for suffix of executables... 
+   checking whether we are cross compiling... yes
+   checking for suffix of object files... o
+   checking whether we are using the GNU C compiler... yes
+   checking whether /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk accepts -g... yes
+   checking for /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk option to accept ISO C89... none needed
+   checking whether /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk understands -c and -o together... yes
+   checking for style of include used by make... GNU
+   checking dependency style of /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk... gcc3
+   checking how to run the C preprocessor... /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -E
+   checking whether we are using the GNU C++ compiler... yes
+   checking whether /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk accepts -g... yes
+   checking dependency style of /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk... gcc3
+   checking build system type... arm-apple-darwin24.6.0
+   checking host system type... arm-apple-darwin
+   checking how to print strings... printf
+   checking for a sed that does not truncate output... /usr/bin/sed
+   checking for grep that handles long lines and -e... /usr/bin/grep
+   checking for egrep... /usr/bin/grep -E
+   checking for fgrep... /usr/bin/grep -F
+   checking for ld used by /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk... /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld
+   checking if the linker (/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld) is GNU ld... no
+   checking for BSD- or MS-compatible name lister (nm)... no
+   checking for arm-apple-darwin-dumpbin... no
+   checking for arm-apple-darwin-link... no
+   checking for dumpbin... no
+   checking for link... link -dump
+   checking the name lister (nm) interface... BSD nm
+   checking whether ln -s works... yes
+   checking the maximum length of command line arguments... 786432
+   checking whether the shell understands some XSI constructs... yes
+   checking whether the shell understands "+="... yes
+   checking how to convert arm-apple-darwin24.6.0 file names to arm-apple-darwin format... func_convert_file_noop
+   checking how to convert arm-apple-darwin24.6.0 file names to toolchain format... func_convert_file_noop
+   checking for /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld option to reload object files... -r
+   checking for arm-apple-darwin-objdump... no
+   checking for objdump... objdump
+   checking how to recognize dependent libraries... pass_all
+   checking for arm-apple-darwin-dlltool... no
+   checking for dlltool... no
+   checking how to associate runtime and link libraries... printf %s\n
+   checking for arm-apple-darwin-ar... no
+   checking for ar... ar
+   checking for archiver @FILE support... no
+   checking for arm-apple-darwin-strip... strip
+   checking for arm-apple-darwin-ranlib... no
+   checking for ranlib... ranlib
+   checking command to parse nm output from /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk object... ok
+   checking for sysroot... no
+   checking for arm-apple-darwin-mt... no
+   checking for mt... no
+   checking if : is a manifest tool... no
+   checking for arm-apple-darwin-dsymutil... no
+   checking for dsymutil... dsymutil
+   checking for arm-apple-darwin-nmedit... no
+   checking for nmedit... nmedit
+   checking for arm-apple-darwin-lipo... no
+   checking for lipo... lipo
+   checking for arm-apple-darwin-otool... no
+   checking for otool... otool
+   checking for arm-apple-darwin-otool64... no
+   checking for otool64... no
+   checking for -single_module linker flag... ld: warning: -single_module is obsolete
+   no
+   checking for -exported_symbols_list linker flag... yes
+   checking for -force_load linker flag... yes
+   checking for ANSI C header files... no
+   checking for sys/types.h... yes
+   checking for sys/stat.h... yes
+   checking for stdlib.h... yes
+   checking for string.h... yes
+   checking for memory.h... yes
+   checking for strings.h... yes
+   checking for inttypes.h... yes
+   checking for stdint.h... yes
+   checking for unistd.h... yes
+   checking for dlfcn.h... yes
+   checking for objdir... .libs
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk supports -fno-rtti -fno-exceptions... yes
+   checking for /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk option to produce PIC... -fno-common -DPIC
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk PIC flag -fno-common -DPIC works... yes
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk static flag -static works... no
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk supports -c -o file.o... yes
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk supports -c -o file.o... (cached) yes
+   checking whether the /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk linker (/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld) supports shared libraries... yes
+   checking dynamic linker characteristics... darwin dyld
+   checking how to hardcode library paths into programs... immediate
+   checking whether stripping libraries is possible... yes
+   checking if libtool supports shared libraries... yes
+   checking whether to build shared libraries... yes
+   checking whether to build static libraries... yes
+   checking how to run the C++ preprocessor... /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -E
+   checking for ld used by /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk... /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld
+   checking if the linker (/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld) is GNU ld... no
+   checking whether the /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk linker (/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld) supports shared libraries... yes
+   checking for /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk option to produce PIC... -fno-common -DPIC
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk PIC flag -fno-common -DPIC works... yes
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk static flag -static works... no
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk supports -c -o file.o... yes
+   checking if /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk supports -c -o file.o... (cached) yes
+   checking whether the /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk:-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk linker (/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld) supports shared libraries... yes
+   checking dynamic linker characteristics... darwin dyld
+   checking how to hardcode library paths into programs... immediate
+   checking for ANSI C header files... (cached) no
+   checking for stdint.h... (cached) yes
+   checking for sys/types.h... (cached) yes
+   checking for inttypes.h... (cached) yes
+   checking for unistd.h... (cached) yes
+   checking syscall.h usability... no
+   checking syscall.h presence... no
+   checking for syscall.h... no
+   checking sys/syscall.h usability... yes
+   checking sys/syscall.h presence... yes
+   checking for sys/syscall.h... yes
+   checking execinfo.h usability... yes
+   checking execinfo.h presence... yes
+   checking for execinfo.h... yes
+   checking libunwind.h usability... yes
+   checking libunwind.h presence... yes
+   checking for libunwind.h... yes
+   checking ucontext.h usability... no
+   checking ucontext.h presence... no
+   checking for ucontext.h... no
+   checking sys/utsname.h usability... yes
+   checking sys/utsname.h presence... yes
+   checking for sys/utsname.h... yes
+   checking pwd.h usability... yes
+   checking pwd.h presence... yes
+   checking for pwd.h... yes
+   checking syslog.h usability... yes
+   checking syslog.h presence... yes
+   checking for syslog.h... yes
+   checking sys/time.h usability... yes
+   checking sys/time.h presence... yes
+   checking for sys/time.h... yes
+   checking glob.h usability... yes
+   checking glob.h presence... yes
+   checking for glob.h... yes
+   checking unwind.h usability... yes
+   checking unwind.h presence... yes
+   checking for unwind.h... yes
+   checking windows.h usability... no
+   checking windows.h presence... no
+   checking for windows.h... no
+   checking size of void *... 8
+   checking for uint16_t... yes
+   checking for u_int16_t... yes
+   checking for __uint16... no
+   checking for sigaltstack... yes
+   checking for sigaction... yes
+   checking for dladdr... yes
+   checking for fcntl... yes
+   checking for pread... yes
+   checking for pwrite... yes
+   checking for __attribute__... yes
+   checking for __builtin_expect... yes
+   checking for __sync_val_compare_and_swap... yes
+   checking for the pthreads library -lpthreads... no
+   checking whether pthreads work without any flags... yes
+   checking for joinable pthread attribute... PTHREAD_CREATE_JOINABLE
+   checking if more special flags are required for pthreads... -D_THREAD_SAFE
+   checking whether to check for GCC pthread/shared inconsistencies... no
+   checking for pthread_self in -lpthread... yes
+   checking for main in -lgflags... no
+   checking for gtest-config... no
+   checking for main in -lgtest... no
+   checking for backtrace in -lunwind... no
+   checking support for pthread_rwlock_* functions... yes
+   checking whether the compiler implements namespaces... yes
+   checking what namespace STL code is in... std
+   checking whether compiler supports using ::operator<<... 1
+   checking for ucontext.h... (cached) no
+   checking sys/ucontext.h usability... yes
+   checking sys/ucontext.h presence... yes
+   checking for sys/ucontext.h... yes
+   checking how to access the program counter from a struct ucontext... checking that generated files are newer than configure... done
+   configure: creating ./config.status
+   config.status: creating Makefile
+   config.status: creating src/glog/logging.h
+   config.status: creating src/glog/raw_logging.h
+   config.status: creating src/glog/vlog_is_on.h
+   config.status: creating src/glog/stl_logging.h
+   config.status: creating libglog.pc
+   config.status: creating src/config.h
+   config.status: executing depfiles commands
+   config.status: executing libtool commands
+  > Copying glog from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/glog/2263bd123499e5b93b5efe24871be317-56839` to `Pods/glog`
+
+-> Installing hermes-engine (0.81.5)
+ > Http download
+   $ /usr/bin/curl -f -L -o /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-mk3t05/file.tgz https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.81.5/react-native-artifacts-0.81.5-hermes-ios-debug.tar.gz --create-dirs --netrc-optional --retry 2 -A 'CocoaPods/1.16.2 cocoapods-downloader/2.1'
+   $ /usr/bin/tar xf /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-mk3t05/file.tgz -C /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-mk3t05
+  $ /usr/bin/rsync -a --exclude=.git --delete /var/folders/kf/45hjz0757hq2k18y4p5d9jgh0000gn/T/d20251101-1883-mk3t05/ /Users/giffinmike/Library/Caches/CocoaPods/Pods/External/hermes-engine/9d8fdd77198478a7226e127ad580fbbb-9f4df
+  > Copying hermes-engine from `/Users/giffinmike/Library/Caches/CocoaPods/Pods/External/hermes-engine/9d8fdd77198478a7226e127ad580fbbb-9f4df` to `Pods/hermes-engine`
+
+-> Installing react-native-add-calendar-event (5.0.0)
+
+-> Installing react-native-biometrics (3.0.1)
+
+-> Installing react-native-blur (4.4.1)
+
+-> Installing react-native-cameraroll (7.10.2)
+
+-> Installing react-native-contacts (8.0.7)
+
+-> Installing react-native-geolocation (3.4.0)
+
+-> Installing react-native-geolocation-service (5.3.1)
+
+-> Installing react-native-image-picker (8.2.1)
+
+-> Installing react-native-maps (0.30.2)
+
+-> Installing react-native-orientation-locker (1.7.0)
+
+-> Installing react-native-safe-area-context (5.6.2)
+
+-> Installing react-native-video (6.17.0)
+
+-> Installing react-native-view-shot (3.8.0)
+
+-> Installing react-native-voice (3.2.4)
+
+-> Installing react-native-webview (13.16.0)
+
+-> Installing react-native-worklets-core (1.6.2)
+  - Running pre install hooks
+  - Running pre integrate hooks
+
+Generating Pods project
+  - Creating Pods project
+  - Installing files into Pods project
+    - Adding source files
+    - Adding frameworks
+    - Adding libraries
+    - Adding resources
+    - Adding development pod helper files
+    - Linking headers
+  - Installing Pod Targets
+    - Installing target `DoubleConversion` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/DoubleConversion/DoubleConversion.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/DoubleConversion/DoubleConversion-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/DoubleConversion/DoubleConversion-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/DoubleConversion/DoubleConversion-dummy.m`
+    - Installing target `FBLazyVector` iOS 15.1
+    - Installing target `PromisesObjC` iOS 9.0
+      - Generating Info.plist file at `Pods/Target Support Files/PromisesObjC/ResourceBundle-FBLPromises_Privacy-PromisesObjC-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/PromisesObjC/PromisesObjC.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/PromisesObjC/PromisesObjC-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/PromisesObjC/PromisesObjC-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/PromisesObjC/PromisesObjC-dummy.m`
+    - Installing target `PromisesSwift` iOS 9.0
+      - Generating Info.plist file at `Pods/Target Support Files/PromisesSwift/ResourceBundle-Promises_Privacy-PromisesSwift-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/PromisesSwift/PromisesSwift.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/PromisesSwift/PromisesSwift-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/PromisesSwift/PromisesSwift-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/PromisesSwift/PromisesSwift-dummy.m`
+    - Installing target `RCT-Folly` iOS 15.1
+      - Generating Info.plist file at `Pods/Target Support Files/RCT-Folly/ResourceBundle-RCT-Folly_privacy-RCT-Folly-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/RCT-Folly/RCT-Folly.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RCT-Folly/RCT-Folly-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RCT-Folly/RCT-Folly-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RCT-Folly/RCT-Folly-dummy.m`
+    - Installing target `RCTDeprecation` iOS 8.0
+      - Generating module map file at `Pods/Target Support Files/RCTDeprecation/RCTDeprecation.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RCTDeprecation/RCTDeprecation-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RCTDeprecation/RCTDeprecation-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RCTDeprecation/RCTDeprecation-dummy.m`
+    - Installing target `RCTRequired` iOS 15.1
+    - Installing target `RCTTypeSafety` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/RCTTypeSafety/RCTTypeSafety.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RCTTypeSafety/RCTTypeSafety-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RCTTypeSafety/RCTTypeSafety-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RCTTypeSafety/RCTTypeSafety-dummy.m`
+    - Installing target `RNCAsyncStorage` iOS 9.0
+      - Generating Info.plist file at `Pods/Target Support Files/RNCAsyncStorage/ResourceBundle-RNCAsyncStorage_resources-RNCAsyncStorage-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/RNCAsyncStorage/RNCAsyncStorage.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNCAsyncStorage/RNCAsyncStorage-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNCAsyncStorage/RNCAsyncStorage-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNCAsyncStorage/RNCAsyncStorage-dummy.m`
+    - Installing target `RNCPicker` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/RNCPicker/RNCPicker.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNCPicker/RNCPicker-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNCPicker/RNCPicker-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNCPicker/RNCPicker-dummy.m`
+    - Installing target `RNCPushNotificationIOS` iOS 10.0
+      - Generating module map file at `Pods/Target Support Files/RNCPushNotificationIOS/RNCPushNotificationIOS.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNCPushNotificationIOS/RNCPushNotificationIOS-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNCPushNotificationIOS/RNCPushNotificationIOS-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNCPushNotificationIOS/RNCPushNotificationIOS-dummy.m`
+    - Installing target `RNCalendarEvents` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/RNCalendarEvents/RNCalendarEvents.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNCalendarEvents/RNCalendarEvents-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNCalendarEvents/RNCalendarEvents-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNCalendarEvents/RNCalendarEvents-dummy.m`
+    - Installing target `RNDateTimePicker` iOS 11.0
+      - Generating module map file at `Pods/Target Support Files/RNDateTimePicker/RNDateTimePicker.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNDateTimePicker/RNDateTimePicker-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNDateTimePicker/RNDateTimePicker-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNDateTimePicker/RNDateTimePicker-dummy.m`
+    - Installing target `RNDeviceInfo` iOS 9.0
+      - Generating Info.plist file at `Pods/Target Support Files/RNDeviceInfo/ResourceBundle-RNDeviceInfoPrivacyInfo-RNDeviceInfo-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/RNDeviceInfo/RNDeviceInfo.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNDeviceInfo/RNDeviceInfo-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNDeviceInfo/RNDeviceInfo-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNDeviceInfo/RNDeviceInfo-dummy.m`
+    - Installing target `RNPermissions` iOS 10.0
+      - Generating module map file at `Pods/Target Support Files/RNPermissions/RNPermissions.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNPermissions/RNPermissions-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNPermissions/RNPermissions-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNPermissions/RNPermissions-dummy.m`
+    - Installing target `RNReactNativeHapticFeedback` iOS 12.4
+      - Generating module map file at `Pods/Target Support Files/RNReactNativeHapticFeedback/RNReactNativeHapticFeedback.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNReactNativeHapticFeedback/RNReactNativeHapticFeedback-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNReactNativeHapticFeedback/RNReactNativeHapticFeedback-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNReactNativeHapticFeedback/RNReactNativeHapticFeedback-dummy.m`
+    - Installing target `RNVectorIcons` iOS 12.0
+      - Generating module map file at `Pods/Target Support Files/RNVectorIcons/RNVectorIcons.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/RNVectorIcons/RNVectorIcons-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/RNVectorIcons/RNVectorIcons-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/RNVectorIcons/RNVectorIcons-dummy.m`
+    - Installing target `React` iOS 15.1
+    - Installing target `React-Core` iOS 15.1
+      - Generating Info.plist file at `Pods/Target Support Files/React-Core/ResourceBundle-React-Core_privacy-React-Core-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/React-Core/React-Core.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-Core/React-Core-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-Core/React-Core-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-Core/React-Core-dummy.m`
+    - Installing target `React-CoreModules` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-CoreModules/React-CoreModules.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-CoreModules/React-CoreModules-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-CoreModules/React-CoreModules-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-CoreModules/React-CoreModules-dummy.m`
+    - Installing target `React-Fabric` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-Fabric/React-Fabric.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-Fabric/React-Fabric-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-Fabric/React-Fabric-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-Fabric/React-Fabric-dummy.m`
+    - Installing target `React-FabricComponents` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-FabricComponents/React-FabricComponents.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-FabricComponents/React-FabricComponents-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-FabricComponents/React-FabricComponents-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-FabricComponents/React-FabricComponents-dummy.m`
+    - Installing target `React-FabricImage` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-FabricImage/React-FabricImage.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-FabricImage/React-FabricImage-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-FabricImage/React-FabricImage-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-FabricImage/React-FabricImage-dummy.m`
+    - Installing target `React-ImageManager` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-ImageManager/React-ImageManager.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-ImageManager/React-ImageManager-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-ImageManager/React-ImageManager-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-ImageManager/React-ImageManager-dummy.m`
+    - Installing target `React-Mapbuffer` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-Mapbuffer/React-Mapbuffer.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-Mapbuffer/React-Mapbuffer-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-Mapbuffer/React-Mapbuffer-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-Mapbuffer/React-Mapbuffer-dummy.m`
+    - Installing target `React-NativeModulesApple` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-NativeModulesApple/React-NativeModulesApple.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-NativeModulesApple/React-NativeModulesApple-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-NativeModulesApple/React-NativeModulesApple-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-NativeModulesApple/React-NativeModulesApple-dummy.m`
+    - Installing target `React-RCTActionSheet` iOS 15.1
+    - Installing target `React-RCTAnimation` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTAnimation/React-RCTAnimation.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTAnimation/React-RCTAnimation-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTAnimation/React-RCTAnimation-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTAnimation/React-RCTAnimation-dummy.m`
+    - Installing target `React-RCTAppDelegate` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTAppDelegate/React-RCTAppDelegate.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTAppDelegate/React-RCTAppDelegate-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTAppDelegate/React-RCTAppDelegate-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTAppDelegate/React-RCTAppDelegate-dummy.m`
+    - Installing target `React-RCTBlob` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTBlob/React-RCTBlob.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTBlob/React-RCTBlob-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTBlob/React-RCTBlob-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTBlob/React-RCTBlob-dummy.m`
+    - Installing target `React-RCTFBReactNativeSpec` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTFBReactNativeSpec/React-RCTFBReactNativeSpec.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTFBReactNativeSpec/React-RCTFBReactNativeSpec-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTFBReactNativeSpec/React-RCTFBReactNativeSpec-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTFBReactNativeSpec/React-RCTFBReactNativeSpec-dummy.m`
+    - Installing target `React-RCTFabric` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTFabric/React-RCTFabric.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTFabric/React-RCTFabric-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTFabric/React-RCTFabric-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTFabric/React-RCTFabric-dummy.m`
+    - Installing target `React-RCTImage` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTImage/React-RCTImage.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTImage/React-RCTImage-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTImage/React-RCTImage-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTImage/React-RCTImage-dummy.m`
+    - Installing target `React-RCTLinking` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTLinking/React-RCTLinking.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTLinking/React-RCTLinking-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTLinking/React-RCTLinking-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTLinking/React-RCTLinking-dummy.m`
+    - Installing target `React-RCTNetwork` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTNetwork/React-RCTNetwork.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTNetwork/React-RCTNetwork-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTNetwork/React-RCTNetwork-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTNetwork/React-RCTNetwork-dummy.m`
+    - Installing target `React-RCTRuntime` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTRuntime/React-RCTRuntime.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTRuntime/React-RCTRuntime-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTRuntime/React-RCTRuntime-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTRuntime/React-RCTRuntime-dummy.m`
+    - Installing target `React-RCTSettings` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTSettings/React-RCTSettings.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTSettings/React-RCTSettings-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTSettings/React-RCTSettings-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTSettings/React-RCTSettings-dummy.m`
+    - Installing target `React-RCTText` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTText/React-RCTText.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTText/React-RCTText-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTText/React-RCTText-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTText/React-RCTText-dummy.m`
+    - Installing target `React-RCTVibration` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RCTVibration/React-RCTVibration.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RCTVibration/React-RCTVibration-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RCTVibration/React-RCTVibration-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RCTVibration/React-RCTVibration-dummy.m`
+    - Installing target `React-RuntimeApple` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RuntimeApple/React-RuntimeApple.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RuntimeApple/React-RuntimeApple-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RuntimeApple/React-RuntimeApple-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RuntimeApple/React-RuntimeApple-dummy.m`
+    - Installing target `React-RuntimeCore` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RuntimeCore/React-RuntimeCore.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RuntimeCore/React-RuntimeCore-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RuntimeCore/React-RuntimeCore-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RuntimeCore/React-RuntimeCore-dummy.m`
+    - Installing target `React-RuntimeHermes` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-RuntimeHermes/React-RuntimeHermes.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-RuntimeHermes/React-RuntimeHermes-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-RuntimeHermes/React-RuntimeHermes-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-RuntimeHermes/React-RuntimeHermes-dummy.m`
+    - Installing target `React-callinvoker` iOS 15.1
+    - Installing target `React-cxxreact` iOS 15.1
+      - Generating Info.plist file at `Pods/Target Support Files/React-cxxreact/ResourceBundle-React-cxxreact_privacy-React-cxxreact-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/React-cxxreact/React-cxxreact.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-cxxreact/React-cxxreact-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-cxxreact/React-cxxreact-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-cxxreact/React-cxxreact-dummy.m`
+    - Installing target `React-debug` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-debug/React-debug.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-debug/React-debug-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-debug/React-debug-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-debug/React-debug-dummy.m`
+    - Installing target `React-defaultsnativemodule` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-defaultsnativemodule/React-defaultsnativemodule.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-defaultsnativemodule/React-defaultsnativemodule-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-defaultsnativemodule/React-defaultsnativemodule-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-defaultsnativemodule/React-defaultsnativemodule-dummy.m`
+    - Installing target `React-domnativemodule` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-domnativemodule/React-domnativemodule.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-domnativemodule/React-domnativemodule-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-domnativemodule/React-domnativemodule-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-domnativemodule/React-domnativemodule-dummy.m`
+    - Installing target `React-featureflags` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-featureflags/React-featureflags.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-featureflags/React-featureflags-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-featureflags/React-featureflags-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-featureflags/React-featureflags-dummy.m`
+    - Installing target `React-featureflagsnativemodule` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-featureflagsnativemodule/React-featureflagsnativemodule.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-featureflagsnativemodule/React-featureflagsnativemodule-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-featureflagsnativemodule/React-featureflagsnativemodule-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-featureflagsnativemodule/React-featureflagsnativemodule-dummy.m`
+    - Installing target `React-graphics` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-graphics/React-graphics.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-graphics/React-graphics-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-graphics/React-graphics-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-graphics/React-graphics-dummy.m`
+    - Installing target `React-hermes` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-hermes/React-hermes.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-hermes/React-hermes-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-hermes/React-hermes-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-hermes/React-hermes-dummy.m`
+    - Installing target `React-idlecallbacksnativemodule` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-idlecallbacksnativemodule/React-idlecallbacksnativemodule.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-idlecallbacksnativemodule/React-idlecallbacksnativemodule-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-idlecallbacksnativemodule/React-idlecallbacksnativemodule-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-idlecallbacksnativemodule/React-idlecallbacksnativemodule-dummy.m`
+    - Installing target `React-jserrorhandler` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jserrorhandler/React-jserrorhandler.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jserrorhandler/React-jserrorhandler-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jserrorhandler/React-jserrorhandler-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jserrorhandler/React-jserrorhandler-dummy.m`
+    - Installing target `React-jsi` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsi/React-jsi.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsi/React-jsi-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsi/React-jsi-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsi/React-jsi-dummy.m`
+    - Installing target `React-jsiexecutor` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsiexecutor/React-jsiexecutor.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsiexecutor/React-jsiexecutor-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsiexecutor/React-jsiexecutor-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsiexecutor/React-jsiexecutor-dummy.m`
+    - Installing target `React-jsinspector` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsinspector/React-jsinspector.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsinspector/React-jsinspector-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsinspector/React-jsinspector-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsinspector/React-jsinspector-dummy.m`
+    - Installing target `React-jsinspectorcdp` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsinspectorcdp/React-jsinspectorcdp.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsinspectorcdp/React-jsinspectorcdp-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsinspectorcdp/React-jsinspectorcdp-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsinspectorcdp/React-jsinspectorcdp-dummy.m`
+    - Installing target `React-jsinspectornetwork` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsinspectornetwork/React-jsinspectornetwork.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsinspectornetwork/React-jsinspectornetwork-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsinspectornetwork/React-jsinspectornetwork-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsinspectornetwork/React-jsinspectornetwork-dummy.m`
+    - Installing target `React-jsinspectortracing` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsinspectortracing/React-jsinspectortracing.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsinspectortracing/React-jsinspectortracing-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsinspectortracing/React-jsinspectortracing-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsinspectortracing/React-jsinspectortracing-dummy.m`
+    - Installing target `React-jsitooling` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-jsitooling/React-jsitooling.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-jsitooling/React-jsitooling-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-jsitooling/React-jsitooling-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-jsitooling/React-jsitooling-dummy.m`
+    - Installing target `React-jsitracing` iOS 15.1
+    - Installing target `React-logger` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-logger/React-logger.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-logger/React-logger-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-logger/React-logger-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-logger/React-logger-dummy.m`
+    - Installing target `React-microtasksnativemodule` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-microtasksnativemodule/React-microtasksnativemodule.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-microtasksnativemodule/React-microtasksnativemodule-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-microtasksnativemodule/React-microtasksnativemodule-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-microtasksnativemodule/React-microtasksnativemodule-dummy.m`
+    - Installing target `React-oscompat` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-oscompat/React-oscompat.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-oscompat/React-oscompat-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-oscompat/React-oscompat-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-oscompat/React-oscompat-dummy.m`
+    - Installing target `React-perflogger` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-perflogger/React-perflogger.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-perflogger/React-perflogger-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-perflogger/React-perflogger-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-perflogger/React-perflogger-dummy.m`
+    - Installing target `React-performancetimeline` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-performancetimeline/React-performancetimeline.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-performancetimeline/React-performancetimeline-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-performancetimeline/React-performancetimeline-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-performancetimeline/React-performancetimeline-dummy.m`
+    - Installing target `React-rendererconsistency` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-rendererconsistency/React-rendererconsistency.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-rendererconsistency/React-rendererconsistency-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-rendererconsistency/React-rendererconsistency-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-rendererconsistency/React-rendererconsistency-dummy.m`
+    - Installing target `React-renderercss` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-renderercss/React-renderercss.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-renderercss/React-renderercss-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-renderercss/React-renderercss-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-renderercss/React-renderercss-dummy.m`
+    - Installing target `React-rendererdebug` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-rendererdebug/React-rendererdebug.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-rendererdebug/React-rendererdebug-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-rendererdebug/React-rendererdebug-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-rendererdebug/React-rendererdebug-dummy.m`
+    - Installing target `React-runtimeexecutor` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-runtimeexecutor/React-runtimeexecutor.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-runtimeexecutor/React-runtimeexecutor-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-runtimeexecutor/React-runtimeexecutor-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-runtimeexecutor/React-runtimeexecutor-dummy.m`
+    - Installing target `React-runtimescheduler` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-runtimescheduler/React-runtimescheduler.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-runtimescheduler/React-runtimescheduler-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-runtimescheduler/React-runtimescheduler-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-runtimescheduler/React-runtimescheduler-dummy.m`
+    - Installing target `React-timing` iOS 15.1
+    - Installing target `React-utils` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/React-utils/React-utils.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/React-utils/React-utils-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/React-utils/React-utils-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/React-utils/React-utils-dummy.m`
+    - Installing target `ReactAppDependencyProvider` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/ReactAppDependencyProvider/ReactAppDependencyProvider.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/ReactAppDependencyProvider/ReactAppDependencyProvider-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/ReactAppDependencyProvider/ReactAppDependencyProvider-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/ReactAppDependencyProvider/ReactAppDependencyProvider-dummy.m`
+    - Installing target `ReactCodegen` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/ReactCodegen/ReactCodegen.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/ReactCodegen/ReactCodegen-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/ReactCodegen/ReactCodegen-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/ReactCodegen/ReactCodegen-dummy.m`
+    - Installing target `ReactCommon` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/ReactCommon/ReactCommon.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/ReactCommon/ReactCommon-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/ReactCommon/ReactCommon-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/ReactCommon/ReactCommon-dummy.m`
+    - Installing target `SocketRocket` iOS 11.0
+      - Generating module map file at `Pods/Target Support Files/SocketRocket/SocketRocket.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/SocketRocket/SocketRocket-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/SocketRocket/SocketRocket-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/SocketRocket/SocketRocket-dummy.m`
+    - Installing target `TextToSpeech` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/TextToSpeech/TextToSpeech.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/TextToSpeech/TextToSpeech-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/TextToSpeech/TextToSpeech-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/TextToSpeech/TextToSpeech-dummy.m`
+    - Installing target `VisionCamera` iOS 12.4
+      - Generating module map file at `Pods/Target Support Files/VisionCamera/VisionCamera.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/VisionCamera/VisionCamera-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/VisionCamera/VisionCamera-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/VisionCamera/VisionCamera-dummy.m`
+    - Installing target `Yoga` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/Yoga/Yoga.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/Yoga/Yoga-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/Yoga/Yoga-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/Yoga/Yoga-dummy.m`
+    - Installing target `boost` iOS 15.1
+      - Generating Info.plist file at `Pods/Target Support Files/boost/ResourceBundle-boost_privacy-boost-Info.plist`
+    - Installing target `fast_float` iOS 15.1
+    - Installing target `fmt` iOS 15.1
+      - Generating module map file at `Pods/Target Support Files/fmt/fmt.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/fmt/fmt-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/fmt/fmt-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/fmt/fmt-dummy.m`
+    - Installing target `glog` iOS 15.1
+      - Generating Info.plist file at `Pods/Target Support Files/glog/ResourceBundle-glog_privacy-glog-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/glog/glog.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/glog/glog-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/glog/glog-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/glog/glog-dummy.m`
+    - Installing target `hermes-engine` iOS 15.1
+    - Installing target `react-native-add-calendar-event` iOS 8.0
+      - Generating module map file at `Pods/Target Support Files/react-native-add-calendar-event/react-native-add-calendar-event.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-add-calendar-event/react-native-add-calendar-event-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-add-calendar-event/react-native-add-calendar-event-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-add-calendar-event/react-native-add-calendar-event-dummy.m`
+    - Installing target `react-native-biometrics` iOS 10.0
+      - Generating module map file at `Pods/Target Support Files/react-native-biometrics/react-native-biometrics.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-biometrics/react-native-biometrics-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-biometrics/react-native-biometrics-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-biometrics/react-native-biometrics-dummy.m`
+    - Installing target `react-native-blur` iOS 10.0
+      - Generating module map file at `Pods/Target Support Files/react-native-blur/react-native-blur.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-blur/react-native-blur-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-blur/react-native-blur-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-blur/react-native-blur-dummy.m`
+    - Installing target `react-native-cameraroll` iOS 9.0
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-cameraroll/ResourceBundle-RNCameraRollPrivacyInfo-react-native-cameraroll-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/react-native-cameraroll/react-native-cameraroll.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-cameraroll/react-native-cameraroll-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-cameraroll/react-native-cameraroll-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-cameraroll/react-native-cameraroll-dummy.m`
+    - Installing target `react-native-contacts` iOS 12.0
+      - Generating module map file at `Pods/Target Support Files/react-native-contacts/react-native-contacts.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-contacts/react-native-contacts-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-contacts/react-native-contacts-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-contacts/react-native-contacts-dummy.m`
+    - Installing target `react-native-geolocation` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/react-native-geolocation/react-native-geolocation.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-geolocation/react-native-geolocation-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-geolocation/react-native-geolocation-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-geolocation/react-native-geolocation-dummy.m`
+    - Installing target `react-native-geolocation-service` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/react-native-geolocation-service/react-native-geolocation-service.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-geolocation-service/react-native-geolocation-service-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-geolocation-service/react-native-geolocation-service-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-geolocation-service/react-native-geolocation-service-dummy.m`
+    - Installing target `react-native-image-picker` iOS 9.0
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-image-picker/ResourceBundle-RNImagePickerPrivacyInfo-react-native-image-picker-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/react-native-image-picker/react-native-image-picker.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-image-picker/react-native-image-picker-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-image-picker/react-native-image-picker-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-image-picker/react-native-image-picker-dummy.m`
+    - Installing target `react-native-maps` iOS 8.0
+      - Generating module map file at `Pods/Target Support Files/react-native-maps/react-native-maps.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-maps/react-native-maps-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-maps/react-native-maps-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-maps/react-native-maps-dummy.m`
+    - Installing target `react-native-orientation-locker` iOS 8.0
+      - Generating module map file at `Pods/Target Support Files/react-native-orientation-locker/react-native-orientation-locker.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-orientation-locker/react-native-orientation-locker-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-orientation-locker/react-native-orientation-locker-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-orientation-locker/react-native-orientation-locker-dummy.m`
+    - Installing target `react-native-safe-area-context` iOS 12.4
+      - Generating module map file at `Pods/Target Support Files/react-native-safe-area-context/react-native-safe-area-context.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-safe-area-context/react-native-safe-area-context-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-safe-area-context/react-native-safe-area-context-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-safe-area-context/react-native-safe-area-context-dummy.m`
+    - Installing target `react-native-video` iOS 13.0
+      - Generating module map file at `Pods/Target Support Files/react-native-video/react-native-video.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-video/react-native-video-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-video/react-native-video-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-video/react-native-video-dummy.m`
+    - Installing target `react-native-view-shot` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/react-native-view-shot/react-native-view-shot.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-view-shot/react-native-view-shot-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-view-shot/react-native-view-shot-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-view-shot/react-native-view-shot-dummy.m`
+    - Installing target `react-native-voice` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/react-native-voice/react-native-voice.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-voice/react-native-voice-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-voice/react-native-voice-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-voice/react-native-voice-dummy.m`
+    - Installing target `react-native-webview` iOS 9.0
+      - Generating module map file at `Pods/Target Support Files/react-native-webview/react-native-webview.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-webview/react-native-webview-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-webview/react-native-webview-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-webview/react-native-webview-dummy.m`
+    - Installing target `react-native-worklets-core` iOS 11.0
+      - Generating module map file at `Pods/Target Support Files/react-native-worklets-core/react-native-worklets-core.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/react-native-worklets-core/react-native-worklets-core-umbrella.h`
+      - Generating Info.plist file at `Pods/Target Support Files/react-native-worklets-core/react-native-worklets-core-Info.plist`
+      - Generating dummy source at `Pods/Target Support Files/react-native-worklets-core/react-native-worklets-core-dummy.m`
+  - Installing Aggregate Targets
+    - Installing target `Pods-StylIQ` iOS 16.0
+      - Generating Info.plist file at `Pods/Target Support Files/Pods-StylIQ/Pods-StylIQ-Info.plist`
+      - Generating module map file at `Pods/Target Support Files/Pods-StylIQ/Pods-StylIQ.modulemap`
+      - Generating umbrella header at `Pods/Target Support Files/Pods-StylIQ/Pods-StylIQ-umbrella.h`
+      - Generating dummy source at `Pods/Target Support Files/Pods-StylIQ/Pods-StylIQ-dummy.m`
+  - Integrating targets
+
+Integrating target `React-RCTFBReactNativeSpec`
+    Adding Build Phase '[CP-User] [RN]Check FBReactNativeSpec' to project.
+
+Integrating target `ReactCodegen`
+    Adding Build Phase '[CP-User] Generate Specs' to project.
+
+Integrating target `hermes-engine`
+    Adding Build Phase '[CP] Copy XCFrameworks' to project.
+    Adding Build Phase '[CP-User] [Hermes] Replace Hermes for the right configuration, if needed' to project.
+  - Stabilizing target UUIDs
+  - Running post install hooks
+Setting USE_HERMES build settings
+Setting REACT_NATIVE_PATH build settings
+Setting SWIFT_ACTIVE_COMPILATION_CONDITIONS build settings
+[Ccache]: Removing Ccache from CC, LD, CXX & LDPLUSPLUS build settings
+[SPM] Cleaning old SPM dependencies from Pods project
+[SPM] Adding SPM dependencies to Pods project
+[Privacy Manifest Aggregation] Appending aggregated reasons to existing PrivacyInfo.xcprivacy file.
+[Privacy Manifest Aggregation] Reading .xcprivacy files to aggregate all used Required Reason APIs.
+Setting CLANG_CXX_LANGUAGE_STANDARD to c++20 on /Users/giffinmike/Git/StylIQ-NEW-INSTALL/ios/StylIQ.xcodeproj
+
+==================== DEPRECATION NOTICE =====================
+Calling `pod install` directly is deprecated in React Native
+because we are moving away from Cocoapods toward alternative
+solutions to build the project.
+* If you are using Expo, please run:
+`npx expo run:ios`
+* If you are using the Community CLI, please run:
+`yarn ios`
+=============================================================
+
+Pod install took 28 [s] to run
+    - Podfile
+  - Writing Xcode project file to `Pods/Pods.xcodeproj`
+  Cleaning up sandbox directory
+
+Integrating client project
+
+Integrating target `Pods-StylIQ` (`StylIQ.xcodeproj` project)
+  Adding Build Phase '[CP] Embed Pods Frameworks' to project.
+  Adding Build Phase '[CP] Copy Pods Resources' to project.
+  Adding Build Phase '[CP] Check Pods Manifest.lock' to project.
+  - Running post integrate hooks
+  - Writing Lockfile in `Podfile.lock`
+  - Writing Manifest in `Pods/Manifest.lock`
+  CDN: trunk Relative path: CocoaPods-version.yml exists! Returning local because checking is only performed in repo update
+
+-> Pod installation complete! There are 102 dependencies from the Podfile and 101 total pods installed.

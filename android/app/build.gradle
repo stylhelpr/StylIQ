@@ -1,193 +1,90 @@
-apply plugin: "com.android.application"
-apply plugin: "kotlin-android" // ✅ Enables kotlinOptions support
-
-import com.android.build.OutputFile
-import org.apache.tools.ant.taskdefs.condition.Os
-
-project.ext.react = [
-    enableHermes: true,  // clean and rebuild if changing
-]
-
-apply from: "../../node_modules/react-native/react.gradle"
-
-def enableSeparateBuildPerCPUArchitecture = false
-def enableProguardInReleaseBuilds = false
-def jscFlavor = 'org.webkit:android-jsc:+'
-def enableHermes = project.ext.react.get("enableHermes", false);
-
-def reactNativeArchitectures() {
-    def value = project.getProperties().get("reactNativeArchitectures")
-    return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("com.facebook.react")
 }
 
+// ==========================================================
+// 🔧 Ensure autolinking.json exists in root android build
+// ==========================================================
+def rootAutoDir = file("$rootDir/android/build/generated/autolinking")
+def rootAutoFile = file("$rootAutoDir/autolinking.json")
+if (!rootAutoFile.exists()) {
+    rootAutoDir.mkdirs()
+    rootAutoFile.text = "{}"
+    println("🧩 Created missing root autolinking.json (${rootAutoFile})")
+}
+
+// ==========================================================
+// 🧠 React Native project properties
+// ==========================================================
+project.ext.react = [
+    packageName: "com.styliq",
+    applicationId: "com.styliq",
+    appName: "app",
+    cliPath: "$rootDir/../node_modules/react-native/cli.js"
+]
+
 android {
-    ndkVersion rootProject.ext.ndkVersion
-    compileSdkVersion rootProject.ext.compileSdkVersion
-
-    // ✅ Java 11 support
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    namespace "com.styliq"
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.styliq"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdk 24
+        targetSdk 35
         versionCode 1
         versionName "1.0"
-        buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
-
-        // ✅ Auth0 placeholders
-        manifestPlaceholders = [
-            auth0Domain: "dev-xeaol4s5b2zd7wuz.us.auth0.com",
-            auth0Scheme: "com.stylhelpr.stylhelpr"
-        ]
-
-        if (isNewArchitectureEnabled()) {
-            externalNativeBuild {
-                cmake {
-                    arguments "-DPROJECT_BUILD_DIR=$buildDir",
-                        "-DREACT_ANDROID_DIR=$rootDir/../node_modules/react-native/ReactAndroid",
-                        "-DREACT_ANDROID_BUILD_DIR=$rootDir/../node_modules/react-native/ReactAndroid/build",
-                        "-DNODE_MODULES_DIR=$rootDir/../node_modules",
-                        "-DANDROID_STL=c++_shared"
-                }
-            }
-            if (!enableSeparateBuildPerCPUArchitecture) {
-                ndk {
-                    abiFilters (*reactNativeArchitectures())
-                }
-            }
-        }
-    }
-
-    if (isNewArchitectureEnabled()) {
-        externalNativeBuild {
-            cmake {
-                path "$projectDir/src/main/jni/CMakeLists.txt"
-            }
-        }
-        def reactAndroidProjectDir = project(':ReactAndroid').projectDir
-        def packageReactNdkDebugLibs = tasks.register("packageReactNdkDebugLibs", Copy) {
-            dependsOn(":ReactAndroid:packageReactNdkDebugLibsForBuck")
-            from("$reactAndroidProjectDir/src/main/jni/prebuilt/lib")
-            into("$buildDir/react-ndk/exported")
-        }
-        def packageReactNdkReleaseLibs = tasks.register("packageReactNdkReleaseLibs", Copy) {
-            dependsOn(":ReactAndroid:packageReactNdkReleaseLibsForBuck")
-            from("$reactAndroidProjectDir/src/main/jni/prebuilt/lib")
-            into("$buildDir/react-ndk/exported")
-        }
-        afterEvaluate {
-            preDebugBuild.dependsOn(packageReactNdkDebugLibs)
-            preReleaseBuild.dependsOn(packageReactNdkReleaseLibs)
-            configureCMakeRelWithDebInfo.dependsOn(preReleaseBuild)
-            configureCMakeDebug.dependsOn(preDebugBuild)
-            reactNativeArchitectures().each { architecture ->
-                tasks.findByName("configureCMakeDebug[${architecture}]")?.configure {
-                    dependsOn("preDebugBuild")
-                }
-                tasks.findByName("configureCMakeRelWithDebInfo[${architecture}]")?.configure {
-                    dependsOn("preReleaseBuild")
-                }
-            }
-        }
-    }
-
-    splits {
-        abi {
-            reset()
-            enable enableSeparateBuildPerCPUArchitecture
-            universalApk false
-            include (*reactNativeArchitectures())
-        }
     }
 
     signingConfigs {
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
         }
     }
 
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
+        debug { signingConfig signingConfigs.debug }
         release {
             signingConfig signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
 
-    applicationVariants.all { variant ->
-        variant.outputs.each { output ->
-            def versionCodes = ["armeabi-v7a": 1, "x86": 2, "arm64-v8a": 3, "x86_64": 4]
-            def abi = output.getFilter(OutputFile.ABI)
-            if (abi != null) {
-                output.versionCodeOverride =
-                        defaultConfig.versionCode * 1000 + versionCodes.get(abi)
-            }
-        }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
+    kotlinOptions { jvmTarget = "17" }
 }
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation "com.facebook.react:react-native:+"
-    implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.0.0"
-
-    // ✅ Required for PickVisualMedia API (fixes image-picker errors)
-    implementation "androidx.activity:activity:1.8.2"
-    implementation "androidx.activity:activity-ktx:1.8.2"
-
-    debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}") {
-        exclude group:'com.facebook.fbjni'
-    }
-    debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {
-        exclude group:'com.facebook.flipper'
-        exclude group:'com.squareup.okhttp3', module:'okhttp'
-    }
-    debugImplementation("com.facebook.flipper:flipper-fresco-plugin:${FLIPPER_VERSION}") {
-        exclude group:'com.facebook.flipper'
-    }
-
-    if (enableHermes) {
-        implementation("com.facebook.react:hermes-engine:+") {
-            exclude group:'com.facebook.fbjni'
-        }
-    } else {
-        implementation jscFlavor
-    }
+    implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:hermes-android")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.2")
 }
 
-if (isNewArchitectureEnabled()) {
-    configurations.all {
-        resolutionStrategy.dependencySubstitution {
-            substitute(module("com.facebook.react:react-native"))
-                    .using(project(":ReactAndroid"))
-            substitute(module("com.facebook.react:hermes-engine"))
-                    .using(project(":ReactAndroid:hermes-engine"))
+// ==========================================================
+// 🧠 Patch autolinking tasks to use root build folder
+// ==========================================================
+tasks.matching { it.name.startsWith("generateAutolinking") }.all { task ->
+    task.doFirst {
+        println("🧠 Injecting autolinking context for ${task.name}")
+        System.setProperty("REACT_NATIVE_PACKAGE_NAME", project.ext.react.packageName)
+        System.setProperty("REACT_NATIVE_ANDROID_APP_NAME", project.ext.react.appName)
+        System.setProperty("REACT_NATIVE_ANDROID_SOURCE_DIR", "$rootDir/android")
+
+        // ✅ Ensure the root autolinking.json exists before the task runs
+        if (!rootAutoFile.exists()) {
+            rootAutoDir.mkdirs()
+            rootAutoFile.text = "{}"
+            println("🧩 Created fallback root autolinking.json for task ${task.name}")
         }
     }
-}
-
-task copyDownloadableDepsToLibs(type: Copy) {
-    from configurations.implementation
-    into 'libs'
-}
-
-apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle");
-applyNativeModulesAppBuildGradle(project)
-
-def isNewArchitectureEnabled() {
-    return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
 }

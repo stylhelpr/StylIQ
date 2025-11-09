@@ -35,7 +35,7 @@ export const skins = {
       // surfaceBorder: 'rgba(59, 59, 59, 0.03)',
       // surfaceBorder: 'rgba(55, 55, 55, 1)',
       // surfaceBorder: 'rgba(55, 55, 55, 0.69)',
-      surfaceBorder: 'rgba(55, 55, 55, 0)',
+      surfaceBorder: 'rgba(255, 255, 255, 0)',
 
       pillDark1: 'rgba(67, 67, 67, 1)',
       pillDark2: 'rgba(255, 255, 255, 0.14)',
@@ -60,10 +60,10 @@ export const skins = {
       //  pillTextColor1: 'rgba(0, 255, 21, 1)',
 
       // ✅ Gradient keys
-      buttonGradientStart: '#000000ff',
-      buttonGradientEnd: '#000000ff',
-      surfaceGradientStart: '#000000ff',
-      surfaceGradientEnd: '#000000ff',
+      buttonGradientStart: '#d50000ff',
+      buttonGradientEnd: '#c90000ff',
+      surfaceGradientStart: '#0033ffff',
+      surfaceGradientEnd: '#c90101ff',
     },
     ...tokens,
     borderRadius: 16,
@@ -185,7 +185,7 @@ export const skins = {
       surface2: '#f4f4f4ff',
       surface3: '#d7d7d7ff',
 
-      surfaceBorder: 'rgba(163, 163, 163, 0.27)',
+      surfaceBorder: 'rgba(163, 163, 163, 0.32)',
       // surfaceBorder: 'rgba(163, 163, 163, 0)',
 
       pillDark1: 'rgba(40, 40, 40, 1)',

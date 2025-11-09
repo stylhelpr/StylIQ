@@ -34,6 +34,7 @@ import {
 } from '../hooks/useOutfitApi';
 import {API_BASE_URL} from '../config/api';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 // Auth & style profile
 import {useAuth0} from 'react-native-auth0';
@@ -71,6 +72,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const {styleProfile} = useStyleProfile(user?.sub || '');
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  const insets = useSafeAreaInsets();
 
   // generate a v4 session id (per call we also make one)
   const sid = uuid.v4() as string;
@@ -681,6 +684,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         globalStyles.screen,
         {backgroundColor: theme.colors.background, paddingBottom: 150},
       ]}>
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <View className="sectionTitle">
         <View style={globalStyles.sectionTitle}>
           <Text style={globalStyles.header}> Style Me</Text>

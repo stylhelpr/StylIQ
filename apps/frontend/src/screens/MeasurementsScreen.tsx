@@ -17,6 +17,7 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -45,6 +46,8 @@ export default function MeasurementsScreen({navigate}: Props) {
   const {user} = useAuth0();
   const userId = user?.sub || '';
   const {updateProfile, styleProfile} = useStyleProfile(userId);
+
+  const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
@@ -218,6 +221,12 @@ export default function MeasurementsScreen({navigate}: Props) {
         globalStyles.container,
         {backgroundColor: theme.colors.background},
       ]}>
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <Text style={[globalStyles.header, {color: theme.colors.primary}]}>
         Measurements
       </Text>
@@ -240,7 +249,7 @@ export default function MeasurementsScreen({navigate}: Props) {
             <View
               style={[
                 globalStyles.styleContainer1,
-                globalStyles.cardStyles3,
+
                 {borderWidth: tokens.borderWidth.hairline},
               ]}>
               <View style={styles.unitRow}>
@@ -270,8 +279,7 @@ export default function MeasurementsScreen({navigate}: Props) {
               Fill out your body measurements to tailor fit suggestions:
             </Text>
 
-            <View
-              style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
+            <View style={[globalStyles.styleContainer1]}>
               <Text
                 style={[
                   globalStyles.title,

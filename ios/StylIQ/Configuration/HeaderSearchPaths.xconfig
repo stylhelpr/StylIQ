@@ -1,0 +1,4 @@
+HEADER_SEARCH_PATHS = $(inherited) \
+  "$(SRCROOT)/../node_modules/react-native" \
+  "$(SRCROOT)/../node_modules/react-native/Libraries" \
+  "$(SRCROOT)/../node_modules/react-native/React"

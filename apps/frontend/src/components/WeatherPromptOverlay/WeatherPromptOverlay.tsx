@@ -28,7 +28,7 @@ export default function WeatherPromptOverlay({
   const styles = StyleSheet.create({
     container: {
       position: 'absolute',
-      top: moderateScale(60),
+      top: moderateScale(100),
       alignSelf: 'center',
       width: '90%',
       borderRadius: 32,

@@ -85,13 +85,13 @@ export const useVoiceControl = () => {
       await forceStop('pre-start');
       await new Promise(res => setTimeout(res, 120));
 
-      if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
-        try {
-          await RCTVoice.setupAudioSession();
-        } catch (err) {
-          log('setupAudioSession error', err);
-        }
-      }
+      // if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
+      //   try {
+      //     await RCTVoice.setupAudioSession();
+      //   } catch (err) {
+      //     log('setupAudioSession error', err);
+      //   }
+      // }
 
       finalRef.current = '';
       setSpeech('');

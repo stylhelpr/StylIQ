@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   PermissionsAndroid,
   Platform,
   Image,
@@ -26,6 +25,7 @@ import {tokens} from '../styles/tokens/tokens';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import IntegratedShopOverlay from '../components/ShopModal/IntegratedShopOverlay';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export default function BarcodeScannerScreen({
   navigate,
@@ -37,6 +37,8 @@ export default function BarcodeScannerScreen({
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const userId = useUUID();
+
+  const insets = useSafeAreaInsets();
 
   const devices = useCameraDevices();
   const device = Array.isArray(devices)
@@ -205,6 +207,12 @@ export default function BarcodeScannerScreen({
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
       <View style={[globalStyles.screen, globalStyles.container]}>
+        <View
+          style={{
+            height: insets.top + 0, // ⬅️ 56 is about the old navbar height
+            backgroundColor: theme.colors.background, // same tone as old nav
+          }}
+        />
         <Text style={globalStyles.header}>Barcode Scanner</Text>
         {/* 🔙 Back Button */}
         <View
@@ -258,9 +266,9 @@ export default function BarcodeScannerScreen({
           ref={cameraRef}
           style={{
             flexGrow: 1,
-            height: '85%', // 👈 increase this percentage for more camera height
+            height: '65%', // 👈 increase this percentage for more camera height
             overflow: 'hidden',
-            marginTop: 0,
+            marginTop: 70,
           }}
           device={device}
           isActive={!modalVisible && !confirmVisible}
@@ -335,9 +343,13 @@ export default function BarcodeScannerScreen({
               borderTopColor: theme.colors.surfaceBorder,
               backgroundColor: theme.colors.background,
               paddingHorizontal: 16,
-              paddingTop: 20,
-              paddingBottom: 40, // 👈 adds extra space below the button
-              marginTop: 3, // 👈 pushes the whole block further down
+              paddingTop: 22,
+              // 👇 Raise the entire block a bit higher on the screen:
+              paddingBottom:
+                Platform.OS === 'ios'
+                  ? Math.max(insets.bottom, 12) + 8 // adds safe-area + 8px gap
+                  : 24, // Android baseline
+              marginBottom: 100, // 👈 pulls the block higher visually
             }}>
             <AppleTouchFeedback onPress={capturePhoto}>
               <View
@@ -594,6 +606,1212 @@ export default function BarcodeScannerScreen({
     </SafeAreaView>
   );
 }
+
+///////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useEffect, useState, useRef, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   Alert,
+//   PermissionsAndroid,
+//   Platform,
+//   Image,
+//   ScrollView,
+//   Modal,
+//   Linking,
+//   Animated,
+// } from 'react-native';
+// import {Camera, useCameraDevices} from 'react-native-vision-camera';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import * as Animatable from 'react-native-animatable';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import IntegratedShopOverlay from '../components/ShopModal/IntegratedShopOverlay';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// export default function BarcodeScannerScreen({
+//   navigate,
+//   goBack,
+//   onClose,
+// }: {
+//   onClose?: () => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const userId = useUUID();
+
+//   const insets = useSafeAreaInsets();
+
+//   const devices = useCameraDevices();
+//   const device = Array.isArray(devices)
+//     ? devices.find(d => d.position === 'back')
+//     : devices.back;
+//   const cameraRef = useRef<Camera>(null);
+
+//   const [hasPermission, setHasPermission] = useState(false);
+//   const [loading, setLoading] = useState(false);
+//   const [outfitResult, setOutfitResult] = useState<any | null>(null);
+//   const [modalVisible, setModalVisible] = useState(false);
+//   const [confirmVisible, setConfirmVisible] = useState(false);
+//   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+//   const [flashAnim] = useState(new Animated.Value(0));
+//   const [toastVisible, setToastVisible] = useState(false);
+//   const [shopUrl, setShopUrl] = useState<string | null>(null);
+//   const [shopOverlayVisible, setShopOverlayVisible] = useState(false);
+
+//   /* ---- Request camera permission ---- */
+//   useEffect(() => {
+//     (async () => {
+//       const permission =
+//         Platform.OS === 'ios'
+//           ? await Camera.requestCameraPermission()
+//           : await PermissionsAndroid.request(
+//               PermissionsAndroid.PERMISSIONS.CAMERA,
+//             );
+//       setHasPermission(permission === 'authorized' || permission === 'granted');
+//     })();
+//   }, []);
+
+//   /* ---- Flash overlay animation ---- */
+//   const triggerFlash = useCallback(() => {
+//     Animated.sequence([
+//       Animated.timing(flashAnim, {
+//         toValue: 1,
+//         duration: 80,
+//         useNativeDriver: true,
+//       }),
+//       Animated.timing(flashAnim, {
+//         toValue: 0,
+//         duration: 200,
+//         useNativeDriver: true,
+//       }),
+//     ]).start();
+//   }, [flashAnim]);
+
+//   /* ---- Capture photo ---- */
+//   const capturePhoto = useCallback(async () => {
+//     if (!cameraRef.current) return;
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     triggerFlash();
+
+//     const photo = await cameraRef.current.takePhoto({
+//       qualityPrioritization: 'speed',
+//     });
+//     console.log('📸 Photo captured:', photo.path);
+
+//     setToastVisible(true);
+//     setTimeout(() => setToastVisible(false), 1500);
+
+//     setCapturedPhoto(`file://${photo.path}`);
+//     setConfirmVisible(true);
+//   }, [cameraRef, triggerFlash]);
+
+//   /* ---- Confirm and process ---- */
+//   const processCapturedPhoto = useCallback(async () => {
+//     if (!capturedPhoto) return;
+//     setConfirmVisible(false);
+//     setLoading(true);
+
+//     try {
+//       const form = new FormData();
+//       form.append('file', {
+//         uri: capturedPhoto,
+//         type: 'image/jpeg',
+//         name: 'barcode.jpg',
+//       });
+
+//       console.log('📸 Uploading photo to decode...');
+//       const decodeRes = await fetch(`${API_BASE_URL}/ai/decode-barcode`, {
+//         method: 'POST',
+//         body: form,
+//       });
+//       const decodeData = await decodeRes.json();
+//       console.log('🧠 Barcode decode result:', decodeData);
+
+//       if (decodeData?.barcode) {
+//         const barcode = decodeData.barcode;
+//         const productRes = await fetch(`${API_BASE_URL}/ai/lookup-barcode`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({upc: barcode}),
+//         });
+//         const product = await productRes.json();
+
+//         if (!product?.name) {
+//           Alert.alert('Not Found', 'No product data found.');
+//           return;
+//         }
+
+//         const recreateRes = await fetch(`${API_BASE_URL}/ai/recreate`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({
+//             user_id: userId,
+//             tags: [product.name, product.brand, product.category].filter(
+//               Boolean,
+//             ),
+//           }),
+//         });
+
+//         const outfit = await recreateRes.json();
+//         ReactNativeHapticFeedback.trigger('impactMedium');
+//         setOutfitResult(outfit);
+//         setModalVisible(true);
+//         return;
+//       }
+
+//       if (decodeData?.inferred?.name) {
+//         const item = decodeData.inferred;
+//         const recreateRes = await fetch(`${API_BASE_URL}/ai/recreate`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({
+//             user_id: userId,
+//             tags: [item.name, item.brand, item.category, item.material].filter(
+//               Boolean,
+//             ),
+//           }),
+//         });
+
+//         const outfit = await recreateRes.json();
+//         ReactNativeHapticFeedback.trigger('impactMedium');
+//         setOutfitResult(outfit);
+//         setModalVisible(true);
+//         return;
+//       }
+
+//       Alert.alert('No barcode detected', 'Try again with clearer focus.');
+//     } catch (err) {
+//       console.warn('❌ processCapturedPhoto error:', err);
+//       Alert.alert('Error', 'Unable to process image.');
+//     } finally {
+//       setLoading(false);
+//       setCapturedPhoto(null);
+//     }
+//   }, [capturedPhoto, userId]);
+
+//   /* ---- Render ---- */
+//   if (!hasPermission || !device) {
+//     return (
+//       <SafeAreaView
+//         style={[
+//           globalStyles.centeredSection,
+//           {backgroundColor: theme.colors.background},
+//         ]}>
+//         <ActivityIndicator size="large" color={theme.colors.foreground} />
+//         <Text style={{color: theme.colors.foreground, marginTop: 8}}>
+//           Loading camera...
+//         </Text>
+//       </SafeAreaView>
+//     );
+//   }
+
+//   return (
+//     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
+//       <View style={[globalStyles.screen, globalStyles.container]}>
+//         <View
+//           style={{
+//             height: insets.top + 0, // ⬅️ 56 is about the old navbar height
+//             backgroundColor: theme.colors.background, // same tone as old nav
+//           }}
+//         />
+//         <Text style={globalStyles.header}>Barcode Scanner</Text>
+//         {/* 🔙 Back Button */}
+//         <View
+//           style={[
+//             globalStyles.backContainer,
+//             {
+//               marginTop: 12,
+//               paddingLeft: 8,
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//             },
+//           ]}>
+//           <AppleTouchFeedback
+//             onPress={() => {
+//               ReactNativeHapticFeedback.trigger('impactMedium');
+
+//               try {
+//                 // ✅ Always try props first
+//                 if (onClose) return onClose();
+//                 if (goBack) return goBack();
+
+//                 // ✅ Fallback: force navigation to ClosetScreen
+//                 navigate && navigate('ClosetScreen');
+//               } catch (e) {
+//                 console.warn('Back navigation failed:', e);
+//               }
+//             }}
+//             hapticStyle="impactMedium"
+//             style={{
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//               marginLeft: 16,
+//             }}>
+//             <MaterialIcons
+//               name="arrow-back"
+//               size={26}
+//               color={theme.colors.button3}
+//             />
+//             <Text
+//               style={[
+//                 globalStyles.backText,
+//                 {marginLeft: 8, fontSize: 16, color: theme.colors.button1},
+//               ]}>
+//               Back
+//             </Text>
+//           </AppleTouchFeedback>
+//         </View>
+
+//         {/* 📸 Camera */}
+//         <Camera
+//           ref={cameraRef}
+//           style={{
+//             flexGrow: 1,
+//             height: '85%', // 👈 increase this percentage for more camera height
+//             overflow: 'hidden',
+//             marginTop: 0,
+//           }}
+//           device={device}
+//           isActive={!modalVisible && !confirmVisible}
+//           photo={true}
+//         />
+//         {/* ⚡ Flash overlay */}
+//         <Animated.View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             top: 0,
+//             left: 0,
+//             right: 0,
+//             bottom: 0,
+//             backgroundColor: theme.colors.foreground,
+//             opacity: flashAnim,
+//           }}
+//         />
+
+//         {/* ✅ Photo captured toast */}
+//         {toastVisible && (
+//           <Animatable.View
+//             animation="fadeInUp"
+//             duration={200}
+//             style={{
+//               position: 'absolute',
+//               bottom: 130,
+//               alignSelf: 'center',
+//               backgroundColor: 'rgba(0,0,0,0.7)',
+//               paddingHorizontal: 16,
+//               paddingVertical: 10,
+//               borderRadius: 20,
+//             }}>
+//             <Text style={{color: '#fff', fontWeight: '600'}}>
+//               Photo captured ✓
+//             </Text>
+//           </Animatable.View>
+//         )}
+
+//         {/* ⏳ Loading spinner */}
+//         {loading && (
+//           <View
+//             style={{
+//               position: 'absolute',
+//               top: 0,
+//               left: 0,
+//               right: 0,
+//               bottom: 0,
+//               backgroundColor: 'rgba(0,0,0,0.4)',
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               borderRadius: tokens.borderRadius.lg,
+//             }}>
+//             <ActivityIndicator size="large" color={theme.colors.foreground} />
+//             <Text
+//               style={{
+//                 color: theme.colors.foreground,
+//                 marginTop: 16,
+//                 fontSize: 14,
+//                 opacity: 0.8,
+//               }}>
+//               Photo taken. Processing look...
+//             </Text>
+//           </View>
+//         )}
+
+//         {/* 🔘 Capture button */}
+//         {!modalVisible && !confirmVisible && (
+//           <View
+//             style={{
+//               borderTopWidth: tokens.borderWidth.sm,
+//               borderTopColor: theme.colors.surfaceBorder,
+//               backgroundColor: theme.colors.background,
+//               paddingHorizontal: 16,
+//               paddingTop: 20,
+//               paddingBottom: 40, // 👈 adds extra space below the button
+//               marginTop: 3, // 👈 pushes the whole block further down
+//             }}>
+//             <AppleTouchFeedback onPress={capturePhoto}>
+//               <View
+//                 style={{
+//                   backgroundColor: theme.colors.button1,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   paddingVertical: 14,
+//                   alignItems: 'center',
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontWeight: '600',
+//                     fontSize: 16,
+//                   }}>
+//                   Scan to Style It
+//                 </Text>
+//               </View>
+//             </AppleTouchFeedback>
+
+//             {onClose && (
+//               <TouchableOpacity
+//                 onPress={onClose}
+//                 style={{marginTop: 12, alignItems: 'center'}}>
+//                 <Text style={{color: theme.colors.foreground}}>Close</Text>
+//               </TouchableOpacity>
+//             )}
+//           </View>
+//         )}
+
+//         {/* 📸 Confirm Photo Modal */}
+//         <Modal visible={confirmVisible} animationType="fade" transparent>
+//           <View
+//             style={{
+//               flex: 1,
+//               backgroundColor: 'rgba(0,0,0,0.8)',
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               paddingHorizontal: 20,
+//             }}>
+//             {capturedPhoto && (
+//               <Image
+//                 source={{uri: capturedPhoto}}
+//                 style={{
+//                   width: '90%',
+//                   height: 400,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   marginBottom: 20,
+//                 }}
+//                 resizeMode="cover"
+//               />
+//             )}
+//             <View style={{width: '90%'}}>
+//               <TouchableOpacity
+//                 onPress={processCapturedPhoto}
+//                 style={{
+//                   backgroundColor: theme.colors.button1,
+//                   paddingVertical: 14,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   alignItems: 'center',
+//                   marginBottom: 10,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontWeight: '600',
+//                   }}>
+//                   Analyze / Style It
+//                 </Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setCapturedPhoto(null);
+//                   setConfirmVisible(false);
+//                 }}
+//                 style={{
+//                   backgroundColor: theme.colors.surface3,
+//                   paddingVertical: 14,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   alignItems: 'center',
+//                   marginBottom: 10,
+//                 }}>
+//                 <Text style={{color: theme.colors.foreground}}>
+//                   Retake Photo
+//                 </Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setCapturedPhoto(null);
+//                   setConfirmVisible(false);
+//                 }}
+//                 style={{
+//                   alignItems: 'center',
+//                   backgroundColor: theme.colors.muted,
+//                   paddingVertical: 14,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   marginBottom: 10,
+//                 }}>
+//                 <Text style={{color: theme.colors.foreground, opacity: 0.6}}>
+//                   Cancel
+//                 </Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </Modal>
+
+//         {/* 🪞 Result Modal */}
+//         <Modal
+//           visible={modalVisible}
+//           animationType="fade"
+//           transparent
+//           onRequestClose={() => setModalVisible(false)}>
+//           <View
+//             style={{
+//               flex: 1,
+//               backgroundColor: 'rgba(0,0,0,0.6)',
+//               justifyContent: 'flex-end',
+//             }}>
+//             {/* 🔹 Backdrop Touchable to close modal */}
+//             <TouchableOpacity
+//               activeOpacity={1}
+//               onPress={() => setModalVisible(false)}
+//               style={{
+//                 position: 'absolute',
+//                 top: 0,
+//                 left: 0,
+//                 right: 0,
+//                 bottom: 0,
+//               }}
+//             />
+
+//             {/* 🔹 Modal Content (keeps its own touch area) */}
+//             <Animatable.View
+//               animation="slideInUp"
+//               duration={450}
+//               easing="ease-out"
+//               style={{
+//                 backgroundColor: theme.colors.surface,
+//                 borderTopLeftRadius: tokens.borderRadius.xl,
+//                 borderTopRightRadius: tokens.borderRadius.xl,
+//                 paddingTop: 16,
+//                 paddingBottom: 20,
+//                 maxHeight: '75%',
+//               }}>
+//               <ScrollView contentContainerStyle={{paddingHorizontal: 16}}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontWeight: '600',
+//                     fontSize: 17,
+//                     marginBottom: 12,
+//                     textAlign: 'center',
+//                   }}>
+//                   Your Styled Look
+//                 </Text>
+
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     flexWrap: 'wrap',
+//                     justifyContent: 'space-between',
+//                     marginBottom: 12,
+//                   }}>
+//                   {outfitResult?.outfit?.map((item: any, i: number) => (
+//                     <TouchableOpacity
+//                       key={i}
+//                       activeOpacity={0.9}
+//                       onPress={() => {
+//                         if (item.shopUrl) {
+//                           ReactNativeHapticFeedback.trigger('impactMedium');
+//                           setModalVisible(false); // 👈 close the Styled Look modal
+//                           setTimeout(() => {
+//                             setShopUrl(item.shopUrl);
+//                             setShopOverlayVisible(true); // 👈 then show the overlay
+//                           }, 250); // small delay lets close animation finish
+//                         }
+//                       }}
+//                       style={{
+//                         width: '30%',
+//                         marginBottom: 12,
+//                         alignItems: 'center',
+//                       }}>
+//                       {item.image && (
+//                         <Image
+//                           source={{uri: item.image}}
+//                           style={{
+//                             width: '100%',
+//                             height: 90,
+//                             borderRadius: tokens.borderRadius.md,
+//                           }}
+//                           resizeMode="cover"
+//                         />
+//                       )}
+//                       <Text
+//                         numberOfLines={2}
+//                         style={{
+//                           color: theme.colors.foreground,
+//                           fontSize: 12,
+//                           marginTop: 4,
+//                           textAlign: 'center',
+//                         }}>
+//                         {item.category}
+//                       </Text>
+//                     </TouchableOpacity>
+//                   ))}
+//                 </View>
+
+//                 {outfitResult?.style_note && (
+//                   <Text
+//                     style={{
+//                       marginTop: 6,
+//                       color: theme.colors.foreground,
+//                       fontSize: 13,
+//                       lineHeight: 18,
+//                       textAlign: 'center',
+//                     }}>
+//                     {outfitResult.style_note}
+//                   </Text>
+//                 )}
+//               </ScrollView>
+
+//               {/* 🔘 Close button or other actions here */}
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setModalVisible(false);
+//                   setOutfitResult(null);
+//                 }}
+//                 style={{
+//                   alignItems: 'center',
+//                   paddingVertical: 14,
+//                   backgroundColor: theme.colors.button1,
+//                   marginTop: 12,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   marginHorizontal: 16,
+//                 }}>
+//                 <Text
+//                   style={{color: theme.colors.foreground, fontWeight: '600'}}>
+//                   Scan Another
+//                 </Text>
+//               </TouchableOpacity>
+//             </Animatable.View>
+//           </View>
+//         </Modal>
+//       </View>
+
+//       {/* 🛍️ Shop Overlay */}
+//       {shopOverlayVisible && (
+//         <IntegratedShopOverlay
+//           visible={shopOverlayVisible}
+//           url={shopUrl}
+//           onClose={() => setShopOverlayVisible(false)}
+//         />
+//       )}
+//     </SafeAreaView>
+//   );
+// }
+
+//////////////////
+
+// /* eslint-disable react-native/no-inline-styles */
+// import React, {useEffect, useState, useRef, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   Alert,
+//   SafeAreaView,
+//   PermissionsAndroid,
+//   Platform,
+//   Image,
+//   ScrollView,
+//   Modal,
+//   Linking,
+//   Animated,
+// } from 'react-native';
+// import {Camera, useCameraDevices} from 'react-native-vision-camera';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import * as Animatable from 'react-native-animatable';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {tokens} from '../styles/tokens/tokens';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import IntegratedShopOverlay from '../components/ShopModal/IntegratedShopOverlay';
+
+// export default function BarcodeScannerScreen({
+//   navigate,
+//   goBack,
+//   onClose,
+// }: {
+//   onClose?: () => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const userId = useUUID();
+
+//   const devices = useCameraDevices();
+//   const device = Array.isArray(devices)
+//     ? devices.find(d => d.position === 'back')
+//     : devices.back;
+//   const cameraRef = useRef<Camera>(null);
+
+//   const [hasPermission, setHasPermission] = useState(false);
+//   const [loading, setLoading] = useState(false);
+//   const [outfitResult, setOutfitResult] = useState<any | null>(null);
+//   const [modalVisible, setModalVisible] = useState(false);
+//   const [confirmVisible, setConfirmVisible] = useState(false);
+//   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+//   const [flashAnim] = useState(new Animated.Value(0));
+//   const [toastVisible, setToastVisible] = useState(false);
+//   const [shopUrl, setShopUrl] = useState<string | null>(null);
+//   const [shopOverlayVisible, setShopOverlayVisible] = useState(false);
+
+//   /* ---- Request camera permission ---- */
+//   useEffect(() => {
+//     (async () => {
+//       const permission =
+//         Platform.OS === 'ios'
+//           ? await Camera.requestCameraPermission()
+//           : await PermissionsAndroid.request(
+//               PermissionsAndroid.PERMISSIONS.CAMERA,
+//             );
+//       setHasPermission(permission === 'authorized' || permission === 'granted');
+//     })();
+//   }, []);
+
+//   /* ---- Flash overlay animation ---- */
+//   const triggerFlash = useCallback(() => {
+//     Animated.sequence([
+//       Animated.timing(flashAnim, {
+//         toValue: 1,
+//         duration: 80,
+//         useNativeDriver: true,
+//       }),
+//       Animated.timing(flashAnim, {
+//         toValue: 0,
+//         duration: 200,
+//         useNativeDriver: true,
+//       }),
+//     ]).start();
+//   }, [flashAnim]);
+
+//   /* ---- Capture photo ---- */
+//   const capturePhoto = useCallback(async () => {
+//     if (!cameraRef.current) return;
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     triggerFlash();
+
+//     const photo = await cameraRef.current.takePhoto({
+//       qualityPrioritization: 'speed',
+//     });
+//     console.log('📸 Photo captured:', photo.path);
+
+//     setToastVisible(true);
+//     setTimeout(() => setToastVisible(false), 1500);
+
+//     setCapturedPhoto(`file://${photo.path}`);
+//     setConfirmVisible(true);
+//   }, [cameraRef, triggerFlash]);
+
+//   /* ---- Confirm and process ---- */
+//   const processCapturedPhoto = useCallback(async () => {
+//     if (!capturedPhoto) return;
+//     setConfirmVisible(false);
+//     setLoading(true);
+
+//     try {
+//       const form = new FormData();
+//       form.append('file', {
+//         uri: capturedPhoto,
+//         type: 'image/jpeg',
+//         name: 'barcode.jpg',
+//       });
+
+//       console.log('📸 Uploading photo to decode...');
+//       const decodeRes = await fetch(`${API_BASE_URL}/ai/decode-barcode`, {
+//         method: 'POST',
+//         body: form,
+//       });
+//       const decodeData = await decodeRes.json();
+//       console.log('🧠 Barcode decode result:', decodeData);
+
+//       if (decodeData?.barcode) {
+//         const barcode = decodeData.barcode;
+//         const productRes = await fetch(`${API_BASE_URL}/ai/lookup-barcode`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({upc: barcode}),
+//         });
+//         const product = await productRes.json();
+
+//         if (!product?.name) {
+//           Alert.alert('Not Found', 'No product data found.');
+//           return;
+//         }
+
+//         const recreateRes = await fetch(`${API_BASE_URL}/ai/recreate`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({
+//             user_id: userId,
+//             tags: [product.name, product.brand, product.category].filter(
+//               Boolean,
+//             ),
+//           }),
+//         });
+
+//         const outfit = await recreateRes.json();
+//         ReactNativeHapticFeedback.trigger('impactMedium');
+//         setOutfitResult(outfit);
+//         setModalVisible(true);
+//         return;
+//       }
+
+//       if (decodeData?.inferred?.name) {
+//         const item = decodeData.inferred;
+//         const recreateRes = await fetch(`${API_BASE_URL}/ai/recreate`, {
+//           method: 'POST',
+//           headers: {'Content-Type': 'application/json'},
+//           body: JSON.stringify({
+//             user_id: userId,
+//             tags: [item.name, item.brand, item.category, item.material].filter(
+//               Boolean,
+//             ),
+//           }),
+//         });
+
+//         const outfit = await recreateRes.json();
+//         ReactNativeHapticFeedback.trigger('impactMedium');
+//         setOutfitResult(outfit);
+//         setModalVisible(true);
+//         return;
+//       }
+
+//       Alert.alert('No barcode detected', 'Try again with clearer focus.');
+//     } catch (err) {
+//       console.warn('❌ processCapturedPhoto error:', err);
+//       Alert.alert('Error', 'Unable to process image.');
+//     } finally {
+//       setLoading(false);
+//       setCapturedPhoto(null);
+//     }
+//   }, [capturedPhoto, userId]);
+
+//   /* ---- Render ---- */
+//   if (!hasPermission || !device) {
+//     return (
+//       <SafeAreaView
+//         style={[
+//           globalStyles.centeredSection,
+//           {backgroundColor: theme.colors.background},
+//         ]}>
+//         <ActivityIndicator size="large" color={theme.colors.foreground} />
+//         <Text style={{color: theme.colors.foreground, marginTop: 8}}>
+//           Loading camera...
+//         </Text>
+//       </SafeAreaView>
+//     );
+//   }
+
+//   return (
+//     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
+//       <View style={[globalStyles.screen, globalStyles.container]}>
+//         <Text style={globalStyles.header}>Barcode Scanner</Text>
+//         {/* 🔙 Back Button */}
+//         <View
+//           style={[
+//             globalStyles.backContainer,
+//             {
+//               marginTop: 12,
+//               paddingLeft: 8,
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//             },
+//           ]}>
+//           <AppleTouchFeedback
+//             onPress={() => {
+//               ReactNativeHapticFeedback.trigger('impactMedium');
+
+//               try {
+//                 // ✅ Always try props first
+//                 if (onClose) return onClose();
+//                 if (goBack) return goBack();
+
+//                 // ✅ Fallback: force navigation to ClosetScreen
+//                 navigate && navigate('ClosetScreen');
+//               } catch (e) {
+//                 console.warn('Back navigation failed:', e);
+//               }
+//             }}
+//             hapticStyle="impactMedium"
+//             style={{
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//               marginLeft: 16,
+//             }}>
+//             <MaterialIcons
+//               name="arrow-back"
+//               size={26}
+//               color={theme.colors.button3}
+//             />
+//             <Text
+//               style={[
+//                 globalStyles.backText,
+//                 {marginLeft: 8, fontSize: 16, color: theme.colors.button1},
+//               ]}>
+//               Back
+//             </Text>
+//           </AppleTouchFeedback>
+//         </View>
+
+//         {/* 📸 Camera */}
+//         <Camera
+//           ref={cameraRef}
+//           style={{
+//             flexGrow: 1,
+//             height: '85%', // 👈 increase this percentage for more camera height
+//             overflow: 'hidden',
+//             marginTop: 0,
+//           }}
+//           device={device}
+//           isActive={!modalVisible && !confirmVisible}
+//           photo={true}
+//         />
+//         {/* ⚡ Flash overlay */}
+//         <Animated.View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             top: 0,
+//             left: 0,
+//             right: 0,
+//             bottom: 0,
+//             backgroundColor: theme.colors.foreground,
+//             opacity: flashAnim,
+//           }}
+//         />
+
+//         {/* ✅ Photo captured toast */}
+//         {toastVisible && (
+//           <Animatable.View
+//             animation="fadeInUp"
+//             duration={200}
+//             style={{
+//               position: 'absolute',
+//               bottom: 130,
+//               alignSelf: 'center',
+//               backgroundColor: 'rgba(0,0,0,0.7)',
+//               paddingHorizontal: 16,
+//               paddingVertical: 10,
+//               borderRadius: 20,
+//             }}>
+//             <Text style={{color: '#fff', fontWeight: '600'}}>
+//               Photo captured ✓
+//             </Text>
+//           </Animatable.View>
+//         )}
+
+//         {/* ⏳ Loading spinner */}
+//         {loading && (
+//           <View
+//             style={{
+//               position: 'absolute',
+//               top: 0,
+//               left: 0,
+//               right: 0,
+//               bottom: 0,
+//               backgroundColor: 'rgba(0,0,0,0.4)',
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               borderRadius: tokens.borderRadius.lg,
+//             }}>
+//             <ActivityIndicator size="large" color={theme.colors.foreground} />
+//             <Text
+//               style={{
+//                 color: theme.colors.foreground,
+//                 marginTop: 16,
+//                 fontSize: 14,
+//                 opacity: 0.8,
+//               }}>
+//               Photo taken. Processing look...
+//             </Text>
+//           </View>
+//         )}
+
+//         {/* 🔘 Capture button */}
+//         {!modalVisible && !confirmVisible && (
+//           <View
+//             style={{
+//               borderTopWidth: tokens.borderWidth.sm,
+//               borderTopColor: theme.colors.surfaceBorder,
+//               backgroundColor: theme.colors.background,
+//               paddingHorizontal: 16,
+//               paddingTop: 20,
+//               paddingBottom: 40, // 👈 adds extra space below the button
+//               marginTop: 3, // 👈 pushes the whole block further down
+//             }}>
+//             <AppleTouchFeedback onPress={capturePhoto}>
+//               <View
+//                 style={{
+//                   backgroundColor: theme.colors.button1,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   paddingVertical: 14,
+//                   alignItems: 'center',
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontWeight: '600',
+//                     fontSize: 16,
+//                   }}>
+//                   Scan to Style It
+//                 </Text>
+//               </View>
+//             </AppleTouchFeedback>
+
+//             {onClose && (
+//               <TouchableOpacity
+//                 onPress={onClose}
+//                 style={{marginTop: 12, alignItems: 'center'}}>
+//                 <Text style={{color: theme.colors.foreground}}>Close</Text>
+//               </TouchableOpacity>
+//             )}
+//           </View>
+//         )}
+
+//         {/* 📸 Confirm Photo Modal */}
+//         <Modal visible={confirmVisible} animationType="fade" transparent>
+//           <View
+//             style={{
+//               flex: 1,
+//               backgroundColor: 'rgba(0,0,0,0.8)',
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               paddingHorizontal: 20,
+//             }}>
+//             {capturedPhoto && (
+//               <Image
+//                 source={{uri: capturedPhoto}}
+//                 style={{
+//                   width: '90%',
+//                   height: 400,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   marginBottom: 20,
+//                 }}
+//                 resizeMode="cover"
+//               />
+//             )}
+//             <View style={{width: '90%'}}>
+//               <TouchableOpacity
+//                 onPress={processCapturedPhoto}
+//                 style={{
+//                   backgroundColor: theme.colors.button1,
+//                   paddingVertical: 14,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   alignItems: 'center',
+//                   marginBottom: 10,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontWeight: '600',
+//                   }}>
+//                   Analyze / Style It
+//                 </Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setCapturedPhoto(null);
+//                   setConfirmVisible(false);
+//                 }}
+//                 style={{
+//                   backgroundColor: theme.colors.surface3,
+//                   paddingVertical: 14,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   alignItems: 'center',
+//                   marginBottom: 10,
+//                 }}>
+//                 <Text style={{color: theme.colors.foreground}}>
+//                   Retake Photo
+//                 </Text>
+//               </TouchableOpacity>
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setCapturedPhoto(null);
+//                   setConfirmVisible(false);
+//                 }}
+//                 style={{
+//                   alignItems: 'center',
+//                   backgroundColor: theme.colors.muted,
+//                   paddingVertical: 14,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   marginBottom: 10,
+//                 }}>
+//                 <Text style={{color: theme.colors.foreground, opacity: 0.6}}>
+//                   Cancel
+//                 </Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </Modal>
+
+//         {/* 🪞 Result Modal */}
+//         <Modal
+//           visible={modalVisible}
+//           animationType="fade"
+//           transparent
+//           onRequestClose={() => setModalVisible(false)}>
+//           <View
+//             style={{
+//               flex: 1,
+//               backgroundColor: 'rgba(0,0,0,0.6)',
+//               justifyContent: 'flex-end',
+//             }}>
+//             {/* 🔹 Backdrop Touchable to close modal */}
+//             <TouchableOpacity
+//               activeOpacity={1}
+//               onPress={() => setModalVisible(false)}
+//               style={{
+//                 position: 'absolute',
+//                 top: 0,
+//                 left: 0,
+//                 right: 0,
+//                 bottom: 0,
+//               }}
+//             />
+
+//             {/* 🔹 Modal Content (keeps its own touch area) */}
+//             <Animatable.View
+//               animation="slideInUp"
+//               duration={450}
+//               easing="ease-out"
+//               style={{
+//                 backgroundColor: theme.colors.surface,
+//                 borderTopLeftRadius: tokens.borderRadius.xl,
+//                 borderTopRightRadius: tokens.borderRadius.xl,
+//                 paddingTop: 16,
+//                 paddingBottom: 20,
+//                 maxHeight: '75%',
+//               }}>
+//               <ScrollView contentContainerStyle={{paddingHorizontal: 16}}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontWeight: '600',
+//                     fontSize: 17,
+//                     marginBottom: 12,
+//                     textAlign: 'center',
+//                   }}>
+//                   Your Styled Look
+//                 </Text>
+
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     flexWrap: 'wrap',
+//                     justifyContent: 'space-between',
+//                     marginBottom: 12,
+//                   }}>
+//                   {outfitResult?.outfit?.map((item: any, i: number) => (
+//                     <TouchableOpacity
+//                       key={i}
+//                       activeOpacity={0.9}
+//                       onPress={() => {
+//                         if (item.shopUrl) {
+//                           ReactNativeHapticFeedback.trigger('impactMedium');
+//                           setModalVisible(false); // 👈 close the Styled Look modal
+//                           setTimeout(() => {
+//                             setShopUrl(item.shopUrl);
+//                             setShopOverlayVisible(true); // 👈 then show the overlay
+//                           }, 250); // small delay lets close animation finish
+//                         }
+//                       }}
+//                       style={{
+//                         width: '30%',
+//                         marginBottom: 12,
+//                         alignItems: 'center',
+//                       }}>
+//                       {item.image && (
+//                         <Image
+//                           source={{uri: item.image}}
+//                           style={{
+//                             width: '100%',
+//                             height: 90,
+//                             borderRadius: tokens.borderRadius.md,
+//                           }}
+//                           resizeMode="cover"
+//                         />
+//                       )}
+//                       <Text
+//                         numberOfLines={2}
+//                         style={{
+//                           color: theme.colors.foreground,
+//                           fontSize: 12,
+//                           marginTop: 4,
+//                           textAlign: 'center',
+//                         }}>
+//                         {item.category}
+//                       </Text>
+//                     </TouchableOpacity>
+//                   ))}
+//                 </View>
+
+//                 {outfitResult?.style_note && (
+//                   <Text
+//                     style={{
+//                       marginTop: 6,
+//                       color: theme.colors.foreground,
+//                       fontSize: 13,
+//                       lineHeight: 18,
+//                       textAlign: 'center',
+//                     }}>
+//                     {outfitResult.style_note}
+//                   </Text>
+//                 )}
+//               </ScrollView>
+
+//               {/* 🔘 Close button or other actions here */}
+//               <TouchableOpacity
+//                 onPress={() => {
+//                   setModalVisible(false);
+//                   setOutfitResult(null);
+//                 }}
+//                 style={{
+//                   alignItems: 'center',
+//                   paddingVertical: 14,
+//                   backgroundColor: theme.colors.button1,
+//                   marginTop: 12,
+//                   borderRadius: tokens.borderRadius.lg,
+//                   marginHorizontal: 16,
+//                 }}>
+//                 <Text
+//                   style={{color: theme.colors.foreground, fontWeight: '600'}}>
+//                   Scan Another
+//                 </Text>
+//               </TouchableOpacity>
+//             </Animatable.View>
+//           </View>
+//         </Modal>
+//       </View>
+
+//       {/* 🛍️ Shop Overlay */}
+//       {shopOverlayVisible && (
+//         <IntegratedShopOverlay
+//           visible={shopOverlayVisible}
+//           url={shopUrl}
+//           onClose={() => setShopOverlayVisible(false)}
+//         />
+//       )}
+//     </SafeAreaView>
+//   );
+// }
 
 ///////////////////
 

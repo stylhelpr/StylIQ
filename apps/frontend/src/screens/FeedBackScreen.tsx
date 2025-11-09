@@ -19,11 +19,14 @@ import {tokens} from '../styles/tokens/tokens';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DeviceInfo from 'react-native-device-info';
 import {API_BASE_URL} from '../config/api';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export default function FeedbackScreen({navigate}: any) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
+
+  const insets = useSafeAreaInsets();
 
   // ✨ Fade-in animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -186,6 +189,12 @@ export default function FeedbackScreen({navigate}: any) {
         {backgroundColor: theme.colors.background, opacity: fadeAnim},
       ]}
       keyboardShouldPersistTaps="handled">
+      <View
+        style={{
+          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+          backgroundColor: theme.colors.background, // same tone as old nav
+        }}
+      />
       <Text style={globalStyles.header}>Send Feedback</Text>
 
       <View style={globalStyles.section}>
