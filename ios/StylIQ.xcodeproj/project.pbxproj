@@ -235,18 +235,16 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
+				C2115CAB2E88E17F00871CF8 /* Embed Foundation Extensions */,
 				C2E625F52E8F609B003F367F /* Fix Hermes Framework */,
 				C2799AB22E83881E0034D74E /* Generate Hermes dSYM */,
-				C2F628A22EAD806F00B270DD /* Copy Hermes dYSM to Archive */,
 				C20047E32E8383AF005702BE /* Strip Bitcode From Embedded Frameworks */,
 				C2E625F62E8F60E2003F367F /* Fix Hermes Headers */,
-				C2115CAB2E88E17F00871CF8 /* Embed Foundation Extensions */,
 				F9F7EFD0B0B6571E864307B7 /* [CP] Copy Pods Resources */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				0CD7178DF6F55B4E82E80BD5 /* [CP-User] [RNFB] Core Configuration */,
 				C2115CB02E88E52F00871CF8 /* CopyFiles */,
 				4798CB3B11B610623612140D /* [CP] Embed Pods Frameworks */,
-				C2F628A12EAD7F1200B270DD /* Final Hermes Clean (post-embed fix) */,
 			);
 			buildRules = (
 			);
@@ -495,42 +493,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\necho \"📁 Ensuring Hermes headers exist...\"\n\nHERMES_INCLUDE_PATH=\"${PODS_ROOT}/hermes-engine/destroot/include/hermes\"\n\nif [ ! -d \"$HERMES_INCLUDE_PATH\" ]; then\n  echo \"⚠️ Hermes headers missing. Creating placeholder include path...\"\n  mkdir -p \"$HERMES_INCLUDE_PATH\"\n  touch \"$HERMES_INCLUDE_PATH/hermes.h\"\nfi\n\nHEADER_SEARCH_PATHS=\"${PODS_ROOT}/hermes-engine/destroot/include\"\necho \"✅ Added header search path: $HEADER_SEARCH_PATHS\"\n\n";
-		};
-		C2F628A12EAD7F1200B270DD /* Final Hermes Clean (post-embed fix) */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Final Hermes Clean (post-embed fix)";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\nset -e\n\nHERMES_PATH=\"${CONFIGURATION_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework/hermes\"\n\nif [ -f \"$HERMES_PATH\" ]; then\n  echo \"🧹 Cleaning Hermes bitcode from: $HERMES_PATH\"\n  xcrun bitcode_strip -r \"$HERMES_PATH\" -o \"$HERMES_PATH\" || true\nfi\n\n";
-		};
-		C2F628A22EAD806F00B270DD /* Copy Hermes dYSM to Archive */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Hermes dYSM to Archive";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\nset -e\n\nBUILD_DIR=\"${CONFIGURATION_BUILD_DIR}\"\nDSYM_DEST=\"${DWARF_DSYM_FOLDER_PATH}\"\n\n# Check both possible Hermes dSYM locations\nHERMES_DSYM_SRC1=\"${BUILD_DIR}/hermes.framework.dSYM\"\nHERMES_DSYM_SRC2=\"${BUILD_DIR}/../../Build/Products/${CONFIGURATION}-iphoneos/hermes.framework.dSYM\"\n\necho \"🔍 Searching for Hermes dSYM...\"\n\nif [ -d \"$HERMES_DSYM_SRC1\" ]; then\n  echo \"📦 Copying from $HERMES_DSYM_SRC1 → $DSYM_DEST\"\n  cp -R \"$HERMES_DSYM_SRC1\" \"$DSYM_DEST\" || true\nelif [ -d \"$HERMES_DSYM_SRC2\" ]; then\n  echo \"📦 Copying from $HERMES_DSYM_SRC2 → $DSYM_DEST\"\n  cp -R \"$HERMES_DSYM_SRC2\" \"$DSYM_DEST\" || true\nelse\n  echo \"⚠️ Hermes dSYM not found. Skipping.\"\nfi\n\n";
 		};
 		D5FB22CEE6059554854850D3 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
