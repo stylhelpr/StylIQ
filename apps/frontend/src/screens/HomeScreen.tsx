@@ -1195,7 +1195,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               useNativeDriver
               style={globalStyles.sectionScroll}>
               <Text style={[globalStyles.sectionTitle]}>
-                Top Fashion Stories TODAY
+                Top Fashion Stories
               </Text>
               <NewsCarousel onOpenArticle={openArticle} />
             </Animatable.View>
