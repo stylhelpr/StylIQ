@@ -194,6 +194,10 @@ export default function GlobalHeader({
               name: 'notifications-none',
               action: () => navigate('Notifications'),
             },
+            // {
+            //   name: 'OnboardingScreen',
+            //   action: () => navigate('OnboardingScreen'),
+            // },
             {name: 'videocam', action: () => navigate('VideoFeedScreen')},
             {
               name: 'smart-toy',

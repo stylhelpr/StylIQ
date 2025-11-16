@@ -117,7 +117,8 @@ type Screen =
   | 'Planner'
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'
-  | 'VideoFeedScreen';
+  | 'VideoFeedScreen'
+  | 'OnboardingScreen';
 
 const RootNavigator = ({
   registerNavigate,
@@ -396,6 +397,8 @@ const RootNavigator = ({
         return <ImageCarouselScreen navigate={navigate} />;
       case 'FeedbackScreen':
         return <FeedbackScreen navigate={navigate} />;
+      case 'OnboardingScreen':
+        return <OnboardingScreen navigate={navigate} />;
       case 'AboutScreen':
         return <AboutScreen navigate={navigate} />;
       case 'WebPageScreen':

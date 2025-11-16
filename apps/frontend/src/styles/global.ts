@@ -1066,7 +1066,13 @@ export const createGlobalStyles = (theme: Theme) =>
       alignItems: 'center',
       backgroundColor: '#1a1a1a',
       borderRadius: tokens.borderRadius.md,
-      paddingHorizontal: isTablet ? 16 : 12,
+      paddingHorizontal: isTablet
+        ? 16
+        : isLargePhone
+        ? 12
+        : isRegularPhone
+        ? 12
+        : 12,
       width: '100%',
     },
     promptInput: {
