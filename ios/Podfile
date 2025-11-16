@@ -109,6 +109,117 @@ end
 
 
 
+# # ------------------------------------------------------------
+# # StylIQ iOS Podfile — FIXED for Permissions + Firebase bundling + Skia
+# # ------------------------------------------------------------
+# source 'https://cdn.cocoapods.org/'
+
+# require Pod::Executable.execute_command('node', ['-p',
+#   'require.resolve("react-native/scripts/react_native_pods.rb", { paths: [process.argv[1]] })',
+#   __dir__
+# ]).strip
+
+# platform :ios, '16.0'
+# ENV['RCT_NEW_ARCH_ENABLED'] = '1'
+# prepare_react_native_project!
+
+# use_frameworks! :linkage => :static
+
+# install! 'cocoapods',
+#   :integrate_targets => true,
+#   :deterministic_uuids => false
+
+# # ------------------------------------------------------------
+# # 🧩 Workaround for react-native-permissions + use_frameworks!
+# # ------------------------------------------------------------
+# pre_install do |installer|
+#   Pod::Installer::Xcode::TargetValidator.send(
+#     :define_method,
+#     :verify_no_static_framework_transitive_dependencies
+#   ) {}
+
+#   installer.pod_targets.each do |pod|
+#     if pod.name.eql?('RNPermissions') || pod.name.start_with?('Permission-')
+#       def pod.build_type
+#         Pod::BuildType.static_library
+#       end
+#     end
+#   end
+# end
+
+# target 'StylIQ' do
+#   config = use_native_modules!
+
+#   # ------------------------------------------------------------
+#   # 🧊 Liquid Glass
+#   # ------------------------------------------------------------
+#   pod 'LiquidGlass', :path => '../node_modules/@callstack/liquid-glass'
+
+#   # ------------------------------------------------------------
+#   # ⚙️ React Native Core
+#   # ------------------------------------------------------------
+#   use_react_native!(
+#     path: config[:reactNativePath],
+#     hermes_enabled: true,
+#     fabric_enabled: true,
+#     app_path: "#{Pod::Config.instance.installation_root}/.."
+#   )
+
+#   # ------------------------------------------------------------
+#   # ✅ react-native-permissions handlers (v3.x manual)
+#   # ------------------------------------------------------------
+#   permissions_path = '../node_modules/react-native-permissions/ios'
+#   pod 'Permission-Camera',            :path => "#{permissions_path}/Camera/Permission-Camera.podspec"
+#   pod 'Permission-PhotoLibrary',      :path => "#{permissions_path}/PhotoLibrary/Permission-PhotoLibrary.podspec"
+#   pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse/Permission-LocationWhenInUse.podspec"
+#   pod 'Permission-Microphone',        :path => "#{permissions_path}/Microphone/Permission-Microphone.podspec"
+#   pod 'Permission-Calendars',         :path => "#{permissions_path}/Calendars/Permission-Calendars.podspec"
+#   # ------------------------------------------------------------
+
+#   post_install do |installer|
+#     react_native_post_install(
+#       installer,
+#       config[:reactNativePath],
+#       :mac_catalyst_enabled => false
+#     )
+
+#     installer.pods_project.targets.each do |t|
+#       t.build_configurations.each do |cfg|
+#         s = cfg.build_settings
+#         s['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+#         s['ENABLE_BITCODE'] = 'NO'
+#         s['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+#         s['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+#       end
+#     end
+
+#     # ------------------------------------------------------------
+#     # 📦 Force-copy GoogleService-Info.plist into .app bundle
+#     # ------------------------------------------------------------
+#     app_name = 'StylIQ'
+#     plist_path = File.expand_path('../GoogleService-Info.plist', __dir__)
+#     script_path = File.expand_path('../ios/add-firebase-plist.sh', __dir__)
+
+#     File.open(script_path, 'w') do |f|
+#       f.puts <<~EOS
+#         #!/bin/bash
+#         set -e
+#         APP_NAME="#{app_name}"
+#         PLIST_PATH="#{plist_path}"
+#         TARGET_DIR="./build/Debug-iphonesimulator/$APP_NAME.app"
+#         echo "📦 Injecting $PLIST_PATH into $TARGET_DIR ..."
+#         until [ -d "$TARGET_DIR" ]; do sleep 2; done
+#         cp "$PLIST_PATH" "$TARGET_DIR/" && echo "✅ Copied GoogleService-Info.plist"
+#       EOS
+#     end
+#     system("chmod +x #{script_path}")
+#     puts "✅ Firebase copy script ready (#{script_path})"
+#   end
+# end
+
+
+
+
 
 
 

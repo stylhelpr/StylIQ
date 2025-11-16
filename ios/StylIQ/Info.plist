@@ -41,6 +41,27 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIApplicationSceneManifest</key>
+<dict>
+    <key>UIApplicationSupportsMultipleScenes</key>
+    <true/>
+    <key>UISceneConfigurations</key>
+    <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+            <dict>
+                <key>UISceneConfigurationName</key>
+                <string>Default Configuration</string>
+                <key>UISceneDelegateClassName</key>
+				<string>StylIQ.SceneDelegate</string>
+                <key>UISceneStoryboardFile</key>
+                <string>LaunchScreen</string>
+            </dict>
+        </array>
+    </dict>
+</dict>
+    <key>NSSupportsLiveActivities</key>
+    <true/>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -110,5 +131,9 @@
 <true/>
 <key>FirebaseScreenReportingEnabled</key>
 <true/>
+    <key>ActivityKitActivityAttributesBundleIdentifiers</key>
+    <array>
+        <string>com.stylhelpr.stylhelpr.StylIQLiveActivity</string>
+    </array>
 </dict>
 </plist>
