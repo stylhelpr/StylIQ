@@ -21,9 +21,4 @@ public struct StylIQActivityAttributes: ActivityAttributes {
     public init(title: String) {
         self.title = title
     }
-
-    // 🔥 REQUIRED: Provide the widget extension bundle
-    public static var widgetBundle: Bundle? {
-        return Bundle(identifier: "com.stylhelpr.stylhelpr.StylIQLiveActivityExtension")
-    }
 }

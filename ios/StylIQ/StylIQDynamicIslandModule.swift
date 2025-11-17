@@ -111,6 +111,8 @@ class StylIQDynamicIslandModule: NSObject {
         )
         self.currentActivity = newActivity
         resolve("Started Live Activity (fresh)")
+        print("📡 Active activities:", Activity<StylIQActivityAttributes>.activities)
+
       } catch {
         let nsError = error as NSError
         let details = "Domain: \(nsError.domain) Code: \(nsError.code) UserInfo: \(nsError.userInfo)"

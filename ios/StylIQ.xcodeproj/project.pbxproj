@@ -18,6 +18,7 @@
 		C278CC652EC9BA1500EC355E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C23B5A972EC97D45009FAACE /* WidgetKit.framework */; };
 		C278CC662EC9BA1500EC355E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C23B5A992EC97D46009FAACE /* SwiftUI.framework */; };
 		C278CC812ECA4E2100EC355E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C278CC802ECA4E2100EC355E /* SceneDelegate.swift */; };
+		C27C31F82ECAB99100696C33 /* StylIQLiveActivityExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = C278CC642EC9BA1500EC355E /* StylIQLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C27CD6202E776F2F00EFDA95 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C27CD61F2E776F2F00EFDA95 /* GoogleService-Info.plist */; };
 		C2BCDBED2EC13DFC003B1420 /* main.jsbundle in Resources */ = {isa = PBXBuildFile; fileRef = C2BCDBEC2EC13DFC003B1420 /* main.jsbundle */; };
 /* End PBXBuildFile section */
@@ -38,6 +39,7 @@
 			dstPath = "";
 			dstSubfolder = PlugIns;
 			files = (
+				C27C31F82ECAB99100696C33 /* StylIQLiveActivityExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 		};
@@ -275,8 +277,8 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				A59EDD9439D246FA3D451939 /* [CP] Embed Pods Frameworks */,
 				CF07AE81F8F458E7E76E64ED /* [CP] Copy Pods Resources */,
-				70B04A8799808035044FEE94 /* [CP-User] [RNFB] Core Configuration */,
 				C257D13C2ECA984000E90D56 /* Embed App Extensions */,
+				70B04A8799808035044FEE94 /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
 			);
@@ -383,6 +385,7 @@
 				"",
 				"export NODE_BINARY=node",
 				"../node_modules/react-native/scripts/react-native-xcode.sh",
+				"",
 				"",
 				"",
 				"",
@@ -676,6 +679,7 @@
 				"",
 				"",
 				"",
+				"",
 			);
 		};
 		A59EDD9439D246FA3D451939 /* [CP] Embed Pods Frameworks */ = {
@@ -690,6 +694,7 @@
 			shellPath = /bin/sh;
 			shellScript = (
 				"\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-frameworks.sh\"",
+				"",
 				"",
 				"",
 				"",
@@ -730,6 +735,7 @@
 				"",
 				"",
 				"",
+				"",
 			);
 		};
 		CF07AE81F8F458E7E76E64ED /* [CP] Copy Pods Resources */ = {
@@ -744,6 +750,7 @@
 			shellPath = /bin/sh;
 			shellScript = (
 				"\"${PODS_ROOT}/Target Support Files/Pods-StylIQ/Pods-StylIQ-resources.sh\"",
+				"",
 				"",
 				"",
 				"",
@@ -775,6 +782,7 @@
 				"fi",
 				"# This output is used by Xcode 'outputs' to avoid re-running this script phase.",
 				"echo \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"",
+				"",
 				"",
 				"",
 				"",
