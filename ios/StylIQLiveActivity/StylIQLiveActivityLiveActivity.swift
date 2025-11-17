@@ -20,7 +20,7 @@ struct StylIQLiveActivity: Widget {
                 Text(context.state.message)
                     .font(.subheadline)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)   // ⭐ REQUIRED FIX
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
             .activityBackgroundTint(Color.cyan)
             .activitySystemActionForegroundColor(.black)
@@ -57,16 +57,16 @@ struct StylIQLiveActivity: Widget {
                         .font(.caption)
                 }
 
-            } compactLeading: {
-                Text("👔")
-                    .frame(width: 22, height: 22)   // ⭐ REQUIRED FIX
-            } compactTrailing: {
-                Text("✨")
-                    .frame(width: 22, height: 22)   // ⭐ REQUIRED FIX
-            } minimal: {
-                Text("S")
-                    .frame(width: 22, height: 22)   // ⭐ REQUIRED FIX
-            }
+           } compactLeading: {
+    Text("👔")
+        .frame(width: 22, height: 22)
+} compactTrailing: {
+    Text("✨")
+        .frame(width: 22, height: 22)
+} minimal: {
+    Text("S")
+        .frame(width: 22, height: 22)
+}
         }
     }
 }
