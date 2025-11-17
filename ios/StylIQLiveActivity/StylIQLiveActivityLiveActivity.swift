@@ -11,62 +11,108 @@ import SwiftUI
 struct StylIQLiveActivity: Widget {
 
     var body: some WidgetConfiguration {
+
         ActivityConfiguration(for: StylIQActivityAttributes.self) { context in
 
-            // 🔒 LOCK SCREEN + BANNER UI
-            VStack(spacing: 8) {
-                Text(context.attributes.title)
-                    .font(.headline)
-                Text(context.state.message)
-                    .font(.subheadline)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding()
-            .activityBackgroundTint(Color.cyan)
-            .activitySystemActionForegroundColor(.black)
+            // =========================================================
+            // LOCK SCREEN — Clean, No Progress, No Waveform
+            // =========================================================
 
-        } dynamicIsland: { context in
+            VStack(alignment: .leading, spacing: 8) {
 
-            DynamicIsland {
+                HStack(spacing: 16) {    // ⭐ more space between artwork + text
 
-                // 🟦 EXPANDED – LEADING
-                DynamicIslandExpandedRegion(.leading) {
-                    Text("👔")
-                        .font(.title2)
-                }
+                    Image("free1")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(8)
 
-                // 🟩 EXPANDED – CENTER
-                DynamicIslandExpandedRegion(.center) {
-                    VStack(spacing: 4) {
+                    VStack(alignment: .leading, spacing: 4) {
+
                         Text(context.attributes.title)
-                            .font(.headline)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+
                         Text(context.state.message)
-                            .font(.subheadline)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.7))
+                            .lineLimit(1)
                     }
                 }
 
-                // 🟥 EXPANDED – TRAILING
-                DynamicIslandExpandedRegion(.trailing) {
-                    Text("✨")
-                        .font(.title2)
-                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 20)   // ⭐ keep perfect lock-screen spacing
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(red: 0x24/255, green: 0x24/255, blue: 0x26/255))
+            .cornerRadius(16)
 
-                // 🟨 EXPANDED – BOTTOM
-                DynamicIslandExpandedRegion(.bottom) {
-                    Text("Update: \(context.state.message)")
-                        .font(.caption)
-                }
 
-           } compactLeading: {
-    Text("👔")
-        .frame(width: 22, height: 22)
-} compactTrailing: {
-    Text("✨")
-        .frame(width: 22, height: 22)
-} minimal: {
-    Text("S")
-        .frame(width: 22, height: 22)
-}
+
+ // =============================================================
+//  DYNAMIC ISLAND — MATCH LOCK SCREEN SPACING EXACTLY + NO ELLIPSIS
+// =============================================================
+} dynamicIsland: { context in
+
+    DynamicIsland {
+
+        // -----------------------------------------------------
+        // EXPANDED — LEFT (Artwork)
+        // -----------------------------------------------------
+        DynamicIslandExpandedRegion(.leading) {
+            Image("free1")
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 60, height: 60)
+                .cornerRadius(8)
+                .padding(.leading, 12)
+                .padding(.vertical, 6)
         }
+
+        // -----------------------------------------------------
+        // EXPANDED — CENTER (Text)
+        // -----------------------------------------------------
+DynamicIslandExpandedRegion(.center) {
+
+    VStack(alignment: .leading, spacing: 4) {
+
+        Text(context.attributes.title)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundColor(.white)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .allowsTightening(true)
+
+        Text(context.state.message)
+            .font(.system(size: 14))
+            .foregroundColor(.white.opacity(0.7))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .allowsTightening(true)
     }
+    .padding(.leading, 12)
+    .padding(.trailing, 16)
+   .offset(y: 0)
+}
+
+    }
+
+    // ---------------------------------------------------------
+    // COMPACT LEADING
+    // ---------------------------------------------------------
+    compactLeading: {
+        Image("free1")
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 22, height: 22)
+            .cornerRadius(4)
+    }
+
+    compactTrailing: { EmptyView() }
+    minimal: { EmptyView() }
+}
+}
+    
 }

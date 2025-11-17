@@ -1055,7 +1055,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 }
 
                 const result = await DynamicIsland.start(
-                  'StylIQ Alert',
+                  'StylHelpr Message',
                   'Your personalized outfit is ready.',
                 );
                 console.log('✅ startActivity result:', result);
