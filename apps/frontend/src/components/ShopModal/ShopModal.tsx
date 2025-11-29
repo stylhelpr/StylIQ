@@ -39,11 +39,9 @@ export default function ShopModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
           justifyContent: 'center',
           alignItems: 'center',
-          paddingVertical: tokens.spacing.sm,
-          // padding: tokens.spacing.sm,
         }}>
         <Animatable.View
           animation="fadeInUp"
