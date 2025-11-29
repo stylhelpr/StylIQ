@@ -35,6 +35,7 @@ import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {tokens} from '../styles/tokens/tokens';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
+import {DynamicIsland} from '../native/dynamicIsland';
 
 if (
   Platform.OS === 'android' &&
@@ -48,6 +49,37 @@ const h = (type: string) =>
     // enableVibrateFallback: true,
     ignoreAndroidSystemSettings: false,
   });
+
+// Helper function to show notification in Dynamic Island
+const showInDynamicIsland = async (
+  title: string,
+  message: string,
+  durationMs: number = 5000,
+) => {
+  try {
+    // Check if Live Activities are enabled first
+    const enabled = await DynamicIsland.isEnabled();
+    console.log('🔔 Live Activities enabled?', enabled);
+
+    if (!enabled) {
+      console.log('⚠️ Live Activities not allowed on this device / settings.');
+      return;
+    }
+
+    // Start the Live Activity with the notification
+    const result = await DynamicIsland.start(title, message);
+    console.log('✅ Dynamic Island started:', result);
+    console.log('📬 Notification:', title, '-', message);
+
+    // Auto-dismiss after duration
+    setTimeout(async () => {
+      const endResult = await DynamicIsland.end();
+      console.log('🏁 Dynamic Island ended:', endResult);
+    }, durationMs);
+  } catch (error) {
+    console.log('❌ Dynamic Island error:', error);
+  }
+};
 
 export default function NotificationsScreen({
   navigate,
@@ -136,12 +168,14 @@ export default function NotificationsScreen({
 
   useEffect(() => {
     const unsubscribeFg = messaging().onMessage(async msg => {
+      const title = String(msg.notification?.title || msg.data?.title || 'New Notification');
+      const message = String(msg.notification?.body || msg.data?.body || msg.data?.message || '');
+
       await addToInbox({
         user_id: userId,
         id: msg.messageId || `${Date.now()}`,
-        title: msg.notification?.title || msg.data?.title,
-        message:
-          msg.notification?.body || msg.data?.body || msg.data?.message || '',
+        title,
+        message,
         timestamp: new Date().toISOString(),
         category:
           (msg.data?.category as AppNotification['category']) ?? 'other',
@@ -151,15 +185,20 @@ export default function NotificationsScreen({
       });
       await load();
       h('impactLight');
+
+      // 🏝️ Show in Dynamic Island
+      await showInDynamicIsland(title, message, 5000);
     });
 
     const unsubscribeOpen = messaging().onNotificationOpenedApp(async msg => {
+      const title = String(msg.notification?.title || msg.data?.title || 'New Notification');
+      const message = String(msg.notification?.body || msg.data?.body || msg.data?.message || '');
+
       await addToInbox({
         user_id: userId,
         id: msg.messageId || `${Date.now()}`,
-        title: msg.notification?.title || msg.data?.title,
-        message:
-          msg.notification?.body || msg.data?.body || msg.data?.message || '',
+        title,
+        message,
         timestamp: new Date().toISOString(),
         category:
           (msg.data?.category as AppNotification['category']) ?? 'other',
@@ -168,6 +207,9 @@ export default function NotificationsScreen({
         read: false,
       });
       await load();
+
+      // 🏝️ Show in Dynamic Island
+      await showInDynamicIsland(title, message, 5000);
     });
 
     return () => {

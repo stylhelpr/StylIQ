@@ -7,6 +7,7 @@ import messaging, {
 import {Linking, Platform} from 'react-native';
 import {API_BASE_URL} from '../config/api';
 import {addToInbox} from './notificationInbox';
+import {DynamicIsland} from '../native/dynamicIsland';
 
 // ----- inbox record type -----
 type InboxItem = {
@@ -60,7 +61,37 @@ export const initializeNotifications = async (userId?: string) => {
 
     // 🔔 Local notification setup (Android heads-up support)
     PushNotification.configure({
-      onNotification: n => console.log('🔔 Local notification:', n),
+      onNotification: async (n: any) => {
+        console.log('🔔 Local notification:', n);
+
+        // 🏝️ Show in Dynamic Island for local notifications (scheduled outfits)
+        try {
+          const title = String(n.title || 'Notification');
+          const message = String(n.message || n.body || '');
+
+          // Check if Live Activities are enabled
+          const enabled = await DynamicIsland.isEnabled();
+          console.log('🔔 Live Activities enabled?', enabled);
+
+          if (!enabled) {
+            console.log('⚠️ Live Activities not allowed on this device / settings.');
+            return;
+          }
+
+          // Start the Live Activity
+          const result = await DynamicIsland.start(title, message);
+          console.log('✅ Dynamic Island started (local):', result);
+          console.log('📬 Local Notification:', title, '-', message);
+
+          // Auto-dismiss after 15 seconds (gives user time to interact)
+          setTimeout(async () => {
+            const endResult = await DynamicIsland.end();
+            console.log('🏁 Dynamic Island ended:', endResult);
+          }, 15000);
+        } catch (error) {
+          console.log('❌ Dynamic Island error (local):', error);
+        }
+      },
       requestPermissions: true,
     });
 
@@ -156,6 +187,39 @@ export const initializeNotifications = async (userId?: string) => {
           });
         } catch (e) {
           console.warn('⚠️ Failed to show local notification', e);
+        }
+
+        // 🏝️ Show in Dynamic Island (scheduled outfit notifications)
+        try {
+          const title = String(mapped.title || 'Notification');
+          const message = String(mapped.message || '');
+
+          console.log('🏝️ Attempting Dynamic Island for FCM:', {title, message});
+
+          // Check if Live Activities are enabled
+          const enabled = await DynamicIsland.isEnabled();
+          console.log('🔔 Live Activities enabled?', enabled);
+
+          if (!enabled) {
+            console.log('⚠️ Live Activities not allowed on this device / settings.');
+            return;
+          }
+
+          // Start the Live Activity
+          const result = await DynamicIsland.start(title, message);
+          console.log('✅ Dynamic Island started (FCM):', result);
+
+          // Auto-dismiss after 15 seconds (gives user time to interact)
+          setTimeout(async () => {
+            try {
+              const endResult = await DynamicIsland.end();
+              console.log('🏁 Dynamic Island ended:', endResult);
+            } catch (e) {
+              console.log('❌ Error ending Dynamic Island:', e);
+            }
+          }, 15000);
+        } catch (error) {
+          console.log('❌ Dynamic Island error (FCM):', error);
         }
       });
       fgRegistered = true;
