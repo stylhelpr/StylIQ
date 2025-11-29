@@ -305,12 +305,20 @@ export default function SavedOutfitsScreen() {
   const [fullScreenOutfit, setFullScreenOutfit] = useState<SavedOutfit | null>(
     null,
   );
+  const displayedOutfitRef = useRef<SavedOutfit | null>(null);
 
   // ✨ Animated value for parallax depth
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // 👆 put these near your other hooks at the top of the component
   const translateY = useRef(new Animated.Value(0)).current;
+
+  // Update displayed outfit ref when fullScreenOutfit changes
+  useEffect(() => {
+    if (fullScreenOutfit) {
+      displayedOutfitRef.current = fullScreenOutfit;
+    }
+  }, [fullScreenOutfit]);
 
   const handleClose = useCallback(() => {
     Animated.timing(translateY, {
@@ -319,8 +327,11 @@ export default function SavedOutfitsScreen() {
       useNativeDriver: true,
     }).start(({finished}) => {
       if (finished) {
-        translateY.setValue(0);
         setFullScreenOutfit(null);
+        // Reset after modal is closed
+        setTimeout(() => {
+          translateY.setValue(0);
+        }, 100);
       }
     });
   }, [translateY, setFullScreenOutfit]);
@@ -1557,22 +1568,19 @@ export default function SavedOutfitsScreen() {
       <Modal
         visible={!!fullScreenOutfit}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={() => setFullScreenOutfit(null)}>
-        {fullScreenOutfit && (
-          <SafeAreaView style={{flex: 1, backgroundColor: 'transparent'}}>
-            <Animated.View
-              style={{
-                flex: 1,
-                backgroundColor: '#000',
-                transform: [{translateY}],
-                width: '100%',
-                height: '100%',
-              }}>
+        <SafeAreaView style={{flex: 1, backgroundColor: 'transparent'}}>
+          <Animated.View
+            style={{
+              flex: 1,
+              backgroundColor: '#000',
+              transform: [{translateY}],
+              width: '100%',
+              height: '100%',
+            }}>
               {/* ✨ Backdrop */}
-              <Animatable.View
-                animation="fadeIn"
-                duration={300}
+              <View
                 style={[StyleSheet.absoluteFill, {backgroundColor: '#000'}]}
               />
 
@@ -1630,14 +1638,14 @@ export default function SavedOutfitsScreen() {
                     marginBottom: 20,
                     letterSpacing: 0.5,
                   }}>
-                  {fullScreenOutfit.name || 'Unnamed Outfit'}
+                  {displayedOutfitRef.current?.name || 'Unnamed Outfit'}
                 </Animatable.Text>
 
                 {/* 👕 Outfit Images */}
                 {[
-                  fullScreenOutfit.top,
-                  fullScreenOutfit.bottom,
-                  fullScreenOutfit.shoes,
+                  displayedOutfitRef.current?.top,
+                  displayedOutfitRef.current?.bottom,
+                  displayedOutfitRef.current?.shoes,
                 ].map(
                   (i, idx) =>
                     i?.image && (
@@ -1664,7 +1672,7 @@ export default function SavedOutfitsScreen() {
                 )}
 
                 {/* 📝 Notes */}
-                {fullScreenOutfit.notes?.trim() && (
+                {displayedOutfitRef.current?.notes?.trim() && (
                   <Animatable.Text
                     animation="fadeInUp"
                     delay={700}
@@ -1677,12 +1685,12 @@ export default function SavedOutfitsScreen() {
                       marginTop: 10,
                       lineHeight: 22,
                     }}>
-                    “{fullScreenOutfit.notes.trim()}”
+                    "{displayedOutfitRef.current.notes.trim()}"
                   </Animatable.Text>
                 )}
 
                 {/* 🏷️ Tags */}
-                {fullScreenOutfit.tags?.length ? (
+                {displayedOutfitRef.current?.tags?.length ? (
                   <Animatable.View
                     animation="fadeInUp"
                     delay={900}
@@ -1693,7 +1701,7 @@ export default function SavedOutfitsScreen() {
                       justifyContent: 'center',
                       marginTop: 24,
                     }}>
-                    {fullScreenOutfit.tags.map(tag => (
+                    {displayedOutfitRef.current.tags.map(tag => (
                       <View
                         key={tag}
                         style={{
@@ -1750,7 +1758,6 @@ export default function SavedOutfitsScreen() {
               </Animatable.View>
             </Animated.View>
           </SafeAreaView>
-        )}
       </Modal>
     </SafeAreaView>
     // </GradientBackground>
