@@ -1056,32 +1056,22 @@ export function AnimatedInputBar({
           placeholder="Ask for a look… event, vibe, weather"
           placeholderTextColor={'#9c9c9cff'}
           multiline
-          onContentSizeChange={e => {
-            const newHeight = Math.min(
-              e.nativeEvent.contentSize.height + 4,
-              130,
-            );
-            setInputHeight(newHeight);
-          }}
-          numberOfLines={1} // ✅ keeps placeholder single-line
-          ellipsizeMode="tail" // ✅ truncates long placeholder instead of wrapping
+          scrollEnabled={false}
           keyboardAppearance="dark"
           returnKeyType="send"
           blurOnSubmit={false}
           style={{
             flex: 1,
-            paddingTop: 10, // ⬆️ a bit more breathing room
+            minHeight: 42,
+            maxHeight: 120,
+            paddingTop: 10,
             paddingBottom: 10,
             lineHeight: 22,
             includeFontPadding: false,
             textAlignVertical: 'top',
-            overflow: 'visible', // ✅ ensures first line never clips
             color: theme.colors.foreground,
             fontSize: isTablet ? 18 : isLargePhone ? 17 : 16,
             paddingHorizontal: 8,
-            minHeight: 42,
-            maxHeight: 120,
-            height: inputHeight,
           }}
         />
 

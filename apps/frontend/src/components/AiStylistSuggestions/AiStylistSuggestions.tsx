@@ -53,6 +53,9 @@ const STORAGE_KEY = 'aiStylistAutoMode';
 // ✅ ADD — persistent suggestion key
 const AI_SUGGESTION_STORAGE_KEY = 'aiStylist_lastSuggestion';
 
+// ✅ Persistent expanded state key
+const AI_SUGGESTION_EXPANDED_KEY = 'aiStylist_isExpanded';
+
 const AiStylistSuggestions: React.FC<Props> = ({
   weather,
   navigate,
@@ -75,7 +78,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const lastFetchTimeRef = useRef<number>(0);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
   const toggleExpanded = () => setIsExpanded(prev => !prev);
 
   const {width, isXS, isSM, isMD} = useResponsive();
@@ -259,12 +262,37 @@ const AiStylistSuggestions: React.FC<Props> = ({
     })();
   }, []);
 
+  /** ✅ Load expanded state from persistent storage */
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(AI_SUGGESTION_EXPANDED_KEY);
+        if (saved === null) {
+          setIsExpanded(true);
+          await AsyncStorage.setItem(AI_SUGGESTION_EXPANDED_KEY, 'true');
+        } else {
+          setIsExpanded(saved === 'true');
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to load expanded state', err);
+        setIsExpanded(true);
+      }
+    })();
+  }, []);
+
   /** 💾 Save auto-mode preference */
   useEffect(() => {
     AsyncStorage.setItem(STORAGE_KEY, isAutoMode.toString()).catch(e =>
       console.warn('⚠️ Failed to save auto mode setting', e),
     );
   }, [isAutoMode]);
+
+  /** 💾 Save expanded state whenever it changes */
+  useEffect(() => {
+    AsyncStorage.setItem(AI_SUGGESTION_EXPANDED_KEY, isExpanded.toString()).catch(
+      e => console.warn('⚠️ Failed to save expanded state', e),
+    );
+  }, [isExpanded]);
 
   /** 📡 Auto-fetch on mount if auto mode */
   /** 📡 Auto-fetch on mount if auto mode (respect saved data + cooldown) */

@@ -1638,14 +1638,14 @@ export default function SavedOutfitsScreen() {
                     marginBottom: 20,
                     letterSpacing: 0.5,
                   }}>
-                  {displayedOutfitRef.current?.name || 'Unnamed Outfit'}
+                  {fullScreenOutfit?.name || 'Unnamed Outfit'}
                 </Animatable.Text>
 
                 {/* 👕 Outfit Images */}
                 {[
-                  displayedOutfitRef.current?.top,
-                  displayedOutfitRef.current?.bottom,
-                  displayedOutfitRef.current?.shoes,
+                  fullScreenOutfit?.top,
+                  fullScreenOutfit?.bottom,
+                  fullScreenOutfit?.shoes,
                 ].map(
                   (i, idx) =>
                     i?.image && (
@@ -1672,7 +1672,7 @@ export default function SavedOutfitsScreen() {
                 )}
 
                 {/* 📝 Notes */}
-                {displayedOutfitRef.current?.notes?.trim() && (
+                {fullScreenOutfit?.notes?.trim() && (
                   <Animatable.Text
                     animation="fadeInUp"
                     delay={700}
@@ -1685,12 +1685,12 @@ export default function SavedOutfitsScreen() {
                       marginTop: 10,
                       lineHeight: 22,
                     }}>
-                    "{displayedOutfitRef.current.notes.trim()}"
+                    "{fullScreenOutfit.notes.trim()}"
                   </Animatable.Text>
                 )}
 
                 {/* 🏷️ Tags */}
-                {displayedOutfitRef.current?.tags?.length ? (
+                {fullScreenOutfit?.tags?.length ? (
                   <Animatable.View
                     animation="fadeInUp"
                     delay={900}
@@ -1701,7 +1701,7 @@ export default function SavedOutfitsScreen() {
                       justifyContent: 'center',
                       marginTop: 24,
                     }}>
-                    {displayedOutfitRef.current.tags.map(tag => (
+                    {fullScreenOutfit.tags.map(tag => (
                       <View
                         key={tag}
                         style={{
