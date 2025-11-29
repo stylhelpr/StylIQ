@@ -162,8 +162,11 @@ export default function AllSavedLooksModal({
       useNativeDriver: true,
     }).start(({finished}) => {
       if (finished) {
-        translateY.setValue(0);
         onClose();
+        // Reset after modal is closed
+        setTimeout(() => {
+          translateY.setValue(0);
+        }, 100);
       }
     });
   };
@@ -362,15 +365,11 @@ export default function AllSavedLooksModal({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
       presentationStyle="overFullScreen"
       onRequestClose={handleClose}>
       <SafeAreaView style={styles.modalContainer} pointerEvents="box-none">
-        <Animatable.View
-          animation="fadeIn"
-          duration={300}
-          style={styles.backdrop}
-        />
+        <View style={styles.backdrop} />
         <View
           style={{
             height: insets.top - 10,
