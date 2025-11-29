@@ -89,14 +89,18 @@ export default function SwipeableCard({
           });
         } else if (shouldSwipeLeft && onSwipeLeft) {
           // triggerHaptic();
+          // Animate completely off screen then show modal
           Animated.timing(panX, {
             toValue: -SCREEN_WIDTH - 80,
             duration: 180,
             useNativeDriver: true,
           }).start(() => {
-            panX.setValue(0);
-            panY.setValue(0);
             onSwipeLeft();
+            // Delay reset until modal is covering the screen
+            setTimeout(() => {
+              panX.setValue(0);
+              panY.setValue(0);
+            }, 150);
           });
         } else if (shouldSwipeDown && onSwipeDown) {
           // triggerHaptic();

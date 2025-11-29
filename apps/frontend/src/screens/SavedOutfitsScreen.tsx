@@ -1492,7 +1492,10 @@ export default function SavedOutfitsScreen() {
       )}
 
       {/* 🗑 Delete Confirmation */}
-      {showDeleteConfirm && pendingDeleteId && (
+      <Modal
+        visible={showDeleteConfirm && !!pendingDeleteId}
+        transparent
+        animationType="fade">
         <BlurView
           style={styles.modalContainer}
           blurType="dark"
@@ -1548,7 +1551,7 @@ export default function SavedOutfitsScreen() {
             </View>
           </Animatable.View>
         </BlurView>
-      )}
+      </Modal>
 
       {/* 🖼 Full-Screen Outfit Modal — IMMERSIVE VERSION */}
       <Modal
