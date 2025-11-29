@@ -146,13 +146,28 @@ export default function VideoFeedScreen({
       height: 64,
       borderRadius: 32,
       backgroundColor: 'transparent',
-
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
       shadowOpacity: 0.25,
       shadowRadius: 10,
       elevation: 6,
+    },
+    closeButton: {
+      width: 40,
+      height: 40,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      shadowColor: '#000',
+      shadowOpacity: 0.5,
+      shadowRadius: 8,
+      shadowOffset: {width: 0, height: 2},
+      elevation: 10,
+      borderRadius: 20,
+      padding: 6,
     },
   });
 
@@ -180,6 +195,10 @@ export default function VideoFeedScreen({
   const handleNavigate = () => {
     // ReactNativeHapticFeedback.trigger('impactMedium');
     navigate('ImageCarouselScreen'); // ✅ navigate to your screen
+  };
+
+  const handleClose = () => {
+    navigate('HomeScreen');
   };
 
   // 🔹 iOS version detection for fallback
@@ -223,6 +242,19 @@ export default function VideoFeedScreen({
       {/* 🟣 Centered transparent overlay text */}
       <View style={styles.overlayTextContainer} pointerEvents="none">
         <Text style={styles.overlayText}>StylHelpr</Text>
+      </View>
+
+      {/* ❌ Close button */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 130,
+          right: 20,
+          zIndex: 999999,
+        }}>
+        <Pressable onPress={handleClose} style={styles.closeButton}>
+          <MaterialIcons name="close" size={28} color="white" />
+        </Pressable>
       </View>
 
       {/* 🔘 Floating FAB */}
@@ -277,6 +309,288 @@ export default function VideoFeedScreen({
     </View>
   );
 }
+
+///////////////////
+
+// import {useEffect, useRef, useState} from 'react';
+// import {
+//   Dimensions,
+//   FlatList,
+//   ListRenderItemInfo,
+//   Platform,
+//   TextStyle,
+//   View,
+//   ViewStyle,
+//   Text,
+//   Pressable,
+//   StyleSheet,
+//   ImageStyle,
+//   Share,
+//   Image,
+//   StatusBar,
+// } from 'react-native';
+// import Video, {ResizeMode, VideoRef} from 'react-native-video';
+// import {useSafeAreaInsets} from 'react-native-safe-area-context';
+// import {videos, videos2, videos3} from '../assets/data/video-urls';
+// import {fontScale, moderateScale} from '../utils/scale';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// // ✅ Use full 'screen' height on Android; 'window' on iOS
+// const SCREEN = Platform.select({
+//   android: Dimensions.get('screen'),
+//   ios: Dimensions.get('window'),
+// });
+// const SCREEN_HEIGHT = SCREEN!.height;
+// const SCREEN_WIDTH = SCREEN!.width;
+
+// interface VideoWrapperProps {
+//   data: ListRenderItemInfo<string>;
+//   allVideos: string[];
+//   visibleIndex: number;
+//   pause: () => void;
+//   share: (videoURL: string) => void;
+//   pauseOverride: boolean;
+// }
+
+// const VideoWrapper = ({
+//   data,
+//   allVideos,
+//   visibleIndex,
+//   pause,
+//   pauseOverride,
+//   share,
+// }: VideoWrapperProps) => {
+//   const {index, item} = data;
+//   const videoRef = useRef<VideoRef>(null);
+//   const {theme} = useAppTheme();
+
+//   const styles = StyleSheet.create({
+//     overlay: {
+//       ...StyleSheet.absoluteFill,
+//       backgroundColor: 'black',
+//       opacity: 0.15,
+//     },
+//     overlayTextContainer: {
+//       ...StyleSheet.absoluteFill,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       zIndex: 9999,
+//     },
+//     overlayText: {
+//       fontSize: fontScale(tokens.fontSize['5xl']),
+//       fontWeight: '900',
+//       letterSpacing: 3,
+//       color: 'white',
+//       textTransform: 'uppercase',
+//     },
+//   });
+
+//   useEffect(() => {
+//     videoRef.current?.seek(0);
+//   }, [visibleIndex]);
+
+//   return (
+//     // ✅ Each item fills the screen exactly
+//     <View
+//       style={{
+//         height: SCREEN_HEIGHT,
+//         width: SCREEN_WIDTH,
+//         backgroundColor: 'black',
+//       }}>
+//       <Video
+//         ref={videoRef}
+//         source={{uri: allVideos[index]}}
+//         style={StyleSheet.absoluteFill}
+//         resizeMode={ResizeMode.COVER}
+//         paused={visibleIndex !== index || pauseOverride}
+//         repeat
+//       />
+//       <Pressable onPress={pause} style={styles.overlay} />
+//     </View>
+//   );
+// };
+
+// export default function VideoFeedScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const [allVideos, setAllVideos] = useState(videos);
+//   const [visibleIndex, setVisibleIndex] = useState(0);
+//   const [pauseOverride, setPauseOverride] = useState(false);
+//   const numOfRefreshes = useRef(0);
+//   const insets = useSafeAreaInsets();
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   const styles = StyleSheet.create({
+//     overlay: {
+//       ...StyleSheet.absoluteFill,
+//       backgroundColor: 'black',
+//       opacity: 0.15,
+//     },
+//     overlayTextContainer: {
+//       ...StyleSheet.absoluteFill,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       zIndex: 9999,
+//     },
+//     overlayText: {
+//       fontSize: 42,
+//       fontWeight: '700',
+//       letterSpacing: 3,
+//       color: 'white',
+//       textTransform: 'uppercase',
+//     },
+//     fabContainer: {
+//       position: 'absolute',
+//       bottom: insets.bottom + 80,
+//       right: 24,
+//       zIndex: 10,
+//     },
+//     fabButton: {
+//       width: 64,
+//       height: 64,
+//       borderRadius: 32,
+//       backgroundColor: 'transparent',
+
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       shadowColor: '#000',
+//       shadowOpacity: 0.25,
+//       shadowRadius: 10,
+//       elevation: 6,
+//     },
+//   });
+
+//   useEffect(() => {
+//     StatusBar.setTranslucent(true);
+//     StatusBar.setBackgroundColor('transparent');
+//     StatusBar.setBarStyle('light-content');
+//   }, []);
+
+//   const fetchMoreData = () => {
+//     if (numOfRefreshes.current === 0)
+//       setAllVideos(prev => [...prev, ...videos2]);
+//     if (numOfRefreshes.current === 1)
+//       setAllVideos(prev => [...prev, ...videos3]);
+//     numOfRefreshes.current += 1;
+//   };
+
+//   const onViewableItemsChanged = (event: any) => {
+//     const newIndex = Number(event.viewableItems.at(-1)?.key ?? 0);
+//     setVisibleIndex(newIndex);
+//   };
+
+//   const pause = () => setPauseOverride(v => !v);
+
+//   const handleNavigate = () => {
+//     // ReactNativeHapticFeedback.trigger('impactMedium');
+//     navigate('ImageCarouselScreen'); // ✅ navigate to your screen
+//   };
+
+//   // 🔹 iOS version detection for fallback
+//   const isiOS25OrLower =
+//     Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
+
+//   return (
+//     <View style={{flex: 1, backgroundColor: 'black'}}>
+//       <FlatList
+//         data={allVideos}
+//         renderItem={data => (
+//           <VideoWrapper
+//             data={data}
+//             allVideos={allVideos}
+//             visibleIndex={visibleIndex}
+//             pause={pause}
+//             pauseOverride={pauseOverride}
+//             share={function (videoURL: string): void {
+//               throw new Error('Function not implemented.');
+//             }}
+//           />
+//         )}
+//         keyExtractor={(_, i) => String(i)}
+//         initialNumToRender={1}
+//         pagingEnabled
+//         decelerationRate="fast"
+//         showsVerticalScrollIndicator={false}
+//         onViewableItemsChanged={onViewableItemsChanged}
+//         onEndReached={fetchMoreData}
+//         onEndReachedThreshold={0.3}
+//         snapToInterval={SCREEN_HEIGHT}
+//         getItemLayout={(_, index) => ({
+//           length: SCREEN_HEIGHT,
+//           offset: SCREEN_HEIGHT * index,
+//           index,
+//         })}
+//         removeClippedSubviews
+//         windowSize={3}
+//       />
+
+//       {/* 🟣 Centered transparent overlay text */}
+//       <View style={styles.overlayTextContainer} pointerEvents="none">
+//         <Text style={styles.overlayText}>StylHelpr</Text>
+//       </View>
+
+//       {/* 🔘 Floating FAB */}
+//       <View style={styles.fabContainer}>
+//         <AppleTouchFeedback onPress={handleNavigate}>
+//           {isLiquidGlassSupported && !isiOS25OrLower ? (
+//             <LiquidGlassView
+//               style={{
+//                 borderRadius: 50,
+//                 borderWidth: tokens.borderWidth.md,
+//                 borderColor: theme.colors.foreground,
+//               }}
+//               effect="clear"
+//               tintColor={
+//                 theme.mode === 'light'
+//                   ? 'rgba(255,255,255,0.55)'
+//                   : 'rgba(0,0,0,0.44)'
+//               }
+//               colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
+//               <View style={styles.fabButton}>
+//                 <MaterialIcons
+//                   name="photo-library"
+//                   size={30}
+//                   color={theme.colors.foreground}
+//                 />
+//               </View>
+//             </LiquidGlassView>
+//           ) : (
+//             // 🔹 Fallback for iOS 25 and below or unsupported devices
+//             <View
+//               style={[
+//                 styles.fabButton,
+//                 {
+//                   backgroundColor: 'rgba(0,0,0,0.35)',
+//                   borderWidth: tokens.borderWidth.md,
+//                   borderColor: theme.colors.muted,
+//                   shadowColor: '#000',
+//                   shadowOpacity: 0.2,
+//                   shadowRadius: 8,
+//                   shadowOffset: {width: 0, height: 4},
+//                 },
+//               ]}>
+//               <MaterialIcons
+//                 name="photo-library"
+//                 size={30}
+//                 color={theme.colors.buttonText1}
+//               />
+//             </View>
+//           )}
+//         </AppleTouchFeedback>
+//       </View>
+//     </View>
+//   );
+// }
 
 /////////////////
 

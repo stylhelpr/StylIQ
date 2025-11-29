@@ -1,5 +1,12 @@
 import React, {useState, useRef} from 'react';
-import {View, Text, StyleSheet, Image, Dimensions} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Dimensions,
+  Pressable,
+} from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedScrollHandler,
@@ -14,6 +21,7 @@ import Animated, {
 import {LiquidGlassView} from '@callstack/liquid-glass';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const {width, height} = Dimensions.get('window');
 
@@ -70,6 +78,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#fff',
     marginHorizontal: 5,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 10,
+    borderRadius: 20,
+    padding: 6,
   },
 });
 
@@ -141,7 +165,11 @@ function CubeFace({img, i, scrollX}: any) {
   );
 }
 
-export default function ImageCarouselScreen() {
+export default function ImageCarouselScreen({
+  navigate,
+}: {
+  navigate: (screen: string) => void;
+}) {
   const [index, setIndex] = useState(0);
   const scrollX = useSharedValue(0);
   const {theme} = useAppTheme();
@@ -155,6 +183,10 @@ export default function ImageCarouselScreen() {
   const onScrollEnd = (e: any) => {
     const newIndex = Math.round(e.nativeEvent.contentOffset.x / width);
     setIndex(newIndex);
+  };
+
+  const handleClose = () => {
+    navigate('HomeScreen');
   };
 
   return (
@@ -232,9 +264,300 @@ export default function ImageCarouselScreen() {
           />
         ))}
       </View>
+
+      {/* ❌ Close button */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 130,
+          right: 20,
+          zIndex: 999999,
+        }}>
+        <Pressable onPress={handleClose} style={styles.closeButton}>
+          <MaterialIcons name="close" size={28} color="white" />
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
+
+////////////////
+
+// import React, {useState, useRef} from 'react';
+// import {View, Text, StyleSheet, Image, Dimensions, Pressable} from 'react-native';
+// import Animated, {
+//   useSharedValue,
+//   useAnimatedScrollHandler,
+//   useAnimatedStyle,
+//   interpolate,
+//   Extrapolate,
+//   FadeInUp,
+//   FadeOutDown,
+//   ZoomIn,
+//   Easing,
+// } from 'react-native-reanimated';
+// import {LiquidGlassView} from '@callstack/liquid-glass';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+
+// const {width, height} = Dimensions.get('window');
+
+// const styles = StyleSheet.create({
+//   container: {flex: 1, backgroundColor: '#000'},
+//   overlay: {
+//     ...StyleSheet.absoluteFill,
+//     backgroundColor: 'rgba(0,0,0,0.25)',
+//   },
+//   face: {
+//     position: 'absolute',
+//     width,
+//     height,
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     backfaceVisibility: 'hidden',
+//   },
+//   image: {width, height},
+//   focusFrame: {
+//     position: 'absolute',
+//     top: '30%',
+//     left: width * 0.15,
+//     width: width * 0.7,
+//     height: width * 0.9,
+//   },
+//   corner: {position: 'absolute', width: 40, height: 40, borderColor: 'white'},
+//   topLeft: {top: 0, left: 0, borderLeftWidth: 2, borderTopWidth: 2},
+//   topRight: {top: 0, right: 0, borderRightWidth: 2, borderTopWidth: 2},
+//   bottomLeft: {bottom: 0, left: 0, borderLeftWidth: 2, borderBottomWidth: 2},
+//   bottomRight: {bottom: 0, right: 0, borderRightWidth: 2, borderBottomWidth: 2},
+//   title: {
+//     color: '#fff',
+//     fontSize: 28,
+//     fontWeight: '900',
+//     letterSpacing: 1.2,
+//     textAlign: 'center',
+//   },
+//   subtitle: {
+//     color: 'rgba(255,255,255,0.75)',
+//     fontSize: 18,
+//     marginTop: 6,
+//     fontWeight: '600',
+//     textAlign: 'center',
+//   },
+//   pagination: {
+//     position: 'absolute',
+//     bottom: 100,
+//     width: '100%',
+//     flexDirection: 'row',
+//     justifyContent: 'center',
+//   },
+//   dot: {
+//     height: 8,
+//     borderRadius: 4,
+//     backgroundColor: '#fff',
+//     marginHorizontal: 5,
+//   },
+//   closeButton: {
+//     width: 40,
+//     height: 40,
+//     backgroundColor: 'rgba(255, 255, 255, 0.15)',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     borderWidth: 1,
+//     borderColor: 'rgba(255, 255, 255, 0.3)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.5,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 2},
+//     elevation: 10,
+//     borderRadius: 20,
+//     padding: 6,
+//   },
+// });
+
+// const images = [
+//   require('../assets/images/headshot-3.jpg'),
+//   require('../assets/images/headshot-6.jpg'),
+//   require('../assets/images/headshot-2.webp'),
+//   require('../assets/images/headshot-4.jpg'),
+//   require('../assets/images/headshot-1.webp'),
+//   require('../assets/images/headshot-5.jpg'),
+// ];
+
+// const textContent = [
+//   {title: 'UPGRADE YOUR STYLE', subtitle: 'Like never before'},
+//   {title: 'DISCOVER YOUR LOOK', subtitle: 'Express yourself'},
+//   {title: 'FASHION FORWARD', subtitle: 'Stay ahead of trends'},
+//   {title: 'PERSONALIZED STYLE', subtitle: 'Made just for you'},
+//   {title: 'UP YOUR WARDROBE', subtitle: 'Look your best'},
+//   {title: 'STYLE CONFIDENCE', subtitle: 'Own every moment'},
+// ];
+
+// function CubeFace({img, i, scrollX}: any) {
+//   const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
+
+//   const animatedStyle = useAnimatedStyle(() => {
+//     const rotateY = interpolate(
+//       scrollX.value,
+//       inputRange,
+//       [200, 0, -200],
+//       Extrapolate.CLAMP,
+//     );
+//     const translateX = interpolate(
+//       scrollX.value,
+//       inputRange,
+//       [width / 2.2, 0, -width / 2.2],
+//       Extrapolate.CLAMP,
+//     );
+//     return {
+//       transform: [
+//         {perspective: width * 1.5},
+//         {translateX},
+//         {rotateY: `${rotateY}deg`},
+//       ],
+//     };
+//   });
+
+//   const nextIndex = i + 1 < images.length ? i + 1 : 0;
+//   const nextImage = images[nextIndex];
+
+//   return (
+//     <View key={i} style={{width, height}}>
+//       <Animated.View style={[styles.face, animatedStyle]}>
+//         <Image source={img} style={styles.image} resizeMode="cover" />
+//       </Animated.View>
+//       <Animated.View
+//         style={[
+//           styles.face,
+//           {
+//             transform: [
+//               {perspective: width * 1.5},
+//               {rotateY: '90deg'},
+//               {translateX: width / 2},
+//             ],
+//           },
+//         ]}>
+//         <Image source={nextImage} style={styles.image} resizeMode="cover" />
+//       </Animated.View>
+//     </View>
+//   );
+// }
+
+// export default function ImageCarouselScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const [index, setIndex] = useState(0);
+//   const scrollX = useSharedValue(0);
+//   const {theme} = useAppTheme();
+
+//   const scrollHandler = useAnimatedScrollHandler({
+//     onScroll: e => {
+//       scrollX.value = e.contentOffset.x;
+//     },
+//   });
+
+//   const onScrollEnd = (e: any) => {
+//     const newIndex = Math.round(e.nativeEvent.contentOffset.x / width);
+//     setIndex(newIndex);
+//   };
+
+//   const handleClose = () => {
+//     navigate('HomeScreen');
+//   };
+
+//   return (
+//     <SafeAreaView style={styles.container}>
+//       {/* 🧊 Cube Scroll */}
+//       <Animated.ScrollView
+//         horizontal
+//         pagingEnabled
+//         scrollEventThrottle={16}
+//         showsHorizontalScrollIndicator={false}
+//         onScroll={scrollHandler}
+//         onMomentumScrollEnd={onScrollEnd}>
+//         {images.map((img, i) => (
+//           <CubeFace key={i} img={img} i={i} scrollX={scrollX} />
+//         ))}
+//       </Animated.ScrollView>
+
+//       {/* 🔲 Overlay */}
+//       <View style={styles.overlay} pointerEvents="none" />
+
+//       {/* 🔳 Focus frame */}
+//       <View style={styles.focusFrame} pointerEvents="none">
+//         <View style={[styles.corner, styles.topLeft]} />
+//         <View style={[styles.corner, styles.topRight]} />
+//         <View style={[styles.corner, styles.bottomLeft]} />
+//         <View style={[styles.corner, styles.bottomRight]} />
+//       </View>
+
+//       {/* 💎 LiquidGlass text area */}
+//       <LiquidGlassView
+//         interactive
+//         effect="clear"
+//         tintColor="rgba(255, 255, 255, 0)"
+//         colorScheme="system"
+//         style={{
+//           position: 'absolute',
+//           bottom: 170,
+//           alignSelf: 'center',
+//           width: width * 0.9,
+//           borderRadius: 40,
+//           paddingVertical: 18,
+//           paddingHorizontal: 8,
+//           justifyContent: 'center',
+//           alignItems: 'center',
+//         }}>
+//         <Animated.View
+//           key={index}
+//           entering={FadeInUp.duration(900)
+//             .delay(100)
+//             .easing(Easing.out(Easing.exp))}
+//           exiting={FadeOutDown.duration(400)}
+//           pointerEvents="none">
+//           <Animated.Text
+//             entering={ZoomIn.duration(1000).easing(Easing.out(Easing.exp))}
+//             style={styles.title}>
+//             {textContent[index].title}
+//           </Animated.Text>
+//           <Text style={styles.subtitle}>{textContent[index].subtitle}</Text>
+//         </Animated.View>
+//       </LiquidGlassView>
+
+//       {/* ▓ Dots */}
+//       <View style={styles.pagination} pointerEvents="none">
+//         {images.map((_, i) => (
+//           <View
+//             key={i}
+//             style={[
+//               styles.dot,
+//               {
+//                 opacity: i === index ? 1 : 0.3,
+//                 width: i === index ? 30 : 8,
+//                 backgroundColor: i === index ? theme.colors.button1 : '#fff',
+//               },
+//             ]}
+//           />
+//         ))}
+//       </View>
+
+//       {/* ❌ Close button */}
+//       <View
+//         style={{
+//           position: 'absolute',
+//           top: 130,
+//           right: 20,
+//           zIndex: 999999,
+//         }}>
+//         <Pressable onPress={handleClose} style={styles.closeButton}>
+//           <MaterialIcons name="close" size={28} color="white" />
+//         </Pressable>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
 
 ///////////////////
 
