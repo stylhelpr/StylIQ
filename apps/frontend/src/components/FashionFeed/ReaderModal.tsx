@@ -54,7 +54,8 @@ export default function ReaderModal({
     modalContainer: {
       flex: 1,
       backgroundColor: 'transparent',
-      justifyContent: 'flex-end',
+      justifyContent: 'flex-start',
+      paddingTop: insets.top + 40,
     },
     backdrop: {
       ...StyleSheet.absoluteFill,
@@ -77,7 +78,7 @@ export default function ReaderModal({
       top: 0, // 👈 Sits ABOVE gesture zone
       right: 20,
       zIndex: 20,
-      backgroundColor: 'black',
+      backgroundColor: 'white',
       borderRadius: 20,
       padding: 6,
     },
@@ -111,64 +112,30 @@ export default function ReaderModal({
 
   // ✅ Unified close logic for swipe & buttons
   const handleClose = () => {
-    if (isClosingRef.current) return; // Prevent multiple close attempts
-
-    console.log('🚪 handleClose triggered - INSTANT CLOSE FOR TESTING');
-
-    // TEMPORARY: Instant close with no animation to test if animation is the issue
+    if (isClosingRef.current) return;
+    console.log('🚪 handleClose - instant close');
     onClose();
-    isClosingRef.current = false;
-
-    // // Fade out backdrop
-    // if (backdropRef.current) {
-    //   backdropRef.current.fadeOut(200);
-    // }
-
-    // // Slide down panel, then call onClose
-    // Animated.timing(translateY, {
-    //   toValue: height,
-    //   duration: 250,
-    //   useNativeDriver: true,
-    // }).start(({finished}) => {
-    //   if (finished) {
-    //     console.log('✅ Animation complete - calling onClose');
-    //     translateY.setValue(0);
-    //     // Don't reset isClosingRef here - let it stay true until modal reopens
-    //     // This prevents the flicker from rapid visible prop changes
-    //     onClose();
-    //   }
-    // });
   };
 
   // ✅ PanResponder logic for swipe-down
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
-      onPanResponderGrant: () => console.log('👆 Gesture start detected'),
-      onPanResponderMove: (_e, g) => {
-        // TEMP: Disabled visual swipe animation to prevent flicker
-        // console.log('📦 Moving DY:', g.dy);
-        // if (g.dy > 0) translateY.setValue(g.dy);
-      },
       onPanResponderRelease: (_e, g) => {
-        console.log('📉 Released dy:', g.dy, 'vy:', g.vy);
         if (g.dy > 100 || g.vy > 0.3) {
-          console.log('✅ Swipe down threshold passed — closing');
           handleClose();
         }
-        // No snap back needed since we're not animating during swipe
       },
     }),
   ).current;
 
-  // Don't render if there's no URL and we're not closing
-  if (!url && !isClosingRef.current) return null;
+  if (!url) return null;
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="none"
+      animationType="slide"
       presentationStyle="overFullScreen"
       statusBarTranslucent={true}
       hardwareAccelerated={true}
@@ -184,7 +151,7 @@ export default function ReaderModal({
         />
         <View
           style={{
-            height: insets.top + 0, // ⬅️ 56 is about the old navbar height
+            height: insets.top - 60, // ⬅️ 56 is about the old navbar height
             backgroundColor: theme.colors.background, // same tone as old nav
           }}
         />
@@ -207,11 +174,7 @@ export default function ReaderModal({
               handleClose();
             }}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-            <MaterialIcons
-              name="close"
-              size={22}
-              color={theme.colors.buttonText1}
-            />
+            <MaterialIcons name="close" size={22} color={'black'} />
           </TouchableOpacity>
 
           {/* ✅ Swipe gesture zone */}
