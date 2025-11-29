@@ -331,6 +331,7 @@ export default function ProfileScreen({navigate}: Props) {
   return (
     // <GradientBackground>
     <ScrollView
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={[
         globalStyles.container,
         {
