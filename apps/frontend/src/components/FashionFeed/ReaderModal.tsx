@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useRef, useEffect, useState} from 'react';
 import {
   Modal,
   View,
@@ -33,14 +33,22 @@ export default function ReaderModal({
   title?: string;
   onClose: () => void;
 }) {
-  if (!url) return null;
-
   const translateY = useRef(new Animated.Value(0)).current;
+  const backdropRef = useRef<any>(null);
+  const isClosingRef = useRef(false);
 
   const {theme, setSkin} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
   const insets = useSafeAreaInsets();
+
+  // Reset animation when modal opens
+  useEffect(() => {
+    if (visible) {
+      translateY.setValue(0);
+      isClosingRef.current = false;
+    }
+  }, [visible, translateY]);
 
   const styles = StyleSheet.create({
     modalContainer: {
@@ -101,28 +109,35 @@ export default function ReaderModal({
     },
   });
 
-  // 🔁 Reset position whenever modal opens
-  useEffect(() => {
-    if (visible) {
-      console.log('✅ Modal visible - resetting translateY');
-      translateY.setValue(0);
-    }
-  }, [visible, translateY]);
-
   // ✅ Unified close logic for swipe & buttons
   const handleClose = () => {
-    console.log('🚪 handleClose triggered');
-    Animated.timing(translateY, {
-      toValue: height,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(({finished}) => {
-      if (finished) {
-        console.log('✅ Animation complete - calling onClose()');
-        translateY.setValue(0);
-        onClose();
-      }
-    });
+    if (isClosingRef.current) return; // Prevent multiple close attempts
+
+    console.log('🚪 handleClose triggered - INSTANT CLOSE FOR TESTING');
+
+    // TEMPORARY: Instant close with no animation to test if animation is the issue
+    onClose();
+    isClosingRef.current = false;
+
+    // // Fade out backdrop
+    // if (backdropRef.current) {
+    //   backdropRef.current.fadeOut(200);
+    // }
+
+    // // Slide down panel, then call onClose
+    // Animated.timing(translateY, {
+    //   toValue: height,
+    //   duration: 250,
+    //   useNativeDriver: true,
+    // }).start(({finished}) => {
+    //   if (finished) {
+    //     console.log('✅ Animation complete - calling onClose');
+    //     translateY.setValue(0);
+    //     // Don't reset isClosingRef here - let it stay true until modal reopens
+    //     // This prevents the flicker from rapid visible prop changes
+    //     onClose();
+    //   }
+    // });
   };
 
   // ✅ PanResponder logic for swipe-down
@@ -150,16 +165,23 @@ export default function ReaderModal({
     }),
   ).current;
 
+  // Don't render if there's no URL and we're not closing
+  if (!url && !isClosingRef.current) return null;
+
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent={true}
+      hardwareAccelerated={true}
       onRequestClose={handleClose}
       onShow={() => console.log('✅ Modal onShow fired')}>
       <SafeAreaView style={styles.modalContainer}>
         {/* Dim backdrop */}
         <Animatable.View
+          ref={backdropRef}
           animation="fadeIn"
           duration={300}
           style={styles.backdrop}
@@ -223,7 +245,7 @@ export default function ReaderModal({
             duration={800}
             style={{flex: 1}}>
             <WebView
-              source={{uri: url}}
+              source={{uri: url || ''}}
               style={{flex: 1}}
               onLoadStart={() => console.log('🌐 WebView load start')}
               onLoadEnd={() => console.log('🌐 WebView load end')}
