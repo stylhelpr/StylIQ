@@ -387,7 +387,8 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         {marginBottom: 80},
       ]}
       showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled">
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{paddingBottom: 100}}>
       <View
         style={{
           height: insets.top + 60, // ⬅️ 56 is about the old navbar height

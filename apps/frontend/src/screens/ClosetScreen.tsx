@@ -429,7 +429,7 @@ export default function ClosetScreen({navigate}: Props) {
       )}
 
       {/* 👕 Wardrobe Grid */}
-      <ScrollView scrollEnabled={scrollEnabled}>
+      <ScrollView scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false}>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
           <View key={mainCategory} style={globalStyles.section}>
             <Animated.Text

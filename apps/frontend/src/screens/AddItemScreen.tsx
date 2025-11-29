@@ -515,7 +515,10 @@ export default function AddItemScreen({
           backgroundColor: theme.colors.background,
         }}
       />
-      <ScrollView style={styles.screen} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.screen}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{paddingBottom: 400}}>
         <View style={globalStyles.modalSection3}>
           <AppleTouchFeedback
             onPress={() => setShowAdvanced(v => !v)}
@@ -798,6 +801,809 @@ export default function AddItemScreen({
     </SafeAreaView>
   );
 }
+
+//////////////////
+
+// // apps/frontend/screens/AddItemScreen.tsx
+// import React, {useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   TextInput,
+//   StyleSheet,
+//   ScrollView,
+//   Alert,
+//   Image,
+//   TouchableOpacity,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import ImagePickerGrid from '../components/ImagePickerGrid/ImagePickerGrid';
+// import {uploadImageToGCS} from '../api/uploadImageToGCS';
+// import {postWardrobeItem} from '../api/postWardrobeItem';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {useAuth0} from 'react-native-auth0';
+// import {useUUID} from '../context/UUIDContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {analyzeImage, autoCreateWithAI} from '../api/analyzeImage';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {tokens} from '@tokens/tokens';
+// import {ActivityIndicator} from 'react-native';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// // --- input normalizers (unchanged) ---
+// const normalizePatternScale = (
+//   raw: string,
+// ): 'subtle' | 'medium' | 'bold' | undefined => {
+//   if (!raw) return undefined;
+//   const s = raw.trim().toLowerCase();
+//   if (/^-?\d+(\.\d+)?$/.test(s)) {
+//     const n = Number(s);
+//     return n <= 0 ? 'subtle' : n === 1 ? 'medium' : 'bold';
+//   }
+//   if (['subtle', 'small', 'micro'].includes(s)) return 'subtle';
+//   if (['medium', 'mid'].includes(s)) return 'medium';
+//   if (['bold', 'large', 'big'].includes(s)) return 'bold';
+//   return undefined;
+// };
+
+// const normalizeSeasonality = (raw: string) => {
+//   if (!raw) return undefined;
+//   const s = raw.trim().toLowerCase();
+//   if (['ss', 'spring', 'summer', 'spring/summer', 's/s'].includes(s))
+//     return 'SS';
+//   if (['fw', 'fall', 'autumn', 'winter', 'fall/winter', 'f/w'].includes(s))
+//     return 'FW';
+//   if (
+//     [
+//       'all',
+//       'allseason',
+//       'all-season',
+//       'all season',
+//       'year-round',
+//       'year round',
+//       'all_season',
+//     ].includes(s)
+//   )
+//     return 'ALL_SEASON';
+//   return raw;
+// };
+
+// const normalizeLayering = (raw: string) => {
+//   if (!raw) return undefined;
+//   const s = raw.trim().toLowerCase();
+//   if (['base', 'baselayer'].includes(s)) return 'BASE';
+//   if (['mid', 'midlayer'].includes(s)) return 'MID';
+//   if (['shell', 'outer', 'outerwear', 'jacket'].includes(s)) return 'SHELL';
+//   if (['accent', 'accessory', 'acc'].includes(s)) return 'ACCENT';
+//   return raw;
+// };
+
+// // --- lightweight enrichers (unchanged) ---
+// const inferColorFamily = (
+//   c?: string,
+// ):
+//   | 'Black'
+//   | 'White'
+//   | 'Blue'
+//   | 'Red'
+//   | 'Green'
+//   | 'Yellow'
+//   | 'Brown'
+//   | 'Gray'
+//   | 'Navy'
+//   | 'Beige'
+//   | 'Purple'
+//   | 'Orange'
+//   | undefined => {
+//   if (!c) return undefined;
+//   const s = c.trim().toLowerCase();
+//   if (/(navy)/.test(s)) return 'Navy';
+//   if (/(purple|violet|lavender|lilac)/.test(s)) return 'Purple';
+//   if (/(blue|teal|turquoise)/.test(s)) return 'Blue';
+//   if (/(red|maroon|burgundy)/.test(s)) return 'Red';
+//   if (/(green|olive|mint)/.test(s)) return 'Green';
+//   if (/(yellow|gold|mustard)/.test(s)) return 'Yellow';
+//   if (/(orange|coral|peach)/.test(s)) return 'Orange';
+//   if (/(brown|tan|chocolate|camel)/.test(s)) return 'Brown';
+//   if (/(beige|khaki|stone|sand)/.test(s)) return 'Beige';
+//   if (/(gray|grey|charcoal)/.test(s)) return 'Gray';
+//   if (/(black|jet|ink)/.test(s)) return 'Black';
+//   if (/(white|ivory|cream)/.test(s)) return 'White';
+//   return undefined;
+// };
+
+// const inferOccasionTags = (
+//   tags: string[],
+// ): ('Work' | 'DateNight' | 'Travel' | 'Gym')[] => {
+//   const up = tags.map(t => t.trim()).filter(Boolean);
+//   const out: ('Work' | 'DateNight' | 'Travel' | 'Gym')[] = [];
+//   for (const t of up) {
+//     const k = t.replace(/\s+/g, '').toLowerCase();
+//     if (k === 'work') out.push('Work');
+//     if (k === 'datenight' || k === 'date') out.push('DateNight');
+//     if (k === 'travel' || k === 'trip') out.push('Travel');
+//     if (k === 'gym' || k === 'training') out.push('Gym');
+//   }
+//   return out.length ? out : ['Work', 'DateNight'];
+// };
+
+// const inferDressCode = (
+//   category?: string,
+//   subcategory?: string,
+//   tags: string[] = [],
+// ):
+//   | 'UltraCasual'
+//   | 'Casual'
+//   | 'SmartCasual'
+//   | 'BusinessCasual'
+//   | 'Business'
+//   | 'BlackTie' => {
+//   const all = [category, subcategory, ...tags].join(' ').toLowerCase();
+//   if (/tux|black ?tie/.test(all)) return 'BlackTie';
+//   if (/suit|blazer|oxford|dress shirt|derby|loafer|heel/.test(all))
+//     return 'Business';
+//   if (/chino|button[- ]?down|sport coat|polo|skirt|chelsea/.test(all))
+//     return 'BusinessCasual';
+//   if (/jean|tee|sneaker|hoodie|cardigan|crew/.test(all)) return 'Casual';
+//   return 'SmartCasual';
+// };
+
+// const inferAnchorRole = (tags: string[]): 'Hero' | 'Neutral' | 'Connector' => {
+//   const s = tags.map(t => t.toLowerCase());
+//   if (s.includes('pick') || s.includes('hero')) return 'Hero';
+//   if (s.includes('connector')) return 'Connector';
+//   return 'Neutral';
+// };
+
+// // Fallback name if user didn’t type one (only used in fallback path)
+// const autoNameFrom = (uriOrFilename: string) => {
+//   const base = uriOrFilename.split('/').pop() || uriOrFilename;
+//   const noExt = base.replace(/\.[^.]+$/, '');
+//   return noExt || 'Untitled';
+// };
+
+// // small concurrency helper
+// async function mapWithConcurrency<T, R>(
+//   items: T[],
+//   limit: number,
+//   worker: (item: T, index: number) => Promise<R>,
+// ): Promise<R[]> {
+//   const out: R[] = new Array(items.length);
+//   let i = 0;
+//   const runners = new Array(Math.min(limit, items.length))
+//     .fill(null)
+//     .map(async () => {
+//       while (i < items.length) {
+//         const idx = i++;
+//         out[idx] = await worker(items[idx], idx);
+//       }
+//     });
+//   await Promise.all(runners);
+//   return out;
+// }
+
+// export default function AddItemScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const {user} = useAuth0();
+//   const userId = useUUID();
+
+//   const insets = useSafeAreaInsets();
+
+//   if (!userId) {
+//     console.error('❌ UUID not available yet');
+//     return (
+//       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+//         <Text>Loading...</Text>
+//       </View>
+//     );
+//   }
+
+//   const hSelect = () =>
+//     ReactNativeHapticFeedback.trigger('selection', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+
+//   const hSuccess = () =>
+//     ReactNativeHapticFeedback.trigger('notificationSuccess', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+
+//   const hWarn = () =>
+//     ReactNativeHapticFeedback.trigger('notificationWarning', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+
+//   // single + multi
+//   const [imageUri, setImageUri] = useState<string | null>(null);
+//   const [imageUris, setImageUris] = useState<string[]>([]);
+
+//   // optional fields (applied to all in batch if provided)
+//   const [name, setName] = useState('');
+//   const [category, setCategory] = useState('');
+//   const [color, setColor] = useState('');
+//   const [tags, setTags] = useState('');
+//   const [subcategory, setSubcategory] = useState('');
+//   const [material, setMaterial] = useState('');
+//   const [fit, setFit] = useState('');
+//   const [size, setSize] = useState('');
+//   const [brand, setBrand] = useState('');
+//   const [pattern, setPattern] = useState('');
+//   const [patternScale, setPatternScale] = useState('');
+//   const [seasonality, setSeasonality] = useState('');
+//   const [layering, setLayering] = useState('');
+
+//   const [saving, setSaving] = useState(false);
+//   const [progress, setProgress] = useState<{done: number; total: number}>({
+//     done: 0,
+//     total: 0,
+//   });
+
+//   // hidden-by-default advanced fields toggle
+//   const [showAdvanced, setShowAdvanced] = useState(false);
+
+//   const styles = StyleSheet.create({
+//     screen: {flex: 1, backgroundColor: theme.colors.background},
+//     input: {
+//       borderWidth: 1,
+//       borderColor: theme.colors.inputBorder,
+//       borderRadius: 10,
+//       padding: 12,
+//       fontSize: 16,
+//       color: theme.colors.foreground,
+//       marginBottom: 12,
+//       backgroundColor: theme.colors.input2,
+//     },
+//     imagePreview: {
+//       width: '100%',
+//       height: 320,
+//       borderRadius: 16,
+//       marginBottom: 8,
+//       backgroundColor: '#eee',
+//     },
+//     label: {...globalStyles.title},
+//     secondaryBtn: {
+//       ...globalStyles.buttonPrimary,
+//       backgroundColor: 'rgb(153,153,153)',
+//     },
+//     helperText: {
+//       color: theme.colors.foreground,
+//       fontSize: 13,
+//       fontWeight: '600',
+//       marginTop: 16,
+//       marginBottom: 16,
+//       paddingHorizontal: 12,
+//     },
+//     selectedThumbWrap: {
+//       width: 100,
+//       height: 100,
+//       borderRadius: 10,
+//       overflow: 'hidden',
+//       backgroundColor: '#eee',
+//       margin: 6,
+//       marginRight: '4.3%',
+//     },
+//     selectedThumb: {
+//       width: '100%',
+//       height: '100%',
+//       resizeMode: 'cover',
+//     },
+//     selectedGrid: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       justifyContent: 'flex-start',
+//       paddingHorizontal: 16,
+//       marginBottom: 16,
+//       backgroundColor: theme.colors.frostedGlass,
+//       borderRadius: 30,
+//       paddingVertical: 22,
+//     },
+//     advancedIconBtn: {
+//       alignSelf: 'flex-end',
+//       width: 28,
+//       height: 28,
+//       borderRadius: 14,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       marginBottom: 6,
+//     },
+//     advancedIconText: {
+//       fontSize: 18,
+//       color: theme.colors.muted,
+//       includeFontPadding: false,
+//       textAlignVertical: 'center',
+//     },
+//   });
+
+//   const handleSave = async () => {
+//     const selected = imageUris.length ? imageUris : imageUri ? [imageUri] : [];
+//     if (!selected.length) {
+//       Alert.alert('Missing Images', 'Please select at least one image.');
+//       return;
+//     }
+
+//     setSaving(true);
+//     setProgress({done: 0, total: selected.length});
+
+//     const cleanedTags = tags
+//       .split(',')
+//       .map(t => t.trim())
+//       .filter(Boolean);
+//     const occasion_tags = inferOccasionTags(cleanedTags);
+//     const dress_code = inferDressCode(category, subcategory, cleanedTags);
+//     const anchor_role = inferAnchorRole(cleanedTags);
+//     const color_family = inferColorFamily(color);
+//     const mainCategory = (category?.trim() || 'Uncategorized') as string;
+
+//     try {
+//       // 1) Upload all to GCS
+//       const uploaded = await mapWithConcurrency(selected, 3, async uri => {
+//         const filename = uri.split('/').pop() ?? 'upload.jpg';
+//         const up = await uploadImageToGCS({localUri: uri, filename, userId});
+//         return {uri, filename, ...up};
+//       });
+
+//       // 2) For each uploaded image:
+//       let ok = 0,
+//         failed = 0,
+//         aiUsed = 0,
+//         fallbackUsed = 0;
+
+//       await mapWithConcurrency(uploaded, 3, async u => {
+//         const userProvidedName = name?.trim() || undefined;
+
+//         try {
+//           await autoCreateWithAI({
+//             user_id: userId,
+//             image_url: u.publicUrl,
+//             gsutil_uri: u.gsutilUri,
+//             name: userProvidedName,
+//             object_key: u.objectKey,
+//           });
+//           aiUsed++;
+//           ok++;
+//         } catch (e) {
+//           try {
+//             const fallbackName = userProvidedName || autoNameFrom(u.filename);
+//             const payload: any = {
+//               userId: userId,
+//               image_url: u.publicUrl,
+//               objectKey: u.objectKey,
+//               gsutilUri: u.gsutilUri,
+//               name: fallbackName,
+//               category: mainCategory,
+//               main_category: mainCategory,
+//               subcategory,
+//               color,
+//               material,
+//               fit,
+//               size,
+//               brand,
+//               pattern,
+//               pattern_scale: normalizePatternScale(patternScale),
+//               seasonality: normalizeSeasonality(seasonality),
+//               layering: normalizeLayering(layering),
+//               tags: cleanedTags,
+//               dress_code,
+//               occasion_tags,
+//               anchor_role,
+//               color_family,
+//             };
+
+//             await postWardrobeItem(payload);
+//             fallbackUsed++;
+//             ok++;
+//           } catch (e2) {
+//             failed++;
+//             console.error('[AddItem] AI+fallback failed for', u.filename, e2);
+//           }
+//         }
+
+//         setProgress(p => ({...p, done: p.done + 1}));
+//       });
+
+//       if (failed === 0) {
+//         hSuccess();
+//         navigate('Closet');
+//       } else {
+//         hWarn();
+//         Alert.alert(
+//           'Upload finished',
+//           `Saved ${ok}/${selected.length} items.\nAI: ${aiUsed} • Fallback: ${fallbackUsed} • Failed: ${failed}`,
+//         );
+//       }
+//     } catch (err: any) {
+//       console.error('[AddItem] Batch save error:', err?.message || err);
+//       Alert.alert(
+//         'Upload Failed',
+//         err?.message || 'There was a problem uploading your items.',
+//       );
+//     } finally {
+//       setSaving(false);
+//       setProgress({done: 0, total: 0});
+//     }
+//   };
+
+//   const applyDraftToState = (draft: any) => {
+//     if (!draft) return;
+//     setName(prev => prev || draft.ai_title || '');
+//     setCategory(prev => prev || draft.main_category || '');
+//     setSubcategory(prev => prev || draft.subcategory || '');
+//     setColor(prev => prev || draft.color || '');
+//     setMaterial(prev => prev || draft.material || '');
+//     setFit(prev => prev || draft.fit || '');
+//     setSize(prev => prev || draft.size || draft.size_label || '');
+//     setBrand(prev => prev || draft.brand || '');
+//     setPattern(prev => prev || draft.pattern || '');
+//     setPatternScale(prev => prev || (draft.pattern_scale || '').toString());
+//     setSeasonality(prev => prev || draft.seasonality || '');
+//     setLayering(prev => prev || draft.layering || '');
+//     if (!tags && Array.isArray(draft.tags)) setTags(draft.tags.join(', '));
+//   };
+
+//   const handleAutoFillAI = async () => {
+//     if (!imageUri) {
+//       Alert.alert('Missing Image', 'Pick an image first.');
+//       return;
+//     }
+//     try {
+//       const filename = imageUri.split('/').pop() ?? 'upload.jpg';
+//       const {publicUrl, objectKey, gsutilUri} = await uploadImageToGCS({
+//         localUri: imageUri,
+//         filename,
+//         userId,
+//       });
+//       setImageUri(publicUrl);
+//       const {draft} = await analyzeImage({
+//         user_id: userId,
+//         gsutil_uri: gsutilUri,
+//       });
+//       applyDraftToState(draft);
+//       Alert.alert('Auto-fill complete', 'Review and tap Save Item when ready.');
+//     } catch (e: any) {
+//       console.error('[AI] auto-fill error', e?.message || e);
+//       Alert.alert('Auto-fill failed', e?.message || 'See console for details.');
+//     }
+//   };
+
+//   const handleOneTapSaveAI = async () => {
+//     if (!imageUri) {
+//       Alert.alert('Missing Image', 'Pick an image first.');
+//       return;
+//     }
+//     try {
+//       const filename = imageUri.split('/').pop() ?? 'upload.jpg';
+//       const {publicUrl, objectKey, gsutilUri} = await uploadImageToGCS({
+//         localUri: imageUri,
+//         filename,
+//         userId,
+//       });
+
+//       await autoCreateWithAI({
+//         user_id: userId,
+//         image_url: publicUrl,
+//         gsutil_uri: gsutilUri,
+//         name: name?.trim() || undefined,
+//         object_key: objectKey,
+//       });
+
+//       navigate('Closet');
+//     } catch (e: any) {
+//       console.error('[AI] one-tap error', e?.message || e);
+//       Alert.alert('One-tap failed', e?.message || 'See console for details.');
+//     }
+//   };
+
+//   const handleCancel = () => navigate('Closet');
+
+//   // UI — grid should always render single or multiple
+//   const selectedGrid = imageUris.length
+//     ? imageUris
+//     : imageUri
+//     ? [imageUri]
+//     : [];
+
+//   return (
+//     <SafeAreaView
+//       edges={['left', 'right']}
+//       style={{flex: 1, backgroundColor: theme.colors.background}}>
+//       {/* 🔹 Spacer to match your old navbar height */}
+//       <View
+//         style={{
+//           height: insets.top + 60, // ⬅️ same pattern as your other screens
+//           backgroundColor: theme.colors.background,
+//         }}
+//       />
+//       <ScrollView style={styles.screen} keyboardShouldPersistTaps="handled">
+//         <View style={globalStyles.modalSection3}>
+//           <AppleTouchFeedback
+//             onPress={() => setShowAdvanced(v => !v)}
+//             hapticStyle="impactLight"
+//             style={styles.advancedIconBtn}
+//             disabled={false}
+//             accessibilityLabel={
+//               showAdvanced ? 'Hide optional fields' : 'Show optional fields'
+//             }>
+//             <Text style={styles.advancedIconText}>
+//               {showAdvanced ? '✕' : '⚙︎'}
+//             </Text>
+//           </AppleTouchFeedback>
+
+//           <View
+//             style={[
+//               globalStyles.cardStyles3,
+//               {backgroundColor: theme.colors.surface, borderRadius: 25},
+//             ]}>
+//             <View style={globalStyles.section3}>
+//               <Text
+//                 style={[
+//                   globalStyles.sectionTitle,
+//                   {marginBottom: 16, textAlign: 'center'},
+//                 ]}>
+//                 Select Image(s)
+//               </Text>
+//               <ImagePickerGrid
+//                 onSelectImage={uri => {
+//                   hSelect();
+//                   setImageUri(uri);
+//                   setImageUris([uri]);
+//                 }}
+//                 onSelectImages={uris => {
+//                   hSelect();
+//                   setImageUris(uris);
+//                   setImageUri(uris[0] ?? null);
+//                 }}
+//               />
+//             </View>
+
+//             {/* ✅ Always show grid if any selection (single or multiple) */}
+//             {/* {selectedGrid.length > 0 && (
+//             <View style={styles.selectedGrid}>
+//               {selectedGrid.map((uri, idx) => (
+//                 <AppleTouchFeedback
+//                   key={uri + idx}
+//                   style={styles.selectedThumbWrap}
+//                   hapticStyle="impactLight"
+//                   onPress={() => setImageUri(uri)}>
+//                   <Image source={{uri}} style={styles.selectedThumb} />
+//                 </AppleTouchFeedback>
+//               ))}
+//             </View>
+//           )} */}
+
+//             {selectedGrid.length > 0 && (
+//               <View
+//                 style={{width: '100%', alignItems: 'center', marginBottom: 16}}>
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     flexWrap: 'wrap',
+//                     justifyContent: 'center',
+//                     alignSelf: 'center',
+//                     maxWidth: 340, // ✅ keeps it balanced even on iPhone SE / Mini
+//                     paddingVertical: 10,
+//                     backgroundColor: theme.colors.frostedGlass,
+//                     borderRadius: 24,
+//                   }}>
+//                   {selectedGrid.map((uri, idx) => (
+//                     <AppleTouchFeedback
+//                       key={uri + idx}
+//                       style={{
+//                         width: 100,
+//                         height: 100,
+//                         borderRadius: 10,
+//                         overflow: 'hidden',
+//                         backgroundColor: '#eee',
+//                         margin: 6,
+//                       }}
+//                       hapticStyle="impactLight"
+//                       onPress={() => setImageUri(uri)}>
+//                       <Image
+//                         source={{uri}}
+//                         style={{
+//                           width: '100%',
+//                           height: '100%',
+//                           resizeMode: 'cover',
+//                         }}
+//                       />
+//                     </AppleTouchFeedback>
+//                   ))}
+//                 </View>
+//               </View>
+//             )}
+
+//             <View style={globalStyles.section}>
+//               {showAdvanced && (
+//                 <>
+//                   <Text style={styles.label}>
+//                     Name (optional, applied to all)
+//                   </Text>
+//                   <TextInput
+//                     value={name}
+//                     onChangeText={setName}
+//                     style={styles.input}
+//                     placeholder="e.g. White Button-down"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>
+//                     Category (optional, applied to all)
+//                   </Text>
+//                   <TextInput
+//                     value={category}
+//                     onChangeText={setCategory}
+//                     style={styles.input}
+//                     placeholder="e.g. Shirt, Pants"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>
+//                     Color (optional, applied to all)
+//                   </Text>
+//                   <TextInput
+//                     value={color}
+//                     onChangeText={setColor}
+//                     style={styles.input}
+//                     placeholder="e.g. Navy, White"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>
+//                     Tags (optional, applied to all)
+//                   </Text>
+//                   <TextInput
+//                     value={tags}
+//                     onChangeText={setTags}
+//                     style={styles.input}
+//                     placeholder="Comma separated: casual, winter, linen"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Subcategory (optional)</Text>
+//                   <TextInput
+//                     value={subcategory}
+//                     onChangeText={setSubcategory}
+//                     style={styles.input}
+//                     placeholder="e.g. Dress Shirt, Chinos"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Material (optional)</Text>
+//                   <TextInput
+//                     value={material}
+//                     onChangeText={setMaterial}
+//                     style={styles.input}
+//                     placeholder="e.g. Cotton, Wool, Linen"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Fit (optional)</Text>
+//                   <TextInput
+//                     value={fit}
+//                     onChangeText={setFit}
+//                     style={styles.input}
+//                     placeholder="e.g. Slim, Regular"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Size (optional)</Text>
+//                   <TextInput
+//                     value={size}
+//                     onChangeText={setSize}
+//                     style={styles.input}
+//                     placeholder="e.g. M, L, 32x32"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Brand (optional)</Text>
+//                   <TextInput
+//                     value={brand}
+//                     onChangeText={setBrand}
+//                     style={styles.input}
+//                     placeholder="e.g. Ferragamo"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Pattern (optional)</Text>
+//                   <TextInput
+//                     value={pattern}
+//                     onChangeText={setPattern}
+//                     style={styles.input}
+//                     placeholder="e.g. Striped, Plaid"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Pattern Scale (optional)</Text>
+//                   <TextInput
+//                     value={patternScale}
+//                     onChangeText={setPatternScale}
+//                     style={styles.input}
+//                     placeholder="e.g. subtle / medium / bold or 0 / 1 / 2"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Seasonality (optional)</Text>
+//                   <TextInput
+//                     value={seasonality}
+//                     onChangeText={setSeasonality}
+//                     style={styles.input}
+//                     placeholder="e.g. SS, FW, ALL_SEASON"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                   <Text style={styles.label}>Layering (optional)</Text>
+//                   <TextInput
+//                     value={layering}
+//                     onChangeText={setLayering}
+//                     style={styles.input}
+//                     placeholder="e.g. BASE, MID, SHELL, ACCENT"
+//                     placeholderTextColor={theme.colors.muted}
+//                   />
+//                 </>
+//               )}
+
+//               <View
+//                 style={{
+//                   flexDirection: 'row',
+//                   justifyContent: 'center', // ✅ centers the pair in container
+//                   alignItems: 'center',
+//                   width: '100%',
+//                   marginTop: 8,
+//                 }}>
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     justifyContent: 'space-between',
+//                     width: 320, // ✅ total width of both buttons + spacing
+//                   }}>
+//                   <AppleTouchFeedback
+//                     onPress={handleSave}
+//                     hapticStyle="impactMedium"
+//                     style={[
+//                       globalStyles.buttonPrimary,
+//                       {
+//                         width: 155, // ✅ keep consistent button width
+//                         justifyContent: 'center',
+//                         borderRadius: 25,
+//                         opacity: saving ? 0.7 : 1,
+//                       },
+//                     ]}
+//                     disabled={saving || (!imageUri && !imageUris.length)}>
+//                     <Text
+//                       style={[globalStyles.buttonPrimaryText, {fontSize: 15}]}>
+//                       {saving
+//                         ? `Uploading ${progress.done}/${progress.total}…`
+//                         : 'Upload All'}
+//                     </Text>
+//                   </AppleTouchFeedback>
+
+//                   <AppleTouchFeedback
+//                     onPress={handleCancel}
+//                     hapticStyle="impactLight"
+//                     style={[
+//                       styles.secondaryBtn,
+//                       {
+//                         width: 155,
+//                         justifyContent: 'center',
+//                         borderRadius: 25,
+//                       },
+//                     ]}
+//                     disabled={saving}>
+//                     <Text
+//                       style={[globalStyles.buttonPrimaryText, {fontSize: 15}]}>
+//                       Cancel
+//                     </Text>
+//                   </AppleTouchFeedback>
+//                 </View>
+//               </View>
+//             </View>
+//           </View>
+//         </View>
+//         {saving && (
+//           <View style={styles.spinnerOverlay}>
+//             <ActivityIndicator size="large" color={theme.colors.primary} />
+//             <Text style={styles.spinnerText}>Saving your changes…</Text>
+//           </View>
+//         )}
+//       </ScrollView>
+//     </SafeAreaView>
+//   );
+// }
 
 //////////////////
 
