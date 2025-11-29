@@ -1,8 +1,15 @@
 // MeasurementLiveScreen.tsx
 // StylIQ
 
-import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
@@ -29,6 +36,9 @@ export function MeasurementLiveScreen({navigate, goBack}: Props) {
   // ✅ Responsive helpers
   const {isXS, isSM} = useResponsive();
   const {spacing, typography} = useResponsiveTheme();
+
+  // Help modal state
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const handleBack = () => {
     if (goBack) {
@@ -98,10 +108,7 @@ export function MeasurementLiveScreen({navigate, goBack}: Props) {
           right: 16,
         }}>
         <AppleTouchFeedback
-          onPress={() => {
-            // Add help action here
-            console.log('Help pressed');
-          }}
+          onPress={() => setShowHelpModal(true)}
           hapticStyle="impactLight">
           <View
             style={{
@@ -141,6 +148,192 @@ export function MeasurementLiveScreen({navigate, goBack}: Props) {
       <TouchableOpacity onPress={() => navigate('MeasurementJointsAutoScreen')}>
         {/* <Text>Go Auto</Text> */}
       </TouchableOpacity>
+
+      {/* Help Modal */}
+      <Modal
+        visible={showHelpModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowHelpModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20,
+          }}>
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 400,
+              width: '100%',
+              maxHeight: '80%',
+            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+              }}>
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: '700',
+                  color: theme.colors.foreground,
+                }}>
+                How to Use
+              </Text>
+              <TouchableOpacity onPress={() => setShowHelpModal(false)}>
+                <MaterialIcons
+                  name="close"
+                  size={28}
+                  color={theme.colors.foreground}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{gap: 20}}>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Step 1: Position Yourself
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: theme.colors.foreground2,
+                      lineHeight: 22,
+                    }}>
+                    Stand 5-6 feet away from your device. Make sure you're in a
+                    well-lit area with good lighting.
+                  </Text>
+                </View>
+
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Step 2: Follow the Ghost Overlay
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: theme.colors.foreground2,
+                      lineHeight: 22,
+                    }}>
+                    Align your body with the ghost mannequin overlay on screen.
+                    Make sure your full body is visible from head to toe.
+                  </Text>
+                </View>
+
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Step 3: Stay Still
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: theme.colors.foreground2,
+                      lineHeight: 22,
+                    }}>
+                    Once positioned, stay as still as possible. The app will
+                    track your body's key points for accurate measurements.
+                  </Text>
+                </View>
+
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Step 4: Begin Measuring
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: theme.colors.foreground2,
+                      lineHeight: 22,
+                    }}>
+                    When ready, tap "Ready To Measure" to begin the measurement
+                    process. Follow the on-screen instructions for front and
+                    side poses.
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    backgroundColor: theme.colors.surface2,
+                    padding: 16,
+                    borderRadius: 12,
+                    marginTop: 8,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Tips for Best Results:
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.foreground2,
+                      lineHeight: 20,
+                    }}>
+                    • Wear form-fitting clothes{'\n'}• Remove bulky items like
+                    jackets{'\n'}• Stand on a plain background{'\n'}• Make sure
+                    your arms are slightly away from your body
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              onPress={() => setShowHelpModal(false)}
+              style={{
+                backgroundColor: theme.colors.button1,
+                paddingVertical: 14,
+                borderRadius: 12,
+                marginTop: 20,
+                alignItems: 'center',
+              }}>
+              <Text
+                style={{
+                  color: theme.colors.buttonText1,
+                  fontSize: 16,
+                  fontWeight: '600',
+                }}>
+                Got It
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
