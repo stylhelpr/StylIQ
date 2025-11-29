@@ -29,6 +29,7 @@ import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {fontScale, moderateScale} from '../../utils/scale';
 import LinearGradient from 'react-native-linear-gradient';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import SaveLookModal from '../SavedLookModal/SavedLookModal';
 
 const {height} = Dimensions.get('window');
 const {width} = Dimensions.get('window');
@@ -43,7 +44,6 @@ export default function AllSavedLooksModal({
   openShopModal,
   shopResults, // ✅ add this
   openPersonalizedShopModal, // ← add this line
-  onAddImage,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -59,7 +59,6 @@ export default function AllSavedLooksModal({
     purchases?: any[];
     styleNote?: string;
   }) => void;
-  onAddImage?: () => void;
 }) {
   const uuidContext = useUUID();
 
@@ -78,6 +77,7 @@ export default function AllSavedLooksModal({
   const [successState, setSuccessState] = useState<'recreate' | 'shop' | null>(
     null,
   );
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
 
   const insets = useSafeAreaInsets();
 
@@ -510,17 +510,15 @@ export default function AllSavedLooksModal({
               </AppleTouchFeedback>
 
               {/* Add Image Button */}
-              {onAddImage && (
-                <AppleTouchFeedback
-                  style={[
-                    globalStyles.buttonPrimary4,
-                    {width: 100, marginLeft: tokens.spacing.sm},
-                  ]}
-                  hapticStyle="impactLight"
-                  onPress={onAddImage}>
-                  <Text style={globalStyles.buttonPrimaryText4}>Add Image</Text>
-                </AppleTouchFeedback>
-              )}
+              <AppleTouchFeedback
+                style={[
+                  globalStyles.buttonPrimary4,
+                  {width: 100, marginLeft: tokens.spacing.sm},
+                ]}
+                hapticStyle="impactLight"
+                onPress={() => setSaveModalVisible(true)}>
+                <Text style={globalStyles.buttonPrimaryText4}>Add Image</Text>
+              </AppleTouchFeedback>
             </View>
           </View>
 
@@ -776,6 +774,12 @@ export default function AllSavedLooksModal({
           )}
         </Animated.View>
       </SafeAreaView>
+
+      {/* SaveLookModal rendered on top of AllSavedLooksModal */}
+      <SaveLookModal
+        visible={saveModalVisible}
+        onClose={() => setSaveModalVisible(false)}
+      />
     </Modal>
   );
 }

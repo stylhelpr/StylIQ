@@ -1632,10 +1632,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             openShopModal={handleShopModal}
             shopResults={shopResults}
             openPersonalizedShopModal={openPersonalizedShopModal} // ✅ add this
-            onAddImage={() => {
-              setImageModalVisible(false);
-              setSaveModalVisible(true);
-            }}
           />
           <ShopModal
             visible={shopVisible}
