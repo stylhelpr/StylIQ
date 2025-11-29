@@ -1063,7 +1063,6 @@ export function AnimatedInputBar({
           style={{
             flex: 1,
             minHeight: 42,
-            maxHeight: 120,
             paddingTop: 10,
             paddingBottom: 10,
             lineHeight: 22,
