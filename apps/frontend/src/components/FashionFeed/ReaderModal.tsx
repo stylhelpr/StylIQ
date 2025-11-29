@@ -146,21 +146,17 @@ export default function ReaderModal({
       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
       onPanResponderGrant: () => console.log('👆 Gesture start detected'),
       onPanResponderMove: (_e, g) => {
-        console.log('📦 Moving DY:', g.dy);
-        if (g.dy > 0) translateY.setValue(g.dy);
+        // TEMP: Disabled visual swipe animation to prevent flicker
+        // console.log('📦 Moving DY:', g.dy);
+        // if (g.dy > 0) translateY.setValue(g.dy);
       },
       onPanResponderRelease: (_e, g) => {
         console.log('📉 Released dy:', g.dy, 'vy:', g.vy);
         if (g.dy > 100 || g.vy > 0.3) {
           console.log('✅ Swipe down threshold passed — closing');
           handleClose();
-        } else {
-          console.log('↩️ Snap back');
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
         }
+        // No snap back needed since we're not animating during swipe
       },
     }),
   ).current;
