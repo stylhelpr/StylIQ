@@ -338,6 +338,7 @@ export default function OutfitPlannerScreen() {
           {/* Details */}
           {modalVisible && (
             <ScrollView
+              showsVerticalScrollIndicator={false}
               style={{
                 flex: 1,
                 paddingHorizontal: moderateScale(tokens.spacing.md1),
