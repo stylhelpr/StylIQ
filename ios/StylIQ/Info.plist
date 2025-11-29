@@ -60,6 +60,14 @@
         </array>
     </dict>
 </dict>
+<key>NSHandsTrackingUsageDescription</key>
+<string>We use hand tracking for gesture control and AR interactions.</string>
+
+<key>ARKit</key>
+<dict>
+  <key>ARKitUsageDescription</key>
+  <string>StylIQ uses ARKit to detect your hand gestures for app navigation.</string>
+</dict>
     <key>NSSupportsLiveActivities</key>
     <true/>
 	<key>CFBundleVersion</key>
@@ -79,10 +87,18 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSMotionUsageDescription</key>
+<string>Motion data is required for AR body tracking.</string>
+
+<key>NSVideoSubscriberAccountUsageDescription</key>
+<string>Camera access is required for AR body tracking.</string>
+
 	<key>NSCalendarsUsageDescription</key>
 	<string>StylIQ needs access to your calendar to sync events, reminders, and outfit plans.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need access to your camera so you can take photos in the app.</string>
+	<key>NSCameraCaptureUsageDescription</key>
+	<string>We capture photos for body measurement analysis.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>We need access to your contacts to help share style recommendations.</string>
 	<key>NSFaceIDUsageDescription</key>

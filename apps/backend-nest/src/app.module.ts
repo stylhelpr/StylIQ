@@ -29,6 +29,7 @@ import { ProfileUploadModule } from './profile-upload/profile-upload.module';
 import { FeedsModule } from './feeds/feeds.module';
 import { ProductsModule } from './product-services/product-services.module';
 import { LookMemoryModule } from './look-memory/look-memory.module';
+import { StyleProfilesModule } from './style-profiles/style-profiles.module';
 import { RecreatedLookModule } from './recreated-look/recreated-look.module';
 import { ShareModule } from './share/share.module';
 import { CalendarModule } from './calendar/calendar.module';
@@ -69,6 +70,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     ShareModule,
     FeedsModule,
     CalendarModule,
+    StyleProfilesModule,
   ],
   controllers: [AppController],
   providers: [

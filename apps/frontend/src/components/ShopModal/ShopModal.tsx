@@ -116,12 +116,14 @@ export default function ShopModal({
                     }}
                     activeOpacity={0.85}
                     style={{
-                      width: '49.0%',
-                      marginBottom: tokens.spacing.xsm,
+                      // width: '49.0%',
+                      // marginBottom: tokens.spacing.xsm,
+                      width: '49.5%',
+                      marginBottom: tokens.spacing.nano,
                       backgroundColor: theme.colors.surface,
-                      borderWidth: tokens.borderWidth.lg,
-                      borderColor: theme.colors.surfaceBorder,
-                      borderRadius: tokens.borderRadius.md,
+                      // borderWidth: tokens.borderWidth.lg,
+                      // borderColor: theme.colors.surfaceBorder,
+                      // borderRadius: tokens.borderRadius.md,
                       overflow: 'hidden',
                     }}>
                     {/* 🖼️ Product Image (consistent aspect ratio) */}
@@ -148,9 +150,10 @@ export default function ShopModal({
                           position: 'absolute',
                           bottom: 10,
                           alignSelf: 'center',
-                          backgroundColor: 'rgba(255,255,255,0.75)',
-                          borderRadius: tokens.borderRadius.lg,
-                          borderWidth: tokens.borderWidth.hairline,
+                          backgroundColor: 'rgba(255, 255, 255, 0.63)',
+                          // borderRadius: tokens.borderRadius.lg,
+                          borderRadius: tokens.borderRadius.sm,
+                          borderWidth: tokens.borderWidth.md,
                           borderColor: 'black',
                           paddingVertical: 8,
                           paddingHorizontal: 14,
@@ -175,6 +178,7 @@ export default function ShopModal({
                           color: theme.colors.foreground,
                           fontWeight: '400',
                           fontSize: 13,
+                          textTransform: 'uppercase',
                         }}>
                         {item.name}
                       </Text>
@@ -185,6 +189,7 @@ export default function ShopModal({
                             color: theme.colors.foreground,
                             opacity: 0.7,
                             fontSize: 11,
+                            fontWeight: '500',
                             marginTop: 6,
                           }}>
                           {item.brand}
@@ -194,8 +199,8 @@ export default function ShopModal({
                         <Text
                           style={{
                             color: theme.colors.primary,
-                            fontWeight: '700',
-                            fontSize: 13,
+                            fontWeight: '500',
+                            fontSize: 12,
                             marginTop: 6,
                           }}>
                           {item.price}

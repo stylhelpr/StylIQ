@@ -17,8 +17,6 @@ typealias RCTResponseSenderBlock = ([Any]?) -> Void
 @objc(StylIQDynamicIslandModule)
 class StylIQDynamicIslandModule: NSObject {
 
-  private var currentActivity: Activity<StylIQActivityAttributes>? = nil
-
   // -------------------------------------------------------------
   // CAN START? (callback-style)
   // -------------------------------------------------------------
@@ -71,7 +69,6 @@ class StylIQDynamicIslandModule: NSObject {
           dismissalPolicy: .immediate
         )
       }
-      self.currentActivity = nil
       resolve("Ended ALL Live Activities")
     }
   }
@@ -105,11 +102,11 @@ class StylIQDynamicIslandModule: NSObject {
       let state = StylIQActivityAttributes.ContentState(message: message)
 
       do {
-        let newActivity = try Activity.request(
+        _ = try Activity.request(
           attributes: attrs,
           contentState: state
         )
-        self.currentActivity = newActivity
+
         resolve("Started Live Activity (fresh)")
         print("📡 Active activities:", Activity<StylIQActivityAttributes>.activities)
 
@@ -122,7 +119,7 @@ class StylIQDynamicIslandModule: NSObject {
   }
 
   // -------------------------------------------------------------
-  // UPDATE ACTIVITY
+  // UPDATE ACTIVITY (fixed version — always fetches live activity)
   // -------------------------------------------------------------
   @objc(updateActivity:withResolver:withRejecter:)
   func updateActivity(_ message: String,
@@ -134,7 +131,8 @@ class StylIQDynamicIslandModule: NSObject {
       return
     }
 
-    guard let activity = currentActivity else {
+    // ⭐ Always pull the active activity from the system (never rely on stored reference)
+    guard let activity = Activity<StylIQActivityAttributes>.activities.first else {
       resolve("No active Live Activity")
       return
     }
@@ -148,7 +146,7 @@ class StylIQDynamicIslandModule: NSObject {
   }
 
   // -------------------------------------------------------------
-  // END CURRENT ACTIVITY
+  // END CURRENT ACTIVITY (fixed version)
   // -------------------------------------------------------------
   @objc(endActivity:withRejecter:)
   func endActivity(_ resolve: @escaping RCTPromiseResolveBlock,
@@ -159,7 +157,8 @@ class StylIQDynamicIslandModule: NSObject {
       return
     }
 
-    guard let activity = currentActivity else {
+    // ⭐ End the real active activity
+    guard let activity = Activity<StylIQActivityAttributes>.activities.first else {
       resolve("No active Live Activity")
       return
     }
@@ -168,7 +167,6 @@ class StylIQDynamicIslandModule: NSObject {
 
     Task {
       await activity.end(using: finalState, dismissalPolicy: .default)
-      self.currentActivity = nil
       resolve("Ended Live Activity")
     }
   }

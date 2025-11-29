@@ -62,8 +62,10 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
     title: {
       color: theme.colors.buttonText1,
       fontSize: fontScale(tokens.fontSize['2xl']),
+      // fontSize: fontScale(tokens.fontSize.xxl),
       lineHeight: 30,
-      fontWeight: tokens.fontWeight.extraBold,
+      // fontWeight: tokens.fontWeight.extraBold,
+      fontWeight: tokens.fontWeight.bold,
     },
   });
 
@@ -127,6 +129,138 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
     </Animatable.View>
   );
 }
+
+////////////////
+
+// import React, {useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   ImageBackground,
+//   StyleSheet,
+//   Animated,
+//   Dimensions,
+//   Pressable,
+// } from 'react-native';
+// import * as Animatable from 'react-native-animatable';
+// import {useGlobalStyles} from '../../styles/useGlobalStyles';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {useResponsive} from '../../hooks/useResponsive';
+// import {fontScale, moderateScale} from '../../utils/scale';
+
+// type Props = {
+//   title: string;
+//   source: string;
+//   image?: string;
+//   onPress: () => void;
+// };
+
+// const {width} = Dimensions.get('window');
+
+// export default function FeaturedHero({title, source, image, onPress}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const scale = useRef(new Animated.Value(1)).current;
+
+//   const styles = StyleSheet.create({
+//     wrap: {
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       paddingTop: moderateScale(tokens.spacing.xs),
+//       paddingBottom: moderateScale(tokens.spacing.nano),
+//     },
+//     bgImg: {
+//       width: '100%',
+//       height: '100%',
+//       transform: [{scale: 1}],
+//     },
+//     overlay: {
+//       ...StyleSheet.absoluteFill,
+//       backgroundColor: 'rgba(0,0,0,0.25)',
+//     },
+//     textBox: {
+//       position: 'absolute',
+//       left: 18,
+//       right: 18,
+//       bottom: 20,
+//     },
+//     source: {
+//       color: theme.colors.buttonText1,
+//       fontSize: fontScale(tokens.fontSize.base),
+//       fontWeight: tokens.fontWeight.bold,
+//       marginBottom: 8,
+//       letterSpacing: 0.5,
+//       opacity: 0.9,
+//     },
+//     title: {
+//       color: theme.colors.buttonText1,
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       lineHeight: 30,
+//       fontWeight: tokens.fontWeight.extraBold,
+//     },
+//   });
+
+//   const handlePressIn = () => {
+//     Animated.spring(scale, {
+//       toValue: 0.97,
+//       useNativeDriver: true,
+//       speed: 25,
+//       bounciness: 8,
+//     }).start();
+//   };
+
+//   const handlePressOut = () => {
+//     Animated.spring(scale, {
+//       toValue: 1,
+//       useNativeDriver: true,
+//       speed: 25,
+//       bounciness: 10,
+//     }).start();
+//   };
+
+//   return (
+//     <Animatable.View
+//       animation="fadeInUp"
+//       duration={800}
+//       delay={200}
+//       useNativeDriver>
+//       <Animated.View style={{transform: [{scale}]}}>
+//         <Pressable
+//           onPressIn={handlePressIn}
+//           onPressOut={handlePressOut}
+//           onPress={onPress}>
+//           <View style={styles.wrap}>
+//             <Animated.View style={globalStyles.bgContainer1}>
+//               <ImageBackground
+//                 source={image ? {uri: image} : undefined}
+//                 style={styles.bgImg}
+//                 imageStyle={styles.bgImg}
+//                 resizeMode="cover">
+//                 <Animatable.View
+//                   animation="fadeIn"
+//                   duration={800}
+//                   delay={300}
+//                   style={styles.overlay}
+//                 />
+//                 <Animatable.View
+//                   animation="fadeInUp"
+//                   delay={500}
+//                   duration={800}
+//                   style={styles.textBox}>
+//                   <Text style={styles.source}>{source}</Text>
+//                   <Text numberOfLines={3} style={styles.title}>
+//                     {title}
+//                   </Text>
+//                 </Animatable.View>
+//               </ImageBackground>
+//             </Animated.View>
+//           </View>
+//         </Pressable>
+//       </Animated.View>
+//     </Animatable.View>
+//   );
+// }
 
 /////////////////
 

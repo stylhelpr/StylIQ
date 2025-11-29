@@ -132,7 +132,8 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
               transform: [{translateY: translate}],
             }}>
             <Pressable
-              style={[globalStyles.outfitCard3, {marginLeft: 2}]}
+              // style={[globalStyles.outfitCard3, {marginLeft: 2}]}
+              style={[globalStyles.outfitCard3]}
               onPress={() => {
                 if (a.link) {
                   if (onOpenArticle) onOpenArticle(a.link, a.title);

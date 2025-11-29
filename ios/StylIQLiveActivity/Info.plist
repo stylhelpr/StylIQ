@@ -1,31 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-
-    <!-- REQUIRED: Lets the extension run Live Activities -->
-    <key>NSSupportsLiveActivities</key>
-    <true/>
-
-    <!-- REQUIRED: MUST MATCH YOUR ATTRIBUTES STRUCT EXACTLY -->
-    <key>NSWidgetLiveActivityAttributes</key>
-    <string>StylIQActivityAttributes</string>
-
-    <!-- REQUIRED: Message shown in Settings when granting permissions -->
-    <key>NSWidgetLiveActivityUsageDescription</key>
-    <string>Your personalized outfit updates will appear in the Dynamic Island.</string>
-
-    <!-- REQUIRED: TIES THE EXTENSION TO YOUR MAIN APP -->
-    <key>WKAppBundleIdentifier</key>
-    <string>com.stylhelpr.stylhelpr</string>
-
-    <!-- REQUIRED FOR ALL WIDGET EXTENSIONS -->
-    <key>NSExtension</key>
-    <dict>
-        <key>NSExtensionPointIdentifier</key>
-        <string>com.apple.widgetkit-extension</string>
-    </dict>
-
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSWidgetLiveActivityAttributes</key>
+	<string>StylIQActivityAttributes</string>
+	<key>NSWidgetLiveActivityUsageDescription</key>
+	<string>Your personalized outfit updates will appear in the Dynamic Island.</string>
+	<key>RCTNewArchEnabled</key>
+	<true/>
+	<key>WKAppBundleIdentifier</key>
+	<string>com.stylhelpr.stylhelpr</string>
 </dict>
 </plist>

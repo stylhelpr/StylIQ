@@ -51,6 +51,14 @@ import BarcodeScannerScreen from '../screens/BarcodeScannerScreen';
 import VideoFeedScreen from '../screens/VideoFeed';
 import BlurredCardScreen from '../screens/BlurredCardScreen';
 import ImageCarouselScreen from '../screens/ImageCarousel';
+import MeasurementAutoScreen from '../screens/MeasurementAutoScreen';
+import {MeasurementLiveScreen} from '../screens/MeasurementLiveScreen';
+import MeasurementFrontScreen from '../screens/MeasurementFrontScreen';
+import MeasurementJointsAutoScreen from '../screens/MeasurementJointAutoScreen';
+import MeasurementSideScreen from '../screens/MeasurementSideScreen';
+import MeasurementResultsManualScreen from '../screens/MesurementResultsScreen';
+import MeshPreviewScreen from '../screens/MeshPreviewScreen';
+import EmotionTestScreen from '../screens/EmotionTestScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -64,6 +72,7 @@ import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
 
 import ReactNativeBiometrics from 'react-native-biometrics';
 import {useAuth0} from 'react-native-auth0';
+import MeasurementResultsScreen from 'screens/MesurementResultsScreen';
 
 type Screen =
   | 'Login'
@@ -118,7 +127,15 @@ type Screen =
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'
   | 'VideoFeedScreen'
-  | 'OnboardingScreen';
+  | 'OnboardingScreen'
+  | 'MeasurementLiveScreen'
+  | 'MeasurementFrontScreen'
+  | 'MeasurementJointsAutoScreen'
+  | 'MeasurementSideScreen'
+  | 'MeasurementResultsManualScreen'
+  | 'MeshPreviewScreen'
+  | 'EmotionTestScreen'
+  | 'MeasurementAutoScreen';
 
 const RootNavigator = ({
   registerNavigate,
@@ -383,6 +400,10 @@ const RootNavigator = ({
         return <PreferencesScreen navigate={navigate} />;
       case 'Measurements':
         return <MeasurementsScreen navigate={navigate} />;
+
+      case 'MeasurementJointsAutoScreen':
+        return <MeasurementJointsAutoScreen navigate={navigate} />;
+
       case 'TryOnOverlay':
         return <TryOnOverlayWrapperScreen screenParams={screenParams} />;
       case 'BudgetAndBrands':
@@ -395,16 +416,28 @@ const RootNavigator = ({
         return <ContactScreen navigate={navigate} />;
       case 'ImageCarouselScreen':
         return <ImageCarouselScreen navigate={navigate} />;
+      case 'MeasurementFrontScreen':
+        return <MeasurementFrontScreen navigate={navigate} />;
       case 'FeedbackScreen':
         return <FeedbackScreen navigate={navigate} />;
+      case 'MeshPreviewScreen':
+        return <MeshPreviewScreen navigate={navigate} />;
+      case 'EmotionTestScreen':
+        return <EmotionTestScreen navigate={navigate} />;
       case 'OnboardingScreen':
         return <OnboardingScreen navigate={navigate} />;
+      case 'MeasurementResultsManualScreen':
+        return <MeasurementResultsManualScreen navigate={navigate} />;
       case 'AboutScreen':
         return <AboutScreen navigate={navigate} />;
       case 'WebPageScreen':
         return (
           <WebPageScreen route={{params: screenParams}} navigate={navigate} />
         );
+      case 'MeasurementAutoScreen':
+        return <MeasurementAutoScreen navigate={navigate} />;
+      case 'MeasurementSideScreen':
+        return <MeasurementSideScreen navigate={navigate} />;
       case 'Lifestyle':
         return <LifestyleScreen navigate={navigate} />;
       case 'ShoppingHabits':
@@ -415,6 +448,8 @@ const RootNavigator = ({
         return <ActivitiesScreen navigate={navigate} />;
       case 'BodyTypes':
         return <BodyTypesScreen navigate={navigate} />;
+      case 'MeasurementLiveScreen':
+        return <MeasurementLiveScreen navigate={navigate} />;
       case 'Climate':
         return <ClimateScreen navigate={navigate} />;
       case 'ColorPreferences':

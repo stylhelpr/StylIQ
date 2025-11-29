@@ -200,13 +200,13 @@ export const skins = {
       frostedGlass: 'rgba(174, 174, 174, 0.4)',
       skeletonLoader: '#EFEFEF',
 
-      button1: 'rgb(76, 152, 252)',
+      button1: 'rgba(0, 0, 0, 1)',
 
       // button1: 'rgba(32, 128, 255, 1)',
 
       button2: 'rgba(3, 3, 3, 1)',
-      button3: 'rgb(76, 152, 252)',
-      button4: 'rgba(75, 92, 249, 1)',
+      button3: 'rgba(0, 0, 0, 1)',
+      button4: 'rgba(0, 0, 0, 1)',
       buttonText1: 'rgba(255, 255, 255, 1)',
       pillTextColor1: 'rgba(0, 0, 0, 1)',
 
@@ -219,6 +219,65 @@ export const skins = {
     ...tokens,
     borderRadius: 8,
   },
+
+  // fashion1: {
+  //   colors: {
+  //     primary: '#222222',
+  //     secondary: '#000000',
+  //     background: '#ffffffff',
+  //     foreground: '#000000',
+  //     foreground2: 'rgba(104, 101, 101, 1)',
+  //     foreground3: 'rgb(97, 153, 232)',
+  //     cardBackground: '#F0F0F0',
+  //     header: '#ffffffff',
+  //     muted: '#919191ff',
+  //     input: '#E0E0E0',
+  //     input2: '#EAEAEA',
+  //     inputText1: 'rgb(80, 84, 90)',
+
+  //     // surface: '#EBEAEF',
+
+  //     surface: '#F0F0F2', //Actual ios Apple light grey
+  //     // surface: '#F0F0F0', //Fasion Nova
+
+  //     // surface: '#f3f3f3ff',
+  //     surface2: '#f4f4f4ff',
+  //     surface3: '#d7d7d7ff',
+
+  //     surfaceBorder: 'rgba(163, 163, 163, 0.32)',
+  //     // surfaceBorder: 'rgba(163, 163, 163, 0)',
+
+  //     pillDark1: 'rgba(40, 40, 40, 1)',
+  //     pillDark2: 'rgba(221, 221, 221, 1)',
+  //     inputBorder: '#C0C0C0',
+  //     accents: '#999',
+  //     separator: '#CCCCCC',
+  //     separator2: '#CCCCCC',
+  //     error: '#ff002fff',
+  //     success: '#00A676',
+  //     warning: '#FF9900',
+  //     frostedGlass: 'rgba(174, 174, 174, 0.4)',
+  //     skeletonLoader: '#EFEFEF',
+
+  //     button1: 'rgb(76, 152, 252)',
+
+  //     // button1: 'rgba(32, 128, 255, 1)',
+
+  //     button2: 'rgba(3, 3, 3, 1)',
+  //     button3: 'rgb(76, 152, 252)',
+  //     button4: 'rgba(75, 92, 249, 1)',
+  //     buttonText1: 'rgba(255, 255, 255, 1)',
+  //     pillTextColor1: 'rgba(0, 0, 0, 1)',
+
+  //     // ✅ Gradient keys
+  //     buttonGradientStart: '#000000ff',
+  //     buttonGradientEnd: '#000000ff',
+  //     surfaceGradientStart: '#000000ff',
+  //     surfaceGradientEnd: '#000000ff',
+  //   },
+  //   ...tokens,
+  //   borderRadius: 8,
+  // },
 
   retro: {
     colors: {

@@ -766,6 +766,28 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 </View>
               </View>
 
+              {/* 🟣 Get Measured Button */}
+              <AppleTouchFeedback
+                onPress={() => navigate('EmotionTestScreen')}
+                hapticStyle="impactMedium"
+                style={{
+                  backgroundColor: theme.colors.button1,
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  marginBottom: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                <Text
+                  style={{
+                    color: theme.colors.buttonText1,
+                    fontSize: 17,
+                    fontWeight: '600',
+                  }}>
+                  Check Mood
+                </Text>
+              </AppleTouchFeedback>
+
               <Text
                 style={[
                   globalStyles.title,
