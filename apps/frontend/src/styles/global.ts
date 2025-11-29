@@ -1063,7 +1063,8 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       borderRadius: tokens.borderRadius.lg,
-      borderWidth: tokens.borderWidth.md,
+
+      borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
     },
 
