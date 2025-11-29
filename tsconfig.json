@@ -7,7 +7,9 @@
       "@tokens/*": ["styles/tokens/*"],
       "@tokens": ["styles/tokens/index"],
       "@types/*": ["types/*"],
-      "@types": ["types/index"]
+      "@types": ["types/index"],
+      "@store/*": ["../../store/*"],
+      "@store": ["../../store"]
     },
     "typeRoots": ["./node_modules/@types", "./types"],
 

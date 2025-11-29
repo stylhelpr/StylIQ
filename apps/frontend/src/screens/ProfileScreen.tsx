@@ -24,6 +24,7 @@ import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+import ConnectedAccountsSection from '../components/ConnectedAccounts/ConnectedAccountsSection';
 
 const screenWidth = Dimensions.get('window').width;
 const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
@@ -553,10 +554,13 @@ export default function ProfileScreen({navigate}: Props) {
         </ScrollView>
       </Animatable.View>
 
+      {/* Connected Accounts */}
+      <ConnectedAccountsSection />
+
       {/* Saved Looks */}
       <Animatable.View
         animation="fadeInUpBig"
-        delay={2200}
+        delay={2400}
         style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Your Saved Looks</Text>
         {savedLooks.length === 0 ? (

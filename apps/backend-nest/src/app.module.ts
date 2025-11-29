@@ -33,6 +33,7 @@ import { StyleProfilesModule } from './style-profiles/style-profiles.module';
 import { RecreatedLookModule } from './recreated-look/recreated-look.module';
 import { ShareModule } from './share/share.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { ConnectedAccountsModule } from './connected-accounts/connected-accounts.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -71,6 +72,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     FeedsModule,
     CalendarModule,
     StyleProfilesModule,
+    ConnectedAccountsModule,
   ],
   controllers: [AppController],
   providers: [
