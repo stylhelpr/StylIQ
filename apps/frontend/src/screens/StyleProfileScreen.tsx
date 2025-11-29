@@ -321,8 +321,8 @@ export default function StyleProfileScreen({navigate}: Props) {
         </Animated.View>
       )}
 
-      <ScrollView>
-        <View style={[globalStyles.section, {paddingBottom: 300}]}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={[globalStyles.section, {paddingBottom: 350}]}>
           <View style={globalStyles.centeredSection}>
             <View style={styles.settingsGroup}>
               {profileSections.map(([screen, emoji, label], idx, arr) => {

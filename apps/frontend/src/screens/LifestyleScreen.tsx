@@ -130,7 +130,9 @@ export default function LifestyleScreen({navigate}: Props) {
         Lifestyle
       </Text>
 
-      <ScrollView contentContainerStyle={globalStyles.section4}>
+      <ScrollView
+        contentContainerStyle={[globalStyles.section4, {paddingBottom: 400}]}
+        showsVerticalScrollIndicator={false}>
         <View style={globalStyles.backContainer}>
           {/* 🔔 back = light tap */}
           <AppleTouchFeedback

@@ -358,7 +358,8 @@ export default function PersonalInformationScreen({navigate}: any) {
         globalStyles.container,
         {backgroundColor: colors.background, opacity: fadeAnim},
       ]}
-      contentContainerStyle={styles.content}>
+      contentContainerStyle={[styles.content, {paddingBottom: 300}]}
+      showsVerticalScrollIndicator={false}>
       <View
         style={{
           height: insets.top + 56, // ⬅️ 56 is about the old navbar height

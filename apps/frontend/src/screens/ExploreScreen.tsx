@@ -387,7 +387,10 @@ export default function ExploreScreen() {
             });
             onChange(v);
           }}
-          trackColor={{false: 'rgba(255,255,255,0.18)', true: theme.colors.button1}}
+          trackColor={{
+            false: 'rgba(255,255,255,0.18)',
+            true: theme.colors.button1,
+          }}
           thumbColor="#fff"
         />
       </View>
@@ -1145,7 +1148,9 @@ export default function ExploreScreen() {
               <Text style={styles.done}>Done</Text>
             </AppleTouchFeedback>
           </View>
-          <ScrollView contentContainerStyle={{paddingBottom: 32}}>
+          <ScrollView
+            contentContainerStyle={{paddingBottom: 100}}
+            showsVerticalScrollIndicator={false}>
             {orderedSources.map((src: FeedSource, idx: number) => {
               const notifyOn = followingSet.has(src.name.toLowerCase());
               return (

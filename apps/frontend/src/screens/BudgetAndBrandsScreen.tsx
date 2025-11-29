@@ -210,7 +210,9 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
 
       <ScrollView
         style={globalStyles.section4}
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{paddingBottom: 400}}
+        showsVerticalScrollIndicator={false}>
         <View style={globalStyles.backContainer}>
           <AppleTouchFeedback
             hapticStyle="impactLight"
