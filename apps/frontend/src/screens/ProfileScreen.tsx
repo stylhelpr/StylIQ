@@ -554,9 +554,6 @@ export default function ProfileScreen({navigate}: Props) {
         </ScrollView>
       </Animatable.View>
 
-      {/* Connected Accounts */}
-      <ConnectedAccountsSection />
-
       {/* Saved Looks */}
       <Animatable.View
         animation="fadeInUpBig"
@@ -614,6 +611,9 @@ export default function ProfileScreen({navigate}: Props) {
           </ScrollView>
         )}
       </Animatable.View>
+
+      {/* Connected Accounts */}
+      {/* <ConnectedAccountsSection /> */}
 
       {/* Footer */}
       <Animatable.View
