@@ -11,14 +11,18 @@ import {
   ScrollView,
   ActivityIndicator,
   NativeModules,
+  Alert,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useMeasurementStore} from '../../../../store/measurementStore';
+import {useUUID} from '../context/UUIDContext';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {normalizeJoints} from '../utils/normalizeJoints';
 import {buildMeshVertices} from '../utils/buildMeshVerticles';
 import BodyCard from '../components/features/BodyCard';
 import {applyHeightCalibration} from '../utils/applyHeightCalibration';
+import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 const {ARKitModule} = NativeModules;
 
@@ -44,6 +48,7 @@ export default function MeasurementResultsManualScreen({
   navigate,
 }: MeasurementResultsScreenProps) {
   const {theme} = useAppTheme();
+  const userId = useUUID();
   const {
     frontJoints: front,
     sideJoints: side,
@@ -52,6 +57,7 @@ export default function MeasurementResultsManualScreen({
   } = useMeasurementStore();
   const [results, setResults] = useState<MeasurementResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const styles = StyleSheet.create({
     container: {flex: 1, alignItems: 'center', paddingTop: 100},
@@ -368,14 +374,70 @@ export default function MeasurementResultsManualScreen({
   // 💾 Save
   // ---------------------------------------------------
   const handleSave = async () => {
+    if (!userId || !computedResults) {
+      Alert.alert('Error', 'Missing user ID or measurements');
+      return;
+    }
+
     ReactNativeHapticFeedback.trigger('impactMedium');
+    setSaving(true);
+
     try {
-      console.log('✅ Saved measurements:', results);
+      // Convert results array to object with labels as keys for all_measurements
+      const allMeasurementsObj: Record<string, number> = {};
+      results.forEach(r => {
+        allMeasurementsObj[r.label] = r.value;
+      });
+
+      const payload = {
+        chest: computedResults.chest,
+        waist: computedResults.waist,
+        hip: computedResults.hips,
+        shoulder_width: computedResults.shoulders,
+        inseam: computedResults.inseam,
+        all_measurements: allMeasurementsObj,
+      };
+
+      console.log('📤 Saving measurements:', payload);
+
+      // Get JWT token for authentication
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/style-profiles/${userId}/measurements`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Measurements saved successfully:', data);
+
       ReactNativeHapticFeedback.trigger('notificationSuccess');
       navigate('HomeScreen');
     } catch (err) {
-      console.error('❌ Error saving measurements', err);
+      console.error('❌ Error saving measurements:', err);
+      Alert.alert(
+        'Error',
+        `Failed to save measurements: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
+      );
       ReactNativeHapticFeedback.trigger('notificationError');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -463,11 +525,19 @@ export default function MeasurementResultsManualScreen({
       </ScrollView>
 
       <TouchableOpacity
-        style={[styles.saveButton, {backgroundColor: theme.colors.button1}]}
-        onPress={handleSave}>
-        <Text style={[styles.saveText, {color: theme.colors.foreground}]}>
-          Save to Profile
-        </Text>
+        style={[
+          styles.saveButton,
+          {backgroundColor: theme.colors.button1, opacity: saving ? 0.6 : 1},
+        ]}
+        onPress={handleSave}
+        disabled={saving}>
+        {saving ? (
+          <ActivityIndicator size="small" color={theme.colors.foreground} />
+        ) : (
+          <Text style={[styles.saveText, {color: theme.colors.foreground}]}>
+            Save to Profile
+          </Text>
+        )}
       </TouchableOpacity>
     </View>
   );

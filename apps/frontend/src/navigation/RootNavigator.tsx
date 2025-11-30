@@ -14,7 +14,6 @@ import SearchScreen from '../screens/SearchScreen';
 import LoginScreen from '../screens/LoginScreen';
 import StyleProfileScreen from '../screens/StyleProfileScreen';
 import PreferencesScreen from '../screens/PreferencesScreen';
-import MeasurementsScreen from '../screens/MeasurementsScreen';
 import BudgetAndBrandsScreen from '../screens/BudgetAndBrandsScreen';
 import AppearanceScreen from '../screens/AppearanceScreen';
 import LifestyleScreen from '../screens/LifestyleScreen';
@@ -59,6 +58,7 @@ import MeasurementSideScreen from '../screens/MeasurementSideScreen';
 import MeasurementResultsManualScreen from '../screens/MesurementResultsScreen';
 import MeshPreviewScreen from '../screens/MeshPreviewScreen';
 import EmotionTestScreen from '../screens/EmotionTestScreen';
+import SavedMeasurementsScreen from '../screens/SavedMeasurementsScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -84,7 +84,7 @@ type Screen =
   | 'Settings'
   | 'Preferences'
   | 'BarcodeScannerScreen'
-  | 'Measurements'
+  | 'SavedMeasurements'
   | 'BudgetAndBrands'
   | 'Appearance'
   | 'Lifestyle'
@@ -398,8 +398,8 @@ const RootNavigator = ({
         return <NotificationsScreen navigate={navigate} />;
       case 'Preferences':
         return <PreferencesScreen navigate={navigate} />;
-      case 'Measurements':
-        return <MeasurementsScreen navigate={navigate} />;
+      case 'SavedMeasurements':
+        return <SavedMeasurementsScreen navigate={navigate} />;
 
       case 'MeasurementJointsAutoScreen':
         return <MeasurementJointsAutoScreen navigate={navigate} />;
