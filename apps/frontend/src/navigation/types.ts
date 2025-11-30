@@ -52,6 +52,7 @@ export type Screen =
   | 'EnhancedWebBrowser'
   | 'ShoppingBookmarks'
   | 'ShoppingCollections'
+  | 'ShoppingInsights'
   | 'Planner'
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'

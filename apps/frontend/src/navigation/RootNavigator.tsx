@@ -50,6 +50,7 @@ import ShoppingDashboardScreen from '../screens/ShoppingDashboardScreen';
 import EnhancedWebBrowserScreen from '../screens/EnhancedWebBrowserScreen';
 import ShoppingBookmarksScreen from '../screens/ShoppingBookmarksScreen';
 import ShoppingCollectionsScreen from '../screens/ShoppingCollectionsScreen';
+import ShoppingInsightsScreen from '../screens/ShoppingInsightsScreen';
 import RecreatedLookScreen from '../screens/RecreatedLookScreen';
 import BarcodeScannerScreen from '../screens/BarcodeScannerScreen';
 import VideoFeedScreen from '../screens/VideoFeed';
@@ -463,6 +464,10 @@ const RootNavigator = ({
       case 'ShoppingCollections':
         return (
           <ShoppingCollectionsScreen route={{params: screenParams}} navigate={navigate} />
+        );
+      case 'ShoppingInsights':
+        return (
+          <ShoppingInsightsScreen navigate={navigate} />
         );
       case 'MeasurementAutoScreen':
         return <MeasurementAutoScreen navigate={navigate} />;

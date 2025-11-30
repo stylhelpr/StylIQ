@@ -290,16 +290,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Shop</Text>
             <View style={styles.headerIcons}>
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => navigate?.('EnhancedWebBrowser')}>
-                <MaterialIcons
-                  name="search"
-                  size={20}
-                  color={theme.colors.primary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.iconButton}
                 onPress={() => navigate?.('ShoppingBookmarks')}>
                 <MaterialIcons
@@ -307,7 +298,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   size={20}
                   color={theme.colors.primary}
                 />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 
@@ -325,7 +316,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
               delay={300}
               style={styles.statCard}>
               <Text style={styles.statNumber}>{collections.length}</Text>
-              <Text style={styles.statLabel}>Collections</Text>
+              <Text style={styles.statLabel}>Wishlists</Text>
             </Animatable.View>
             <Animatable.View
               animation="bounceIn"
@@ -336,7 +327,6 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </Animatable.View>
           </View>
         </Animatable.View>
-
         {/* Quick Actions */}
         <Animatable.View
           animation="fadeInUp"
@@ -345,28 +335,15 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
           <View style={styles.quickActionGrid}>
             <AppleTouchFeedback
               style={styles.quickActionButton}
-              onPress={() => navigate?.('WebBrowser')}
-              hapticStyle="impactLight">
-              <MaterialIcons
-                name="language"
-                size={28}
-                color={theme.colors.primary}
-                style={styles.quickActionIcon}
-              />
-              <Text style={styles.quickActionLabel}>Browse</Text>
-            </AppleTouchFeedback>
-
-            <AppleTouchFeedback
-              style={styles.quickActionButton}
               onPress={() => navigate?.('ShoppingBookmarks')}
               hapticStyle="impactLight">
               <MaterialIcons
-                name="favorite"
+                name="bookmark"
                 size={28}
                 color={theme.colors.primary}
                 style={styles.quickActionIcon}
               />
-              <Text style={styles.quickActionLabel}>Saved</Text>
+              <Text style={styles.quickActionLabel}>Bookmarks</Text>
             </AppleTouchFeedback>
 
             <AppleTouchFeedback
@@ -379,7 +356,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                 color={theme.colors.primary}
                 style={styles.quickActionIcon}
               />
-              <Text style={styles.quickActionLabel}>Lists</Text>
+              <Text style={styles.quickActionLabel}>Wishlists</Text>
             </AppleTouchFeedback>
 
             <AppleTouchFeedback
@@ -396,7 +373,6 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </AppleTouchFeedback>
           </View>
         </Animatable.View>
-
         {/* Trending Items */}
         <Animatable.View animation="fadeInLeft" delay={300}>
           <View style={styles.sectionContainer}>
@@ -454,7 +430,6 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </ScrollView>
           </View>
         </Animatable.View>
-
         {/* Top Collections */}
         {topCollections.length > 0 && (
           <Animatable.View animation="fadeInRight" delay={400}>
@@ -495,7 +470,6 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </View>
           </Animatable.View>
         )}
-
         {/* Recent Visits */}
         {recentVisits.length > 0 && (
           <Animatable.View animation="fadeInUp" delay={500}>
@@ -529,38 +503,34 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </View>
           </Animatable.View>
         )}
-
         {/* Empty State */}
-        {bookmarks.length === 0 &&
-          collections.length === 0 &&
-          recentVisits.length === 0 && (
-            <View style={styles.emptyState}>
-              {/* <MaterialIcons
+        collections.length === 0 && recentVisits.length === 0 && (
+        <View style={styles.emptyState}>
+          {/* <MaterialIcons
                 name="shopping-bag"
                 size={48}
                 color={theme.colors.foreground3}
                 style={styles.emptyIcon}
               /> */}
-              <Text style={styles.emptyText}>
-                Start exploring and saving your favorite items
-              </Text>
-              <AppleTouchFeedback
-                onPress={() => navigate?.('WebBrowser')}
-                hapticStyle="impactLight"
-                style={[
-                  globalStyles.buttonPrimary,
-                  {marginTop: 16, minWidth: 180},
-                ]}>
-                <Text
-                  style={{
-                    color: theme.colors.buttonText1,
-                    fontWeight: tokens.fontWeight.semiBold,
-                  }}>
-                  Start Shopping
-                </Text>
-              </AppleTouchFeedback>
-            </View>
-          )}
+          <Text style={styles.emptyText}>
+            Start exploring and saving your favorite items
+          </Text>
+          <AppleTouchFeedback
+            onPress={() => navigate?.('WebBrowser')}
+            hapticStyle="impactLight"
+            style={[
+              globalStyles.buttonPrimary,
+              {marginTop: 16, minWidth: 180},
+            ]}>
+            <Text
+              style={{
+                color: theme.colors.buttonText1,
+                fontWeight: tokens.fontWeight.semiBold,
+              }}>
+              Start Shopping
+            </Text>
+          </AppleTouchFeedback>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
