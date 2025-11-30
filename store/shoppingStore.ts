@@ -77,6 +77,10 @@ type ShoppingState = {
   // Preferences
   defaultShoppingSites: string[];
   updateDefaultSites: (sites: string[]) => void;
+
+  // Hydration
+  _hasHydrated: boolean;
+  setHasHydrated: (hasHydrated: boolean) => void;
 };
 
 export const useShoppingStore = create<ShoppingState>()(
@@ -248,17 +252,32 @@ export const useShoppingStore = create<ShoppingState>()(
       updateDefaultSites: (sites: string[]) => {
         set({defaultShoppingSites: sites});
       },
+
+      // Hydration
+      _hasHydrated: false,
+      setHasHydrated: (hasHydrated: boolean) => {
+        set({_hasHydrated: hasHydrated});
+      },
     }),
     {
       name: 'shopping-store',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
       partialize: state => ({
         bookmarks: state.bookmarks,
         history: state.history,
         collections: state.collections,
         recentSearches: state.recentSearches,
         defaultShoppingSites: state.defaultShoppingSites,
+        tabs: state.tabs,
+        currentTabId: state.currentTabId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          console.log('Shopping store rehydrated, tabs:', state.tabs?.length || 0);
+          state.setHasHydrated(true);
+        }
+      },
     },
   ),
 );

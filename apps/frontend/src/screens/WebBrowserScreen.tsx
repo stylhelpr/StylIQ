@@ -63,6 +63,7 @@ export default function WebBrowserScreen({route}: Props) {
     collections,
     addItemToCollection,
     history,
+    _hasHydrated,
   } = useShoppingStore();
 
   const currentTab = tabs.find(t => t.id === currentTabId);
@@ -72,12 +73,12 @@ export default function WebBrowserScreen({route}: Props) {
   const [showBookmarksModal, setShowBookmarksModal] = useState(false);
   const [activeBookmarksTab, setActiveBookmarksTab] = useState<'bookmarks' | 'history'>('bookmarks');
 
-  // Initialize with a tab if navigating with URL
+  // Initialize with a tab if navigating with URL (wait for hydration)
   useEffect(() => {
-    if (initialUrl && tabs.length === 0) {
+    if (_hasHydrated && initialUrl && tabs.length === 0) {
       addTab(initialUrl, 'New Tab');
     }
-  }, []);
+  }, [_hasHydrated, initialUrl, tabs.length]);
 
   // Update input when tab changes
   useEffect(() => {
