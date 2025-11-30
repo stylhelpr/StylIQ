@@ -302,6 +302,22 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </View>
           </View>
 
+          <AppleTouchFeedback
+            onPress={() => navigate?.('WebBrowser')}
+            hapticStyle="impactLight"
+            style={[
+              globalStyles.buttonPrimary,
+              {marginBottom: 20, minWidth: 180},
+            ]}>
+            <Text
+              style={{
+                color: theme.colors.buttonText1,
+                fontWeight: tokens.fontWeight.semiBold,
+              }}>
+              Start Shopping
+            </Text>
+          </AppleTouchFeedback>
+
           {/* Stats */}
           <View style={styles.statsRow}>
             <Animatable.View
@@ -515,21 +531,6 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
           <Text style={styles.emptyText}>
             Start exploring and saving your favorite items
           </Text>
-          <AppleTouchFeedback
-            onPress={() => navigate?.('WebBrowser')}
-            hapticStyle="impactLight"
-            style={[
-              globalStyles.buttonPrimary,
-              {marginTop: 16, minWidth: 180},
-            ]}>
-            <Text
-              style={{
-                color: theme.colors.buttonText1,
-                fontWeight: tokens.fontWeight.semiBold,
-              }}>
-              Start Shopping
-            </Text>
-          </AppleTouchFeedback>
         </View>
       </ScrollView>
     </SafeAreaView>

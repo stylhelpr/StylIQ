@@ -11,6 +11,7 @@ import {
   Dimensions,
   Animated,
   Modal,
+  Share,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -67,6 +68,7 @@ export default function WebBrowserScreen({route}: Props) {
   const bookmarked = currentTab ? isBookmarked(currentTab.url) : false;
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
+  const [showBookmarksModal, setShowBookmarksModal] = useState(false);
 
   // Initialize with a tab if navigating with URL
   useEffect(() => {
@@ -157,6 +159,37 @@ export default function WebBrowserScreen({route}: Props) {
     });
     setShowCollectionPicker(false);
     setShowSaveMenu(false);
+  };
+
+  const handleShare = async () => {
+    if (!currentTab || !currentTab.url) return;
+    triggerHaptic('impactLight');
+    try {
+      await Share.share({
+        url: currentTab.url,
+        title: currentTab.title || getDomain(currentTab.url),
+        message: `${currentTab.title || getDomain(currentTab.url)}\n${currentTab.url}`,
+      });
+      setShowSaveMenu(false);
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleOpenBookmarks = () => {
+    triggerHaptic('impactLight');
+    setShowSaveMenu(false);
+    setShowBookmarksModal(true);
+  };
+
+  const handleBookmarkNavigation = (url: string, title: string) => {
+    triggerHaptic('impactLight');
+    if (currentTab) {
+      updateTab(currentTab.id, url, title);
+    } else {
+      addTab(url, title);
+    }
+    setShowBookmarksModal(false);
   };
 
   const openTabsView = () => {
@@ -453,6 +486,81 @@ export default function WebBrowserScreen({route}: Props) {
       fontSize: 13,
       color: theme.colors.foreground3,
     },
+    // Bookmarks Modal Styles
+    bookmarksModalContainer: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+      marginTop: insets.top,
+    },
+    bookmarksModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.surfaceBorder,
+      backgroundColor: theme.colors.surface,
+    },
+    bookmarksModalTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+    },
+    bookmarksCloseButton: {
+      padding: 8,
+    },
+    bookmarksCloseText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+    bookmarksModalContent: {
+      flex: 1,
+    },
+    bookmarksEmptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 60,
+    },
+    bookmarksEmptyText: {
+      fontSize: 16,
+      color: theme.colors.foreground3,
+      marginTop: 16,
+    },
+    bookmarkModalItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.surfaceBorder,
+    },
+    bookmarkModalIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 8,
+      backgroundColor: theme.colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    bookmarkModalInfo: {
+      flex: 1,
+      marginRight: 8,
+    },
+    bookmarkModalTitle: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+      marginBottom: 4,
+    },
+    bookmarkModalUrl: {
+      fontSize: 13,
+      color: theme.colors.foreground3,
+    },
   });
 
   const showLanding = !currentTab || !currentTab.url;
@@ -730,8 +838,102 @@ export default function WebBrowserScreen({route}: Props) {
                 )}
               </View>
             )}
+
+            {/* Share Link */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={handleShare}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons
+                  name="share"
+                  size={22}
+                  color="#3b82f6"
+                />
+              </View>
+              <Text style={styles.saveMenuItemText}>Share Link</Text>
+              <MaterialIcons
+                name="ios-share"
+                size={20}
+                color={theme.colors.foreground3}
+              />
+            </TouchableOpacity>
+
+            {/* View Bookmarks */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={handleOpenBookmarks}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons
+                  name="bookmarks"
+                  size={22}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <Text style={styles.saveMenuItemText}>Bookmarks</Text>
+              <Text style={styles.collectionCount}>{bookmarks.length}</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Bookmarks Modal */}
+      <Modal
+        visible={showBookmarksModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowBookmarksModal(false)}>
+        <View style={styles.bookmarksModalContainer}>
+          <View style={styles.bookmarksModalHeader}>
+            <Text style={styles.bookmarksModalTitle}>Bookmarks</Text>
+            <TouchableOpacity
+              onPress={() => setShowBookmarksModal(false)}
+              style={styles.bookmarksCloseButton}>
+              <Text style={styles.bookmarksCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.bookmarksModalContent}>
+            {bookmarks.length === 0 ? (
+              <View style={styles.bookmarksEmptyState}>
+                <MaterialIcons
+                  name="bookmark-border"
+                  size={48}
+                  color={theme.colors.foreground3}
+                />
+                <Text style={styles.bookmarksEmptyText}>No bookmarks yet</Text>
+              </View>
+            ) : (
+              bookmarks.map(bookmark => (
+                <TouchableOpacity
+                  key={bookmark.id}
+                  style={styles.bookmarkModalItem}
+                  onPress={() =>
+                    handleBookmarkNavigation(bookmark.url, bookmark.title)
+                  }>
+                  <View style={styles.bookmarkModalIcon}>
+                    <MaterialIcons
+                      name="language"
+                      size={20}
+                      color={theme.colors.foreground3}
+                    />
+                  </View>
+                  <View style={styles.bookmarkModalInfo}>
+                    <Text style={styles.bookmarkModalTitle} numberOfLines={1}>
+                      {bookmark.title}
+                    </Text>
+                    <Text style={styles.bookmarkModalUrl} numberOfLines={1}>
+                      {bookmark.url}
+                    </Text>
+                  </View>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={theme.colors.foreground3}
+                  />
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
       </Modal>
     </View>
   );
