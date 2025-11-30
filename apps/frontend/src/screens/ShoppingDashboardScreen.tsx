@@ -20,37 +20,6 @@ import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedb
 
 const {width: screenWidth} = Dimensions.get('window');
 
-const TRENDING_ITEMS = [
-  {
-    id: '1',
-    title: 'Oversized Blazer',
-    brand: 'ASOS',
-    price: 89,
-    category: 'Outerwear',
-  },
-  {
-    id: '2',
-    title: 'Wide Leg Jeans',
-    brand: 'Zara',
-    price: 79,
-    category: 'Denim',
-  },
-  {
-    id: '3',
-    title: 'Vintage Tee',
-    brand: 'Shein',
-    price: 12,
-    category: 'Tops',
-  },
-  {
-    id: '4',
-    title: 'Leather Sneakers',
-    brand: 'Amazon',
-    price: 65,
-    category: 'Shoes',
-  },
-];
-
 type Props = {
   navigate?: (screen: any, params?: any) => void;
 };
@@ -70,6 +39,8 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
 
   const recentVisits = history.slice(0, 5);
   const topCollections = collections.slice(0, 3);
+  // Populate trending items from bookmarks (most recently saved)
+  const trendingItems = bookmarks.slice(0, 4);
 
   const styles = StyleSheet.create({
     container: {
@@ -390,62 +361,68 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
           </View>
         </Animatable.View>
         {/* Trending Items */}
-        <Animatable.View animation="fadeInLeft" delay={300}>
-          <View style={styles.sectionContainer}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}>
-              <Text style={styles.sectionTitle}>Trending Now</Text>
-              <TouchableOpacity>
-                <Text
-                  style={{
-                    color: theme.colors.primary,
-                    fontSize: 12,
-                    fontWeight: tokens.fontWeight.semiBold,
-                  }}>
-                  See All →
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {TRENDING_ITEMS.map((item, idx) => (
-                <Animatable.View
-                  key={item.id}
-                  animation="zoomIn"
-                  delay={400 + idx * 100}
-                  style={styles.trendingCard}>
-                  <LinearGradient
-                    colors={[theme.colors.primary, theme.colors.primary + '80']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 1}}
-                    style={styles.trendingImage}>
-                    <MaterialIcons
-                      name={
-                        item.category === 'Outerwear'
-                          ? 'checkroom'
-                          : 'shopping-bag'
-                      }
-                      size={40}
-                      color="#fff"
-                    />
-                  </LinearGradient>
-                  <Text style={styles.trendingTitle}>{item.title}</Text>
-                  <Text style={{fontSize: 12, color: theme.colors.foreground3}}>
-                    {item.category}
+        {trendingItems.length > 0 && (
+          <Animatable.View animation="fadeInLeft" delay={300}>
+            <View style={styles.sectionContainer}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 12,
+                }}>
+                <Text style={styles.sectionTitle}>Trending Now</Text>
+                <TouchableOpacity onPress={() => navigate?.('ShoppingBookmarks')}>
+                  <Text
+                    style={{
+                      color: theme.colors.primary,
+                      fontSize: 12,
+                      fontWeight: tokens.fontWeight.semiBold,
+                    }}>
+                    See All →
                   </Text>
-                  <View style={styles.trendingMeta}>
-                    <Text style={styles.brand}>{item.brand}</Text>
-                    <Text style={styles.price}>${item.price}</Text>
-                  </View>
-                </Animatable.View>
-              ))}
-            </ScrollView>
-          </View>
-        </Animatable.View>
+                </TouchableOpacity>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {trendingItems.map((item: any, idx: number) => (
+                  <Animatable.View
+                    key={item.id}
+                    animation="zoomIn"
+                    delay={400 + idx * 100}>
+                    <AppleTouchFeedback
+                      onPress={() => navigate?.('WebBrowser', {url: item.url})}
+                      hapticStyle="impactLight"
+                      style={styles.trendingCard}>
+                      <LinearGradient
+                        colors={[theme.colors.primary, theme.colors.primary + '80']}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 1}}
+                        style={styles.trendingImage}>
+                        <MaterialIcons
+                          name="shopping-bag"
+                          size={40}
+                          color="#fff"
+                        />
+                      </LinearGradient>
+                      <Text style={styles.trendingTitle} numberOfLines={2}>
+                        {item.title}
+                      </Text>
+                      <Text
+                        style={{fontSize: 12, color: theme.colors.foreground3}}
+                        numberOfLines={1}>
+                        {item.source}
+                      </Text>
+                      <View style={styles.trendingMeta}>
+                        <Text style={styles.brand}>{item.brand || item.source}</Text>
+                        {item.price && <Text style={styles.price}>${item.price}</Text>}
+                      </View>
+                    </AppleTouchFeedback>
+                  </Animatable.View>
+                ))}
+              </ScrollView>
+            </View>
+          </Animatable.View>
+        )}
         {/* Top Collections */}
         {topCollections.length > 0 && (
           <Animatable.View animation="fadeInRight" delay={400}>
