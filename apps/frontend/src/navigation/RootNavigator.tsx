@@ -45,6 +45,11 @@ import ContactScreen from '../screens/ContactScreen';
 import AboutScreen from '../screens/AboutScreen';
 import FeedbackScreen from '../screens/FeedBackScreen';
 import WebPageScreen from '../screens/WebPageScreen';
+import WebBrowserScreen from '../screens/WebBrowserScreen';
+import ShoppingDashboardScreen from '../screens/ShoppingDashboardScreen';
+import EnhancedWebBrowserScreen from '../screens/EnhancedWebBrowserScreen';
+import ShoppingBookmarksScreen from '../screens/ShoppingBookmarksScreen';
+import ShoppingCollectionsScreen from '../screens/ShoppingCollectionsScreen';
 import RecreatedLookScreen from '../screens/RecreatedLookScreen';
 import BarcodeScannerScreen from '../screens/BarcodeScannerScreen';
 import VideoFeedScreen from '../screens/VideoFeed';
@@ -123,6 +128,11 @@ type Screen =
   | 'AiStylistChatScreen'
   | 'RecreatedLook'
   | 'WebPageScreen'
+  | 'WebBrowser'
+  | 'ShoppingDashboard'
+  | 'EnhancedWebBrowser'
+  | 'ShoppingBookmarks'
+  | 'ShoppingCollections'
   | 'Planner'
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'
@@ -433,6 +443,26 @@ const RootNavigator = ({
       case 'WebPageScreen':
         return (
           <WebPageScreen route={{params: screenParams}} navigate={navigate} />
+        );
+      case 'WebBrowser':
+        return (
+          <WebBrowserScreen route={{params: screenParams}} navigate={navigate} />
+        );
+      case 'ShoppingDashboard':
+        return (
+          <ShoppingDashboardScreen navigate={navigate} />
+        );
+      case 'EnhancedWebBrowser':
+        return (
+          <EnhancedWebBrowserScreen route={{params: screenParams}} navigate={navigate} />
+        );
+      case 'ShoppingBookmarks':
+        return (
+          <ShoppingBookmarksScreen navigate={navigate} />
+        );
+      case 'ShoppingCollections':
+        return (
+          <ShoppingCollectionsScreen route={{params: screenParams}} navigate={navigate} />
         );
       case 'MeasurementAutoScreen':
         return <MeasurementAutoScreen navigate={navigate} />;

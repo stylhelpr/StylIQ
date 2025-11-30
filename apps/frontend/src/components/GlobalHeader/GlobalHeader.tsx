@@ -195,6 +195,10 @@ export default function GlobalHeader({
               action: () => navigate('Notifications'),
             },
             {
+              name: 'shopping-bag',
+              action: () => navigate('ShoppingDashboard'),
+            },
+            {
               name: 'smart-toy',
               action: () => navigate('AiStylistChatScreen'),
               tint: theme.colors.button1,

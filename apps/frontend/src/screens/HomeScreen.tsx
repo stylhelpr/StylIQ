@@ -1275,6 +1275,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             </Animatable.View>
           )}
 
+          {/* Shopping Button */}
           {/* --- Video Feed Button --- */}
           <Animatable.View
             animation="fadeInUp"
