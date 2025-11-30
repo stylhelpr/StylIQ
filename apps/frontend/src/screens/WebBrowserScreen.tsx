@@ -63,6 +63,7 @@ export default function WebBrowserScreen({route}: Props) {
     collections,
     addItemToCollection,
     history,
+    addToHistory,
     _hasHydrated,
   } = useShoppingStore();
 
@@ -800,6 +801,12 @@ export default function WebBrowserScreen({route}: Props) {
                 navState.title || currentTab.title,
               );
               setInputValue(navState.url);
+              // Track visit history
+              addToHistory(
+                navState.url,
+                navState.title || getDomain(navState.url),
+                getDomain(navState.url),
+              );
             }
           }}
           userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"

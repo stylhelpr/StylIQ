@@ -346,6 +346,37 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
         <View style={{width: 38}} />
       </View>
 
+      {/* New Collection Button */}
+      <View style={{paddingHorizontal: 16, paddingVertical: 12}}>
+        <AppleTouchFeedback
+          onPress={() => setShowNewCollection(true)}
+          hapticStyle="impactLight"
+          style={[
+            globalStyles.buttonPrimary,
+            {
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+            },
+          ]}>
+          <MaterialIcons
+            name="add"
+            size={20}
+            color="#fff"
+            style={{marginRight: 8}}
+          />
+          <Text
+            style={{
+              color: theme.colors.buttonText1,
+              fontWeight: tokens.fontWeight.semiBold,
+            }}>
+            New Collection
+          </Text>
+        </AppleTouchFeedback>
+      </View>
+
       {collections.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialIcons
@@ -358,99 +389,57 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
           <Text style={styles.emptySubtext}>
             Create collections to organize your saved items
           </Text>
-          <AppleTouchFeedback
-            onPress={() => setShowNewCollection(true)}
-            hapticStyle="impactLight"
-            style={[globalStyles.buttonPrimary, {minWidth: 180}]}>
-            <MaterialIcons
-              name="add"
-              size={20}
-              color="#fff"
-              style={{marginRight: 8}}
-            />
-            <Text
-              style={{
-                color: theme.colors.buttonText1,
-                fontWeight: tokens.fontWeight.semiBold,
-              }}>
-              New Collection
-            </Text>
-          </AppleTouchFeedback>
         </View>
       ) : (
-        <>
-          <FlatList
-            data={collections}
-            renderItem={({item, index}) => (
-              <Animatable.View
-                animation="slideInLeft"
-                delay={index * 50}
-                style={styles.collectionCard}>
-                <View
-                  style={[
-                    styles.collectionBadge,
-                    {backgroundColor: item.color},
-                  ]}>
-                  <MaterialIcons name="collections" size={40} color="#fff" />
-                </View>
-                <Text style={styles.collectionName}>{item.name}</Text>
-                {item.description && (
-                  <Text style={styles.collectionInfo}>{item.description}</Text>
-                )}
-                <Text style={styles.collectionInfo}>
-                  {item.items.length} items
-                </Text>
-                <View style={styles.collectionActions}>
-                  <AppleTouchFeedback
-                    style={styles.actionButton}
-                    onPress={() => setSelectedCollectionId(item.id)}
-                    hapticStyle="impactLight">
-                    <MaterialIcons
-                      name="open-in-new"
-                      size={16}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={styles.actionButtonText}>View</Text>
-                  </AppleTouchFeedback>
-                  <AppleTouchFeedback
-                    style={[styles.actionButton, styles.newCollectionButton]}
-                    onPress={() => handleDeleteCollection(item.id, item.name)}
-                    hapticStyle="impactLight">
-                    <MaterialIcons name="delete" size={16} color="#fff" />
-                    <Text
-                      style={[
-                        styles.actionButtonText,
-                        styles.newCollectionButtonText,
-                      ]}>
-                      Delete
-                    </Text>
-                  </AppleTouchFeedback>
-                </View>
-              </Animatable.View>
-            )}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.collectionGrid}
-            ListFooterComponent={
-              <AppleTouchFeedback
-                onPress={() => setShowNewCollection(true)}
-                hapticStyle="impactLight"
-                style={[
-                  styles.actionButton,
-                  styles.newCollectionButton,
-                  {marginTop: 20},
-                ]}>
-                <MaterialIcons name="add" size={18} color="#fff" />
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    styles.newCollectionButtonText,
-                  ]}>
-                  New Collection
-                </Text>
-              </AppleTouchFeedback>
-            }
-          />
-        </>
+        <FlatList
+          data={collections}
+          renderItem={({item, index}) => (
+            <Animatable.View
+              animation="slideInLeft"
+              delay={index * 50}
+              style={styles.collectionCard}>
+              <View
+                style={[styles.collectionBadge, {backgroundColor: item.color}]}>
+                <MaterialIcons name="collections" size={40} color="#fff" />
+              </View>
+              <Text style={styles.collectionName}>{item.name}</Text>
+              {item.description && (
+                <Text style={styles.collectionInfo}>{item.description}</Text>
+              )}
+              <Text style={styles.collectionInfo}>
+                {item.items.length} items
+              </Text>
+              <View style={styles.collectionActions}>
+                <AppleTouchFeedback
+                  style={styles.actionButton}
+                  onPress={() => setSelectedCollectionId(item.id)}
+                  hapticStyle="impactLight">
+                  <MaterialIcons
+                    name="open-in-new"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.actionButtonText}>View</Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  style={[styles.actionButton, styles.newCollectionButton]}
+                  onPress={() => handleDeleteCollection(item.id, item.name)}
+                  hapticStyle="impactLight">
+                  <MaterialIcons name="delete" size={16} color="#fff" />
+                  <Text
+                    style={[
+                      styles.actionButtonText,
+                      styles.newCollectionButtonText,
+                    ]}>
+                    Delete
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </Animatable.View>
+          )}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.collectionGrid}
+        />
       )}
 
       {/* New Collection Modal */}

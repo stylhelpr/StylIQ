@@ -51,6 +51,8 @@ type ShoppingState = {
   addToHistory: (url: string, title: string, source: string) => void;
   clearHistory: () => void;
   getRecentHistory: (limit?: number) => BrowsingHistory[];
+  getMostVisitedSites: (limit?: number) => BrowsingHistory[];
+  getTopShops: (limit?: number) => {source: string; visits: number}[];
 
   // Collections/Wishlists
   collections: Collection[];
@@ -135,6 +137,22 @@ export const useShoppingStore = create<ShoppingState>()(
       getRecentHistory: (limit = 10) => {
         return get()
           .history.sort((a, b) => b.visitedAt - a.visitedAt)
+          .slice(0, limit);
+      },
+      getMostVisitedSites: (limit = 10) => {
+        return get()
+          .history.sort((a, b) => b.visitCount - a.visitCount)
+          .slice(0, limit);
+      },
+      getTopShops: (limit = 5) => {
+        const shopCounts = new Map<string, number>();
+        get().history.forEach(item => {
+          const current = shopCounts.get(item.source) || 0;
+          shopCounts.set(item.source, current + item.visitCount);
+        });
+        return Array.from(shopCounts.entries())
+          .map(([source, visits]) => ({source, visits}))
+          .sort((a, b) => b.visits - a.visits)
           .slice(0, limit);
       },
 

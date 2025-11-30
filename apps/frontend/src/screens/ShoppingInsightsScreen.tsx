@@ -17,18 +17,19 @@ type Props = {
 
 export default function ShoppingInsightsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
-  const {bookmarks, history, collections, recentSearches} = useShoppingStore();
+  const {
+    bookmarks,
+    history,
+    collections,
+    recentSearches,
+    getTopShops,
+    getMostVisitedSites,
+  } = useShoppingStore();
 
   // Calculate insights
   const insights = useMemo(() => {
-    // Most visited stores
-    const storeVisits: Record<string, number> = {};
-    history.forEach(h => {
-      storeVisits[h.source] = (storeVisits[h.source] || 0) + h.visitCount;
-    });
-    const topStores = Object.entries(storeVisits)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+    // Most visited stores - use helper function
+    const topStores = getTopShops(5).map(shop => [shop.source, shop.visits] as [string, number]);
 
     // Price insights from bookmarks
     const prices = bookmarks.filter(b => b.price).map(b => b.price as number);
@@ -81,7 +82,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       totalVisits: history.reduce((sum, h) => sum + h.visitCount, 0),
       recentSearchCount: recentSearches.length,
     };
-  }, [bookmarks, history, collections, recentSearches]);
+  }, [bookmarks, history, collections, recentSearches, getTopShops]);
 
   const styles = StyleSheet.create({
     container: {
