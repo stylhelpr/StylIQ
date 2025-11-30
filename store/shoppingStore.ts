@@ -70,6 +70,7 @@ type ShoppingState = {
   switchTab: (id: string) => void;
   updateTab: (id: string, url: string, title: string) => void;
   updateTabScreenshot: (id: string, screenshot: string) => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
   closeAllTabs: () => void;
 
   // Insights & Analytics
@@ -250,6 +251,14 @@ export const useShoppingStore = create<ShoppingState>()(
             t.id === id ? {...t, screenshot} : t,
           ),
         }));
+      },
+      reorderTabs: (fromIndex: number, toIndex: number) => {
+        set(state => {
+          const newTabs = [...state.tabs];
+          const [movedTab] = newTabs.splice(fromIndex, 1);
+          newTabs.splice(toIndex, 0, movedTab);
+          return {tabs: newTabs};
+        });
       },
       closeAllTabs: () => {
         set({tabs: [], currentTabId: null});
