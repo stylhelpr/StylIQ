@@ -37,6 +37,7 @@ export type BrowserTab = {
   url: string;
   title: string;
   favicon?: string;
+  screenshot?: string; // Base64 encoded screenshot for tab preview
 };
 
 type ShoppingState = {
@@ -68,6 +69,7 @@ type ShoppingState = {
   removeTab: (id: string) => void;
   switchTab: (id: string) => void;
   updateTab: (id: string, url: string, title: string) => void;
+  updateTabScreenshot: (id: string, screenshot: string) => void;
   closeAllTabs: () => void;
 
   // Insights & Analytics
@@ -237,7 +239,16 @@ export const useShoppingStore = create<ShoppingState>()(
       },
       updateTab: (id: string, url: string, title: string) => {
         set(state => ({
-          tabs: state.tabs.map(t => (t.id === id ? {id, url, title} : t)),
+          tabs: state.tabs.map(t =>
+            t.id === id ? {...t, id, url, title} : t,
+          ),
+        }));
+      },
+      updateTabScreenshot: (id: string, screenshot: string) => {
+        set(state => ({
+          tabs: state.tabs.map(t =>
+            t.id === id ? {...t, screenshot} : t,
+          ),
         }));
       },
       closeAllTabs: () => {

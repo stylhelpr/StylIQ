@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
+  Image,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -39,8 +40,23 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
 
   const recentVisits = history.slice(0, 5);
   const topCollections = collections.slice(0, 3);
+
+  // Helper to generate favicon URL for items without images
+  const getImageUrl = (item: any): string => {
+    if (item.imageUrl) return item.imageUrl;
+    try {
+      const domain = new URL(item.url).hostname;
+      return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+    } catch {
+      return '';
+    }
+  };
+
   // Populate trending items from bookmarks (most recently saved)
-  const trendingItems = bookmarks.slice(0, 4);
+  const trendingItems = bookmarks.slice(0, 4).map(item => ({
+    ...item,
+    imageUrl: getImageUrl(item),
+  }));
 
   const styles = StyleSheet.create({
     container: {
@@ -393,17 +409,45 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                       onPress={() => navigate?.('WebBrowser', {url: item.url})}
                       hapticStyle="impactLight"
                       style={styles.trendingCard}>
-                      <LinearGradient
-                        colors={[theme.colors.primary, theme.colors.primary + '80']}
-                        start={{x: 0, y: 0}}
-                        end={{x: 1, y: 1}}
-                        style={styles.trendingImage}>
-                        <MaterialIcons
-                          name="shopping-bag"
-                          size={40}
-                          color="#fff"
-                        />
-                      </LinearGradient>
+                      {item.imageUrl ? (
+                        <View style={styles.trendingImage}>
+                          <Image
+                            source={{uri: item.imageUrl}}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              resizeMode: 'cover',
+                            }}
+                            onError={() => {
+                              // Fallback to gradient on error
+                            }}
+                          />
+                          <LinearGradient
+                            colors={['transparent', 'rgba(0,0,0,0.3)']}
+                            start={{x: 0, y: 0}}
+                            end={{x: 0, y: 1}}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                            }}
+                          />
+                        </View>
+                      ) : (
+                        <LinearGradient
+                          colors={[theme.colors.primary, theme.colors.primary + '80']}
+                          start={{x: 0, y: 0}}
+                          end={{x: 1, y: 1}}
+                          style={styles.trendingImage}>
+                          <MaterialIcons
+                            name="shopping-bag"
+                            size={40}
+                            color="#fff"
+                          />
+                        </LinearGradient>
+                      )}
                       <Text style={styles.trendingTitle} numberOfLines={2}>
                         {item.title}
                       </Text>

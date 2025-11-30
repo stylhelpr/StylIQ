@@ -12,6 +12,7 @@ import {
   Animated,
   Modal,
   Share,
+  Image,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -45,6 +46,7 @@ export default function WebBrowserScreen({route}: Props) {
   const insets = useSafeAreaInsets();
   const initialUrl = route?.params?.url || '';
   const webRef = useRef<WebView>(null);
+  const containerRef = useRef<View>(null);
   const [inputValue, setInputValue] = useState(initialUrl);
   const [showTabsView, setShowTabsView] = useState(false);
   const tabsViewScale = useRef(new Animated.Value(0)).current;
@@ -72,7 +74,9 @@ export default function WebBrowserScreen({route}: Props) {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [showBookmarksModal, setShowBookmarksModal] = useState(false);
-  const [activeBookmarksTab, setActiveBookmarksTab] = useState<'bookmarks' | 'history'>('bookmarks');
+  const [activeBookmarksTab, setActiveBookmarksTab] = useState<
+    'bookmarks' | 'history'
+  >('bookmarks');
 
   // Initialize with a tab if navigating with URL (wait for hydration)
   useEffect(() => {
@@ -94,6 +98,17 @@ export default function WebBrowserScreen({route}: Props) {
       return urlObj.hostname.replace('www.', '');
     } catch {
       return url || 'New Tab';
+    }
+  };
+
+  const extractImageFromPage = (url: string): string => {
+    // Use DuckDuckGo favicon service (more reliable)
+    try {
+      const domain = new URL(url).hostname;
+      // DuckDuckGo favicon service
+      return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+    } catch {
+      return '';
     }
   };
 
@@ -145,6 +160,7 @@ export default function WebBrowserScreen({route}: Props) {
         title: currentTab.title || getDomain(currentTab.url),
         url: currentTab.url,
         source: getDomain(currentTab.url),
+        imageUrl: extractImageFromPage(currentTab.url),
         addedAt: Date.now(),
       });
     }
@@ -159,6 +175,7 @@ export default function WebBrowserScreen({route}: Props) {
       title: currentTab.title || getDomain(currentTab.url),
       url: currentTab.url,
       source: getDomain(currentTab.url),
+      imageUrl: extractImageFromPage(currentTab.url),
       addedAt: Date.now(),
     });
     setShowCollectionPicker(false);
@@ -198,8 +215,22 @@ export default function WebBrowserScreen({route}: Props) {
     setShowBookmarksModal(false);
   };
 
-  const openTabsView = () => {
+  const captureCurrentTabScreenshot = async () => {
+    if (!containerRef.current || !currentTab) return;
+    try {
+      // Use react-native-view-shot ViewShot component to capture
+      // For now, we'll store a placeholder until actual capture is implemented
+      // In a real scenario, you would wrap the view and use the ViewShot ref
+      // updateTabScreenshot(currentTab.id, uri);
+    } catch (error) {
+      console.log('Screenshot capture error:', error);
+    }
+  };
+
+  const openTabsView = async () => {
     triggerHaptic('impactLight');
+    // Capture screenshot of current tab before showing tabs view
+    await captureCurrentTabScreenshot();
     setShowTabsView(true);
     Animated.spring(tabsViewScale, {
       toValue: 1,
@@ -367,28 +398,29 @@ export default function WebBrowserScreen({route}: Props) {
       justifyContent: 'space-between',
       paddingHorizontal: 10,
       paddingVertical: 8,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: 'transparent',
     },
     tabCardTitle: {
       flex: 1,
       fontSize: 12,
       fontWeight: '500',
-      color: theme.colors.foreground,
+      color: '#fff',
     },
     tabCardClose: {
       padding: 2,
     },
     tabCardContent: {
       flex: 1,
-      backgroundColor: theme.colors.background,
-      justifyContent: 'center',
+      backgroundColor: 'transparent',
+      justifyContent: 'flex-end',
       alignItems: 'center',
+      paddingBottom: 8,
     },
     tabCardDomain: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '500',
-      color: theme.colors.foreground2,
-      marginTop: 8,
+      color: 'rgba(255, 255, 255, 0.9)',
+      marginTop: 0,
     },
     newTabCard: {
       width: TAB_CARD_WIDTH,
@@ -706,6 +738,56 @@ export default function WebBrowserScreen({route}: Props) {
       fontSize: 13,
       color: theme.colors.foreground3,
     },
+    // Tab Card Preview Image
+    tabCardPreview: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    tabCardPreviewContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    tabCardScreenshot: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    tabCardPlaceholder: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      top: 0,
+      left: 0,
+    },
+    tabCardFavicon: {
+      width: 64,
+      height: 64,
+      borderRadius: 8,
+    },
+    tabCardOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'space-between',
+      padding: 0,
+    },
   });
 
   const showLanding = !currentTab || !currentTab.url;
@@ -778,39 +860,41 @@ export default function WebBrowserScreen({route}: Props) {
           </View>
         </ScrollView>
       ) : (
-        <WebView
-          ref={webRef}
-          source={{uri: currentTab?.url || ''}}
-          style={{flex: 1}}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled
-          // 👇 Inertia / momentum scrolling
-          decelerationRate="normal" // gives Safari-style glide
-          bounces={true} // iOS bounce effect
-          scrollEnabled={true} // ensure scroll isn’t locked
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          overScrollMode="never" // keeps Android smooth too
-          androidLayerType="hardware" // helps performance
-          onNavigationStateChange={navState => {
-            if (currentTab && navState.url) {
-              updateTab(
-                currentTab.id,
-                navState.url,
-                navState.title || currentTab.title,
-              );
-              setInputValue(navState.url);
-              // Track visit history
-              addToHistory(
-                navState.url,
-                navState.title || getDomain(navState.url),
-                getDomain(navState.url),
-              );
-            }
-          }}
-          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        />
+        <View ref={containerRef} style={{flex: 1}}>
+          <WebView
+            ref={webRef}
+            source={{uri: currentTab?.url || ''}}
+            style={{flex: 1}}
+            originWhitelist={['*']}
+            javaScriptEnabled
+            domStorageEnabled
+            // 👇 Inertia / momentum scrolling
+            decelerationRate="normal" // gives Safari-style glide
+            bounces={true} // iOS bounce effect
+            scrollEnabled={true} // ensure scroll isn't locked
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            overScrollMode="never" // keeps Android smooth too
+            androidLayerType="hardware" // helps performance
+            onNavigationStateChange={navState => {
+              if (currentTab && navState.url) {
+                updateTab(
+                  currentTab.id,
+                  navState.url,
+                  navState.title || currentTab.title,
+                );
+                setInputValue(navState.url);
+                // Track visit history
+                addToHistory(
+                  navState.url,
+                  navState.title || getDomain(navState.url),
+                  getDomain(navState.url),
+                );
+              }
+            }}
+            userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+          />
+        </View>
       )}
 
       {/* Safari-style Tabs View */}
@@ -854,28 +938,49 @@ export default function WebBrowserScreen({route}: Props) {
                 ]}
                 onPress={() => handleSelectTab(tab.id)}
                 activeOpacity={0.8}>
-                <View style={styles.tabCardHeader}>
-                  <Text style={styles.tabCardTitle} numberOfLines={1}>
-                    {tab.title || getDomain(tab.url)}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.tabCardClose}
-                    onPress={() => handleCloseTab(tab.id)}
-                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                    <MaterialIcons
-                      name="close"
-                      size={16}
-                      color={theme.colors.foreground3}
+                {/* Tab Preview Background */}
+                <View style={styles.tabCardPreviewContainer}>
+                  {tab.screenshot ? (
+                    <Image
+                      source={{uri: tab.screenshot}}
+                      style={styles.tabCardScreenshot}
+                      resizeMode="cover"
                     />
-                  </TouchableOpacity>
+                  ) : (
+                    <>
+                      {/* Gradient/colored background when no screenshot */}
+                      <View style={[styles.tabCardPlaceholder, {backgroundColor: theme.colors.surface}]} />
+                      <Image
+                        source={{
+                          uri: `https://icons.duckduckgo.com/ip3/${getDomain(
+                            tab.url,
+                          )}.ico`,
+                        }}
+                        style={styles.tabCardFavicon}
+                        defaultSource={require('../assets/images/desktop-2.jpg')}
+                      />
+                    </>
+                  )}
                 </View>
-                <View style={styles.tabCardContent}>
-                  <MaterialIcons
-                    name="language"
-                    size={40}
-                    color={theme.colors.foreground3}
-                  />
-                  <Text style={styles.tabCardDomain}>{getDomain(tab.url)}</Text>
+
+                {/* Overlay with text content */}
+                <View style={styles.tabCardOverlay}>
+                  <View style={styles.tabCardHeader}>
+                    <Text style={styles.tabCardTitle} numberOfLines={2}>
+                      {tab.title || getDomain(tab.url)}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.tabCardClose}
+                      onPress={() => handleCloseTab(tab.id)}
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                      <MaterialIcons name="close" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.tabCardContent}>
+                    <Text style={styles.tabCardDomain}>
+                      {getDomain(tab.url)}
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
@@ -1092,7 +1197,10 @@ export default function WebBrowserScreen({route}: Props) {
                           key={bookmark.id}
                           style={styles.recentlySavedCard}
                           onPress={() =>
-                            handleBookmarkNavigation(bookmark.url, bookmark.title)
+                            handleBookmarkNavigation(
+                              bookmark.url,
+                              bookmark.title,
+                            )
                           }>
                           <View style={styles.recentlySavedPreview}>
                             <MaterialIcons
@@ -1101,10 +1209,14 @@ export default function WebBrowserScreen({route}: Props) {
                               color={theme.colors.foreground3}
                             />
                           </View>
-                          <Text style={styles.recentlySavedTitle} numberOfLines={2}>
+                          <Text
+                            style={styles.recentlySavedTitle}
+                            numberOfLines={2}>
                             {bookmark.title}
                           </Text>
-                          <Text style={styles.recentlySavedUrl} numberOfLines={1}>
+                          <Text
+                            style={styles.recentlySavedUrl}
+                            numberOfLines={1}>
                             {bookmark.source}
                           </Text>
                           <View style={styles.recentlySavedBadge}>
@@ -1174,7 +1286,9 @@ export default function WebBrowserScreen({route}: Props) {
                             color={theme.colors.foreground3}
                           />
                         </View>
-                        <Text style={styles.bookmarkListTitle} numberOfLines={1}>
+                        <Text
+                          style={styles.bookmarkListTitle}
+                          numberOfLines={1}>
                           {bookmark.title}
                         </Text>
                       </TouchableOpacity>
@@ -1190,7 +1304,9 @@ export default function WebBrowserScreen({route}: Props) {
                       size={48}
                       color={theme.colors.foreground3}
                     />
-                    <Text style={styles.bookmarksEmptyText}>No bookmarks yet</Text>
+                    <Text style={styles.bookmarksEmptyText}>
+                      No bookmarks yet
+                    </Text>
                   </View>
                 )}
               </>
@@ -1199,7 +1315,9 @@ export default function WebBrowserScreen({route}: Props) {
                 {/* Browsing History */}
                 {history.length > 0 ? (
                   <View style={styles.bookmarksSection}>
-                    <Text style={styles.sectionHeaderText}>Browsing History</Text>
+                    <Text style={styles.sectionHeaderText}>
+                      Browsing History
+                    </Text>
                     {history.map((item, index) => (
                       <TouchableOpacity
                         key={`${item.url}-${index}`}
@@ -1215,10 +1333,14 @@ export default function WebBrowserScreen({route}: Props) {
                           />
                         </View>
                         <View style={{flex: 1}}>
-                          <Text style={styles.bookmarkListTitle} numberOfLines={1}>
+                          <Text
+                            style={styles.bookmarkListTitle}
+                            numberOfLines={1}>
                             {item.title}
                           </Text>
-                          <Text style={styles.recentlySavedUrl} numberOfLines={1}>
+                          <Text
+                            style={styles.recentlySavedUrl}
+                            numberOfLines={1}>
                             {item.source}
                           </Text>
                         </View>
@@ -1237,7 +1359,9 @@ export default function WebBrowserScreen({route}: Props) {
                       size={48}
                       color={theme.colors.foreground3}
                     />
-                    <Text style={styles.bookmarksEmptyText}>No browsing history</Text>
+                    <Text style={styles.bookmarksEmptyText}>
+                      No browsing history
+                    </Text>
                   </View>
                 )}
               </>
