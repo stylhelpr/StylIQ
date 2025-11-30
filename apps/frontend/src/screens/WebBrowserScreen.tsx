@@ -24,6 +24,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useShoppingStore} from '../../../../store/shoppingStore';
 import {triggerHaptic} from '../utils/haptics';
 import ShoppingAssistant from '../components/ShoppingAssistant';
+import {useUUID} from '../context/UUIDContext';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -48,6 +49,7 @@ type Props = {
 export default function WebBrowserScreen({route}: Props) {
   const {theme} = useAppTheme();
   const insets = useSafeAreaInsets();
+  const userId = useUUID();
   const initialUrl = route?.params?.url || '';
   const webRef = useRef<WebView>(null);
   const containerRef = useRef<View>(null);
@@ -1212,6 +1214,7 @@ export default function WebBrowserScreen({route}: Props) {
             }
           }}
           isVisible={!showTabsView}
+          userId={userId}
         />
       )}
 

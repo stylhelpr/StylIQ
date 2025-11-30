@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
@@ -15,40 +15,145 @@ import Animated, {
   withTiming,
   withDelay,
   Easing,
-  interpolate,
-  runOnJS,
 } from 'react-native-reanimated';
 import {useAppTheme} from '../context/ThemeContext';
+import {API_BASE_URL} from '../config/api';
 
 const {width: screenWidth} = Dimensions.get('window');
 
-const SHOPPING_SUGGESTIONS = [
-  {text: "Looking for deals? Try ASOS! 🛍️", site: 'https://asos.com'},
-  {text: "H&M has new arrivals! ✨", site: 'https://hm.com'},
-  {text: "Check out Zara's latest! 👗", site: 'https://zara.com'},
-  {text: "Nordstrom sale happening! 🔥", site: 'https://nordstrom.com'},
-  {text: "Found cute styles on Shein! 💖", site: 'https://shein.com'},
-  {text: "SSENSE has designer picks! 💎", site: 'https://ssense.com'},
-  {text: "Amazon fashion deals! 📦", site: 'https://amazon.com/fashion'},
-  {text: "Farfetch luxury finds! 👠", site: 'https://farfetch.com'},
+// Fallback suggestions when AI is unavailable
+const FALLBACK_SUGGESTIONS = [
+  {text: "Looking for deals? Try ASOS!", site: 'https://asos.com'},
+  {text: "H&M has new arrivals!", site: 'https://hm.com'},
+  {text: "Check out Zara's latest!", site: 'https://zara.com'},
+  {text: "Nordstrom sale happening!", site: 'https://nordstrom.com'},
+  {text: "Found cute styles on Shein!", site: 'https://shein.com'},
+  {text: "SSENSE has designer picks!", site: 'https://ssense.com'},
+  {text: "Amazon fashion deals!", site: 'https://amazon.com/fashion'},
+  {text: "Farfetch luxury finds!", site: 'https://farfetch.com'},
 ];
+
+// AI-powered shopping prompt for personalized recommendations
+const SHOPPING_PROMPT = `You are a smart shopping assistant with access to the user's complete fashion profile. Based on their calendar events, wardrobe, style preferences, and past purchases, give ONE short (under 15 words) personalized shopping recommendation.
+
+Consider:
+- Upcoming calendar events that need outfits
+- Gaps in their wardrobe
+- Their preferred brands and style
+- Recent outfit feedback
+
+Respond with ONLY a JSON object like:
+{"text": "Your short recommendation here!", "site": "https://relevantsite.com", "search": "search terms"}
+
+Pick site from: asos.com, hm.com, zara.com, nordstrom.com, shein.com, ssense.com, amazon.com/fashion, farfetch.com, google.com/search?q=`;
+
+type Suggestion = {
+  text: string;
+  site: string;
+  search?: string;
+};
 
 type Props = {
   onSuggestionPress?: (url: string) => void;
   isVisible?: boolean;
+  userId?: string | null;
 };
 
 export default function ShoppingAssistant({
   onSuggestionPress,
   isVisible = true,
+  userId,
 }: Props) {
   const {theme} = useAppTheme();
   const [showBubble, setShowBubble] = useState(false);
-  const [currentSuggestion, setCurrentSuggestion] = useState(
-    SHOPPING_SUGGESTIONS[0],
+  const [currentSuggestion, setCurrentSuggestion] = useState<Suggestion>(
+    FALLBACK_SUGGESTIONS[0],
   );
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<Suggestion[]>([]);
+  const aiSuggestionIndex = useRef(0);
+  const hasLoadedAI = useRef(false);
+
+  // Fetch AI-powered suggestions on mount
+  useEffect(() => {
+    if (userId && !hasLoadedAI.current) {
+      hasLoadedAI.current = true;
+      fetchAISuggestions();
+    }
+  }, [userId]);
+
+  const fetchAISuggestions = async () => {
+    if (!userId) return;
+
+    try {
+      // Call the AI chat endpoint which has full data access
+      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: userId,
+          messages: [
+            {role: 'user', content: SHOPPING_PROMPT},
+          ],
+        }),
+      });
+
+      if (!response.ok) throw new Error('AI request failed');
+
+      const data = await response.json();
+      const aiText = data.text || data.response || '';
+
+      // Try to parse multiple suggestions from the response
+      const suggestions = parseAISuggestions(aiText);
+      if (suggestions.length > 0) {
+        setAiSuggestions(suggestions);
+        setCurrentSuggestion(suggestions[0]);
+        console.log('Shopping Assistant: Loaded', suggestions.length, 'AI suggestions');
+      }
+    } catch (err) {
+      console.warn('Shopping Assistant: AI fetch failed, using fallbacks', err);
+    }
+  };
+
+  const parseAISuggestions = (text: string): Suggestion[] => {
+    const suggestions: Suggestion[] = [];
+
+    // Try to find JSON object in the response
+    const jsonMatch = text.match(/\{[^{}]*"text"[^{}]*\}/g);
+    if (jsonMatch) {
+      for (const match of jsonMatch) {
+        try {
+          const parsed = JSON.parse(match);
+          if (parsed.text && parsed.site) {
+            let site = parsed.site;
+            // If there's a search term, append it to Google
+            if (parsed.search && site.includes('google.com')) {
+              site = `https://google.com/search?q=${encodeURIComponent(parsed.search)}`;
+            }
+            suggestions.push({
+              text: parsed.text,
+              site: site.startsWith('http') ? site : `https://${site}`,
+              search: parsed.search,
+            });
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
+    }
+
+    return suggestions;
+  };
+
+  const getNextSuggestion = (): Suggestion => {
+    // Prefer AI suggestions if available
+    if (aiSuggestions.length > 0) {
+      aiSuggestionIndex.current = (aiSuggestionIndex.current + 1) % aiSuggestions.length;
+      return aiSuggestions[aiSuggestionIndex.current];
+    }
+    // Fallback to static suggestions
+    return FALLBACK_SUGGESTIONS[Math.floor(Math.random() * FALLBACK_SUGGESTIONS.length)];
+  };
 
   // Animation values
   const bounce = useSharedValue(0);
@@ -122,11 +227,8 @@ export default function ShoppingAssistant({
   // Show suggestion bubble periodically
   useEffect(() => {
     const showSuggestion = () => {
-      const randomSuggestion =
-        SHOPPING_SUGGESTIONS[
-          Math.floor(Math.random() * SHOPPING_SUGGESTIONS.length)
-        ];
-      setCurrentSuggestion(randomSuggestion);
+      const nextSuggestion = getNextSuggestion();
+      setCurrentSuggestion(nextSuggestion);
       setShowBubble(true);
       bubbleScale.value = withSpring(1, {damping: 10, stiffness: 150});
 
@@ -137,8 +239,8 @@ export default function ShoppingAssistant({
       }, 5000);
     };
 
-    // Show first suggestion after 3 seconds
-    const initialTimeout = setTimeout(showSuggestion, 3000);
+    // Show first suggestion after 3 seconds (or 5 seconds to allow AI to load)
+    const initialTimeout = setTimeout(showSuggestion, userId ? 5000 : 3000);
 
     // Show suggestions every 30 seconds
     const suggestionInterval = setInterval(showSuggestion, 30000);
@@ -147,7 +249,7 @@ export default function ShoppingAssistant({
       clearTimeout(initialTimeout);
       clearInterval(suggestionInterval);
     };
-  }, []);
+  }, [aiSuggestions]);
 
   const handlePress = () => {
     // Excited animation
@@ -167,12 +269,9 @@ export default function ShoppingAssistant({
       // Reset after navigation completes
       setTimeout(() => setIsNavigating(false), 2000);
     } else if (!showBubble) {
-      // Show a random suggestion when tapped
-      const randomSuggestion =
-        SHOPPING_SUGGESTIONS[
-          Math.floor(Math.random() * SHOPPING_SUGGESTIONS.length)
-        ];
-      setCurrentSuggestion(randomSuggestion);
+      // Show a suggestion when tapped (AI-powered if available)
+      const nextSuggestion = getNextSuggestion();
+      setCurrentSuggestion(nextSuggestion);
       setShowBubble(true);
       bubbleScale.value = withSpring(1, {damping: 10, stiffness: 150});
     }
