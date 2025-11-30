@@ -1163,8 +1163,10 @@ export function AnimatedInputBar({
 async function callAiChatAPI(
   history: Message[],
   latest: Message,
+  userId: string,
 ): Promise<{text: string; images?: any[]; links?: any[]}> {
   const payload = {
+    user_id: userId,
     messages: [...history, latest].map(m => ({
       role: m.role,
       content: m.text,

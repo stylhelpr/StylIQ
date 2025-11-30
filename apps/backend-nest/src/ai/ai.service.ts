@@ -1630,16 +1630,17 @@ ${climateNote}
         [user_id],
       );
       if (calendarRows.length > 0) {
-        calendarContext = '\n\n📅 UPCOMING EVENTS:\n' + calendarRows
-          .map((e) => {
-            const start = new Date(e.start_date).toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            });
-            return `• ${e.title} on ${start}${e.location ? ` at ${e.location}` : ''}${e.notes ? ` (${e.notes})` : ''}`;
-          })
-          .join('\n');
+        const eventsList = calendarRows.map((e, i) => {
+          const start = new Date(e.start_date);
+          const dateStr = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+          const timeStr = start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+          let eventLine = `${i + 1}. "${e.title}" - ${dateStr} at ${timeStr}`;
+          if (e.location) eventLine += ` @ ${e.location}`;
+          if (e.notes) eventLine += ` (${e.notes})`;
+          return eventLine;
+        }).join('\n');
+
+        calendarContext = `\n\nCALENDAR EVENTS (${calendarRows.length} upcoming):\n${eventsList}`;
         console.log(`📅 Chat: Loaded ${calendarRows.length} upcoming calendar events`);
       }
     } catch (err: any) {
@@ -1943,6 +1944,13 @@ ${climateNote}
     // Combine all context into enhanced summary
     const fullContext = (longTermSummary || '(no prior memory yet)') + styleProfileContext + wardrobeContext + calendarContext + savedLooksContext + recreatedLooksContext + feedbackContext + wearHistoryContext + scheduledOutfitsContext + favoritesContext + customOutfitsContext + itemPrefsContext + lookMemoriesContext;
 
+    console.log(`📊 Chat: Full context length: ${fullContext.length} chars`);
+    console.log(`📊 Chat: Calendar context included: ${calendarContext.length > 0}`);
+    console.log(`📊 Chat: Calendar context length: ${calendarContext.length} chars`);
+    console.log(`📊 Chat: Calendar data: ${calendarContext.substring(0, 200)}`);
+    console.log(`📊 Chat: Wardrobe context included: ${wardrobeContext.length > 0}`);
+    console.log(`📊 Chat: Style profile context included: ${styleProfileContext.length > 0}`);
+
     // 1️⃣ Generate base text with OpenAI
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
@@ -1951,10 +1959,19 @@ ${climateNote}
         {
           role: 'system',
           content: `
-You are a world-class personal fashion stylist.
-Keep in mind the user's previous preferences and style details:
+You are a world-class personal fashion stylist with FULL ACCESS to the user's personal data.
+
+YOU HAVE COMPLETE ACCESS TO ALL OF THIS USER DATA:
 ${fullContext}
-Respond naturally about outfits, wardrobe planning, or styling.
+
+CRITICAL RULES:
+1. ONLY reference events, items, and data actually shown above
+2. DO NOT make up or invent calendar events, wardrobe items, or preferences
+3. If the user asks about something not in the data above, say "I don't see that in your data"
+4. Use ONLY the real calendar events, wardrobe items, and preferences provided
+5. When answering questions about their calendar - reference ONLY the events listed above
+
+Respond naturally about outfits, wardrobe planning, or styling using ONLY the user data provided.
 At the end, return a short JSON block like:
 {"search_terms":["smart casual men","navy blazer outfit","loafers"]}
         `,
