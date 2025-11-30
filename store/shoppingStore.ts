@@ -7,6 +7,7 @@ export type ShoppingItem = {
   title: string;
   url: string;
   imageUrl?: string;
+  screenshot?: string; // Base64 encoded webpage screenshot for preview
   price?: number;
   brand?: string;
   source: string; // e.g., 'ASOS', 'Amazon', 'Zara'

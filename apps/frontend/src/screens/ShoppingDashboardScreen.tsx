@@ -150,26 +150,54 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     trendingCard: {
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
-      padding: 12,
       marginRight: 12,
-      width: screenWidth * 0.7,
+      width: screenWidth * 0.45,
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder,
+      overflow: 'hidden',
     },
     trendingImage: {
       width: '100%',
-      height: 150,
-      borderRadius: 8,
+      height: 140,
       backgroundColor: theme.colors.background,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 12,
+      overflow: 'hidden',
+    },
+    trendingScreenshot: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    trendingPlaceholder: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+    },
+    trendingFavicon: {
+      width: 48,
+      height: 48,
+      borderRadius: 8,
+    },
+    trendingGradient: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: '50%',
+    },
+    trendingInfo: {
+      padding: 12,
     },
     trendingTitle: {
       fontSize: 14,
       fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.foreground,
       marginBottom: 4,
+    },
+    trendingSource: {
+      fontSize: 12,
+      color: theme.colors.foreground3,
     },
     trendingMeta: {
       flexDirection: 'row',
@@ -409,56 +437,43 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                       onPress={() => navigate?.('WebBrowser', {url: item.url})}
                       hapticStyle="impactLight"
                       style={styles.trendingCard}>
-                      {item.imageUrl ? (
-                        <View style={styles.trendingImage}>
-                          <Image
-                            source={{uri: item.imageUrl}}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              resizeMode: 'cover',
-                            }}
-                            onError={() => {
-                              // Fallback to gradient on error
-                            }}
-                          />
-                          <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.3)']}
-                            start={{x: 0, y: 0}}
-                            end={{x: 0, y: 1}}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                            }}
-                          />
-                        </View>
-                      ) : (
-                        <LinearGradient
-                          colors={[theme.colors.primary, theme.colors.primary + '80']}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={styles.trendingImage}>
-                          <MaterialIcons
-                            name="shopping-bag"
-                            size={40}
-                            color="#fff"
-                          />
-                        </LinearGradient>
-                      )}
-                      <Text style={styles.trendingTitle} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <Text
-                        style={{fontSize: 12, color: theme.colors.foreground3}}
-                        numberOfLines={1}>
-                        {item.source}
-                      </Text>
-                      <View style={styles.trendingMeta}>
-                        <Text style={styles.brand}>{item.brand || item.source}</Text>
-                        {item.price && <Text style={styles.price}>${item.price}</Text>}
+                      <View style={styles.trendingImage}>
+                        {item.screenshot ? (
+                          <>
+                            <Image
+                              source={{uri: item.screenshot}}
+                              style={styles.trendingScreenshot}
+                            />
+                            <LinearGradient
+                              colors={['transparent', 'rgba(0,0,0,0.6)']}
+                              start={{x: 0, y: 0.5}}
+                              end={{x: 0, y: 1}}
+                              style={styles.trendingGradient}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <View style={[styles.trendingPlaceholder, {backgroundColor: theme.colors.surface}]} />
+                            <Image
+                              source={{uri: item.imageUrl}}
+                              style={styles.trendingFavicon}
+                            />
+                            <LinearGradient
+                              colors={['transparent', 'rgba(0,0,0,0.5)']}
+                              start={{x: 0, y: 0.5}}
+                              end={{x: 0, y: 1}}
+                              style={styles.trendingGradient}
+                            />
+                          </>
+                        )}
+                      </View>
+                      <View style={styles.trendingInfo}>
+                        <Text style={styles.trendingTitle} numberOfLines={2}>
+                          {item.title}
+                        </Text>
+                        <Text style={styles.trendingSource} numberOfLines={1}>
+                          {item.source}
+                        </Text>
                       </View>
                     </AppleTouchFeedback>
                   </Animatable.View>

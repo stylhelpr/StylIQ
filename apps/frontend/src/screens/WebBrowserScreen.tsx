@@ -92,10 +92,18 @@ export default function WebBrowserScreen({route}: Props) {
 
   // Initialize with a tab if navigating with URL (wait for hydration)
   useEffect(() => {
-    if (_hasHydrated && initialUrl && tabs.length === 0) {
-      addTab(initialUrl, 'New Tab');
+    if (_hasHydrated && initialUrl) {
+      // Check if this URL is already open in a tab
+      const existingTab = tabs.find(t => t.url === initialUrl);
+      if (existingTab) {
+        // Switch to existing tab
+        switchTab(existingTab.id);
+      } else {
+        // Add new tab with the URL
+        addTab(initialUrl, 'New Tab');
+      }
     }
-  }, [_hasHydrated, initialUrl, tabs.length]);
+  }, [_hasHydrated, initialUrl]);
 
   // Update input when tab changes
   useEffect(() => {
@@ -158,7 +166,7 @@ export default function WebBrowserScreen({route}: Props) {
     setShowSaveMenu(true);
   };
 
-  const handleAddToBookmarks = () => {
+  const handleAddToBookmarks = async () => {
     if (!currentTab) return;
     triggerHaptic('impactLight');
     if (bookmarked) {
@@ -167,27 +175,55 @@ export default function WebBrowserScreen({route}: Props) {
         removeBookmark(bookmark.id);
       }
     } else {
+      // Capture screenshot for the bookmark preview
+      let screenshot: string | undefined;
+      if (containerRef.current) {
+        try {
+          screenshot = await captureRef(containerRef, {
+            format: 'jpg',
+            quality: 0.7,
+            result: 'data-uri',
+          });
+        } catch (e) {
+          console.log('Failed to capture bookmark screenshot:', e);
+        }
+      }
       addBookmark({
         id: Date.now().toString(),
         title: currentTab.title || getDomain(currentTab.url),
         url: currentTab.url,
         source: getDomain(currentTab.url),
         imageUrl: extractImageFromPage(currentTab.url),
+        screenshot,
         addedAt: Date.now(),
       });
     }
     setShowSaveMenu(false);
   };
 
-  const handleAddToCollection = (collectionId: string) => {
+  const handleAddToCollection = async (collectionId: string) => {
     if (!currentTab) return;
     triggerHaptic('impactLight');
+    // Capture screenshot for the collection item preview
+    let screenshot: string | undefined;
+    if (containerRef.current) {
+      try {
+        screenshot = await captureRef(containerRef, {
+          format: 'jpg',
+          quality: 0.7,
+          result: 'data-uri',
+        });
+      } catch (e) {
+        console.log('Failed to capture collection item screenshot:', e);
+      }
+    }
     addItemToCollection(collectionId, {
       id: Date.now().toString(),
       title: currentTab.title || getDomain(currentTab.url),
       url: currentTab.url,
       source: getDomain(currentTab.url),
       imageUrl: extractImageFromPage(currentTab.url),
+      screenshot,
       addedAt: Date.now(),
     });
     setShowCollectionPicker(false);
