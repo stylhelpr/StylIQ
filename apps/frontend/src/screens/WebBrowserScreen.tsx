@@ -497,27 +497,151 @@ export default function WebBrowserScreen({route}: Props) {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 16,
-      paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.surfaceBorder,
-      backgroundColor: theme.colors.surface,
-    },
-    bookmarksModalTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: theme.colors.foreground,
+      paddingTop: 16,
+      paddingBottom: 8,
     },
     bookmarksCloseButton: {
       padding: 8,
     },
-    bookmarksCloseText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: theme.colors.primary,
+    bookmarksMenuButton: {
+      padding: 8,
+    },
+    bookmarksSearchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 10,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      paddingHorizontal: 12,
+      height: 40,
+    },
+    bookmarksSearchIcon: {
+      marginRight: 8,
+    },
+    bookmarksSearchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: theme.colors.foreground,
+      padding: 0,
+    },
+    bookmarksSearchMic: {
+      marginLeft: 8,
     },
     bookmarksModalContent: {
       flex: 1,
     },
+    // Recently Saved Section
+    recentlySavedSection: {
+      marginBottom: 24,
+    },
+    sectionHeaderText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+      paddingHorizontal: 16,
+      marginBottom: 12,
+    },
+    recentlySavedScroll: {
+      paddingLeft: 16,
+    },
+    recentlySavedCard: {
+      width: 160,
+      marginRight: 12,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 12,
+    },
+    recentlySavedPreview: {
+      width: '100%',
+      height: 100,
+      backgroundColor: theme.colors.background,
+      borderRadius: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    recentlySavedTitle: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+      marginBottom: 4,
+    },
+    recentlySavedUrl: {
+      fontSize: 11,
+      color: theme.colors.foreground3,
+      marginBottom: 6,
+    },
+    recentlySavedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    recentlySavedBadgeText: {
+      fontSize: 9,
+      color: theme.colors.foreground3,
+      marginLeft: 2,
+    },
+    // Folders Section
+    foldersSection: {
+      marginBottom: 24,
+    },
+    folderItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+    },
+    folderIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    folderName: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '500',
+      color: theme.colors.foreground,
+    },
+    folderCount: {
+      fontSize: 14,
+      color: theme.colors.foreground3,
+      marginRight: 8,
+    },
+    // Bookmarks Section
+    bookmarksSection: {
+      marginBottom: 24,
+    },
+    bookmarkListItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.surface,
+    },
+    bookmarkListIcon: {
+      width: 24,
+      height: 24,
+      borderRadius: 6,
+      backgroundColor: theme.colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    bookmarkListTitle: {
+      flex: 1,
+      fontSize: 14,
+      color: theme.colors.foreground,
+    },
+    // Empty State
     bookmarksEmptyState: {
       flex: 1,
       justifyContent: 'center',
@@ -529,6 +653,21 @@ export default function WebBrowserScreen({route}: Props) {
       color: theme.colors.foreground3,
       marginTop: 16,
     },
+    // Tab Bar
+    bookmarksTabBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingBottom: insets.bottom + 12,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceBorder,
+    },
+    bookmarksTab: {
+      padding: 8,
+    },
+    // Legacy styles (for compatibility)
     bookmarkModalItem: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -883,16 +1022,162 @@ export default function WebBrowserScreen({route}: Props) {
         animationType="slide"
         onRequestClose={() => setShowBookmarksModal(false)}>
         <View style={styles.bookmarksModalContainer}>
+          {/* Header */}
           <View style={styles.bookmarksModalHeader}>
-            <Text style={styles.bookmarksModalTitle}>Bookmarks</Text>
             <TouchableOpacity
               onPress={() => setShowBookmarksModal(false)}
               style={styles.bookmarksCloseButton}>
-              <Text style={styles.bookmarksCloseText}>Done</Text>
+              <MaterialIcons
+                name="close"
+                size={24}
+                color={theme.colors.foreground}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.bookmarksMenuButton}>
+              <MaterialIcons
+                name="more-horiz"
+                size={24}
+                color={theme.colors.foreground}
+              />
             </TouchableOpacity>
           </View>
+
+          {/* Search Bar */}
+          <View style={styles.bookmarksSearchContainer}>
+            <MaterialIcons
+              name="search"
+              size={20}
+              color={theme.colors.foreground3}
+              style={styles.bookmarksSearchIcon}
+            />
+            <TextInput
+              style={styles.bookmarksSearchInput}
+              placeholder="Search Bookmarks"
+              placeholderTextColor={theme.colors.foreground3}
+            />
+            <MaterialIcons
+              name="mic"
+              size={20}
+              color={theme.colors.foreground3}
+              style={styles.bookmarksSearchMic}
+            />
+          </View>
+
           <ScrollView style={styles.bookmarksModalContent}>
-            {bookmarks.length === 0 ? (
+            {/* Recently Saved */}
+            {bookmarks.length > 0 && (
+              <View style={styles.recentlySavedSection}>
+                <Text style={styles.sectionHeaderText}>
+                  Recently Saved
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={18}
+                    color={theme.colors.foreground3}
+                  />
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.recentlySavedScroll}>
+                  {bookmarks.slice(0, 5).map(bookmark => (
+                    <TouchableOpacity
+                      key={bookmark.id}
+                      style={styles.recentlySavedCard}
+                      onPress={() =>
+                        handleBookmarkNavigation(bookmark.url, bookmark.title)
+                      }>
+                      <View style={styles.recentlySavedPreview}>
+                        <MaterialIcons
+                          name="language"
+                          size={32}
+                          color={theme.colors.foreground3}
+                        />
+                      </View>
+                      <Text
+                        style={styles.recentlySavedTitle}
+                        numberOfLines={2}>
+                        {bookmark.title}
+                      </Text>
+                      <Text style={styles.recentlySavedUrl} numberOfLines={1}>
+                        {bookmark.source}
+                      </Text>
+                      <View style={styles.recentlySavedBadge}>
+                        <MaterialIcons
+                          name="schedule"
+                          size={10}
+                          color={theme.colors.foreground3}
+                        />
+                        <Text style={styles.recentlySavedBadgeText}>
+                          Bookmarks
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Collections Folders */}
+            {collections.length > 0 && (
+              <View style={styles.foldersSection}>
+                <Text style={styles.sectionHeaderText}>Collections</Text>
+                {collections.map(collection => (
+                  <TouchableOpacity
+                    key={collection.id}
+                    style={styles.folderItem}>
+                    <View
+                      style={[
+                        styles.folderIcon,
+                        {backgroundColor: collection.color + '33'},
+                      ]}>
+                      <MaterialIcons
+                        name="folder"
+                        size={20}
+                        color={collection.color}
+                      />
+                    </View>
+                    <Text style={styles.folderName}>{collection.name}</Text>
+                    <Text style={styles.folderCount}>
+                      {collection.items.length}
+                    </Text>
+                    <MaterialIcons
+                      name="chevron-right"
+                      size={20}
+                      color={theme.colors.foreground3}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* All Bookmarks */}
+            {bookmarks.length > 0 && (
+              <View style={styles.bookmarksSection}>
+                <Text style={styles.sectionHeaderText}>Bookmarks</Text>
+                {bookmarks.map(bookmark => (
+                  <TouchableOpacity
+                    key={bookmark.id}
+                    style={styles.bookmarkListItem}
+                    onPress={() =>
+                      handleBookmarkNavigation(bookmark.url, bookmark.title)
+                    }>
+                    <View style={styles.bookmarkListIcon}>
+                      <MaterialIcons
+                        name="language"
+                        size={16}
+                        color={theme.colors.foreground3}
+                      />
+                    </View>
+                    <Text style={styles.bookmarkListTitle} numberOfLines={1}>
+                      {bookmark.title}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Empty State */}
+            {bookmarks.length === 0 && collections.length === 0 && (
               <View style={styles.bookmarksEmptyState}>
                 <MaterialIcons
                   name="bookmark-border"
@@ -901,38 +1186,26 @@ export default function WebBrowserScreen({route}: Props) {
                 />
                 <Text style={styles.bookmarksEmptyText}>No bookmarks yet</Text>
               </View>
-            ) : (
-              bookmarks.map(bookmark => (
-                <TouchableOpacity
-                  key={bookmark.id}
-                  style={styles.bookmarkModalItem}
-                  onPress={() =>
-                    handleBookmarkNavigation(bookmark.url, bookmark.title)
-                  }>
-                  <View style={styles.bookmarkModalIcon}>
-                    <MaterialIcons
-                      name="language"
-                      size={20}
-                      color={theme.colors.foreground3}
-                    />
-                  </View>
-                  <View style={styles.bookmarkModalInfo}>
-                    <Text style={styles.bookmarkModalTitle} numberOfLines={1}>
-                      {bookmark.title}
-                    </Text>
-                    <Text style={styles.bookmarkModalUrl} numberOfLines={1}>
-                      {bookmark.url}
-                    </Text>
-                  </View>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={20}
-                    color={theme.colors.foreground3}
-                  />
-                </TouchableOpacity>
-              ))
             )}
           </ScrollView>
+
+          {/* Bottom Tab Bar */}
+          <View style={styles.bookmarksTabBar}>
+            <TouchableOpacity style={styles.bookmarksTab}>
+              <MaterialIcons
+                name="bookmark"
+                size={22}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.bookmarksTab}>
+              <MaterialIcons
+                name="history"
+                size={22}
+                color={theme.colors.foreground3}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
