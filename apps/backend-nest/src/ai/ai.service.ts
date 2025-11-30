@@ -1617,6 +1617,332 @@ ${climateNote}
       );
     }
 
+    /* 📅 --- LOAD CALENDAR EVENTS FOR CHAT CONTEXT --- */
+    let calendarContext = '';
+    try {
+      const { rows: calendarRows } = await pool.query(
+        `SELECT title, start_date, end_date, location, notes
+         FROM user_calendar_events
+         WHERE user_id = $1
+         AND start_date >= NOW()
+         ORDER BY start_date ASC
+         LIMIT 15`,
+        [user_id],
+      );
+      if (calendarRows.length > 0) {
+        calendarContext = '\n\n📅 UPCOMING EVENTS:\n' + calendarRows
+          .map((e) => {
+            const start = new Date(e.start_date).toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            });
+            return `• ${e.title} on ${start}${e.location ? ` at ${e.location}` : ''}${e.notes ? ` (${e.notes})` : ''}`;
+          })
+          .join('\n');
+        console.log(`📅 Chat: Loaded ${calendarRows.length} upcoming calendar events`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load calendar events for chat:', err.message);
+    }
+
+    /* 👗 --- LOAD STYLE PROFILE FOR CHAT CONTEXT --- */
+    let styleProfileContext = '';
+    try {
+      const { rows: styleRows } = await pool.query(
+        `SELECT body_type, skin_tone, undertone, climate,
+                favorite_colors, fit_preferences, preferred_brands,
+                disliked_styles, style_keywords, style_preferences,
+                hair_color, eye_color, height, waist, goals
+         FROM style_profiles
+         WHERE user_id = $1
+         LIMIT 1`,
+        [user_id],
+      );
+      if (styleRows.length > 0) {
+        const sp = styleRows[0];
+        const parts: string[] = [];
+        if (sp.body_type) parts.push(`Body type: ${sp.body_type}`);
+        if (sp.skin_tone) parts.push(`Skin tone: ${sp.skin_tone}`);
+        if (sp.undertone) parts.push(`Undertone: ${sp.undertone}`);
+        if (sp.hair_color) parts.push(`Hair: ${sp.hair_color}`);
+        if (sp.eye_color) parts.push(`Eyes: ${sp.eye_color}`);
+        if (sp.height) parts.push(`Height: ${sp.height}`);
+        if (sp.climate) parts.push(`Climate: ${sp.climate}`);
+        if (sp.favorite_colors?.length) parts.push(`Favorite colors: ${Array.isArray(sp.favorite_colors) ? sp.favorite_colors.join(', ') : sp.favorite_colors}`);
+        if (sp.fit_preferences?.length) parts.push(`Fit preferences: ${Array.isArray(sp.fit_preferences) ? sp.fit_preferences.join(', ') : sp.fit_preferences}`);
+        if (sp.preferred_brands?.length) parts.push(`Preferred brands: ${Array.isArray(sp.preferred_brands) ? sp.preferred_brands.join(', ') : sp.preferred_brands}`);
+        if (sp.disliked_styles?.length) parts.push(`Dislikes: ${Array.isArray(sp.disliked_styles) ? sp.disliked_styles.join(', ') : sp.disliked_styles}`);
+        if (sp.style_keywords?.length) parts.push(`Style keywords: ${Array.isArray(sp.style_keywords) ? sp.style_keywords.join(', ') : sp.style_keywords}`);
+        if (sp.goals) parts.push(`Goals: ${sp.goals}`);
+        if (parts.length > 0) {
+          styleProfileContext = '\n\n👗 STYLE PROFILE:\n' + parts.join('\n');
+          console.log(`👗 Chat: Loaded style profile with ${parts.length} attributes`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load style profile for chat:', err.message);
+    }
+
+    /* 👔 --- LOAD WARDROBE ITEMS FOR CHAT CONTEXT --- */
+    let wardrobeContext = '';
+    try {
+      const { rows: wardrobeRows } = await pool.query(
+        `SELECT name, main_category, subcategory, color, material, brand, fit
+         FROM wardrobe_items
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 50`,
+        [user_id],
+      );
+      if (wardrobeRows.length > 0) {
+        const grouped: Record<string, string[]> = {};
+        for (const item of wardrobeRows) {
+          const cat = item.main_category || 'Other';
+          if (!grouped[cat]) grouped[cat] = [];
+          const desc = [item.color, item.name || item.subcategory, item.brand]
+            .filter(Boolean)
+            .join(' ');
+          if (desc) grouped[cat].push(desc);
+        }
+        wardrobeContext = '\n\n👔 USER WARDROBE:\n' + Object.entries(grouped)
+          .map(([cat, items]) => `${cat}: ${items.slice(0, 8).join(', ')}`)
+          .join('\n');
+        console.log(`👔 Chat: Loaded ${wardrobeRows.length} wardrobe items`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load wardrobe items for chat:', err.message);
+    }
+
+    /* ⭐ --- LOAD SAVED LOOKS FOR CHAT CONTEXT --- */
+    let savedLooksContext = '';
+    try {
+      const { rows: savedRows } = await pool.query(
+        `SELECT name, created_at
+         FROM saved_looks
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 10`,
+        [user_id],
+      );
+      if (savedRows.length > 0) {
+        savedLooksContext = '\n\n⭐ SAVED LOOKS:\n' + savedRows
+          .map((l) => `• ${l.name}`)
+          .join('\n');
+        console.log(`⭐ Chat: Loaded ${savedRows.length} saved looks`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load saved looks for chat:', err.message);
+    }
+
+    /* 🎨 --- LOAD RECREATED LOOKS FOR CHAT CONTEXT --- */
+    let recreatedLooksContext = '';
+    try {
+      const { rows: recreatedRows } = await pool.query(
+        `SELECT tags, created_at
+         FROM recreated_looks
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 10`,
+        [user_id],
+      );
+      if (recreatedRows.length > 0) {
+        const allTags = recreatedRows.flatMap((r) => r.tags || []).filter(Boolean);
+        const uniqueTags = [...new Set(allTags)].slice(0, 20);
+        if (uniqueTags.length > 0) {
+          recreatedLooksContext = '\n\n🎨 RECENT LOOK INSPIRATIONS (tags): ' + uniqueTags.join(', ');
+          console.log(`🎨 Chat: Loaded ${recreatedRows.length} recreated looks`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load recreated looks for chat:', err.message);
+    }
+
+    /* 📝 --- LOAD OUTFIT FEEDBACK FOR CHAT CONTEXT --- */
+    let feedbackContext = '';
+    try {
+      const { rows: feedbackRows } = await pool.query(
+        `SELECT rating, notes, outfit_json
+         FROM outfit_feedback
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 10`,
+        [user_id],
+      );
+      if (feedbackRows.length > 0) {
+        const likes = feedbackRows.filter((f) => f.rating >= 4);
+        const dislikes = feedbackRows.filter((f) => f.rating <= 2);
+        const parts: string[] = [];
+        if (likes.length > 0) {
+          const likeNotes = likes.map((f) => f.notes).filter(Boolean).slice(0, 3);
+          parts.push(`Liked outfits: ${likes.length}${likeNotes.length ? ' - ' + likeNotes.join('; ') : ''}`);
+        }
+        if (dislikes.length > 0) {
+          const dislikeNotes = dislikes.map((f) => f.notes).filter(Boolean).slice(0, 3);
+          parts.push(`Disliked outfits: ${dislikes.length}${dislikeNotes.length ? ' - ' + dislikeNotes.join('; ') : ''}`);
+        }
+        if (parts.length > 0) {
+          feedbackContext = '\n\n📝 OUTFIT FEEDBACK:\n' + parts.join('\n');
+          console.log(`📝 Chat: Loaded ${feedbackRows.length} outfit feedback entries`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load outfit feedback for chat:', err.message);
+    }
+
+    /* 👕 --- LOAD WEAR HISTORY FOR CHAT CONTEXT --- */
+    let wearHistoryContext = '';
+    try {
+      const { rows: wearRows } = await pool.query(
+        `SELECT items_jsonb, context_jsonb, worn_at
+         FROM wear_events
+         WHERE user_id = $1
+         ORDER BY worn_at DESC
+         LIMIT 10`,
+        [user_id],
+      );
+      if (wearRows.length > 0) {
+        const recentWears = wearRows.slice(0, 5).map((w) => {
+          const date = new Date(w.worn_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const context = w.context_jsonb?.occasion || w.context_jsonb?.event || '';
+          return `• ${date}${context ? ' (' + context + ')' : ''}`;
+        }).filter(Boolean);
+        if (recentWears.length > 0) {
+          wearHistoryContext = '\n\n👕 RECENTLY WORN:\n' + recentWears.join('\n');
+          console.log(`👕 Chat: Loaded ${wearRows.length} wear events`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load wear history for chat:', err.message);
+    }
+
+    /* 📆 --- LOAD SCHEDULED OUTFITS FOR CHAT CONTEXT --- */
+    let scheduledOutfitsContext = '';
+    try {
+      const { rows: scheduledRows } = await pool.query(
+        `SELECT scheduled_for, notes, location
+         FROM scheduled_outfits
+         WHERE user_id = $1
+         AND scheduled_for >= NOW()
+         ORDER BY scheduled_for ASC
+         LIMIT 5`,
+        [user_id],
+      );
+      if (scheduledRows.length > 0) {
+        scheduledOutfitsContext = '\n\n📆 SCHEDULED OUTFITS:\n' + scheduledRows
+          .map((s) => {
+            const date = new Date(s.scheduled_for).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            return `• ${date}${s.location ? ' at ' + s.location : ''}${s.notes ? ' - ' + s.notes : ''}`;
+          })
+          .join('\n');
+        console.log(`📆 Chat: Loaded ${scheduledRows.length} scheduled outfits`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load scheduled outfits for chat:', err.message);
+    }
+
+    /* ❤️ --- LOAD OUTFIT FAVORITES FOR CHAT CONTEXT --- */
+    let favoritesContext = '';
+    try {
+      const { rows: favRows } = await pool.query(
+        `SELECT outfit_type, COUNT(*) as count
+         FROM outfit_favorites
+         WHERE user_id = $1
+         GROUP BY outfit_type`,
+        [user_id],
+      );
+      if (favRows.length > 0) {
+        favoritesContext = '\n\n❤️ FAVORITED OUTFITS: ' + favRows
+          .map((f) => `${f.outfit_type || 'outfit'}: ${f.count}`)
+          .join(', ');
+        console.log(`❤️ Chat: Loaded ${favRows.length} outfit favorite types`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load outfit favorites for chat:', err.message);
+    }
+
+    /* 🎯 --- LOAD CUSTOM OUTFITS FOR CHAT CONTEXT --- */
+    let customOutfitsContext = '';
+    try {
+      const { rows: customRows } = await pool.query(
+        `SELECT name, notes, rating
+         FROM custom_outfits
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 10`,
+        [user_id],
+      );
+      if (customRows.length > 0) {
+        customOutfitsContext = '\n\n🎯 CUSTOM OUTFITS CREATED:\n' + customRows
+          .map((c) => `• ${c.name}${c.rating ? ' (rated ' + c.rating + '/5)' : ''}${c.notes ? ' - ' + c.notes : ''}`)
+          .join('\n');
+        console.log(`🎯 Chat: Loaded ${customRows.length} custom outfits`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load custom outfits for chat:', err.message);
+    }
+
+    /* 👍 --- LOAD ITEM PREFERENCES FOR CHAT CONTEXT --- */
+    let itemPrefsContext = '';
+    try {
+      const { rows: prefRows } = await pool.query(
+        `SELECT up.score, wi.name, wi.main_category, wi.color
+         FROM user_pref_item up
+         JOIN wardrobe_items wi ON up.item_id = wi.id
+         WHERE up.user_id = $1
+         ORDER BY up.score DESC
+         LIMIT 10`,
+        [user_id],
+      );
+      if (prefRows.length > 0) {
+        const liked = prefRows.filter((p) => p.score > 0);
+        const disliked = prefRows.filter((p) => p.score < 0);
+        const parts: string[] = [];
+        if (liked.length > 0) {
+          parts.push('Most liked items: ' + liked.slice(0, 5).map((p) => p.name || `${p.color} ${p.main_category}`).join(', '));
+        }
+        if (disliked.length > 0) {
+          parts.push('Least liked items: ' + disliked.slice(0, 3).map((p) => p.name || `${p.color} ${p.main_category}`).join(', '));
+        }
+        if (parts.length > 0) {
+          itemPrefsContext = '\n\n👍 ITEM PREFERENCES:\n' + parts.join('\n');
+          console.log(`👍 Chat: Loaded ${prefRows.length} item preferences`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load item preferences for chat:', err.message);
+    }
+
+    /* 🔍 --- LOAD LOOK MEMORIES FOR CHAT CONTEXT --- */
+    let lookMemoriesContext = '';
+    try {
+      const { rows: memRows } = await pool.query(
+        `SELECT ai_tags, query_used
+         FROM look_memories
+         WHERE user_id = $1
+         ORDER BY created_at DESC
+         LIMIT 15`,
+        [user_id],
+      );
+      if (memRows.length > 0) {
+        const allTags = memRows.flatMap((m) => m.ai_tags || []).filter(Boolean);
+        const uniqueTags = [...new Set(allTags)].slice(0, 15);
+        const queries = [...new Set(memRows.map((m) => m.query_used).filter(Boolean))].slice(0, 5);
+        const parts: string[] = [];
+        if (uniqueTags.length > 0) parts.push('Style tags explored: ' + uniqueTags.join(', '));
+        if (queries.length > 0) parts.push('Recent searches: ' + queries.join(', '));
+        if (parts.length > 0) {
+          lookMemoriesContext = '\n\n🔍 LOOK EXPLORATION HISTORY:\n' + parts.join('\n');
+          console.log(`🔍 Chat: Loaded ${memRows.length} look memories`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load look memories for chat:', err.message);
+    }
+
+    // Combine all context into enhanced summary
+    const fullContext = (longTermSummary || '(no prior memory yet)') + styleProfileContext + wardrobeContext + calendarContext + savedLooksContext + recreatedLooksContext + feedbackContext + wearHistoryContext + scheduledOutfitsContext + favoritesContext + customOutfitsContext + itemPrefsContext + lookMemoriesContext;
+
     // 1️⃣ Generate base text with OpenAI
     const completion = await this.openai.chat.completions.create({
       model: 'gpt-4o',
@@ -1627,7 +1953,7 @@ ${climateNote}
           content: `
 You are a world-class personal fashion stylist.
 Keep in mind the user's previous preferences and style details:
-${longTermSummary || '(no prior memory yet)'}
+${fullContext}
 Respond naturally about outfits, wardrobe planning, or styling.
 At the end, return a short JSON block like:
 {"search_terms":["smart casual men","navy blazer outfit","loafers"]}
