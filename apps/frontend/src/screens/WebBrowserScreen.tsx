@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, {useRef, useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
 import {WebView} from 'react-native-webview';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {captureRef} from 'react-native-view-shot';
 import {useAppTheme} from '../context/ThemeContext';
 import {useShoppingStore} from '../../../../store/shoppingStore';
 import {triggerHaptic} from '../utils/haptics';
@@ -58,6 +59,7 @@ export default function WebBrowserScreen({route}: Props) {
     removeTab,
     switchTab,
     updateTab,
+    updateTabScreenshot,
     addBookmark,
     removeBookmark,
     isBookmarked,
@@ -215,17 +217,27 @@ export default function WebBrowserScreen({route}: Props) {
     setShowBookmarksModal(false);
   };
 
-  const captureCurrentTabScreenshot = async () => {
-    if (!containerRef.current || !currentTab) return;
+  const captureCurrentTabScreenshot = useCallback(async () => {
+    if (!containerRef.current || !currentTab || !currentTab.url) {
+      console.log('Screenshot skipped - no containerRef or currentTab');
+      return;
+    }
     try {
-      // Use react-native-view-shot ViewShot component to capture
-      // For now, we'll store a placeholder until actual capture is implemented
-      // In a real scenario, you would wrap the view and use the ViewShot ref
-      // updateTabScreenshot(currentTab.id, uri);
+      console.log('Capturing screenshot for tab:', currentTab.id);
+      const uri = await captureRef(containerRef, {
+        format: 'jpg',
+        quality: 0.7,
+        result: 'data-uri',
+      });
+      console.log('Screenshot captured, length:', uri?.length);
+      if (uri) {
+        updateTabScreenshot(currentTab.id, uri);
+        console.log('Screenshot saved to tab');
+      }
     } catch (error) {
       console.log('Screenshot capture error:', error);
     }
-  };
+  }, [currentTab, updateTabScreenshot]);
 
   const openTabsView = async () => {
     triggerHaptic('impactLight');
@@ -860,7 +872,7 @@ export default function WebBrowserScreen({route}: Props) {
           </View>
         </ScrollView>
       ) : (
-        <View ref={containerRef} style={{flex: 1}}>
+        <View ref={containerRef} style={{flex: 1}} collapsable={false}>
           <WebView
             ref={webRef}
             source={{uri: currentTab?.url || ''}}

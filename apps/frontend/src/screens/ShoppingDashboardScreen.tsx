@@ -541,8 +541,8 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
           </Animatable.View>
         )}
         {/* Empty State */}
-        collections.length === 0 && recentVisits.length === 0 && (
-        <View style={styles.emptyState}>
+        {collections.length === 0 && recentVisits.length === 0 && (
+          <View style={styles.emptyState}>
           {/* <MaterialIcons
                 name="shopping-bag"
                 size={48}
@@ -552,7 +552,8 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
           <Text style={styles.emptyText}>
             Start exploring and saving your favorite items
           </Text>
-        </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
