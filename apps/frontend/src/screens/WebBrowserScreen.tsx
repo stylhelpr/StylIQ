@@ -71,6 +71,7 @@ export default function WebBrowserScreen({route}: Props) {
     addItemToCollection,
     history,
     addToHistory,
+    addSearch,
     _hasHydrated,
   } = useShoppingStore();
 
@@ -137,15 +138,43 @@ export default function WebBrowserScreen({route}: Props) {
     if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
       return normalized;
     }
+    // Check if it looks like a domain (has a dot and looks like a valid domain pattern)
+    // Valid domain patterns: example.com, sub.example.com, example.co.uk, etc.
     if (normalized.includes('.') && !normalized.includes(' ')) {
-      return `https://${normalized}`;
+      // Check if it has a valid TLD or domain structure
+      const parts = normalized.split('.');
+      const lastPart = parts[parts.length - 1];
+      // Check if the last part (potential TLD) is at least 2 characters and is alphabetic
+      if (lastPart.length >= 2 && /^[a-zA-Z]+$/.test(lastPart)) {
+        // Looks like a valid domain
+        return `https://${normalized}`;
+      }
     }
+    // Treat as search query
     return `https://google.com/search?q=${encodeURIComponent(normalized)}`;
   };
 
   const handleSubmit = () => {
     if (inputValue.trim()) {
-      const newUrl = normalizeUrl(inputValue);
+      const normalized = inputValue.trim();
+      const newUrl = normalizeUrl(normalized);
+
+      // Track search if user typed a search query (not a full URL)
+      if (!normalized.startsWith('http://') && !normalized.startsWith('https://') && !normalized.includes('.')) {
+        // This is a plain search query
+        addSearch(normalized);
+      } else if (newUrl.includes('google.com/search?q=')) {
+        // User typed a domain-like query that got converted to Google search
+        try {
+          const query = new URLSearchParams(new URL(newUrl).search).get('q');
+          if (query) {
+            addSearch(query);
+          }
+        } catch (e) {
+          // URL parsing failed, skip search tracking
+        }
+      }
+
       if (currentTab) {
         updateTab(currentTab.id, newUrl, currentTab.title);
       } else {
@@ -966,7 +995,7 @@ export default function WebBrowserScreen({route}: Props) {
             placeholderTextColor={theme.colors.foreground3}
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType="url"
+            keyboardType="ascii-capable"
             returnKeyType="go"
             selectTextOnFocus
           />

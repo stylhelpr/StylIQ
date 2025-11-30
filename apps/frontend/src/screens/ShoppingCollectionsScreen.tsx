@@ -252,17 +252,19 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setSelectedCollectionId(null)}>
+          <AppleTouchFeedback
+            onPress={() => setSelectedCollectionId(null)}
+            hapticStyle="impactLight">
             <MaterialIcons
               name="arrow-back-ios"
               size={24}
               color={theme.colors.primary}
             />
-          </TouchableOpacity>
+          </AppleTouchFeedback>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {selectedCollection.name}
           </Text>
-          <TouchableOpacity
+          <AppleTouchFeedback
             onPress={() =>
               handleDeleteCollection(
                 selectedCollection.id,
@@ -274,7 +276,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
               size={24}
               color={theme.colors.foreground3}
             />
-          </TouchableOpacity>
+          </AppleTouchFeedback>
         </View>
 
         {selectedCollection.items.length === 0 ? (
@@ -334,15 +336,15 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
             alignItems: 'center',
           },
         ]}>
-        <TouchableOpacity
-          style={{padding: 8}}
-          onPress={() => navigate?.('ShoppingDashboard')}>
+        <AppleTouchFeedback
+          onPress={() => navigate?.('ShoppingDashboard')}
+          hapticStyle="impactLight">
           <MaterialIcons
             name="arrow-back-ios"
             size={22}
             color={theme.colors.primary}
           />
-        </TouchableOpacity>
+        </AppleTouchFeedback>
         <Text style={styles.headerTitle}>Wishlists</Text>
         <View style={{width: 38}} />
       </View>

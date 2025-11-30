@@ -196,7 +196,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
             alignItems: 'center',
             marginBottom: 12,
           }}>
-          <TouchableOpacity
+          <AppleTouchFeedback
             style={[styles.backButton, {padding: 8}]}
             onPress={() => navigate?.('ShoppingDashboard')}>
             <MaterialIcons
@@ -204,7 +204,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
               size={22}
               color={theme.colors.primary}
             />
-          </TouchableOpacity>
+          </AppleTouchFeedback>
           <Text style={styles.headerTitle}>Bookmarks</Text>
           <View style={{width: 38}} />
         </View>
@@ -305,9 +305,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
                 <View style={styles.bookmarkActions}>
                   <AppleTouchFeedback
                     style={styles.actionButton}
-                    onPress={() =>
-                      navigate?.('WebBrowser', {url: item.url})
-                    }
+                    onPress={() => navigate?.('WebBrowser', {url: item.url})}
                     hapticStyle="impactLight">
                     <MaterialIcons
                       name="open-in-new"
