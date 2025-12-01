@@ -176,6 +176,21 @@ export default function GoldDataViewer() {
           <Text style={styles.statLabel}>Avg Dwell Time</Text>
           <Text style={styles.statValue}>{insights.avgDwellTime}s</Text>
         </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Avg Scroll Depth</Text>
+          <Text style={styles.statValue}>
+            {Math.round(
+              store.history.reduce((sum, h) => sum + (h.scrollDepth || 0), 0) /
+                store.history.filter(h => h.scrollDepth !== undefined).length || 0
+            )}%
+          </Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>Pages with Dwell Time</Text>
+          <Text style={styles.statValue}>
+            {store.history.filter(h => h.dwellTime).length}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -252,48 +267,67 @@ export default function GoldDataViewer() {
     </ScrollView>
   );
 
-  const renderBookmarks = () => (
-    <ScrollView>
-      {store.bookmarks.length === 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.statLabel}>No bookmarks yet</Text>
-        </View>
-      ) : (
-        store.bookmarks.map((bookmark, idx) => (
-          <View key={idx} style={[styles.card, styles.bookmarkItem]}>
-            <Text style={styles.bookmarkTitle}>{bookmark.title}</Text>
-            <Text style={styles.bookmarkMeta}>🔗 {bookmark.source}</Text>
-            <Text style={styles.bookmarkMeta}>
-              📂 {bookmark.category || 'N/A'}
-            </Text>
-            <Text style={styles.bookmarkMeta}>
-              👀 Views: {bookmark.viewCount || 1}
-            </Text>
-            {bookmark.emotionAtSave && (
-              <Text style={styles.bookmarkMeta}>
-                😊 Emotion: {bookmark.emotionAtSave}
-              </Text>
-            )}
-            {bookmark.sizesViewed && bookmark.sizesViewed.length > 0 && (
-              <Text style={styles.bookmarkMeta}>
-                📏 Sizes: {bookmark.sizesViewed.join(', ')}
-              </Text>
-            )}
-            {bookmark.colorsViewed && bookmark.colorsViewed.length > 0 && (
-              <Text style={styles.bookmarkMeta}>
-                🎨 Colors: {bookmark.colorsViewed.join(', ')}
-              </Text>
-            )}
-            {bookmark.priceHistory && bookmark.priceHistory.length > 0 && (
-              <Text style={styles.bookmarkMeta}>
-                💰 ${bookmark.priceHistory[0].price}
-              </Text>
-            )}
+  const renderBookmarks = () => {
+    const getHistoryForUrl = (url: string) => {
+      return store.history.find(h => h.url === url);
+    };
+
+    return (
+      <ScrollView>
+        {store.bookmarks.length === 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.statLabel}>No bookmarks yet</Text>
           </View>
-        ))
-      )}
-    </ScrollView>
-  );
+        ) : (
+          store.bookmarks.map((bookmark, idx) => {
+            const historyEntry = getHistoryForUrl(bookmark.url);
+            return (
+              <View key={idx} style={[styles.card, styles.bookmarkItem]}>
+                <Text style={styles.bookmarkTitle}>{bookmark.title}</Text>
+                <Text style={styles.bookmarkMeta}>🔗 {bookmark.source}</Text>
+                <Text style={styles.bookmarkMeta}>
+                  📂 {bookmark.category || 'N/A'}
+                </Text>
+                <Text style={styles.bookmarkMeta}>
+                  👀 Views: {bookmark.viewCount || 1}
+                </Text>
+                {historyEntry?.dwellTime !== undefined && (
+                  <Text style={styles.bookmarkMeta}>
+                    ⏱️ Dwell: {historyEntry.dwellTime}s
+                  </Text>
+                )}
+                {historyEntry?.scrollDepth !== undefined && (
+                  <Text style={styles.bookmarkMeta}>
+                    📜 Scroll: {historyEntry.scrollDepth}%
+                  </Text>
+                )}
+                {bookmark.emotionAtSave && (
+                  <Text style={styles.bookmarkMeta}>
+                    😊 Emotion: {bookmark.emotionAtSave}
+                  </Text>
+                )}
+                {bookmark.sizesViewed && bookmark.sizesViewed.length > 0 && (
+                  <Text style={styles.bookmarkMeta}>
+                    📏 Sizes: {bookmark.sizesViewed.join(', ')}
+                  </Text>
+                )}
+                {bookmark.colorsViewed && bookmark.colorsViewed.length > 0 && (
+                  <Text style={styles.bookmarkMeta}>
+                    🎨 Colors: {bookmark.colorsViewed.join(', ')}
+                  </Text>
+                )}
+                {bookmark.priceHistory && bookmark.priceHistory.length > 0 && (
+                  <Text style={styles.bookmarkMeta}>
+                    💰 ${bookmark.priceHistory[0].price}
+                  </Text>
+                )}
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+    );
+  };
 
   const renderInteractions = () => (
     <ScrollView>
