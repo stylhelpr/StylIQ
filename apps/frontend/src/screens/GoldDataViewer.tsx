@@ -270,6 +270,76 @@ export default function GoldDataViewer() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.cardTitle}>📏 Size Preferences</Text>
+        {(() => {
+          const allSizes = store.bookmarks
+            .flatMap(b => b.sizesViewed || []);
+          const sizeCounts = allSizes.reduce((acc, size) => {
+            acc[size] = (acc[size] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const topSizes = Object.entries(sizeCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+          return (
+            <>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Bookmarks with Sizes</Text>
+                <Text style={styles.statValue}>
+                  {store.bookmarks.filter(b => b.sizesViewed?.length).length}
+                </Text>
+              </View>
+              {topSizes.length > 0 ? (
+                topSizes.map(([size, count], idx) => (
+                  <View key={idx} style={styles.statRow}>
+                    <Text style={styles.statLabel}>{size}</Text>
+                    <Text style={styles.statValue}>{count}x</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.statLabel}>No sizes tracked yet</Text>
+              )}
+            </>
+          );
+        })()}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🎨 Color Preferences</Text>
+        {(() => {
+          const allColors = store.bookmarks
+            .flatMap(b => b.colorsViewed || []);
+          const colorCounts = allColors.reduce((acc, color) => {
+            acc[color] = (acc[color] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const topColors = Object.entries(colorCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+          return (
+            <>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Bookmarks with Colors</Text>
+                <Text style={styles.statValue}>
+                  {store.bookmarks.filter(b => b.colorsViewed?.length).length}
+                </Text>
+              </View>
+              {topColors.length > 0 ? (
+                topColors.map(([color, count], idx) => (
+                  <View key={idx} style={styles.statRow}>
+                    <Text style={styles.statLabel}>{color}</Text>
+                    <Text style={styles.statValue}>{count}x</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.statLabel}>No colors tracked yet</Text>
+              )}
+            </>
+          );
+        })()}
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.cardTitle}>🔗 Interactions</Text>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Total Interactions</Text>
