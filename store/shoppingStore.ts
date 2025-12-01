@@ -72,6 +72,41 @@ export type ProductInteraction = {
   cartTimeline?: CartEvent[]; // GOLD: Cart abandonment tracking
 };
 
+// Password Manager
+export type SavedPassword = {
+  id: string;
+  domain: string; // e.g., 'amazon.com'
+  username: string;
+  password: string; // encrypted in production
+  savedAt: number;
+};
+
+// Form Auto-fill
+export type SavedAddress = {
+  id: string;
+  name: string; // "Home", "Work"
+  fullName: string;
+  email: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  savedAt: number;
+};
+
+export type SavedCard = {
+  id: string;
+  name: string; // "Visa", "Amex"
+  lastFour: string;
+  cardholderName: string;
+  expiryMonth: number;
+  expiryYear: number;
+  savedAt: number;
+  // Full card number should NEVER be stored (PCI compliance)
+};
+
 type ShoppingState = {
   // Bookmarks & Favorites
   bookmarks: ShoppingItem[];
@@ -86,10 +121,31 @@ type ShoppingState = {
   getRecentHistory: (limit?: number) => BrowsingHistory[];
   getMostVisitedSites: (limit?: number) => BrowsingHistory[];
   getTopShops: (limit?: number) => {source: string; visits: number}[];
+  searchHistory: (query: string) => BrowsingHistory[]; // Full-text search
+
+  // Password Manager
+  savedPasswords: SavedPassword[];
+  addPassword: (domain: string, username: string, password: string) => void;
+  getPasswordForDomain: (domain: string) => SavedPassword | undefined;
+  removePassword: (id: string) => void;
+
+  // Form Auto-fill - Addresses
+  savedAddresses: SavedAddress[];
+  addAddress: (address: Omit<SavedAddress, 'id' | 'savedAt'>) => void;
+  removeAddress: (id: string) => void;
+
+  // Form Auto-fill - Cards
+  savedCards: SavedCard[];
+  addCard: (card: Omit<SavedCard, 'id' | 'savedAt'>) => void;
+  removeCard: (id: string) => void;
 
   // Collections/Wishlists
   collections: Collection[];
-  createCollection: (name: string, description?: string, color?: string) => void;
+  createCollection: (
+    name: string,
+    description?: string,
+    color?: string,
+  ) => void;
   deleteCollection: (id: string) => void;
   addItemToCollection: (collectionId: string, item: ShoppingItem) => void;
   removeItemFromCollection: (collectionId: string, itemId: string) => void;
@@ -120,16 +176,35 @@ type ShoppingState = {
   productInteractions: ProductInteraction[];
   startSession: () => void;
   endSession: () => void;
-  recordProductInteraction: (productUrl: string, type: 'view' | 'add_to_cart' | 'bookmark', bodyMeasurements?: any) => void;
+  recordProductInteraction: (
+    productUrl: string,
+    type: 'view' | 'add_to_cart' | 'bookmark',
+    bodyMeasurements?: any,
+  ) => void;
 
   // GOLD: Cart Abandonment & Purchase Tracking
-  cartHistory: {cartUrl: string; events: CartEvent[]; abandoned: boolean; timeToCheckout?: number}[];
+  cartHistory: {
+    cartUrl: string;
+    events: CartEvent[];
+    abandoned: boolean;
+    timeToCheckout?: number;
+  }[];
   recordCartEvent: (event: CartEvent) => void;
-  getCartAbandonmentStats: () => {totalCarts: number; abandonedCarts: number; avgTimeToCheckout: number};
+  getCartAbandonmentStats: () => {
+    totalCarts: number;
+    abandonedCarts: number;
+    avgTimeToCheckout: number;
+  };
 
   // GOLD: Update enriched data
-  updateBookmarkMetadata: (bookmarkId: string, metadata: Partial<ShoppingItem>) => void;
-  updateHistoryMetadata: (historyUrl: string, metadata: Partial<BrowsingHistory>) => void;
+  updateBookmarkMetadata: (
+    bookmarkId: string,
+    metadata: Partial<ShoppingItem>,
+  ) => void;
+  updateHistoryMetadata: (
+    historyUrl: string,
+    metadata: Partial<BrowsingHistory>,
+  ) => void;
 
   // Hydration
   _hasHydrated: boolean;
@@ -206,10 +281,90 @@ export const useShoppingStore = create<ShoppingState>()(
           .sort((a, b) => b.visits - a.visits)
           .slice(0, limit);
       },
+      searchHistory: (query: string) => {
+        const q = query.toLowerCase();
+        return get().history.filter(
+          h =>
+            h.title.toLowerCase().includes(q) ||
+            h.url.toLowerCase().includes(q) ||
+            h.source.toLowerCase().includes(q),
+        );
+      },
+
+      // Password Manager
+      savedPasswords: [],
+      addPassword: (domain: string, username: string, password: string) => {
+        set(state => ({
+          savedPasswords: [
+            {
+              id: `pwd_${Date.now()}`,
+              domain,
+              username,
+              password,
+              savedAt: Date.now(),
+            },
+            ...state.savedPasswords,
+          ],
+        }));
+      },
+      getPasswordForDomain: (domain: string) => {
+        return get().savedPasswords.find(
+          p => p.domain.includes(domain) || domain.includes(p.domain),
+        );
+      },
+      removePassword: (id: string) => {
+        set(state => ({
+          savedPasswords: state.savedPasswords.filter(p => p.id !== id),
+        }));
+      },
+
+      // Form Auto-fill - Addresses
+      savedAddresses: [],
+      addAddress: (address: Omit<SavedAddress, 'id' | 'savedAt'>) => {
+        set(state => ({
+          savedAddresses: [
+            {
+              ...address,
+              id: `addr_${Date.now()}`,
+              savedAt: Date.now(),
+            },
+            ...state.savedAddresses,
+          ],
+        }));
+      },
+      removeAddress: (id: string) => {
+        set(state => ({
+          savedAddresses: state.savedAddresses.filter(a => a.id !== id),
+        }));
+      },
+
+      // Form Auto-fill - Cards
+      savedCards: [],
+      addCard: (card: Omit<SavedCard, 'id' | 'savedAt'>) => {
+        set(state => ({
+          savedCards: [
+            {
+              ...card,
+              id: `card_${Date.now()}`,
+              savedAt: Date.now(),
+            },
+            ...state.savedCards,
+          ],
+        }));
+      },
+      removeCard: (id: string) => {
+        set(state => ({
+          savedCards: state.savedCards.filter(c => c.id !== id),
+        }));
+      },
 
       // Collections
       collections: [],
-      createCollection: (name: string, description?: string, color = '#6366f1') => {
+      createCollection: (
+        name: string,
+        description?: string,
+        color = '#6366f1',
+      ) => {
         const collection: Collection = {
           id: `col_${Date.now()}`,
           name,
@@ -235,7 +390,9 @@ export const useShoppingStore = create<ShoppingState>()(
               const exists = c.items.some(i => i.id === item.id);
               return {
                 ...c,
-                items: exists ? c.items : [{...item, addedAt: Date.now()}, ...c.items],
+                items: exists
+                  ? c.items
+                  : [{...item, addedAt: Date.now()}, ...c.items],
                 updatedAt: Date.now(),
               };
             }
@@ -288,16 +445,12 @@ export const useShoppingStore = create<ShoppingState>()(
       },
       updateTab: (id: string, url: string, title: string) => {
         set(state => ({
-          tabs: state.tabs.map(t =>
-            t.id === id ? {...t, id, url, title} : t,
-          ),
+          tabs: state.tabs.map(t => (t.id === id ? {...t, id, url, title} : t)),
         }));
       },
       updateTabScreenshot: (id: string, screenshot: string) => {
         set(state => ({
-          tabs: state.tabs.map(t =>
-            t.id === id ? {...t, screenshot} : t,
-          ),
+          tabs: state.tabs.map(t => (t.id === id ? {...t, screenshot} : t)),
         }));
       },
       reorderTabs: (fromIndex: number, toIndex: number) => {
@@ -349,7 +502,11 @@ export const useShoppingStore = create<ShoppingState>()(
       endSession: () => {
         set({currentSessionId: null});
       },
-      recordProductInteraction: (productUrl: string, type: 'view' | 'add_to_cart' | 'bookmark', bodyMeasurements?: any) => {
+      recordProductInteraction: (
+        productUrl: string,
+        type: 'view' | 'add_to_cart' | 'bookmark',
+        bodyMeasurements?: any,
+      ) => {
         set(state => ({
           productInteractions: [
             {
@@ -432,14 +589,20 @@ export const useShoppingStore = create<ShoppingState>()(
         };
       },
 
-      updateBookmarkMetadata: (bookmarkId: string, metadata: Partial<ShoppingItem>) => {
+      updateBookmarkMetadata: (
+        bookmarkId: string,
+        metadata: Partial<ShoppingItem>,
+      ) => {
         set(state => ({
           bookmarks: state.bookmarks.map(b =>
             b.id === bookmarkId ? {...b, ...metadata} : b,
           ),
         }));
       },
-      updateHistoryMetadata: (historyUrl: string, metadata: Partial<BrowsingHistory>) => {
+      updateHistoryMetadata: (
+        historyUrl: string,
+        metadata: Partial<BrowsingHistory>,
+      ) => {
         set(state => ({
           history: state.history.map(h =>
             h.url === historyUrl ? {...h, ...metadata} : h,
@@ -468,9 +631,12 @@ export const useShoppingStore = create<ShoppingState>()(
         productInteractions: state.productInteractions,
         cartHistory: state.cartHistory,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => state => {
         if (state) {
-          console.log('Shopping store rehydrated, tabs:', state.tabs?.length || 0);
+          console.log(
+            'Shopping store rehydrated, tabs:',
+            state.tabs?.length || 0,
+          );
           state.setHasHydrated(true);
         }
       },
