@@ -449,32 +449,35 @@ const RootNavigator = ({
         );
       case 'WebBrowser':
         return (
-          <WebBrowserScreen route={{params: screenParams}} navigate={navigate} />
+          <WebBrowserScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
         );
       case 'ShoppingDashboard':
-        return (
-          <ShoppingDashboardScreen navigate={navigate} />
-        );
+        return <ShoppingDashboardScreen navigate={navigate} />;
       case 'EnhancedWebBrowser':
         return (
-          <EnhancedWebBrowserScreen route={{params: screenParams}} navigate={navigate} />
+          <EnhancedWebBrowserScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
         );
       case 'ShoppingBookmarks':
-        return (
-          <ShoppingBookmarksScreen navigate={navigate} />
-        );
+        return <ShoppingBookmarksScreen navigate={navigate} />;
       case 'ShoppingCollections':
         return (
-          <ShoppingCollectionsScreen route={{params: screenParams}} navigate={navigate} />
+          <ShoppingCollectionsScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
         );
       case 'ShoppingInsights':
-        return (
-          <ShoppingInsightsScreen navigate={navigate} />
-        );
+        return <ShoppingInsightsScreen navigate={navigate} />;
       case 'MeasurementAutoScreen':
         return <MeasurementAutoScreen navigate={navigate} />;
       case 'GoldDataViewer':
-        return <GoldDataViewer />;
+        return <GoldDataViewer navigate={navigate} />;
       case 'MeasurementSideScreen':
         return <MeasurementSideScreen navigate={navigate} />;
       case 'Lifestyle':

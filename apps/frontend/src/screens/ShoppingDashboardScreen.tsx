@@ -100,8 +100,8 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
       backgroundColor: theme.colors.background,
       borderRadius: 12,
       padding: 12,
-      borderWidth: 1,
-      borderColor: theme.colors.surfaceBorder,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.muted,
     },
     statNumber: {
       fontSize: 24,
@@ -132,10 +132,11 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
       flex: 1,
       aspectRatio: 1,
       borderRadius: 16,
+      padding: 16,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 1,
-      borderColor: theme.colors.surfaceBorder,
+      // borderWidth: 1,
+      // borderColor: theme.colors.muted,
       backgroundColor: theme.colors.surface,
     },
     quickActionIcon: {
@@ -308,7 +309,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             <AppleTouchFeedback
               onPress={() => navigate?.('GoldDataViewer')}
               hapticStyle="impactLight">
-              <MaterialIcons name="settings" size={22} color="#fffb00ff" />
+              <MaterialIcons name="settings" size={22} color="#ffffffff" />
             </AppleTouchFeedback>
           </View>
 
@@ -344,28 +345,40 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             <Animatable.View
               animation="bounceIn"
               delay={200}
-              style={styles.statCard}>
+              style={[
+                styles.statCard,
+                // {backgroundColor: 'rgba(215, 38, 255, 1)'},
+              ]}>
               <Text style={styles.statNumber}>{bookmarks.length}</Text>
               <Text style={styles.statLabel}>Bookmarks</Text>
             </Animatable.View>
             <Animatable.View
               animation="bounceIn"
               delay={250}
-              style={styles.statCard}>
+              style={[
+                styles.statCard,
+                // {backgroundColor: 'rgba(4, 255, 0, 1)'},
+              ]}>
               <Text style={styles.statNumber}>{collections.length}</Text>
               <Text style={styles.statLabel}>Wishlists</Text>
             </Animatable.View>
             <Animatable.View
               animation="bounceIn"
               delay={300}
-              style={styles.statCard}>
+              style={[
+                styles.statCard,
+                // {backgroundColor: 'rgba(255, 38, 38, 1)'},
+              ]}>
               <Text style={styles.statNumber}>{history.length}</Text>
               <Text style={styles.statLabel}>Visited</Text>
             </Animatable.View>
             <Animatable.View
               animation="bounceIn"
               delay={350}
-              style={styles.statCard}>
+              style={[
+                styles.statCard,
+                // {backgroundColor: 'rgba(0, 21, 255, 1)'},
+              ]}>
               <Text style={styles.statNumber}>{tabs.length}</Text>
               <Text style={styles.statLabel}>Open Tabs</Text>
             </Animatable.View>
@@ -434,10 +447,10 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   <Text
                     style={{
                       color: theme.colors.primary,
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: tokens.fontWeight.semiBold,
                     }}>
-                    See All →
+                    See All
                   </Text>
                 </AppleTouchFeedback>
               </View>
@@ -517,17 +530,22 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                         navigate?.('ShoppingCollections', {id: collection.id})
                       }
                       style={styles.collectionCard}>
-                      <LinearGradient
-                        colors={[collection.color, collection.color + '80']}
-                        start={{x: 0, y: 0}}
-                        end={{x: 1, y: 1}}
-                        style={styles.collectionBadge}>
+                      <TouchableOpacity
+                        style={[
+                          styles.collectionBadge,
+                          {
+                            backgroundColor: theme.colors.background,
+                            // borderColor: theme.colors.muted,
+                            // borderWidth: tokens.borderWidth.hairline,
+                            borderRadius: tokens.borderRadius.sm,
+                          },
+                        ]}>
                         <MaterialIcons
                           name="collections"
                           size={40}
                           color="#fff"
                         />
-                      </LinearGradient>
+                      </TouchableOpacity>
                       <Text style={styles.collectionName}>
                         {collection.name}
                       </Text>

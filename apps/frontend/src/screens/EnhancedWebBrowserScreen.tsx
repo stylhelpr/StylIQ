@@ -89,15 +89,25 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
     addToHistory(normalized, inputValue, 'Browser');
     addSearch(inputValue);
     setShowSuggestions(false);
-  }, [inputValue, normalizeUrl, currentTabId, updateTab, addToHistory, addSearch]);
+  }, [
+    inputValue,
+    normalizeUrl,
+    currentTabId,
+    updateTab,
+    addToHistory,
+    addSearch,
+  ]);
 
-  const handleQuickShop = useCallback((shopUrl: string) => {
-    setCurrentUrl(shopUrl);
-    setInputValue(shopUrl);
-    updateTab(currentTabId!, shopUrl, shopUrl);
-    addToHistory(shopUrl, shopUrl, 'Quick Shop');
-    setShowSuggestions(false);
-  }, [currentTabId, updateTab, addToHistory]);
+  const handleQuickShop = useCallback(
+    (shopUrl: string) => {
+      setCurrentUrl(shopUrl);
+      setInputValue(shopUrl);
+      updateTab(currentTabId!, shopUrl, shopUrl);
+      addToHistory(shopUrl, shopUrl, 'Quick Shop');
+      setShowSuggestions(false);
+    },
+    [currentTabId, updateTab, addToHistory],
+  );
 
   const handleNewTab = useCallback(() => {
     addTab('about:blank', 'New Tab');
@@ -355,11 +365,7 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
             {currentTab?.title || 'Browser'}
           </Text>
           <TouchableOpacity style={styles.headerButton} onPress={handleNewTab}>
-            <MaterialIcons
-              name="add"
-              size={24}
-              color={theme.colors.primary}
-            />
+            <MaterialIcons name="add" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
           <View style={{position: 'relative'}}>
             <TouchableOpacity
@@ -536,9 +542,7 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.newTabButton}
-            onPress={handleNewTab}>
+          <TouchableOpacity style={styles.newTabButton} onPress={handleNewTab}>
             <MaterialIcons name="add" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -549,7 +553,10 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
         <ScrollView style={styles.suggestionsContainer}>
           <Text style={styles.suggestionsTitle}>Popular Shopping Sites</Text>
           <View
-            style={[styles.shoppingGrid, {flexDirection: 'row', flexWrap: 'wrap'}]}>
+            style={[
+              styles.shoppingGrid,
+              {flexDirection: 'row', flexWrap: 'wrap'},
+            ]}>
             {SHOPPING_SITES.map(site => (
               <TouchableOpacity
                 key={site.name}
@@ -602,10 +609,7 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
           domStorageEnabled
           renderLoading={() => (
             <View style={styles.loaderContainer}>
-              <ActivityIndicator
-                size="large"
-                color={theme.colors.primary}
-              />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           )}
           userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
