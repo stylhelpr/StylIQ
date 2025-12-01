@@ -235,6 +235,7 @@ export const shoppingAnalytics = {
   // Get insights from all the gold data
   getGoldInsights: () => {
     const store = useShoppingStore.getState();
+    const cartStats = store.getCartAbandonmentStats();
     return {
       totalSessions: new Set(store.productInteractions.map(i => i.sessionId)).size,
       avgDwellTime: Math.round(
@@ -258,6 +259,7 @@ export const shoppingAnalytics = {
       mostRevisitedItem: store.bookmarks.reduce((max, b) =>
         (b.viewCount || 0) > (max.viewCount || 0) ? b : max
       ),
+      ...cartStats,
     };
   },
 

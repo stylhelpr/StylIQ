@@ -53,6 +53,15 @@ export type BrowserTab = {
   sessionId?: string;
 };
 
+export type CartEvent = {
+  type: 'add' | 'remove' | 'checkout_start' | 'checkout_complete' | 'cart_view';
+  timestamp: number;
+  cartUrl: string;
+  itemCount?: number;
+  cartValue?: number;
+  items?: {title: string; price?: number; quantity?: number}[];
+};
+
 export type ProductInteraction = {
   id: string;
   productUrl: string;
@@ -60,6 +69,7 @@ export type ProductInteraction = {
   timestamp: number;
   sessionId?: string;
   bodyMeasurementsAtTime?: any; // GOLD #8: their measurements when interacting
+  cartTimeline?: CartEvent[]; // GOLD: Cart abandonment tracking
 };
 
 type ShoppingState = {
@@ -111,6 +121,11 @@ type ShoppingState = {
   startSession: () => void;
   endSession: () => void;
   recordProductInteraction: (productUrl: string, type: 'view' | 'add_to_cart' | 'bookmark', bodyMeasurements?: any) => void;
+
+  // GOLD: Cart Abandonment & Purchase Tracking
+  cartHistory: {cartUrl: string; events: CartEvent[]; abandoned: boolean; timeToCheckout?: number}[];
+  recordCartEvent: (event: CartEvent) => void;
+  getCartAbandonmentStats: () => {totalCarts: number; abandonedCarts: number; avgTimeToCheckout: number};
 
   // GOLD: Update enriched data
   updateBookmarkMetadata: (bookmarkId: string, metadata: Partial<ShoppingItem>) => void;
@@ -349,6 +364,74 @@ export const useShoppingStore = create<ShoppingState>()(
           ].slice(0, 500), // Keep last 500 interactions
         }));
       },
+
+      // GOLD: Cart Abandonment Tracking
+      cartHistory: [],
+      recordCartEvent: (event: CartEvent) => {
+        set(state => {
+          const cartUrl = event.cartUrl;
+          let updatedHistory = [...state.cartHistory];
+
+          // Find existing cart session or create new one
+          let cartSession = updatedHistory.find(
+            c => c.cartUrl === cartUrl && !c.abandoned,
+          );
+
+          if (!cartSession) {
+            cartSession = {
+              cartUrl,
+              events: [],
+              abandoned: false,
+              timeToCheckout: undefined,
+            };
+            updatedHistory.push(cartSession);
+          }
+
+          // Add event to timeline
+          cartSession.events.push(event);
+
+          // Update cart status based on event type
+          if (event.type === 'checkout_complete') {
+            const firstAdd = cartSession.events.find(e => e.type === 'add');
+            if (firstAdd) {
+              cartSession.timeToCheckout = event.timestamp - firstAdd.timestamp;
+            }
+          } else if (event.type === 'checkout_start') {
+            const firstAdd = cartSession.events.find(e => e.type === 'add');
+            if (firstAdd) {
+              cartSession.timeToCheckout = event.timestamp - firstAdd.timestamp;
+            }
+          }
+
+          return {
+            cartHistory: updatedHistory.slice(0, 100), // Keep last 100 carts
+          };
+        });
+      },
+
+      getCartAbandonmentStats: () => {
+        const state = get();
+        const totalCarts = state.cartHistory.length;
+        const abandonedCarts = state.cartHistory.filter(
+          c => !c.events.some(e => e.type === 'checkout_complete'),
+        ).length;
+        const checkoutTimes = state.cartHistory
+          .filter(c => c.timeToCheckout !== undefined)
+          .map(c => c.timeToCheckout || 0);
+        const avgTimeToCheckout =
+          checkoutTimes.length > 0
+            ? Math.round(
+                checkoutTimes.reduce((a, b) => a + b, 0) / checkoutTimes.length,
+              )
+            : 0;
+
+        return {
+          totalCarts,
+          abandonedCarts,
+          avgTimeToCheckout,
+        };
+      },
+
       updateBookmarkMetadata: (bookmarkId: string, metadata: Partial<ShoppingItem>) => {
         set(state => ({
           bookmarks: state.bookmarks.map(b =>
@@ -383,6 +466,7 @@ export const useShoppingStore = create<ShoppingState>()(
         tabs: state.tabs,
         currentTabId: state.currentTabId,
         productInteractions: state.productInteractions,
+        cartHistory: state.cartHistory,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

@@ -411,6 +411,14 @@ export default function WebBrowserScreen({route}: Props) {
         useShoppingStore
           .getState()
           .recordProductInteraction(currentTab.url, 'add_to_cart');
+
+        // GOLD: Also record as a checkout_start event if on checkout page
+        const isCheckout = /(checkout|payment|order)/.test(currentTab.url.toLowerCase());
+        useShoppingStore.getState().recordCartEvent({
+          type: isCheckout ? 'checkout_start' : 'add',
+          timestamp: Date.now(),
+          cartUrl: currentTab.url,
+        });
       }
 
       // Record bookmark interaction
@@ -621,8 +629,113 @@ export default function WebBrowserScreen({route}: Props) {
       true;
     `;
 
+    // GOLD: Cart detection script - extracts item count and estimated total
+    const cartDetectionScript = `
+      (function() {
+        try {
+          // Look for common cart indicators
+          const pageUrl = window.location.href;
+          const isCartPage = /(cart|bag|checkout)/.test(pageUrl.toLowerCase());
+
+          if (!isCartPage) return;
+
+          // Extract item count from common patterns
+          let itemCount = 0;
+
+          // Pattern 1: "Items in cart: X" or "Cart (X)"
+          const countMatch = document.body.innerText.match(/(?:cart|bag)\\s*\\(?(\\d+)\\)?/i);
+          if (countMatch) itemCount = parseInt(countMatch[1]);
+
+          // Pattern 2: Look for cart badge/counter elements
+          if (itemCount === 0) {
+            const badges = document.querySelectorAll('[class*="cart"], [class*="badge"], [class*="count"]');
+            for (const badge of badges) {
+              const text = badge.textContent.trim();
+              const match = text.match(/^\\d+$/);
+              if (match) {
+                itemCount = parseInt(match[0]);
+                break;
+              }
+            }
+          }
+
+          // Extract estimated total
+          let estimatedTotal = 0;
+          const totalMatch = document.body.innerText.match(/(?:total|subtotal|cart total)[:\\s]+[$£€¥]\\s*(\\d+(?:[.,]\\d{2})?)/i);
+          if (totalMatch) {
+            const totalStr = totalMatch[1].replace(',', '.');
+            estimatedTotal = parseFloat(totalStr);
+          }
+
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'cartDetected',
+            itemCount: itemCount,
+            estimatedTotal: estimatedTotal,
+            cartUrl: pageUrl
+          }));
+        } catch (e) {}
+      })();
+      true;
+    `;
+
+    // GOLD: Purchase completion detection - detects order confirmation pages
+    const purchaseDetectionScript = `
+      (function() {
+        try {
+          const pageUrl = window.location.href.toLowerCase();
+          const pageText = document.body.innerText.toLowerCase();
+
+          // Purchase completion indicators
+          const confirmationIndicators = [
+            // URL patterns
+            /order\\s*(confirmation|complete)|(thank\\s*you|purchase\\s*complete|order\\s*placed)/.test(pageUrl),
+            // Text patterns
+            /(order.*confirmation|thank you for your (purchase|order)|order (placed|confirmed)|purchase (complete|successful))/.test(pageText),
+            // Page title
+            /order|confirmation|thank you|purchase complete/.test(document.title.toLowerCase()),
+          ];
+
+          const isPurchaseConfirmation = confirmationIndicators.some(indicator => indicator);
+
+          if (isPurchaseConfirmation) {
+            // Extract purchase details if available
+            let orderNumber = '';
+            let totalAmount = 0;
+
+            // Try to find order number
+            const orderMatch = pageText.match(/(?:order|confirmation)\\s*(?:number|id|#)?[:\\s]+([A-Z0-9-]+)/i);
+            if (orderMatch) orderNumber = orderMatch[1];
+
+            // Try to find total amount
+            const totalMatch = pageText.match(/(?:total|amount|grand total)[:\\s]*[$£€¥]\\s*(\\d+(?:[.,]\\d{2})?)/i);
+            if (totalMatch) {
+              const totalStr = totalMatch[1].replace(',', '.');
+              totalAmount = parseFloat(totalStr);
+            }
+
+            // Count items (look for common patterns)
+            let itemCount = 0;
+            const itemMatch = pageText.match(/(?:items?|products?)\\s*(?:ordered|purchased)?[:\\s]*([0-9]+)/i);
+            if (itemMatch) itemCount = parseInt(itemMatch[1]);
+
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'purchaseComplete',
+              orderNumber: orderNumber,
+              totalAmount: totalAmount,
+              itemCount: itemCount,
+              purchaseUrl: pageUrl,
+              timestamp: Date.now()
+            }));
+          }
+        } catch (e) {}
+      })();
+      true;
+    `;
+
     webRef.current.injectJavaScript(extractPageTextScript);
     webRef.current.injectJavaScript(sizeColorClickScript);
+    webRef.current.injectJavaScript(cartDetectionScript);
+    webRef.current.injectJavaScript(purchaseDetectionScript);
   }, []);
 
   // Handle messages from WebView
@@ -647,6 +760,35 @@ export default function WebBrowserScreen({route}: Props) {
         const colorEntry = {color: data.color, timestamp: Date.now()};
         colorsClickedRef.current = [...colorsClickedRef.current, colorEntry];
         console.log('[MSG] Color clicked:', data.color, 'Total:', colorsClickedRef.current.length);
+      } else if (data.type === 'cartDetected') {
+        // GOLD: Cart detection with item count and total
+        console.log('[MSG] Cart detected:', {
+          itemCount: data.itemCount,
+          estimatedTotal: data.estimatedTotal,
+        });
+        // Record cart view event
+        useShoppingStore.getState().recordCartEvent({
+          type: 'cart_view',
+          timestamp: Date.now(),
+          cartUrl: data.cartUrl,
+          itemCount: data.itemCount,
+          cartValue: data.estimatedTotal,
+        });
+      } else if (data.type === 'purchaseComplete') {
+        // GOLD: Purchase completion detected on order confirmation page
+        console.log('[MSG] Purchase complete detected:', {
+          orderNumber: data.orderNumber,
+          totalAmount: data.totalAmount,
+          itemCount: data.itemCount,
+        });
+        // Record purchase completion event
+        useShoppingStore.getState().recordCartEvent({
+          type: 'checkout_complete',
+          timestamp: data.timestamp || Date.now(),
+          cartUrl: data.purchaseUrl,
+          itemCount: data.itemCount,
+          cartValue: data.totalAmount,
+        });
       }
     } catch (e) {
       console.log('[MSG] Error parsing message:', e);

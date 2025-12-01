@@ -19,7 +19,7 @@ export default function GoldDataViewer() {
   const {theme} = useAppTheme();
   const store = useShoppingStore.getState();
   const [selectedTab, setSelectedTab] = useState<
-    'summary' | 'bookmarks' | 'interactions' | 'raw'
+    'summary' | 'bookmarks' | 'interactions' | 'cart' | 'raw'
   >('summary');
   const [logOutput, setLogOutput] = useState<string>('');
 
@@ -372,6 +372,45 @@ export default function GoldDataViewer() {
           </Text>
         </View>
       </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🛒 Cart Behavior</Text>
+        {(() => {
+          const cartStats = store.getCartAbandonmentStats();
+          const completedCarts = cartStats.totalCarts - cartStats.abandonedCarts;
+          const completionRate = cartStats.totalCarts > 0
+            ? Math.round(((cartStats.totalCarts - cartStats.abandonedCarts) / cartStats.totalCarts) * 100)
+            : 0;
+          return (
+            <>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Total Carts</Text>
+                <Text style={styles.statValue}>{cartStats.totalCarts}</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Completed Purchases</Text>
+                <Text style={styles.statValue}>{completedCarts}</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Abandoned Carts</Text>
+                <Text style={styles.statValue}>{cartStats.abandonedCarts}</Text>
+              </View>
+              <View style={styles.statRow}>
+                <Text style={styles.statLabel}>Conversion Rate</Text>
+                <Text style={styles.statValue}>{completionRate}%</Text>
+              </View>
+              {cartStats.avgTimeToCheckout > 0 && (
+                <View style={styles.statRow}>
+                  <Text style={styles.statLabel}>Avg Time to Checkout</Text>
+                  <Text style={styles.statValue}>
+                    {Math.round(cartStats.avgTimeToCheckout / 1000)}s
+                  </Text>
+                </View>
+              )}
+            </>
+          );
+        })()}
+      </View>
     </ScrollView>
   );
 
@@ -473,6 +512,72 @@ export default function GoldDataViewer() {
     </ScrollView>
   );
 
+  const renderCart = () => (
+    <ScrollView>
+      {store.cartHistory.length === 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.statLabel}>No cart activity yet</Text>
+        </View>
+      ) : (
+        store.cartHistory.map((cartSession, idx) => {
+          const completed = cartSession.events.some(e => e.type === 'checkout_complete');
+          const addEvent = cartSession.events.find(e => e.type === 'add');
+          const checkoutEvent = cartSession.events.find(e => e.type === 'checkout_start' || e.type === 'checkout_complete');
+          const timeToCheckout = cartSession.timeToCheckout
+            ? `${Math.round(cartSession.timeToCheckout / 1000)}s`
+            : '—';
+          const purchaseEvent = cartSession.events.find(e => e.type === 'checkout_complete');
+          const purchaseTotal = purchaseEvent?.cartValue || 0;
+          const purchaseItems = purchaseEvent?.itemCount || 0;
+
+          return (
+            <View key={idx} style={[styles.card, styles.bookmarkItem]}>
+              <Text style={styles.bookmarkTitle}>Cart #{idx + 1}</Text>
+              <Text style={styles.bookmarkMeta}>
+                🔗 {cartSession.cartUrl.split('/').pop() || 'cart'}
+              </Text>
+              <Text style={styles.bookmarkMeta}>
+                {completed ? '✅ Completed' : '❌ Abandoned'}
+              </Text>
+              <Text style={styles.bookmarkMeta}>
+                📅 {new Date(addEvent?.timestamp || Date.now()).toLocaleString()}
+              </Text>
+              {cartSession.timeToCheckout !== undefined && (
+                <Text style={styles.bookmarkMeta}>
+                  ⏱️ Time to Checkout: {timeToCheckout}
+                </Text>
+              )}
+              {completed && purchaseTotal > 0 && (
+                <Text style={styles.bookmarkMeta}>
+                  💰 Purchase Total: ${purchaseTotal.toFixed(2)}
+                </Text>
+              )}
+              {completed && purchaseItems > 0 && (
+                <Text style={styles.bookmarkMeta}>
+                  📦 Items Purchased: {purchaseItems}
+                </Text>
+              )}
+              <Text style={styles.bookmarkMeta}>
+                📊 Events: {cartSession.events.length}
+              </Text>
+              {cartSession.events.map((event, eIdx) => (
+                <Text key={eIdx} style={[styles.bookmarkMeta, {marginLeft: 8, fontSize: 11}]}>
+                  {event.type === 'add' && '➕ Item Added'}
+                  {event.type === 'remove' && '➖ Item Removed'}
+                  {event.type === 'cart_view' && '👁️ Cart Viewed'}
+                  {event.type === 'checkout_start' && '🛒 Checkout Started'}
+                  {event.type === 'checkout_complete' && '✅ Purchase Complete'}
+                  {event.itemCount ? ` (${event.itemCount} items)` : ''}
+                  {event.cartValue ? ` - $${event.cartValue.toFixed(2)}` : ''}
+                </Text>
+              ))}
+            </View>
+          );
+        })
+      )}
+    </ScrollView>
+  );
+
   const renderRaw = () => (
     <ScrollView>
       {logOutput ? (
@@ -554,7 +659,7 @@ export default function GoldDataViewer() {
       </View>
 
       <View style={styles.tabs}>
-        {(['summary', 'bookmarks', 'interactions', 'raw'] as const).map(
+        {(['summary', 'bookmarks', 'interactions', 'cart', 'raw'] as const).map(
           tabName => (
             <TouchableOpacity
               key={tabName}
@@ -576,6 +681,7 @@ export default function GoldDataViewer() {
         {selectedTab === 'summary' && renderSummary()}
         {selectedTab === 'bookmarks' && renderBookmarks()}
         {selectedTab === 'interactions' && renderInteractions()}
+        {selectedTab === 'cart' && renderCart()}
         {selectedTab === 'raw' && renderRaw()}
       </View>
     </SafeAreaView>
