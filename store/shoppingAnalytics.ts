@@ -82,13 +82,14 @@ export const shoppingAnalytics = {
       return undefined;
     }
 
-    console.log('[PRICE] Extracting from:', pageText.substring(0, 200));
+    console.log('[PRICE] Extracting from text length:', pageText.length);
+    console.log('[PRICE] First 300 chars:', pageText.substring(0, 300));
 
     // Try multiple price patterns in order:
 
     // 1. Currency symbol + price: $99.99, $99, £99.99, €50.00, etc
-    // Match: $ followed by optional space, then digits with optional decimals
-    let match = pageText.match(/[$£€¥]\s*(\d+(?:[.,]\d{2})?)/);
+    // More lenient: allow optional decimals
+    let match = pageText.match(/[$£€¥]\s*(\d+(?:[.,]\d{1,2})?)/);
     if (match && match[1]) {
       const priceStr = match[1].replace(',', '.');
       const price = parseFloat(priceStr);
@@ -100,7 +101,7 @@ export const shoppingAnalytics = {
     }
 
     // 2. URL patterns: price=99.99, cost=50, amount:100.00, etc
-    match = pageText.match(/(?:price|cost|amount|cart)\s*[=:\/\-]\s*(\d+(?:[.,]\d{2})?)/i);
+    match = pageText.match(/(?:price|cost|amount|total)\s*[=:\/\-]\s*(\d+(?:[.,]\d{1,2})?)/i);
     if (match && match[1]) {
       const priceStr = match[1].replace(',', '.');
       const price = parseFloat(priceStr);
@@ -112,7 +113,7 @@ export const shoppingAnalytics = {
     }
 
     // 3. Text patterns: "Price: $99.99", "Cost $50", "from 100.00", etc
-    match = pageText.match(/(?:price|cost|now|from|sale|was|at)\s*[:=]?\s*[$£€¥]?\s*(\d+(?:[.,]\d{2})?)/i);
+    match = pageText.match(/(?:price|cost|now|from|sale|was|selling|buy)\s*(?:at)?\s*[:=]?\s*[$£€¥]?\s*(\d+(?:[.,]\d{1,2})?)/i);
     if (match && match[1]) {
       const priceStr = match[1].replace(',', '.');
       const price = parseFloat(priceStr);
@@ -124,7 +125,7 @@ export const shoppingAnalytics = {
     }
 
     // 4. Just numbers with decimals: 99.99, 199.50, 5.00, etc
-    match = pageText.match(/\b(\d+[.,]\d{2})\b/);
+    match = pageText.match(/\b(\d+[.,]\d{1,2})\b/);
     if (match && match[1]) {
       const priceStr = match[1].replace(',', '.');
       const price = parseFloat(priceStr);
@@ -146,7 +147,7 @@ export const shoppingAnalytics = {
       }
     }
 
-    console.log('[PRICE] ❌ No price found in:', pageText.substring(0, 300));
+    console.log('[PRICE] ❌ No price found');
     return undefined;
   },
 

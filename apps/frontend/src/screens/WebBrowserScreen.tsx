@@ -452,11 +452,23 @@ export default function WebBrowserScreen({route}: Props) {
 
     const extractPageTextScript = `
       (function() {
-        const text = document.body.innerText.substring(0, 3000);
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'pageText',
-          content: text
-        }));
+        try {
+          const text = document.body.innerText.substring(0, 5000);
+          const data = {
+            type: 'pageText',
+            content: text,
+            length: text.length,
+            extracted: true
+          };
+          window.ReactNativeWebView.postMessage(JSON.stringify(data));
+        } catch (err) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'pageText',
+            content: '',
+            error: err.message,
+            extracted: false
+          }));
+        }
       })();
       true;
     `;
@@ -470,9 +482,10 @@ export default function WebBrowserScreen({route}: Props) {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'pageText') {
         lastPageTextRef.current = data.content || '';
+        console.log('[MSG] Page text received:', data.length, 'chars, extracted:', data.extracted);
       }
     } catch (e) {
-      // Silently ignore parsing errors
+      console.log('[MSG] Error parsing message:', e);
     }
   }, []);
 
