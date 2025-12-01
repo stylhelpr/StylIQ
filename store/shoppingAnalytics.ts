@@ -54,6 +54,102 @@ export const shoppingAnalytics = {
     return categories.find(cat => combined.includes(cat));
   },
 
+  // Extract all available page content for better analytics
+  extractPageContent: (title: string, url: string, bodyText?: string): string => {
+    // Combine title, URL, and any body text for comprehensive extraction
+    return `${title} ${url} ${bodyText || ''}`.toLowerCase();
+  },
+
+  // Extract brand from URL/title
+  extractBrand: (title: string, url: string): string | undefined => {
+    const brands = [
+      'nike', 'adidas', 'puma', 'reebok', 'converse', 'vans', 'timberland',
+      'gucci', 'prada', 'chanel', 'versace', 'dior', 'fendi', 'burberry',
+      'zara', 'h&m', 'uniqlo', 'gap', 'forever21', 'asos', 'shein',
+      'amazon', 'walmart', 'target', 'nordstrom', 'macy\'s',
+      'levis', 'tommy hilfiger', 'calvin klein', 'ralph lauren', 'polo',
+      'lululemon', 'athleta', 'sweaty betty', 'missguided', 'boohoo',
+      'pretty little thing', 'fashion nova', 'revolve', 'ssense', 'farfetch'
+    ];
+    const combined = `${title} ${url}`.toLowerCase();
+    return brands.find(brand => combined.includes(brand));
+  },
+
+  // Detect price from text (looks for currency patterns)
+  extractPrice: (pageText: string): number | undefined => {
+    if (!pageText) {
+      console.log('[PRICE] No pageText provided');
+      return undefined;
+    }
+
+    console.log('[PRICE] Extracting from:', pageText.substring(0, 200));
+
+    // Try multiple price patterns in order:
+
+    // 1. Currency symbol + price: $99.99, $99, £99.99, €50.00, etc
+    // Match: $ followed by optional space, then digits with optional decimals
+    let match = pageText.match(/[$£€¥]\s*(\d+(?:[.,]\d{2})?)/);
+    if (match && match[1]) {
+      const priceStr = match[1].replace(',', '.');
+      const price = parseFloat(priceStr);
+      console.log('[PRICE] Pattern 1 match:', match[1], 'parsed:', price);
+      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
+        console.log('[PRICE] ✅ Found via pattern 1:', price);
+        return price;
+      }
+    }
+
+    // 2. URL patterns: price=99.99, cost=50, amount:100.00, etc
+    match = pageText.match(/(?:price|cost|amount|cart)\s*[=:\/\-]\s*(\d+(?:[.,]\d{2})?)/i);
+    if (match && match[1]) {
+      const priceStr = match[1].replace(',', '.');
+      const price = parseFloat(priceStr);
+      console.log('[PRICE] Pattern 2 match:', match[1], 'parsed:', price);
+      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
+        console.log('[PRICE] ✅ Found via pattern 2:', price);
+        return price;
+      }
+    }
+
+    // 3. Text patterns: "Price: $99.99", "Cost $50", "from 100.00", etc
+    match = pageText.match(/(?:price|cost|now|from|sale|was|at)\s*[:=]?\s*[$£€¥]?\s*(\d+(?:[.,]\d{2})?)/i);
+    if (match && match[1]) {
+      const priceStr = match[1].replace(',', '.');
+      const price = parseFloat(priceStr);
+      console.log('[PRICE] Pattern 3 match:', match[1], 'parsed:', price);
+      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
+        console.log('[PRICE] ✅ Found via pattern 3:', price);
+        return price;
+      }
+    }
+
+    // 4. Just numbers with decimals: 99.99, 199.50, 5.00, etc
+    match = pageText.match(/\b(\d+[.,]\d{2})\b/);
+    if (match && match[1]) {
+      const priceStr = match[1].replace(',', '.');
+      const price = parseFloat(priceStr);
+      console.log('[PRICE] Pattern 4 match:', match[1], 'parsed:', price);
+      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
+        console.log('[PRICE] ✅ Found via pattern 4:', price);
+        return price;
+      }
+    }
+
+    // 5. Whole numbers that could be prices: 99, 199, 5000 (but not numbers used elsewhere)
+    match = pageText.match(/[$£€¥]\s*(\d+)(?!\d)/);
+    if (match && match[1]) {
+      const price = parseFloat(match[1]);
+      console.log('[PRICE] Pattern 5 match:', match[1], 'parsed:', price);
+      if (!isNaN(price) && price >= 5 && price <= 100000) {
+        console.log('[PRICE] ✅ Found via pattern 5:', price);
+        return price;
+      }
+    }
+
+    console.log('[PRICE] ❌ No price found in:', pageText.substring(0, 300));
+    return undefined;
+  },
+
   // GOLD #4: Track price changes
   updatePriceHistory: (bookmarkId: string, newPrice: number) => {
     const store = useShoppingStore.getState();

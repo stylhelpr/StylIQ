@@ -206,6 +206,18 @@ export default function GoldDataViewer() {
           </Text>
         </View>
         <View style={styles.statRow}>
+          <Text style={styles.statLabel}>With Brand</Text>
+          <Text style={styles.statValue}>
+            {store.bookmarks.filter(b => b.brand).length}
+          </Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statLabel}>With Price</Text>
+          <Text style={styles.statValue}>
+            {store.bookmarks.filter(b => b.price).length}
+          </Text>
+        </View>
+        <View style={styles.statRow}>
           <Text style={styles.statLabel}>With Emotion</Text>
           <Text style={styles.statValue}>{insights.bookmarksWithEmotion}</Text>
         </View>
@@ -229,6 +241,32 @@ export default function GoldDataViewer() {
         ) : (
           <Text style={styles.statLabel}>No categories yet</Text>
         )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🏢 Top Brands</Text>
+        {(() => {
+          const brandCounts = store.bookmarks
+            .filter(b => b.brand)
+            .reduce((acc, b) => {
+              const brand = b.brand!;
+              acc[brand] = (acc[brand] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+          const topBrands = Object.entries(brandCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+          return topBrands.length > 0 ? (
+            topBrands.map(([brand, count], idx) => (
+              <View key={idx} style={styles.statRow}>
+                <Text style={styles.statLabel}>{brand}</Text>
+                <Text style={styles.statValue}>{count}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.statLabel}>No brands detected yet</Text>
+          );
+        })()}
       </View>
 
       <View style={styles.card}>
@@ -288,6 +326,11 @@ export default function GoldDataViewer() {
                 <Text style={styles.bookmarkMeta}>
                   📂 {bookmark.category || 'N/A'}
                 </Text>
+                {bookmark.brand && (
+                  <Text style={styles.bookmarkMeta}>
+                    🏢 Brand: {bookmark.brand}
+                  </Text>
+                )}
                 <Text style={styles.bookmarkMeta}>
                   👀 Views: {bookmark.viewCount || 1}
                 </Text>
@@ -299,6 +342,11 @@ export default function GoldDataViewer() {
                 {historyEntry?.scrollDepth !== undefined && (
                   <Text style={styles.bookmarkMeta}>
                     📜 Scroll: {historyEntry.scrollDepth}%
+                  </Text>
+                )}
+                {bookmark.priceHistory && bookmark.priceHistory.length > 0 && (
+                  <Text style={styles.bookmarkMeta}>
+                    💰 ${bookmark.priceHistory[0].price.toFixed(2)} {bookmark.priceHistory.length > 1 && `(${bookmark.priceHistory.length} price points)`}
                   </Text>
                 )}
                 {bookmark.emotionAtSave && (
@@ -314,11 +362,6 @@ export default function GoldDataViewer() {
                 {bookmark.colorsViewed && bookmark.colorsViewed.length > 0 && (
                   <Text style={styles.bookmarkMeta}>
                     🎨 Colors: {bookmark.colorsViewed.join(', ')}
-                  </Text>
-                )}
-                {bookmark.priceHistory && bookmark.priceHistory.length > 0 && (
-                  <Text style={styles.bookmarkMeta}>
-                    💰 ${bookmark.priceHistory[0].price}
                   </Text>
                 )}
               </View>

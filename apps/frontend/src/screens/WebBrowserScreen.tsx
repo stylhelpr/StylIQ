@@ -104,6 +104,16 @@ export default function WebBrowserScreen({route}: Props) {
   const sessionStartedRef = useRef<boolean>(false);
   const maxScrollDepthRef = useRef<number>(0);
   const previousUrlRef = useRef<string>('');
+  const lastPageTextRef = useRef<string>('');
+
+  // Debug info display
+  const [debugInfo, setDebugInfo] = useState<{
+    price?: number;
+    brand?: string;
+    category?: string;
+    pageTextLength?: number;
+    timestamp?: number;
+  } | null>(null);
 
   // Initialize with a tab if navigating with URL (wait for hydration)
   useEffect(() => {
@@ -299,6 +309,7 @@ export default function WebBrowserScreen({route}: Props) {
           console.log('Failed to capture bookmark screenshot:', e);
         }
       }
+
       // GOLD: Enrich bookmark with gold data
       const bookmarkId = Date.now().toString();
       const dwell = Math.round((Date.now() - pageStartTimeRef.current) / 1000);
@@ -306,6 +317,29 @@ export default function WebBrowserScreen({route}: Props) {
         currentTab.title || '',
         currentTab.url,
       );
+      const brand = shoppingAnalytics.extractBrand(
+        currentTab.title || '',
+        currentTab.url,
+      );
+
+      // Extract price from title + URL + any cached page text
+      let price = shoppingAnalytics.extractPrice(
+        `${currentTab.title || ''} ${currentTab.url}`,
+      );
+
+      // If not found, try the page text we captured
+      if (!price && lastPageTextRef.current) {
+        price = shoppingAnalytics.extractPrice(lastPageTextRef.current);
+      }
+
+      // DEBUG: Show what was extracted
+      setDebugInfo({
+        price,
+        brand,
+        category,
+        pageTextLength: lastPageTextRef.current?.length || 0,
+        timestamp: Date.now(),
+      });
 
       addBookmark({
         id: bookmarkId,
@@ -317,7 +351,9 @@ export default function WebBrowserScreen({route}: Props) {
         addedAt: Date.now(),
         viewCount: 1,
         category, // GOLD #2
-        priceHistory: [], // GOLD #4 (will be updated if price detected)
+        brand, // GOLD #2b: Brand extracted from title/URL
+        price, // GOLD #4: Initial price
+        priceHistory: price ? [{price, date: Date.now()}] : [], // GOLD #4: Price history
       });
 
       // Track as add-to-cart interaction if it's a cart page
@@ -403,6 +439,36 @@ export default function WebBrowserScreen({route}: Props) {
     }
     setShowBookmarksModal(false);
   };
+
+  // Extract and cache page text when page loads
+  const handleWebViewLoadEnd = useCallback(() => {
+    if (!webRef.current) return;
+
+    const extractPageTextScript = `
+      (function() {
+        const text = document.body.innerText.substring(0, 3000);
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'pageText',
+          content: text
+        }));
+      })();
+      true;
+    `;
+
+    webRef.current.injectJavaScript(extractPageTextScript);
+  }, []);
+
+  // Handle messages from WebView
+  const handleWebViewMessage = useCallback((event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'pageText') {
+        lastPageTextRef.current = data.content || '';
+      }
+    } catch (e) {
+      // Silently ignore parsing errors
+    }
+  }, []);
 
   // GOLD #9: Track scroll depth in WebView
   const handleWebViewScroll = useCallback((event: any) => {
@@ -1149,6 +1215,43 @@ export default function WebBrowserScreen({route}: Props) {
       justifyContent: 'space-between',
       padding: 0,
     },
+    // DEBUG: Price Extraction Panel
+    debugPanel: {
+      position: 'absolute',
+      bottom: insets.bottom + 80,
+      left: 16,
+      right: 16,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 12,
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 5,
+      zIndex: 1000,
+    },
+    debugTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.colors.primary,
+      marginBottom: 8,
+    },
+    debugText: {
+      fontSize: 12,
+      color: theme.colors.foreground2,
+      marginBottom: 4,
+      fontFamily: 'Menlo',
+    },
+    debugDismiss: {
+      fontSize: 12,
+      color: theme.colors.primary,
+      marginTop: 8,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
   });
 
   const showLanding = !currentTab || !currentTab.url;
@@ -1298,6 +1401,8 @@ export default function WebBrowserScreen({route}: Props) {
               }
             }}
             onScroll={handleWebViewScroll}
+            onLoadEnd={handleWebViewLoadEnd}
+            onMessage={handleWebViewMessage}
             userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
           />
         </View>
@@ -1601,6 +1706,28 @@ export default function WebBrowserScreen({route}: Props) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* DEBUG: Price Extraction Display */}
+      {debugInfo && (
+        <View style={styles.debugPanel}>
+          <Text style={styles.debugTitle}>Last Extraction:</Text>
+          <Text style={styles.debugText}>
+            💰 Price: {debugInfo.price ? `$${debugInfo.price}` : '—'}
+          </Text>
+          <Text style={styles.debugText}>
+            🏷️ Brand: {debugInfo.brand || '—'}
+          </Text>
+          <Text style={styles.debugText}>
+            👕 Category: {debugInfo.category || '—'}
+          </Text>
+          <Text style={styles.debugText}>
+            📄 Page text captured: {debugInfo.pageTextLength ? `${debugInfo.pageTextLength} chars` : '0 chars'}
+          </Text>
+          <TouchableOpacity onPress={() => setDebugInfo(null)}>
+            <Text style={styles.debugDismiss}>✕ Dismiss</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Bookmarks Modal */}
       <Modal
