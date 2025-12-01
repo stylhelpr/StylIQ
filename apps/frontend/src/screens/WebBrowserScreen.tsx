@@ -372,8 +372,12 @@ export default function WebBrowserScreen({route}: Props) {
       }
 
       // GOLD #7 & #10: Extract unique sizes and colors clicked
-      const sizesViewed = [...new Set(sizesClickedRef.current.map(s => s.size))];
-      const colorsViewed = [...new Set(colorsClickedRef.current.map(c => c.color))];
+      const sizesViewed = [
+        ...new Set(sizesClickedRef.current.map(s => s.size)),
+      ];
+      const colorsViewed = [
+        ...new Set(colorsClickedRef.current.map(c => c.color)),
+      ];
 
       // DEBUG: Show what was extracted
       const inputText = `${currentTab.title || ''} ${currentTab.url}`;
@@ -413,7 +417,9 @@ export default function WebBrowserScreen({route}: Props) {
           .recordProductInteraction(currentTab.url, 'add_to_cart');
 
         // GOLD: Also record as a checkout_start event if on checkout page
-        const isCheckout = /(checkout|payment|order)/.test(currentTab.url.toLowerCase());
+        const isCheckout = /(checkout|payment|order)/.test(
+          currentTab.url.toLowerCase(),
+        );
         useShoppingStore.getState().recordCartEvent({
           type: isCheckout ? 'checkout_start' : 'add',
           timestamp: Date.now(),
@@ -754,12 +760,22 @@ export default function WebBrowserScreen({route}: Props) {
         // GOLD #7: Track size clicks with timestamp
         const sizeEntry = {size: data.size, timestamp: Date.now()};
         sizesClickedRef.current = [...sizesClickedRef.current, sizeEntry];
-        console.log('[MSG] Size clicked:', data.size, 'Total:', sizesClickedRef.current.length);
+        console.log(
+          '[MSG] Size clicked:',
+          data.size,
+          'Total:',
+          sizesClickedRef.current.length,
+        );
       } else if (data.type === 'colorClick') {
         // GOLD #10: Track color clicks with timestamp
         const colorEntry = {color: data.color, timestamp: Date.now()};
         colorsClickedRef.current = [...colorsClickedRef.current, colorEntry];
-        console.log('[MSG] Color clicked:', data.color, 'Total:', colorsClickedRef.current.length);
+        console.log(
+          '[MSG] Color clicked:',
+          data.color,
+          'Total:',
+          colorsClickedRef.current.length,
+        );
       } else if (data.type === 'cartDetected') {
         // GOLD: Cart detection with item count and total
         console.log('[MSG] Cart detected:', {
@@ -2085,10 +2101,16 @@ export default function WebBrowserScreen({route}: Props) {
             👕 Category: {debugInfo.category || '—'}
           </Text>
           <Text style={styles.debugText}>
-            📏 Sizes: {debugInfo.sizesViewed?.length ? debugInfo.sizesViewed.join(', ') : '—'}
+            📏 Sizes:{' '}
+            {debugInfo.sizesViewed?.length
+              ? debugInfo.sizesViewed.join(', ')
+              : '—'}
           </Text>
           <Text style={styles.debugText}>
-            🎨 Colors: {debugInfo.colorsViewed?.length ? debugInfo.colorsViewed.join(', ') : '—'}
+            🎨 Colors:{' '}
+            {debugInfo.colorsViewed?.length
+              ? debugInfo.colorsViewed.join(', ')
+              : '—'}
           </Text>
           <Text style={styles.debugText}>
             📄 Page text:{' '}
