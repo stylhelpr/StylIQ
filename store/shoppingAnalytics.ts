@@ -88,7 +88,7 @@ export const shoppingAnalytics = {
     // Try multiple price patterns in order:
 
     // 1. Currency symbol + price: $99.99, $99, £99.99, €50.00, etc
-    // More lenient: allow optional decimals
+    // More lenient: allow optional decimals AND no decimals
     let match = pageText.match(/[$£€¥]\s*(\d+(?:[.,]\d{1,2})?)/);
     if (match && match[1]) {
       const priceStr = match[1].replace(',', '.');
@@ -96,6 +96,20 @@ export const shoppingAnalytics = {
       console.log('[PRICE] Pattern 1 match:', match[1], 'parsed:', price);
       if (!isNaN(price) && price >= 0.5 && price <= 100000) {
         console.log('[PRICE] ✅ Found via pattern 1:', price);
+        return price;
+      }
+    }
+
+    // 1b. Try matching price without requiring currency in captured group
+    // Matches: "$99.99" but captures "99.99", or "$ 50" captures "50"
+    match = pageText.match(/[$£€¥]\s*(\d+)(?:[.,](\d{1,2}))?/);
+    if (match) {
+      const wholePart = match[1] || '0';
+      const decimalPart = match[2] || '00';
+      const price = parseFloat(`${wholePart}.${decimalPart}`);
+      console.log('[PRICE] Pattern 1b match:', wholePart, decimalPart, 'parsed:', price);
+      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
+        console.log('[PRICE] ✅ Found via pattern 1b:', price);
         return price;
       }
     }

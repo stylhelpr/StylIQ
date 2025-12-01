@@ -313,6 +313,28 @@ export default function WebBrowserScreen({route}: Props) {
         }
       }
 
+      // Try to extract page text right now via JavaScript injection
+      // This provides fresh data at bookmark time
+      if (webRef.current) {
+        const extractScript = `
+          (function() {
+            try {
+              const text = document.body.innerText.substring(0, 5000);
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'pageText',
+                content: text,
+                length: text.length,
+                extracted: true
+              }));
+            } catch (e) {}
+          })();
+          true;
+        `;
+        webRef.current.injectJavaScript(extractScript);
+        // Small delay to let the message come through
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
       // GOLD: Enrich bookmark with gold data
       const bookmarkId = Date.now().toString();
       const dwell = Math.round((Date.now() - pageStartTimeRef.current) / 1000);
