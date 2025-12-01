@@ -307,21 +307,41 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             <View style={styles.headerIcons}></View>
           </View>
 
-          <AppleTouchFeedback
-            onPress={() => navigate?.('WebBrowser')}
-            hapticStyle="impactLight"
-            style={[
-              globalStyles.buttonPrimary,
-              {marginBottom: 20, minWidth: 180},
-            ]}>
-            <Text
-              style={{
-                color: theme.colors.buttonText1,
-                fontWeight: tokens.fontWeight.semiBold,
-              }}>
-              Start Shopping
-            </Text>
-          </AppleTouchFeedback>
+          <View style={{flexDirection: 'row', gap: 8, marginBottom: 20}}>
+            <AppleTouchFeedback
+              onPress={() => navigate?.('WebBrowser')}
+              hapticStyle="impactLight"
+              style={[
+                globalStyles.buttonPrimary,
+                {flex: 1},
+              ]}>
+              <Text
+                style={{
+                  color: theme.colors.buttonText1,
+                  fontWeight: tokens.fontWeight.semiBold,
+                }}>
+                Start Shopping
+              </Text>
+            </AppleTouchFeedback>
+
+            <AppleTouchFeedback
+              onPress={() => navigate?.('GoldDataViewer')}
+              hapticStyle="impactLight"
+              style={[
+                globalStyles.buttonPrimary,
+                {
+                  backgroundColor: '#fbbf24',
+                },
+              ]}>
+              <Text
+                style={{
+                  color: '#000',
+                  fontWeight: tokens.fontWeight.semiBold,
+                }}>
+                🏆 Data
+              </Text>
+            </AppleTouchFeedback>
+          </View>
 
           {/* Stats */}
           <View style={styles.statsRow}>

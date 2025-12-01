@@ -65,6 +65,7 @@ import MeasurementResultsManualScreen from '../screens/MesurementResultsScreen';
 import MeshPreviewScreen from '../screens/MeshPreviewScreen';
 import EmotionTestScreen from '../screens/EmotionTestScreen';
 import SavedMeasurementsScreen from '../screens/SavedMeasurementsScreen';
+import GoldDataViewer from '../screens/GoldDataViewer';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -146,7 +147,8 @@ type Screen =
   | 'MeasurementResultsManualScreen'
   | 'MeshPreviewScreen'
   | 'EmotionTestScreen'
-  | 'MeasurementAutoScreen';
+  | 'MeasurementAutoScreen'
+  | 'GoldDataViewer';
 
 const RootNavigator = ({
   registerNavigate,
@@ -471,6 +473,8 @@ const RootNavigator = ({
         );
       case 'MeasurementAutoScreen':
         return <MeasurementAutoScreen navigate={navigate} />;
+      case 'GoldDataViewer':
+        return <GoldDataViewer />;
       case 'MeasurementSideScreen':
         return <MeasurementSideScreen navigate={navigate} />;
       case 'Lifestyle':

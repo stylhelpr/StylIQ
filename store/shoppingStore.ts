@@ -9,10 +9,16 @@ export type ShoppingItem = {
   imageUrl?: string;
   screenshot?: string; // Base64 encoded webpage screenshot for preview
   price?: number;
+  priceHistory?: {price: number; date: number}[]; // GOLD #4
   brand?: string;
+  category?: string; // GOLD #2: shoes, tops, dresses, etc
   source: string; // e.g., 'ASOS', 'Amazon', 'Zara'
   addedAt: number;
   lastViewed?: number;
+  viewCount?: number; // GOLD #6: times revisited
+  sizesViewed?: string[]; // GOLD #7: what sizes they clicked
+  colorsViewed?: string[]; // GOLD #10: actual colors clicked
+  emotionAtSave?: string; // GOLD #5: mood when saved (from Mentalist)
 };
 
 export type BrowsingHistory = {
@@ -21,6 +27,10 @@ export type BrowsingHistory = {
   source: string;
   visitedAt: number;
   visitCount: number;
+  sessionId?: string; // GOLD #3: group related browsing
+  dwellTime?: number; // GOLD #1: seconds on page
+  scrollDepth?: number; // GOLD #9: 0-100%
+  isCartPage?: boolean; // GOLD #3b: detect /cart URLs
 };
 
 export type Collection = {
@@ -39,6 +49,17 @@ export type BrowserTab = {
   title: string;
   favicon?: string;
   screenshot?: string; // Base64 encoded screenshot for tab preview
+  bodyMeasurementsAtTime?: any; // GOLD #8: their measurements when viewing
+  sessionId?: string;
+};
+
+export type ProductInteraction = {
+  id: string;
+  productUrl: string;
+  type: 'view' | 'add_to_cart' | 'bookmark';
+  timestamp: number;
+  sessionId?: string;
+  bodyMeasurementsAtTime?: any; // GOLD #8: their measurements when interacting
 };
 
 type ShoppingState = {
@@ -83,6 +104,17 @@ type ShoppingState = {
   // Preferences
   defaultShoppingSites: string[];
   updateDefaultSites: (sites: string[]) => void;
+
+  // GOLD: Session & Interaction Tracking
+  currentSessionId: string | null;
+  productInteractions: ProductInteraction[];
+  startSession: () => void;
+  endSession: () => void;
+  recordProductInteraction: (productUrl: string, type: 'view' | 'add_to_cart' | 'bookmark', bodyMeasurements?: any) => void;
+
+  // GOLD: Update enriched data
+  updateBookmarkMetadata: (bookmarkId: string, metadata: Partial<ShoppingItem>) => void;
+  updateHistoryMetadata: (historyUrl: string, metadata: Partial<BrowsingHistory>) => void;
 
   // Hydration
   _hasHydrated: boolean;
@@ -292,6 +324,46 @@ export const useShoppingStore = create<ShoppingState>()(
         set({defaultShoppingSites: sites});
       },
 
+      // GOLD: Session & Interaction Tracking
+      currentSessionId: null,
+      productInteractions: [],
+      startSession: () => {
+        const sessionId = `session_${Date.now()}`;
+        set({currentSessionId: sessionId});
+      },
+      endSession: () => {
+        set({currentSessionId: null});
+      },
+      recordProductInteraction: (productUrl: string, type: 'view' | 'add_to_cart' | 'bookmark', bodyMeasurements?: any) => {
+        set(state => ({
+          productInteractions: [
+            {
+              id: `interaction_${Date.now()}`,
+              productUrl,
+              type,
+              timestamp: Date.now(),
+              sessionId: state.currentSessionId || undefined,
+              bodyMeasurementsAtTime: bodyMeasurements,
+            },
+            ...state.productInteractions,
+          ].slice(0, 500), // Keep last 500 interactions
+        }));
+      },
+      updateBookmarkMetadata: (bookmarkId: string, metadata: Partial<ShoppingItem>) => {
+        set(state => ({
+          bookmarks: state.bookmarks.map(b =>
+            b.id === bookmarkId ? {...b, ...metadata} : b,
+          ),
+        }));
+      },
+      updateHistoryMetadata: (historyUrl: string, metadata: Partial<BrowsingHistory>) => {
+        set(state => ({
+          history: state.history.map(h =>
+            h.url === historyUrl ? {...h, ...metadata} : h,
+          ),
+        }));
+      },
+
       // Hydration
       _hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) => {
@@ -310,6 +382,7 @@ export const useShoppingStore = create<ShoppingState>()(
         defaultShoppingSites: state.defaultShoppingSites,
         tabs: state.tabs,
         currentTabId: state.currentTabId,
+        productInteractions: state.productInteractions,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
