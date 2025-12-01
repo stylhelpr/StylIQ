@@ -112,8 +112,11 @@ export default function WebBrowserScreen({route}: Props) {
     brand?: string;
     category?: string;
     pageTextLength?: number;
+    pageTextPreview?: string;
+    inputText?: string;
     timestamp?: number;
   } | null>(null);
+  const [showDebugDetail, setShowDebugDetail] = useState(false);
 
   // Initialize with a tab if navigating with URL (wait for hydration)
   useEffect(() => {
@@ -333,11 +336,14 @@ export default function WebBrowserScreen({route}: Props) {
       }
 
       // DEBUG: Show what was extracted
+      const inputText = `${currentTab.title || ''} ${currentTab.url}`;
       setDebugInfo({
         price,
         brand,
         category,
         pageTextLength: lastPageTextRef.current?.length || 0,
+        pageTextPreview: lastPageTextRef.current?.substring(0, 200) || '',
+        inputText,
         timestamp: Date.now(),
       });
 
@@ -1252,6 +1258,36 @@ export default function WebBrowserScreen({route}: Props) {
       fontWeight: '600',
       textAlign: 'center',
     },
+    debugHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    debugToggle: {
+      fontSize: 14,
+      color: theme.colors.primary,
+      fontWeight: '600',
+    },
+    debugDetail: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.surfaceBorder,
+    },
+    debugDetailTitle: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      marginTop: 6,
+      marginBottom: 2,
+    },
+    debugDetailText: {
+      fontSize: 10,
+      color: theme.colors.foreground3,
+      fontFamily: 'Menlo',
+      lineHeight: 14,
+    },
   });
 
   const showLanding = !currentTab || !currentTab.url;
@@ -1710,7 +1746,15 @@ export default function WebBrowserScreen({route}: Props) {
       {/* DEBUG: Price Extraction Display */}
       {debugInfo && (
         <View style={styles.debugPanel}>
-          <Text style={styles.debugTitle}>Last Extraction:</Text>
+          <View style={styles.debugHeader}>
+            <Text style={styles.debugTitle}>Last Extraction:</Text>
+            <TouchableOpacity onPress={() => setShowDebugDetail(!showDebugDetail)}>
+              <Text style={styles.debugToggle}>
+                {showDebugDetail ? '▼' : '▶'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <Text style={styles.debugText}>
             💰 Price: {debugInfo.price ? `$${debugInfo.price}` : '—'}
           </Text>
@@ -1721,8 +1765,27 @@ export default function WebBrowserScreen({route}: Props) {
             👕 Category: {debugInfo.category || '—'}
           </Text>
           <Text style={styles.debugText}>
-            📄 Page text captured: {debugInfo.pageTextLength ? `${debugInfo.pageTextLength} chars` : '0 chars'}
+            📄 Page text: {debugInfo.pageTextLength ? `${debugInfo.pageTextLength} chars` : '0 chars'}
           </Text>
+
+          {showDebugDetail && (
+            <View style={styles.debugDetail}>
+              <Text style={styles.debugDetailTitle}>Input (Title + URL):</Text>
+              <Text style={styles.debugDetailText} numberOfLines={3}>
+                {debugInfo.inputText?.substring(0, 150) || '(empty)'}
+              </Text>
+
+              {debugInfo.pageTextPreview && (
+                <>
+                  <Text style={styles.debugDetailTitle}>Page Text Preview:</Text>
+                  <Text style={styles.debugDetailText} numberOfLines={4}>
+                    {debugInfo.pageTextPreview}
+                  </Text>
+                </>
+              )}
+            </View>
+          )}
+
           <TouchableOpacity onPress={() => setDebugInfo(null)}>
             <Text style={styles.debugDismiss}>✕ Dismiss</Text>
           </TouchableOpacity>
