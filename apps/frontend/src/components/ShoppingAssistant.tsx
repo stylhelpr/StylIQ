@@ -33,19 +33,44 @@ const FALLBACK_SUGGESTIONS = [
   {text: "Farfetch luxury finds!", site: 'https://farfetch.com'},
 ];
 
-// AI-powered shopping prompt for personalized recommendations
-const SHOPPING_PROMPT = `You are a smart shopping assistant with access to the user's complete fashion profile. Based on their calendar events, wardrobe, style preferences, and past purchases, give ONE short (under 15 words) personalized shopping recommendation.
+// Strategic multi-recommendation prompt - gets 5 suggestions in ONE API call
+const SHOPPING_PROMPT = `You are an elite personal shopping assistant with COMPLETE access to this user's fashion data. Analyze their wardrobe, calendar, style profile, outfit feedback, and preferences to generate 5 HIGHLY PERSONALIZED shopping recommendations.
 
-Consider:
-- Upcoming calendar events that need outfits
-- Gaps in their wardrobe
-- Their preferred brands and style
-- Recent outfit feedback
+Generate exactly 5 recommendations using these strategies:
 
-Respond with ONLY a JSON object like:
-{"text": "Your short recommendation here!", "site": "https://relevantsite.com", "search": "search terms"}
+1. **CALENDAR URGENCY**: Find an upcoming event and recommend something they NEED for it
+   - "Interview Tuesday? Get this power blazer!"
+   - "Wedding in 2 weeks - you need formal shoes!"
 
-Pick site from: asos.com, hm.com, zara.com, nordstrom.com, shein.com, ssense.com, amazon.com/fashion, farfetch.com, google.com/search?q=`;
+2. **WARDROBE GAP**: Identify something missing from their wardrobe based on what they own
+   - "You have 5 blue shirts but no neutral pants to match"
+   - "No winter layers in your favorite earth tones"
+
+3. **STYLE UPGRADE**: Based on their positive outfit feedback, suggest leveling up
+   - "You love your navy blazer - here's a premium upgrade"
+   - "Your casual style is great, add a statement watch"
+
+4. **TRENDING + PERSONAL**: Something trending that matches THEIR specific style
+   - "Oversized blazers are hot - perfect for your minimalist vibe"
+
+5. **COMPLETE THE LOOK**: Based on their saved outfits, suggest missing pieces
+   - "Your 'Date Night' outfit needs the right shoes"
+   - "Add a belt to complete your work look"
+
+CRITICAL: Each recommendation must be:
+- Under 12 words
+- Specific to THEIR data (reference actual items, events, colors they like)
+- Create urgency or desire
+- Feel personal, not generic
+
+Respond with a JSON array of exactly 5 objects:
+[
+  {"text": "Short punchy recommendation!", "site": "https://nordstrom.com", "search": "navy blazer mens", "strategy": "calendar"},
+  {"text": "Another recommendation!", "site": "https://asos.com", "search": "white sneakers", "strategy": "gap"},
+  ...
+]
+
+Sites to use: nordstrom.com, asos.com, hm.com, zara.com, ssense.com, farfetch.com, amazon.com/fashion, shein.com`;
 
 type Suggestion = {
   text: string;
@@ -87,7 +112,7 @@ export default function ShoppingAssistant({
 
     try {
       // Call the AI chat endpoint which has full data access
-      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+      const response = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -101,24 +126,65 @@ export default function ShoppingAssistant({
       if (!response.ok) throw new Error('AI request failed');
 
       const data = await response.json();
-      const aiText = data.text || data.response || '';
+      // Handle different possible response structures
+      const aiText = data.reply || data.text || data.response || data.content || data.message || '';
 
-      // Try to parse multiple suggestions from the response
+      // Try to parse as JSON first, then fall back to plain text
       const suggestions = parseAISuggestions(aiText);
       if (suggestions.length > 0) {
         setAiSuggestions(suggestions);
         setCurrentSuggestion(suggestions[0]);
-        console.log('Shopping Assistant: Loaded', suggestions.length, 'AI suggestions');
+      } else {
+        // If parsing failed, create a suggestion from the plain text
+        if (aiText.trim()) {
+          const plainTextSuggestion: Suggestion = {
+            text: aiText.substring(0, 100),
+            site: 'https://google.com',
+          };
+          setAiSuggestions([plainTextSuggestion]);
+          setCurrentSuggestion(plainTextSuggestion);
+        }
       }
     } catch (err) {
-      console.warn('Shopping Assistant: AI fetch failed, using fallbacks', err);
+      // Silently fall back to hardcoded suggestions on error
     }
   };
 
   const parseAISuggestions = (text: string): Suggestion[] => {
     const suggestions: Suggestion[] = [];
 
-    // Try to find JSON object in the response
+    // First try to parse as a JSON array
+    const arrayMatch = text.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      try {
+        const parsed = JSON.parse(arrayMatch[0]);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (item.text && item.site) {
+              let site = item.site;
+              // Ensure proper URL format
+              if (!site.startsWith('http')) {
+                site = `https://${site}`;
+              }
+              // Add search query to site URL if available
+              if (item.search && !site.includes('?')) {
+                site = `${site}/search?q=${encodeURIComponent(item.search)}`;
+              }
+              suggestions.push({
+                text: item.text,
+                site: site,
+                search: item.search,
+              });
+            }
+          }
+          if (suggestions.length > 0) return suggestions;
+        }
+      } catch (e) {
+        // Fall through to individual object parsing
+      }
+    }
+
+    // Fallback: Try to find individual JSON objects
     const jsonMatch = text.match(/\{[^{}]*"text"[^{}]*\}/g);
     if (jsonMatch) {
       for (const match of jsonMatch) {
@@ -126,13 +192,12 @@ export default function ShoppingAssistant({
           const parsed = JSON.parse(match);
           if (parsed.text && parsed.site) {
             let site = parsed.site;
-            // If there's a search term, append it to Google
-            if (parsed.search && site.includes('google.com')) {
-              site = `https://google.com/search?q=${encodeURIComponent(parsed.search)}`;
+            if (!site.startsWith('http')) {
+              site = `https://${site}`;
             }
             suggestions.push({
               text: parsed.text,
-              site: site.startsWith('http') ? site : `https://${site}`,
+              site: site,
               search: parsed.search,
             });
           }
@@ -224,7 +289,7 @@ export default function ShoppingAssistant({
     };
   }, []);
 
-  // Show suggestion bubble periodically
+  // Show suggestion bubble periodically (respectful timing - not spammy)
   useEffect(() => {
     const showSuggestion = () => {
       const nextSuggestion = getNextSuggestion();
@@ -232,18 +297,18 @@ export default function ShoppingAssistant({
       setShowBubble(true);
       bubbleScale.value = withSpring(1, {damping: 10, stiffness: 150});
 
-      // Hide after 5 seconds
+      // Hide after 6 seconds - enough time to read but not annoying
       setTimeout(() => {
         bubbleScale.value = withTiming(0, {duration: 200});
         setTimeout(() => setShowBubble(false), 200);
-      }, 5000);
+      }, 6000);
     };
 
-    // Show first suggestion after 3 seconds (or 5 seconds to allow AI to load)
-    const initialTimeout = setTimeout(showSuggestion, userId ? 5000 : 3000);
+    // Show first suggestion after 8 seconds (let user settle in first)
+    const initialTimeout = setTimeout(showSuggestion, userId ? 8000 : 5000);
 
-    // Show suggestions every 30 seconds
-    const suggestionInterval = setInterval(showSuggestion, 30000);
+    // Show new suggestion every 60 seconds (respectful, not annoying)
+    const suggestionInterval = setInterval(showSuggestion, 60000);
 
     return () => {
       clearTimeout(initialTimeout);
