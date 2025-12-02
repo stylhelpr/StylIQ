@@ -8,6 +8,8 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useShoppingStore} from '../../../../store/shoppingStore';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useAuth0} from 'react-native-auth0';
 
 const {width: screenWidth} = Dimensions.get('window');
 
@@ -17,6 +19,13 @@ type Props = {
 
 export default function ShoppingInsightsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
+  const {user} = useAuth0();
+  const userId = user?.sub || '';
+  const {styleProfile} = useStyleProfile(userId);
+
+  // Get budget from style profile
+  const monthlyBudget = styleProfile?.budget_level || 0;
+
   const {
     bookmarks,
     history,
@@ -820,40 +829,135 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                 <Text style={styles.spendingAmountMain}>
                   ${spendingInsights.spentThisMonth}
                 </Text>
-                <Text style={styles.spendingAmountLabel}>spent</Text>
+                <Text style={styles.spendingAmountLabel}>
+                  {monthlyBudget > 0
+                    ? `of $${monthlyBudget} budget`
+                    : 'spent'}
+                </Text>
               </View>
-              {insights.avgPrice > 0 && (
+              {monthlyBudget > 0 && (
                 <View style={{alignItems: 'flex-end'}}>
                   <Text
                     style={[
                       styles.spendingStatValue,
-                      {color: theme.colors.primary},
+                      {
+                        color:
+                          spendingInsights.spentThisMonth > monthlyBudget
+                            ? '#ef4444'
+                            : spendingInsights.spentThisMonth > monthlyBudget * 0.8
+                              ? '#f59e0b'
+                              : '#10b981',
+                      },
                     ]}>
-                    ${insights.avgPrice}
+                    ${Math.max(0, monthlyBudget - spendingInsights.spentThisMonth)}
                   </Text>
-                  <Text style={styles.spendingAmountLabel}>avg item price</Text>
+                  <Text style={styles.spendingAmountLabel}>remaining</Text>
                 </View>
               )}
             </View>
 
-            {/* Progress bar - shows spending relative to potential (bookmarked items total) */}
-            {insights.avgPrice > 0 && (
+            {/* Budget Progress Bar */}
+            {monthlyBudget > 0 && (
               <View style={styles.spendingProgressContainer}>
                 <View
                   style={[
                     styles.spendingProgressBar,
                     {
                       width: `${Math.min(
-                        (spendingInsights.spentThisMonth /
-                          (insights.avgPrice * insights.totalBookmarks || 1)) *
-                          100,
+                        (spendingInsights.spentThisMonth / monthlyBudget) * 100,
                         100,
                       )}%`,
-                      backgroundColor: '#10b981',
+                      backgroundColor:
+                        spendingInsights.spentThisMonth > monthlyBudget
+                          ? '#ef4444'
+                          : spendingInsights.spentThisMonth > monthlyBudget * 0.8
+                            ? '#f59e0b'
+                            : '#10b981',
                     },
                   ]}
                 />
               </View>
+            )}
+
+            {/* Budget Alert */}
+            {monthlyBudget > 0 && spendingInsights.spentThisMonth > monthlyBudget * 0.8 && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor:
+                    spendingInsights.spentThisMonth > monthlyBudget
+                      ? '#ef444420'
+                      : '#f59e0b20',
+                  borderRadius: 8,
+                  padding: 10,
+                  marginBottom: 12,
+                  gap: 8,
+                }}>
+                <MaterialIcons
+                  name={
+                    spendingInsights.spentThisMonth > monthlyBudget
+                      ? 'error'
+                      : 'warning'
+                  }
+                  size={18}
+                  color={
+                    spendingInsights.spentThisMonth > monthlyBudget
+                      ? '#ef4444'
+                      : '#f59e0b'
+                  }
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color:
+                      spendingInsights.spentThisMonth > monthlyBudget
+                        ? '#ef4444'
+                        : '#f59e0b',
+                    flex: 1,
+                  }}>
+                  {spendingInsights.spentThisMonth > monthlyBudget
+                    ? `You've exceeded your budget by $${spendingInsights.spentThisMonth - monthlyBudget}`
+                    : `You're at ${Math.round((spendingInsights.spentThisMonth / monthlyBudget) * 100)}% of your budget`}
+                </Text>
+              </View>
+            )}
+
+            {/* No budget set prompt */}
+            {monthlyBudget === 0 && (
+              <AppleTouchFeedback
+                onPress={() => navigate?.('BudgetAndBrandsScreen')}
+                hapticStyle="impactLight">
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.primary + '15',
+                    borderRadius: 8,
+                    padding: 10,
+                    marginBottom: 12,
+                    gap: 8,
+                  }}>
+                  <MaterialIcons
+                    name="add-circle-outline"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: theme.colors.primary,
+                      flex: 1,
+                    }}>
+                    Set a monthly budget to track your spending
+                  </Text>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                </View>
+              </AppleTouchFeedback>
             )}
 
             <View style={styles.spendingStatsRow}>
