@@ -16,6 +16,8 @@ import {useShoppingStore} from '../../../../store/shoppingStore';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import PriceAlertModal from '../components/PriceAlertModal/PriceAlertModal';
+import { usePriceAlerts } from '../hooks/usePriceAlerts';
 
 type Props = {
   navigate?: (screen: any, params?: any) => void;
@@ -27,6 +29,10 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
   const {bookmarks, removeBookmark, history} = useShoppingStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'brand' | 'name'>('recent');
+  const { createAlert } = usePriceAlerts();
+  const [alertModalVisible, setAlertModalVisible] = useState(false);
+  const [selectedBookmark, setSelectedBookmark] = useState<any>(null);
+  const [isCreatingAlert, setIsCreatingAlert] = useState(false);
 
   const filteredBookmarks = bookmarks
     .filter(
@@ -328,6 +334,19 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
                   </AppleTouchFeedback>
                   <AppleTouchFeedback
                     style={styles.actionButton}
+                    onPress={() => {
+                      setSelectedBookmark(item);
+                      setAlertModalVisible(true);
+                    }}
+                    hapticStyle="impactLight">
+                    <MaterialIcons
+                      name="notifications"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                  </AppleTouchFeedback>
+                  <AppleTouchFeedback
+                    style={styles.actionButton}
                     onPress={() => handleDelete(item.id, item.title)}
                     hapticStyle="impactLight">
                     <MaterialIcons
@@ -345,6 +364,32 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
           scrollEnabled={true}
         />
       )}
+      <PriceAlertModal
+        visible={alertModalVisible}
+        currentPrice={selectedBookmark?.price || 0}
+        itemTitle={selectedBookmark?.title || ''}
+        onDismiss={() => setAlertModalVisible(false)}
+        onConfirm={async (targetPrice) => {
+          if (selectedBookmark) {
+            setIsCreatingAlert(true);
+            try {
+              await createAlert('dummy-token', {
+                url: selectedBookmark.url,
+                title: selectedBookmark.title,
+                currentPrice: selectedBookmark.price || 0,
+                targetPrice,
+                brand: selectedBookmark.brand,
+                source: selectedBookmark.source,
+              });
+            } catch (err) {
+              console.error('Failed to create alert:', err);
+            } finally {
+              setIsCreatingAlert(false);
+            }
+          }
+        }}
+        isLoading={isCreatingAlert}
+      />
     </SafeAreaView>
   );
 }

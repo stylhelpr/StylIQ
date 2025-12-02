@@ -1876,6 +1876,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconButton}
+                onPress={handleAddToBookmarks}>
+                <MaterialIcons
+                  name={bookmarked ? 'bookmark' : 'bookmark-border'}
+                  size={24}
+                  color={bookmarked ? theme.colors.primary : theme.colors.foreground2}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconButton}
                 onPress={handleSaveMenuOpen}>
                 <MaterialIcons
                   name="add-circle-outline"

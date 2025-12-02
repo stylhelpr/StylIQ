@@ -85,78 +85,65 @@ export const shoppingAnalytics = {
     console.log('[PRICE] Extracting from text length:', pageText.length);
     console.log('[PRICE] First 300 chars:', pageText.substring(0, 300));
 
-    // Try multiple price patterns in order:
+    // Strategy: Find ALL prices with currency symbols, then pick the best one
+    // Product pages typically show the main price prominently early in the text
 
-    // 1. Currency symbol + price: $99.99, $99, £99.99, €50.00, etc
-    // More lenient: allow optional decimals AND no decimals
-    let match = pageText.match(/[$£€¥]\s*(\d+(?:[.,]\d{1,2})?)/);
-    if (match && match[1]) {
-      const priceStr = match[1].replace(',', '.');
-      const price = parseFloat(priceStr);
-      console.log('[PRICE] Pattern 1 match:', match[1], 'parsed:', price);
-      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
-        console.log('[PRICE] ✅ Found via pattern 1:', price);
-        return price;
+    // Collect all currency-prefixed prices (both decimal and whole)
+    const priceMatches: {price: number; index: number; hasDecimal: boolean}[] = [];
+
+    // Pattern A: Currency + decimal price: $99.99, $3,200.00, £50.00
+    const decimalRegex = /[$£€¥]\s*([\d,]+)[.,](\d{2})\b/g;
+    let match;
+    while ((match = decimalRegex.exec(pageText)) !== null) {
+      const wholePart = match[1].replace(/,/g, '');
+      const decimalPart = match[2];
+      const price = parseFloat(`${wholePart}.${decimalPart}`);
+      if (!isNaN(price) && price >= 1 && price <= 50000) {
+        priceMatches.push({price, index: match.index, hasDecimal: true});
+        console.log('[PRICE] Found decimal price:', price, 'at index:', match.index);
       }
     }
 
-    // 1b. Try matching price without requiring currency in captured group
-    // Matches: "$99.99" but captures "99.99", or "$ 50" captures "50"
-    match = pageText.match(/[$£€¥]\s*(\d+)(?:[.,](\d{1,2}))?/);
-    if (match) {
-      const wholePart = match[1] || '0';
+    // Pattern B: Currency + whole number: $99, $3200, £50
+    const wholeRegex = /[$£€¥]\s*([\d,]+)\b(?![.,]\d)/g;
+    while ((match = wholeRegex.exec(pageText)) !== null) {
+      const numStr = match[1].replace(/,/g, '');
+      const price = parseFloat(numStr);
+      if (!isNaN(price) && price >= 5 && price <= 50000) {
+        // Avoid duplicates (same position as decimal match)
+        const isDupe = priceMatches.some(p => Math.abs(p.index - match!.index) < 5);
+        if (!isDupe) {
+          priceMatches.push({price, index: match.index, hasDecimal: false});
+          console.log('[PRICE] Found whole price:', price, 'at index:', match.index);
+        }
+      }
+    }
+
+    // If we found prices with currency symbols, pick the best one
+    if (priceMatches.length > 0) {
+      // Sort by: 1) has decimal (more precise), 2) appears earlier in text
+      priceMatches.sort((a, b) => {
+        // Prefer prices with decimals
+        if (a.hasDecimal !== b.hasDecimal) {
+          return a.hasDecimal ? -1 : 1;
+        }
+        // Then prefer earlier in text (likely the main product price)
+        return a.index - b.index;
+      });
+
+      console.log('[PRICE] ✅ Best match:', priceMatches[0].price);
+      return priceMatches[0].price;
+    }
+
+    // Fallback: Look for price keywords
+    match = pageText.match(/(?:price|cost|now|sale)\s*[:=]?\s*[$£€¥]?\s*([\d,]+)(?:[.,](\d{2}))?\b/i);
+    if (match && match[1]) {
+      const wholePart = match[1].replace(/,/g, '');
       const decimalPart = match[2] || '00';
       const price = parseFloat(`${wholePart}.${decimalPart}`);
-      console.log('[PRICE] Pattern 1b match:', wholePart, decimalPart, 'parsed:', price);
-      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
-        console.log('[PRICE] ✅ Found via pattern 1b:', price);
-        return price;
-      }
-    }
-
-    // 2. URL patterns: price=99.99, cost=50, amount:100.00, etc
-    match = pageText.match(/(?:price|cost|amount|total)\s*[=:\/\-]\s*(\d+(?:[.,]\d{1,2})?)/i);
-    if (match && match[1]) {
-      const priceStr = match[1].replace(',', '.');
-      const price = parseFloat(priceStr);
-      console.log('[PRICE] Pattern 2 match:', match[1], 'parsed:', price);
-      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
-        console.log('[PRICE] ✅ Found via pattern 2:', price);
-        return price;
-      }
-    }
-
-    // 3. Text patterns: "Price: $99.99", "Cost $50", "from 100.00", etc
-    match = pageText.match(/(?:price|cost|now|from|sale|was|selling|buy)\s*(?:at)?\s*[:=]?\s*[$£€¥]?\s*(\d+(?:[.,]\d{1,2})?)/i);
-    if (match && match[1]) {
-      const priceStr = match[1].replace(',', '.');
-      const price = parseFloat(priceStr);
-      console.log('[PRICE] Pattern 3 match:', match[1], 'parsed:', price);
-      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
-        console.log('[PRICE] ✅ Found via pattern 3:', price);
-        return price;
-      }
-    }
-
-    // 4. Just numbers with decimals: 99.99, 199.50, 5.00, etc
-    match = pageText.match(/\b(\d+[.,]\d{1,2})\b/);
-    if (match && match[1]) {
-      const priceStr = match[1].replace(',', '.');
-      const price = parseFloat(priceStr);
-      console.log('[PRICE] Pattern 4 match:', match[1], 'parsed:', price);
-      if (!isNaN(price) && price >= 0.5 && price <= 100000) {
-        console.log('[PRICE] ✅ Found via pattern 4:', price);
-        return price;
-      }
-    }
-
-    // 5. Whole numbers that could be prices: 99, 199, 5000 (but not numbers used elsewhere)
-    match = pageText.match(/[$£€¥]\s*(\d+)(?!\d)/);
-    if (match && match[1]) {
-      const price = parseFloat(match[1]);
-      console.log('[PRICE] Pattern 5 match:', match[1], 'parsed:', price);
-      if (!isNaN(price) && price >= 5 && price <= 100000) {
-        console.log('[PRICE] ✅ Found via pattern 5:', price);
+      console.log('[PRICE] Fallback keyword match:', price);
+      if (!isNaN(price) && price >= 1 && price <= 50000) {
+        console.log('[PRICE] ✅ Found via keyword:', price);
         return price;
       }
     }
