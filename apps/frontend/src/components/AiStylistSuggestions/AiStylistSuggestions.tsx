@@ -8,6 +8,7 @@ import {
   Switch,
   ScrollView,
   Pressable,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
@@ -289,9 +290,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
   /** 💾 Save expanded state whenever it changes */
   useEffect(() => {
-    AsyncStorage.setItem(AI_SUGGESTION_EXPANDED_KEY, isExpanded.toString()).catch(
-      e => console.warn('⚠️ Failed to save expanded state', e),
-    );
+    AsyncStorage.setItem(
+      AI_SUGGESTION_EXPANDED_KEY,
+      isExpanded.toString(),
+    ).catch(e => console.warn('⚠️ Failed to save expanded state', e));
   }, [isExpanded]);
 
   /** 📡 Auto-fetch on mount if auto mode */
@@ -382,20 +384,34 @@ const AiStylistSuggestions: React.FC<Props> = ({
               alignItems: 'center',
               marginBottom: moderateScale(tokens.spacing.xsm),
             }}>
-            <Icon
-              name="stars"
-              size={22}
-              color={theme.colors.button1}
-              style={{marginRight: moderateScale(tokens.spacing.xs)}}
-            />
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 13,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: theme.colors.surfaceBorder,
+                marginRight: moderateScale(tokens.spacing.xs),
+              }}>
+              <Image
+                source={require('../../assets/images/Styla1.png')}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 13,
+                  resizeMode: 'cover',
+                }}
+              />
+            </View>
+
             <Text
               style={{
                 fontSize: fontScale(tokens.fontSize.lg),
                 fontWeight: tokens.fontWeight.bold,
                 color: theme.colors.foreground,
-                // textTransform: 'uppercase',
               }}>
-              AI Suggestions
+              Styla's Suggestions
             </Text>
           </View>
 

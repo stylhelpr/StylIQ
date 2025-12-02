@@ -116,6 +116,64 @@ function generateSeasonalForecast(wardrobe: any[] = []): string | undefined {
   return `🍂 ${season} is approaching — you're missing: ${missing.join(', ')}.`;
 }
 
+// 🌦️ Weather fetching helper for AI context
+async function fetchWeatherForAI(lat: number, lon: number): Promise<{
+  tempF: number;
+  humidity: number;
+  windSpeed: number;
+  weatherCode: number;
+  condition: string;
+} | null> {
+  try {
+    const apiKey = process.env.TOMORROW_API_KEY;
+    if (!apiKey) {
+      console.warn('⚠️ TOMORROW_API_KEY not set - weather unavailable for AI');
+      return null;
+    }
+    const url = `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const values = data?.data?.values;
+    if (!values) return null;
+
+    // Map weather codes to conditions
+    const weatherConditions: Record<number, string> = {
+      1000: 'Clear/Sunny',
+      1100: 'Mostly Clear',
+      1101: 'Partly Cloudy',
+      1102: 'Mostly Cloudy',
+      1001: 'Cloudy',
+      2000: 'Fog',
+      4000: 'Drizzle',
+      4001: 'Rain',
+      4200: 'Light Rain',
+      4201: 'Heavy Rain',
+      5000: 'Snow',
+      5001: 'Flurries',
+      5100: 'Light Snow',
+      5101: 'Heavy Snow',
+      6000: 'Freezing Drizzle',
+      6001: 'Freezing Rain',
+      7000: 'Ice Pellets',
+      7101: 'Heavy Ice Pellets',
+      7102: 'Light Ice Pellets',
+      8000: 'Thunderstorm',
+    };
+
+    return {
+      tempF: Math.round((values.temperature * 9) / 5 + 32),
+      humidity: Math.round(values.humidity),
+      windSpeed: Math.round(values.windSpeed),
+      weatherCode: values.weatherCode,
+      condition: weatherConditions[values.weatherCode] || 'Unknown',
+    };
+  } catch (err: any) {
+    console.warn('⚠️ Weather fetch failed:', err.message);
+    return null;
+  }
+}
+
 @Injectable()
 export class AiService {
   private openai: OpenAI;
@@ -1941,8 +1999,56 @@ ${climateNote}
       console.warn('⚠️ failed to load look memories for chat:', err.message);
     }
 
+    /* 🔔 --- LOAD NOTIFICATIONS FOR CHAT CONTEXT --- */
+    let notificationsContext = '';
+    try {
+      const { rows: notifRows } = await pool.query(
+        `SELECT title, message, timestamp, category, read
+         FROM user_notifications
+         WHERE user_id = $1
+         ORDER BY timestamp DESC
+         LIMIT 15`,
+        [user_id],
+      );
+      if (notifRows.length > 0) {
+        notificationsContext = '\n\n🔔 RECENT NOTIFICATIONS:\n' + notifRows
+          .map((n: any, i: number) => {
+            const date = new Date(n.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const readStatus = n.read ? '' : ' (unread)';
+            return `${i + 1}. [${date}] ${n.title || n.category || 'Notification'}: ${n.message}${readStatus}`;
+          })
+          .join('\n');
+        console.log(`🔔 Chat: Loaded ${notifRows.length} notifications`);
+        console.log(`🔔 Chat: Notifications preview: ${notificationsContext.substring(0, 500)}`);
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to load notifications for chat:', err.message);
+    }
+
+    /* 🌦️ --- FETCH CURRENT WEATHER FOR CHAT CONTEXT --- */
+    let weatherContext = '';
+    try {
+      if (dto.lat && dto.lon) {
+        const weather = await fetchWeatherForAI(dto.lat, dto.lon);
+        if (weather) {
+          weatherContext = `\n\n🌦️ CURRENT WEATHER:\n• Temperature: ${weather.tempF}°F\n• Condition: ${weather.condition}\n• Humidity: ${weather.humidity}%\n• Wind: ${weather.windSpeed} mph`;
+          console.log(`🌦️ Chat: Loaded weather - ${weather.tempF}°F, ${weather.condition}`);
+        }
+      } else if (dto.weather) {
+        // Use weather passed directly from frontend if no lat/lon
+        const w = dto.weather;
+        if (w.tempF || w.temperature) {
+          const temp = w.tempF || Math.round((w.temperature * 9) / 5 + 32);
+          weatherContext = `\n\n🌦️ CURRENT WEATHER:\n• Temperature: ${temp}°F${w.condition ? `\n• Condition: ${w.condition}` : ''}`;
+          console.log(`🌦️ Chat: Using passed weather - ${temp}°F`);
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ failed to fetch weather for chat:', err.message);
+    }
+
     // Combine all context into enhanced summary
-    const fullContext = (longTermSummary || '(no prior memory yet)') + styleProfileContext + wardrobeContext + calendarContext + savedLooksContext + recreatedLooksContext + feedbackContext + wearHistoryContext + scheduledOutfitsContext + favoritesContext + customOutfitsContext + itemPrefsContext + lookMemoriesContext;
+    const fullContext = (longTermSummary || '(no prior memory yet)') + styleProfileContext + wardrobeContext + calendarContext + savedLooksContext + recreatedLooksContext + feedbackContext + wearHistoryContext + scheduledOutfitsContext + favoritesContext + customOutfitsContext + itemPrefsContext + lookMemoriesContext + notificationsContext + weatherContext;
 
     console.log(`📊 Chat: Full context length: ${fullContext.length} chars`);
     console.log(`📊 Chat: Calendar context included: ${calendarContext.length > 0}`);
@@ -1970,6 +2076,8 @@ CRITICAL RULES:
 3. If the user asks about something not in the data above, say "I don't see that in your data"
 4. Use ONLY the real calendar events, wardrobe items, and preferences provided
 5. When answering questions about their calendar - reference ONLY the events listed above
+6. You DO have access to real-time weather data - if CURRENT WEATHER is shown above, use it confidently
+7. You DO have access to notification history - if RECENT NOTIFICATIONS is shown above, use it to answer questions about notifications
 
 Respond naturally about outfits, wardrobe planning, or styling using ONLY the user data provided.
 At the end, return a short JSON block like:

@@ -33,6 +33,7 @@ import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useUUID} from '../context/UUIDContext';
 import {useResponsive} from '../hooks/useResponsive'; // ✅ shared adaptive hook
+import Geolocation from '@react-native-community/geolocation';
 import {Linking} from 'react-native';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import Tts from 'react-native-tts';
@@ -127,7 +128,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
     {
       id: 'seed-1',
       role: 'assistant',
-      text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+      text: "Hey — I'm Styla, your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
       createdAt: Date.now(),
     },
   ]);
@@ -147,6 +148,17 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const [ttsUrl, setTtsUrl] = useState<string | null>(null); // ✅ add this line
+
+  // 🌦️ Location for weather context
+  const [coords, setCoords] = useState<{lat: number; lon: number} | null>(null);
+  useEffect(() => {
+    Geolocation.getCurrentPosition(
+      (pos: {coords: {latitude: number; longitude: number}}) =>
+        setCoords({lat: pos.coords.latitude, lon: pos.coords.longitude}),
+      () => {}, // silently fail if no permission
+      {enableHighAccuracy: false, timeout: 5000},
+    );
+  }, []);
 
   /** 🎙️ Voice */
   const {speech, isRecording, startListening, stopListening} =
@@ -402,7 +414,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
 
     try {
       const historyForApi = [...messages, userMsg];
-      const assistant = await callAiChatAPI(historyForApi, userMsg, userId);
+      const assistant = await callAiChatAPI(historyForApi, userMsg, userId, coords);
       // const aiMsg: Message = {
       //   id: `a-${Date.now()}`,
       //   role: 'assistant',
@@ -526,25 +538,19 @@ export default function AiStylistChatScreen({navigate}: Props) {
           ]}>
           {/* 🤖 Assistant icon */}
           {!isUser && (
-            <View
+            <Image
+              source={require('../assets/images/Styla1.png')}
               style={{
-                width: isTablet ? 44 : 36,
-                height: isTablet ? 44 : 36,
-                borderRadius: 22,
-                backgroundColor: theme.colors.button1,
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: isTablet ? 44 : 40,
+                height: isTablet ? 44 : 40,
+                borderRadius: (isTablet ? 44 : 36) / 2,
                 alignSelf: 'flex-end',
                 marginRight: 6,
                 borderWidth: 1,
                 borderColor: theme.colors.surfaceBorder,
-              }}>
-              <MaterialIcons
-                name="smart-toy"
-                size={isTablet ? 28 : 22}
-                color={theme.colors.buttonText1}
-              />
-            </View>
+              }}
+              resizeMode="cover"
+            />
           )}
 
           {/* 💬 Bubble */}
@@ -623,8 +629,8 @@ export default function AiStylistChatScreen({navigate}: Props) {
           {isUser && (
             <View
               style={{
-                width: isTablet ? 44 : 38,
-                height: isTablet ? 44 : 38,
+                width: isTablet ? 44 : 40,
+                height: isTablet ? 44 : 40,
                 borderRadius: 50,
                 overflow: 'hidden',
                 backgroundColor: theme.colors.background,
@@ -731,7 +737,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                     color: theme.colors.foreground,
                   },
                 ]}>
-                AI Stylist Chat
+                Styla Chat
               </Text>
             </View>
 
@@ -856,7 +862,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                       color: theme.colors.foreground,
                       fontSize: isTablet ? 15 : 13,
                     }}>
-                    Stylist is thinking…
+                    Styla is thinking…
                   </Text>
                 </Animatable.View>
               )}
@@ -1164,14 +1170,22 @@ async function callAiChatAPI(
   history: Message[],
   latest: Message,
   userId: string,
+  coords?: {lat: number; lon: number} | null,
 ): Promise<{text: string; images?: any[]; links?: any[]}> {
-  const payload = {
+  const payload: Record<string, any> = {
     user_id: userId,
     messages: [...history, latest].map(m => ({
       role: m.role,
       content: m.text,
     })),
   };
+  if (coords) {
+    payload.lat = coords.lat;
+    payload.lon = coords.lon;
+    console.log('🌦️ Sending coords:', coords.lat, coords.lon);
+  } else {
+    console.log('🌦️ No coords available');
+  }
   console.log('📡 calling:', `${API_BASE_URL}/ai/chat`);
 
   const res = await fetch(`${API_BASE_URL}/ai/chat`, {
