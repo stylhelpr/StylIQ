@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {useShoppingStore} from '../../../../store/shoppingStore';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {useStyleProfile} from '../hooks/useStyleProfile';
+import {useAuth0} from 'react-native-auth0';
 
 const {width: screenWidth} = Dimensions.get('window');
 
@@ -28,8 +30,19 @@ type Props = {
 export default function ShoppingDashboardScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
-  const {bookmarks, collections, history, recentSearches, tabs, addTab} =
-    useShoppingStore();
+  const {user} = useAuth0();
+  const userId = user?.sub || '';
+  const {styleProfile} = useStyleProfile(userId);
+
+  const {
+    bookmarks,
+    collections,
+    history,
+    recentSearches,
+    tabs,
+    addTab,
+    cartHistory,
+  } = useShoppingStore();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
@@ -37,6 +50,41 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     // Simulate refresh
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
+
+  // Calculate budget status
+  const budgetStatus = useMemo(() => {
+    const monthlyBudget = styleProfile?.budget_level || 0;
+    if (monthlyBudget === 0) return null;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let spentThisMonth = 0;
+    cartHistory.forEach(cart => {
+      cart.events.forEach(event => {
+        if (event.type === 'checkout_complete' && event.cartValue) {
+          const date = new Date(event.timestamp);
+          if (
+            date.getMonth() === currentMonth &&
+            date.getFullYear() === currentYear
+          ) {
+            spentThisMonth += event.cartValue;
+          }
+        }
+      });
+    });
+
+    const remaining = monthlyBudget - spentThisMonth;
+    const percentage = Math.min((spentThisMonth / monthlyBudget) * 100, 100);
+
+    return {
+      budget: monthlyBudget,
+      spent: Math.round(spentThisMonth),
+      remaining: Math.max(0, remaining),
+      percentage,
+    };
+  }, [styleProfile?.budget_level, cartHistory]);
 
   const recentVisits = history.slice(0, 5);
   const topCollections = collections.slice(0, 3);
@@ -126,7 +174,6 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     quickActionGrid: {
       flexDirection: 'row',
       gap: 12,
-      marginBottom: 24,
     },
     quickActionButton: {
       flex: 1,
@@ -283,6 +330,41 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
       color: theme.colors.foreground,
       textAlign: 'center',
     },
+    budgetOverview: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 12,
+      marginHorizontal: 16,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    budgetLabel: {
+      fontSize: 12,
+      color: theme.colors.foreground,
+      marginBottom: 8,
+      fontWeight: tokens.fontWeight.medium,
+    },
+    budgetProgress: {
+      height: 6,
+      backgroundColor: theme.colors.background,
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginBottom: 8,
+    },
+    budgetBar: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    budgetText: {
+      fontSize: 12,
+      color: theme.colors.foreground,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    budgetAmount: {
+      fontWeight: tokens.fontWeight.semiBold,
+    },
   });
 
   return (
@@ -384,6 +466,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </Animatable.View>
           </View>
         </Animatable.View>
+
         {/* Quick Actions */}
         <Animatable.View
           animation="fadeInUp"
@@ -430,6 +513,43 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </AppleTouchFeedback>
           </View>
         </Animatable.View>
+
+        {/* Budget Overview */}
+        {budgetStatus && (
+          <Animatable.View
+            animation="fadeInUp"
+            delay={250}
+            style={styles.budgetOverview}>
+            <Text style={styles.budgetLabel}>Monthly Budget</Text>
+            <View style={styles.budgetProgress}>
+              <View
+                style={[
+                  styles.budgetBar,
+                  {
+                    width: `${budgetStatus.percentage}%`,
+                    backgroundColor:
+                      budgetStatus.spent > budgetStatus.budget
+                        ? '#ef4444'
+                        : budgetStatus.spent > budgetStatus.budget * 0.8
+                        ? '#f59e0b'
+                        : '#10b981',
+                  },
+                ]}
+              />
+            </View>
+            <View
+              style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+              <Text style={styles.budgetText}>
+                <Text style={styles.budgetAmount}>${budgetStatus.spent}</Text>
+                <Text> of ${budgetStatus.budget}</Text>
+              </Text>
+              <Text style={{fontSize: 12, color: theme.colors.foreground}}>
+                {Math.round(budgetStatus.percentage)}%
+              </Text>
+            </View>
+          </Animatable.View>
+        )}
+
         {/* Trending Items */}
         {trendingItems.length > 0 && (
           <Animatable.View animation="fadeInLeft" delay={300}>
