@@ -24,6 +24,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     recentSearches,
     getTopShops,
     getMostVisitedSites,
+    cartHistory,
   } = useShoppingStore();
 
   // Calculate insights
@@ -185,6 +186,45 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       hasData: bookmarks.length > 0,
     };
   }, [bookmarks]);
+
+  // Calculate spending insights from cartHistory (read-only)
+  const spendingInsights = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Get all checkout_complete events with their values
+    const completedPurchases: {value: number; timestamp: number}[] = [];
+
+    cartHistory.forEach(cart => {
+      cart.events.forEach(event => {
+        if (event.type === 'checkout_complete' && event.cartValue) {
+          completedPurchases.push({
+            value: event.cartValue,
+            timestamp: event.timestamp,
+          });
+        }
+      });
+    });
+
+    // Filter to this month's purchases
+    const thisMonthPurchases = completedPurchases.filter(p => {
+      const date = new Date(p.timestamp);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+
+    // Calculate totals
+    const spentThisMonth = thisMonthPurchases.reduce((sum, p) => sum + p.value, 0);
+    const totalAllTime = completedPurchases.reduce((sum, p) => sum + p.value, 0);
+    const purchaseCount = thisMonthPurchases.length;
+
+    return {
+      spentThisMonth: Math.round(spentThisMonth),
+      totalAllTime: Math.round(totalAllTime),
+      purchaseCount,
+      hasPurchases: completedPurchases.length > 0,
+    };
+  }, [cartHistory]);
 
   const styles = StyleSheet.create({
     container: {
@@ -545,6 +585,81 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       flexDirection: 'row',
       alignItems: 'center',
     },
+    // Spending Tracker styles
+    spendingCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.muted,
+    },
+    spendingHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 16,
+    },
+    spendingHeaderIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: '#10b98120',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    spendingHeaderTitle: {
+      fontSize: 16,
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.foreground,
+    },
+    spendingAmountRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      marginBottom: 12,
+    },
+    spendingAmountMain: {
+      fontSize: 32,
+      fontWeight: tokens.fontWeight.bold,
+      color: theme.colors.foreground,
+    },
+    spendingAmountLabel: {
+      fontSize: 12,
+      color: theme.colors.foreground,
+      marginTop: 4,
+    },
+    spendingProgressContainer: {
+      height: 8,
+      backgroundColor: theme.colors.muted,
+      borderRadius: 4,
+      overflow: 'hidden',
+      marginBottom: 16,
+    },
+    spendingProgressBar: {
+      height: '100%',
+      borderRadius: 4,
+    },
+    spendingStatsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.muted,
+    },
+    spendingStat: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    spendingStatValue: {
+      fontSize: 18,
+      fontWeight: tokens.fontWeight.bold,
+      color: theme.colors.foreground,
+    },
+    spendingStatLabel: {
+      fontSize: 11,
+      color: theme.colors.foreground,
+      marginTop: 4,
+    },
   });
 
   const statCards = [
@@ -681,11 +796,94 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
           </Animatable.View>
         )}
 
+        {/* Spending Tracker */}
+        <Animatable.View
+          animation="fadeInUp"
+          duration={500}
+          delay={450}
+          style={styles.section}>
+          <Text style={styles.sectionTitle}>Spending Tracker</Text>
+          <View style={styles.spendingCard}>
+            <View style={styles.spendingHeader}>
+              <View style={styles.spendingHeaderIcon}>
+                <MaterialIcons
+                  name="account-balance-wallet"
+                  size={18}
+                  color="#10b981"
+                />
+              </View>
+              <Text style={styles.spendingHeaderTitle}>This Month</Text>
+            </View>
+
+            <View style={styles.spendingAmountRow}>
+              <View>
+                <Text style={styles.spendingAmountMain}>
+                  ${spendingInsights.spentThisMonth}
+                </Text>
+                <Text style={styles.spendingAmountLabel}>spent</Text>
+              </View>
+              {insights.avgPrice > 0 && (
+                <View style={{alignItems: 'flex-end'}}>
+                  <Text
+                    style={[
+                      styles.spendingStatValue,
+                      {color: theme.colors.primary},
+                    ]}>
+                    ${insights.avgPrice}
+                  </Text>
+                  <Text style={styles.spendingAmountLabel}>avg item price</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Progress bar - shows spending relative to potential (bookmarked items total) */}
+            {insights.avgPrice > 0 && (
+              <View style={styles.spendingProgressContainer}>
+                <View
+                  style={[
+                    styles.spendingProgressBar,
+                    {
+                      width: `${Math.min(
+                        (spendingInsights.spentThisMonth /
+                          (insights.avgPrice * insights.totalBookmarks || 1)) *
+                          100,
+                        100,
+                      )}%`,
+                      backgroundColor: '#10b981',
+                    },
+                  ]}
+                />
+              </View>
+            )}
+
+            <View style={styles.spendingStatsRow}>
+              <View style={styles.spendingStat}>
+                <Text style={styles.spendingStatValue}>
+                  {spendingInsights.purchaseCount}
+                </Text>
+                <Text style={styles.spendingStatLabel}>Purchases</Text>
+              </View>
+              <View style={styles.spendingStat}>
+                <Text style={styles.spendingStatValue}>
+                  ${spendingInsights.totalAllTime}
+                </Text>
+                <Text style={styles.spendingStatLabel}>All Time</Text>
+              </View>
+              <View style={styles.spendingStat}>
+                <Text style={styles.spendingStatValue}>
+                  {insights.totalBookmarks}
+                </Text>
+                <Text style={styles.spendingStatLabel}>Wishlisted</Text>
+              </View>
+            </View>
+          </View>
+        </Animatable.View>
+
         {/* Weekly Activity */}
         <Animatable.View
           animation="fadeInUp"
           duration={500}
-          delay={500}
+          delay={550}
           style={styles.section}>
           <View style={styles.activityHeader}>
             <View style={{}}>
