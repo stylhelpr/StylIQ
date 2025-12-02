@@ -65,6 +65,7 @@ export default function WebBrowserScreen({route}: Props) {
   const {theme} = useAppTheme();
   const insets = useSafeAreaInsets();
   const userId = useUUID();
+  console.log('WebBrowserScreen mounted, userId:', userId);
   const initialUrl = route?.params?.url || '';
   const webRef = useRef<WebView>(null);
   const containerRef = useRef<View>(null);
@@ -121,21 +122,52 @@ export default function WebBrowserScreen({route}: Props) {
 
   // 🛍️ Fetch shopping suggestions with smart context classification
   async function fetchShoppingAssistantSuggestions() {
-    if (!userId || hasAiSuggestionsLoaded) return;
+    console.log('🛍️ fetchShoppingAssistantSuggestions called');
+    console.log('userId:', userId);
+    console.log('hasAiSuggestionsLoaded:', hasAiSuggestionsLoaded);
+    console.log('isAiSuggestionsStale():', isAiSuggestionsStale());
+    if (!userId || (hasAiSuggestionsLoaded && !isAiSuggestionsStale())) {
+      console.log('⛔ Early return: userId missing or already loaded and not stale');
+      return;
+    }
 
-    const SHOPPING_PROMPT = `You are an elite personal shopping assistant. Generate 5 HIGHLY PERSONALIZED shopping recommendations using these strategies:
+    const SHOPPING_PROMPT = `SHOPPING ASSISTANT MODE: Analyze the user's wardrobe, style profile, and calendar to generate 5 HIGHLY SPECIFIC personalized shopping recommendations.
 
-1. **CALENDAR URGENCY**: Find an upcoming event and recommend something they NEED for it
-2. **WARDROBE GAP**: Identify something missing from their wardrobe based on what they own
-3. **STYLE UPGRADE**: Based on their positive outfit feedback, suggest leveling up
-4. **TRENDING + PERSONAL**: Something trending that matches THEIR specific style
-5. **COMPLETE THE LOOK**: Based on their saved outfits, suggest missing pieces
+🎯 CRITICAL REQUIREMENTS:
+1. Access user's wardrobe inventory to identify SPECIFIC gaps (colors owned, categories missing, fit preferences)
+2. Reference style profile: body type, preferred colors, disliked styles, climate
+3. Check calendar for upcoming events needing specific pieces
+4. NO GENERIC SUGGESTIONS - every recommendation must PROVE you know their wardrobe
+5. EVERY recommendation MUST explicitly name SPECIFIC items they already own
 
-Respond with a JSON array of exactly 5 objects:
+⭐ MANDATORY WARDROBE REFERENCING (you MUST do this):
+- Use language patterns like "pair with your [COLOR] [ITEM] you own"
+- Examples of GOOD recommendations:
+  • "Navy blazer - pairs perfectly with your sleek white pants and complements your gray cardigans"
+  • "Camel belt - fills your warm-neutral gap; works with your dark bottoms and existing brown shoes"
+  • "Black tailored trousers - adds formality; you have 8 tops (mostly navy/gray) but only 2 bottoms"
+  • "Cream linen shirt - bridges your white and navy pieces; works for your business casual events next month"
+  • "Burgundy wool sweater - complements your warm undertones and pairs with the cream chinos you own"
+
+- Examples of BAD recommendations (NEVER do these):
+  • ❌ "Elevate your look with a premium leather belt"
+  • ❌ "Fill the gap with classic black trousers"
+  • ❌ "Add a stylish blazer to complete your wardrobe"
+
+Use strategies:
+1. **CALENDAR**: Reference specific events and what they NEED
+2. **WARDROBE_GAP**: Name specific missing colors or categories (e.g., "you lack warm-toned bottoms") AND list similar items they own
+3. **STYLE_UPGRADE**: Reference existing pieces BY NAME and suggest exact complementary items
+4. **TRENDING**: Name trending style AND explain why THEIR specific aesthetic needs it
+5. **COMPLETE_LOOK**: Reference saved outfits and name SPECIFIC pieces missing
+
+Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 [
-  {"text": "Short punchy recommendation!", "site": "https://nordstrom.com", "search": "navy blazer", "strategy": "calendar"},
+  {"text": "[Color] [fit] [garment] - [concrete reason naming specific items they own]", "site": "https://nordstrom.com", "search": "[specific search]", "strategy": "calendar"},
   ...
 ]`;
+
+    console.log('🛍️ [WebBrowserScreen] SHOPPING_PROMPT - will trigger wardrobe context load');
 
     try {
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
@@ -160,6 +192,7 @@ Respond with a JSON array of exactly 5 objects:
           setAiShoppingAssistantSuggestions(parsed);
           setHasAiSuggestionsLoaded(true);
           console.log('✅ Shopping suggestions loaded:', parsed.length);
+          console.log('📦 Suggestions:', parsed.map((s: any) => s.text));
         }
       } catch {
         console.log('⚠️ Failed to parse shopping suggestions');
@@ -249,12 +282,17 @@ Respond with a JSON array of exactly 5 objects:
     }
   }, []);
 
-  // 🛍️ Fetch AI Shopping Suggestions once per app session (or if stale after 30 min)
+  // 🛍️ Fetch AI Shopping Suggestions once per app session (or if stale after 24h)
   useEffect(() => {
+    console.log('🛍️ useEffect for suggestions triggered');
+    console.log('userId:', userId);
+    console.log('hasAiSuggestionsLoaded:', hasAiSuggestionsLoaded);
+    console.log('isAiSuggestionsStale():', isAiSuggestionsStale());
     if (userId && (!hasAiSuggestionsLoaded || isAiSuggestionsStale())) {
+      console.log('🛍️ Calling fetchShoppingAssistantSuggestions');
       fetchShoppingAssistantSuggestions();
     }
-  }, [userId, hasAiSuggestionsLoaded, isAiSuggestionsStale]);
+  }, [userId, hasAiSuggestionsLoaded]);
 
   // Auto-fill: Inject saved password on page load
   useEffect(() => {

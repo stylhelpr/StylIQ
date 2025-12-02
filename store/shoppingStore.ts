@@ -641,7 +641,7 @@ export const useShoppingStore = create<ShoppingState>()(
       isAiSuggestionsStale: () => {
         const state = get();
         if (!state.aiSuggestionsCachedAt) return true;
-        const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+        const CACHE_DURATION_MS = 0; // DISABLED for testing - set to 24 * 60 * 60 * 1000 for production
         return Date.now() - state.aiSuggestionsCachedAt > CACHE_DURATION_MS;
       },
 

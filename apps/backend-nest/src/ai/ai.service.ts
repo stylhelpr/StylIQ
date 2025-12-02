@@ -861,6 +861,96 @@ ${colorRule}
     If it is hot (like Tropical or Desert), emphasize breathable, lightweight fabrics and open footwear.`
       : '';
 
+    // 🛍️ SHOPPING ASSISTANT: Fetch detailed wardrobe items for specific gap analysis
+    let wardrobeItems = [];
+    try {
+      const result = await pool.query(
+        `SELECT name, main_category, subcategory, color, material
+         FROM wardrobe_items
+         WHERE user_id::text = $1
+         ORDER BY main_category, updated_at DESC
+         LIMIT 200`,
+        [user_id],
+      );
+      wardrobeItems = result.rows || [];
+      console.log('🛍️ [personalizedShop] Wardrobe query executed:', wardrobeItems.length, 'items found');
+    } catch (err) {
+      console.error('🛍️ [personalizedShop] ERROR fetching wardrobe:', err);
+      wardrobeItems = [];
+    }
+
+    // 🛍️ Build detailed wardrobe inventory with actual item names
+    const wardrobeByCategory = wardrobeItems.reduce((acc: any, item: any) => {
+      const category = item.main_category || 'Other';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push({
+        name: item.name,
+        color: item.color,
+        material: item.material,
+        subcategory: item.subcategory,
+      });
+      return acc;
+    }, {});
+
+    // 🛍️ Format detailed inventory: show actual items user owns
+    const detailedInventory = Object.entries(wardrobeByCategory)
+      .map(([category, items]: [string, any]) => {
+        const itemList = items
+          .slice(0, 10) // Show top 10 items per category
+          .map((i: any) => `${i.name}${i.color ? ` (${i.color})` : ''}`)
+          .join(', ');
+        const moreCount = items.length > 10 ? ` +${items.length - 10} more` : '';
+        return `• **${category}**: ${itemList}${moreCount}`;
+      })
+      .join('\n');
+
+    // 🛍️ Count by category to identify major gaps
+    const categoryStats = Object.entries(wardrobeByCategory)
+      .map(([cat, items]: [string, any]) => `${cat} (${items.length})`)
+      .join(', ');
+
+    const wardrobeContext = `# CRITICAL: SPECIFIC, PERSONALIZED RECOMMENDATIONS ONLY
+NEVER make generic suggestions. ALWAYS be specific about WHY each item is needed.
+
+${wardrobeItems.length > 0 ? `## USER'S EXISTING WARDROBE - SPECIFIC ITEMS & QUANTITIES
+Category totals: ${categoryStats}
+
+Actual items owned:
+${detailedInventory}
+
+REFERENCE ACTUAL ITEMS: Name specific pieces from their wardrobe in your reasons.` : `## NO WARDROBE DATA AVAILABLE YET
+The user has not yet added items to their wardrobe. STILL be specific by:
+- Referencing the uploaded image aesthetic
+- Referencing their stated style preferences and goals
+- Suggesting items that fill SPECIFIC functional gaps (e.g., "You have no layering pieces")
+- Being explicit about COLOR, MATERIAL, and FIT choices`}
+
+## MANDATORY SPECIFICITY RULES FOR ALL RECOMMENDATIONS:
+1. EVERY recommendation MUST state WHY it's needed (avoid generic words like "elevates" or "completes")
+   ✓ GOOD: "Adds neutral bottoms in cotton - all your existing pieces are dark structured items"
+   ✓ GOOD: "For layering in moderate weather - fills temperature transition gap"
+   ✗ BAD: "Elevates your wardrobe"
+   ✗ BAD: "Completes your basics"
+
+2. REFERENCE THE UPLOADED IMAGE in your reasoning:
+   ✓ "Complements the [specific color/style] aesthetic from your image"
+   ✓ "Works with the [silhouette] style you showed interest in"
+
+3. BE SPECIFIC ABOUT USE CASE:
+   ✓ "For [occasion/weather/activity]"
+   ✓ "Pairs with [type of items most people own]"
+   ✗ "Just adds to your collection"
+
+4. MENTION SPECIFIC COLORS/MATERIALS/FIT:
+   ✓ "Adds [specific color] in [material] which [specific reason]"
+   ✓ "Camel-toned [fit] [garment] for [climate/use]"
+
+## EXAMPLE GOOD REASONS:
+- "Neutral base layer in cream linen for the minimalist aesthetic you showed"
+- "Adds breathable layering piece in cotton for warm weather - pairs with your smart-casual style"
+- "Complements the crisp formal vibe of your image; adds structured elegance"
+- "Provides casual footwear in canvas - versatile neutral that works with most styles"`;
+
     // 🔒 Enforced personalization hierarchy
     const rules = `
     # PERSONALIZATION ENFORCEMENT
@@ -870,20 +960,39 @@ ${colorRule}
     const profileConstraints = buildProfileConstraints(styleProfile);
 
     const prompt = `
-You are a world-class personal stylist generating a personalized recreation of an uploaded look.
+You are a world-class personal stylist analyzing user's wardrobe gaps and recommending strategic purchases.
 ${rules}
 ${profileConstraints}
 
 # IMAGE INSPIRATION
-• Use the uploaded image only as an aesthetic anchor (color story, silhouette, or texture).
-• Do NOT reference or reuse the user's wardrobe.
+• Use the uploaded image as inspiration for aesthetic direction (color story, silhouette, vibe).
 • Respect all style profile constraints exactly.
-• Maintain the same mood and spirit as the uploaded image, not a literal copy.
-• Preserve one clear visual motif from the source image (e.g., plaid pattern or color tone) unless climate prohibits.
+• Maintain the same mood and spirit as the uploaded image.
+
+${wardrobeContext}
+
+# STRATEGIC SHOPPING RECOMMENDATIONS - MUST BE SPECIFIC
+For EACH recommendation, you MUST:
+1. Reference 2-3 actual items from their wardrobe by NAME (e.g., "pairs with the gray cardigans")
+2. State the SPECIFIC GAP you're filling (e.g., "you have 12 tops but only 3 bottoms")
+3. Name the CATEGORY imbalance (e.g., "all your pants are dark - this adds a neutral option")
+4. Explain what they'll USE it WITH (e.g., "complements your existing navy blazer collection")
+
+CRITICAL: NO VAGUE REASONS. These are REQUIRED:
+❌ WRONG: "Elevates your wardrobe"
+✅ RIGHT: "Works with your navy blazers and black pants; adds the warm-toned bottom option you lack"
+
+❌ WRONG: "Completes your basics"
+✅ RIGHT: "You own 8 tops (grays, blacks, white) but only 2 bottoms - this adds jean variety"
+
+❌ WRONG: "Fills a style gap"
+✅ RIGHT: "Your wardrobe is mostly structured pieces (blazers, cardigans) - this adds the relaxed layer you need"
 
 # OUTPUT RULES
 - ALWAYS output a complete outfit with distinct Top, Bottom, Shoes, and (if seasonally appropriate) Outerwear and Accessories.
-- Each piece must include category, item, color, and fit.
+- Each piece must include category, item, color, fit, and a SPECIFIC reason
+- suggested_purchases reasons MUST name actual wardrobe items and specific gaps
+- gap_analysis must list 2-3 concrete imbalances found in their wardrobe
 
 Return ONLY valid JSON:
 {
@@ -891,14 +1000,14 @@ Return ONLY valid JSON:
     { "source":"purchase", "category":"Top", "item":"...", "color":"...", "fit":"..." }
   ],
   "suggested_purchases": [
-    { "category":"...", "item":"...", "color":"...", "material":"...", "brand":"...", "shopUrl":"..." }
+    { "category":"...", "item":"...", "color":"...", "material":"...", "brand":"...", "fit":"...", "reason":"Why this fills a gap or completes their style", "shopUrl":"..." }
   ],
-  "style_note": "Explain how this respects the user's climate, fit, and taste."
+  "style_note": "Explain the gap analysis, what's missing from their wardrobe, and how these purchases strengthen their styling foundation.",
+  "gap_analysis": "Concise summary of 2-3 key wardrobe gaps being addressed"
 }
 
 User gender: ${gender}
-Detected tags: ${tags.join(', ')}
-Weighted tags: ${tags.map((t) => `high priority: ${t}`).join(', ')}
+Detected tags (inspiration from uploaded look): ${tags.join(', ')}
 User style profile: ${JSON.stringify(styleProfile, null, 2)}
 ${climateNote}
 `;
@@ -906,6 +1015,12 @@ ${climateNote}
     console.log('🧥 [personalizedShop] profile:', profile);
     console.log('🧥 [personalizedShop] gender:', gender);
     console.log('🧥 [personalizedShop] styleProfile:', styleProfile);
+    console.log('🛍️ [personalizedShop] WARDROBE DATA SENT TO AI:');
+    console.log('   Category totals:', categoryStats);
+    console.log('   Items found:', wardrobeItems.length);
+    if (wardrobeItems.length > 0) {
+      console.log('   Sample items:', wardrobeItems.slice(0, 5).map((w: any) => `${w.name} (${w.color})`).join(', '));
+    }
     console.log('🧠 [personalizedShop] Prompt preview:', prompt.slice(0, 800));
 
     // 🧠 DEBUG START — prompt verification
@@ -1567,6 +1682,7 @@ ${climateNote}
         style_note:
           parsed?.style_note ||
           'Personalized recreation based on your wardrobe, with curated seasonal add-ons.',
+        gap_analysis: parsed?.gap_analysis || null,
         applied_filters: {
           preferFit,
           bannedWords: bannedWords.map((r) => r.source),
@@ -1583,6 +1699,7 @@ ${climateNote}
       style_note:
         parsed?.style_note ||
         'Personalized recreation based on your wardrobe, with curated seasonal add-ons.',
+      gap_analysis: parsed?.gap_analysis || null,
       applied_filters: {
         preferFit,
         bannedWords: bannedWords.map((r) => r.source),
@@ -1796,7 +1913,7 @@ For general chat/greetings, return empty needs. For outfit suggestions, include 
       console.warn('⚠️ failed to load style profile for chat:', err.message);
     }
 
-    /* 👔 --- LOAD WARDROBE ITEMS FOR CHAT CONTEXT --- */
+    /* 👔 --- LOAD WARDROBE ITEMS FOR CHAT CONTEXT (WITH SPECIFIC ITEM DETAILS) --- */
     let wardrobeContext = '';
     if (contextNeeds.wardrobe) try {
       const { rows: wardrobeRows } = await pool.query(
@@ -1804,23 +1921,44 @@ For general chat/greetings, return empty needs. For outfit suggestions, include 
          FROM wardrobe_items
          WHERE user_id = $1
          ORDER BY created_at DESC
-         LIMIT 50`,
+         LIMIT 100`,
         [user_id],
       );
       if (wardrobeRows.length > 0) {
-        const grouped: Record<string, string[]> = {};
+        const grouped: Record<string, any[]> = {};
         for (const item of wardrobeRows) {
           const cat = item.main_category || 'Other';
           if (!grouped[cat]) grouped[cat] = [];
-          const desc = [item.color, item.name || item.subcategory, item.brand]
-            .filter(Boolean)
-            .join(' ');
-          if (desc) grouped[cat].push(desc);
+          grouped[cat].push({
+            name: item.name,
+            color: item.color,
+            material: item.material,
+            brand: item.brand,
+            fit: item.fit,
+            subcategory: item.subcategory,
+          });
         }
-        wardrobeContext = '\n\n👔 USER WARDROBE:\n' + Object.entries(grouped)
-          .map(([cat, items]) => `${cat}: ${items.slice(0, 8).join(', ')}`)
-          .join('\n');
-        console.log(`👔 Chat: Loaded ${wardrobeRows.length} wardrobe items`);
+
+        // Format wardrobe for easy reference in recommendations
+        const formatted = Object.entries(grouped)
+          .map(([cat, items]) => {
+            const itemDescriptions = items.slice(0, 12).map((i) => {
+              const parts = [i.color, i.name || i.subcategory, i.brand, i.material, i.fit]
+                .filter(Boolean)
+                .join(' • ');
+              return `  • ${parts}`;
+            }).join('\n');
+            return `${cat}:\n${itemDescriptions}`;
+          })
+          .join('\n\n');
+
+        wardrobeContext = `\n\n👔 USER'S EXACT WARDROBE ITEMS (use these specific names and colors in recommendations):\n\n${formatted}\n\nWARNING: Always reference ACTUAL item names from above when making recommendations. Use language like:
+- "pair with your [COLOR] [ITEM NAME] you own"
+- "complements the [BRAND] [ITEM] in [COLOR]"
+- "works with your [fit] [COLOR] [ITEM]"
+NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
+
+        console.log(`👔 Chat: Loaded ${wardrobeRows.length} wardrobe items from ${Object.keys(grouped).length} categories`);
       }
     } catch (err: any) {
       console.warn('⚠️ failed to load wardrobe items for chat:', err.message);
@@ -2123,7 +2261,7 @@ You are a world-class personal fashion stylist with FULL ACCESS to the user's pe
 YOU HAVE COMPLETE ACCESS TO ALL OF THIS USER DATA:
 ${fullContext}
 
-CRITICAL RULES:
+CRITICAL RULES - MANDATORY FOR ALL RESPONSES:
 1. ONLY reference events, items, and data actually shown above
 2. DO NOT make up or invent calendar events, wardrobe items, or preferences
 3. If the user asks about something not in the data above, say "I don't see that in your data"
@@ -2131,6 +2269,18 @@ CRITICAL RULES:
 5. When answering questions about their calendar - reference ONLY the events listed above
 6. You DO have access to real-time weather data - if CURRENT WEATHER is shown above, use it confidently
 7. You DO have access to notification history - if RECENT NOTIFICATIONS is shown above, use it to answer questions about notifications
+
+⭐ WARDROBE RECOMMENDATION RULES (MANDATORY):
+- WHEN MAKING SHOPPING SUGGESTIONS: You MUST reference specific items they ALREADY OWN
+- Use language patterns like:
+  • "pair with your [COLOR] [ITEM NAME] you own"
+  • "matches the [BRAND] [ITEM] in [COLOR]"
+  • "works perfectly with your [fit] [COLOR] [ITEM NAME]"
+  • "complements your existing [COLOR] [MATERIAL] [ITEM]"
+  • "You currently have [NUMBER] [CATEGORY], so adding a [specific item] would fill the gap"
+- SHOW PROOF you know their wardrobe by naming SPECIFIC items, colors, materials, brands
+- Example RIGHT answer: "Navy blazer to pair with your sleek white pants you own - fills your structured top gap"
+- Example WRONG answer: "Add a navy blazer to complete your look" ← NEVER do this
 
 Respond naturally about outfits, wardrobe planning, or styling using ONLY the user data provided.
 At the end, return a short JSON block like:
