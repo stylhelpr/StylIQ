@@ -86,6 +86,106 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     };
   }, [bookmarks, history, collections, recentSearches, getTopShops]);
 
+  // Calculate trend insights (separate from main insights to not disrupt existing logic)
+  const trendInsights = useMemo(() => {
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+
+    // Split bookmarks into this week and last week
+    const thisWeekBookmarks = bookmarks.filter(b => b.addedAt > weekAgo);
+    const lastWeekBookmarks = bookmarks.filter(
+      b => b.addedAt > twoWeeksAgo && b.addedAt <= weekAgo,
+    );
+
+    // Most saved items (top 5 by view count or recency)
+    const mostSavedItems = [...bookmarks]
+      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0) || b.addedAt - a.addedAt)
+      .slice(0, 5);
+
+    // Category trends with week-over-week change
+    const thisWeekCategories: Record<string, number> = {};
+    const lastWeekCategories: Record<string, number> = {};
+
+    thisWeekBookmarks.forEach(b => {
+      if (b.category) {
+        thisWeekCategories[b.category] = (thisWeekCategories[b.category] || 0) + 1;
+      }
+    });
+
+    lastWeekBookmarks.forEach(b => {
+      if (b.category) {
+        lastWeekCategories[b.category] = (lastWeekCategories[b.category] || 0) + 1;
+      }
+    });
+
+    // Calculate category trends with percentage change
+    const allCategories = new Set([
+      ...Object.keys(thisWeekCategories),
+      ...Object.keys(lastWeekCategories),
+    ]);
+
+    const categoryTrends = Array.from(allCategories)
+      .map(category => {
+        const thisWeek = thisWeekCategories[category] || 0;
+        const lastWeek = lastWeekCategories[category] || 0;
+        let percentChange = 0;
+        if (lastWeek > 0) {
+          percentChange = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+        } else if (thisWeek > 0) {
+          percentChange = 100; // New category this week
+        }
+        return {category, thisWeek, lastWeek, percentChange};
+      })
+      .filter(t => t.thisWeek > 0 || t.lastWeek > 0)
+      .sort((a, b) => b.percentChange - a.percentChange)
+      .slice(0, 5);
+
+    // Rising brands (brands with increased saves this week vs last week)
+    const thisWeekBrands: Record<string, number> = {};
+    const lastWeekBrands: Record<string, number> = {};
+
+    thisWeekBookmarks.forEach(b => {
+      if (b.brand) {
+        thisWeekBrands[b.brand] = (thisWeekBrands[b.brand] || 0) + 1;
+      }
+    });
+
+    lastWeekBookmarks.forEach(b => {
+      if (b.brand) {
+        lastWeekBrands[b.brand] = (lastWeekBrands[b.brand] || 0) + 1;
+      }
+    });
+
+    const allBrands = new Set([
+      ...Object.keys(thisWeekBrands),
+      ...Object.keys(lastWeekBrands),
+    ]);
+
+    const risingBrands = Array.from(allBrands)
+      .map(brand => {
+        const thisWeek = thisWeekBrands[brand] || 0;
+        const lastWeek = lastWeekBrands[brand] || 0;
+        let percentChange = 0;
+        if (lastWeek > 0) {
+          percentChange = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+        } else if (thisWeek > 0) {
+          percentChange = 100; // New brand this week
+        }
+        return {brand, thisWeek, lastWeek, percentChange};
+      })
+      .filter(b => b.percentChange > 0 && b.thisWeek > 0)
+      .sort((a, b) => b.percentChange - a.percentChange)
+      .slice(0, 5);
+
+    return {
+      mostSavedItems,
+      categoryTrends,
+      risingBrands,
+      hasData: bookmarks.length > 0,
+    };
+  }, [bookmarks]);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -356,6 +456,94 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       fontSize: 13,
       color: theme.colors.foreground,
       lineHeight: 18,
+    },
+    // Trend Dashboard styles
+    trendHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 12,
+    },
+    trendHeaderIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary + '20',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    trendSectionTitle: {
+      fontSize: 14,
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.foreground,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    trendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.muted,
+    },
+    trendItemLast: {
+      borderBottomWidth: 0,
+    },
+    trendItemLeft: {
+      flex: 1,
+      marginRight: 12,
+    },
+    trendItemTitle: {
+      fontSize: 14,
+      fontWeight: tokens.fontWeight.medium,
+      color: theme.colors.foreground,
+    },
+    trendItemSubtitle: {
+      fontSize: 12,
+      color: theme.colors.foreground,
+      marginTop: 2,
+    },
+    trendBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    trendBadgePositive: {
+      backgroundColor: '#10b98120',
+    },
+    trendBadgeNegative: {
+      backgroundColor: '#ef444420',
+    },
+    trendBadgeNeutral: {
+      backgroundColor: theme.colors.muted,
+    },
+    trendBadgeText: {
+      fontSize: 12,
+      fontWeight: tokens.fontWeight.semiBold,
+    },
+    trendBadgeTextPositive: {
+      color: '#10b981',
+    },
+    trendBadgeTextNegative: {
+      color: '#ef4444',
+    },
+    trendBadgeTextNeutral: {
+      color: theme.colors.foreground,
+    },
+    savedItemImage: {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      backgroundColor: theme.colors.muted,
+      marginRight: 12,
+    },
+    savedItemRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
   });
 
@@ -641,11 +829,217 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
           </Animatable.View>
         )}
 
+        {/* Trend Dashboard */}
+        {trendInsights.hasData && (
+          <Animatable.View
+            animation="fadeInUp"
+            duration={500}
+            delay={750}
+            style={styles.section}>
+            <View style={styles.trendHeader}>
+              <View style={styles.trendHeaderIcon}>
+                <MaterialIcons
+                  name="trending-up"
+                  size={18}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <Text style={styles.sectionTitle}>Trend Dashboard</Text>
+            </View>
+            <View style={styles.listCard}>
+              {/* Most Saved Items */}
+              {trendInsights.mostSavedItems.length > 0 && (
+                <>
+                  <Text style={[styles.trendSectionTitle, {marginTop: 0}]}>
+                    What's Trending Now
+                  </Text>
+                  {trendInsights.mostSavedItems.map((item, index) => (
+                    <View
+                      key={item.id}
+                      style={[
+                        styles.trendItem,
+                        index === trendInsights.mostSavedItems.length - 1 &&
+                          trendInsights.categoryTrends.length === 0 &&
+                          trendInsights.risingBrands.length === 0 &&
+                          styles.trendItemLast,
+                      ]}>
+                      <View style={styles.savedItemRow}>
+                        {item.imageUrl && (
+                          <View
+                            style={[
+                              styles.savedItemImage,
+                              {overflow: 'hidden'},
+                            ]}>
+                            <View
+                              style={{
+                                width: 40,
+                                height: 40,
+                                backgroundColor: theme.colors.muted,
+                              }}
+                            />
+                          </View>
+                        )}
+                        <View style={styles.trendItemLeft}>
+                          <Text
+                            style={styles.trendItemTitle}
+                            numberOfLines={1}>
+                            {item.title}
+                          </Text>
+                          <Text style={styles.trendItemSubtitle}>
+                            {item.brand || item.source}
+                            {item.price ? ` · $${item.price}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                      {(item.viewCount ?? 0) > 1 && (
+                        <View
+                          style={[styles.trendBadge, styles.trendBadgeNeutral]}>
+                          <MaterialIcons
+                            name="visibility"
+                            size={12}
+                            color={theme.colors.foreground}
+                          />
+                          <Text
+                            style={[
+                              styles.trendBadgeText,
+                              styles.trendBadgeTextNeutral,
+                            ]}>
+                            {item.viewCount}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Category Trends */}
+              {trendInsights.categoryTrends.length > 0 && (
+                <>
+                  <Text style={styles.trendSectionTitle}>Category Trends</Text>
+                  {trendInsights.categoryTrends.map((trend, index) => (
+                    <View
+                      key={trend.category}
+                      style={[
+                        styles.trendItem,
+                        index === trendInsights.categoryTrends.length - 1 &&
+                          trendInsights.risingBrands.length === 0 &&
+                          styles.trendItemLast,
+                      ]}>
+                      <View style={styles.trendItemLeft}>
+                        <Text style={styles.trendItemTitle}>
+                          {trend.category}
+                        </Text>
+                        <Text style={styles.trendItemSubtitle}>
+                          {trend.thisWeek} saved this week
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.trendBadge,
+                          trend.percentChange > 0
+                            ? styles.trendBadgePositive
+                            : trend.percentChange < 0
+                              ? styles.trendBadgeNegative
+                              : styles.trendBadgeNeutral,
+                        ]}>
+                        <MaterialIcons
+                          name={
+                            trend.percentChange > 0
+                              ? 'trending-up'
+                              : trend.percentChange < 0
+                                ? 'trending-down'
+                                : 'trending-flat'
+                          }
+                          size={12}
+                          color={
+                            trend.percentChange > 0
+                              ? '#10b981'
+                              : trend.percentChange < 0
+                                ? '#ef4444'
+                                : theme.colors.foreground
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.trendBadgeText,
+                            trend.percentChange > 0
+                              ? styles.trendBadgeTextPositive
+                              : trend.percentChange < 0
+                                ? styles.trendBadgeTextNegative
+                                : styles.trendBadgeTextNeutral,
+                          ]}>
+                          {trend.percentChange > 0 ? '+' : ''}
+                          {trend.percentChange}%
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Rising Brands */}
+              {trendInsights.risingBrands.length > 0 && (
+                <>
+                  <Text style={styles.trendSectionTitle}>Rising Brands</Text>
+                  {trendInsights.risingBrands.map((brand, index) => (
+                    <View
+                      key={brand.brand}
+                      style={[
+                        styles.trendItem,
+                        index === trendInsights.risingBrands.length - 1 &&
+                          styles.trendItemLast,
+                      ]}>
+                      <View style={styles.trendItemLeft}>
+                        <Text style={styles.trendItemTitle}>{brand.brand}</Text>
+                        <Text style={styles.trendItemSubtitle}>
+                          {brand.thisWeek} saved this week
+                        </Text>
+                      </View>
+                      <View
+                        style={[styles.trendBadge, styles.trendBadgePositive]}>
+                        <MaterialIcons
+                          name="trending-up"
+                          size={12}
+                          color="#10b981"
+                        />
+                        <Text
+                          style={[
+                            styles.trendBadgeText,
+                            styles.trendBadgeTextPositive,
+                          ]}>
+                          +{brand.percentChange}%
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+
+              {/* Empty state for trends */}
+              {trendInsights.mostSavedItems.length === 0 &&
+                trendInsights.categoryTrends.length === 0 &&
+                trendInsights.risingBrands.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <MaterialIcons
+                      name="trending-up"
+                      size={40}
+                      color={theme.colors.foreground}
+                    />
+                    <Text style={styles.emptyText}>
+                      Save more items to see your shopping trends
+                    </Text>
+                  </View>
+                )}
+            </View>
+          </Animatable.View>
+        )}
+
         {/* Smart Tip */}
         <Animatable.View
           animation="fadeInUp"
           duration={500}
-          delay={800}
+          delay={850}
           style={styles.section}>
           <View style={styles.tipCard}>
             <View style={styles.tipIcon}>
