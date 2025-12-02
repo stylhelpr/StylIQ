@@ -31,7 +31,7 @@ import {
   generatePasswordAutofillScript,
   getDomainFromUrl,
 } from '../utils/autofill';
-// 🔥 VOICE ADD
+// 🔥 VOICE ADD/
 import {useVoiceControl} from '../hooks/useVoiceControl';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {PermissionsAndroid, Platform} from 'react-native';
@@ -127,7 +127,9 @@ export default function WebBrowserScreen({route}: Props) {
     console.log('hasAiSuggestionsLoaded:', hasAiSuggestionsLoaded);
     console.log('isAiSuggestionsStale():', isAiSuggestionsStale());
     if (!userId || (hasAiSuggestionsLoaded && !isAiSuggestionsStale())) {
-      console.log('⛔ Early return: userId missing or already loaded and not stale');
+      console.log(
+        '⛔ Early return: userId missing or already loaded and not stale',
+      );
       return;
     }
 
@@ -167,7 +169,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   ...
 ]`;
 
-    console.log('🛍️ [WebBrowserScreen] SHOPPING_PROMPT - will trigger wardrobe context load');
+    console.log(
+      '🛍️ [WebBrowserScreen] SHOPPING_PROMPT - will trigger wardrobe context load',
+    );
 
     try {
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
@@ -192,7 +196,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           setAiShoppingAssistantSuggestions(parsed);
           setHasAiSuggestionsLoaded(true);
           console.log('✅ Shopping suggestions loaded:', parsed.length);
-          console.log('📦 Suggestions:', parsed.map((s: any) => s.text));
+          console.log(
+            '📦 Suggestions:',
+            parsed.map((s: any) => s.text),
+          );
         }
       } catch {
         console.log('⚠️ Failed to parse shopping suggestions');
