@@ -1604,6 +1604,59 @@ ${climateNote}
       throw new Error('No user message provided');
     }
 
+    /* 🎯 --- SMART CONTEXT: Classify query to load only relevant data --- */
+    let contextNeeds = {
+      memory: true,        // always load chat history
+      styleProfile: false,
+      wardrobe: false,
+      calendar: false,
+      savedLooks: false,
+      feedback: false,
+      wearHistory: false,
+      scheduledOutfits: false,
+      favorites: false,
+      customOutfits: false,
+      itemPrefs: false,
+      lookMemories: false,
+      notifications: false,
+      weather: false,
+    };
+
+    try {
+      const classifyRes = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 150,
+        messages: [
+          {
+            role: 'system',
+            content: `Classify what data is needed to answer this fashion/style question. Return JSON only.
+Categories: styleProfile (body type, colors, preferences), wardrobe (clothes owned), calendar (events), savedLooks, feedback (outfit ratings), wearHistory (recently worn), scheduledOutfits, favorites, customOutfits, itemPrefs (liked/disliked items), lookMemories (style exploration), notifications, weather.
+For general chat/greetings, return empty needs. For outfit suggestions, include styleProfile+wardrobe+weather. Be minimal.`,
+          },
+          {
+            role: 'user',
+            content: `Query: "${lastUserMsg}"\n\nReturn JSON: {"needs": ["category1", "category2"]}`,
+          },
+        ],
+      });
+      const classifyContent = classifyRes.choices[0]?.message?.content || '{}';
+      const parsed = JSON.parse(classifyContent.match(/\{.*\}/s)?.[0] || '{}');
+      const needs: string[] = parsed.needs || [];
+
+      // Map needs to contextNeeds
+      needs.forEach((n: string) => {
+        const key = n.toLowerCase().replace(/[^a-z]/g, '');
+        if (key in contextNeeds) (contextNeeds as any)[key] = true;
+      });
+
+      console.log(`🎯 Smart context: ${needs.length ? needs.join(', ') : 'minimal (chat only)'}`);
+    } catch (err: any) {
+      // Fallback: load everything if classification fails
+      console.warn('⚠️ Context classification failed, loading all:', err.message);
+      Object.keys(contextNeeds).forEach(k => (contextNeeds as any)[k] = true);
+    }
+
     /* 🧠 --- MEMORY BLOCK START --- */
     try {
       // Save the latest user message
@@ -1677,7 +1730,7 @@ ${climateNote}
 
     /* 📅 --- LOAD CALENDAR EVENTS FOR CHAT CONTEXT --- */
     let calendarContext = '';
-    try {
+    if (contextNeeds.calendar) try {
       const { rows: calendarRows } = await pool.query(
         `SELECT title, start_date, end_date, location, notes
          FROM user_calendar_events
@@ -1707,7 +1760,7 @@ ${climateNote}
 
     /* 👗 --- LOAD STYLE PROFILE FOR CHAT CONTEXT --- */
     let styleProfileContext = '';
-    try {
+    if (contextNeeds.styleProfile) try {
       const { rows: styleRows } = await pool.query(
         `SELECT body_type, skin_tone, undertone, climate,
                 favorite_colors, fit_preferences, preferred_brands,
@@ -1745,7 +1798,7 @@ ${climateNote}
 
     /* 👔 --- LOAD WARDROBE ITEMS FOR CHAT CONTEXT --- */
     let wardrobeContext = '';
-    try {
+    if (contextNeeds.wardrobe) try {
       const { rows: wardrobeRows } = await pool.query(
         `SELECT name, main_category, subcategory, color, material, brand, fit
          FROM wardrobe_items
@@ -1775,7 +1828,7 @@ ${climateNote}
 
     /* ⭐ --- LOAD SAVED LOOKS FOR CHAT CONTEXT --- */
     let savedLooksContext = '';
-    try {
+    if (contextNeeds.savedLooks) try {
       const { rows: savedRows } = await pool.query(
         `SELECT name, created_at
          FROM saved_looks
@@ -1796,7 +1849,7 @@ ${climateNote}
 
     /* 🎨 --- LOAD RECREATED LOOKS FOR CHAT CONTEXT --- */
     let recreatedLooksContext = '';
-    try {
+    if (contextNeeds.savedLooks) try {
       const { rows: recreatedRows } = await pool.query(
         `SELECT tags, created_at
          FROM recreated_looks
@@ -1819,7 +1872,7 @@ ${climateNote}
 
     /* 📝 --- LOAD OUTFIT FEEDBACK FOR CHAT CONTEXT --- */
     let feedbackContext = '';
-    try {
+    if (contextNeeds.feedback) try {
       const { rows: feedbackRows } = await pool.query(
         `SELECT rating, notes, outfit_json
          FROM outfit_feedback
@@ -1851,7 +1904,7 @@ ${climateNote}
 
     /* 👕 --- LOAD WEAR HISTORY FOR CHAT CONTEXT --- */
     let wearHistoryContext = '';
-    try {
+    if (contextNeeds.wearHistory) try {
       const { rows: wearRows } = await pool.query(
         `SELECT items_jsonb, context_jsonb, worn_at
          FROM wear_events
@@ -1877,7 +1930,7 @@ ${climateNote}
 
     /* 📆 --- LOAD SCHEDULED OUTFITS FOR CHAT CONTEXT --- */
     let scheduledOutfitsContext = '';
-    try {
+    if (contextNeeds.scheduledOutfits) try {
       const { rows: scheduledRows } = await pool.query(
         `SELECT scheduled_for, notes, location
          FROM scheduled_outfits
@@ -1902,7 +1955,7 @@ ${climateNote}
 
     /* ❤️ --- LOAD OUTFIT FAVORITES FOR CHAT CONTEXT --- */
     let favoritesContext = '';
-    try {
+    if (contextNeeds.favorites) try {
       const { rows: favRows } = await pool.query(
         `SELECT outfit_type, COUNT(*) as count
          FROM outfit_favorites
@@ -1922,7 +1975,7 @@ ${climateNote}
 
     /* 🎯 --- LOAD CUSTOM OUTFITS FOR CHAT CONTEXT --- */
     let customOutfitsContext = '';
-    try {
+    if (contextNeeds.customOutfits) try {
       const { rows: customRows } = await pool.query(
         `SELECT name, notes, rating
          FROM custom_outfits
@@ -1943,7 +1996,7 @@ ${climateNote}
 
     /* 👍 --- LOAD ITEM PREFERENCES FOR CHAT CONTEXT --- */
     let itemPrefsContext = '';
-    try {
+    if (contextNeeds.itemPrefs) try {
       const { rows: prefRows } = await pool.query(
         `SELECT up.score, wi.name, wi.main_category, wi.color
          FROM user_pref_item up
@@ -1974,7 +2027,7 @@ ${climateNote}
 
     /* 🔍 --- LOAD LOOK MEMORIES FOR CHAT CONTEXT --- */
     let lookMemoriesContext = '';
-    try {
+    if (contextNeeds.lookMemories) try {
       const { rows: memRows } = await pool.query(
         `SELECT ai_tags, query_used
          FROM look_memories
@@ -2001,7 +2054,7 @@ ${climateNote}
 
     /* 🔔 --- LOAD NOTIFICATIONS FOR CHAT CONTEXT --- */
     let notificationsContext = '';
-    try {
+    if (contextNeeds.notifications) try {
       const { rows: notifRows } = await pool.query(
         `SELECT title, message, timestamp, category, read
          FROM user_notifications
@@ -2027,7 +2080,7 @@ ${climateNote}
 
     /* 🌦️ --- FETCH CURRENT WEATHER FOR CHAT CONTEXT --- */
     let weatherContext = '';
-    try {
+    if (contextNeeds.weather) try {
       if (dto.lat && dto.lon) {
         const weather = await fetchWeatherForAI(dto.lat, dto.lon);
         if (weather) {

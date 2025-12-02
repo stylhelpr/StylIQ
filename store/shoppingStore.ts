@@ -206,6 +206,15 @@ type ShoppingState = {
     metadata: Partial<BrowsingHistory>,
   ) => void;
 
+  // AI Shopping Assistant
+  aiShoppingAssistantSuggestions: any[];
+  setAiShoppingAssistantSuggestions: (suggestions: any[]) => void;
+  clearAiShoppingAssistantSuggestions: () => void;
+  hasAiSuggestionsLoaded: boolean;
+  setHasAiSuggestionsLoaded: (loaded: boolean) => void;
+  aiSuggestionsCachedAt: number | null;
+  isAiSuggestionsStale: () => boolean;
+
   // Hydration
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
@@ -610,6 +619,32 @@ export const useShoppingStore = create<ShoppingState>()(
         }));
       },
 
+      // AI Shopping Assistant
+      aiShoppingAssistantSuggestions: [],
+      setAiShoppingAssistantSuggestions: (suggestions: any[]) => {
+        set({
+          aiShoppingAssistantSuggestions: suggestions,
+          aiSuggestionsCachedAt: Date.now(),
+        });
+      },
+      clearAiShoppingAssistantSuggestions: () => {
+        set({
+          aiShoppingAssistantSuggestions: [],
+          aiSuggestionsCachedAt: null,
+        });
+      },
+      hasAiSuggestionsLoaded: false,
+      setHasAiSuggestionsLoaded: (loaded: boolean) => {
+        set({hasAiSuggestionsLoaded: loaded});
+      },
+      aiSuggestionsCachedAt: null,
+      isAiSuggestionsStale: () => {
+        const state = get();
+        if (!state.aiSuggestionsCachedAt) return true;
+        const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+        return Date.now() - state.aiSuggestionsCachedAt > CACHE_DURATION_MS;
+      },
+
       // Hydration
       _hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) => {
@@ -630,6 +665,9 @@ export const useShoppingStore = create<ShoppingState>()(
         currentTabId: state.currentTabId,
         productInteractions: state.productInteractions,
         cartHistory: state.cartHistory,
+        aiShoppingAssistantSuggestions: state.aiShoppingAssistantSuggestions,
+        hasAiSuggestionsLoaded: state.hasAiSuggestionsLoaded,
+        aiSuggestionsCachedAt: state.aiSuggestionsCachedAt,
       }),
       onRehydrateStorage: () => state => {
         if (state) {
