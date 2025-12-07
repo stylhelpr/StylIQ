@@ -86,12 +86,11 @@ export default function ItemDetailScreen({route, navigation}: Props) {
 
   const insets = useSafeAreaInsets();
 
-  // Animation - buttery smooth entrance & exit
+  // Animation - buttery smooth entrance
   const slideUpAnim = useRef(new Animated.Value(120)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Entrance animation
     Animated.parallel([
       Animated.timing(slideUpAnim, {
         toValue: 0,
@@ -106,34 +105,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Handle back press with exit animation
-    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-      if (e.data.action.type === 'GO_BACK') {
-        e.preventDefault();
-
-        // Exit animation
-        Animated.parallel([
-          Animated.timing(slideUpAnim, {
-            toValue: 120,
-            duration: 450,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(opacityAnim, {
-            toValue: 0,
-            duration: 350,
-            easing: Easing.in(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          navigation.dispatch(e.data.action);
-        });
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, slideUpAnim, opacityAnim]);
+  }, [slideUpAnim, opacityAnim]);
 
   const {itemId, item: routeItem} = route.params;
   const item = useMemo(
