@@ -732,7 +732,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   style={[
                     globalStyles.promptRow,
                     {
-                      height: 45,
+                      minHeight: 45,
                       marginBottom: 12,
                       paddingHorizontal: 14,
                       borderWidth: tokens.borderWidth.xl,
@@ -746,9 +746,18 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   <TextInput
                     placeholder="What kind of an outfit are you looking for?"
                     placeholderTextColor={theme.colors.muted}
+                    multiline
+                    scrollEnabled={false}
                     style={[
                       globalStyles.promptInput,
-                      {color: theme.colors.foreground, flex: 1},
+                      {
+                        color: theme.colors.foreground,
+                        flex: 1,
+                        minHeight: 42,
+                        paddingTop: 10,
+                        paddingBottom: 10,
+                        textAlignVertical: 'top',
+                      },
                     ]}
                     value={lastSpeech}
                     onChangeText={setLastSpeech}
