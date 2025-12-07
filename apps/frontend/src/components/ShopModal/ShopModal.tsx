@@ -55,8 +55,16 @@ export default function ShopModal({
   // PanResponder for swipe-down to close
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
+      onMoveShouldSetPanResponder: (_e, g) => {
+        const shouldRespond = Math.abs(g.dy) > 8;
+        console.log('🎯 onMoveShouldSetPanResponder:', {dy: g.dy, shouldRespond});
+        return shouldRespond;
+      },
+      onPanResponderMove: (_e, g) => {
+        console.log('📍 onPanResponderMove:', {dy: g.dy, vy: g.vy});
+      },
       onPanResponderRelease: (_e, g) => {
+        console.log('🔓 onPanResponderRelease:', {dy: g.dy, vy: g.vy, threshold: g.dy > 100 || g.vy > 0.3});
         if (g.dy > 100 || g.vy > 0.3) {
           handleClose();
         }
@@ -97,6 +105,7 @@ export default function ShopModal({
             {/* Swipe gesture zone */}
             <View
               {...panResponder.panHandlers}
+              onStartShouldSetResponder={() => true}
               style={{
                 position: 'absolute',
                 top: 0,
