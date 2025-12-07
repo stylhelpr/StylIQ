@@ -218,6 +218,9 @@ type ShoppingState = {
   // Hydration
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
+
+  // Reset all user data on logout
+  resetForLogout: () => void;
 };
 
 export const useShoppingStore = create<ShoppingState>()(
@@ -649,6 +652,29 @@ export const useShoppingStore = create<ShoppingState>()(
       _hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) => {
         set({_hasHydrated: hasHydrated});
+      },
+
+      // Reset all user data on logout
+      resetForLogout: () => {
+        set({
+          bookmarks: [],
+          history: [],
+          collections: [],
+          tabs: [],
+          currentTabId: null,
+          recentSearches: [],
+          favoriteShops: [],
+          productInteractions: [],
+          cartHistory: [],
+          currentSessionId: null,
+          aiShoppingAssistantSuggestions: [],
+          hasAiSuggestionsLoaded: false,
+          aiSuggestionsCachedAt: null,
+          // CRITICAL: Clear sensitive data
+          savedPasswords: [],
+          savedAddresses: [],
+          savedCards: [],
+        });
       },
     }),
     {

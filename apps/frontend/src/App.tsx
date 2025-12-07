@@ -53,6 +53,8 @@ import {HeadPoseProvider} from '../src/context/HeadPoseProvider';
 import {HandPoseProvider} from '../src/context/HandPoseProvider'; // ✅ Added
 import messaging from '@react-native-firebase/messaging';
 import {addToInbox, AppNotification} from './utils/notificationInbox';
+// Initialize axios interceptors for 401 handling
+import './lib/apiClient';
 
 function RootWithNotifications() {
   const userId = useUUID();

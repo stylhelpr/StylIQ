@@ -2,9 +2,27 @@
 import Auth0, {Credentials} from 'react-native-auth0';
 import {API_BASE_URL} from '../config/api';
 
+const AUTH0_DOMAIN =
+  process.env.AUTH0_DOMAIN || 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
+const AUTH0_CLIENT_ID =
+  process.env.AUTH0_CLIENT_ID || '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
+
+// Auth0 instance without biometrics (for normal operations)
 const auth0 = new Auth0({
-  domain: process.env.AUTH0_DOMAIN || 'dev-xeaol4s5b2zd7wuz.us.auth0.com',
-  clientId: process.env.AUTH0_CLIENT_ID || '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5',
+  domain: AUTH0_DOMAIN,
+  clientId: AUTH0_CLIENT_ID,
+});
+
+// Auth0 instance with biometrics enabled (for Face ID login)
+// Uses same domain/clientId so credentials are shared
+const auth0WithBiometrics = new Auth0({
+  domain: AUTH0_DOMAIN,
+  clientId: AUTH0_CLIENT_ID,
+  localAuthenticationOptions: {
+    title: 'Log in with Face ID',
+    cancelTitle: 'Cancel',
+    fallbackTitle: 'Use Password',
+  },
 });
 
 /**
@@ -49,4 +67,47 @@ export const getAccessToken = async (): Promise<string> => {
 export const logout = async (): Promise<void> => {
   await auth0.webAuth.clearSession({federated: true});
   await auth0.credentialsManager.clearCredentials();
+};
+
+/**
+ * Check if credentials exist in the credential manager.
+ * Uses minTtl=0 to check for any credentials, even if expired.
+ * The credential manager will auto-refresh if refresh token exists.
+ */
+export const hasStoredCredentials = async (): Promise<boolean> => {
+  try {
+    // hasValidCredentials with minTtl=0 returns true if any credentials exist
+    // (even expired ones that can be refreshed)
+    return await auth0.credentialsManager.hasValidCredentials(0);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Get credentials using biometric authentication (Face ID / Touch ID).
+ * This retrieves stored credentials from Keychain without needing Auth0 web login.
+ * The biometric prompt is shown automatically by Auth0.
+ * If token is expired, it will be refreshed automatically.
+ * Returns null if no credentials stored or biometric fails.
+ */
+export const getCredentialsWithBiometrics = async (): Promise<Credentials | null> => {
+  try {
+    // Check if we have any stored credentials first
+    const hasCredentials = await hasStoredCredentials();
+    if (!hasCredentials) {
+      console.log('No stored credentials found');
+      return null;
+    }
+
+    // Get credentials using biometric-enabled instance
+    // This will:
+    // 1. Prompt Face ID automatically
+    // 2. Auto-refresh the token if expired (using refresh token)
+    const credentials = await auth0WithBiometrics.credentialsManager.getCredentials();
+    return credentials;
+  } catch (error) {
+    console.error('Failed to get credentials with biometrics:', error);
+    return null;
+  }
 };
