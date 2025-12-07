@@ -51,7 +51,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
   // MARK: - UNUserNotificationCenterDelegate
 
   // Called when notification is received while app is in foreground
-  // Return the presentation options to show banner, sound, and badge
+  // For remote FCM notifications, we suppress the native banner since
+  // the JS onMessage handler shows a local notification instead.
+  // This prevents duplicate banners.
   func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
@@ -60,8 +62,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     let userInfo = notification.request.content.userInfo
     print("📬 Foreground notification received: \(userInfo)")
 
-    // Show banner, play sound, and update badge even when app is in foreground
-    completionHandler([.banner, .sound, .badge, .list])
+    // Check if this is a local notification (triggered by JS) vs remote (FCM)
+    // Local notifications have trigger type UNNotificationTrigger, remote have none or push trigger
+    let isLocalNotification = notification.request.trigger is UNTimeIntervalNotificationTrigger ||
+                              notification.request.trigger is UNCalendarNotificationTrigger ||
+                              notification.request.trigger == nil && notification.request.identifier.hasPrefix("local")
+
+    if notification.request.trigger is UNPushNotificationTrigger {
+      // Remote FCM notification - suppress banner, JS will show local notification
+      completionHandler([])
+    } else {
+      // Local notification from JS - show banner, sound, badge
+      completionHandler([.banner, .sound, .badge, .list])
+    }
   }
 
   // Called when user taps on notification

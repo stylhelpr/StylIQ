@@ -419,13 +419,11 @@ export class NotificationsService {
     payload: PushPayload,
   ): Promise<{ ok: boolean; error?: string }> {
     try {
+      // Only send alert message - background data message was causing duplicates
       const alertMsg = this.buildAlertMessage(token, payload);
       const id1 = await admin.messaging().send(alertMsg);
 
-      const bgMsg = this.buildBackgroundDataMessage(token, payload);
-      const id2 = await admin.messaging().send(bgMsg);
-
-      console.log('✅ FCM sent (alert, bg):', { id1, id2 });
+      console.log('✅ FCM sent (alert):', { id1 });
       return { ok: true };
     } catch (e: any) {
       console.error('❌ FCM Messaging error:', e);

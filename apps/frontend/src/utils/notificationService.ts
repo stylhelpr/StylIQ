@@ -180,12 +180,12 @@ export const initializeNotifications = async (userId?: string) => {
         await addToInbox(mapped);
         console.log('📥 Added to inbox:', mapped.id);
 
-        // 🔔 Show local notification banner with sound
-        // Firebase onMessage intercepts remote notifications, so we must
-        // trigger a local notification to display the banner/alert
         const title = String(mapped.title || 'Notification');
         const message = String(mapped.message || '');
 
+        // 🔔 Show local notification banner with sound
+        // Firebase onMessage intercepts remote notifications in foreground,
+        // so we must trigger a local notification to display the banner/alert
         PushNotification.localNotification({
           channelId: 'style-channel',
           title,
@@ -193,7 +193,6 @@ export const initializeNotifications = async (userId?: string) => {
           playSound: true,
           soundName: 'default',
         });
-        console.log('🔔 Local notification triggered:', title);
 
         // 🏝️ Show in Dynamic Island (scheduled outfit notifications)
         try {
@@ -208,7 +207,7 @@ export const initializeNotifications = async (userId?: string) => {
             const result = await DynamicIsland.start(title, message);
             console.log('✅ Dynamic Island started (FCM):', result);
 
-            // Auto-dismiss after 15 seconds (gives user time to interact)
+            // Auto-dismiss after 60 seconds (gives user time to interact)
             setTimeout(async () => {
               try {
                 const endResult = await DynamicIsland.end();
@@ -216,7 +215,7 @@ export const initializeNotifications = async (userId?: string) => {
               } catch (e) {
                 console.log('❌ Error ending Dynamic Island:', e);
               }
-            }, 15000);
+            }, 60000);
           } else {
             console.log('⚠️ Live Activities not allowed on this device / settings.');
           }
