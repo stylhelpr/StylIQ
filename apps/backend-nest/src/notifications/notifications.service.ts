@@ -370,7 +370,14 @@ export class NotificationsService {
           ...(APNS_TOPIC ? { 'apns-topic': APNS_TOPIC } : {}),
         },
         payload: {
-          aps: { sound: 'default' },
+          aps: {
+            alert: {
+              title: payload.title,
+              body: payload.body,
+            },
+            sound: 'default',
+            'mutable-content': 1,
+          },
         },
       },
     };

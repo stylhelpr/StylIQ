@@ -3,9 +3,11 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import FirebaseCore
+import FirebaseMessaging
+import UserNotifications
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
   var window: UIWindow?
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
@@ -24,6 +26,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     FirebaseApp.configure()
 
+    // Set up push notifications
+    UNUserNotificationCenter.current().delegate = self
+    Messaging.messaging().delegate = self
+
+    // Request notification permissions
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+      print("📱 Notification permission granted: \(granted)")
+      if let error = error {
+        print("❌ Notification permission error: \(error)")
+      }
+    }
+    application.registerForRemoteNotifications()
+
     factory.startReactNative(
       withModuleName: "StylIQ",
       in: window,
@@ -31,6 +46,56 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     )
 
     return true
+  }
+
+  // MARK: - UNUserNotificationCenterDelegate
+
+  // Called when notification is received while app is in foreground
+  // Return the presentation options to show banner, sound, and badge
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    let userInfo = notification.request.content.userInfo
+    print("📬 Foreground notification received: \(userInfo)")
+
+    // Show banner, play sound, and update badge even when app is in foreground
+    completionHandler([.banner, .sound, .badge, .list])
+  }
+
+  // Called when user taps on notification
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let userInfo = response.notification.request.content.userInfo
+    print("📬 Notification tapped: \(userInfo)")
+    completionHandler()
+  }
+
+  // MARK: - Remote Notifications
+
+  func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    Messaging.messaging().apnsToken = deviceToken
+    print("📱 APNs token registered")
+  }
+
+  func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    print("❌ Failed to register for remote notifications: \(error)")
+  }
+
+  // MARK: - MessagingDelegate
+
+  func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+    print("🔥 FCM token: \(fcmToken ?? "nil")")
   }
 }
 
