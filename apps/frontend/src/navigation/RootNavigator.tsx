@@ -77,9 +77,11 @@ import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
 
 import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
 
-import ReactNativeBiometrics from 'react-native-biometrics';
-import {useAuth0} from 'react-native-auth0';
 import MeasurementResultsScreen from 'screens/MesurementResultsScreen';
+import {
+  getCredentialsWithBiometrics,
+  hasStoredCredentials,
+} from '../utils/auth';
 
 type Screen =
   | 'Login'
@@ -170,8 +172,6 @@ const RootNavigator = ({
   const profileScreenCache = useRef<JSX.Element | null>(null);
 
   const {theme} = useAppTheme();
-  const {authorize} = useAuth0();
-  const rnBiometrics = new ReactNativeBiometrics();
 
   useEffect(() => {
     if (registerNavigate) {
@@ -350,19 +350,27 @@ const RootNavigator = ({
             onGoogleLogin={() => {}}
             onPasswordLogin={() => {}}
             onFaceIdLogin={async () => {
+              console.log('🔐 Face ID button pressed');
               try {
-                const result = await rnBiometrics.simplePrompt({
-                  promptMessage: 'Log in with Face ID',
-                });
+                // Check if user has previously logged in
+                const hasCredentials = await hasStoredCredentials();
+                console.log('🔐 Has stored credentials:', hasCredentials);
 
-                if (result.success) {
-                  const redirectUrl =
-                    'com.stylhelpr.stylhelpr.auth0://dev-xeaol4s5b2zd7wuz.us.auth0.com/ios/com.stylhelpr.stylhelpr/callback';
+                if (hasCredentials) {
+                  // User has logged in before - use Face ID to unlock stored credentials
+                  const credentials = await getCredentialsWithBiometrics();
 
-                  await authorize({redirectUrl});
-                  await routeAfterLogin();
+                  if (credentials) {
+                    // Successfully authenticated with Face ID
+                    await AsyncStorage.setItem('auth_logged_in', 'true');
+                    await routeAfterLogin();
+                  } else {
+                    console.log('Face ID authentication failed or cancelled');
+                  }
                 } else {
-                  console.log('Face ID cancelled');
+                  // No stored credentials - user needs to log in with Auth0 first
+                  // This shouldn't normally happen from Face ID button, but handle it gracefully
+                  console.log('No stored credentials - redirecting to normal login');
                 }
               } catch (e) {
                 console.error('Face ID login error:', e);

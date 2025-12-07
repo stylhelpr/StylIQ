@@ -130,12 +130,13 @@ export default function LoginScreen({
       const credentials = await authorize({
         redirectUrl,
         audience: 'http://localhost:3001',
-        scope: 'openid profile email',
-        responseType: 'token id_token',
+        scope: 'openid profile email offline_access',
         prompt: 'login',
       } as any);
 
-      await saveAuthCredentials(credentials);
+      if (credentials) {
+        await saveAuthCredentials(credentials);
+      }
       let idToken = credentials?.idToken;
       if (!idToken) {
         const fresh = await getCredentials();

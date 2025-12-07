@@ -3,7 +3,6 @@ import {View, Text, StyleSheet, Animated, Platform, Image} from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../../context/ThemeContext';
-import {useAuth0} from 'react-native-auth0';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {Screen} from '../../navigation/types';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
@@ -27,7 +26,6 @@ export default function GlobalHeader({
   scrollY,
 }: Props) {
   const {theme} = useAppTheme();
-  const {clearSession} = useAuth0();
   const setUUID = useSetUUID();
   const resetMeasurements = useMeasurementStore(state => state.reset);
   const resetShopping = useShoppingStore(state => state.resetForLogout);
@@ -37,7 +35,10 @@ export default function GlobalHeader({
 
   const handleLogout = async () => {
     try {
-      await clearSession();
+      // NOTE: We intentionally do NOT call clearSession() here
+      // This preserves Auth0 credentials in Keychain for Face ID login
+      // clearSession() would destroy the credentials and require password login again
+
       // Clear all auth-related AsyncStorage keys
       await AsyncStorage.multiRemove([
         'auth_logged_in',
