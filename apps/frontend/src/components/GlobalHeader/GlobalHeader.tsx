@@ -4,11 +4,16 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {Screen} from '../../navigation/types';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 import {fontScale, moderateScale} from '../../utils/scale';
 import {tokens} from '../../styles/tokens/tokens';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+import {useSetUUID} from '../../context/UUIDContext';
+import {queryClient} from '../../lib/queryClient';
+import {useMeasurementStore} from '../../../../../store/measurementStore';
+import {useShoppingStore} from '../../../../../store/shoppingStore';
 
 type Props = {
   navigate: (screen: Screen) => void;
@@ -23,6 +28,9 @@ export default function GlobalHeader({
 }: Props) {
   const {theme} = useAppTheme();
   const {clearSession} = useAuth0();
+  const setUUID = useSetUUID();
+  const resetMeasurements = useMeasurementStore(state => state.reset);
+  const resetShopping = useShoppingStore(state => state.resetForLogout);
   const [menuOpen, setMenuOpen] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-10)).current;
@@ -30,6 +38,20 @@ export default function GlobalHeader({
   const handleLogout = async () => {
     try {
       await clearSession();
+      // Clear all auth-related AsyncStorage keys
+      await AsyncStorage.multiRemove([
+        'auth_logged_in',
+        'user_id',
+        'onboarding_complete',
+        'style_profile',
+      ]);
+      // Reset UUID context
+      setUUID(null);
+      // Clear React Query cache (wardrobe, outfits, etc.)
+      queryClient.clear();
+      // Reset Zustand stores
+      resetMeasurements();
+      resetShopping();
       navigate('Login');
     } catch (e) {
       console.error('Logout failed:', e);

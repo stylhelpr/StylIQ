@@ -325,6 +325,17 @@ const RootNavigator = ({
     };
   }, []);
 
+  // ✅ Register auth expired handler for 401 responses
+  useEffect(() => {
+    global.__onAuthExpired = () => {
+      console.log('🔒 Auth expired - navigating to Login');
+      setCurrentScreen('Login');
+    };
+    return () => {
+      global.__onAuthExpired = undefined;
+    };
+  }, []);
+
   useEffect(() => {
     routeAfterLogin();
   }, []);
