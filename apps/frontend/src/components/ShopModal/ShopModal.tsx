@@ -53,7 +53,7 @@ export default function ShopModal({
     // Animate modal down before closing
     Animated.parallel([
       Animated.timing(translateY, {
-        toValue: 500,
+        toValue: 1000,
         duration: 300,
         useNativeDriver: true,
       }),
