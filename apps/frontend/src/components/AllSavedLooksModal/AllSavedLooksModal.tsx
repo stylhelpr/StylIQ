@@ -375,7 +375,7 @@ export default function AllSavedLooksModal({
         <View style={styles.backdrop} />
         <View
           style={{
-            height: insets.top - 10,
+            height: insets.top - 1,
             backgroundColor: theme.colors.background,
           }}
         />

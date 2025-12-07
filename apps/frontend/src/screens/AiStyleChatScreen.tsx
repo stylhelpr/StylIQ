@@ -407,7 +407,9 @@ export default function AiStylistChatScreen({navigate}: Props) {
       };
       setMessages(prev => [...prev, aiMsg]);
       h('selection');
-      speakResponse(`It's currently ${cachedWeather.temperature} degrees with ${cachedWeather.condition} in ${cachedWeather.city}.`);
+      speakResponse(
+        `It's currently ${cachedWeather.temperature} degrees with ${cachedWeather.condition} in ${cachedWeather.city}.`,
+      );
       return;
     }
 
@@ -1058,7 +1060,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                     color: theme.colors.foreground,
                   },
                 ]}>
-                Styla Chat
+                Ask Styla
               </Text>
             </View>
 
@@ -1107,7 +1109,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                               {
                                 id: 'seed-1',
                                 role: 'assistant',
-                                text: "Hey — I'm your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
+                                text: "Hey — I'm Styla, your AI Stylist. Tell me the vibe, weather, and where you're headed. I’ll craft a look that feels like you.",
                                 createdAt: Date.now(),
                               },
                             ]);

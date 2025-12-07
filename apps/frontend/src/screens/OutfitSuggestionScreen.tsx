@@ -682,7 +682,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       style={[
         globalStyles.container,
         globalStyles.screen,
-        {backgroundColor: theme.colors.background, paddingBottom: 150},
+        {backgroundColor: theme.colors.background, paddingBottom: 350},
       ]}>
       <View
         style={{

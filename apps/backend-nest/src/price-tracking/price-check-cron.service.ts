@@ -15,7 +15,7 @@ export class PriceCheckCronService implements OnModuleInit {
     await this.priceTrackingService.initializeDatabase();
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  // @Cron(CronExpression.EVERY_HOUR)
   async checkPriceAlerts() {
     try {
       console.log('🔔 Price alert check started...');
