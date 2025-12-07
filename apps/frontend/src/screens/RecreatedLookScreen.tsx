@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {WebView} from 'react-native-webview';
@@ -60,6 +61,8 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
   const [shopUrl, setShopUrl] = useState<string | null>(null);
   const [showSimilarModal, setShowSimilarModal] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const isClosingRef = useRef(false);
 
   const closeAllModals = () => {
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
@@ -68,8 +71,18 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
   };
 
   const handleBack = () => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
     ReactNativeHapticFeedback.trigger('impactLight');
-    navigation.goBack();
+
+    // Animate modal down before closing
+    Animated.timing(translateY, {
+      toValue: 1000,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      navigation.goBack();
+    });
   };
 
   const openShopModal = (url?: string) => {
@@ -255,19 +268,25 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
           alignItems: 'center',
           paddingVertical: tokens.spacing.sm,
         }}>
-        <Animatable.View
-          animation="fadeInUp"
-          duration={300}
+        <Animated.View
           style={{
             width: '100%',
             maxWidth: 700,
             height: '90%',
-            backgroundColor: theme.colors.background,
-            borderRadius: tokens.borderRadius['2xl'],
-            overflow: 'hidden',
-            // paddingTop: insets.top + 20,
-            paddingHorizontal: moderateScale(tokens.spacing.md1),
+            transform: [{translateY}],
           }}>
+          <Animatable.View
+            animation="fadeInUp"
+            duration={300}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: theme.colors.background,
+              borderRadius: tokens.borderRadius['2xl'],
+              overflow: 'hidden',
+              // paddingTop: insets.top + 20,
+              paddingHorizontal: moderateScale(tokens.spacing.md1),
+            }}>
           {/* ❌ Close */}
           <TouchableOpacity
             onPress={handleBack}
@@ -653,7 +672,8 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
               </Animatable.View>
             </View>
           </Modal>
-        </Animatable.View>
+          </Animatable.View>
+        </Animated.View>
       </View>
     </Modal>
   );
