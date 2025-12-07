@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useState} from 'react';
+import React, {useState, useRef} from 'react';
 import {
   Modal,
   View,
@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {WebView} from 'react-native-webview';
@@ -31,6 +33,36 @@ export default function ShopModal({
   const {theme} = useAppTheme();
   const [shopUrl, setShopUrl] = useState<string | null>(null);
   const globalStyles = useGlobalStyles();
+  const translateY = useRef(new Animated.Value(0)).current;
+  const isClosingRef = useRef(false);
+
+  // Reset animation when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      translateY.setValue(0);
+      isClosingRef.current = false;
+    }
+  }, [visible, translateY]);
+
+  // Handle close with haptic feedback
+  const handleClose = () => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    ReactNativeHapticFeedback.trigger('impactLight');
+    onClose();
+  };
+
+  // PanResponder for swipe-down to close
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
+      onPanResponderRelease: (_e, g) => {
+        if (g.dy > 100 || g.vy > 0.3) {
+          handleClose();
+        }
+      },
+    }),
+  ).current;
 
   if (!visible) return null;
 
@@ -43,24 +75,44 @@ export default function ShopModal({
           justifyContent: 'center',
           alignItems: 'center',
         }}>
-        <Animatable.View
-          animation="fadeInUp"
-          duration={300}
+        <Animated.View
           style={{
             width: '100%',
             maxWidth: '100%',
             height: '90%',
-            backgroundColor: theme.colors.background,
-            borderRadius: tokens.borderRadius['2xl'],
-            overflow: 'hidden',
-            padding: tokens.spacing.md,
+            transform: [{translateY}],
           }}>
-          {/* Close */}
-          <TouchableOpacity
-            onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactLight');
-              onClose();
-            }}
+          <Animatable.View
+            animation="fadeInUp"
+            duration={300}
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              height: '100%',
+              backgroundColor: theme.colors.background,
+              borderRadius: tokens.borderRadius['2xl'],
+              overflow: 'hidden',
+              padding: tokens.spacing.md,
+            }}>
+            {/* Swipe gesture zone */}
+            <View
+              {...panResponder.panHandlers}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 80,
+                zIndex: 10,
+                backgroundColor: 'transparent',
+              }}
+            />
+
+            {/* Close */}
+            <TouchableOpacity
+              onPress={() => {
+                handleClose();
+              }}
             style={{
               position: 'absolute',
               top: 8,
@@ -221,7 +273,8 @@ export default function ShopModal({
               </View>
             )}
           </ScrollView>
-        </Animatable.View>
+          </Animatable.View>
+        </Animated.View>
 
         {/* WebView modal */}
         <IntegratedShopOverlay
