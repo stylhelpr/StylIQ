@@ -23,6 +23,7 @@ import {tokens} from '../styles/tokens/tokens';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {syncNativeCalendarToBackend} from '../utils/calendarSync';
 import * as Animatable from 'react-native-animatable';
+import {useCalendarEventPromptStore} from '../../../../store/calendarEventPromptStore';
 
 // ───────── helpers ─────────
 const getLocalDateKey = (iso: string) => {
@@ -66,6 +67,12 @@ export default function OutfitPlannerScreen() {
   const [promptEvent, setPromptEvent] = useState<any>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [aiOutfit, setAiOutfit] = useState<any>(null);
+
+  // Load persisted event prompt responses on mount
+  const {loadFromStorage, hasAnswered} = useCalendarEventPromptStore();
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
 
   // ───────── animations ─────────
   useEffect(() => {
@@ -179,19 +186,25 @@ export default function OutfitPlannerScreen() {
       const title = ev.title?.toLowerCase() || '';
       const isRelevant =
         /(dinner|party|event|drinks|wedding|meeting|launch)/.test(title);
-      return isRelevant && hoursDiff >= 0 && hoursDiff < 24;
+      // Only show prompt if event is relevant, within 24 hours, and user hasn't answered yet
+      return isRelevant && hoursDiff >= 0 && hoursDiff < 24 && !hasAnswered(ev.event_id);
     });
     if (upcoming) {
       setPromptEvent(upcoming);
       setAiPromptVisible(true);
       h('impactMedium');
     }
-  }, [calendarEvents]);
+  }, [calendarEvents, hasAnswered]);
 
   const handleStyleIt = async () => {
     if (!promptEvent) return;
     try {
       setLoadingSuggestion(true);
+      // Record the "yes" response
+      if (promptEvent?.event_id) {
+        const {recordResponse} = useCalendarEventPromptStore.getState();
+        await recordResponse(promptEvent.event_id, 'yes');
+      }
       const prompt = `Outfit suggestion for ${promptEvent.title} at ${
         promptEvent.location || 'a venue'
       } starting ${formatLocalTime(promptEvent.start_date)}.`;
@@ -449,7 +462,11 @@ export default function OutfitPlannerScreen() {
 
                 {/* ❌ Cancel / No button */}
                 <AppleTouchFeedback
-                  onPress={() => {
+                  onPress={async () => {
+                    if (promptEvent?.event_id) {
+                      const {recordResponse} = useCalendarEventPromptStore.getState();
+                      await recordResponse(promptEvent.event_id, 'no');
+                    }
                     setAiPromptVisible(false);
                     setPromptEvent(null);
                     h('impactLight');
