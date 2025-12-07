@@ -125,8 +125,8 @@ export default function AllSavedLooksModal({
     },
     gestureZone: {
       position: 'absolute',
-      top: 100, // ⬅️ move it below the header (was 56)
-      height: 60, // ⬅️ slightly shorter
+      top: 0, // ⬅️ extend from top of modal
+      height: 180, // ⬅️ tall gesture zone for easy swiping
       width: '100%',
       zIndex: 2, // ⬅️ lower than header
       backgroundColor: 'transparent',
