@@ -1,5 +1,5 @@
 // apps/frontend/screens/ItemDetailScreen.tsx
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Animated,
 } from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -83,6 +84,25 @@ export default function ItemDetailScreen({route, navigation}: Props) {
   const queryClient = useQueryClient();
 
   const insets = useSafeAreaInsets();
+
+  // Animation
+  const slideUpAnim = useRef(new Animated.Value(100)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideUpAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [slideUpAnim, opacityAnim]);
 
   const {itemId, item: routeItem} = route.params;
   const item = useMemo(
@@ -380,15 +400,21 @@ export default function ItemDetailScreen({route, navigation}: Props) {
   });
 
   return (
-    <ScrollView
-      style={[
-        useGlobalStyles().screen,
-        useGlobalStyles().section6,
-        {marginBottom: 80},
-      ]}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{paddingBottom: 100}}>
+    <Animated.View
+      style={{
+        flex: 1,
+        transform: [{translateY: slideUpAnim}],
+        opacity: opacityAnim,
+      }}>
+      <ScrollView
+        style={[
+          useGlobalStyles().screen,
+          useGlobalStyles().section6,
+          {marginBottom: 80},
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{paddingBottom: 100}}>
       <View
         style={{
           height: insets.top + 60, // ⬅️ 56 is about the old navbar height
@@ -659,7 +685,8 @@ export default function ItemDetailScreen({route, navigation}: Props) {
           </View>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </Animated.View>
   );
 }
 
