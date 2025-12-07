@@ -24,6 +24,7 @@ import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {syncNativeCalendarToBackend} from '../utils/calendarSync';
 import * as Animatable from 'react-native-animatable';
 import {useCalendarEventPromptStore} from '../../../../store/calendarEventPromptStore';
+import {globalNavigate} from '../MainApp';
 
 // ───────── helpers ─────────
 const getLocalDateKey = (iso: string) => {
@@ -69,10 +70,15 @@ export default function OutfitPlannerScreen() {
   const [aiOutfit, setAiOutfit] = useState<any>(null);
 
   // Load persisted event prompt responses on mount
-  const {loadFromStorage, hasAnswered} = useCalendarEventPromptStore();
+  const {loadFromStorage, hasAnswered, clearResponses} =
+    useCalendarEventPromptStore();
   useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
+    (async () => {
+      // 🧪 TEMPORARY: Uncomment to clear responses for testing
+      // await clearResponses();
+      await loadFromStorage();
+    })();
+  }, [loadFromStorage, clearResponses]);
 
   // ───────── animations ─────────
   useEffect(() => {
@@ -178,7 +184,11 @@ export default function OutfitPlannerScreen() {
 
   // ───────── find upcoming events (for AI prompt) ─────────
   useEffect(() => {
-    if (!calendarEvents.length) return;
+    if (!calendarEvents.length) {
+      console.log('📅 No calendar events loaded yet');
+      return;
+    }
+    console.log('🔍 Checking calendar events:', calendarEvents);
     const now = new Date();
     const upcoming = calendarEvents.find(ev => {
       const start = new Date(ev.start_date);
@@ -186,13 +196,22 @@ export default function OutfitPlannerScreen() {
       const title = ev.title?.toLowerCase() || '';
       const isRelevant =
         /(dinner|party|event|drinks|wedding|meeting|launch)/.test(title);
+      const answered = hasAnswered(ev.event_id);
+      console.log(
+        `  Event: "${ev.title}" | Hours: ${hoursDiff.toFixed(
+          1,
+        )} | Relevant: ${isRelevant} | Answered: ${answered}`,
+      );
       // Only show prompt if event is relevant, within 24 hours, and user hasn't answered yet
-      return isRelevant && hoursDiff >= 0 && hoursDiff < 24 && !hasAnswered(ev.event_id);
+      return isRelevant && hoursDiff >= 0 && hoursDiff < 24 && !answered;
     });
     if (upcoming) {
+      console.log('✅ Found eligible event:', upcoming.title);
       setPromptEvent(upcoming);
       setAiPromptVisible(true);
       h('impactMedium');
+    } else {
+      console.log('❌ No eligible event found');
     }
   }, [calendarEvents, hasAnswered]);
 
@@ -209,15 +228,20 @@ export default function OutfitPlannerScreen() {
         promptEvent.location || 'a venue'
       } starting ${formatLocalTime(promptEvent.start_date)}.`;
 
-      const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: userId, prompt}),
-      });
-      const json = await res.json();
-      setAiOutfit(json);
-      setLoadingSuggestion(false);
       h('success');
+      setLoadingSuggestion(false);
+
+      // Close the prompt and navigate to OutfitSuggestionScreen with the event context
+      setAiPromptVisible(false);
+      setPromptEvent(null);
+
+      // Navigate to OutfitSuggestionScreen with the event as params
+      globalNavigate('Outfit', {
+        eventTitle: promptEvent.title,
+        eventLocation: promptEvent.location,
+        eventStartDate: promptEvent.start_date,
+        initialPrompt: prompt,
+      });
     } catch (err) {
       console.error('❌ AI suggest error:', err);
       setLoadingSuggestion(false);
@@ -258,7 +282,7 @@ export default function OutfitPlannerScreen() {
     },
     promptBox: {
       position: 'absolute',
-      bottom: 30,
+      bottom: 60,
       left: 20,
       right: 20,
       borderRadius: 16,
@@ -464,7 +488,8 @@ export default function OutfitPlannerScreen() {
                 <AppleTouchFeedback
                   onPress={async () => {
                     if (promptEvent?.event_id) {
-                      const {recordResponse} = useCalendarEventPromptStore.getState();
+                      const {recordResponse} =
+                        useCalendarEventPromptStore.getState();
                       await recordResponse(promptEvent.event_id, 'no');
                     }
                     setAiPromptVisible(false);
@@ -492,8 +517,13 @@ export default function OutfitPlannerScreen() {
             ) : (
               <>
                 <Text style={styles.promptText}>Your Styled Look</Text>
+                {console.log('📸 Rendering outfit pieces:', {
+                  top: aiOutfit?.top,
+                  bottom: aiOutfit?.bottom,
+                  shoes: aiOutfit?.shoes,
+                })}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {[aiOutfit.top, aiOutfit.bottom, aiOutfit.shoes].map(
+                  {[aiOutfit?.top, aiOutfit?.bottom, aiOutfit?.shoes].map(
                     (piece: any, idx: number) =>
                       piece?.image && (
                         <Image
