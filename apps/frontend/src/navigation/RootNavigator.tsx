@@ -82,6 +82,9 @@ import {
   getCredentialsWithBiometrics,
   hasStoredCredentials,
 } from '../utils/auth';
+import {useSetUUID} from '../context/UUIDContext';
+import jwtDecode from 'jwt-decode';
+import {API_BASE_URL} from '../config/api';
 
 type Screen =
   | 'Login'
@@ -172,6 +175,7 @@ const RootNavigator = ({
   const profileScreenCache = useRef<JSX.Element | null>(null);
 
   const {theme} = useAppTheme();
+  const setUUID = useSetUUID();
 
   useEffect(() => {
     if (registerNavigate) {
@@ -362,7 +366,34 @@ const RootNavigator = ({
 
                   if (credentials) {
                     // Successfully authenticated with Face ID
-                    await AsyncStorage.setItem('auth_logged_in', 'true');
+                    // Decode the idToken to get user info
+                    const idToken = credentials.idToken;
+                    if (idToken) {
+                      const decoded: any = jwtDecode(idToken);
+                      const auth0_sub = decoded.sub;
+
+                      // Sync with backend to get user_id
+                      const syncRes = await fetch(`${API_BASE_URL}/users/sync`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${credentials.accessToken}`,
+                        },
+                        body: JSON.stringify({
+                          auth0_sub,
+                          email: decoded.email,
+                          name: decoded.name,
+                        }),
+                      });
+                      const user = await syncRes.json();
+
+                      // Set auth state
+                      await AsyncStorage.setItem('auth_logged_in', 'true');
+                      if (user?.id) {
+                        await AsyncStorage.setItem('user_id', String(user.id));
+                        setUUID(String(user.id));
+                      }
+                    }
                     await routeAfterLogin();
                   } else {
                     console.log('Face ID authentication failed or cancelled');

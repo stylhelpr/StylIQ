@@ -39,11 +39,11 @@ export default function GlobalHeader({
       // This preserves Auth0 credentials in Keychain for Face ID login
       // clearSession() would destroy the credentials and require password login again
 
-      // Clear all auth-related AsyncStorage keys
+      // Clear session-related AsyncStorage keys
+      // NOTE: We keep 'onboarding_complete' so Face ID login skips onboarding
       await AsyncStorage.multiRemove([
         'auth_logged_in',
         'user_id',
-        'onboarding_complete',
         'style_profile',
       ]);
       // Reset UUID context
