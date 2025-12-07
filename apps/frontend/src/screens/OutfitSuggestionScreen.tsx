@@ -726,70 +726,72 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 paddingBottom: 40,
                 alignItems: 'center',
               }}>
-              {/* Prompt input with mic */}
-              <View
-                style={[
-                  globalStyles.promptRow,
-                  {
-                    height: 45,
-                    marginBottom: 12,
-                    paddingHorizontal: 14,
-                    borderWidth: tokens.borderWidth.xl,
-                    borderColor: theme.colors.surfaceBorder,
-                    backgroundColor: theme.colors.surface3,
-                    borderRadius: 20,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                  },
-                ]}>
-                <TextInput
-                  placeholder="What kind of an outfit are you looking for?"
-                  placeholderTextColor={theme.colors.muted}
+              {/* Prompt input with mic - hide when refine input is shown */}
+              {!hasOutfit && (
+                <View
                   style={[
-                    globalStyles.promptInput,
-                    {color: theme.colors.foreground, flex: 1},
-                  ]}
-                  value={lastSpeech}
-                  onChangeText={setLastSpeech}
-                />
+                    globalStyles.promptRow,
+                    {
+                      height: 45,
+                      marginBottom: 12,
+                      paddingHorizontal: 14,
+                      borderWidth: tokens.borderWidth.xl,
+                      borderColor: theme.colors.surfaceBorder,
+                      backgroundColor: theme.colors.surface3,
+                      borderRadius: 20,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    },
+                  ]}>
+                  <TextInput
+                    placeholder="What kind of an outfit are you looking for?"
+                    placeholderTextColor={theme.colors.muted}
+                    style={[
+                      globalStyles.promptInput,
+                      {color: theme.colors.foreground, flex: 1},
+                    ]}
+                    value={lastSpeech}
+                    onChangeText={setLastSpeech}
+                  />
 
-                {/* ✅ Clear Button - one tap fix */}
-                {lastSpeech.length > 0 && (
-                  <TouchableOpacity
-                    onPress={async () => {
-                      try {
-                        // ✅ Stop any ongoing recognition
-                        await Voice.stop();
-                        // ✅ Cancel to flush partial results
-                        await Voice.cancel();
-                      } catch (e) {
-                        console.warn('Voice stop/cancel error', e);
-                      }
+                  {/* ✅ Clear Button - one tap fix */}
+                  {lastSpeech.length > 0 && (
+                    <TouchableOpacity
+                      onPress={async () => {
+                        try {
+                          // ✅ Stop any ongoing recognition
+                          await Voice.stop();
+                          // ✅ Cancel to flush partial results
+                          await Voice.cancel();
+                        } catch (e) {
+                          console.warn('Voice stop/cancel error', e);
+                        }
 
-                      // ✅ Clear after a short delay to avoid ghost text from final callbacks
-                      setTimeout(() => {
-                        setLastSpeech('');
-                      }, 100);
-                    }}
-                    style={{paddingHorizontal: 8}}>
+                        // ✅ Clear after a short delay to avoid ghost text from final callbacks
+                        setTimeout(() => {
+                          setLastSpeech('');
+                        }, 100);
+                      }}
+                      style={{paddingHorizontal: 8}}>
+                      <MaterialIcons
+                        name="close"
+                        size={22}
+                        color={theme.colors.foreground2}
+                      />
+                    </TouchableOpacity>
+                  )}
+
+                  {/* 🎙️ Mic Button */}
+                  <TouchableOpacity onPress={handleVoiceStart}>
                     <MaterialIcons
-                      name="close"
+                      name="keyboard-voice"
                       size={22}
-                      color={theme.colors.foreground2}
+                      color={theme.colors.foreground}
+                      style={{marginRight: 6}}
                     />
                   </TouchableOpacity>
-                )}
-
-                {/* 🎙️ Mic Button */}
-                <TouchableOpacity onPress={handleVoiceStart}>
-                  <MaterialIcons
-                    name="keyboard-voice"
-                    size={22}
-                    color={theme.colors.foreground}
-                    style={{marginRight: 6}}
-                  />
-                </TouchableOpacity>
-              </View>
+                </View>
+              )}
 
               {/* Controls */}
               <OutfitTuningControls
