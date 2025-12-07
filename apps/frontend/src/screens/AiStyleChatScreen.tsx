@@ -408,13 +408,25 @@ export default function AiStylistChatScreen({navigate}: Props) {
       createdAt: Date.now(),
     };
     setMessages(prev => [...prev, userMsg]);
+
+    // ⚡ Force immediate render of user bubble
+    await new Promise(r => setTimeout(r, 0));
+    requestAnimationFrame(() =>
+      scrollRef.current?.scrollToEnd({animated: true}),
+    );
+
     setIsTyping(true);
     Keyboard.dismiss();
     h('impactLight');
 
     try {
       const historyForApi = [...messages, userMsg];
-      const assistant = await callAiChatAPI(historyForApi, userMsg, userId, coords);
+      const assistant = await callAiChatAPI(
+        historyForApi,
+        userMsg,
+        userId,
+        coords,
+      );
       // const aiMsg: Message = {
       //   id: `a-${Date.now()}`,
       //   role: 'assistant',
