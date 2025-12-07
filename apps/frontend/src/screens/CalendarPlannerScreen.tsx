@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Easing,
 } from 'react-native';
 import {useAuth0} from 'react-native-auth0';
 import {Calendar, DateObject} from 'react-native-calendars';
@@ -58,6 +59,7 @@ export default function OutfitPlannerScreen() {
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateAnim = useRef(new Animated.Value(30)).current;
 
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [scheduledOutfits, setScheduledOutfits] = useState<any[]>([]);
@@ -82,11 +84,20 @@ export default function OutfitPlannerScreen() {
 
   // ───────── animations ─────────
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 650,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateAnim, {
+        toValue: 0,
+        duration: 450,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   // ───────── sync native iOS calendar ─────────
@@ -324,21 +335,27 @@ export default function OutfitPlannerScreen() {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
-      <View
+      <Animated.View
         style={{
-          height: insets.top + 10, // ✅ matches GlobalHeader spacing
-          backgroundColor: theme.colors.background,
-        }}
-      />
-      <KeyboardAvoidingView
-        style={{flex: 1}}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 40}>
-        <Text style={[globalStyles.header, {marginBottom: 8}]}>
-          Planned Outfits
-        </Text>
+          flex: 1,
+          opacity: fadeAnim,
+          transform: [{translateY: translateAnim}],
+        }}>
+        <View
+          style={{
+            height: insets.top + 10, // ✅ matches GlobalHeader spacing
+            backgroundColor: theme.colors.background,
+          }}
+        />
+        <KeyboardAvoidingView
+          style={{flex: 1}}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={insets.top + 40}>
+          <Text style={[globalStyles.header, {marginBottom: 8}]}>
+            Planned Outfits
+          </Text>
 
-        <Animated.View style={{opacity: fadeAnim, flex: 1}}>
+          <Animated.View style={{flex: 1}}>
           <Calendar
             onDayPress={handleDayPress}
             markedDates={{
@@ -557,7 +574,8 @@ export default function OutfitPlannerScreen() {
             )}
           </Animatable.View>
         )}
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </Animated.View>
     </SafeAreaView>
   );
 }

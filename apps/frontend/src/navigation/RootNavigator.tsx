@@ -563,7 +563,7 @@ const RootNavigator = ({
           />
         );
       case 'AddItem':
-        return <AddItemScreen navigate={navigate} addItem={addToWardrobe} />;
+        return <AddItemScreen navigate={navigate} goBack={goBack} addItem={addToWardrobe} />;
       case 'Outfit':
         return <OutfitSuggestionScreen navigate={navigate} />;
       case 'Search':

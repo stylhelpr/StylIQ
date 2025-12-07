@@ -117,6 +117,27 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const [inputHeight, setInputHeight] = useState(42);
   const animatedHeight = useRef(new Animated.Value(42)).current;
 
+  // Screen entrance animation
+  const screenFade = useRef(new Animated.Value(0)).current;
+  const screenTranslate = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(screenFade, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(screenTranslate, {
+        toValue: 0,
+        duration: 450,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   useEffect(() => {
     Animated.timing(animatedHeight, {
       toValue: inputHeight,
@@ -989,18 +1010,24 @@ export default function AiStylistChatScreen({navigate}: Props) {
           {flex: 1, backgroundColor: theme.colors.background},
         ]}
         edges={['left', 'right', 'top', 'bottom']}>
-        {/* 🔹 Top spacer */}
-        <View
+        <Animated.View
           style={{
-            height: insets.top + 60,
-            backgroundColor: theme.colors.background,
-          }}
-        />
+            flex: 1,
+            opacity: screenFade,
+            transform: [{translateY: screenTranslate}],
+          }}>
+          {/* 🔹 Top spacer */}
+          <View
+            style={{
+              height: insets.top + 60,
+              backgroundColor: theme.colors.background,
+            }}
+          />
 
-        <KeyboardAvoidingView
-          style={{flex: 1, backgroundColor: theme.colors.background}}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top - 110 : 0}>
+          <KeyboardAvoidingView
+            style={{flex: 1, backgroundColor: theme.colors.background}}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top - 110 : 0}>
           {/* 🧠 Header */}
 
           {/* 🧠 Floating Mascot — always on top */}
@@ -1238,6 +1265,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
             }}
           />
         )}
+        </Animated.View>
       </SafeAreaView>
       {ttsUrl && (
         <WebView
