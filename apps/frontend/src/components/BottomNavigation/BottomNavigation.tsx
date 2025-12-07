@@ -9,7 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
 import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
@@ -31,6 +31,10 @@ type Props = {
 
 const BottomNavigation = ({current, navigate, scrollY}: Props) => {
   const {theme} = useAppTheme();
+  const insets = useSafeAreaInsets();
+
+  // Detect if device has home button (no home indicator = small bottom inset)
+  const hasHomeButton = insets.bottom < 20;
 
   const pillOpacity = scrollY
     ? scrollY.interpolate({
@@ -77,7 +81,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
       shadowRadius: 12,
       shadowOffset: {width: 0, height: 4},
       backgroundColor: 'transparent',
-      marginBottom: -14,
+      marginBottom: hasHomeButton ? 10 : -14,
     },
     tabButton: {
       alignItems: 'center',
