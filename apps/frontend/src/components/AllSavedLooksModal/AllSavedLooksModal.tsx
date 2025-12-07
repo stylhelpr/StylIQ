@@ -152,8 +152,11 @@ export default function AllSavedLooksModal({
   });
 
   useEffect(() => {
-    if (visible) translateY.setValue(0);
-  }, [visible, translateY]);
+    if (visible) {
+      console.log('📋 AllSavedLooksModal visible - resetting translateY to 0');
+      translateY.setValue(0);
+    }
+  }, [visible]);
 
   const handleClose = () => {
     Animated.timing(translateY, {
@@ -406,6 +409,7 @@ export default function AllSavedLooksModal({
           {/* 🧭 Gesture Zone */}
           <View
             {...panResponder.panHandlers}
+            onStartShouldSetResponder={() => true}
             pointerEvents="box-only"
             style={styles.gestureZone}
           />
