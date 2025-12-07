@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Animated,
+  PanResponder,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {WebView} from 'react-native-webview';
@@ -84,6 +85,18 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
       navigation.goBack();
     });
   };
+
+  // PanResponder for swipe-down to close
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
+      onPanResponderRelease: (_e, g) => {
+        if (g.dy > 100 || g.vy > 0.3) {
+          handleBack();
+        }
+      },
+    }),
+  ).current;
 
   const openShopModal = (url?: string) => {
     if (!url) return;
@@ -287,9 +300,24 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
               // paddingTop: insets.top + 20,
               paddingHorizontal: moderateScale(tokens.spacing.md1),
             }}>
-          {/* ❌ Close */}
-          <TouchableOpacity
-            onPress={handleBack}
+            {/* Swipe gesture zone */}
+            <View
+              {...panResponder.panHandlers}
+              onStartShouldSetResponder={() => true}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 80,
+                zIndex: 10,
+                backgroundColor: 'transparent',
+              }}
+            />
+
+            {/* ❌ Close */}
+            <TouchableOpacity
+              onPress={handleBack}
             style={{
               position: 'absolute',
               top: 10,
