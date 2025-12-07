@@ -44,12 +44,22 @@ export default function ShopModal({
     }
   }, [visible, translateY]);
 
-  // Handle close with haptic feedback
+  // Handle close with animation
   const handleClose = () => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
     ReactNativeHapticFeedback.trigger('impactLight');
-    onClose();
+
+    // Animate modal down before closing
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 500,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+    });
   };
 
   // PanResponder for swipe-down to close
