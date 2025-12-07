@@ -1923,7 +1923,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-cameraroll (7.10.2):
+  - react-native-cameraroll (7.10.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2472,7 +2472,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-skia (2.3.10):
+  - react-native-skia (2.3.13):
     - boost
     - DoubleConversion
     - fast_float
@@ -3398,7 +3398,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNReanimated (4.1.3):
+  - RNReanimated (4.1.5):
     - boost
     - DoubleConversion
     - fast_float
@@ -3425,11 +3425,11 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated (= 4.1.3)
+    - RNReanimated/reanimated (= 4.1.5)
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNReanimated/reanimated (4.1.3):
+  - RNReanimated/reanimated (4.1.5):
     - boost
     - DoubleConversion
     - fast_float
@@ -3456,11 +3456,11 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNReanimated/reanimated/apple (= 4.1.3)
+    - RNReanimated/reanimated/apple (= 4.1.5)
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNReanimated/reanimated/apple (4.1.3):
+  - RNReanimated/reanimated/apple (4.1.5):
     - boost
     - DoubleConversion
     - fast_float
@@ -3488,6 +3488,63 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - RNWorklets
+    - SocketRocket
+    - Yoga
+  - RNSVG (15.15.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNSVG/common (= 15.15.0)
+    - SocketRocket
+    - Yoga
+  - RNSVG/common (15.15.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
   - RNVectorIcons (10.3.0):
@@ -3611,16 +3668,16 @@ PODS:
   - SocketRocket (0.7.1)
   - TextToSpeech (4.1.1):
     - React-Core
-  - VisionCamera (4.7.2):
-    - VisionCamera/Core (= 4.7.2)
-    - VisionCamera/FrameProcessors (= 4.7.2)
-    - VisionCamera/React (= 4.7.2)
-  - VisionCamera/Core (4.7.2)
-  - VisionCamera/FrameProcessors (4.7.2):
+  - VisionCamera (4.7.3):
+    - VisionCamera/Core (= 4.7.3)
+    - VisionCamera/FrameProcessors (= 4.7.3)
+    - VisionCamera/React (= 4.7.3)
+  - VisionCamera/Core (4.7.3)
+  - VisionCamera/FrameProcessors (4.7.3):
     - React
     - React-callinvoker
     - react-native-worklets-core
-  - VisionCamera/React (4.7.2):
+  - VisionCamera/React (4.7.3):
     - React-Core
     - VisionCamera/FrameProcessors
   - Yoga (0.0.0)
@@ -3739,6 +3796,7 @@ DEPENDENCIES:
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
+  - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - SocketRocket (~> 0.7.1)
@@ -3989,6 +4047,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-haptic-feedback"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
+  RNSVG:
+    :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
   RNWorklets:
@@ -4064,7 +4124,7 @@ SPEC CHECKSUMS:
   react-native-add-calendar-event: 4eb42bdf84beb58de81f6d2ce1778a7632223dfe
   react-native-biometrics: 43ed5b828646a7862dbc7945556446be00798e7d
   react-native-blur: b83ffbc5380d8bd2f06804b4b0e848be3507e65c
-  react-native-cameraroll: ae31ba7ee17d31c5ee05d7bb248742e3af482783
+  react-native-cameraroll: 3c91530ef1e696b6b6bbc4f8ca98c535c0836e8b
   react-native-contacts: 3fafb928e33ce5f31d3141dc4d55af12d6b09175
   react-native-filament: beb45aca0cfc1e3a8dccb38004eac239ee56c903
   react-native-geolocation: 49d39b53dfeb6c22ff1ad69e71ac9c7981affdaa
@@ -4073,7 +4133,7 @@ SPEC CHECKSUMS:
   react-native-maps: 9ae269783ee6ebd87c7598873674c83c244adde9
   react-native-orientation-locker: cc6f357b289a2e0dd2210fea0c52cb8e0727fdaa
   react-native-safe-area-context: 0a3b034bb63a5b684dd2f5fffd3c90ef6ed41ee8
-  react-native-skia: 87c2b79691e8290b875c0aece7864acdda9c8e29
+  react-native-skia: 66a186a915d3a168b392a383397895d1ae9ef4e2
   react-native-vector-icons-feather: b0c81b5240bc89ba1546220b694fc5f7b660258d
   react-native-vector-icons-material-icons: d67e485a05560416ff6b5977d5fa7e0eb6af6870
   react-native-video: d9d12aa2325ae06222e97e8bd801bbc31df2675d
@@ -4124,15 +4184,16 @@ SPEC CHECKSUMS:
   RNGestureHandler: 67501c6d447027581aa1d8e5a7a3ea5a7f0a89ff
   RNPermissions: 19493edc68c647ccbb0250a5f2437eb13051fd4c
   RNReactNativeHapticFeedback: 5f1542065f0b24c9252bd8cf3e83bc9c548182e4
-  RNReanimated: 8f0185df21f0dea34ee8c9611ba88c17a290ed9a
+  RNReanimated: 05c5a85c3ee54ac68d60c8a9b42dbc441e3326ca
+  RNSVG: 6765c72b6cc74f8e475fabcdc3040b934c786d9d
   RNVectorIcons: e355dd0998d6b9020e560922a66614eb9636501b
   RNWorklets: ab618bf7d1c7fd2cb793b9f0f39c3e29274b3ebf
   SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
-  VisionCamera: 4146fa2612c154f893a42a9b1feedf868faa6b23
+  VisionCamera: 0044a94f7489f19e19d5938e97dfc36f4784af3c
   Yoga: 526f25666395d30c297d53154398ffd249eaf9e1
 
-PODFILE CHECKSUM: bbab53adb93e6b52f51be452ecbeca38a460422e
+PODFILE CHECKSUM: 249d78950cd7e9e01f818fd6b24ca27851629bc0
 
 COCOAPODS: 1.16.2

@@ -133,7 +133,7 @@ const MainApp = () => {
         onScreenChange={setActiveScreen}
       />
       <WeatherOverlay />
-      {activeScreen !== 'VideoFeedScreen' && ( // ✅ hide mic on video screen
+      {activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && (
         <FloatingMicButton navigate={globalNavigate} />
       )}
       <WeatherPromptOverlay

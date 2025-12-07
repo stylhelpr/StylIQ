@@ -144,8 +144,11 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
       useNativeDriver: true,
     }).start(({finished}) => {
       if (finished) {
-        translateY.setValue(0);
         onClose();
+        // Reset after modal is closed
+        setTimeout(() => {
+          translateY.setValue(0);
+        }, 100);
       }
     });
   };
@@ -220,15 +223,11 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="none"
       onRequestClose={handleClose}>
       <SafeAreaView style={styles.modalContainer}>
         {/* Backdrop (same as ReaderModal) */}
-        <Animatable.View
-          animation="fadeIn"
-          duration={300}
-          style={[styles.backdrop, {backgroundColor: '#000'}]}
-        />
+        <View style={[styles.backdrop, {backgroundColor: '#000'}]} />
 
         {/* Animated panel (same structure as ReaderModal) */}
         <Animated.View

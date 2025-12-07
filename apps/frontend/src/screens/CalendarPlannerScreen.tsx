@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Easing,
 } from 'react-native';
 import {useAuth0} from 'react-native-auth0';
 import {Calendar, DateObject} from 'react-native-calendars';
@@ -23,6 +24,8 @@ import {tokens} from '../styles/tokens/tokens';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {syncNativeCalendarToBackend} from '../utils/calendarSync';
 import * as Animatable from 'react-native-animatable';
+import {useCalendarEventPromptStore} from '../../../../store/calendarEventPromptStore';
+import {globalNavigate} from '../MainApp';
 
 // ───────── helpers ─────────
 const getLocalDateKey = (iso: string) => {
@@ -56,6 +59,7 @@ export default function OutfitPlannerScreen() {
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateAnim = useRef(new Animated.Value(30)).current;
 
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [scheduledOutfits, setScheduledOutfits] = useState<any[]>([]);
@@ -67,13 +71,33 @@ export default function OutfitPlannerScreen() {
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [aiOutfit, setAiOutfit] = useState<any>(null);
 
+  // Load persisted event prompt responses on mount
+  const {loadFromStorage, hasAnswered, clearResponses} =
+    useCalendarEventPromptStore();
+  useEffect(() => {
+    (async () => {
+      // 🧪 TEMPORARY: Uncomment to clear responses for testing
+      // await clearResponses();
+      await loadFromStorage();
+    })();
+  }, [loadFromStorage, clearResponses]);
+
   // ───────── animations ─────────
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 650,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateAnim, {
+        toValue: 0,
+        duration: 450,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   // ───────── sync native iOS calendar ─────────
@@ -171,7 +195,11 @@ export default function OutfitPlannerScreen() {
 
   // ───────── find upcoming events (for AI prompt) ─────────
   useEffect(() => {
-    if (!calendarEvents.length) return;
+    if (!calendarEvents.length) {
+      console.log('📅 No calendar events loaded yet');
+      return;
+    }
+    console.log('🔍 Checking calendar events:', calendarEvents);
     const now = new Date();
     const upcoming = calendarEvents.find(ev => {
       const start = new Date(ev.start_date);
@@ -179,32 +207,52 @@ export default function OutfitPlannerScreen() {
       const title = ev.title?.toLowerCase() || '';
       const isRelevant =
         /(dinner|party|event|drinks|wedding|meeting|launch)/.test(title);
-      return isRelevant && hoursDiff >= 0 && hoursDiff < 24;
+      const answered = hasAnswered(ev.event_id);
+      console.log(
+        `  Event: "${ev.title}" | Hours: ${hoursDiff.toFixed(
+          1,
+        )} | Relevant: ${isRelevant} | Answered: ${answered}`,
+      );
+      // Only show prompt if event is relevant, within 24 hours, and user hasn't answered yet
+      return isRelevant && hoursDiff >= 0 && hoursDiff < 24 && !answered;
     });
     if (upcoming) {
+      console.log('✅ Found eligible event:', upcoming.title);
       setPromptEvent(upcoming);
       setAiPromptVisible(true);
       h('impactMedium');
+    } else {
+      console.log('❌ No eligible event found');
     }
-  }, [calendarEvents]);
+  }, [calendarEvents, hasAnswered]);
 
   const handleStyleIt = async () => {
     if (!promptEvent) return;
     try {
       setLoadingSuggestion(true);
+      // Record the "yes" response
+      if (promptEvent?.event_id) {
+        const {recordResponse} = useCalendarEventPromptStore.getState();
+        await recordResponse(promptEvent.event_id, 'yes');
+      }
       const prompt = `Outfit suggestion for ${promptEvent.title} at ${
         promptEvent.location || 'a venue'
       } starting ${formatLocalTime(promptEvent.start_date)}.`;
 
-      const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: userId, prompt}),
-      });
-      const json = await res.json();
-      setAiOutfit(json);
-      setLoadingSuggestion(false);
       h('success');
+      setLoadingSuggestion(false);
+
+      // Close the prompt and navigate to OutfitSuggestionScreen with the event context
+      setAiPromptVisible(false);
+      setPromptEvent(null);
+
+      // Navigate to OutfitSuggestionScreen with the event as params
+      globalNavigate('Outfit', {
+        eventTitle: promptEvent.title,
+        eventLocation: promptEvent.location,
+        eventStartDate: promptEvent.start_date,
+        initialPrompt: prompt,
+      });
     } catch (err) {
       console.error('❌ AI suggest error:', err);
       setLoadingSuggestion(false);
@@ -245,7 +293,7 @@ export default function OutfitPlannerScreen() {
     },
     promptBox: {
       position: 'absolute',
-      bottom: 30,
+      bottom: 60,
       left: 20,
       right: 20,
       borderRadius: 16,
@@ -287,21 +335,27 @@ export default function OutfitPlannerScreen() {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
-      <View
+      <Animated.View
         style={{
-          height: insets.top + 10, // ✅ matches GlobalHeader spacing
-          backgroundColor: theme.colors.background,
-        }}
-      />
-      <KeyboardAvoidingView
-        style={{flex: 1}}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 40}>
-        <Text style={[globalStyles.header, {marginBottom: 8}]}>
-          Planned Outfits
-        </Text>
+          flex: 1,
+          opacity: fadeAnim,
+          transform: [{translateY: translateAnim}],
+        }}>
+        <View
+          style={{
+            height: insets.top + 10, // ✅ matches GlobalHeader spacing
+            backgroundColor: theme.colors.background,
+          }}
+        />
+        <KeyboardAvoidingView
+          style={{flex: 1}}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={insets.top + 40}>
+          <Text style={[globalStyles.header, {marginBottom: 8}]}>
+            Planned Outfits
+          </Text>
 
-        <Animated.View style={{opacity: fadeAnim, flex: 1}}>
+          <Animated.View style={{flex: 1}}>
           <Calendar
             onDayPress={handleDayPress}
             markedDates={{
@@ -338,6 +392,7 @@ export default function OutfitPlannerScreen() {
           {/* Details */}
           {modalVisible && (
             <ScrollView
+              showsVerticalScrollIndicator={false}
               style={{
                 flex: 1,
                 paddingHorizontal: moderateScale(tokens.spacing.md1),
@@ -448,7 +503,12 @@ export default function OutfitPlannerScreen() {
 
                 {/* ❌ Cancel / No button */}
                 <AppleTouchFeedback
-                  onPress={() => {
+                  onPress={async () => {
+                    if (promptEvent?.event_id) {
+                      const {recordResponse} =
+                        useCalendarEventPromptStore.getState();
+                      await recordResponse(promptEvent.event_id, 'no');
+                    }
                     setAiPromptVisible(false);
                     setPromptEvent(null);
                     h('impactLight');
@@ -474,8 +534,13 @@ export default function OutfitPlannerScreen() {
             ) : (
               <>
                 <Text style={styles.promptText}>Your Styled Look</Text>
+                {console.log('📸 Rendering outfit pieces:', {
+                  top: aiOutfit?.top,
+                  bottom: aiOutfit?.bottom,
+                  shoes: aiOutfit?.shoes,
+                })}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {[aiOutfit.top, aiOutfit.bottom, aiOutfit.shoes].map(
+                  {[aiOutfit?.top, aiOutfit?.bottom, aiOutfit?.shoes].map(
                     (piece: any, idx: number) =>
                       piece?.image && (
                         <Image
@@ -509,7 +574,8 @@ export default function OutfitPlannerScreen() {
             )}
           </Animatable.View>
         )}
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </Animated.View>
     </SafeAreaView>
   );
 }

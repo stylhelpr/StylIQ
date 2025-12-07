@@ -29,9 +29,12 @@ import { ProfileUploadModule } from './profile-upload/profile-upload.module';
 import { FeedsModule } from './feeds/feeds.module';
 import { ProductsModule } from './product-services/product-services.module';
 import { LookMemoryModule } from './look-memory/look-memory.module';
+import { StyleProfilesModule } from './style-profiles/style-profiles.module';
 import { RecreatedLookModule } from './recreated-look/recreated-look.module';
 import { ShareModule } from './share/share.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { ConnectedAccountsModule } from './connected-accounts/connected-accounts.module';
+import { PriceTrackingModule } from './price-tracking/price-tracking.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -69,6 +72,9 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     ShareModule,
     FeedsModule,
     CalendarModule,
+    StyleProfilesModule,
+    ConnectedAccountsModule,
+    PriceTrackingModule,
   ],
   controllers: [AppController],
   providers: [

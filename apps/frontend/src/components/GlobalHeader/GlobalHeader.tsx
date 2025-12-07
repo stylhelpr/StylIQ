@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect} from 'react';
-import {View, Text, StyleSheet, Animated, Platform} from 'react-native';
+import {View, Text, StyleSheet, Animated, Platform, Image} from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -191,16 +191,15 @@ export default function GlobalHeader({
         <View style={styles.iconRow}>
           {[
             {
+              name: 'styla-avatar',
+              action: () => navigate('AiStylistChatScreen'),
+              isStyla: true,
+            },
+            {
               name: 'notifications-none',
               action: () => navigate('Notifications'),
             },
-            {name: 'videocam', action: () => navigate('VideoFeedScreen')},
-            {
-              name: 'smart-toy',
-              action: () => navigate('AiStylistChatScreen'),
-              tint: theme.colors.button1,
-              innerColor: theme.colors.buttonText1,
-            },
+
             {name: 'event-note', action: () => navigate('Planner')},
             {
               name: 'menu',
@@ -217,14 +216,26 @@ export default function GlobalHeader({
                   effect="clear"
                   tintColor={getTintColor()}
                   colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
-                  <MaterialIcons
-                    name={icon.name}
-                    size={22}
-                    color={icon.innerColor || theme.colors.buttonText1}
-                  />
+                  {icon.isStyla ? (
+                    <Image
+                      source={require('../../assets/images/Styla1.png')}
+                      style={{
+                        width: 35,
+                        height: 35,
+                        borderRadius: 11,
+                        resizeMode: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <MaterialIcons
+                      name={icon.name}
+                      size={22}
+                      color={theme.colors.buttonText1}
+                    />
+                  )}
                 </LiquidGlassView>
               ) : (
-                // 🔹 Fallback for iOS 25 and lower or unsupported devices
+                // 🔹 Fallback for unsupported devices
                 <View
                   style={[
                     styles.glassButton,
@@ -237,11 +248,23 @@ export default function GlobalHeader({
                       shadowOffset: {width: 0, height: 2},
                     },
                   ]}>
-                  <MaterialIcons
-                    name={icon.name}
-                    size={22}
-                    color={icon.innerColor || theme.colors.buttonText1}
-                  />
+                  {icon.isStyla ? (
+                    <Image
+                      source={require('../../assets/images/Styla1.png')}
+                      style={{
+                        width: 22,
+                        height: 22,
+                        // borderRadius: 11,
+                        resizeMode: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <MaterialIcons
+                      name={icon.name}
+                      size={22}
+                      color={theme.colors.buttonText1}
+                    />
+                  )}
                 </View>
               )}
             </AppleTouchFeedback>
@@ -289,6 +312,1210 @@ export default function GlobalHeader({
     </SafeAreaView>
   );
 }
+
+///////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated, Platform, Image} from 'react-native';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Dropdown animation
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen]);
+
+//   // 🔹 Scroll fade for title
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   // 🔹 Subtle top gradient (for depth)
+//   const gradientOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 120],
+//         outputRange: [0.08, 0.12],
+//         extrapolate: 'clamp',
+//       })
+//     : 0.1;
+
+//   const isiOS25OrLower =
+//     Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
+
+//   const getTintColor = () =>
+//     theme.mode === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.44)';
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     gradientOverlay: {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       height: 110,
+//       backgroundColor: 'rgba(0, 0, 0, 0)',
+//       opacity: 0.1,
+//     },
+//     header: {
+//       width: '100%',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     glassButton: {
+//       width: 35,
+//       height: 35,
+//       borderRadius: 21,
+//       marginLeft: 20,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       overflow: 'hidden',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.foreground,
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//       borderColor: theme.colors.muted,
+//       borderWidth: tokens.borderWidth.hairline,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 14,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Subtle depth overlay */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[styles.gradientOverlay, {opacity: gradientOpacity}]}
+//       />
+
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         <View style={styles.iconRow}>
+//           {[
+//             {
+//               name: 'notifications-none',
+//               action: () => navigate('Notifications'),
+//             },
+//             {
+//               name: 'shopping-bag',
+//               action: () => navigate('ShoppingDashboard'),
+//             },
+//             {
+//               name: 'styla-avatar',
+//               action: () => navigate('AiStylistChatScreen'),
+//               isStyla: true,
+//             },
+//             {name: 'event-note', action: () => navigate('Planner')},
+//             {
+//               name: 'menu',
+//               action: () => setMenuOpen(prev => !prev),
+//             },
+//           ].map((icon, idx) => (
+//             <AppleTouchFeedback
+//               key={idx}
+//               hapticStyle="impactLight"
+//               onPress={icon.action}>
+//               {isLiquidGlassSupported && !isiOS25OrLower ? (
+//                 <LiquidGlassView
+//                   style={styles.glassButton}
+//                   effect="clear"
+//                   tintColor={getTintColor()}
+//                   colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
+//                   {icon.isStyla ? (
+//                     <Image
+//                       source={require('../../assets/images/Styla1.png')}
+//                       style={{
+//                         width: 35,
+//                         height: 35,
+//                         borderRadius: 11,
+//                         resizeMode: 'cover',
+//                       }}
+//                     />
+//                   ) : (
+//                     <MaterialIcons
+//                       name={icon.name}
+//                       size={22}
+//                       color={theme.colors.buttonText1}
+//                     />
+//                   )}
+//                 </LiquidGlassView>
+//               ) : (
+//                 // 🔹 Fallback for unsupported devices
+//                 <View
+//                   style={[
+//                     styles.glassButton,
+//                     {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.48)',
+//                       borderColor: theme.colors.muted,
+//                       shadowColor: '#000',
+//                       shadowOpacity: 0.15,
+//                       shadowRadius: 4,
+//                       shadowOffset: {width: 0, height: 2},
+//                     },
+//                   ]}>
+//                   {icon.isStyla ? (
+//                     <Image
+//                       source={require('../../assets/images/Styla1.png')}
+//                       style={{
+//                         width: 22,
+//                         height: 22,
+//                         // borderRadius: 11,
+//                         resizeMode: 'cover',
+//                       }}
+//                     />
+//                   ) : (
+//                     <MaterialIcons
+//                       name={icon.name}
+//                       size={22}
+//                       color={theme.colors.buttonText1}
+//                     />
+//                   )}
+//                 </View>
+//               )}
+//             </AppleTouchFeedback>
+//           ))}
+
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+///////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated, Platform} from 'react-native';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Dropdown animation
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen]);
+
+//   // 🔹 Scroll fade for title
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   // 🔹 Subtle top gradient (for depth)
+//   const gradientOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 120],
+//         outputRange: [0.08, 0.12],
+//         extrapolate: 'clamp',
+//       })
+//     : 0.1;
+
+//   const isiOS25OrLower =
+//     Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
+
+//   const getTintColor = () =>
+//     theme.mode === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.44)';
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     gradientOverlay: {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       height: 110,
+//       backgroundColor: 'rgba(0, 0, 0, 0)',
+//       opacity: 0.1,
+//     },
+//     header: {
+//       width: '100%',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     glassButton: {
+//       width: 35,
+//       height: 35,
+//       borderRadius: 21,
+//       marginLeft: 20,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       overflow: 'hidden',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.foreground,
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//       borderColor: theme.colors.muted,
+//       borderWidth: tokens.borderWidth.hairline,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 14,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Subtle depth overlay */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[styles.gradientOverlay, {opacity: gradientOpacity}]}
+//       />
+
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         <View style={styles.iconRow}>
+//           {[
+//             {
+//               name: 'notifications-none',
+//               action: () => navigate('Notifications'),
+//             },
+//             {
+//               name: 'shopping-bag',
+//               action: () => navigate('ShoppingDashboard'),
+//             },
+//             {
+//               name: 'smart-toy',
+//               action: () => navigate('AiStylistChatScreen'),
+//               tint: theme.colors.button1,
+//               innerColor: theme.colors.buttonText1,
+//             },
+//             {name: 'event-note', action: () => navigate('Planner')},
+//             {
+//               name: 'menu',
+//               action: () => setMenuOpen(prev => !prev),
+//             },
+//           ].map((icon, idx) => (
+//             <AppleTouchFeedback
+//               key={idx}
+//               hapticStyle="impactLight"
+//               onPress={icon.action}>
+//               {isLiquidGlassSupported && !isiOS25OrLower ? (
+//                 <LiquidGlassView
+//                   style={styles.glassButton}
+//                   effect="clear"
+//                   tintColor={getTintColor()}
+//                   colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
+//                   <MaterialIcons
+//                     name={icon.name}
+//                     size={22}
+//                     color={icon.innerColor || theme.colors.buttonText1}
+//                   />
+//                 </LiquidGlassView>
+//               ) : (
+//                 // 🔹 Fallback for iOS 25 and lower or unsupported devices
+//                 <View
+//                   style={[
+//                     styles.glassButton,
+//                     {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.48)',
+//                       borderColor: theme.colors.muted,
+//                       shadowColor: '#000',
+//                       shadowOpacity: 0.15,
+//                       shadowRadius: 4,
+//                       shadowOffset: {width: 0, height: 2},
+//                     },
+//                   ]}>
+//                   <MaterialIcons
+//                     name={icon.name}
+//                     size={22}
+//                     color={icon.innerColor || theme.colors.buttonText1}
+//                   />
+//                 </View>
+//               )}
+//             </AppleTouchFeedback>
+//           ))}
+
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+///////////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated, Platform} from 'react-native';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Dropdown animation
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen]);
+
+//   // 🔹 Scroll fade for title
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   // 🔹 Subtle top gradient (for depth)
+//   const gradientOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 120],
+//         outputRange: [0.08, 0.12],
+//         extrapolate: 'clamp',
+//       })
+//     : 0.1;
+
+//   const isiOS25OrLower =
+//     Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
+
+//   const getTintColor = () =>
+//     theme.mode === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.44)';
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     gradientOverlay: {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       height: 110,
+//       backgroundColor: 'rgba(0, 0, 0, 0)',
+//       opacity: 0.1,
+//     },
+//     header: {
+//       width: '100%',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     glassButton: {
+//       width: 35,
+//       height: 35,
+//       borderRadius: 21,
+//       marginLeft: 20,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       overflow: 'hidden',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.foreground,
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//       borderColor: theme.colors.muted,
+//       borderWidth: tokens.borderWidth.hairline,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 14,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Subtle depth overlay */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[styles.gradientOverlay, {opacity: gradientOpacity}]}
+//       />
+
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         <View style={styles.iconRow}>
+//           {[
+//             {
+//               name: 'notifications-none',
+//               action: () => navigate('Notifications'),
+//             },
+//             {
+//               name: 'smart-toy',
+//               action: () => navigate('AiStylistChatScreen'),
+//               tint: theme.colors.button1,
+//               innerColor: theme.colors.buttonText1,
+//             },
+//             {name: 'event-note', action: () => navigate('Planner')},
+//             {
+//               name: 'menu',
+//               action: () => setMenuOpen(prev => !prev),
+//             },
+//           ].map((icon, idx) => (
+//             <AppleTouchFeedback
+//               key={idx}
+//               hapticStyle="impactLight"
+//               onPress={icon.action}>
+//               {isLiquidGlassSupported && !isiOS25OrLower ? (
+//                 <LiquidGlassView
+//                   style={styles.glassButton}
+//                   effect="clear"
+//                   tintColor={getTintColor()}
+//                   colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
+//                   <MaterialIcons
+//                     name={icon.name}
+//                     size={22}
+//                     color={icon.innerColor || theme.colors.buttonText1}
+//                   />
+//                 </LiquidGlassView>
+//               ) : (
+//                 // 🔹 Fallback for iOS 25 and lower or unsupported devices
+//                 <View
+//                   style={[
+//                     styles.glassButton,
+//                     {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.48)',
+//                       borderColor: theme.colors.muted,
+//                       shadowColor: '#000',
+//                       shadowOpacity: 0.15,
+//                       shadowRadius: 4,
+//                       shadowOffset: {width: 0, height: 2},
+//                     },
+//                   ]}>
+//                   <MaterialIcons
+//                     name={icon.name}
+//                     size={22}
+//                     color={icon.innerColor || theme.colors.buttonText1}
+//                   />
+//                 </View>
+//               )}
+//             </AppleTouchFeedback>
+//           ))}
+
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
+
+////////////////////
+
+// import React, {useState, useRef, useEffect} from 'react';
+// import {View, Text, StyleSheet, Animated, Platform} from 'react-native';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import type {Screen} from '../../navigation/types';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// type Props = {
+//   navigate: (screen: Screen) => void;
+//   showSettings?: boolean;
+//   scrollY?: Animated.Value;
+// };
+
+// export default function GlobalHeader({
+//   navigate,
+//   showSettings = false,
+//   scrollY,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const {clearSession} = useAuth0();
+//   const [menuOpen, setMenuOpen] = useState(false);
+//   const fadeAnim = useRef(new Animated.Value(0)).current;
+//   const slideAnim = useRef(new Animated.Value(-10)).current;
+
+//   const handleLogout = async () => {
+//     try {
+//       await clearSession();
+//       navigate('Login');
+//     } catch (e) {
+//       console.error('Logout failed:', e);
+//     }
+//   };
+
+//   // 🔹 Dropdown animation
+//   useEffect(() => {
+//     if (menuOpen) {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 1,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: 0,
+//           duration: 180,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     } else {
+//       Animated.parallel([
+//         Animated.timing(fadeAnim, {
+//           toValue: 0,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//         Animated.timing(slideAnim, {
+//           toValue: -10,
+//           duration: 120,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   }, [menuOpen]);
+
+//   // 🔹 Scroll fade for title
+//   const stylHelprOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 60],
+//         outputRange: [1, 0],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   // 🔹 Subtle top gradient (for depth)
+//   const gradientOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 120],
+//         outputRange: [0.08, 0.12],
+//         extrapolate: 'clamp',
+//       })
+//     : 0.1;
+
+//   const isiOS25OrLower =
+//     Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
+
+//   const getTintColor = () =>
+//     theme.mode === 'light' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.44)';
+
+//   const styles = StyleSheet.create({
+//     safeArea: {
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//     },
+//     gradientOverlay: {
+//       position: 'absolute',
+//       top: 0,
+//       left: 0,
+//       right: 0,
+//       height: 110,
+//       backgroundColor: 'rgba(0, 0, 0, 0)',
+//       opacity: 0.1,
+//     },
+//     header: {
+//       width: '100%',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       paddingHorizontal: moderateScale(tokens.spacing.md),
+//       paddingVertical: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     title: {
+//       fontSize: fontScale(tokens.fontSize['2xl']),
+//       fontWeight: tokens.fontWeight.extraBold,
+//       color: theme.colors.foreground,
+//     },
+//     iconRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       position: 'relative',
+//       zIndex: 100,
+//     },
+//     glassButton: {
+//       width: 35,
+//       height: 35,
+//       borderRadius: 21,
+//       marginLeft: 20,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       overflow: 'hidden',
+//       borderWidth: tokens.borderWidth.hairline,
+//       borderColor: theme.colors.foreground,
+//     },
+//     dropdown: {
+//       position: 'absolute',
+//       top: 48,
+//       right: 0,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.1,
+//       shadowRadius: 6,
+//       elevation: 6,
+//       paddingVertical: 6,
+//       paddingHorizontal: 10,
+//       zIndex: 200,
+//       borderColor: theme.colors.muted,
+//       borderWidth: tokens.borderWidth.hairline,
+//     },
+//     dropdownItem: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       paddingVertical: 14,
+//     },
+//     dropdownText: {
+//       marginLeft: 8,
+//       color: theme.colors.foreground,
+//       fontSize: 15,
+//     },
+//   });
+
+//   return (
+//     <SafeAreaView edges={['top']} style={styles.safeArea}>
+//       {/* 🔹 Subtle depth overlay */}
+//       <Animated.View
+//         pointerEvents="none"
+//         style={[styles.gradientOverlay, {opacity: gradientOpacity}]}
+//       />
+
+//       <View style={styles.header}>
+//         <View
+//           style={{position: 'relative', height: 28, justifyContent: 'center'}}>
+//           <Animated.Text
+//             style={[
+//               styles.title,
+//               {position: 'absolute', opacity: stylHelprOpacity},
+//             ]}>
+//             StylHelpr
+//           </Animated.Text>
+//         </View>
+
+//         <View style={styles.iconRow}>
+//           {[
+//             {
+//               name: 'notifications-none',
+//               action: () => navigate('Notifications'),
+//             },
+//             {name: 'videocam', action: () => navigate('VideoFeedScreen')},
+//             {
+//               name: 'smart-toy',
+//               action: () => navigate('AiStylistChatScreen'),
+//               tint: theme.colors.button1,
+//               innerColor: theme.colors.buttonText1,
+//             },
+//             {name: 'event-note', action: () => navigate('Planner')},
+//             {
+//               name: 'menu',
+//               action: () => setMenuOpen(prev => !prev),
+//             },
+//           ].map((icon, idx) => (
+//             <AppleTouchFeedback
+//               key={idx}
+//               hapticStyle="impactLight"
+//               onPress={icon.action}>
+//               {isLiquidGlassSupported && !isiOS25OrLower ? (
+//                 <LiquidGlassView
+//                   style={styles.glassButton}
+//                   effect="clear"
+//                   tintColor={getTintColor()}
+//                   colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
+//                   <MaterialIcons
+//                     name={icon.name}
+//                     size={22}
+//                     color={icon.innerColor || theme.colors.buttonText1}
+//                   />
+//                 </LiquidGlassView>
+//               ) : (
+//                 // 🔹 Fallback for iOS 25 and lower or unsupported devices
+//                 <View
+//                   style={[
+//                     styles.glassButton,
+//                     {
+//                       backgroundColor: 'rgba(0, 0, 0, 0.48)',
+//                       borderColor: theme.colors.muted,
+//                       shadowColor: '#000',
+//                       shadowOpacity: 0.15,
+//                       shadowRadius: 4,
+//                       shadowOffset: {width: 0, height: 2},
+//                     },
+//                   ]}>
+//                   <MaterialIcons
+//                     name={icon.name}
+//                     size={22}
+//                     color={icon.innerColor || theme.colors.buttonText1}
+//                   />
+//                 </View>
+//               )}
+//             </AppleTouchFeedback>
+//           ))}
+
+//           {menuOpen && (
+//             <Animated.View
+//               style={[
+//                 styles.dropdown,
+//                 {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
+//               ]}>
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   navigate('Profile');
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="person"
+//                   size={19}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Profile</Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="notificationWarning"
+//                 onPress={() => {
+//                   setMenuOpen(false);
+//                   handleLogout();
+//                 }}
+//                 style={styles.dropdownItem}>
+//                 <MaterialIcons
+//                   name="logout"
+//                   size={18}
+//                   color={theme.colors.primary}
+//                 />
+//                 <Text style={styles.dropdownText}>Log Out</Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           )}
+//         </View>
+//       </View>
+//     </SafeAreaView>
+//   );
+// }
 
 ////////////////
 

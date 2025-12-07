@@ -358,13 +358,19 @@ export default function ClosetScreen({navigate}: Props) {
           backgroundColor: theme.colors.background,
         },
       ]}>
-      <View
+      <Animated.View
         style={{
-          height: insets.top + 55, // ⬅️ 56 is about the old navbar height
-          backgroundColor: theme.colors.background, // same tone as old nav
-        }}
-      />
-      <Text style={globalStyles.header}>Wardrobe</Text>
+          flex: 1,
+          opacity: screenFade,
+          transform: [{translateY: screenTranslate}],
+        }}>
+        <View
+          style={{
+            height: insets.top + 55, // ⬅️ 56 is about the old navbar height
+            backgroundColor: theme.colors.background, // same tone as old nav
+          }}
+        />
+        <Text style={globalStyles.header}>Wardrobe</Text>
 
       {/* 🔝 Header buttons */}
       <View style={globalStyles.section}>
@@ -429,7 +435,7 @@ export default function ClosetScreen({navigate}: Props) {
       )}
 
       {/* 👕 Wardrobe Grid */}
-      <ScrollView scrollEnabled={scrollEnabled}>
+      <ScrollView scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false}>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
           <View key={mainCategory} style={globalStyles.section}>
             <Animated.Text
@@ -959,6 +965,7 @@ export default function ClosetScreen({navigate}: Props) {
           </Animated.View>
         </View>
       )}
+      </Animated.View>
     </SafeAreaView>
     // </GradientBackground>
   );

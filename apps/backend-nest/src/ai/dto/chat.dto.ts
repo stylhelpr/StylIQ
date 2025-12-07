@@ -10,4 +10,7 @@ export class ChatDto {
   location?: string;
   weather?: Record<string, any>;
   suggested_outfit_id?: string | null;
+  // 🌦️ optional lat/lon for automatic weather fetching
+  lat?: number;
+  lon?: number;
 }

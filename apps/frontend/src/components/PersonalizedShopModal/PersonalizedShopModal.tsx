@@ -23,6 +23,7 @@ export default function PersonalizedShopModal({
   onClose,
   purchases,
   styleNote,
+  gap_analysis,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -118,6 +119,38 @@ export default function PersonalizedShopModal({
               </View>
             ) : (
               <>
+                {/* 📊 Gap Analysis Summary */}
+                {gap_analysis ? (
+                  <View
+                    style={{
+                      backgroundColor: theme.colors.surface2,
+                      borderLeftWidth: 3,
+                      borderLeftColor: theme.colors.primary,
+                      padding: tokens.spacing.md,
+                      marginBottom: tokens.spacing.md,
+                      borderRadius: tokens.borderRadius.md,
+                    }}>
+                    <Text
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: '600',
+                        fontSize: 13,
+                        marginBottom: 6,
+                      }}>
+                      🎯 What's Missing From Your Wardrobe
+                    </Text>
+                    <Text
+                      style={{
+                        color: theme.colors.foreground,
+                        fontSize: 12,
+                        lineHeight: 17,
+                        opacity: 0.85,
+                      }}>
+                      {gap_analysis}
+                    </Text>
+                  </View>
+                ) : null}
+
                 {/* 🧥 Full Outfit (Wardrobe + Purchases) */}
                 <View style={{marginTop: 20}}>
                   <View
@@ -224,13 +257,26 @@ export default function PersonalizedShopModal({
                               }}>
                               {p.category} • {p.color}
                             </Text>
-                            {p.previewPrice ? (
+                            {p.reason && (
                               <Text
                                 style={{
                                   color: theme.colors.primary,
+                                  fontSize: 11,
+                                  marginTop: 6,
+                                  lineHeight: 15,
+                                  fontStyle: 'italic',
+                                }}>
+                                💡 {p.reason}
+                              </Text>
+                            )}
+                            {p.previewPrice ? (
+                              <Text
+                                style={{
+                                  color: theme.colors.foreground,
+                                  opacity: 0.6,
                                   fontWeight: '600',
                                   fontSize: 13,
-                                  marginTop: 6,
+                                  marginTop: p.reason ? 4 : 6,
                                 }}>
                                 {p.previewPrice}
                               </Text>

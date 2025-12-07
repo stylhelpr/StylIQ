@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useState} from 'react';
+import React, {useState, useRef} from 'react';
 import {
   Modal,
   View,
@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {WebView} from 'react-native-webview';
@@ -31,6 +33,54 @@ export default function ShopModal({
   const {theme} = useAppTheme();
   const [shopUrl, setShopUrl] = useState<string | null>(null);
   const globalStyles = useGlobalStyles();
+  const translateY = useRef(new Animated.Value(0)).current;
+  const isClosingRef = useRef(false);
+
+  // Reset animation when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      translateY.setValue(0);
+      isClosingRef.current = false;
+    }
+  }, [visible, translateY]);
+
+  // Handle close with animation
+  const handleClose = () => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    ReactNativeHapticFeedback.trigger('impactLight');
+
+    // Animate modal down before closing
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 1000,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onClose();
+    });
+  };
+
+  // PanResponder for swipe-down to close
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) => {
+        const shouldRespond = Math.abs(g.dy) > 8;
+        console.log('🎯 onMoveShouldSetPanResponder:', {dy: g.dy, shouldRespond});
+        return shouldRespond;
+      },
+      onPanResponderMove: (_e, g) => {
+        console.log('📍 onPanResponderMove:', {dy: g.dy, vy: g.vy});
+      },
+      onPanResponderRelease: (_e, g) => {
+        console.log('🔓 onPanResponderRelease:', {dy: g.dy, vy: g.vy, threshold: g.dy > 100 || g.vy > 0.3});
+        if (g.dy > 100 || g.vy > 0.3) {
+          handleClose();
+        }
+      },
+    }),
+  ).current;
 
   if (!visible) return null;
 
@@ -39,30 +89,49 @@ export default function ShopModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
           justifyContent: 'center',
           alignItems: 'center',
-          paddingVertical: tokens.spacing.sm,
-          // padding: tokens.spacing.sm,
         }}>
-        <Animatable.View
-          animation="fadeInUp"
-          duration={300}
+        <Animated.View
           style={{
             width: '100%',
             maxWidth: '100%',
             height: '90%',
-            backgroundColor: theme.colors.background,
-            borderRadius: tokens.borderRadius['2xl'],
-            overflow: 'hidden',
-            padding: tokens.spacing.md,
+            transform: [{translateY}],
           }}>
-          {/* Close */}
-          <TouchableOpacity
-            onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactLight');
-              onClose();
-            }}
+          <Animatable.View
+            animation="fadeInUp"
+            duration={300}
+            style={{
+              width: '100%',
+              maxWidth: '100%',
+              height: '100%',
+              backgroundColor: theme.colors.background,
+              borderRadius: tokens.borderRadius['2xl'],
+              overflow: 'hidden',
+              padding: tokens.spacing.md,
+            }}>
+            {/* Swipe gesture zone */}
+            <View
+              {...panResponder.panHandlers}
+              onStartShouldSetResponder={() => true}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 80,
+                zIndex: 10,
+                backgroundColor: 'transparent',
+              }}
+            />
+
+            {/* Close */}
+            <TouchableOpacity
+              onPress={() => {
+                handleClose();
+              }}
             style={{
               position: 'absolute',
               top: 8,
@@ -116,12 +185,14 @@ export default function ShopModal({
                     }}
                     activeOpacity={0.85}
                     style={{
-                      width: '49.0%',
-                      marginBottom: tokens.spacing.xsm,
+                      // width: '49.0%',
+                      // marginBottom: tokens.spacing.xsm,
+                      width: '49.5%',
+                      marginBottom: tokens.spacing.nano,
                       backgroundColor: theme.colors.surface,
-                      borderWidth: tokens.borderWidth.lg,
-                      borderColor: theme.colors.surfaceBorder,
-                      borderRadius: tokens.borderRadius.md,
+                      // borderWidth: tokens.borderWidth.lg,
+                      // borderColor: theme.colors.surfaceBorder,
+                      // borderRadius: tokens.borderRadius.md,
                       overflow: 'hidden',
                     }}>
                     {/* 🖼️ Product Image (consistent aspect ratio) */}
@@ -148,9 +219,10 @@ export default function ShopModal({
                           position: 'absolute',
                           bottom: 10,
                           alignSelf: 'center',
-                          backgroundColor: 'rgba(255,255,255,0.75)',
-                          borderRadius: tokens.borderRadius.lg,
-                          borderWidth: tokens.borderWidth.hairline,
+                          backgroundColor: 'rgba(255, 255, 255, 0.63)',
+                          // borderRadius: tokens.borderRadius.lg,
+                          borderRadius: tokens.borderRadius.sm,
+                          borderWidth: tokens.borderWidth.md,
                           borderColor: 'black',
                           paddingVertical: 8,
                           paddingHorizontal: 14,
@@ -175,6 +247,7 @@ export default function ShopModal({
                           color: theme.colors.foreground,
                           fontWeight: '400',
                           fontSize: 13,
+                          textTransform: 'uppercase',
                         }}>
                         {item.name}
                       </Text>
@@ -185,6 +258,7 @@ export default function ShopModal({
                             color: theme.colors.foreground,
                             opacity: 0.7,
                             fontSize: 11,
+                            fontWeight: '500',
                             marginTop: 6,
                           }}>
                           {item.brand}
@@ -194,8 +268,8 @@ export default function ShopModal({
                         <Text
                           style={{
                             color: theme.colors.primary,
-                            fontWeight: '700',
-                            fontSize: 13,
+                            fontWeight: '500',
+                            fontSize: 12,
                             marginTop: 6,
                           }}>
                           {item.price}
@@ -218,7 +292,8 @@ export default function ShopModal({
               </View>
             )}
           </ScrollView>
-        </Animatable.View>
+          </Animatable.View>
+        </Animated.View>
 
         {/* WebView modal */}
         <IntegratedShopOverlay

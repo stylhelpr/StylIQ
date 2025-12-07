@@ -14,7 +14,6 @@ import SearchScreen from '../screens/SearchScreen';
 import LoginScreen from '../screens/LoginScreen';
 import StyleProfileScreen from '../screens/StyleProfileScreen';
 import PreferencesScreen from '../screens/PreferencesScreen';
-import MeasurementsScreen from '../screens/MeasurementsScreen';
 import BudgetAndBrandsScreen from '../screens/BudgetAndBrandsScreen';
 import AppearanceScreen from '../screens/AppearanceScreen';
 import LifestyleScreen from '../screens/LifestyleScreen';
@@ -46,11 +45,27 @@ import ContactScreen from '../screens/ContactScreen';
 import AboutScreen from '../screens/AboutScreen';
 import FeedbackScreen from '../screens/FeedBackScreen';
 import WebPageScreen from '../screens/WebPageScreen';
+import WebBrowserScreen from '../screens/WebBrowserScreen';
+import ShoppingDashboardScreen from '../screens/ShoppingDashboardScreen';
+import EnhancedWebBrowserScreen from '../screens/EnhancedWebBrowserScreen';
+import ShoppingBookmarksScreen from '../screens/ShoppingBookmarksScreen';
+import ShoppingCollectionsScreen from '../screens/ShoppingCollectionsScreen';
+import ShoppingInsightsScreen from '../screens/ShoppingInsightsScreen';
 import RecreatedLookScreen from '../screens/RecreatedLookScreen';
 import BarcodeScannerScreen from '../screens/BarcodeScannerScreen';
 import VideoFeedScreen from '../screens/VideoFeed';
 import BlurredCardScreen from '../screens/BlurredCardScreen';
 import ImageCarouselScreen from '../screens/ImageCarousel';
+import MeasurementAutoScreen from '../screens/MeasurementAutoScreen';
+import {MeasurementLiveScreen} from '../screens/MeasurementLiveScreen';
+import MeasurementFrontScreen from '../screens/MeasurementFrontScreen';
+import MeasurementJointsAutoScreen from '../screens/MeasurementJointAutoScreen';
+import MeasurementSideScreen from '../screens/MeasurementSideScreen';
+import MeasurementResultsManualScreen from '../screens/MesurementResultsScreen';
+import MeshPreviewScreen from '../screens/MeshPreviewScreen';
+import EmotionTestScreen from '../screens/EmotionTestScreen';
+import SavedMeasurementsScreen from '../screens/SavedMeasurementsScreen';
+import GoldDataViewer from '../screens/GoldDataViewer';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -64,6 +79,7 @@ import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
 
 import ReactNativeBiometrics from 'react-native-biometrics';
 import {useAuth0} from 'react-native-auth0';
+import MeasurementResultsScreen from 'screens/MesurementResultsScreen';
 
 type Screen =
   | 'Login'
@@ -75,7 +91,7 @@ type Screen =
   | 'Settings'
   | 'Preferences'
   | 'BarcodeScannerScreen'
-  | 'Measurements'
+  | 'SavedMeasurements'
   | 'BudgetAndBrands'
   | 'Appearance'
   | 'Lifestyle'
@@ -114,10 +130,25 @@ type Screen =
   | 'AiStylistChatScreen'
   | 'RecreatedLook'
   | 'WebPageScreen'
+  | 'WebBrowser'
+  | 'ShoppingDashboard'
+  | 'EnhancedWebBrowser'
+  | 'ShoppingBookmarks'
+  | 'ShoppingCollections'
   | 'Planner'
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'
-  | 'VideoFeedScreen';
+  | 'VideoFeedScreen'
+  | 'OnboardingScreen'
+  | 'MeasurementLiveScreen'
+  | 'MeasurementFrontScreen'
+  | 'MeasurementJointsAutoScreen'
+  | 'MeasurementSideScreen'
+  | 'MeasurementResultsManualScreen'
+  | 'MeshPreviewScreen'
+  | 'EmotionTestScreen'
+  | 'MeasurementAutoScreen'
+  | 'GoldDataViewer';
 
 const RootNavigator = ({
   registerNavigate,
@@ -182,11 +213,34 @@ const RootNavigator = ({
   };
 
   const navigate = (screen: Screen, params?: any) => {
+    console.log('🔍 NAVIGATE DEBUG:', {
+      screen,
+      currentScreen,
+      isGoingBack: isGoingBackRef.current,
+      historyLength: screenHistory.current.length,
+      history: screenHistory.current,
+      itemId: params?.itemId,
+      stackTrace: new Error().stack?.split('\n').slice(1, 4).join(' | '),
+    });
+
     if (isGoingBackRef.current) {
-      console.log('⏩ Skipping push because we just went back');
+      console.log('⏩ isGoingBackRef is true, attempting to skip push');
       isGoingBackRef.current = false;
+      console.log('✅ Reset isGoingBackRef to false');
+
+      // SAFETY: If history is empty, we likely had a failed goBack() that couldn't navigate
+      // In this case, we should still push to history to recover
+      if (screenHistory.current.length === 0 && (screen === 'ItemDetail' || screen === 'AddItem')) {
+        console.log('⚠️ History was empty after goBack flag, pushing to recover');
+        screenHistory.current.push(currentScreen);
+      }
     } else if (screen !== currentScreen) {
       console.log('📍 Pushing current to history:', currentScreen);
+      screenHistory.current.push(currentScreen);
+    } else if (screen === 'ItemDetail' || screen === 'AddItem') {
+      // Always push to history when navigating to detail/add screens, even if on same parent screen
+      // This ensures we can properly navigate back to the originating screen
+      console.log('📍 Pushing current to history (detail screen):', currentScreen);
       screenHistory.current.push(currentScreen);
     } else {
       console.log('⚠️ Skipped push because screen is same:', screen);
@@ -241,6 +295,14 @@ const RootNavigator = ({
 
     global.goingBack = false;
     isGoingBackRef.current = true;
+    console.log('🚩 Set isGoingBackRef to true');
+
+    // Auto-reset the flag after 500ms to prevent it from persisting
+    // if navigate() doesn't get called
+    setTimeout(() => {
+      console.log('🔄 Auto-resetting isGoingBackRef to false (timeout)');
+      isGoingBackRef.current = false;
+    }, 500);
 
     const prev = screenHistory.current.pop();
     if (!prev) {
@@ -380,8 +442,12 @@ const RootNavigator = ({
         return <NotificationsScreen navigate={navigate} />;
       case 'Preferences':
         return <PreferencesScreen navigate={navigate} />;
-      case 'Measurements':
-        return <MeasurementsScreen navigate={navigate} />;
+      case 'SavedMeasurements':
+        return <SavedMeasurementsScreen navigate={navigate} />;
+
+      case 'MeasurementJointsAutoScreen':
+        return <MeasurementJointsAutoScreen navigate={navigate} />;
+
       case 'TryOnOverlay':
         return <TryOnOverlayWrapperScreen screenParams={screenParams} />;
       case 'BudgetAndBrands':
@@ -394,14 +460,57 @@ const RootNavigator = ({
         return <ContactScreen navigate={navigate} />;
       case 'ImageCarouselScreen':
         return <ImageCarouselScreen navigate={navigate} />;
+      case 'MeasurementFrontScreen':
+        return <MeasurementFrontScreen navigate={navigate} />;
       case 'FeedbackScreen':
         return <FeedbackScreen navigate={navigate} />;
+      case 'MeshPreviewScreen':
+        return <MeshPreviewScreen navigate={navigate} />;
+      case 'EmotionTestScreen':
+        return <EmotionTestScreen navigate={navigate} />;
+      case 'OnboardingScreen':
+        return <OnboardingScreen navigate={navigate} />;
+      case 'MeasurementResultsManualScreen':
+        return <MeasurementResultsManualScreen navigate={navigate} />;
       case 'AboutScreen':
         return <AboutScreen navigate={navigate} />;
       case 'WebPageScreen':
         return (
           <WebPageScreen route={{params: screenParams}} navigate={navigate} />
         );
+      case 'WebBrowser':
+        return (
+          <WebBrowserScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
+        );
+      case 'ShoppingDashboard':
+        return <ShoppingDashboardScreen navigate={navigate} />;
+      case 'EnhancedWebBrowser':
+        return (
+          <EnhancedWebBrowserScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
+        );
+      case 'ShoppingBookmarks':
+        return <ShoppingBookmarksScreen navigate={navigate} />;
+      case 'ShoppingCollections':
+        return (
+          <ShoppingCollectionsScreen
+            route={{params: screenParams}}
+            navigate={navigate}
+          />
+        );
+      case 'ShoppingInsights':
+        return <ShoppingInsightsScreen navigate={navigate} />;
+      case 'MeasurementAutoScreen':
+        return <MeasurementAutoScreen navigate={navigate} />;
+      case 'GoldDataViewer':
+        return <GoldDataViewer navigate={navigate} />;
+      case 'MeasurementSideScreen':
+        return <MeasurementSideScreen navigate={navigate} />;
       case 'Lifestyle':
         return <LifestyleScreen navigate={navigate} />;
       case 'ShoppingHabits':
@@ -412,6 +521,8 @@ const RootNavigator = ({
         return <ActivitiesScreen navigate={navigate} />;
       case 'BodyTypes':
         return <BodyTypesScreen navigate={navigate} />;
+      case 'MeasurementLiveScreen':
+        return <MeasurementLiveScreen navigate={navigate} />;
       case 'Climate':
         return <ClimateScreen navigate={navigate} />;
       case 'ColorPreferences':
@@ -452,7 +563,7 @@ const RootNavigator = ({
           />
         );
       case 'AddItem':
-        return <AddItemScreen navigate={navigate} addItem={addToWardrobe} />;
+        return <AddItemScreen navigate={navigate} goBack={goBack} addItem={addToWardrobe} />;
       case 'Outfit':
         return <OutfitSuggestionScreen navigate={navigate} />;
       case 'Search':

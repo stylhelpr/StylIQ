@@ -144,7 +144,8 @@ export default function ContactScreen({navigate}: any) {
         globalStyles.container,
         {backgroundColor: theme.colors.background, opacity: fadeAnim},
       ]}
-      keyboardShouldPersistTaps="handled">
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}>
       <View
         style={{
           height: insets.top + 60, // ⬅️ 56 is about the old navbar height
@@ -169,7 +170,10 @@ export default function ContactScreen({navigate}: any) {
         </View>
 
         {/* Form Card */}
-        <ScrollView style={[globalStyles.screen, globalStyles.container]}>
+        <ScrollView
+          style={[globalStyles.screen, globalStyles.container]}
+          contentContainerStyle={{paddingBottom: 100}}
+          showsVerticalScrollIndicator={false}>
           {/* Name */}
           <View
             style={[styles.formCard, {backgroundColor: theme.colors.surface}]}>

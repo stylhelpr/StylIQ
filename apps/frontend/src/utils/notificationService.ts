@@ -7,6 +7,7 @@ import messaging, {
 import {Linking, Platform} from 'react-native';
 import {API_BASE_URL} from '../config/api';
 import {addToInbox} from './notificationInbox';
+import {DynamicIsland} from '../native/dynamicIsland';
 
 // ----- inbox record type -----
 type InboxItem = {
@@ -60,7 +61,37 @@ export const initializeNotifications = async (userId?: string) => {
 
     // 🔔 Local notification setup (Android heads-up support)
     PushNotification.configure({
-      onNotification: n => console.log('🔔 Local notification:', n),
+      onNotification: async (n: any) => {
+        console.log('🔔 Local notification:', n);
+
+        // 🏝️ Show in Dynamic Island for local notifications (scheduled outfits)
+        try {
+          const title = String(n.title || 'Notification');
+          const message = String(n.message || n.body || '');
+
+          // Check if Live Activities are enabled
+          const enabled = await DynamicIsland.isEnabled();
+          console.log('🔔 Live Activities enabled?', enabled);
+
+          if (!enabled) {
+            console.log('⚠️ Live Activities not allowed on this device / settings.');
+            return;
+          }
+
+          // Start the Live Activity
+          const result = await DynamicIsland.start(title, message);
+          console.log('✅ Dynamic Island started (local):', result);
+          console.log('📬 Local Notification:', title, '-', message);
+
+          // Auto-dismiss after 15 seconds (gives user time to interact)
+          setTimeout(async () => {
+            const endResult = await DynamicIsland.end();
+            console.log('🏁 Dynamic Island ended:', endResult);
+          }, 15000);
+        } catch (error) {
+          console.log('❌ Dynamic Island error (local):', error);
+        }
+      },
       requestPermissions: true,
     });
 
@@ -132,30 +163,64 @@ export const initializeNotifications = async (userId?: string) => {
     fgRegistered = false;
     lastShownId = null;
 
-    // 📬 Foreground push → show banner (only once)
+    // 📬 Foreground push → show banner + add to inbox (only once)
     if (!fgRegistered) {
       fgUnsub = messaging().onMessage(async msg => {
         const mapped = mapMessage(msg);
         console.log('📩 Foreground push:', mapped.id);
 
-        // ✅ Skip banner if we've already shown this message ID
+        // ✅ Skip if we've already processed this message ID
         if (mapped.id === lastShownId) {
-          console.log('⚠️ Skipping duplicate banner for:', mapped.id);
+          console.log('⚠️ Skipping duplicate for:', mapped.id);
           return;
         }
         lastShownId = mapped.id;
 
-        // 🔔 Show local banner (but DO NOT add to inbox here to prevent duplicates)
+        // 📥 Add to inbox immediately so it shows in NotificationsScreen
+        await addToInbox(mapped);
+        console.log('📥 Added to inbox:', mapped.id);
+
+        const title = String(mapped.title || 'Notification');
+        const message = String(mapped.message || '');
+
+        // 🔔 Show local notification banner with sound
+        // Firebase onMessage intercepts remote notifications in foreground,
+        // so we must trigger a local notification to display the banner/alert
+        PushNotification.localNotification({
+          channelId: 'style-channel',
+          title,
+          message,
+          playSound: true,
+          soundName: 'default',
+        });
+
+        // 🏝️ Show in Dynamic Island (scheduled outfit notifications)
         try {
-          PushNotification.localNotification({
-            channelId: 'style-channel',
-            title: mapped.title || 'Notification',
-            message: mapped.message || '',
-            userInfo: mapped,
-            playSound: true,
-          });
-        } catch (e) {
-          console.warn('⚠️ Failed to show local notification', e);
+          console.log('🏝️ Attempting Dynamic Island for FCM:', {title, message});
+
+          // Check if Live Activities are enabled
+          const enabled = await DynamicIsland.isEnabled();
+          console.log('🔔 Live Activities enabled?', enabled);
+
+          if (enabled) {
+            // Start the Live Activity
+            const result = await DynamicIsland.start(title, message);
+            console.log('✅ Dynamic Island started (FCM):', result);
+
+            // Auto-dismiss after 60 seconds (gives user time to interact)
+            setTimeout(async () => {
+              try {
+                const endResult = await DynamicIsland.end();
+                console.log('🏁 Dynamic Island ended:', endResult);
+              } catch (e) {
+                console.log('❌ Error ending Dynamic Island:', e);
+              }
+            }, 60000);
+          } else {
+            console.log('⚠️ Live Activities not allowed on this device / settings.');
+          }
+        } catch (error) {
+          console.log('❌ Dynamic Island error (FCM):', error);
         }
       });
       fgRegistered = true;

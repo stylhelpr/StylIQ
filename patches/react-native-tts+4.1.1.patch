@@ -1,38 +1,4 @@
 diff --git a/node_modules/react-native-tts/.DS_Store b/node_modules/react-native-tts/.DS_Store
 new file mode 100644
-index 0000000..e69de29
-diff --git a/node_modules/react-native-tts/index.js b/node_modules/react-native-tts/index.js
-index 6da7573..00e0d0b 100644
---- a/node_modules/react-native-tts/index.js
-+++ b/node_modules/react-native-tts/index.js
-@@ -1,6 +1,10 @@
- import { NativeModules, NativeEventEmitter, Platform } from 'react-native';
- 
--const TextToSpeech = NativeModules.TextToSpeech;
-+// 🧠 RN 0.82 Fabric/Hermes bridge-safe fallback
-+const TextToSpeech =
-+  NativeModules?.TextToSpeech ??
-+  global?.nativeModuleProxy?.TextToSpeech ??
-+  {};
- 
- class Tts extends NativeEventEmitter {
-   constructor() {
-@@ -97,7 +101,17 @@ class Tts extends NativeEventEmitter {
-     if (Platform.OS === 'ios') {
-       return TextToSpeech.stop(onWordBoundary);
-     } else {
--      return TextToSpeech.stop();
-+    // 🩹 RN 0.81+ Hermes + Fabric fix
-+    if (!TextToSpeech || typeof TextToSpeech.stop !== "function") {
-+      console.warn("[TTS] stop() bridge missing, skipping");
-+      return Promise.resolve();
-+    }
-+    try {
-+      return TextToSpeech.stop(false);
-+    } catch (err) {
-+      console.warn("[TTS] stop() bridge error", err);
-+      return Promise.resolve();
-+    }
-     }
-   }
- 
+index 0000000..d177805
+Binary files /dev/null and b/node_modules/react-native-tts/.DS_Store differ

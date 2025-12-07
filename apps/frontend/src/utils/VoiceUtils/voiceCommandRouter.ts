@@ -57,14 +57,14 @@ export const routeVoiceCommand = async (
     return go('Appearance', 'Appearance');
   if (includesAny(['lifestyle', 'daily life', 'routine']))
     return go('Lifestyle', 'Lifestyle');
-  if (includesAny(['shopping habits', 'shopping']))
-    return go('ShoppingHabits', 'Shopping Habits');
   if (includesAny(['style summary', 'summary']))
     return go('StyleSummary', 'Style Summary');
   if (includesAny(['activities', 'hobbies']))
     return go('Activities', 'Activities');
   if (includesAny(['body types', 'body type']))
     return go('BodyTypes', 'Body Types');
+  if (includesAny(['shop', 'shopping, browser']))
+    return go('ShoppingDashboard');
   if (includesAny(['climate', 'weather preferences']))
     return go('Climate', 'Climate');
   if (includesAny(['color preferences', 'favorite colors']))
