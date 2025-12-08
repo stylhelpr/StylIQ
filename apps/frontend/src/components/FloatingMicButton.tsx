@@ -284,7 +284,7 @@ export default function FloatingMicButton({navigate}: Props) {
     draggableContainer: {
       position: 'absolute',
       left: 0,
-      top: 0,
+      top: 30,
       zIndex: 9999,
       elevation: 9999,
     },
@@ -435,6 +435,446 @@ export default function FloatingMicButton({navigate}: Props) {
     </Animated.View>
   );
 }
+
+//////////////
+
+// // // src/components/FloatingMicButton.tsx
+// // import React, {useRef} from 'react';
+// // import {
+// //   Animated,
+// //   PanResponder,
+// //   Dimensions,
+// //   Platform,
+// //   StyleSheet,
+// //   View,
+// // } from 'react-native';
+// // import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// // import AppleTouchFeedback from './AppleTouchFeedback/AppleTouchFeedback';
+// // import {useVoiceControl} from '../hooks/useVoiceControl';
+// // import {useAppTheme} from '../context/ThemeContext';
+// // import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
+// // import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// // import {moderateScale} from '../utils/scale';
+// // import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
+// // import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// // const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+// // const BUTTON_SIZE = 78;
+
+// // type Props = {
+// //   navigate: (screen: string) => void;
+// // };
+
+// // export default function FloatingMicButton({navigate}: Props) {
+// //   const {theme} = useAppTheme();
+// //   const {isRecording, startVoiceCommand} = useVoiceControl();
+
+// //   const styles = StyleSheet.create({
+// //     draggableContainer: {
+// //       position: 'absolute',
+// //       left: 0,
+// //       top: 0,
+// //       zIndex: 9999,
+// //       elevation: 9999,
+// //     },
+// //     glassOrb: {
+// //       width: BUTTON_SIZE,
+// //       height: BUTTON_SIZE,
+// //       borderRadius: BUTTON_SIZE / 2,
+// //       alignItems: 'center',
+// //       justifyContent: 'center',
+// //       shadowColor: '#000',
+// //       shadowOpacity: 0.25,
+// //       shadowRadius: 12,
+// //       shadowOffset: {width: 0, height: 5},
+// //       overflow: 'hidden',
+// //     },
+// //   });
+
+// //   // 🟣 starting position
+// //   const pan = useRef(
+// //     new Animated.ValueXY({
+// //       x: SCREEN_WIDTH - BUTTON_SIZE - moderateScale(24),
+// //       y: SCREEN_HEIGHT - BUTTON_SIZE - moderateScale(120),
+// //     }),
+// //   ).current;
+
+// //   // 🖐️ drag logic
+// //   const panResponder = useRef(
+// //     PanResponder.create({
+// //       onStartShouldSetPanResponder: () => true,
+// //       onMoveShouldSetPanResponder: () => true,
+// //       onPanResponderGrant: () => {
+// //         pan.setOffset({
+// //           x: (pan.x as any)._value,
+// //           y: (pan.y as any)._value,
+// //         });
+// //         pan.setValue({x: 0, y: 0});
+// //       },
+// //       onPanResponderMove: Animated.event([null, {dx: pan.x, dy: pan.y}], {
+// //         useNativeDriver: false,
+// //       }),
+// //       onPanResponderRelease: () => {
+// //         pan.flattenOffset();
+// //         ReactNativeHapticFeedback.trigger('impactLight', {
+// //           enableVibrateFallback: true,
+// //         });
+
+// //         const finalX = Math.min(
+// //           Math.max(0, (pan.x as any)._value),
+// //           SCREEN_WIDTH - BUTTON_SIZE,
+// //         );
+// //         const finalY = Math.min(
+// //           Math.max(0, (pan.y as any)._value),
+// //           SCREEN_HEIGHT - BUTTON_SIZE - (Platform.OS === 'ios' ? 60 : 0),
+// //         );
+
+// //         Animated.spring(pan, {
+// //           toValue: {x: finalX, y: finalY},
+// //           useNativeDriver: false,
+// //           bounciness: 10,
+// //         }).start();
+// //       },
+// //     }),
+// //   ).current;
+
+// //   const handleVoiceCommand = async (cmd: string) => {
+// //     const lower = cmd.toLowerCase();
+// //     console.log('🎙️ Floating mic voice command received:', lower);
+
+// //     if (VoiceTarget.currentSetter) {
+// //       VoiceTarget.applyText(lower);
+// //       ReactNativeHapticFeedback.trigger('impactLight');
+// //       return;
+// //     }
+
+// //     ReactNativeHapticFeedback.trigger('impactLight');
+// //     await routeVoiceCommand(lower, navigate);
+// //   };
+
+// //   return (
+// //     <Animated.View
+// //       {...panResponder.panHandlers}
+// //       style={[
+// //         styles.draggableContainer,
+// //         {transform: [{translateX: pan.x}, {translateY: pan.y}]},
+// //       ]}>
+// //       {/* 🧊 True Liquid Glass orb */}
+
+// //       {/* <LiquidGlassView
+// //         style={[
+// //           styles.glassOrb,
+// //           !isLiquidGlassSupported && {
+// //             backgroundColor: 'rgba(4, 4, 4, 0.47)',
+// //           },
+// //           {
+// //             borderWidth: 3,
+// //             borderColor: theme.colors.button1,
+// //           },
+// //         ]}
+// //         // interactive
+// //         effect="clear"
+// //         tintColor="rgba(0, 0, 0, 0.46)"
+// //         colorScheme="system">
+// //         <AppleTouchFeedback
+// //           style={{
+// //             width: '100%',
+// //             height: '100%',
+// //             alignItems: 'center',
+// //             justifyContent: 'center',
+// //           }}
+// //           hapticStyle="impactMedium"
+// //           onPress={() => startVoiceCommand(handleVoiceCommand)}>
+// //           <MaterialIcons
+// //             name="mic"
+// //             size={52}
+// //             color={isRecording ? theme.colors.primary : '#fff'}
+// //             style={{
+// //               shadowColor: '#000',
+// //               shadowOpacity: 0.3,
+// //               shadowRadius: 2,
+// //               shadowOffset: {width: 0, height: 4},
+// //             }}
+// //           />
+// //         </AppleTouchFeedback>
+// //       </LiquidGlassView> */}
+
+// //       {isLiquidGlassSupported ? (
+// //         <LiquidGlassView
+// //           style={[
+// //             styles.glassOrb,
+// //             {
+// //               borderWidth: 3,
+// //               borderColor: theme.colors.button1,
+// //             },
+// //           ]}
+// //           effect="clear"
+// //           tintColor="rgba(0,0,0,0.46)"
+// //           colorScheme="system"
+// //           pointerEvents="box-none">
+// //           <AppleTouchFeedback
+// //             style={{
+// //               width: '100%',
+// //               height: '100%',
+// //               alignItems: 'center',
+// //               justifyContent: 'center',
+// //             }}
+// //             hapticStyle="impactMedium"
+// //             onPress={() => startVoiceCommand(handleVoiceCommand)}>
+// //             <MaterialIcons
+// //               name="mic"
+// //               size={52}
+// //               color={isRecording ? theme.colors.primary : '#fff'}
+// //               style={{
+// //                 shadowColor: '#000',
+// //                 shadowOpacity: 0.3,
+// //                 shadowRadius: 2,
+// //                 shadowOffset: {width: 0, height: 4},
+// //               }}
+// //             />
+// //           </AppleTouchFeedback>
+// //         </LiquidGlassView>
+// //       ) : (
+// //         <View
+// //           style={[
+// //             styles.glassOrb,
+// //             {
+// //               backgroundColor: 'rgba(4, 4, 4, 0.47)',
+// //               borderWidth: 3,
+// //               borderColor: theme.colors.button1,
+// //             },
+// //           ]}>
+// //           <AppleTouchFeedback
+// //             style={{
+// //               width: '100%',
+// //               height: '100%',
+// //               alignItems: 'center',
+// //               justifyContent: 'center',
+// //             }}
+// //             hapticStyle="impactMedium"
+// //             onPress={() => startVoiceCommand(handleVoiceCommand)}>
+// //             <MaterialIcons
+// //               name="mic"
+// //               size={52}
+// //               color={isRecording ? theme.colors.primary : '#fff'}
+// //               style={{
+// //                 shadowColor: '#000',
+// //                 shadowOpacity: 0.3,
+// //                 shadowRadius: 2,
+// //                 shadowOffset: {width: 0, height: 4},
+// //               }}
+// //             />
+// //           </AppleTouchFeedback>
+// //         </View>
+// //       )}
+
+// //       {/* Optional overlay text for debugging */}
+// //       {__DEV__ && (
+// //         <View style={{position: 'absolute', bottom: -24, alignSelf: 'center'}}>
+// //           <Animated.Text
+// //             style={{
+// //               color: '#aaa',
+// //               fontSize: 11,
+// //               fontWeight: '600',
+// //               opacity: 0.8,
+// //             }}>
+// //             {/* {isLiquidGlassSupported ? '🧊 Real Glass' : 'Fallback'} */}
+// //           </Animated.Text>
+// //         </View>
+// //       )}
+// //     </Animated.View>
+// //   );
+// // }
+
+// //////////////////////
+
+// // src/components/FloatingMicButton.tsx
+// import React, {useRef} from 'react';
+// import {
+//   Animated,
+//   PanResponder,
+//   Dimensions,
+//   Platform,
+//   StyleSheet,
+//   View,
+// } from 'react-native';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import AppleTouchFeedback from './AppleTouchFeedback/AppleTouchFeedback';
+// import {useVoiceControl} from '../hooks/useVoiceControl';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {moderateScale} from '../utils/scale';
+// import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+// const DISABLE_LIQUID_GLASS = true;
+
+// const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+// const BUTTON_SIZE = 78;
+
+// type Props = {
+//   navigate: (screen: string) => void;
+// };
+
+// export default function FloatingMicButton({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const {isRecording, startVoiceCommand} = useVoiceControl();
+
+//   const styles = StyleSheet.create({
+//     draggableContainer: {
+//       position: 'absolute',
+//       left: 0,
+//       top: 0,
+//       zIndex: 9999,
+//       elevation: 9999,
+//     },
+//     glassOrb: {
+//       width: BUTTON_SIZE,
+//       height: BUTTON_SIZE,
+//       borderRadius: BUTTON_SIZE / 2,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       shadowColor: '#000',
+//       shadowOpacity: 0.25,
+//       shadowRadius: 12,
+//       shadowOffset: {width: 0, height: 5},
+//       overflow: 'hidden',
+//     },
+//   });
+
+//   // 🟣 starting position
+//   const pan = useRef(
+//     new Animated.ValueXY({
+//       x: SCREEN_WIDTH - BUTTON_SIZE - moderateScale(24),
+//       y: SCREEN_HEIGHT - BUTTON_SIZE - moderateScale(120),
+//     }),
+//   ).current;
+
+//   // 🖐️ drag logic
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onStartShouldSetPanResponder: () => true,
+//       onMoveShouldSetPanResponder: () => true,
+//       onPanResponderGrant: () => {
+//         pan.setOffset({
+//           x: (pan.x as any)._value,
+//           y: (pan.y as any)._value,
+//         });
+//         pan.setValue({x: 0, y: 0});
+//       },
+//       onPanResponderMove: Animated.event([null, {dx: pan.x, dy: pan.y}], {
+//         useNativeDriver: false,
+//       }),
+//       onPanResponderRelease: () => {
+//         pan.flattenOffset();
+//         ReactNativeHapticFeedback.trigger('impactLight', {
+//           enableVibrateFallback: true,
+//         });
+
+//         const finalX = Math.min(
+//           Math.max(0, (pan.x as any)._value),
+//           SCREEN_WIDTH - BUTTON_SIZE,
+//         );
+//         const finalY = Math.min(
+//           Math.max(0, (pan.y as any)._value),
+//           SCREEN_HEIGHT - BUTTON_SIZE - (Platform.OS === 'ios' ? 60 : 0),
+//         );
+
+//         Animated.spring(pan, {
+//           toValue: {x: finalX, y: finalY},
+//           useNativeDriver: false,
+//           bounciness: 10,
+//         }).start();
+//       },
+//     }),
+//   ).current;
+
+//   const handleVoiceCommand = async (cmd: string) => {
+//     const lower = cmd.toLowerCase();
+//     console.log('🎙️ Floating mic voice command received:', lower);
+
+//     if (VoiceTarget.currentSetter) {
+//       VoiceTarget.applyText(lower);
+//       ReactNativeHapticFeedback.trigger('impactLight');
+//       return;
+//     }
+
+//     ReactNativeHapticFeedback.trigger('impactLight');
+//     await routeVoiceCommand(lower, navigate);
+//   };
+
+//   return (
+//     <Animated.View
+//       {...panResponder.panHandlers}
+//       style={[
+//         styles.draggableContainer,
+//         {transform: [{translateX: pan.x}, {translateY: pan.y}]},
+//       ]}>
+//       {!DISABLE_LIQUID_GLASS && isLiquidGlassSupported ? (
+//         <LiquidGlassView
+//           style={[
+//             styles.glassOrb,
+//             {
+//               borderWidth: 3,
+//               borderColor: theme.colors.button1,
+//             },
+//           ]}
+//           effect="clear"
+//           tintColor="rgba(0, 0, 0, 0.46)"
+//           colorScheme="system">
+//           <AppleTouchFeedback
+//             style={{
+//               width: '100%',
+//               height: '100%',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//             }}
+//             hapticStyle="impactMedium"
+//             onPress={() => startVoiceCommand(handleVoiceCommand)}>
+//             <MaterialIcons
+//               name="mic"
+//               size={52}
+//               color={isRecording ? theme.colors.primary : '#fff'}
+//               style={{
+//                 shadowColor: '#000',
+//                 shadowOpacity: 0.3,
+//                 shadowRadius: 2,
+//                 shadowOffset: {width: 0, height: 4},
+//               }}
+//             />
+//           </AppleTouchFeedback>
+//         </LiquidGlassView>
+//       ) : (
+//         // ⚡ Simple fallback view for testing performance
+//         <View
+//           style={[
+//             styles.glassOrb,
+//             {
+//               backgroundColor: 'rgba(0,0,0,0.5)',
+//               borderWidth: 3,
+//               borderColor: theme.colors.button1,
+//             },
+//           ]}>
+//           <AppleTouchFeedback
+//             style={{
+//               width: '100%',
+//               height: '100%',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//             }}
+//             hapticStyle="impactMedium"
+//             onPress={() => startVoiceCommand(handleVoiceCommand)}>
+//             <MaterialIcons
+//               name="mic"
+//               size={52}
+//               color={isRecording ? theme.colors.primary : '#fff'}
+//             />
+//           </AppleTouchFeedback>
+//         </View>
+//       )}
+//     </Animated.View>
+//   );
+// }
 
 ////////////////////
 

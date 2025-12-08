@@ -47,6 +47,22 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
   const lastScrollY = useRef(0);
   const isHidden = useRef(false);
 
+  // Reset navbar visibility when navigating to a new screen
+  useEffect(() => {
+    // Reset scroll position and show navbar on screen change
+    if (scrollY) {
+      scrollY.setValue(0);
+    }
+    lastScrollY.current = 0;
+    isHidden.current = false;
+    Animated.timing(translateY, {
+      toValue: 0,
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [current, scrollY, translateY]);
+
   // iOS 26-style scroll hide/show behavior
   useEffect(() => {
     if (!scrollY) return;

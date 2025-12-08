@@ -616,8 +616,8 @@ export default function ClosetScreen({navigate}: Props) {
               key={index}
               style={{
                 position: 'absolute',
-                bottom: 94 + 10 * btn.offset,
-                right: 28,
+                bottom: 252 + 0 * btn.offset,
+                right: 20,
                 opacity: fabOpacity,
                 transform: [
                   {
@@ -667,8 +667,8 @@ export default function ClosetScreen({navigate}: Props) {
           <Animated.View
             style={{
               position: 'absolute',
-              bottom: 100,
-              right: 24,
+              bottom: 260,
+              right: 15,
               transform: [{translateY: fabBounce}],
             }}>
             <LiquidGlassCard
