@@ -283,8 +283,8 @@ export default function FloatingMicButton({navigate}: Props) {
   const styles = StyleSheet.create({
     draggableContainer: {
       position: 'absolute',
-      left: 0,
-      top: 30,
+      left: 18,
+      top: -40,
       zIndex: 9999,
       elevation: 9999,
     },
