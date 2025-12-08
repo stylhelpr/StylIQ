@@ -1,6 +1,6 @@
 // FILTERED CHIPS AND ARTICLES IN UI LOGIC WORKING BELOW HERE - KEEP
 
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   Alert,
   Platform,
   Pressable,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -77,6 +79,16 @@ export default function ExploreScreen() {
 
   const scrollRef = React.useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+
+  // Sync scroll position with global nav for bottom nav hide/show
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (global.__navScrollY) {
+        global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
+      }
+    },
+    [],
+  );
 
   const [discoveredFeeds, setDiscoveredFeeds] = useState<
     {title: string; href: string}[]
@@ -984,6 +996,8 @@ export default function ExploreScreen() {
       <ScrollView
         ref={scrollRef} // 👈 add this
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={loading || sourcesLoading}

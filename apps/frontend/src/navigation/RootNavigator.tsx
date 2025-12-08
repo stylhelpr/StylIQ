@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {View, StyleSheet, TouchableOpacity, Text} from 'react-native';
+import {View, StyleSheet, TouchableOpacity, Text, Animated} from 'react-native';
 
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -173,6 +173,17 @@ const RootNavigator = ({
   const isGoingBackRef = useRef(false);
 
   const profileScreenCache = useRef<JSX.Element | null>(null);
+
+  // Shared scroll position for bottom nav hide/show
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Expose scrollY globally so screens can use it
+  useEffect(() => {
+    global.__navScrollY = scrollY;
+    return () => {
+      global.__navScrollY = undefined;
+    };
+  }, [scrollY]);
 
   const {theme} = useAppTheme();
   const setUUID = useSetUUID();
@@ -650,7 +661,7 @@ const RootNavigator = ({
       {/* ✅ Always visible when logged in */}
       {currentScreen !== 'Login' && currentScreen !== 'Onboarding' && (
         <>
-          <BottomNavigation current={currentScreen} navigate={navigate} />
+          <BottomNavigation current={currentScreen} navigate={navigate} scrollY={scrollY} />
           {/* <VoiceMicButton navigate={navigate} /> */}
         </>
       )}

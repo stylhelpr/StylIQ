@@ -74,6 +74,16 @@ type Props = {
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // Sync local scrollY with global nav scrollY for bottom nav hide/show
+  useEffect(() => {
+    const listenerId = scrollY.addListener(({value}) => {
+      if (global.__navScrollY) {
+        global.__navScrollY.setValue(value);
+      }
+    });
+    return () => scrollY.removeListener(listenerId);
+  }, [scrollY]);
+
   // Parallax / blur / shadow interpolations
   const interpolatedBlurAmount = scrollY.interpolate({
     inputRange: [0, 100],

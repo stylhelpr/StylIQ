@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, useRef} from 'react';
+import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   TextInput,
   ActivityIndicator,
   Linking,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import WhyPickedModal from '../components/WhyPickedModal/WhyPickedModal';
@@ -74,6 +76,16 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const globalStyles = useGlobalStyles();
 
   const insets = useSafeAreaInsets();
+
+  // Sync scroll position with global nav for bottom nav hide/show
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (global.__navScrollY) {
+        global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
+      }
+    },
+    [],
+  );
 
   // generate a v4 session id (per call we also make one)
   const sid = uuid.v4() as string;
@@ -721,6 +733,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         <View style={[globalStyles.section]}>
           <View style={globalStyles.centeredSection}>
             <ScrollView
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
               contentContainerStyle={{
                 marginTop: 8,
                 paddingBottom: 40,

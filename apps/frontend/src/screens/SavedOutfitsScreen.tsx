@@ -310,6 +310,16 @@ export default function SavedOutfitsScreen() {
   // ✨ Animated value for parallax depth
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // Sync local scrollY with global nav scrollY for bottom nav hide/show
+  useEffect(() => {
+    const listenerId = scrollY.addListener(({value}) => {
+      if (global.__navScrollY) {
+        global.__navScrollY.setValue(value);
+      }
+    });
+    return () => scrollY.removeListener(listenerId);
+  }, [scrollY]);
+
   const screenH = Dimensions.get('window').height;
   const translateY = useRef(new Animated.Value(screenH)).current;
 

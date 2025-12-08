@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, useRef} from 'react';
+import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
   Easing,
   Alert,
   Pressable,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -90,6 +92,16 @@ export default function ClosetScreen({navigate}: Props) {
   const insets = useSafeAreaInsets();
   const [swipeActive, setSwipeActive] = useState(false);
   const scrollEnabled = !swipeActive;
+
+  // Sync scroll position with global nav for bottom nav hide/show
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (global.__navScrollY) {
+        global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
+      }
+    },
+    [],
+  );
 
   const [selectedCategory, setSelectedCategory] = useState<
     'All' | MainCategory
@@ -435,7 +447,11 @@ export default function ClosetScreen({navigate}: Props) {
       )}
 
       {/* 👕 Wardrobe Grid */}
-      <ScrollView scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        scrollEnabled={scrollEnabled}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
         {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
           <View key={mainCategory} style={globalStyles.section}>
             <Animated.Text

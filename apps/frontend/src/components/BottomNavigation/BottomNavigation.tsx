@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TextStyle,
   Platform,
   Animated,
+  Easing,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -29,6 +30,11 @@ type Props = {
   scrollY?: Animated.Value;
 };
 
+// Height of the nav bar + safe area for translation
+const NAV_HEIGHT = 100;
+// Minimum scroll delta to trigger show/hide (lower = more sensitive)
+const SCROLL_THRESHOLD = 3;
+
 const BottomNavigation = ({current, navigate, scrollY}: Props) => {
   const {theme} = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -36,13 +42,46 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
   // Detect if device has home button (no home indicator = small bottom inset)
   const hasHomeButton = insets.bottom < 20;
 
-  const pillOpacity = scrollY
-    ? scrollY.interpolate({
-        inputRange: [0, 150],
-        outputRange: [0.3, 1],
-        extrapolate: 'clamp',
-      })
-    : 1;
+  // Animation value for slide in/out
+  const translateY = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const isHidden = useRef(false);
+
+  // iOS 26-style scroll hide/show behavior
+  useEffect(() => {
+    if (!scrollY) return;
+
+    const listenerId = scrollY.addListener(({value}) => {
+      const diff = value - lastScrollY.current;
+
+      // Scrolling down - hide nav
+      if (diff > SCROLL_THRESHOLD && !isHidden.current && value > 10) {
+        isHidden.current = true;
+        Animated.timing(translateY, {
+          toValue: NAV_HEIGHT + insets.bottom,
+          duration: 950,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      }
+      // Scrolling up - show nav
+      else if (diff < -SCROLL_THRESHOLD && isHidden.current) {
+        isHidden.current = false;
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      }
+
+      lastScrollY.current = value;
+    });
+
+    return () => {
+      scrollY.removeListener(listenerId);
+    };
+  }, [scrollY, translateY, insets.bottom]);
 
   const styles = StyleSheet.create<{
     navBar: ViewStyle;
@@ -119,24 +158,68 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
   );
 
   return (
-    <SafeAreaView
-      edges={['bottom']}
+    <Animated.View
       style={{
-        backgroundColor: 'transparent',
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
         zIndex: 999,
+        transform: [{translateY}],
       }}>
-      {isLiquidGlassSupported ? (
-        <Animated.View style={{opacity: pillOpacity}}>
-          <LiquidGlassView
-            style={styles.glassPill}
-            // interactive
-            effect="clear"
-            tintColor="rgba(0, 0, 0, 0.42)"
-            colorScheme="system">
+      <SafeAreaView
+        edges={['bottom']}
+        style={{
+          backgroundColor: 'transparent',
+        }}>
+        {isLiquidGlassSupported ? (
+          <Animated.View style={{opacity: 1, transform: [{translateY}]}}>
+            <LiquidGlassView
+              style={styles.glassPill}
+              effect="clear"
+              tintColor="rgba(0, 0, 0, 0.42)"
+              colorScheme="system">
+              <TabButton
+                icon="home"
+                label="Home"
+                onPress={() => current !== 'Home' && navigate('Home')}
+                isActive={current === 'Home'}
+              />
+              <TabButton
+                icon="explore"
+                label="Fashion"
+                onPress={() => current !== 'Explore' && navigate('Explore')}
+                isActive={current === 'Explore'}
+              />
+              <TabButton
+                icon="auto-awesome"
+                label="Style Me"
+                onPress={() => current !== 'Outfit' && navigate('Outfit')}
+                isActive={current === 'Outfit'}
+              />
+              <TabButton
+                icon="style"
+                label="Wardrobe"
+                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+                isActive={current === 'Wardrobe'}
+              />
+              <TabButton
+                icon="checkroom"
+                label="Saved"
+                onPress={() =>
+                  current !== 'SavedOutfits' && navigate('SavedOutfits')
+                }
+                isActive={current === 'SavedOutfits'}
+              />
+            </LiquidGlassView>
+          </Animated.View>
+        ) : (
+          // fallback if LiquidGlass unsupported
+          <View
+            style={[
+              styles.glassPill,
+              {backgroundColor: 'rgba(0, 0, 0, 0.44)'},
+            ]}>
             <TabButton
               icon="home"
               label="Home"
@@ -169,51 +252,560 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               }
               isActive={current === 'SavedOutfits'}
             />
-          </LiquidGlassView>
-        </Animated.View>
-      ) : (
-        // fallback if LiquidGlass unsupported
-        <View
-          style={[styles.glassPill, {backgroundColor: 'rgba(0, 0, 0, 0.44)'}]}>
-          <TabButton
-            icon="home"
-            label="Home"
-            onPress={() => current !== 'Home' && navigate('Home')}
-            isActive={current === 'Home'}
-          />
-          <TabButton
-            icon="explore"
-            label="Fashion"
-            onPress={() => current !== 'Explore' && navigate('Explore')}
-            isActive={current === 'Explore'}
-          />
-          <TabButton
-            icon="auto-awesome"
-            label="Style Me"
-            onPress={() => current !== 'Outfit' && navigate('Outfit')}
-            isActive={current === 'Outfit'}
-          />
-          <TabButton
-            icon="style"
-            label="Wardrobe"
-            onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
-            isActive={current === 'Wardrobe'}
-          />
-          <TabButton
-            icon="checkroom"
-            label="Saved"
-            onPress={() =>
-              current !== 'SavedOutfits' && navigate('SavedOutfits')
-            }
-            isActive={current === 'SavedOutfits'}
-          />
-        </View>
-      )}
-    </SafeAreaView>
+          </View>
+        )}
+      </SafeAreaView>
+    </Animated.View>
   );
 };
 
 export default BottomNavigation;
+
+//////////////////
+
+// import React, {useRef, useEffect} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   ViewStyle,
+//   TextStyle,
+//   Platform,
+//   Animated,
+//   Easing,
+// } from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+
+// interface TabButtonProps {
+//   icon: string;
+//   label: string;
+//   onPress: () => void;
+//   isActive?: boolean;
+// }
+
+// type Props = {
+//   current: string;
+//   navigate: (screen: string) => void;
+//   scrollY?: Animated.Value;
+// };
+
+// // Height of the nav bar + safe area for translation
+// const NAV_HEIGHT = 100;
+// // Minimum scroll delta to trigger show/hide (lower = more sensitive)
+// const SCROLL_THRESHOLD = 3;
+
+// const BottomNavigation = ({current, navigate, scrollY}: Props) => {
+//   const {theme} = useAppTheme();
+//   const insets = useSafeAreaInsets();
+
+//   // Detect if device has home button (no home indicator = small bottom inset)
+//   const hasHomeButton = insets.bottom < 20;
+
+//   // Animation value for slide in/out
+//   const translateY = useRef(new Animated.Value(0)).current;
+//   const lastScrollY = useRef(0);
+//   const isHidden = useRef(false);
+
+//   // iOS 26-style scroll hide/show behavior
+//   useEffect(() => {
+//     if (!scrollY) return;
+
+//     const listenerId = scrollY.addListener(({value}) => {
+//       const diff = value - lastScrollY.current;
+
+//       // Scrolling down - hide nav
+//       if (diff > SCROLL_THRESHOLD && !isHidden.current && value > 10) {
+//         isHidden.current = true;
+//         Animated.timing(translateY, {
+//           toValue: NAV_HEIGHT + insets.bottom,
+//           duration: 950,
+//           easing: Easing.out(Easing.cubic),
+//           useNativeDriver: true,
+//         }).start();
+//       }
+//       // Scrolling up - show nav
+//       else if (diff < -SCROLL_THRESHOLD && isHidden.current) {
+//         isHidden.current = false;
+//         Animated.timing(translateY, {
+//           toValue: 0,
+//           duration: 950,
+//           easing: Easing.out(Easing.cubic),
+//           useNativeDriver: true,
+//         }).start();
+//       }
+
+//       lastScrollY.current = value;
+//     });
+
+//     return () => {
+//       scrollY.removeListener(listenerId);
+//     };
+//   }, [scrollY, translateY, insets.bottom]);
+
+//   const pillOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 150],
+//         outputRange: [0.3, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const styles = StyleSheet.create<{
+//     navBar: ViewStyle;
+//     glassPill: ViewStyle;
+//     tabButton: ViewStyle;
+//     tabLabel: TextStyle;
+//     activeLabel: TextStyle;
+//   }>({
+//     navBar: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-around',
+//       alignItems: 'center',
+//       width: '100%',
+//       height: 80,
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       bottom: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//       paddingBottom: Platform.OS === 'ios' ? 10 : 6,
+//     },
+//     glassPill: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-around',
+//       alignItems: 'center',
+//       width: '90%',
+//       alignSelf: 'center',
+//       borderRadius: 50,
+//       height: 62,
+//       borderWidth: tokens.borderWidth.md,
+//       borderColor: theme.colors.muted,
+//       overflow: 'hidden',
+//       shadowColor: '#000',
+//       shadowOpacity: 0.2,
+//       shadowRadius: 12,
+//       shadowOffset: {width: 0, height: 4},
+//       backgroundColor: 'transparent',
+//       marginBottom: hasHomeButton ? 10 : -14,
+//     },
+//     tabButton: {
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       gap: 4,
+//     },
+//     tabLabel: {
+//       fontSize: fontScale(tokens.fontSize.xxs),
+//       color: theme.colors.buttonText1,
+//       fontWeight: '500',
+//     },
+//     activeLabel: {
+//       fontSize: fontScale(tokens.fontSize.xxs),
+//       color: theme.colors.buttonText1,
+//       fontWeight: '500',
+//     },
+//   });
+
+//   const TabButton = ({icon, label, onPress, isActive}: TabButtonProps) => (
+//     <AppleTouchFeedback
+//       style={styles.tabButton}
+//       hapticStyle={isActive ? undefined : 'impactLight'}
+//       onPress={onPress}>
+//       <Icon
+//         name={icon}
+//         size={26}
+//         color={isActive ? theme.colors.buttonText1 : theme.colors.buttonText1}
+//       />
+//       <Text
+//         style={[styles.tabLabel, isActive && styles.activeLabel]}
+//         numberOfLines={1}>
+//         {label}
+//       </Text>
+//     </AppleTouchFeedback>
+//   );
+
+//   return (
+//     <Animated.View
+//       style={{
+//         position: 'absolute',
+//         bottom: 0,
+//         left: 0,
+//         right: 0,
+//         zIndex: 999,
+//         transform: [{translateY}],
+//       }}>
+//       <SafeAreaView
+//         edges={['bottom']}
+//         style={{
+//           backgroundColor: 'transparent',
+//         }}>
+//         {isLiquidGlassSupported ? (
+//           <Animated.View style={{opacity: pillOpacity}}>
+//             <LiquidGlassView
+//               style={styles.glassPill}
+//               effect="clear"
+//               tintColor="rgba(0, 0, 0, 0.42)"
+//               colorScheme="system">
+//               <TabButton
+//                 icon="home"
+//                 label="Home"
+//                 onPress={() => current !== 'Home' && navigate('Home')}
+//                 isActive={current === 'Home'}
+//               />
+//               <TabButton
+//                 icon="explore"
+//                 label="Fashion"
+//                 onPress={() => current !== 'Explore' && navigate('Explore')}
+//                 isActive={current === 'Explore'}
+//               />
+//               <TabButton
+//                 icon="auto-awesome"
+//                 label="Style Me"
+//                 onPress={() => current !== 'Outfit' && navigate('Outfit')}
+//                 isActive={current === 'Outfit'}
+//               />
+//               <TabButton
+//                 icon="style"
+//                 label="Wardrobe"
+//                 onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+//                 isActive={current === 'Wardrobe'}
+//               />
+//               <TabButton
+//                 icon="checkroom"
+//                 label="Saved"
+//                 onPress={() =>
+//                   current !== 'SavedOutfits' && navigate('SavedOutfits')
+//                 }
+//                 isActive={current === 'SavedOutfits'}
+//               />
+//             </LiquidGlassView>
+//           </Animated.View>
+//         ) : (
+//           // fallback if LiquidGlass unsupported
+//           <View
+//             style={[
+//               styles.glassPill,
+//               {backgroundColor: 'rgba(0, 0, 0, 0.44)'},
+//             ]}>
+//             <TabButton
+//               icon="home"
+//               label="Home"
+//               onPress={() => current !== 'Home' && navigate('Home')}
+//               isActive={current === 'Home'}
+//             />
+//             <TabButton
+//               icon="explore"
+//               label="Fashion"
+//               onPress={() => current !== 'Explore' && navigate('Explore')}
+//               isActive={current === 'Explore'}
+//             />
+//             <TabButton
+//               icon="auto-awesome"
+//               label="Style Me"
+//               onPress={() => current !== 'Outfit' && navigate('Outfit')}
+//               isActive={current === 'Outfit'}
+//             />
+//             <TabButton
+//               icon="style"
+//               label="Wardrobe"
+//               onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+//               isActive={current === 'Wardrobe'}
+//             />
+//             <TabButton
+//               icon="checkroom"
+//               label="Saved"
+//               onPress={() =>
+//                 current !== 'SavedOutfits' && navigate('SavedOutfits')
+//               }
+//               isActive={current === 'SavedOutfits'}
+//             />
+//           </View>
+//         )}
+//       </SafeAreaView>
+//     </Animated.View>
+//   );
+// };
+
+// export default BottomNavigation;
+
+/////////////
+
+// import React, {useRef, useEffect} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   ViewStyle,
+//   TextStyle,
+//   Platform,
+//   Animated,
+//   Easing,
+// } from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+
+// interface TabButtonProps {
+//   icon: string;
+//   label: string;
+//   onPress: () => void;
+//   isActive?: boolean;
+// }
+
+// type Props = {
+//   current: string;
+//   navigate: (screen: string) => void;
+//   scrollY?: Animated.Value;
+// };
+
+// // Height of the nav bar + safe area for translation
+// const NAV_HEIGHT = 100;
+// // Minimum scroll delta to trigger show/hide (lower = more sensitive)
+// const SCROLL_THRESHOLD = 3;
+
+// const BottomNavigation = ({current, navigate, scrollY}: Props) => {
+//   const {theme} = useAppTheme();
+//   const insets = useSafeAreaInsets();
+
+//   // Detect if device has home button (no home indicator = small bottom inset)
+//   const hasHomeButton = insets.bottom < 20;
+
+//   // Animation value for slide in/out
+//   const translateY = useRef(new Animated.Value(0)).current;
+//   const lastScrollY = useRef(0);
+//   const isHidden = useRef(false);
+
+//   // iOS 26-style scroll hide/show behavior
+//   useEffect(() => {
+//     if (!scrollY) return;
+
+//     const listenerId = scrollY.addListener(({value}) => {
+//       const diff = value - lastScrollY.current;
+
+//       // Scrolling down - hide nav
+//       if (diff > SCROLL_THRESHOLD && !isHidden.current && value > 10) {
+//         isHidden.current = true;
+//         Animated.timing(translateY, {
+//           toValue: NAV_HEIGHT + insets.bottom,
+//           duration: 950,
+//           easing: Easing.out(Easing.cubic),
+//           useNativeDriver: true,
+//         }).start();
+//       }
+//       // Scrolling up - show nav
+//       else if (diff < -SCROLL_THRESHOLD && isHidden.current) {
+//         isHidden.current = false;
+//         Animated.timing(translateY, {
+//           toValue: 0,
+//           duration: 950,
+//           easing: Easing.out(Easing.cubic),
+//           useNativeDriver: true,
+//         }).start();
+//       }
+
+//       lastScrollY.current = value;
+//     });
+
+//     return () => {
+//       scrollY.removeListener(listenerId);
+//     };
+//   }, [scrollY, translateY, insets.bottom]);
+
+//   const pillOpacity = scrollY
+//     ? scrollY.interpolate({
+//         inputRange: [0, 150],
+//         outputRange: [0.3, 1],
+//         extrapolate: 'clamp',
+//       })
+//     : 1;
+
+//   const styles = StyleSheet.create<{
+//     navBar: ViewStyle;
+//     glassPill: ViewStyle;
+//     tabButton: ViewStyle;
+//     tabLabel: TextStyle;
+//     activeLabel: TextStyle;
+//   }>({
+//     navBar: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-around',
+//       alignItems: 'center',
+//       width: '100%',
+//       height: 80,
+//       backgroundColor: 'transparent',
+//       position: 'absolute',
+//       bottom: 0,
+//       left: 0,
+//       right: 0,
+//       zIndex: 999,
+//       paddingBottom: Platform.OS === 'ios' ? 10 : 6,
+//     },
+//     glassPill: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-around',
+//       alignItems: 'center',
+//       width: '90%',
+//       alignSelf: 'center',
+//       borderRadius: 50,
+//       height: 62,
+//       borderWidth: tokens.borderWidth.md,
+//       borderColor: theme.colors.muted,
+//       overflow: 'hidden',
+//       shadowColor: '#000',
+//       shadowOpacity: 0.2,
+//       shadowRadius: 12,
+//       shadowOffset: {width: 0, height: 4},
+//       backgroundColor: 'transparent',
+//       marginBottom: hasHomeButton ? 10 : -14,
+//     },
+//     tabButton: {
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//       gap: 4,
+//     },
+//     tabLabel: {
+//       fontSize: fontScale(tokens.fontSize.xxs),
+//       color: theme.colors.buttonText1,
+//       fontWeight: '500',
+//     },
+//     activeLabel: {
+//       fontSize: fontScale(tokens.fontSize.xxs),
+//       color: theme.colors.buttonText1,
+//       fontWeight: '500',
+//     },
+//   });
+
+//   const TabButton = ({icon, label, onPress, isActive}: TabButtonProps) => (
+//     <AppleTouchFeedback
+//       style={styles.tabButton}
+//       hapticStyle={isActive ? undefined : 'impactLight'}
+//       onPress={onPress}>
+//       <Icon
+//         name={icon}
+//         size={26}
+//         color={isActive ? theme.colors.buttonText1 : theme.colors.buttonText1}
+//       />
+//       <Text
+//         style={[styles.tabLabel, isActive && styles.activeLabel]}
+//         numberOfLines={1}>
+//         {label}
+//       </Text>
+//     </AppleTouchFeedback>
+//   );
+
+//   return (
+//     <Animated.View
+//       style={{
+//         position: 'absolute',
+//         bottom: 0,
+//         left: 0,
+//         right: 0,
+//         zIndex: 999,
+//         transform: [{translateY}],
+//       }}>
+//       <SafeAreaView
+//         edges={['bottom']}
+//         style={{
+//           backgroundColor: 'transparent',
+//         }}>
+//         {isLiquidGlassSupported ? (
+//           <Animated.View style={{opacity: pillOpacity}}>
+//             <LiquidGlassView
+//               style={styles.glassPill}
+//               effect="clear"
+//               tintColor="rgba(0, 0, 0, 0.42)"
+//               colorScheme="system">
+//               <TabButton
+//                 icon="home"
+//                 label="Home"
+//                 onPress={() => current !== 'Home' && navigate('Home')}
+//                 isActive={current === 'Home'}
+//               />
+//               <TabButton
+//                 icon="explore"
+//                 label="Fashion"
+//                 onPress={() => current !== 'Explore' && navigate('Explore')}
+//                 isActive={current === 'Explore'}
+//               />
+//               <TabButton
+//                 icon="auto-awesome"
+//                 label="Style Me"
+//                 onPress={() => current !== 'Outfit' && navigate('Outfit')}
+//                 isActive={current === 'Outfit'}
+//               />
+//               <TabButton
+//                 icon="style"
+//                 label="Wardrobe"
+//                 onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+//                 isActive={current === 'Wardrobe'}
+//               />
+//               <TabButton
+//                 icon="checkroom"
+//                 label="Saved"
+//                 onPress={() =>
+//                   current !== 'SavedOutfits' && navigate('SavedOutfits')
+//                 }
+//                 isActive={current === 'SavedOutfits'}
+//               />
+//             </LiquidGlassView>
+//           </Animated.View>
+//         ) : (
+//           // fallback if LiquidGlass unsupported
+//           <View
+//             style={[
+//               styles.glassPill,
+//               {backgroundColor: 'rgba(0, 0, 0, 0.44)'},
+//             ]}>
+//             <TabButton
+//               icon="home"
+//               label="Home"
+//               onPress={() => current !== 'Home' && navigate('Home')}
+//               isActive={current === 'Home'}
+//             />
+//             <TabButton
+//               icon="explore"
+//               label="Fashion"
+//               onPress={() => current !== 'Explore' && navigate('Explore')}
+//               isActive={current === 'Explore'}
+//             />
+//             <TabButton
+//               icon="auto-awesome"
+//               label="Style Me"
+//               onPress={() => current !== 'Outfit' && navigate('Outfit')}
+//               isActive={current === 'Outfit'}
+//             />
+//             <TabButton
+//               icon="style"
+//               label="Wardrobe"
+//               onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+//               isActive={current === 'Wardrobe'}
+//             />
+//             <TabButton
+//               icon="checkroom"
+//               label="Saved"
+//               onPress={() =>
+//                 current !== 'SavedOutfits' && navigate('SavedOutfits')
+//               }
+//               isActive={current === 'SavedOutfits'}
+//             />
+//           </View>
+//         )}
+//       </SafeAreaView>
+//     </Animated.View>
+//   );
+// };
+
+// export default BottomNavigation;
 
 ///////////////////
 
@@ -438,7 +1030,7 @@ export default BottomNavigation;
 
 // export default BottomNavigation;
 
-/////////////////////
+// ///////////////////
 
 // import React from 'react';
 // import {
