@@ -824,10 +824,11 @@ export default function SavedOutfitsScreen() {
   return (
     // <GradientBackground>
     <SafeAreaView
+      edges={['top']}
       style={[
         globalStyles.screen,
         globalStyles.container,
-        {backgroundColor: theme.colors.background},
+        {backgroundColor: theme.colors.background, paddingBottom: 0},
       ]}>
       {/* 🧭 Spacer to restore old navbar height */}
       <View
