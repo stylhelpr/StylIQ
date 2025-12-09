@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect} from 'react';
-import {View, Text, StyleSheet, Animated, Platform, Image} from 'react-native';
+import {View, Text, StyleSheet, Animated, Platform, Image, TouchableWithoutFeedback, Modal} from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -294,41 +294,55 @@ export default function GlobalHeader({
           ))}
 
           {menuOpen && (
-            <Animated.View
-              style={[
-                styles.dropdown,
-                {opacity: fadeAnim, transform: [{translateY: slideAnim}]},
-              ]}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setMenuOpen(false);
-                  navigate('Profile');
-                }}
-                style={styles.dropdownItem}>
-                <MaterialIcons
-                  name="person"
-                  size={19}
-                  color={theme.colors.primary}
+            <>
+              <TouchableWithoutFeedback onPress={() => setMenuOpen(false)}>
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -100,
+                    left: -500,
+                    right: -500,
+                    bottom: -1000,
+                    zIndex: 998,
+                  }}
                 />
-                <Text style={styles.dropdownText}>Profile</Text>
-              </AppleTouchFeedback>
+              </TouchableWithoutFeedback>
+              <Animated.View
+                style={[
+                  styles.dropdown,
+                  {opacity: fadeAnim, transform: [{translateY: slideAnim}], zIndex: 999},
+                ]}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    navigate('Profile');
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="person"
+                    size={19}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Profile</Text>
+                </AppleTouchFeedback>
 
-              <AppleTouchFeedback
-                hapticStyle="notificationWarning"
-                onPress={() => {
-                  setMenuOpen(false);
-                  handleLogout();
-                }}
-                style={styles.dropdownItem}>
-                <MaterialIcons
-                  name="logout"
-                  size={18}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.dropdownText}>Log Out</Text>
-              </AppleTouchFeedback>
-            </Animated.View>
+                <AppleTouchFeedback
+                  hapticStyle="notificationWarning"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    handleLogout();
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="logout"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Log Out</Text>
+                </AppleTouchFeedback>
+              </Animated.View>
+            </>
           )}
         </View>
       </View>
