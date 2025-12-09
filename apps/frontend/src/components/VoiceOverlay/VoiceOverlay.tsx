@@ -238,60 +238,38 @@ export const VoiceOverlay: React.FC = () => {
         style={{
           alignItems: 'center',
           position: 'absolute',
-          top: '50%',
+          top: '39%',
           left: 0,
           right: 0,
           transform: [{translateY: -45}],
         }}>
-        {/* {Platform.OS === 'ios' ? (
-          <BlurView
-            style={styles.micBlur}
-            blurType={theme.mode === 'dark' ? 'dark' : 'light'}
-            blurAmount={25}
-            reducedTransparencyFallbackColor={
-              theme.mode === 'dark'
-                ? 'rgba(80,0,130,0.4)'
-                : 'rgba(161, 0, 254, 1)'
-            }>
-            <Icon
-              name="graphic-eq"
-              size={66}
-              color={'white'}
-              style={{opacity: 0.95}}
-            />
-          </BlurView>
-        ) : (
-          <View
+        <View
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.49)',
+            width: 250,
+            height: 250,
+            borderRadius: 150,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <Text
+            numberOfLines={2}
             style={[
-              styles.micBlur,
+              styles.text,
               {
-                backgroundColor:
-                  theme.mode === 'dark'
-                    ? 'rgba(80,0,130,0.25)'
-                    : 'rgba(210,150,255,0.25)',
+                color: theme.colors.foreground,
+                maxWidth: 160,
+                marginTop: 0,
+                textAlign: 'center',
               },
             ]}>
-            <Icon
-              name="graphic-eq"
-              size={46}
-              color={theme.colors.buttonText1}
-              style={{opacity: 0.95}}
-            />
-          </View>
-        )} */}
-
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.text,
-            {color: theme.colors.foreground, maxWidth: winW * 0.8},
-          ]}>
-          {isListening
-            ? partialText?.length
-              ? partialText
-              : 'Listening...'
-            : ''}
-        </Text>
+            {isListening
+              ? partialText?.length
+                ? partialText
+                : 'Listening...'
+              : ''}
+          </Text>
+        </View>
       </SafeAreaView>
     </Animated.View>
   );
