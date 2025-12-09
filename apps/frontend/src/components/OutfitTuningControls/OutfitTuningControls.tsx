@@ -450,7 +450,7 @@ export default function OutfitTuningControls({
             easing="ease-out-back"
             useNativeDriver>
             <TouchableOpacity
-              style={[globalStyles.buttonPrimary, {width: 140}]}
+              style={[globalStyles.buttonPrimary, {width: 140, marginTop: 12}]}
               onPress={() => {
                 h('impactMedium');
                 onRegenerate();

@@ -276,7 +276,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
       <View
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 1)',
           justifyContent: 'center',
           alignItems: 'center',
           paddingVertical: tokens.spacing.sm,
@@ -318,367 +318,367 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
             {/* ❌ Close */}
             <TouchableOpacity
               onPress={handleBack}
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 20,
-              zIndex: 10,
-              backgroundColor: theme.colors.foreground,
-              borderRadius: 24,
-              padding: 6,
-            }}>
-            <MaterialIcons
-              name="close"
-              size={22}
-              color={theme.colors.background}
-            />
-          </TouchableOpacity>
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 20,
+                zIndex: 10,
+                backgroundColor: theme.colors.foreground,
+                borderRadius: 24,
+                padding: 6,
+              }}>
+              <MaterialIcons
+                name="close"
+                size={22}
+                color={theme.colors.background}
+              />
+            </TouchableOpacity>
 
-          {/* Main Scroll */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              globalStyles.centeredSection,
-              {paddingTop: 20, paddingBottom: 100},
-            ]}>
-            <Text
-              style={[
-                globalStyles.sectionTitle,
-                {marginBottom: 8, textAlign: 'left'},
+            {/* Main Scroll */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[
+                globalStyles.centeredSection,
+                {paddingTop: 20, paddingBottom: 100},
               ]}>
-              Recreated Look
-            </Text>
+              <Text
+                style={[
+                  globalStyles.sectionTitle,
+                  {marginBottom: 8, textAlign: 'left'},
+                ]}>
+                Recreated Look
+              </Text>
 
-            {/* 👕 Owned */}
-            {owned.length > 0 && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                }}>
-                {owned.map((item, idx) => renderCard(item, idx))}
-              </View>
-            )}
-
-            {/* 🛍️ Recommended */}
-            {recommendations.length > 0 && (
-              <>
-                <Text
-                  style={[
-                    globalStyles.sectionTitle,
-                    {fontSize: 20, marginTop: 30, marginBottom: 10},
-                  ]}>
-                  🛍️ Recommended to Add
-                </Text>
+              {/* 👕 Owned */}
+              {owned.length > 0 && (
                 <View
                   style={{
                     flexDirection: 'row',
                     flexWrap: 'wrap',
                     justifyContent: 'space-between',
                   }}>
-                  {recommendations.map((item, idx) =>
-                    renderCard(item, idx, true),
-                  )}
+                  {owned.map((item, idx) => renderCard(item, idx))}
                 </View>
-              </>
-            )}
+              )}
 
-            {/* 🪞 Empty */}
-            {owned.length === 0 && recommendations.length === 0 && (
-              <View style={{alignItems: 'center', marginTop: 50}}>
-                <Text
-                  style={{
-                    color: theme.colors.foreground,
-                    opacity: 0.7,
-                    fontSize: 16,
-                  }}>
-                  No outfit data found. Try recreating another look.
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* 🌐 SHOP MODAL */}
-          <Modal
-            visible={!!shopUrl}
-            animationType="fade"
-            transparent
-            onRequestClose={closeShopModal}>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: tokens.spacing.sm,
-              }}>
-              <Animatable.View
-                animation="fadeInUp"
-                duration={250}
-                style={{
-                  width: '100%',
-                  maxWidth: 700,
-                  height: '90%',
-                  borderRadius: tokens.borderRadius['2xl'],
-                  overflow: 'hidden',
-                  backgroundColor: theme.colors.surface,
-                }}>
-                {/* Close */}
-                <TouchableOpacity
-                  onPress={closeShopModal}
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 20,
-                    zIndex: 999,
-                    backgroundColor: theme.colors.foreground,
-                    borderRadius: 24,
-                    padding: 6,
-                  }}>
-                  <MaterialIcons
-                    name="close"
-                    size={22}
-                    color={theme.colors.background}
-                  />
-                </TouchableOpacity>
-
-                {shopUrl ? (
-                  <WebView
-                    source={{uri: shopUrl}}
-                    startInLoadingState
-                    style={{flex: 1, backgroundColor: theme.colors.surface}}
-                  />
-                ) : (
+              {/* 🛍️ Recommended */}
+              {recommendations.length > 0 && (
+                <>
+                  <Text
+                    style={[
+                      globalStyles.sectionTitle,
+                      {fontSize: 20, marginTop: 30, marginBottom: 10},
+                    ]}>
+                    🛍️ Recommended to Add
+                  </Text>
                   <View
                     style={{
-                      flex: 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      justifyContent: 'space-between',
                     }}>
-                    <ActivityIndicator
-                      size="large"
-                      color={theme.colors.primary}
-                    />
+                    {recommendations.map((item, idx) =>
+                      renderCard(item, idx, true),
+                    )}
                   </View>
-                )}
-              </Animatable.View>
-            </View>
-          </Modal>
+                </>
+              )}
 
-          {/* 🔍 SIMILAR LOOKS MODAL */}
-          <Modal visible={showSimilarModal} animationType="fade" transparent>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: 'rgba(0,0,0,0.1)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingVertical: tokens.spacing.sm,
-              }}>
-              <Animatable.View
-                animation="fadeInUp"
-                duration={250}
-                style={{
-                  width: '100%',
-                  maxWidth: '100%',
-                  height: '90%',
-                  borderRadius: tokens.borderRadius['2xl'],
-                  overflow: 'hidden',
-                  backgroundColor: theme.colors.background,
-                  paddingVertical: tokens.spacing.md,
-                  paddingHorizontal: moderateScale(tokens.spacing.md1),
-                }}>
-                {/* Close */}
-                <TouchableOpacity
-                  onPress={closeAllModals}
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 20,
-                    zIndex: 999,
-                    backgroundColor: theme.colors.foreground,
-                    borderRadius: 24,
-                    padding: 6,
-                  }}>
-                  <MaterialIcons
-                    name="close"
-                    size={22}
-                    color={theme.colors.background}
-                  />
-                </TouchableOpacity>
-
-                {loading ? (
-                  <View
+              {/* 🪞 Empty */}
+              {owned.length === 0 && recommendations.length === 0 && (
+                <View style={{alignItems: 'center', marginTop: 50}}>
+                  <Text
                     style={{
-                      flex: 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
+                      color: theme.colors.foreground,
+                      opacity: 0.7,
+                      fontSize: 16,
                     }}>
-                    <ActivityIndicator
-                      size="large"
-                      color={theme.colors.primary}
+                    No outfit data found. Try recreating another look.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* 🌐 SHOP MODAL */}
+            <Modal
+              visible={!!shopUrl}
+              animationType="fade"
+              transparent
+              onRequestClose={closeShopModal}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: tokens.spacing.sm,
+                }}>
+                <Animatable.View
+                  animation="fadeInUp"
+                  duration={250}
+                  style={{
+                    width: '100%',
+                    maxWidth: 700,
+                    height: '90%',
+                    borderRadius: tokens.borderRadius['2xl'],
+                    overflow: 'hidden',
+                    backgroundColor: theme.colors.surface,
+                  }}>
+                  {/* Close */}
+                  <TouchableOpacity
+                    onPress={closeShopModal}
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 20,
+                      zIndex: 999,
+                      backgroundColor: theme.colors.foreground,
+                      borderRadius: 24,
+                      padding: 6,
+                    }}>
+                    <MaterialIcons
+                      name="close"
+                      size={22}
+                      color={theme.colors.background}
                     />
-                    <Text
+                  </TouchableOpacity>
+
+                  {shopUrl ? (
+                    <WebView
+                      source={{uri: shopUrl}}
+                      startInLoadingState
+                      style={{flex: 1, backgroundColor: theme.colors.surface}}
+                    />
+                  ) : (
+                    <View
                       style={{
-                        color: theme.colors.foreground,
-                        marginTop: 12,
-                        opacity: 0.7,
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
                       }}>
-                      Finding similar looks...
-                    </Text>
-                  </View>
-                ) : (
-                  <ScrollView showsVerticalScrollIndicator={false}>
-                    <Text
-                      style={[
-                        globalStyles.sectionTitle,
-                        {fontSize: 20, marginBottom: 10},
-                      ]}>
-                      Similar Items
-                    </Text>
+                      <ActivityIndicator
+                        size="large"
+                        color={theme.colors.primary}
+                      />
+                    </View>
+                  )}
+                </Animatable.View>
+              </View>
+            </Modal>
 
-                    {data.length === 0 ? (
-                      <View style={{alignItems: 'center', marginTop: 40}}>
-                        <Text
-                          style={{
-                            color: theme.colors.foreground,
-                            opacity: 0.7,
-                          }}>
-                          No similar items found.
-                        </Text>
-                      </View>
-                    ) : (
-                      <View
+            {/* 🔍 SIMILAR LOOKS MODAL */}
+            <Modal visible={showSimilarModal} animationType="fade" transparent>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingVertical: tokens.spacing.sm,
+                }}>
+                <Animatable.View
+                  animation="fadeInUp"
+                  duration={250}
+                  style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    height: '90%',
+                    borderRadius: tokens.borderRadius['2xl'],
+                    overflow: 'hidden',
+                    backgroundColor: theme.colors.background,
+                    paddingVertical: tokens.spacing.md,
+                    paddingHorizontal: moderateScale(tokens.spacing.md1),
+                  }}>
+                  {/* Close */}
+                  <TouchableOpacity
+                    onPress={closeAllModals}
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 20,
+                      zIndex: 999,
+                      backgroundColor: theme.colors.foreground,
+                      borderRadius: 24,
+                      padding: 6,
+                    }}>
+                    <MaterialIcons
+                      name="close"
+                      size={22}
+                      color={theme.colors.background}
+                    />
+                  </TouchableOpacity>
+
+                  {loading ? (
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}>
+                      <ActivityIndicator
+                        size="large"
+                        color={theme.colors.primary}
+                      />
+                      <Text
                         style={{
-                          flexDirection: 'row',
-                          flexWrap: 'wrap',
-                          justifyContent: 'space-between',
-                          backgroundColor: theme.colors.background,
+                          color: theme.colors.foreground,
+                          marginTop: 12,
+                          opacity: 0.7,
                         }}>
-                        {data.map((look, idx) => (
-                          <TouchableOpacity
-                            key={idx}
-                            activeOpacity={0.85}
-                            onPress={() => {
-                              // ReactNativeHapticFeedback.trigger('impactLight');
-                              setShowSimilarModal(false);
-                              setTimeout(() => openShopModal(look.link), 300);
-                            }}
+                        Finding similar looks...
+                      </Text>
+                    </View>
+                  ) : (
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      <Text
+                        style={[
+                          globalStyles.sectionTitle,
+                          {fontSize: 20, marginBottom: 10},
+                        ]}>
+                        Similar Items
+                      </Text>
+
+                      {data.length === 0 ? (
+                        <View style={{alignItems: 'center', marginTop: 40}}>
+                          <Text
                             style={{
-                              // width: '49.0%',
-                              // marginBottom: tokens.spacing.xsm,
-                              width: '49.5%',
-                              marginBottom: tokens.spacing.nano,
-                              backgroundColor: theme.colors.surface,
-                              // borderWidth: tokens.borderWidth.md,
-                              // borderColor: theme.colors.surfaceBorder,
-                              // borderRadius: tokens.borderRadius.lg,
-                              overflow: 'hidden',
+                              color: theme.colors.foreground,
+                              opacity: 0.7,
                             }}>
-                            {/* 🖼️ Product Image (fills entire card) */}
-                            <View
+                            No similar items found.
+                          </Text>
+                        </View>
+                      ) : (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            flexWrap: 'wrap',
+                            justifyContent: 'space-between',
+                            backgroundColor: theme.colors.background,
+                          }}>
+                          {data.map((look, idx) => (
+                            <TouchableOpacity
+                              key={idx}
+                              activeOpacity={0.85}
+                              onPress={() => {
+                                // ReactNativeHapticFeedback.trigger('impactLight');
+                                setShowSimilarModal(false);
+                                setTimeout(() => openShopModal(look.link), 300);
+                              }}
                               style={{
-                                width: '100%',
-                                aspectRatio: 3 / 4,
+                                // width: '49.0%',
+                                // marginBottom: tokens.spacing.xsm,
+                                width: '49.5%',
+                                marginBottom: tokens.spacing.nano,
                                 backgroundColor: theme.colors.surface,
+                                // borderWidth: tokens.borderWidth.md,
+                                // borderColor: theme.colors.surfaceBorder,
+                                // borderRadius: tokens.borderRadius.lg,
                                 overflow: 'hidden',
                               }}>
-                              <Image
-                                source={{
-                                  uri:
-                                    look.image ||
-                                    'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg',
-                                }}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  position: 'absolute',
-                                }}
-                                resizeMode="cover" // ✅ fills the container, cropping edges if needed
-                              />
-
-                              {/* 🛒 Click to Buy Button Overlay */}
+                              {/* 🖼️ Product Image (fills entire card) */}
                               <View
                                 style={{
-                                  position: 'absolute',
-                                  bottom: 10,
-                                  alignSelf: 'center',
-                                  backgroundColor: 'rgba(255,255,255,0.75)',
-                                  // borderRadius: tokens.borderRadius.lg,
-                                  borderRadius: tokens.borderRadius.sm,
-                                  borderWidth: tokens.borderWidth.md,
-                                  borderColor: 'black',
-                                  paddingVertical: 8,
-                                  paddingHorizontal: 14,
+                                  width: '100%',
+                                  aspectRatio: 3 / 4,
+                                  backgroundColor: theme.colors.surface,
+                                  overflow: 'hidden',
                                 }}>
-                                <Text
+                                <Image
+                                  source={{
+                                    uri:
+                                      look.image ||
+                                      'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg',
+                                  }}
                                   style={{
-                                    color: 'black',
-                                    fontWeight: '700',
-                                    fontSize: 13,
-                                    letterSpacing: 0.2,
+                                    width: '100%',
+                                    height: '100%',
+                                    position: 'absolute',
+                                  }}
+                                  resizeMode="cover" // ✅ fills the container, cropping edges if needed
+                                />
+
+                                {/* 🛒 Click to Buy Button Overlay */}
+                                <View
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: 10,
+                                    alignSelf: 'center',
+                                    backgroundColor: 'rgba(255,255,255,0.75)',
+                                    // borderRadius: tokens.borderRadius.lg,
+                                    borderRadius: tokens.borderRadius.sm,
+                                    borderWidth: tokens.borderWidth.md,
+                                    borderColor: 'black',
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 14,
                                   }}>
-                                  Click to Buy
-                                </Text>
+                                  <Text
+                                    style={{
+                                      color: 'black',
+                                      fontWeight: '700',
+                                      fontSize: 13,
+                                      letterSpacing: 0.2,
+                                    }}>
+                                    Click to Buy
+                                  </Text>
+                                </View>
                               </View>
-                            </View>
 
-                            {/* 🧾 Product Info Section */}
-                            <View style={{padding: 8}}>
-                              {/* Title */}
-                              <Text
-                                numberOfLines={1}
-                                style={{
-                                  color: theme.colors.foreground,
-                                  fontWeight: '400',
-                                  fontSize: 13,
-                                  textTransform: 'uppercase',
-                                }}>
-                                {look.title || 'Similar look'}
-                              </Text>
-
-                              {/* Brand */}
-                              {look.brand ? (
+                              {/* 🧾 Product Info Section */}
+                              <View style={{padding: 8}}>
+                                {/* Title */}
                                 <Text
                                   numberOfLines={1}
                                   style={{
                                     color: theme.colors.foreground,
-                                    opacity: 0.7,
-                                    marginTop: 6,
-                                    fontSize: 11,
-                                    fontWeight: '500',
-                                  }}>
-                                  {look.brand}
-                                </Text>
-                              ) : null}
-
-                              {/* Price — reserve height even if missing */}
-
-                              {look.price ? (
-                                <Text
-                                  numberOfLines={1}
-                                  style={{
-                                    fontWeight: '500',
-                                    fontSize: 12,
-                                    marginTop: 6,
-                                    color: theme.colors.foreground,
-                                  }}>
-                                  {look.price}
-                                </Text>
-                              ) : (
-                                <Text
-                                  style={{
-                                    opacity: 0,
+                                    fontWeight: '400',
                                     fontSize: 13,
-                                    fontWeight: '700',
+                                    textTransform: 'uppercase',
                                   }}>
-                                  placeholder
+                                  {look.title || 'Similar look'}
                                 </Text>
-                              )}
 
-                              {/* Source */}
-                              {/* {look.source ? (
+                                {/* Brand */}
+                                {look.brand ? (
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{
+                                      color: theme.colors.foreground,
+                                      opacity: 0.7,
+                                      marginTop: 6,
+                                      fontSize: 11,
+                                      fontWeight: '500',
+                                    }}>
+                                    {look.brand}
+                                  </Text>
+                                ) : null}
+
+                                {/* Price — reserve height even if missing */}
+
+                                {look.price ? (
+                                  <Text
+                                    numberOfLines={1}
+                                    style={{
+                                      fontWeight: '500',
+                                      fontSize: 12,
+                                      marginTop: 6,
+                                      color: theme.colors.foreground,
+                                    }}>
+                                    {look.price}
+                                  </Text>
+                                ) : (
+                                  <Text
+                                    style={{
+                                      opacity: 0,
+                                      fontSize: 13,
+                                      fontWeight: '700',
+                                    }}>
+                                    placeholder
+                                  </Text>
+                                )}
+
+                                {/* Source */}
+                                {/* {look.source ? (
                                 <Text
                                   numberOfLines={1}
                                   style={{
@@ -690,16 +690,16 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                                   Source: {look.source}
                                 </Text>
                               ) : null} */}
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </ScrollView>
-                )}
-              </Animatable.View>
-            </View>
-          </Modal>
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </ScrollView>
+                  )}
+                </Animatable.View>
+              </View>
+            </Modal>
           </Animatable.View>
         </Animated.View>
       </View>

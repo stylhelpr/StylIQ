@@ -63,9 +63,25 @@ function normalizeItem(raw: any, sourceName: string): Article | null {
   };
 }
 
-async function fetchFeed(src: Source): Promise<Article[]> {
+// Fetch with timeout - don't let one slow feed block everything
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(src.url, {
+    const res = await fetch(url, {...options, signal: controller.signal});
+    clearTimeout(timeoutId);
+    return res;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
+}
+
+async function fetchFeed(src: Source): Promise<Article[]> {
+  const TIMEOUT_MS = 8000; // 8 second timeout per feed
+
+  try {
+    const res = await fetchWithTimeout(src.url, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
@@ -74,19 +90,23 @@ async function fetchFeed(src: Source): Promise<Article[]> {
         'Accept-Language': 'en-US,en;q=0.9',
         Referer: 'https://www.google.com',
       },
-    });
+    }, TIMEOUT_MS);
 
     if (!res.ok) throw new Error(`Feed HTTP ${res.status}`);
     const text = await res.text();
     return parseFeedXml(text, src.name);
   } catch {
-    const proxyUrl = `${API_BASE_URL}/feeds/fetch?url=${encodeURIComponent(
-      src.url,
-    )}`;
-    const res = await fetch(proxyUrl);
-    if (!res.ok) return [];
-    const text = await res.text();
-    return parseFeedXml(text, src.name);
+    // Try backend proxy as fallback (also with timeout)
+    try {
+      const proxyUrl = `${API_BASE_URL}/feeds/fetch?url=${encodeURIComponent(src.url)}`;
+      const res = await fetchWithTimeout(proxyUrl, {}, TIMEOUT_MS);
+      if (!res.ok) return [];
+      const text = await res.text();
+      return parseFeedXml(text, src.name);
+    } catch {
+      console.log(`📰 Feed ${src.name} timed out or failed`);
+      return []; // Return empty instead of blocking
+    }
   }
 }
 

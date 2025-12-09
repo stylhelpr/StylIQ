@@ -133,7 +133,7 @@ const MainApp = () => {
         onScreenChange={setActiveScreen}
       />
       <WeatherOverlay />
-      {activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && (
+      {activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && (
         <FloatingMicButton navigate={globalNavigate} />
       )}
       <WeatherPromptOverlay

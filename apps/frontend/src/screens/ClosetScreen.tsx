@@ -330,16 +330,6 @@ export default function ClosetScreen({navigate}: Props) {
     },
   });
 
-  // const openSubmenu = (view: 'filter' | 'sort') => {
-  //   setMenuView(view);
-  //   submenuOpacity.setValue(0);
-  //   Animated.timing(submenuOpacity, {
-  //     toValue: 1,
-  //     duration: 180,
-  //     useNativeDriver: true,
-  //   }).start();
-  // };
-
   // 2️⃣ Handler function (this is TypeScript, not JSX)
   const openSubmenu = (view: 'filter' | 'sort') => {
     setMenuView(view);
@@ -412,8 +402,8 @@ export default function ClosetScreen({navigate}: Props) {
               hapticStyle="impactLight"
               style={{
                 paddingHorizontal: 7,
-                paddingVertical: 7,
-                borderRadius: 50,
+                paddingVertical: 8,
+                borderRadius: tokens.borderRadius.sm,
                 backgroundColor: theme.colors.button1,
                 elevation: 2,
               }}
@@ -600,7 +590,6 @@ export default function ClosetScreen({navigate}: Props) {
           ))}
         </ScrollView>
 
-        {/* 🪩 Expanding FAB Stack */}
         <>
           {/* 🪩 Floating Mini FABs */}
           {[
@@ -616,12 +605,12 @@ export default function ClosetScreen({navigate}: Props) {
               key={index}
               style={{
                 position: 'absolute',
-                bottom: 252 + 0 * btn.offset,
-                right: 20,
+                bottom: 97,
+                right: 2,
                 opacity: fabOpacity,
                 transform: [
                   {
-                    translateY: fabAnim.interpolate({
+                    translateX: fabAnim.interpolate({
                       inputRange: [0, 1],
                       outputRange: [0, -70 * (btn.offset + 0.3)],
                     }),
@@ -667,8 +656,8 @@ export default function ClosetScreen({navigate}: Props) {
           <Animated.View
             style={{
               position: 'absolute',
-              bottom: 260,
-              right: 15,
+              bottom: 92,
+              right: 14,
               transform: [{translateY: fabBounce}],
             }}>
             <LiquidGlassCard
@@ -989,6 +978,1000 @@ export default function ClosetScreen({navigate}: Props) {
     // </GradientBackground>
   );
 }
+
+////////////////
+
+// import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   ScrollView,
+//   Dimensions,
+//   TouchableOpacity,
+//   TouchableWithoutFeedback,
+//   TextInput,
+//   Animated,
+//   Easing,
+//   Alert,
+//   Pressable,
+//   NativeSyntheticEvent,
+//   NativeScrollEvent,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {getInferredCategory} from '../utils/categoryUtils';
+// import {MainCategory, Subcategory} from '../types/categoryTypes';
+// import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
+// import {useClosetVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
+// import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// type WardrobeItem = {
+//   id: string;
+//   image_url: string;
+//   name: string;
+//   color?: string;
+//   main_category?: MainCategory | string;
+//   subcategory?: Subcategory | string;
+//   fit?: string;
+//   size?: string;
+//   brand?: string;
+//   material?: string;
+//   width?: number;
+//   height?: number;
+//   favorite?: boolean;
+// };
+
+// type Props = {
+//   navigate: (screen: string, params?: any) => void;
+// };
+
+// const CATEGORY_META: Array<{
+//   value: MainCategory | 'All';
+//   label: string;
+//   icon: string;
+// }> = [
+//   {value: 'All', label: 'All', icon: 'category'},
+//   {value: 'Tops', label: 'Tops', icon: 'checkroom'},
+//   {value: 'Bottoms', label: 'Bottoms', icon: 'drag-handle'},
+//   {value: 'Outerwear', label: 'Outerwear', icon: 'ac-unit'},
+//   {value: 'Shoes', label: 'Shoes', icon: 'hiking'},
+//   {value: 'Accessories', label: 'Accessories', icon: 'watch'},
+//   {value: 'Undergarments', label: 'Undergarments', icon: 'layers'},
+//   {value: 'Activewear', label: 'Activewear', icon: 'fitness-center'},
+//   {value: 'Formalwear', label: 'Formalwear', icon: 'work'},
+//   {value: 'Loungewear', label: 'Loungewear', icon: 'weekend'},
+//   {value: 'Sleepwear', label: 'Sleepwear', icon: 'hotel'},
+//   {value: 'Swimwear', label: 'Swimwear', icon: 'pool'},
+//   {value: 'Maternity', label: 'Maternity', icon: 'pregnant-woman'},
+//   {value: 'Unisex', label: 'Unisex', icon: 'wc'},
+//   {value: 'Costumes', label: 'Costumes', icon: 'theater-comedy'},
+//   {value: 'TraditionalWear', label: 'Traditional Wear', icon: 'festival'},
+// ];
+
+// const sortOptions = [
+//   {label: 'Name A-Z', value: 'az'},
+//   {label: 'Name Z-A', value: 'za'},
+//   {label: 'Favorites First', value: 'favorites'},
+// ];
+
+// export default function ClosetScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const queryClient = useQueryClient();
+//   const userId = useUUID();
+
+//   const insets = useSafeAreaInsets();
+//   const [swipeActive, setSwipeActive] = useState(false);
+//   const scrollEnabled = !swipeActive;
+
+//   // Sync scroll position with global nav for bottom nav hide/show
+//   const handleScroll = useCallback(
+//     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+//       if (global.__navScrollY) {
+//         global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
+//       }
+//     },
+//     [],
+//   );
+
+//   const [selectedCategory, setSelectedCategory] = useState<
+//     'All' | MainCategory
+//   >('All');
+//   const [sortOption, setSortOption] = useState<'az' | 'za' | 'favorites'>('az');
+
+//   // 🍏 Menu states
+//   const [menuVisible, setMenuVisible] = useState(false);
+//   const [menuView, setMenuView] = useState<'main' | 'filter' | 'sort'>('main'); // main or submenus
+
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [selectedItemToEdit, setSelectedItemToEdit] =
+//     useState<WardrobeItem | null>(null);
+//   const [editedName, setEditedName] = useState('');
+//   const [editedColor, setEditedColor] = useState('');
+
+//   const screenFade = useRef(new Animated.Value(0)).current;
+//   const screenTranslate = useRef(new Animated.Value(50)).current;
+//   // const fabBounce = useRef(new Animated.Value(100)).current;
+//   const fabBounce = useRef(new Animated.Value(250)).current;
+
+//   const submenuOpacity = useRef(new Animated.Value(0)).current;
+
+//   useEffect(() => {
+//     Animated.sequence([
+//       Animated.timing(screenFade, {
+//         toValue: 1,
+//         duration: 800,
+//         easing: Easing.out(Easing.exp),
+//         useNativeDriver: true,
+//       }),
+//       Animated.spring(screenTranslate, {
+//         toValue: 0,
+//         speed: 2,
+//         bounciness: 14,
+//         useNativeDriver: true,
+//       }),
+//     ]).start();
+//     Animated.spring(fabBounce, {
+//       toValue: 0,
+//       delay: 900,
+//       speed: 2,
+//       bounciness: 14,
+//       useNativeDriver: true,
+//     }).start();
+//   }, []);
+
+//   const {data: wardrobe = [], isLoading} = useQuery({
+//     queryKey: ['wardrobe', userId],
+//     queryFn: async () => {
+//       const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
+//       if (!res.ok) throw new Error('Failed to fetch wardrobe');
+//       return res.json();
+//     },
+//     enabled: !!userId,
+//   });
+
+//   const hSelect = () =>
+//     ReactNativeHapticFeedback.trigger('selection', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+
+//   const deleteMutation = useMutation({
+//     mutationFn: async (id: string) => {
+//       await fetch(`${API_BASE_URL}/wardrobe/${id}`, {method: 'DELETE'});
+//     },
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
+//     },
+//   });
+
+//   const filtered = useMemo(() => {
+//     return (wardrobe as WardrobeItem[])
+//       .map(item => {
+//         const inferred = getInferredCategory(item.name);
+//         const effectiveMain: MainCategory | undefined =
+//           (item.main_category as MainCategory) ?? inferred?.main;
+//         return {...item, inferredCategory: inferred, effectiveMain};
+//       })
+//       .filter(item => {
+//         if (selectedCategory === 'All') return true;
+//         return item.effectiveMain === selectedCategory;
+//       })
+//       .sort((a, b) => {
+//         if (sortOption === 'az') return a.name.localeCompare(b.name);
+//         if (sortOption === 'za') return b.name.localeCompare(a.name);
+//         if (sortOption === 'favorites')
+//           return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
+//         return 0;
+//       });
+//   }, [wardrobe, selectedCategory, sortOption]);
+
+//   const categorizedItems = useMemo(() => {
+//     const result: Record<string, Record<string, WardrobeItem[]>> = {};
+//     for (const item of filtered) {
+//       const main =
+//         (item.main_category as string) ||
+//         (item as any).inferredCategory?.main ||
+//         'Uncategorized';
+//       const sub =
+//         (item.subcategory as string) ||
+//         (item as any).inferredCategory?.sub ||
+//         'General';
+//       if (!result[main]) result[main] = {};
+//       if (!result[main][sub]) result[main][sub] = [];
+//       result[main][sub].push(item);
+//     }
+//     return result;
+//   }, [filtered]);
+
+//   // 🧠 Expanding FAB state (move these near your other useStates at top of ClosetScreen)
+//   const [fabOpen, setFabOpen] = useState(false);
+//   const fabAnim = useRef(new Animated.Value(0)).current;
+
+//   const toggleFab = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//     });
+//     Animated.spring(fabAnim, {
+//       toValue: fabOpen ? 0 : 1,
+//       useNativeDriver: false, // ✅ FIX — bottom can now animate safely
+//       friction: 6,
+//       tension: 40,
+//     }).start();
+//     setFabOpen(!fabOpen);
+//   };
+
+//   const fabItemOffset = (index: number) =>
+//     fabAnim.interpolate({
+//       inputRange: [0, 1],
+//       outputRange: [0, -70 * (index + 1)],
+//     });
+
+//   const fabOpacity = fabAnim.interpolate({
+//     inputRange: [0, 0.6, 1],
+//     outputRange: [0, 0.9, 1],
+//   });
+
+//   const favoriteMutation = useMutation({
+//     mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
+//       await fetch(`${API_BASE_URL}/wardrobe/favorite/${id}`, {
+//         method: 'Put',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({favorite}),
+//       });
+//     },
+//     onMutate: async ({id, favorite}) => {
+//       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
+//       const prev = queryClient.getQueryData<WardrobeItem[]>([
+//         'wardrobe',
+//         userId,
+//       ]);
+//       queryClient.setQueryData<WardrobeItem[]>(
+//         ['wardrobe', userId],
+//         old =>
+//           old?.map(item => (item.id === id ? {...item, favorite} : item)) || [],
+//       );
+//       return {prev};
+//     },
+//     onError: (err, _, context) => {
+//       if (context?.prev) {
+//         queryClient.setQueryData(['wardrobe', userId], context.prev);
+//       }
+//     },
+//     onSettled: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
+//     },
+//   });
+
+//   const styles = StyleSheet.create({
+//     buttonRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'flex-end',
+//       marginTop: 24,
+//     },
+//     popover: {
+//       position: 'absolute',
+//       top: insets.top + 115, // 👈 adds notch + navbar offset
+//       right: 20,
+//       width: 220,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       paddingVertical: 12,
+//       paddingHorizontal: 14,
+//       elevation: 20,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.25,
+//       shadowOffset: {width: 0, height: 4},
+//       shadowRadius: 14,
+//       zIndex: 9999,
+//     },
+//     submenu: {
+//       position: 'absolute',
+//       top: insets.top + 115, // 👈 match same top offset
+//       right: 16,
+//       width: 320,
+//       maxHeight: Dimensions.get('window').height * 0.7,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       paddingVertical: 16,
+//       paddingHorizontal: 18,
+//       elevation: 20,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.25,
+//       shadowOffset: {width: 0, height: 4},
+//       shadowRadius: 14,
+//       zIndex: 9999,
+//     },
+
+//     optionRow: {
+//       paddingVertical: 10,
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//     },
+//     optionText: {
+//       fontSize: 16,
+//       color: theme.colors.foreground,
+//       marginLeft: 8,
+//     },
+//     mainOptionText: {
+//       fontSize: 17,
+//       color: theme.colors.foreground,
+//       fontWeight: tokens.fontWeight.semiBold,
+//     },
+//   });
+
+//   // const openSubmenu = (view: 'filter' | 'sort') => {
+//   //   setMenuView(view);
+//   //   submenuOpacity.setValue(0);
+//   //   Animated.timing(submenuOpacity, {
+//   //     toValue: 1,
+//   //     duration: 180,
+//   //     useNativeDriver: true,
+//   //   }).start();
+//   // };
+
+//   // 2️⃣ Handler function (this is TypeScript, not JSX)
+//   const openSubmenu = (view: 'filter' | 'sort') => {
+//     setMenuView(view);
+//     submenuOpacity.setValue(0);
+//     Animated.timing(submenuOpacity, {
+//       toValue: 1,
+//       duration: 180,
+//       useNativeDriver: true,
+//     }).start();
+//   };
+
+//   useClosetVoiceCommands(
+//     openSubmenu,
+//     setMenuVisible,
+//     setSelectedCategory,
+//     setSortOption,
+//   );
+
+//   return (
+//     // <GradientBackground>
+//     <SafeAreaView
+//       edges={['top']}
+//       style={[
+//         globalStyles.screen,
+//         globalStyles.container,
+//         {
+//           flex: 1,
+//           backgroundColor: theme.colors.background,
+//           paddingBottom: 0,
+//         },
+//       ]}>
+//       <Animated.View
+//         style={{
+//           flex: 1,
+//           opacity: screenFade,
+//           transform: [{translateY: screenTranslate}],
+//         }}>
+//         <View
+//           style={{
+//             height: insets.top + 0, // ⬅️ 56 is about the old navbar height
+//             backgroundColor: theme.colors.background, // same tone as old nav
+//           }}
+//         />
+//         <Text style={globalStyles.header}>Wardrobe</Text>
+
+//         {/* 🔝 Header buttons */}
+//         <View style={globalStyles.section}>
+//           <View style={[styles.buttonRow]}>
+//             <View style={{marginRight: 8}}>
+//               <AppleTouchFeedback
+//                 style={[
+//                   globalStyles.buttonPrimary,
+//                   {
+//                     paddingHorizontal: 28,
+//                     minWidth: 210,
+//                     alignSelf: 'center',
+//                     flexShrink: 0,
+//                   },
+//                 ]}
+//                 hapticStyle="impacMedium"
+//                 onPress={() => navigate('OutfitBuilder')}>
+//                 <Text style={globalStyles.buttonPrimaryText}>
+//                   + Build An Outfit
+//                 </Text>
+//               </AppleTouchFeedback>
+//             </View>
+
+//             {/* 🍏 Unified Menu Trigger */}
+//             <AppleTouchFeedback
+//               hapticStyle="impactLight"
+//               style={{
+//                 paddingHorizontal: 7,
+//                 paddingVertical: 7,
+//                 borderRadius: 50,
+//                 backgroundColor: theme.colors.button1,
+//                 elevation: 2,
+//               }}
+//               onPress={() => {
+//                 setMenuVisible(prev => !prev);
+//                 setMenuView('main');
+//               }}>
+//               {/* <MaterialIcons name="more-vert" size={32} color="white" /> */}
+//               <MaterialIcons
+//                 name="filter-list"
+//                 size={33}
+//                 color={theme.colors.buttonText1}
+//               />
+//             </AppleTouchFeedback>
+//           </View>
+//         </View>
+
+//         {/* 🪩 Empty state */}
+//         {!isLoading && wardrobe.length === 0 && (
+//           <View style={{flexDirection: 'row', alignSelf: 'center'}}>
+//             <Text style={globalStyles.missingDataMessage1}>
+//               No wardrobe items found.
+//             </Text>
+//             <View style={{alignSelf: 'flex-start'}}>
+//               <TooltipBubble
+//                 message="You haven’t uploaded any wardrobe items yet. Tap the “Add Clothes”
+//              button below to start adding your personal wardrobe inventory."
+//                 position="top"
+//               />
+//             </View>
+//           </View>
+//         )}
+
+//         {/* 👕 Wardrobe Grid */}
+//         <ScrollView
+//           scrollEnabled={scrollEnabled}
+//           showsVerticalScrollIndicator={false}
+//           onScroll={handleScroll}
+//           scrollEventThrottle={16}>
+//           {Object.entries(categorizedItems).map(([mainCategory, subMap]) => (
+//             <View key={mainCategory} style={globalStyles.section}>
+//               <Animated.Text
+//                 style={[
+//                   globalStyles.sectionTitle5,
+//                   {
+//                     transform: [
+//                       {
+//                         translateY: screenFade.interpolate({
+//                           inputRange: [0, 1],
+//                           outputRange: [20, 0],
+//                         }),
+//                       },
+//                     ],
+//                     opacity: screenFade,
+//                   },
+//                 ]}>
+//                 {mainCategory}
+//               </Animated.Text>
+
+//               {Object.entries(subMap).map(([subCategory, items]) => (
+//                 <View key={subCategory}>
+//                   <Text style={[globalStyles.title3]}>{subCategory}</Text>
+
+//                   <View
+//                     style={{
+//                       flexDirection: 'row',
+//                       flexWrap: 'wrap',
+//                       justifyContent: 'space-between',
+//                     }}>
+//                     {items.map(item => (
+//                       <View
+//                         key={item.id}
+//                         style={{
+//                           marginBottom: 15,
+//                         }}>
+//                         <Pressable
+//                           style={globalStyles.outfitCard4}
+//                           hapticStyle="impactLight"
+//                           onPress={() =>
+//                             navigate('ItemDetail', {itemId: item.id, item})
+//                           }
+//                           onLongPress={() => {
+//                             setEditedName(item.name ?? '');
+//                             setEditedColor(item.color ?? '');
+//                             setSelectedItemToEdit(item);
+//                             setShowEditModal(true);
+//                           }}>
+//                           <View
+//                             style={{
+//                               width: '100%',
+//                               backgroundColor: theme.colors.surface,
+//                             }}>
+//                             <Image
+//                               source={{uri: item.image_url}}
+//                               style={globalStyles.image10}
+//                               resizeMode="cover"
+//                             />
+//                           </View>
+//                           {/* ❤️ Favorite */}
+//                           <View
+//                             style={{
+//                               position: 'absolute',
+//                               top: 8,
+//                               right: 8,
+//                               zIndex: 10,
+//                               padding: 4,
+//                             }}>
+//                             <AppleTouchFeedback
+//                               hapticStyle="impactLight"
+//                               onPress={() =>
+//                                 favoriteMutation.mutate({
+//                                   id: item.id,
+//                                   favorite: !item.favorite,
+//                                 })
+//                               }>
+//                               <MaterialIcons
+//                                 name="favorite"
+//                                 size={28}
+//                                 color={
+//                                   item.favorite
+//                                     ? 'red'
+//                                     : theme.colors.inputBorder
+//                                 }
+//                               />
+//                             </AppleTouchFeedback>
+//                           </View>
+
+//                           {/* 🏷️ Labels */}
+//                           <View style={globalStyles.labelContainer}>
+//                             <Text
+//                               style={[globalStyles.cardLabel]}
+//                               numberOfLines={1}
+//                               ellipsizeMode="tail">
+//                               {item.name}
+//                             </Text>
+//                             <Text
+//                               style={[globalStyles.cardSubLabel]}
+//                               numberOfLines={1}>
+//                               {subCategory}
+//                             </Text>
+//                           </View>
+
+//                           {/* 🪄 Try On */}
+//                           <AppleTouchFeedback
+//                             hapticStyle="impactLight"
+//                             onPress={() =>
+//                               navigate('TryOnOverlay', {
+//                                 outfit: {
+//                                   top: {
+//                                     name: item.name,
+//                                     imageUri: item.image_url,
+//                                   },
+//                                 },
+//                                 userPhotoUri: Image.resolveAssetSource(
+//                                   require('../assets/images/full-body-temp1.png'),
+//                                 ).uri,
+//                               })
+//                             }
+//                             style={{
+//                               position: 'absolute',
+//                               top: 10,
+//                               left: 8,
+//                               backgroundColor: 'black',
+//                               paddingHorizontal: 10,
+//                               paddingVertical: 4,
+//                               borderRadius: 8,
+//                             }}>
+//                             <Text
+//                               style={{
+//                                 color: theme.colors.foreground,
+//                                 fontSize: 14,
+//                                 fontWeight: tokens.fontWeight.medium,
+//                               }}>
+//                               Try On
+//                             </Text>
+//                           </AppleTouchFeedback>
+//                         </Pressable>
+//                       </View>
+//                     ))}
+//                   </View>
+//                 </View>
+//               ))}
+//             </View>
+//           ))}
+//         </ScrollView>
+
+//         {/* 🪩 Expanding FAB Stack */}
+//         <>
+//           {/* 🪩 Floating Mini FABs */}
+//           {[
+//             {
+//               icon: 'qr-code-scanner',
+//               onPress: () => navigate('BarcodeScannerScreen'),
+//               offset: 1,
+//             },
+//             {icon: 'search', onPress: () => navigate('Search'), offset: 2},
+//             {icon: 'add', onPress: () => navigate('AddItem'), offset: 3},
+//           ].map((btn, index) => (
+//             <Animated.View
+//               key={index}
+//               style={{
+//                 position: 'absolute',
+//                 bottom: 252 + 0 * btn.offset,
+//                 right: 20,
+//                 opacity: fabOpacity,
+//                 transform: [
+//                   {
+//                     translateY: fabAnim.interpolate({
+//                       inputRange: [0, 1],
+//                       outputRange: [0, -70 * (btn.offset + 0.3)],
+//                     }),
+//                   },
+//                   {scale: fabAnim},
+//                 ],
+//               }}>
+//               <LiquidGlassCard
+//                 blurAmount={14}
+//                 blurOpacity={0.6}
+//                 borderRadius={26}
+//                 style={{
+//                   shadowColor: '#000',
+//                   shadowOpacity: 0.25,
+//                   shadowOffset: {width: 0, height: 4},
+//                   shadowRadius: 8,
+//                   elevation: 8,
+//                   overflow: 'hidden',
+//                 }}>
+//                 <Pressable
+//                   onPress={() => {
+//                     toggleFab();
+//                     btn.onPress();
+//                   }}
+//                   style={{
+//                     width: 52,
+//                     height: 52,
+//                     borderRadius: 26,
+//                     alignItems: 'center',
+//                     justifyContent: 'center',
+//                   }}>
+//                   <MaterialIcons
+//                     name={btn.icon}
+//                     size={26}
+//                     color={theme.colors.foreground}
+//                   />
+//                 </Pressable>
+//               </LiquidGlassCard>
+//             </Animated.View>
+//           ))}
+
+//           {/* 🪄 Main FAB (always visible) */}
+//           <Animated.View
+//             style={{
+//               position: 'absolute',
+//               bottom: 260,
+//               right: 15,
+//               transform: [{translateY: fabBounce}],
+//             }}>
+//             <LiquidGlassCard
+//               blurAmount={14}
+//               blurOpacity={0.6}
+//               borderRadius={32}
+//               style={{
+//                 width: 64,
+//                 height: 64,
+//                 borderRadius: 32,
+//                 shadowColor: '#000',
+//                 shadowOpacity: 0.25,
+//                 shadowOffset: {width: 0, height: 6},
+//                 shadowRadius: 10,
+//                 elevation: 10,
+//                 overflow: 'hidden',
+//               }}>
+//               <Pressable
+//                 onPress={toggleFab}
+//                 style={{
+//                   width: '100%',
+//                   height: '100%',
+//                   alignItems: 'center',
+//                   justifyContent: 'center',
+//                 }}>
+//                 <Animated.View
+//                   style={{
+//                     transform: [
+//                       {
+//                         rotate: fabAnim.interpolate({
+//                           inputRange: [0, 1],
+//                           outputRange: ['0deg', '45deg'],
+//                         }),
+//                       },
+//                     ],
+//                   }}>
+//                   <MaterialIcons
+//                     name="add"
+//                     size={32}
+//                     color={theme.colors.foreground}
+//                   />
+//                 </Animated.View>
+//               </Pressable>
+//             </LiquidGlassCard>
+//           </Animated.View>
+//         </>
+
+//         {/* 🍏 Popover + Submenus — Moved to Bottom for Layering Fix */}
+//         {menuVisible && (
+//           <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+//             <View
+//               style={{
+//                 position: 'absolute',
+//                 top: 0,
+//                 left: 0,
+//                 right: 0,
+//                 bottom: 0,
+//                 backgroundColor: 'transparent',
+//                 zIndex: 9999,
+//               }}>
+//               <TouchableWithoutFeedback>
+//                 <>
+//                   {menuView === 'main' && (
+//                     <View style={styles.popover}>
+//                       <TouchableOpacity
+//                         style={styles.optionRow}
+//                         onPress={() => {
+//                           hSelect();
+//                           openSubmenu('filter');
+//                         }}>
+//                         <MaterialIcons
+//                           name="filter-list"
+//                           size={24}
+//                           color={theme.colors.foreground}
+//                         />
+//                         <Text style={styles.mainOptionText}>Filter</Text>
+//                       </TouchableOpacity>
+
+//                       <TouchableOpacity
+//                         style={styles.optionRow}
+//                         onPress={() => {
+//                           hSelect();
+//                           openSubmenu('sort');
+//                         }}>
+//                         <MaterialIcons
+//                           name="sort"
+//                           size={22}
+//                           color={theme.colors.foreground}
+//                         />
+//                         <Text style={styles.mainOptionText}>Sort</Text>
+//                       </TouchableOpacity>
+//                     </View>
+//                   )}
+
+//                   {menuView === 'filter' && (
+//                     <Animated.View
+//                       style={[
+//                         styles.submenu,
+//                         {
+//                           opacity: submenuOpacity,
+//                           transform: [
+//                             {
+//                               scale: submenuOpacity.interpolate({
+//                                 inputRange: [0, 1],
+//                                 outputRange: [0.95, 1],
+//                               }),
+//                             },
+//                           ],
+//                         },
+//                       ]}>
+//                       <ScrollView
+//                         showsVerticalScrollIndicator={false}
+//                         contentContainerStyle={{paddingBottom: 8}}>
+//                         {CATEGORY_META.map(cat => (
+//                           <TouchableOpacity
+//                             key={cat.value}
+//                             onPress={() => {
+//                               hSelect();
+//                               setSelectedCategory(cat.value as any);
+//                               setMenuVisible(false);
+//                             }}
+//                             style={styles.optionRow}>
+//                             <MaterialIcons
+//                               name={cat.icon}
+//                               size={20}
+//                               color={theme.colors.foreground}
+//                             />
+//                             <Text style={styles.optionText}>{cat.label}</Text>
+//                           </TouchableOpacity>
+//                         ))}
+//                       </ScrollView>
+//                     </Animated.View>
+//                   )}
+
+//                   {menuView === 'sort' && (
+//                     <Animated.View
+//                       style={[
+//                         styles.submenu,
+//                         {
+//                           opacity: submenuOpacity,
+//                           transform: [
+//                             {
+//                               scale: submenuOpacity.interpolate({
+//                                 inputRange: [0, 1],
+//                                 outputRange: [0.95, 1],
+//                               }),
+//                             },
+//                           ],
+//                         },
+//                       ]}>
+//                       <ScrollView
+//                         showsVerticalScrollIndicator={false}
+//                         contentContainerStyle={{paddingBottom: 8}}>
+//                         {sortOptions.map(opt => (
+//                           <TouchableOpacity
+//                             key={opt.value}
+//                             onPress={() => {
+//                               hSelect();
+//                               setSortOption(opt.value as any);
+//                               setMenuVisible(false);
+//                             }}
+//                             style={styles.optionRow}>
+//                             <MaterialIcons
+//                               name="sort"
+//                               size={20}
+//                               color={theme.colors.foreground}
+//                             />
+//                             <Text style={styles.optionText}>{opt.label}</Text>
+//                           </TouchableOpacity>
+//                         ))}
+//                       </ScrollView>
+//                     </Animated.View>
+//                   )}
+//                 </>
+//               </TouchableWithoutFeedback>
+//             </View>
+//           </TouchableWithoutFeedback>
+//         )}
+
+//         {/* ✏️ Edit Modal */}
+//         {selectedItemToEdit && showEditModal && (
+//           <View
+//             style={{
+//               position: 'absolute',
+//               top: 0,
+//               left: 0,
+//               right: 0,
+//               bottom: 0,
+//               backgroundColor: 'rgba(0,0,0,0.5)',
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               zIndex: 10000,
+//               elevation: 30,
+//             }}>
+//             <TouchableWithoutFeedback onPress={() => setShowEditModal(false)}>
+//               <View
+//                 style={{
+//                   position: 'absolute',
+//                   top: 0,
+//                   left: 0,
+//                   right: 0,
+//                   bottom: 0,
+//                 }}
+//               />
+//             </TouchableWithoutFeedback>
+
+//             <Animated.View
+//               style={{
+//                 padding: 24,
+//                 borderRadius: 12,
+//                 backgroundColor: theme.colors.surface,
+//                 width: '90%',
+//                 maxWidth: 720,
+//                 opacity: screenFade,
+//                 transform: [
+//                   {
+//                     scale: screenFade.interpolate({
+//                       inputRange: [0, 1],
+//                       outputRange: [0.8, 1],
+//                     }),
+//                   },
+//                 ],
+//               }}>
+//               <TextInput
+//                 value={editedName}
+//                 onChangeText={setEditedName}
+//                 placeholder="Name"
+//                 style={styles.input}
+//                 placeholderTextColor="#999"
+//               />
+//               <TextInput
+//                 value={editedColor}
+//                 onChangeText={setEditedColor}
+//                 placeholder="Color"
+//                 style={styles.input}
+//                 placeholderTextColor="#999"
+//               />
+
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={async () => {
+//                   if (selectedItemToEdit) {
+//                     await fetch(
+//                       `${API_BASE_URL}/wardrobe/${selectedItemToEdit.id}`,
+//                       {
+//                         method: 'Put',
+//                         headers: {'Content-Type': 'application/json'},
+//                         body: JSON.stringify({
+//                           name: editedName || selectedItemToEdit.name,
+//                           color: editedColor || selectedItemToEdit.color,
+//                         }),
+//                       },
+//                     );
+//                     queryClient.invalidateQueries({
+//                       queryKey: ['wardrobe', userId],
+//                     });
+//                     setShowEditModal(false);
+//                     setSelectedItemToEdit(null);
+//                   }
+//                 }}
+//                 style={{
+//                   paddingVertical: 12,
+//                   borderRadius: tokens.borderRadius.sm,
+//                   alignItems: 'center',
+//                   backgroundColor: theme.colors.primary,
+//                   marginTop: 12,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     fontSize: 16,
+//                     fontWeight: tokens.fontWeight.semiBold,
+//                     color: theme.colors.background,
+//                   }}>
+//                   Save Changes
+//                 </Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   Alert.alert(
+//                     'Delete Item',
+//                     'Are you sure you want to delete this item?',
+//                     [
+//                       {text: 'Cancel', style: 'cancel'},
+//                       {
+//                         text: 'Delete',
+//                         style: 'destructive',
+//                         onPress: () => {
+//                           deleteMutation.mutate(selectedItemToEdit.id);
+//                           setShowEditModal(false);
+//                           setSelectedItemToEdit(null);
+//                         },
+//                       },
+//                     ],
+//                   );
+//                 }}
+//                 style={{
+//                   backgroundColor: '#cc0000',
+//                   padding: 12,
+//                   borderRadius: 8,
+//                   marginTop: 16,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: '#fff',
+//                     textAlign: 'center',
+//                     fontWeight: tokens.fontWeight.semiBold,
+//                   }}>
+//                   Delete Item
+//                 </Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           </View>
+//         )}
+//       </Animated.View>
+//     </SafeAreaView>
+//     // </GradientBackground>
+//   );
+// }
 
 ///////////////////
 

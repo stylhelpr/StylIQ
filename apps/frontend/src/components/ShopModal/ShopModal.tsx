@@ -67,14 +67,21 @@ export default function ShopModal({
     PanResponder.create({
       onMoveShouldSetPanResponder: (_e, g) => {
         const shouldRespond = Math.abs(g.dy) > 8;
-        console.log('🎯 onMoveShouldSetPanResponder:', {dy: g.dy, shouldRespond});
+        console.log('🎯 onMoveShouldSetPanResponder:', {
+          dy: g.dy,
+          shouldRespond,
+        });
         return shouldRespond;
       },
       onPanResponderMove: (_e, g) => {
         console.log('📍 onPanResponderMove:', {dy: g.dy, vy: g.vy});
       },
       onPanResponderRelease: (_e, g) => {
-        console.log('🔓 onPanResponderRelease:', {dy: g.dy, vy: g.vy, threshold: g.dy > 100 || g.vy > 0.3});
+        console.log('🔓 onPanResponderRelease:', {
+          dy: g.dy,
+          vy: g.vy,
+          threshold: g.dy > 100 || g.vy > 0.3,
+        });
         if (g.dy > 100 || g.vy > 0.3) {
           handleClose();
         }
@@ -89,7 +96,7 @@ export default function ShopModal({
       <View
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.85)',
+          backgroundColor: 'rgba(0, 0, 0, 1)',
           justifyContent: 'center',
           alignItems: 'center',
         }}>
@@ -132,150 +139,153 @@ export default function ShopModal({
               onPress={() => {
                 handleClose();
               }}
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 20,
-              zIndex: 999,
-              backgroundColor: theme.colors.foreground,
-              borderRadius: 24,
-              padding: 6,
-            }}>
-            <MaterialIcons
-              name="close"
-              size={22}
-              color={theme.colors.background}
-            />
-          </TouchableOpacity>
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 20,
+                zIndex: 999,
+                backgroundColor: theme.colors.foreground,
+                borderRadius: 24,
+                padding: 6,
+              }}>
+              <MaterialIcons
+                name="close"
+                size={22}
+                color={theme.colors.background}
+              />
+            </TouchableOpacity>
 
-          {/* Product Grid */}
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <Text
-              numberOfLines={1}
-              style={[globalStyles.sectionTitle, {marginTop: 0}]}>
-              Shop the Vibe
-            </Text>
+            {/* Product Grid */}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text
+                numberOfLines={1}
+                style={[globalStyles.sectionTitle, {marginTop: 0}]}>
+                Shop the Vibe
+              </Text>
 
-            {results.length === 0 ? (
-              <View style={{flex: 1, alignItems: 'center', marginTop: 50}}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text
-                  style={{
-                    color: theme.colors.foreground,
-                    marginTop: 12,
-                    opacity: 0.7,
-                  }}>
-                  Fetching products...
-                </Text>
-              </View>
-            ) : (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                  paddingBottom: 80,
-                }}>
-                {results.map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    onPress={() => {
-                      ReactNativeHapticFeedback.trigger('impactMedium');
-                      setShopUrl(item.shopUrl);
-                    }}
-                    activeOpacity={0.85}
+              {results.length === 0 ? (
+                <View style={{flex: 1, alignItems: 'center', marginTop: 50}}>
+                  <ActivityIndicator
+                    size="large"
+                    color={theme.colors.primary}
+                  />
+                  <Text
                     style={{
-                      // width: '49.0%',
-                      // marginBottom: tokens.spacing.xsm,
-                      width: '49.5%',
-                      marginBottom: tokens.spacing.nano,
-                      backgroundColor: theme.colors.surface,
-                      // borderWidth: tokens.borderWidth.lg,
-                      // borderColor: theme.colors.surfaceBorder,
-                      // borderRadius: tokens.borderRadius.md,
-                      overflow: 'hidden',
+                      color: theme.colors.foreground,
+                      marginTop: 12,
+                      opacity: 0.7,
                     }}>
-                    {/* 🖼️ Product Image (consistent aspect ratio) */}
-                    <View
+                    Fetching products...
+                  </Text>
+                </View>
+              ) : (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    paddingBottom: 80,
+                  }}>
+                  {results.map((item, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      onPress={() => {
+                        ReactNativeHapticFeedback.trigger('impactMedium');
+                        setShopUrl(item.shopUrl);
+                      }}
+                      activeOpacity={0.85}
                       style={{
-                        width: '100%',
-                        aspectRatio: 3 / 4,
+                        // width: '49.0%',
+                        // marginBottom: tokens.spacing.xsm,
+                        width: '49.5%',
+                        marginBottom: tokens.spacing.nano,
                         backgroundColor: theme.colors.surface,
+                        // borderWidth: tokens.borderWidth.lg,
+                        // borderColor: theme.colors.surfaceBorder,
+                        // borderRadius: tokens.borderRadius.md,
                         overflow: 'hidden',
                       }}>
-                      <Image
-                        source={{uri: item.image}}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          position: 'absolute',
-                        }}
-                        resizeMode="cover"
-                      />
-
-                      {/* 💎 Click to Buy Button */}
+                      {/* 🖼️ Product Image (consistent aspect ratio) */}
                       <View
                         style={{
-                          position: 'absolute',
-                          bottom: 10,
-                          alignSelf: 'center',
-                          backgroundColor: 'rgba(255, 255, 255, 0.63)',
-                          // borderRadius: tokens.borderRadius.lg,
-                          borderRadius: tokens.borderRadius.sm,
-                          borderWidth: tokens.borderWidth.md,
-                          borderColor: 'black',
-                          paddingVertical: 8,
-                          paddingHorizontal: 14,
+                          width: '100%',
+                          aspectRatio: 3 / 4,
+                          backgroundColor: theme.colors.surface,
+                          overflow: 'hidden',
                         }}>
-                        <Text
+                        <Image
+                          source={{uri: item.image}}
                           style={{
-                            color: 'black',
-                            fontWeight: '700',
-                            fontSize: 13,
-                            letterSpacing: 0.2,
-                          }}>
-                          Click to Buy →
-                        </Text>
-                      </View>
-                    </View>
+                            width: '100%',
+                            height: '100%',
+                            position: 'absolute',
+                          }}
+                          resizeMode="cover"
+                        />
 
-                    {/* 🧾 Product Info */}
-                    <View style={{padding: 8}}>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          color: theme.colors.foreground,
-                          fontWeight: '400',
-                          fontSize: 13,
-                          textTransform: 'uppercase',
-                        }}>
-                        {item.name}
-                      </Text>
-                      {item.brand && (
+                        {/* 💎 Click to Buy Button */}
+                        <View
+                          style={{
+                            position: 'absolute',
+                            bottom: 10,
+                            alignSelf: 'center',
+                            backgroundColor: 'rgba(255, 255, 255, 0.63)',
+                            // borderRadius: tokens.borderRadius.lg,
+                            borderRadius: tokens.borderRadius.sm,
+                            borderWidth: tokens.borderWidth.md,
+                            borderColor: 'black',
+                            paddingVertical: 8,
+                            paddingHorizontal: 14,
+                          }}>
+                          <Text
+                            style={{
+                              color: 'black',
+                              fontWeight: '700',
+                              fontSize: 13,
+                              letterSpacing: 0.2,
+                            }}>
+                            Click to Buy →
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* 🧾 Product Info */}
+                      <View style={{padding: 8}}>
                         <Text
                           numberOfLines={1}
                           style={{
                             color: theme.colors.foreground,
-                            opacity: 0.7,
-                            fontSize: 11,
-                            fontWeight: '500',
-                            marginTop: 6,
+                            fontWeight: '400',
+                            fontSize: 13,
+                            textTransform: 'uppercase',
                           }}>
-                          {item.brand}
+                          {item.name}
                         </Text>
-                      )}
-                      {item.price && (
-                        <Text
-                          style={{
-                            color: theme.colors.primary,
-                            fontWeight: '500',
-                            fontSize: 12,
-                            marginTop: 6,
-                          }}>
-                          {item.price}
-                        </Text>
-                      )}
-                      {/* {item.source && (
+                        {item.brand && (
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: theme.colors.foreground,
+                              opacity: 0.7,
+                              fontSize: 11,
+                              fontWeight: '500',
+                              marginTop: 6,
+                            }}>
+                            {item.brand}
+                          </Text>
+                        )}
+                        {item.price && (
+                          <Text
+                            style={{
+                              color: theme.colors.primary,
+                              fontWeight: '500',
+                              fontSize: 12,
+                              marginTop: 6,
+                            }}>
+                            {item.price}
+                          </Text>
+                        )}
+                        {/* {item.source && (
                         <Text
                           style={{
                             color: theme.colors.foreground,
@@ -286,12 +296,12 @@ export default function ShopModal({
                           Source: {item.source}
                         </Text>
                       )} */}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </ScrollView>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
           </Animatable.View>
         </Animated.View>
 
