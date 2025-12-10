@@ -1,5 +1,14 @@
 import React, {useState, useRef, useEffect} from 'react';
-import {View, Text, StyleSheet, Animated, Platform, Image, TouchableWithoutFeedback, Modal} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Platform,
+  Image,
+  TouchableWithoutFeedback,
+  Modal,
+} from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -310,7 +319,11 @@ export default function GlobalHeader({
               <Animated.View
                 style={[
                   styles.dropdown,
-                  {opacity: fadeAnim, transform: [{translateY: slideAnim}], zIndex: 999},
+                  {
+                    opacity: fadeAnim,
+                    transform: [{translateY: slideAnim}],
+                    zIndex: 999,
+                  },
                 ]}>
                 <AppleTouchFeedback
                   hapticStyle="impactLight"

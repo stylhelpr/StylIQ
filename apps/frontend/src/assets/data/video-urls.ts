@@ -1,20 +1,20 @@
 ///// Data 1
 export const video1 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-9.mp4';
-
-export const video2 =
   'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-1.mp4';
+
+export const video5 =
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-9.mp4';
 
 export const video3 =
   'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-10.mp4';
 
-export const video4 =
+export const video6 =
   'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-2.mp4';
 
-export const video5 =
+export const video2 =
   'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-3.mp4';
 
-export const video6 =
+export const video4 =
   'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-8.mp4';
 
 export const videos = [video1, video2, video3, video4, video5, video6];

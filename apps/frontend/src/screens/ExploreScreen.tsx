@@ -1098,6 +1098,7 @@ export default function ExploreScreen() {
                 color: theme.colors.button1,
                 marginTop: -7,
                 marginBottom: 2,
+                fontWeight: 500,
               },
             ]}>
             {tab === 'For You' ? 'Recommended for you' : 'Following'}

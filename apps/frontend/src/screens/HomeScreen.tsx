@@ -191,7 +191,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 color: theme.colors.foreground,
                 fontSize: fontScale(tokens.fontSize.lg),
                 // fontWeight: tokens.fontWeight.bold,
-                fontWeight: tokens.fontWeight.normal,
+                fontWeight: tokens.fontWeight.medium,
                 paddingLeft: moderateScale(tokens.spacing.md2),
                 // textTransform: 'uppercase',
               }}>
@@ -953,7 +953,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               {weather && (
                 <View
                   style={[
-                    globalStyles.cardStyles1,
+                    globalStyles.cardStyles5,
                     {
                       paddingVertical: moderateScale(tokens.spacing.md1),
                       paddingHorizontal: moderateScale(tokens.spacing.md2),

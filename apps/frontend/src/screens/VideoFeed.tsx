@@ -137,14 +137,14 @@ export default function VideoFeedScreen({
     },
     fabContainer: {
       position: 'absolute',
-      bottom: insets.bottom + 80,
-      right: 24,
+      top: insets.bottom + 37,
+      right: 15,
       zIndex: 10,
     },
     fabButton: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
+      width: 35,
+      height: 35,
+      borderRadius: 50,
       backgroundColor: 'transparent',
       alignItems: 'center',
       justifyContent: 'center',
@@ -172,9 +172,13 @@ export default function VideoFeedScreen({
   });
 
   useEffect(() => {
+    StatusBar.setHidden(true);
     StatusBar.setTranslucent(true);
     StatusBar.setBackgroundColor('transparent');
     StatusBar.setBarStyle('light-content');
+    return () => {
+      StatusBar.setHidden(false);
+    };
   }, []);
 
   const fetchMoreData = () => {
@@ -245,17 +249,17 @@ export default function VideoFeedScreen({
       </View>
 
       {/* ❌ Close button */}
-      <View
+      {/* <View
         style={{
           position: 'absolute',
-          top: 130,
+          top: 70,
           right: 20,
           zIndex: 999999,
         }}>
-        <Pressable onPress={handleClose} style={styles.closeButton}>
+        <Pressable onPress={handleClose}>
           <MaterialIcons name="close" size={28} color="white" />
         </Pressable>
-      </View>
+      </View> */}
 
       {/* 🔘 Floating FAB */}
       <View style={styles.fabContainer}>
@@ -277,7 +281,7 @@ export default function VideoFeedScreen({
               <View style={styles.fabButton}>
                 <MaterialIcons
                   name="photo-library"
-                  size={30}
+                  size={18}
                   color={theme.colors.foreground}
                 />
               </View>

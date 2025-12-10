@@ -49,16 +49,18 @@ type Props = {
   children: React.ReactNode;
   navigate?: (screen: Screen) => void;
   showSettings?: boolean;
+  hideHeader?: boolean;
 };
 
 export default function LayoutWrapper({
   children,
   navigate,
   showSettings,
+  hideHeader,
 }: Props) {
   return (
     <View style={styles.wrapper}>
-      {navigate && (
+      {navigate && !hideHeader && (
         <GlobalHeader navigate={navigate} showSettings={showSettings} />
       )}
       {children}

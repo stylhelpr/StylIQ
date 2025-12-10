@@ -166,8 +166,9 @@ const RootNavigator = ({
   const [screenParams, setScreenParams] = useState<any>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>(mockClothingItems);
 
-  const screensWithNoHeader = ['Login', 'ItemDetail', 'AddItem', 'Home'];
+  const screensWithNoHeader = ['Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen'];
   const screensWithSettings = ['Profile'];
+  const screensWithoutBottomNav = ['VideoFeedScreen', 'ImageCarouselScreen'];
 
   const screenHistory = useRef<Screen[]>([]); // ✅ full navigation history stack
   const isGoingBackRef = useRef(false);
@@ -659,7 +660,7 @@ const RootNavigator = ({
       </LayoutWrapper>
 
       {/* ✅ Always visible when logged in */}
-      {currentScreen !== 'Login' && currentScreen !== 'Onboarding' && (
+      {currentScreen !== 'Login' && currentScreen !== 'Onboarding' && !screensWithoutBottomNav.includes(currentScreen) && (
         <>
           <BottomNavigation current={currentScreen} navigate={navigate} scrollY={scrollY} />
           {/* <VoiceMicButton navigate={navigate} /> */}

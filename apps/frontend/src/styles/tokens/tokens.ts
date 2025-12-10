@@ -93,6 +93,7 @@ export const tokens = {
   //   '10xl': 104,
   // },
   fontSize: {
+    xxxxs: fontScale(8),
     xxxs: fontScale(9),
     xxs: fontScale(10),
     xs: fontScale(12),

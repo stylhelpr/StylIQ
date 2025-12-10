@@ -1157,8 +1157,8 @@ export default function SavedOutfitsScreen() {
                                 style={[
                                   globalStyles.image1,
                                   {
-                                    marginRight: 12,
-                                    borderRadius: 12,
+                                    marginRight: 2,
+                                    borderRadius: 8,
                                     marginBottom: 8,
                                     marginTop: -6,
                                   },
@@ -1194,7 +1194,7 @@ export default function SavedOutfitsScreen() {
                             }}
                             style={{
                               backgroundColor: theme.colors.button1,
-                              borderRadius: 18,
+                              borderRadius: 8,
                               paddingVertical: 8,
                               paddingHorizontal: 14,
                               marginRight: 10,
@@ -1220,7 +1220,7 @@ export default function SavedOutfitsScreen() {
                                 alignItems: 'center',
                                 paddingVertical: 8.5,
                                 paddingHorizontal: 14,
-                                borderRadius: 18,
+                                borderRadius: 8,
                                 backgroundColor:
                                   theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                               }}>

@@ -621,7 +621,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 fontSize: fontScale(tokens.fontSize.base),
               }}>
-              Swipe suggestion above left for new result
+              Swipe card above for new suggestion
             </Text>
           </View>
 
@@ -656,7 +656,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 paddingHorizontal: isMD
                   ? moderateScale(tokens.spacing.xs) // slightly shorter buttons
                   : moderateScale(tokens.spacing.xsm),
-                borderRadius: tokens.borderRadius.md,
+                borderRadius: tokens.borderRadius.sm,
                 backgroundColor: theme.colors.button1,
                 // borderWidth: theme.borderWidth.sm,
                 // borderColor: theme.colors.surfaceBorder,
@@ -704,7 +704,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 paddingHorizontal: isMD
                   ? moderateScale(tokens.spacing.xs) // slightly shorter buttons
                   : moderateScale(tokens.spacing.xsm),
-                borderRadius: tokens.borderRadius.md,
+                borderRadius: tokens.borderRadius.sm,
                 backgroundColor: theme.colors.button1,
                 // borderWidth: theme.borderWidth.sm,
                 alignItems: 'center',

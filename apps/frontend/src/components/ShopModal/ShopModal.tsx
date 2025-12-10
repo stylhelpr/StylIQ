@@ -160,7 +160,7 @@ export default function ShopModal({
               <Text
                 numberOfLines={1}
                 style={[globalStyles.sectionTitle, {marginTop: 0}]}>
-                Shop the Vibe
+                SHOP THE VIBE
               </Text>
 
               {results.length === 0 ? (

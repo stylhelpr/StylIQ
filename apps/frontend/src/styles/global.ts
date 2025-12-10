@@ -393,9 +393,13 @@ export const createGlobalStyles = (theme: Theme) =>
       color: theme.colors.button3,
     },
     sectionTitle: {
-      fontSize: font.lg,
+      // fontSize: font.lg,
+      fontSize: font.xl,
       // fontWeight: tokens.fontWeight.bold,
-      fontWeight: tokens.fontWeight.normal,
+      // fontWeight: tokens.fontWeight.normal,
+      fontWeight: tokens.fontWeight.medium,
+      // fontWeight: tokens.fontWeight.light,
+      // fontWeight: tokens.fontWeight.extraLight,
       color: theme.colors.foreground,
       marginBottom: isTablet
         ? 10
@@ -796,6 +800,7 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: theme.colors.button1,
       // borderRadius: tokens.borderRadius['2xl'],
       borderRadius: tokens.borderRadius.sm,
+      // borderRadius: tokens.borderRadius.xxl,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -896,7 +901,7 @@ export const createGlobalStyles = (theme: Theme) =>
     image1: {
       width: isTablet ? 108 : isLargePhone ? 92 : isRegularPhone ? 92 : 92,
       height: isTablet ? 108 : isLargePhone ? 92 : isRegularPhone ? 92 : 92,
-      borderRadius: tokens.borderRadius.lg,
+      borderRadius: tokens.borderRadius.sm,
       backgroundColor: '#eee',
     },
     image2: {
@@ -1063,7 +1068,7 @@ export const createGlobalStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       borderRadius: tokens.borderRadius.lg,
-
+      // borderRadius: tokens.borderRadius.sm,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
     },

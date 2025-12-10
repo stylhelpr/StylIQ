@@ -346,7 +346,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                   globalStyles.sectionTitle,
                   {marginBottom: 8, textAlign: 'left'},
                 ]}>
-                Recreated Look
+                RECREATED LOOK
               </Text>
 
               {/* 👕 Owned */}
@@ -535,7 +535,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                           globalStyles.sectionTitle,
                           {fontSize: 20, marginBottom: 10},
                         ]}>
-                        Similar Items
+                        SIMILAR ITEMS
                       </Text>
 
                       {data.length === 0 ? (

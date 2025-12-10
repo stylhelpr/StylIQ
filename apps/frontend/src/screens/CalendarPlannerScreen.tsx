@@ -356,224 +356,228 @@ export default function OutfitPlannerScreen() {
           </Text>
 
           <Animated.View style={{flex: 1}}>
-          <Calendar
-            onDayPress={handleDayPress}
-            markedDates={{
-              ...allMarks,
-              ...(selectedDate
-                ? {
-                    [selectedDate]: {
-                      selected: true,
-                      selectedColor: theme.colors.primary,
-                    },
-                  }
-                : {}),
-            }}
-            markingType="multi-dot"
-            theme={{
-              calendarBackground: theme.colors.background,
-              textSectionTitleColor: theme.colors.foreground2,
-              dayTextColor: theme.colors.foreground,
-              todayTextColor: theme.colors.primary,
-              selectedDayBackgroundColor: theme.colors.primary,
-              selectedDayTextColor: '#fff',
-              arrowColor: theme.colors.primary,
-              monthTextColor: theme.colors.primary,
-              textMonthFontWeight: tokens.fontWeight.bold,
-              textDayFontSize: 16,
-              textMonthFontSize: 18,
-              textDayHeaderFontSize: 14,
-              dotColor: theme.colors.primary,
-              selectedDotColor: '#fff',
-              disabledArrowColor: '#444',
-            }}
-          />
-
-          {/* Details */}
-          {modalVisible && (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              style={{
-                flex: 1,
-                paddingHorizontal: moderateScale(tokens.spacing.md1),
+            <Calendar
+              onDayPress={handleDayPress}
+              markedDates={{
+                ...allMarks,
+                ...(selectedDate
+                  ? {
+                      [selectedDate]: {
+                        selected: true,
+                        selectedColor: theme.colors.primary,
+                      },
+                    }
+                  : {}),
               }}
-              contentContainerStyle={{paddingBottom: insets.bottom + 8}}>
-              {(outfitsByDate[selectedDate!] || []).map((o, index) => (
-                <View key={index} style={styles.card}>
-                  <Text style={styles.name}>{o.name || 'Unnamed Outfit'}</Text>
-                  <Text style={styles.time}>
-                    🕒 {formatLocalTime(o.plannedDate)}
+              markingType="multi-dot"
+              theme={{
+                calendarBackground: theme.colors.background,
+                textSectionTitleColor: theme.colors.foreground2,
+                dayTextColor: theme.colors.foreground,
+                todayTextColor: theme.colors.primary,
+                selectedDayBackgroundColor: theme.colors.primary,
+                selectedDayTextColor: '#fff',
+                arrowColor: theme.colors.primary,
+                monthTextColor: theme.colors.primary,
+                textMonthFontWeight: tokens.fontWeight.bold,
+                textDayFontSize: 16,
+                textMonthFontSize: 18,
+                textDayHeaderFontSize: 14,
+                dotColor: theme.colors.primary,
+                selectedDotColor: '#fff',
+                disabledArrowColor: '#444',
+              }}
+            />
+
+            {/* Details */}
+            {modalVisible && (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={{
+                  flex: 1,
+                  paddingHorizontal: moderateScale(tokens.spacing.md1),
+                }}
+                contentContainerStyle={{paddingBottom: insets.bottom + 8}}>
+                {(outfitsByDate[selectedDate!] || []).map((o, index) => (
+                  <View key={index} style={styles.card}>
+                    <Text style={styles.name}>
+                      {o.name || 'Unnamed Outfit'}
+                    </Text>
+                    <Text style={styles.time}>
+                      🕒 {formatLocalTime(o.plannedDate)}
+                    </Text>
+                    <View style={styles.row}>
+                      {[o.top, o.bottom, o.shoes].map(
+                        item =>
+                          item?.image && (
+                            <Image
+                              key={item.id}
+                              source={{uri: item.image}}
+                              style={styles.thumb}
+                              resizeMode="cover"
+                            />
+                          ),
+                      )}
+                    </View>
+                    {o.notes ? (
+                      <Text style={styles.notes}>{o.notes}</Text>
+                    ) : null}
+                  </View>
+                ))}
+
+                {calendarEvents
+                  .filter(e => getLocalDateKey(e.start_date) === selectedDate)
+                  .map(ev => (
+                    <AppleTouchFeedback
+                      key={ev.id}
+                      onPress={() => h('impactLight')}>
+                      <View style={styles.card}>
+                        <Text style={styles.name}>{ev.title}</Text>
+                        <Text style={styles.time}>
+                          {formatLocalTime(ev.start_date)} →{' '}
+                          {formatLocalTime(ev.end_date)}
+                        </Text>
+                        {ev.location ? (
+                          <Text style={styles.notes}>📍 {ev.location}</Text>
+                        ) : null}
+                        {ev.notes ? (
+                          <Text style={styles.notes}>{ev.notes}</Text>
+                        ) : null}
+                      </View>
+                    </AppleTouchFeedback>
+                  ))}
+              </ScrollView>
+            )}
+          </Animated.View>
+
+          {aiPromptVisible && promptEvent && (
+            <Animatable.View
+              animation="fadeInUp"
+              duration={450}
+              style={styles.promptBox}>
+              {!aiOutfit ? (
+                <>
+                  <Text style={[styles.promptText, {marginBottom: 6}]}>
+                    You’ve got{' '}
+                    <Text style={{fontWeight: '700'}}>{promptEvent.title}</Text>{' '}
+                    coming up
                   </Text>
-                  <View style={styles.row}>
-                    {[o.top, o.bottom, o.shoes].map(
-                      item =>
-                        item?.image && (
+
+                  {/* 📅 Date and Time */}
+                  <Text
+                    style={[
+                      styles.time,
+                      {textAlign: 'center', marginBottom: 16},
+                    ]}>
+                    {new Date(promptEvent.start_date).toLocaleDateString(
+                      undefined,
+                      {
+                        weekday: 'long',
+                        month: 'short',
+                        day: 'numeric',
+                      },
+                    )}{' '}
+                    • {formatLocalTime(promptEvent.start_date)} →{' '}
+                    {formatLocalTime(promptEvent.end_date)}
+                  </Text>
+
+                  {/* 📍 Location (if available) */}
+                  {promptEvent.location ? (
+                    <Text
+                      style={[
+                        styles.notes,
+                        {
+                          textAlign: 'center',
+                          marginBottom: 10,
+                          color: theme.colors.foreground2,
+                        },
+                      ]}>
+                      📍 {promptEvent.location}
+                    </Text>
+                  ) : null}
+                  <AppleTouchFeedback onPress={handleStyleIt}>
+                    <View style={styles.btn}>
+                      {loadingSuggestion ? (
+                        <ActivityIndicator color={theme.colors.foreground} />
+                      ) : (
+                        <Text style={styles.btnText}>Yes, Style It</Text>
+                      )}
+                    </View>
+                  </AppleTouchFeedback>
+
+                  {/* ❌ Cancel / No button */}
+                  <AppleTouchFeedback
+                    onPress={async () => {
+                      if (promptEvent?.event_id) {
+                        const {recordResponse} =
+                          useCalendarEventPromptStore.getState();
+                        await recordResponse(promptEvent.event_id, 'no');
+                      }
+                      setAiPromptVisible(false);
+                      setPromptEvent(null);
+                      h('impactLight');
+                    }}>
+                    <View
+                      style={[
+                        styles.btn,
+                        {
+                          marginTop: 8,
+                          backgroundColor: theme.colors.surface3,
+                        },
+                      ]}>
+                      <Text
+                        style={[
+                          styles.btnText,
+                          {color: theme.colors.foreground2, fontWeight: '500'},
+                        ]}>
+                        No, Not Now
+                      </Text>
+                    </View>
+                  </AppleTouchFeedback>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.promptText}>Your Styled Look</Text>
+                  {console.log('📸 Rendering outfit pieces:', {
+                    top: aiOutfit?.top,
+                    bottom: aiOutfit?.bottom,
+                    shoes: aiOutfit?.shoes,
+                  })}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    {[aiOutfit?.top, aiOutfit?.bottom, aiOutfit?.shoes].map(
+                      (piece: any, idx: number) =>
+                        piece?.image && (
                           <Image
-                            key={item.id}
-                            source={{uri: item.image}}
-                            style={styles.thumb}
-                            resizeMode="cover"
+                            key={idx}
+                            source={{uri: piece.image}}
+                            style={[styles.thumb, {width: 90, height: 90}]}
                           />
                         ),
                     )}
-                  </View>
-                  {o.notes ? <Text style={styles.notes}>{o.notes}</Text> : null}
-                </View>
-              ))}
-
-              {calendarEvents
-                .filter(e => getLocalDateKey(e.start_date) === selectedDate)
-                .map(ev => (
+                  </ScrollView>
                   <AppleTouchFeedback
-                    key={ev.id}
-                    onPress={() => h('impactLight')}>
-                    <View style={styles.card}>
-                      <Text style={styles.name}>{ev.title}</Text>
-                      <Text style={styles.time}>
-                        {formatLocalTime(ev.start_date)} →{' '}
-                        {formatLocalTime(ev.end_date)}
+                    onPress={() => {
+                      setAiPromptVisible(false);
+                      setAiOutfit(null);
+                    }}>
+                    <View
+                      style={[
+                        styles.btn,
+                        {marginTop: 10, backgroundColor: theme.colors.surface3},
+                      ]}>
+                      <Text
+                        style={[
+                          styles.btnText,
+                          {color: theme.colors.foreground},
+                        ]}>
+                        Close
                       </Text>
-                      {ev.location ? (
-                        <Text style={styles.notes}>📍 {ev.location}</Text>
-                      ) : null}
-                      {ev.notes ? (
-                        <Text style={styles.notes}>{ev.notes}</Text>
-                      ) : null}
                     </View>
                   </AppleTouchFeedback>
-                ))}
-            </ScrollView>
+                </>
+              )}
+            </Animatable.View>
           )}
-        </Animated.View>
-
-        {aiPromptVisible && promptEvent && (
-          <Animatable.View
-            animation="fadeInUp"
-            duration={450}
-            style={styles.promptBox}>
-            {!aiOutfit ? (
-              <>
-                <Text style={[styles.promptText, {marginBottom: 6}]}>
-                  You’ve got{' '}
-                  <Text style={{fontWeight: '700'}}>{promptEvent.title}</Text>{' '}
-                  coming up
-                </Text>
-
-                {/* 📅 Date and Time */}
-                <Text
-                  style={[
-                    styles.time,
-                    {textAlign: 'center', marginBottom: 16},
-                  ]}>
-                  {new Date(promptEvent.start_date).toLocaleDateString(
-                    undefined,
-                    {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                    },
-                  )}{' '}
-                  • {formatLocalTime(promptEvent.start_date)} →{' '}
-                  {formatLocalTime(promptEvent.end_date)}
-                </Text>
-
-                {/* 📍 Location (if available) */}
-                {promptEvent.location ? (
-                  <Text
-                    style={[
-                      styles.notes,
-                      {
-                        textAlign: 'center',
-                        marginBottom: 10,
-                        color: theme.colors.foreground2,
-                      },
-                    ]}>
-                    📍 {promptEvent.location}
-                  </Text>
-                ) : null}
-                <AppleTouchFeedback onPress={handleStyleIt}>
-                  <View style={styles.btn}>
-                    {loadingSuggestion ? (
-                      <ActivityIndicator color={theme.colors.foreground} />
-                    ) : (
-                      <Text style={styles.btnText}>Yes, Style It</Text>
-                    )}
-                  </View>
-                </AppleTouchFeedback>
-
-                {/* ❌ Cancel / No button */}
-                <AppleTouchFeedback
-                  onPress={async () => {
-                    if (promptEvent?.event_id) {
-                      const {recordResponse} =
-                        useCalendarEventPromptStore.getState();
-                      await recordResponse(promptEvent.event_id, 'no');
-                    }
-                    setAiPromptVisible(false);
-                    setPromptEvent(null);
-                    h('impactLight');
-                  }}>
-                  <View
-                    style={[
-                      styles.btn,
-                      {
-                        marginTop: 8,
-                        backgroundColor: theme.colors.surface3,
-                      },
-                    ]}>
-                    <Text
-                      style={[
-                        styles.btnText,
-                        {color: theme.colors.foreground2, fontWeight: '500'},
-                      ]}>
-                      No, Not Now
-                    </Text>
-                  </View>
-                </AppleTouchFeedback>
-              </>
-            ) : (
-              <>
-                <Text style={styles.promptText}>Your Styled Look</Text>
-                {console.log('📸 Rendering outfit pieces:', {
-                  top: aiOutfit?.top,
-                  bottom: aiOutfit?.bottom,
-                  shoes: aiOutfit?.shoes,
-                })}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {[aiOutfit?.top, aiOutfit?.bottom, aiOutfit?.shoes].map(
-                    (piece: any, idx: number) =>
-                      piece?.image && (
-                        <Image
-                          key={idx}
-                          source={{uri: piece.image}}
-                          style={[styles.thumb, {width: 90, height: 90}]}
-                        />
-                      ),
-                  )}
-                </ScrollView>
-                <AppleTouchFeedback
-                  onPress={() => {
-                    setAiPromptVisible(false);
-                    setAiOutfit(null);
-                  }}>
-                  <View
-                    style={[
-                      styles.btn,
-                      {marginTop: 10, backgroundColor: theme.colors.surface3},
-                    ]}>
-                    <Text
-                      style={[
-                        styles.btnText,
-                        {color: theme.colors.foreground},
-                      ]}>
-                      Close
-                    </Text>
-                  </View>
-                </AppleTouchFeedback>
-              </>
-            )}
-          </Animatable.View>
-        )}
         </KeyboardAvoidingView>
       </Animated.View>
     </SafeAreaView>
