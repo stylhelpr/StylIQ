@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef, useEffect, useLayoutEffect, useState} from 'react';
 import {
   Modal,
   View,
@@ -152,12 +152,18 @@ export default function AllSavedLooksModal({
     },
   });
 
-  useEffect(() => {
+  // Reset animation synchronously when modal opens
+  useLayoutEffect(() => {
     if (visible) {
       console.log('📋 AllSavedLooksModal visible - resetting translateY to 0');
       translateY.setValue(0);
     }
   }, [visible]);
+
+  // Also reset on modal show event
+  const handleOnShow = () => {
+    translateY.setValue(0);
+  };
 
   const handleClose = () => {
     Animated.timing(translateY, {
@@ -371,8 +377,9 @@ export default function AllSavedLooksModal({
       transparent
       animationType="none"
       presentationStyle="overFullScreen"
-      onRequestClose={handleClose}>
-      <SafeAreaView style={styles.modalContainer} pointerEvents="box-none">
+      onRequestClose={handleClose}
+      onShow={handleOnShow}>
+      <View style={styles.modalContainer} pointerEvents="box-none">
         <View style={styles.backdrop} />
         <View
           style={{
@@ -777,7 +784,7 @@ export default function AllSavedLooksModal({
             </Animatable.View>
           )}
         </Animated.View>
-      </SafeAreaView>
+      </View>
 
       {/* SaveLookModal rendered on top of AllSavedLooksModal */}
       <SaveLookModal

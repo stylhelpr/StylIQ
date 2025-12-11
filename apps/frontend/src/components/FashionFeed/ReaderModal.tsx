@@ -1,4 +1,4 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, {useRef, useLayoutEffect, useState} from 'react';
 import {
   Modal,
   View,
@@ -42,8 +42,8 @@ export default function ReaderModal({
 
   const insets = useSafeAreaInsets();
 
-  // Reset animation when modal opens
-  useEffect(() => {
+  // Reset animation synchronously when modal opens
+  useLayoutEffect(() => {
     if (visible) {
       console.log('📖 ReaderModal visible - resetting translateY to 0');
       translateY.setValue(0);
@@ -51,12 +51,18 @@ export default function ReaderModal({
     }
   }, [visible]);
 
+  // Also reset on modal show event (fires after animation completes)
+  const handleOnShow = () => {
+    console.log('✅ Modal onShow fired - resetting translateY');
+    translateY.setValue(0);
+  };
+
   const styles = StyleSheet.create({
     modalContainer: {
       flex: 1,
       backgroundColor: 'transparent',
       justifyContent: 'flex-start',
-      paddingTop: insets.top - 0,
+      paddingTop: insets.top,
     },
     backdrop: {
       ...StyleSheet.absoluteFill,
@@ -141,20 +147,14 @@ export default function ReaderModal({
       statusBarTranslucent={true}
       hardwareAccelerated={true}
       onRequestClose={handleClose}
-      onShow={() => console.log('✅ Modal onShow fired')}>
-      <SafeAreaView style={styles.modalContainer}>
+      onShow={handleOnShow}>
+      <View style={styles.modalContainer}>
         {/* Dim backdrop */}
         <Animatable.View
           ref={backdropRef}
           animation="fadeIn"
           duration={300}
           style={styles.backdrop}
-        />
-        <View
-          style={{
-            // height: insets.top - 60, // ⬅️ 56 is about the old navbar height
-            backgroundColor: theme.colors.background, // same tone as old nav
-          }}
         />
 
         {/* 📜 Animated panel */}
@@ -212,7 +212,7 @@ export default function ReaderModal({
             />
           </Animatable.View>
         </Animated.View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

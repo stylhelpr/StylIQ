@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useLayoutEffect, useRef} from 'react';
 import {
   Modal,
   View,
@@ -101,9 +101,9 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
     },
     bottomSheet: {
       position: 'absolute',
-      bottom: insets.bottom > 0 ? insets.bottom - 80 : 0, // ✅ lift above home bar
+      bottom: 0,
       width: '100%',
-      paddingBottom: insets.bottom + 16, // ✅ adds breathing room
+      paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 16, // ✅ adds breathing room
       paddingTop: 20,
       paddingHorizontal: 20,
       borderTopLeftRadius: 26,
@@ -134,8 +134,19 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
 
   useEffect(() => {
     if (look) setNewName(look.name || '');
-    if (visible) translateY.setValue(0);
-  }, [look, visible, translateY]);
+  }, [look]);
+
+  // Reset animation synchronously when modal opens
+  useLayoutEffect(() => {
+    if (visible) {
+      translateY.setValue(0);
+    }
+  }, [visible]);
+
+  // Also reset on modal show event
+  const handleOnShow = () => {
+    translateY.setValue(0);
+  };
 
   const handleClose = () => {
     Animated.timing(translateY, {
@@ -224,8 +235,9 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={handleClose}>
-      <SafeAreaView style={styles.modalContainer}>
+      onRequestClose={handleClose}
+      onShow={handleOnShow}>
+      <View style={styles.modalContainer}>
         {/* Backdrop (same as ReaderModal) */}
         <View style={[styles.backdrop, {backgroundColor: '#000'}]} />
 
@@ -328,7 +340,7 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
             </View>
           </Animatable.View>
         </Animated.View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
