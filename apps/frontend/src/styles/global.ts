@@ -886,12 +886,12 @@ export const createGlobalStyles = (theme: Theme) =>
       // elevation: 2,
       // borderColor: theme.colors.button1,
       borderColor: theme.colors.muted,
-      paddingVertical: isTablet ? 10 : isLargePhone ? 9 : 8,
+      paddingVertical: isTablet ? 10 : isLargePhone ? 9 : 9,
       borderWidth: tokens.borderWidth.hairline,
     },
     buttonPrimaryText4: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.semiBold,
+      fontWeight: tokens.fontWeight.bold,
       color: theme.colors.buttonText1,
     },
 

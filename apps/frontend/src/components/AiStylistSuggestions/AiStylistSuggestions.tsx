@@ -434,9 +434,21 @@ const AiStylistSuggestions: React.FC<Props> = ({
             <Switch
               value={isAutoMode}
               onValueChange={setIsAutoMode}
-              trackColor={{false: '#555', true: theme.colors.button1}}
-              thumbColor={isAutoMode ? '#fff' : '#ccc'}
+              trackColor={{
+                false: theme.colors.muted,
+                true: theme.colors.button1,
+              }}
+              ios_backgroundColor={theme.colors.muted}
             />
+            {/* <Switch
+              value={(prefs as any)[key]}
+              onValueChange={v => setVisible(key as keyof typeof prefs, v)}
+              trackColor={{
+                false: colors.muted,
+                true: theme.colors.button1,
+              }}
+              ios_backgroundColor={colors.muted}
+            /> */}
           </View>
 
           {/* 💬 Suggestion Card (swipe zone) */}
@@ -663,11 +675,11 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderColor: 'rgba(255,255,255,0.6)',
-                shadowColor: '#000',
-                shadowOffset: {width: 0, height: 4},
-                shadowOpacity: 0.4,
-                shadowRadius: 5,
-                elevation: 5,
+                // shadowColor: '#000',
+                // shadowOffset: {width: 0, height: 4},
+                // shadowOpacity: 0.4,
+                // shadowRadius: 5,
+                // elevation: 5,
                 // shadowColor: '#000',
                 // shadowOffset: {width: 8, height: 9},
                 // shadowOpacity: 0.4,
@@ -699,10 +711,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     ? moderateScale(tokens.spacing.xxs)
                     : moderateScale(tokens.spacing.xsm),
                 paddingVertical: isMD
-                  ? moderateScale(tokens.spacing.xsm) // slightly shorter buttons
+                  ? moderateScale(tokens.spacing.xsm)
                   : moderateScale(tokens.spacing.xsm),
                 paddingHorizontal: isMD
-                  ? moderateScale(tokens.spacing.xs) // slightly shorter buttons
+                  ? moderateScale(tokens.spacing.xs)
                   : moderateScale(tokens.spacing.xsm),
                 borderRadius: tokens.borderRadius.sm,
                 backgroundColor: theme.colors.button1,
@@ -710,12 +722,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 minWidth: isMD ? 150 : 170,
-                borderColor: 'rgba(255,255,255,0.6)',
-                shadowColor: '#000',
-                shadowOffset: {width: 0, height: 4},
-                shadowOpacity: 0.4,
-                shadowRadius: 5,
-                elevation: 5,
+                borderColor: theme.colors.surfaceBorder,
+                // shadowColor: '#000',
+                // shadowOffset: {width: 0, height: 4},
+                // shadowOpacity: 0.4,
+                // shadowRadius: 5,
+                // elevation: 5,
                 // shadowColor: '#000',
                 // shadowOffset: {width: 8, height: 9},
                 // shadowOpacity: 0.4,

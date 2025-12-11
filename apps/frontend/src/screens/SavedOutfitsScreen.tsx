@@ -1201,7 +1201,7 @@ export default function SavedOutfitsScreen() {
                             }}>
                             <Text
                               style={{
-                                color: theme.colors.foreground,
+                                color: theme.colors.buttonText1,
                                 fontWeight: '600',
                                 fontSize: 13,
                               }}>

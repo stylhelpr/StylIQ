@@ -282,7 +282,7 @@ export default function VideoFeedScreen({
                 <MaterialIcons
                   name="photo-library"
                   size={18}
-                  color={theme.colors.foreground}
+                  color={theme.colors.buttonText1}
                 />
               </View>
             </LiquidGlassView>

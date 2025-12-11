@@ -153,7 +153,7 @@ export default function ExploreScreen() {
       backgroundColor: theme.colors.button1,
     },
     iconBtnText: {
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       fontWeight: tokens.fontWeight.semiBold,
       fontSize: fontScale(tokens.fontSize.xs),
       lineHeight: 20,

@@ -94,7 +94,7 @@ export default function TrendChips({
   const GLOBAL_DELAY = 800; // 👈 chips start animating 600 ms later
 
   return (
-    <Animatable.View animation="fadeIn" duration={500} delay={GLOBAL_DELAY}>
+    <View>
       <View style={styles.wrap}>
         <ScrollView
           horizontal
@@ -159,7 +159,7 @@ export default function TrendChips({
           )}
         </ScrollView>
       </View>
-    </Animatable.View>
+    </View>
   );
 }
 

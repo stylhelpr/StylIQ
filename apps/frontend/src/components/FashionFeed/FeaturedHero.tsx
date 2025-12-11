@@ -111,16 +111,12 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
                   delay={300}
                   style={styles.overlay}
                 />
-                <Animatable.View
-                  animation="fadeInUp"
-                  delay={500}
-                  duration={800}
-                  style={styles.textBox}>
+                <View style={styles.textBox}>
                   <Text style={styles.source}>{source}</Text>
                   <Text numberOfLines={3} style={styles.title}>
                     {title}
                   </Text>
-                </Animatable.View>
+                </View>
               </ImageBackground>
             </Animated.View>
           </View>

@@ -528,7 +528,17 @@ export default function AllSavedLooksModal({
                 ]}
                 hapticStyle="impactLight"
                 onPress={() => setSaveModalVisible(true)}>
-                <Text style={globalStyles.buttonPrimaryText4}>Add Image</Text>
+                <Text
+                  style={
+                    (globalStyles.buttonPrimaryText4,
+                    {
+                      color: theme.colors.foreground,
+                      fontWeight: 700,
+                      fontSize: 12,
+                    })
+                  }>
+                  Add Image
+                </Text>
               </AppleTouchFeedback>
             </View>
           </View>
@@ -676,7 +686,7 @@ export default function AllSavedLooksModal({
                             <Text
                               style={{
                                 textAlign: 'center',
-                                color: 'white',
+                                color: theme.colors.foreground,
                                 fontWeight: '500',
                                 fontSize: 12,
                               }}>
