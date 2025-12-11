@@ -15,6 +15,7 @@ export const skins = {
       cardBackground: 'rgb(61, 61, 61)',
       header: '#1E1E1E',
       muted: '#757575',
+      // muted: '#3e3e3eff',
       input: '#EAEAEA',
       input2: 'rgb(43, 43, 43)',
       inputText1: 'rgba(121, 121, 121, 1)',
@@ -185,6 +186,7 @@ export const skins = {
       surface2: '#f4f4f4ff',
       surface3: '#d7d7d7ff',
 
+      // surfaceBorder: 'rgba(163, 163, 163, 0.32)',
       surfaceBorder: 'rgba(163, 163, 163, 0.32)',
       // surfaceBorder: 'rgba(163, 163, 163, 0)',
 

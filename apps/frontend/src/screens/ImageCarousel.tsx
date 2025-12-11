@@ -265,7 +265,8 @@ export default function ImageCarouselScreen({
               {
                 opacity: i === index ? 1 : 0.3,
                 width: i === index ? 30 : 8,
-                backgroundColor: i === index ? theme.colors.button1 : '#fff',
+                backgroundColor:
+                  i === index ? theme.colors.buttonText1 : '#fff',
               },
             ]}
           />

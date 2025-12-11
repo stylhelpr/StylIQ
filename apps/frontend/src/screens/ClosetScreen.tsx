@@ -606,7 +606,7 @@ export default function ClosetScreen({navigate}: Props) {
               style={{
                 position: 'absolute',
                 bottom: 97,
-                right: -4,
+                right: -2,
                 opacity: fabOpacity,
                 transform: [
                   {

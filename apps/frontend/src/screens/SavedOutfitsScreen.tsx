@@ -1083,7 +1083,7 @@ export default function SavedOutfitsScreen() {
                                 padding: 8,
                                 borderRadius: 14,
                                 backgroundColor:
-                                  theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                                 marginRight: 6,
                               }}>
                               <MaterialIcons
@@ -1109,7 +1109,7 @@ export default function SavedOutfitsScreen() {
                                 padding: 8,
                                 borderRadius: 14,
                                 backgroundColor:
-                                  theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                               }}>
                               <MaterialIcons
                                 name="favorite"
@@ -1135,7 +1135,7 @@ export default function SavedOutfitsScreen() {
                                 padding: 8,
                                 borderRadius: 14,
                                 backgroundColor:
-                                  theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                                 marginLeft: 6,
                               }}>
                               <MaterialIcons
