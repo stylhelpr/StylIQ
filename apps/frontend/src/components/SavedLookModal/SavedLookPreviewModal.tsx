@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useLayoutEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   Modal,
   View,
@@ -21,6 +21,7 @@ import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {tokens} from '../../styles/tokens/tokens';
 
 const {height, width} = Dimensions.get('window');
 
@@ -64,6 +65,8 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
       zIndex: 20,
       backgroundColor: theme.colors.background,
       borderRadius: 50,
+      borderColor: 'black',
+      borderWidth: tokens.borderWidth.hairline,
       paddingHorizontal: 8,
       paddingVertical: 6,
     },
@@ -101,9 +104,9 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
     },
     bottomSheet: {
       position: 'absolute',
-      bottom: 0,
+      bottom: insets.bottom > 0 ? insets.bottom - 80 : 0, // ✅ lift above home bar
       width: '100%',
-      paddingBottom: insets.bottom > 0 ? insets.bottom + 16 : 16, // ✅ adds breathing room
+      paddingBottom: insets.bottom + 16, // ✅ adds breathing room
       paddingTop: 20,
       paddingHorizontal: 20,
       borderTopLeftRadius: 26,
@@ -134,19 +137,8 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
 
   useEffect(() => {
     if (look) setNewName(look.name || '');
-  }, [look]);
-
-  // Reset animation synchronously when modal opens
-  useLayoutEffect(() => {
-    if (visible) {
-      translateY.setValue(0);
-    }
-  }, [visible]);
-
-  // Also reset on modal show event
-  const handleOnShow = () => {
-    translateY.setValue(0);
-  };
+    if (visible) translateY.setValue(0);
+  }, [look, visible, translateY]);
 
   const handleClose = () => {
     Animated.timing(translateY, {
@@ -235,9 +227,8 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={handleClose}
-      onShow={handleOnShow}>
-      <View style={styles.modalContainer}>
+      onRequestClose={handleClose}>
+      <SafeAreaView style={styles.modalContainer}>
         {/* Backdrop (same as ReaderModal) */}
         <View style={[styles.backdrop, {backgroundColor: '#000'}]} />
 
@@ -255,7 +246,7 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
           <TouchableOpacity
             style={[
               styles.closeIcon,
-              {backgroundColor: theme.colors.foreground, marginTop: 4},
+              {backgroundColor: theme.colors.foreground, marginTop: 14},
             ]}
             onPress={handleClose}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
@@ -340,7 +331,7 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
             </View>
           </Animatable.View>
         </Animated.View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }

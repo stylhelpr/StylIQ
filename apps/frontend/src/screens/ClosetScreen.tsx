@@ -277,7 +277,7 @@ export default function ClosetScreen({navigate}: Props) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'flex-end',
-      marginTop: 24,
+      marginTop: 10,
     },
     popover: {
       position: 'absolute',
@@ -606,7 +606,7 @@ export default function ClosetScreen({navigate}: Props) {
               style={{
                 position: 'absolute',
                 bottom: 97,
-                right: 2,
+                right: -4,
                 opacity: fabOpacity,
                 transform: [
                   {
@@ -636,8 +636,8 @@ export default function ClosetScreen({navigate}: Props) {
                     btn.onPress();
                   }}
                   style={{
-                    width: 52,
-                    height: 52,
+                    width: 50,
+                    height: 50,
                     borderRadius: 26,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -656,8 +656,8 @@ export default function ClosetScreen({navigate}: Props) {
           <Animated.View
             style={{
               position: 'absolute',
-              bottom: 92,
-              right: 14,
+              bottom: 96,
+              right: 18,
               transform: [{translateY: fabBounce}],
             }}>
             <LiquidGlassCard
@@ -665,8 +665,8 @@ export default function ClosetScreen({navigate}: Props) {
               blurOpacity={0.6}
               borderRadius={32}
               style={{
-                width: 64,
-                height: 64,
+                width: 54,
+                height: 54,
                 borderRadius: 32,
                 shadowColor: '#000',
                 shadowOpacity: 0.25,

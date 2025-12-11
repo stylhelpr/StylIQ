@@ -82,8 +82,8 @@ export default function ReaderModal({
     },
     closeIcon: {
       position: 'absolute',
-      top: 0, // 👈 Sits ABOVE gesture zone
-      right: 20,
+      top: 11, // 👈 Sits ABOVE gesture zone
+      right: 18,
       zIndex: 20,
       backgroundColor: 'white',
       borderRadius: 20,

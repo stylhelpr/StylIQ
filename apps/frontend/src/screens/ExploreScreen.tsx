@@ -135,15 +135,6 @@ export default function ExploreScreen() {
       color: theme.colors.foreground,
       fontWeight: tokens.fontWeight.bold,
     },
-    // topBar: {
-    //   paddingTop: moderateScale(tokens.spacing.sm2),
-    //   paddingHorizontal: moderateScale(tokens.spacing.md),
-    //   paddingBottom: moderateScale(tokens.spacing.md),
-    //   backgroundColor: theme.colors.background,
-    //   flexDirection: 'row',
-    //   alignItems: 'center',
-    //   justifyContent: 'space-between',
-    // },
     topBar: {
       width: '100%',
       flexDirection: 'row',
@@ -156,7 +147,7 @@ export default function ExploreScreen() {
       // marginLeft: 16,
       width: 100,
       height: 36,
-      borderRadius: 10,
+      borderRadius: tokens.borderRadius.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.button1,
@@ -292,20 +283,10 @@ export default function ExploreScreen() {
       borderRadius: tokens.borderRadius.md,
       borderColor: theme.colors.surfaceBorder,
       borderWidth: tokens.borderWidth.hairline,
-      // shadowColor: '#000',
-      // shadowOpacity: 0.15,
-      // shadowRadius: 8,
-      // shadowOffset: {width: 0, height: 4},
       flexDirection: 'row',
       alignItems: 'center',
     },
-    // sourceControls: {
-    //   flexDirection: 'row',
-    //   alignItems: 'center',
-    //   justifyContent: 'flex-start',
-    //   flexWrap: 'wrap',
-    //   paddingVertical: moderateScale(tokens.spacing.sm),
-    // },
+
     sourceControls: {
       flexDirection: 'row',
       flexWrap: 'nowrap', // ✅ prevent wrapping on small phones

@@ -106,6 +106,7 @@ export default function ShopModal({
             maxWidth: '100%',
             height: '90%',
             transform: [{translateY}],
+            marginTop: 33,
           }}>
           <Animatable.View
             animation="fadeInUp"
@@ -142,7 +143,7 @@ export default function ShopModal({
               style={{
                 position: 'absolute',
                 top: 8,
-                right: 20,
+                right: 18,
                 zIndex: 999,
                 backgroundColor: theme.colors.foreground,
                 borderRadius: 24,

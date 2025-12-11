@@ -116,8 +116,8 @@ export default function AllSavedLooksModal({
     },
     closeIcon: {
       position: 'absolute',
-      top: 0,
-      right: 20,
+      top: 0, // 👈 Sits ABOVE gesture zone
+      right: 18,
       zIndex: 20,
       backgroundColor: 'white',
       borderRadius: 20,
@@ -383,7 +383,7 @@ export default function AllSavedLooksModal({
         <View style={styles.backdrop} />
         <View
           style={{
-            height: insets.top - 1,
+            height: insets.top - 25,
             backgroundColor: theme.colors.background,
           }}
         />
@@ -524,7 +524,7 @@ export default function AllSavedLooksModal({
               <AppleTouchFeedback
                 style={[
                   globalStyles.buttonPrimary4,
-                  {width: 100, marginLeft: tokens.spacing.sm},
+                  {width: 100, marginLeft: tokens.spacing.xxs},
                 ]}
                 hapticStyle="impactLight"
                 onPress={() => setSaveModalVisible(true)}>

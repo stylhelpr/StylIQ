@@ -35,8 +35,8 @@ export default function IntegratedShopOverlay({
           }}
           style={{
             position: 'absolute',
-            top: 120,
-            right: 16,
+            top: 72,
+            right: 18,
             zIndex: 999,
             backgroundColor: theme.colors.foreground,
             borderRadius: 24,

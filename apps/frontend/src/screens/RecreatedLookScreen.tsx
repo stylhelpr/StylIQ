@@ -320,8 +320,8 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
               onPress={handleBack}
               style={{
                 position: 'absolute',
-                top: 10,
-                right: 20,
+                top: 11,
+                right: 18,
                 zIndex: 10,
                 backgroundColor: theme.colors.foreground,
                 borderRadius: 24,

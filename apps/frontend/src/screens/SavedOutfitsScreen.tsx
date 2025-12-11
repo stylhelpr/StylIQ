@@ -1600,17 +1600,17 @@ export default function SavedOutfitsScreen() {
             <TouchableOpacity
               style={{
                 position: 'absolute',
-                top: 0,
-                right: 20,
+                top: 11,
+                right: 18,
                 zIndex: 20,
-                backgroundColor: 'rgba(0,0,0,0.5)',
+                backgroundColor: 'rgba(255, 255, 255, 1)',
                 borderRadius: 50,
                 paddingHorizontal: 8,
                 paddingVertical: 6,
               }}
               onPress={handleClose}
               hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-              <Text style={{color: '#fff', fontSize: 20}}>✕</Text>
+              <Text style={{color: 'black', fontSize: 20}}>✕</Text>
             </TouchableOpacity>
 
             {/* 🟥 Swipe Gesture Zone */}
@@ -1618,8 +1618,8 @@ export default function SavedOutfitsScreen() {
               {...panResponder.panHandlers}
               style={{
                 position: 'absolute',
-                top: 28,
-                height: 280,
+                top: 45,
+                height: 80,
                 width: '100%',
                 zIndex: 999,
                 // backgroundColor: 'rgba(255,0,0,0.3)', // debug
