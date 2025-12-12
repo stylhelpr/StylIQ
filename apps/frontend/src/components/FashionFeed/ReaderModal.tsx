@@ -207,6 +207,9 @@ export default function ReaderModal({
             <WebView
               source={{uri: url || ''}}
               style={{flex: 1}}
+              decelerationRate="normal"
+              bounces={true}
+              scrollEnabled={true}
               onLoadStart={() => console.log('🌐 WebView load start')}
               onLoadEnd={() => console.log('🌐 WebView load end')}
             />
