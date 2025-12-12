@@ -1077,9 +1077,9 @@ export default function ExploreScreen() {
               globalStyles.sectionTitle,
               {
                 color: theme.colors.button1,
-                marginTop: -7,
+                marginTop: 0,
                 marginBottom: 2,
-                fontWeight: 500,
+                fontWeight: 600,
               },
             ]}>
             {tab === 'For You' ? 'Recommended for you' : 'Following'}

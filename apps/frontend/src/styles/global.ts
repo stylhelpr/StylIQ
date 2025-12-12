@@ -392,12 +392,30 @@ export const createGlobalStyles = (theme: Theme) =>
       fontWeight: tokens.fontWeight.medium,
       color: theme.colors.button3,
     },
+    // sectionTitle: {
+    //   // fontSize: font.lg,
+    //   fontSize: font.xl,
+    //   // fontWeight: tokens.fontWeight.bold,
+    //   // fontWeight: tokens.fontWeight.normal,
+    //   fontWeight: tokens.fontWeight.medium,
+    //   // fontWeight: tokens.fontWeight.light,
+    //   // fontWeight: tokens.fontWeight.extraLight,
+    //   color: theme.colors.foreground,
+    //   marginBottom: isTablet
+    //     ? 10
+    //     : isLargePhone
+    //     ? 10
+    //     : isRegularPhone
+    //     ? 10
+    //     : 10,
+    //   // textTransform: 'uppercase',
+    // },
     sectionTitle: {
-      // fontSize: font.lg,
-      fontSize: font.xl,
-      // fontWeight: tokens.fontWeight.bold,
+      fontSize: font.lg,
+      // fontSize: font.xl,
+      fontWeight: tokens.fontWeight.bold,
       // fontWeight: tokens.fontWeight.normal,
-      fontWeight: tokens.fontWeight.medium,
+      // fontWeight: tokens.fontWeight.medium,
       // fontWeight: tokens.fontWeight.light,
       // fontWeight: tokens.fontWeight.extraLight,
       color: theme.colors.foreground,
@@ -408,7 +426,7 @@ export const createGlobalStyles = (theme: Theme) =>
         : isRegularPhone
         ? 10
         : 10,
-      // textTransform: 'uppercase',
+      textTransform: 'uppercase',
     },
     sectionTitle2: {
       fontSize: font.md,
@@ -519,7 +537,8 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     subLabel: {
       fontSize: font.xs,
-      fontWeight: tokens.fontWeight.semiBold,
+      // fontWeight: tokens.fontWeight.semiBold,
+      fontWeight: tokens.fontWeight.medium,
       marginTop: 2,
       color: theme.colors.foreground2,
     },

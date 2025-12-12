@@ -406,10 +406,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             </View>
 
             <Text
+              numberOfLines={1}
               style={{
+                flex: 1,
                 fontSize: fontScale(tokens.fontSize.lg),
                 fontWeight: tokens.fontWeight.bold,
                 color: theme.colors.foreground,
+                textTransform: 'uppercase',
               }}>
               Styla's Suggestions
             </Text>
@@ -440,15 +443,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}
               ios_backgroundColor={theme.colors.muted}
             />
-            {/* <Switch
-              value={(prefs as any)[key]}
-              onValueChange={v => setVisible(key as keyof typeof prefs, v)}
-              trackColor={{
-                false: colors.muted,
-                true: theme.colors.button1,
-              }}
-              ios_backgroundColor={colors.muted}
-            /> */}
           </View>
 
           {/* 💬 Suggestion Card (swipe zone) */}
@@ -648,7 +642,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               width: '100%',
             }}>
             {/* 👚 View Wardrobe Gaps */}
-            <AppleTouchFeedback
+            {/* <AppleTouchFeedback
               hapticStyle="impactLight"
               onPress={() => navigate('Wardrobe')}
               style={{
@@ -695,10 +689,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 }}>
                 View Wardrobe Gaps
               </Text>
-            </AppleTouchFeedback>
+            </AppleTouchFeedback> */}
 
             {/* 💬 Ask a Styling Question */}
-            <AppleTouchFeedback
+            {/* <AppleTouchFeedback
               hapticStyle="impactLight"
               onPress={() => navigate('AiStylistChatScreen')}
               style={{
@@ -742,7 +736,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 }}>
                 Ask a Styling Question
               </Text>
-            </AppleTouchFeedback>
+            </AppleTouchFeedback> */}
           </View>
         </Animatable.View>
       </ScrollView>

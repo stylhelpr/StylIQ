@@ -245,7 +245,7 @@ export default function ShopModal({
                               fontSize: 13,
                               letterSpacing: 0.2,
                             }}>
-                            Click to Buy →
+                            Click to Buy
                           </Text>
                         </View>
                       </View>

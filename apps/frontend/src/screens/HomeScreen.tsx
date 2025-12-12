@@ -190,10 +190,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               style={{
                 color: theme.colors.foreground,
                 fontSize: fontScale(tokens.fontSize.lg),
-                // fontWeight: tokens.fontWeight.bold,
-                fontWeight: tokens.fontWeight.medium,
+                fontWeight: tokens.fontWeight.bold,
+                // fontWeight: tokens.fontWeight.medium,
                 paddingLeft: moderateScale(tokens.spacing.md2),
-                // textTransform: 'uppercase',
+                textTransform: 'uppercase',
               }}>
               {title}
             </Text>
@@ -1314,7 +1314,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   // borderRadius: tokens.borderRadius.sm,
                 },
               ]}>
-              <Text style={globalStyles.buttonPrimaryText}>Media Center</Text>
+              <Text
+                style={[
+                  globalStyles.buttonPrimaryText,
+                  {textTransform: 'uppercase', fontWeight: '800'},
+                ]}>
+                Media Center
+              </Text>
             </AppleTouchFeedback>
           </Animatable.View>
 
@@ -1372,7 +1378,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 )}
               </View>
 
-              {/* SAVED LOOKS SECTION */}
+              {/* INSPIRED LOOKS SECTION */}
               {(savedLooks.length > 0 || true) && ( // ✅ always show the section
                 <CollapsibleSection
                   // title="Your Saved Looks"
