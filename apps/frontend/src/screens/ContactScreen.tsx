@@ -75,7 +75,7 @@ export default function ContactScreen({navigate}: any) {
     },
     primaryBtn: {
       width: 220,
-      borderRadius: 50,
+      borderRadius: tokens.borderRadius.sm,
       paddingHorizontal: 22,
     },
     tipCard: {

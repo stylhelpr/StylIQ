@@ -1323,7 +1323,7 @@ function TtsToggle() {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.colors.surface3,
-        borderRadius: 16,
+        borderRadius: tokens.borderRadius.sm,
         paddingHorizontal: 10,
         paddingVertical: 6,
       }}>

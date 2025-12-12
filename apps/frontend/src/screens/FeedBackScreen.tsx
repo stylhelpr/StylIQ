@@ -75,7 +75,11 @@ export default function FeedbackScreen({navigate}: any) {
     toggleTitle: {fontSize: 15, fontWeight: '600'},
     toggleSub: {fontSize: 12},
     buttonRow: {flexDirection: 'row', justifyContent: 'center'},
-    primaryBtn: {width: 220, borderRadius: 50, paddingHorizontal: 22},
+    primaryBtn: {
+      width: 220,
+      borderRadius: tokens.borderRadius.sm,
+      paddingHorizontal: 22,
+    },
     tipCard: {
       borderRadius: 12,
       padding: 14,

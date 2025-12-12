@@ -20,7 +20,7 @@ import {useUUID} from '../context/UUIDContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {analyzeImage, autoCreateWithAI} from '../api/analyzeImage';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {tokens} from '@tokens/tokens';
+import {tokens} from '../styles/tokens/tokens';
 import {ActivityIndicator} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -764,7 +764,7 @@ export default function AddItemScreen({
                       {
                         width: 155, // ✅ keep consistent button width
                         justifyContent: 'center',
-                        borderRadius: 25,
+                        borderRadius: tokens.borderRadius.sm,
                         opacity: saving ? 0.7 : 1,
                       },
                     ]}
@@ -785,7 +785,7 @@ export default function AddItemScreen({
                       {
                         width: 155,
                         justifyContent: 'center',
-                        borderRadius: 25,
+                        borderRadius: tokens.borderRadius.sm,
                       },
                     ]}
                     disabled={saving}>

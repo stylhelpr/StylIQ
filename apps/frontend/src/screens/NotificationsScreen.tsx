@@ -117,7 +117,7 @@ export default function NotificationsScreen({
     pill: {
       paddingHorizontal: 18,
       paddingVertical: 8,
-      borderRadius: 20,
+      borderRadius: tokens.borderRadius.sm,
       backgroundColor: theme.colors.pillDark1,
       marginRight: 8,
     },
@@ -133,7 +133,7 @@ export default function NotificationsScreen({
     actionBtn: {
       paddingHorizontal: 18,
       paddingVertical: 8,
-      borderRadius: 20,
+      borderRadius: tokens.borderRadius.sm,
       backgroundColor: theme.colors.pillDark1,
       marginLeft: 8,
     },
@@ -168,8 +168,12 @@ export default function NotificationsScreen({
 
   useEffect(() => {
     const unsubscribeFg = messaging().onMessage(async msg => {
-      const title = String(msg.notification?.title || msg.data?.title || 'New Notification');
-      const message = String(msg.notification?.body || msg.data?.body || msg.data?.message || '');
+      const title = String(
+        msg.notification?.title || msg.data?.title || 'New Notification',
+      );
+      const message = String(
+        msg.notification?.body || msg.data?.body || msg.data?.message || '',
+      );
 
       await addToInbox({
         user_id: userId,
@@ -191,8 +195,12 @@ export default function NotificationsScreen({
     });
 
     const unsubscribeOpen = messaging().onNotificationOpenedApp(async msg => {
-      const title = String(msg.notification?.title || msg.data?.title || 'New Notification');
-      const message = String(msg.notification?.body || msg.data?.body || msg.data?.message || '');
+      const title = String(
+        msg.notification?.title || msg.data?.title || 'New Notification',
+      );
+      const message = String(
+        msg.notification?.body || msg.data?.body || msg.data?.message || '',
+      );
 
       await addToInbox({
         user_id: userId,

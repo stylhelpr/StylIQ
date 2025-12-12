@@ -79,7 +79,7 @@ export default function AboutScreen({navigate}: any) {
     footer: {alignItems: 'center', marginTop: 8},
     primaryBtn: {
       width: 220,
-      borderRadius: 50,
+      borderRadius: tokens.borderRadius.sm,
       paddingHorizontal: 22,
     },
   });

@@ -17,6 +17,7 @@ import {
   CameraOptions,
   ImageLibraryOptions,
 } from 'react-native-image-picker';
+import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
@@ -71,7 +72,7 @@ export default function ImagePickerGrid({
     buttonPrimary: {
       paddingVertical: 9,
       paddingHorizontal: 5,
-      borderRadius: 8,
+      borderRadius: tokens.borderRadius.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.button1,

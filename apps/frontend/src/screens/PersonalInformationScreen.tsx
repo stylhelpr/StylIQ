@@ -18,6 +18,7 @@ import * as ImagePicker from 'react-native-image-picker';
 import {API_BASE_URL} from '../config/api';
 import {useUUID} from '../context/UUIDContext';
 import {useAuth0} from 'react-native-auth0';
+import {tokens} from '../styles/tokens/tokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SafeScreenWrapper from '../components/SafeScreenWrapper';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -65,10 +66,10 @@ export default function PersonalInformationScreen({navigate}: any) {
       borderWidth: 1,
       borderColor: theme.colors.surfaceBorder,
     },
-    photoButton: {paddingHorizontal: 22, borderRadius: 50},
+    photoButton: {paddingHorizontal: 22, borderRadius: tokens.borderRadius.sm},
     formCard: {
       backgroundColor: theme.colors.surface,
-      borderRadius: 16,
+      borderRadius: tokens.borderRadius.sm,
       padding: 18,
       marginBottom: 32,
       shadowColor: '#000',
