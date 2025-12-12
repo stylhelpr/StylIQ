@@ -22,6 +22,9 @@ import Animated, {
 import {LiquidGlassView} from '@callstack/liquid-glass';
 import {useAppTheme} from '../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {tokens} from '../styles/tokens/tokens';
 
 const {width, height} = Dimensions.get('window');
 
@@ -196,6 +199,11 @@ export default function ImageCarouselScreen({
     navigate('HomeScreen');
   };
 
+  const handleCommunity = () => {
+    ReactNativeHapticFeedback.trigger('impactMedium');
+    navigate('CommunityShowcaseScreen');
+  };
+
   return (
     <View style={styles.container}>
       {/* 🧊 Cube Scroll */}
@@ -273,11 +281,45 @@ export default function ImageCarouselScreen({
         ))}
       </View>
 
-      {/* ❌ Close button */}
+      {/* 🔘 Community FAB */}
       <View
         style={{
           position: 'absolute',
           top: 72,
+          right: 15,
+          zIndex: 999999,
+        }}>
+        <AppleTouchFeedback onPress={handleCommunity}>
+          <View
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 20,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              borderWidth: tokens.borderWidth.md,
+              borderColor: theme.colors.muted,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
+              shadowOffset: {width: 0, height: 4},
+            }}>
+            <MaterialIcons
+              name="people"
+              size={22}
+              color={theme.colors.buttonText1}
+            />
+          </View>
+        </AppleTouchFeedback>
+      </View>
+
+      {/* ❌ Close button */}
+      <View
+        style={{
+          position: 'absolute',
+
+          top: 120,
           right: 15,
           zIndex: 999999,
         }}>

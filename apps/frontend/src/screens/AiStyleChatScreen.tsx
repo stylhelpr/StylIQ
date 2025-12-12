@@ -113,6 +113,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
 
   const userId = useUUID();
   const [profilePicture, setProfilePicture] = useState<string>('');
+  const [firstName, setFirstName] = useState<string>('');
 
   const [inputHeight, setInputHeight] = useState(42);
   const animatedHeight = useRef(new Animated.Value(42)).current;
@@ -147,12 +148,40 @@ export default function AiStylistChatScreen({navigate}: Props) {
     }).start();
   }, [inputHeight]);
 
+  // Fetch user's first name for personalized greeting
+  useEffect(() => {
+    const fetchFirstName = async () => {
+      if (!userId) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+        const data = await res.json();
+        if (data.first_name) {
+          setFirstName(data.first_name);
+          // Update the initial greeting message with the user's name
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === 'seed-1'
+                ? {
+                    ...msg,
+                    text: `Hey ${data.first_name} — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.`,
+                  }
+                : msg,
+            ),
+          );
+        }
+      } catch (err) {
+        console.error('❌ Failed to fetch user name:', err);
+      }
+    };
+    fetchFirstName();
+  }, [userId]);
+
   /** 🌐 State */
   const [messages, setMessages] = useState<Message[]>(() => [
     {
       id: 'seed-1',
       role: 'assistant',
-      text: "Hey — I'm Styla, your AI Stylist. Ask me anything fashion related that yo uwant to know.",
+      text: "Hey — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.",
       createdAt: Date.now(),
     },
   ]);
@@ -1138,7 +1167,9 @@ export default function AiStylistChatScreen({navigate}: Props) {
                                 {
                                   id: 'seed-1',
                                   role: 'assistant',
-                                  text: "Hey — I'm Styla, your AI Stylist. Ask me anything fashion related that yo uwant to know.",
+                                  text: firstName
+                                    ? `Hi ${firstName} — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.`
+                                    : "Hi — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.",
                                   createdAt: Date.now(),
                                 },
                               ]);

@@ -201,6 +201,11 @@ export default function VideoFeedScreen({
     navigate('ImageCarouselScreen'); // ✅ navigate to your screen
   };
 
+  const handleCommunity = () => {
+    ReactNativeHapticFeedback.trigger('impactMedium');
+    navigate('CommunityShowcaseScreen');
+  };
+
   const handleClose = () => {
     navigate('HomeScreen');
   };
@@ -261,53 +266,52 @@ export default function VideoFeedScreen({
         </Pressable>
       </View> */}
 
-      {/* 🔘 Floating FAB */}
+      {/* 🔘 Floating FABs */}
       <View style={styles.fabContainer}>
-        <AppleTouchFeedback onPress={handleNavigate}>
-          {isLiquidGlassSupported && !isiOS25OrLower ? (
-            <LiquidGlassView
-              style={{
-                borderRadius: 50,
+        {/* Community Button */}
+        <AppleTouchFeedback onPress={handleCommunity} style={{marginBottom: 12}}>
+          <View
+            style={[
+              styles.fabButton,
+              {
+                backgroundColor: 'rgba(0,0,0,0.35)',
                 borderWidth: tokens.borderWidth.md,
-                borderColor: theme.colors.foreground,
-              }}
-              effect="clear"
-              tintColor={
-                theme.mode === 'light'
-                  ? 'rgba(255,255,255,0.55)'
-                  : 'rgba(0,0,0,0.44)'
-              }
-              colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
-              <View style={styles.fabButton}>
-                <MaterialIcons
-                  name="photo-library"
-                  size={18}
-                  color={theme.colors.buttonText1}
-                />
-              </View>
-            </LiquidGlassView>
-          ) : (
-            // 🔹 Fallback for iOS 25 and below or unsupported devices
-            <View
-              style={[
-                styles.fabButton,
-                {
-                  backgroundColor: 'rgba(0,0,0,0.35)',
-                  borderWidth: tokens.borderWidth.md,
-                  borderColor: theme.colors.muted,
-                  shadowColor: '#000',
-                  shadowOpacity: 0.2,
-                  shadowRadius: 8,
-                  shadowOffset: {width: 0, height: 4},
-                },
-              ]}>
-              <MaterialIcons
-                name="photo-library"
-                size={30}
-                color={theme.colors.buttonText1}
-              />
-            </View>
-          )}
+                borderColor: theme.colors.muted,
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+                shadowOffset: {width: 0, height: 4},
+              },
+            ]}>
+            <MaterialIcons
+              name="people"
+              size={22}
+              color={theme.colors.buttonText1}
+            />
+          </View>
+        </AppleTouchFeedback>
+
+        {/* Photo Library Button */}
+        <AppleTouchFeedback onPress={handleNavigate}>
+          <View
+            style={[
+              styles.fabButton,
+              {
+                backgroundColor: 'rgba(0,0,0,0.35)',
+                borderWidth: tokens.borderWidth.md,
+                borderColor: theme.colors.muted,
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+                shadowOffset: {width: 0, height: 4},
+              },
+            ]}>
+            <MaterialIcons
+              name="photo-library"
+              size={22}
+              color={theme.colors.buttonText1}
+            />
+          </View>
         </AppleTouchFeedback>
       </View>
     </View>

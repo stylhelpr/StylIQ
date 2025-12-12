@@ -56,6 +56,7 @@ import BarcodeScannerScreen from '../screens/BarcodeScannerScreen';
 import VideoFeedScreen from '../screens/VideoFeed';
 import BlurredCardScreen from '../screens/BlurredCardScreen';
 import ImageCarouselScreen from '../screens/ImageCarousel';
+import CommunityShowcaseScreen from '../screens/CommunityShowcaseScreen';
 import MeasurementAutoScreen from '../screens/MeasurementAutoScreen';
 import {MeasurementLiveScreen} from '../screens/MeasurementLiveScreen';
 import MeasurementFrontScreen from '../screens/MeasurementFrontScreen';
@@ -144,6 +145,7 @@ type Screen =
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'
   | 'VideoFeedScreen'
+  | 'CommunityShowcaseScreen'
   | 'OnboardingScreen'
   | 'MeasurementLiveScreen'
   | 'MeasurementFrontScreen'
@@ -615,6 +617,8 @@ const RootNavigator = ({
         return <OnboardingScreen navigate={navigate} />;
       case 'VideoFeedScreen':
         return <VideoFeedScreen navigate={navigate} />;
+      case 'CommunityShowcaseScreen':
+        return <CommunityShowcaseScreen navigate={navigate} />;
       case 'PersonalInformation':
         return <PersonalInformationScreen navigate={navigate} />;
       case 'ItemDetail':

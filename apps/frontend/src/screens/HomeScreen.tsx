@@ -1319,7 +1319,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   globalStyles.buttonPrimaryText,
                   {textTransform: 'uppercase', fontWeight: '800'},
                 ]}>
-                Media Center
+                Community Share Center
               </Text>
             </AppleTouchFeedback>
           </Animatable.View>
