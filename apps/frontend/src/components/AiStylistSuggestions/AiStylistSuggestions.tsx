@@ -642,7 +642,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               width: '100%',
             }}>
             {/* 👚 View Wardrobe Gaps */}
-            {/* <AppleTouchFeedback
+            <AppleTouchFeedback
               hapticStyle="impactLight"
               onPress={() => navigate('Wardrobe')}
               style={{
@@ -689,10 +689,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 }}>
                 View Wardrobe Gaps
               </Text>
-            </AppleTouchFeedback> */}
+            </AppleTouchFeedback>
 
             {/* 💬 Ask a Styling Question */}
-            {/* <AppleTouchFeedback
+            <AppleTouchFeedback
               hapticStyle="impactLight"
               onPress={() => navigate('AiStylistChatScreen')}
               style={{
@@ -736,7 +736,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 }}>
                 Ask a Styling Question
               </Text>
-            </AppleTouchFeedback> */}
+            </AppleTouchFeedback>
           </View>
         </Animatable.View>
       </ScrollView>
