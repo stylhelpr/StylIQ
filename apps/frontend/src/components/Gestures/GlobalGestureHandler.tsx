@@ -70,7 +70,6 @@ export default function GlobalGestureHandler({
     PanResponder.create({
       onStartShouldSetPanResponder: (e, g) => {
         initialTouchXRef.current = e.nativeEvent.pageX;
-        d('START pageX:', e.nativeEvent.pageX, 'x0:', g.x0);
         return false;
       },
       onStartShouldSetPanResponderCapture: () => false,
@@ -95,27 +94,12 @@ export default function GlobalGestureHandler({
         const horizontalIntent = fromEdge && g.dx > 8 && Math.abs(g.dy) < 48;
         const downwardIntent = isModal && g.dy > 60 && Math.abs(g.dx) < 36;
 
-        d('MOVE-SHOULD-SET', {
-          pageX: e.nativeEvent.pageX,
-          x0: g.x0,
-          initialX,
-          dx: g.dx,
-          dy: g.dy,
-          vx: g.vx,
-          vy: g.vy,
-          fromEdge,
-          horizontalIntent,
-          downwardIntent,
-          take: horizontalIntent || downwardIntent,
-        });
-
         return (
           panResponderEnabled.current && (horizontalIntent || downwardIntent)
         );
       },
 
       onPanResponderGrant: (e, g) => {
-        d('GRANT from initialX:', initialTouchXRef.current, 'g.x0:', g.x0);
       },
 
       onPanResponderMove: (_e, g) => {

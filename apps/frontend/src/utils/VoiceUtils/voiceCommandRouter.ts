@@ -44,6 +44,8 @@ export const routeVoiceCommand = async (
     return go('StyleProfileScreen', 'Style Profile');
   if (includesAny(['fashion news', 'news', 'news stories']))
     return go('Explore', 'Explore');
+  if (includesAny(['community share', 'community', 'share']))
+    return go('CommunityShowcaseScreen', 'CommunityShowcaseScreen');
   if (includesAny(['wardrobe', 'closet'])) return go('Wardrobe', 'Wardrobe');
   if (includesAny(['settings', 'preferences', 'options']))
     return go('Settings', 'Settings');
