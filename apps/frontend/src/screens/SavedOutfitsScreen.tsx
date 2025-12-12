@@ -35,6 +35,7 @@ import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
 import {addOutfitToCalendar, removeCalendarEvent} from '../utils/calendar';
+import {addToInbox} from '../utils/notificationInbox';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import SwipeableCard from '../components/SwipeableCard/SwipeableCard';
 import {Share} from 'react-native';
@@ -562,21 +563,36 @@ export default function SavedOutfitsScreen() {
   };
 
   // 📅 Local notification helpers
-  const scheduleOutfitLocalAlert = (
+  const scheduleOutfitLocalAlert = async (
     outfitId: string,
     outfitName: string | undefined,
     when: Date,
   ) => {
     const local = new Date(when.getTime() - when.getTimezoneOffset() * 60000);
+    const title = 'Outfit Reminder';
+    const message = `Wear ${outfitName?.trim() || 'your planned outfit'} 👕`;
+
     PushNotification.localNotificationSchedule({
       id: `outfit-${outfitId}`,
       channelId: 'outfits',
-      title: 'Outfit Reminder',
-      message: `Wear ${outfitName?.trim() || 'your planned outfit'} 👕`,
+      title,
+      message,
       date: local,
       allowWhileIdle: true,
       playSound: true,
       soundName: 'default',
+    });
+
+    // Also add to notification inbox so it shows in NotificationsScreen
+    await addToInbox({
+      user_id: userId,
+      id: `outfit-${outfitId}`,
+      title,
+      message,
+      timestamp: when.toISOString(),
+      category: 'scheduled_outfit',
+      data: {screen: 'Planner'},
+      read: false,
     });
   };
 
@@ -638,8 +654,8 @@ export default function SavedOutfitsScreen() {
         ),
       );
 
-      // local notification
-      scheduleOutfitLocalAlert(planningOutfitId, selectedOutfit.name, combined);
+      // local notification + add to inbox
+      await scheduleOutfitLocalAlert(planningOutfitId, selectedOutfit.name, combined);
 
       // add to calendar & remember event id
       const eventId = await addOutfitToCalendar({

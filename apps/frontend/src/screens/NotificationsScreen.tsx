@@ -568,6 +568,14 @@ export default function NotificationsScreen({
                               onPress={async () => {
                                 h('selection');
                                 await markRead(userId, n.id);
+                                // Update local state to reflect read status immediately
+                                setItems(prev =>
+                                  prev.map(item =>
+                                    item.id === n.id
+                                      ? {...item, read: true}
+                                      : item,
+                                  ),
+                                );
 
                                 if (n.deeplink) {
                                   try {
@@ -587,6 +595,15 @@ export default function NotificationsScreen({
                                   return;
                                 }
 
+                                // Handle scheduled_outfit before data.screen to ensure correct navigation
+                                if (
+                                  (n.category || '').toLowerCase() ===
+                                  'scheduled_outfit'
+                                ) {
+                                  navigate('Planner');
+                                  return;
+                                }
+
                                 if (n?.data?.screen) {
                                   navigate(n.data.screen);
                                   return;
@@ -597,7 +614,6 @@ export default function NotificationsScreen({
                                     navigate('FashionFeedScreen');
                                     return;
                                   case 'outfit':
-                                  case 'scheduled_outfit':
                                     navigate('SavedOutfitsScreen');
                                     return;
                                   case 'weather':
