@@ -354,6 +354,7 @@ export default function SavedOutfitsScreen() {
 
   // ✨ Animated value for parallax depth
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<Animated.ScrollView>(null);
 
   // Sync local scrollY with global nav scrollY for bottom nav hide/show
   useEffect(() => {
@@ -1088,6 +1089,7 @@ export default function SavedOutfitsScreen() {
 
       {/* 🪩 Dramatic Parallax ScrollView */}
       <Animated.ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{paddingBottom: 160, alignItems: 'center'}}
         scrollEventThrottle={16}
@@ -1862,6 +1864,31 @@ export default function SavedOutfitsScreen() {
           </Animated.View>
         </SafeAreaView>
       </Modal>
+
+      {/* 🆙 Scroll-to-top button */}
+      <AppleTouchFeedback
+        onPress={() => {
+          scrollRef.current?.scrollTo({y: 0, animated: true});
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 100,
+          right: 20,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          borderColor: theme.colors.muted,
+          borderWidth: tokens.borderWidth.md,
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          shadowOffset: {width: 0, height: 4},
+        }}>
+        <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
+      </AppleTouchFeedback>
     </SafeAreaView>
     // </GradientBackground>
   );

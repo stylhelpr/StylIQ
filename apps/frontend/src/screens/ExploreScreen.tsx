@@ -1047,6 +1047,16 @@ export default function ExploreScreen() {
             title={hero.title}
             source={hero.source}
             image={hero.image}
+            items={(tab === 'Following' ? articlesChrono : articles).slice(0, 10).map(a => ({
+              title: a.title,
+              source: a.source,
+              image: a.image,
+              link: a.link,
+            }))}
+            onItemPress={(item) => {
+              setOpenUrl(item.link);
+              setOpenTitle(item.title);
+            }}
             onPress={() => {
               setOpenUrl(hero.link);
               setOpenTitle(hero.title);

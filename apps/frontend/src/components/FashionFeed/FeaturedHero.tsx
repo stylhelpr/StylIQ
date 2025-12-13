@@ -1,34 +1,125 @@
-import React, {useRef} from 'react';
+import React, {useRef, useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
   ImageBackground,
   StyleSheet,
   Animated,
-  Dimensions,
   Pressable,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
-import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
-import {useResponsive} from '../../hooks/useResponsive';
 import {fontScale, moderateScale} from '../../utils/scale';
+
+type FeedItem = {
+  title: string;
+  source: string;
+  image?: string;
+  link?: string;
+};
 
 type Props = {
   title: string;
   source: string;
   image?: string;
   onPress: () => void;
+  items?: FeedItem[];
+  onItemPress?: (item: FeedItem) => void;
 };
 
-const {width} = Dimensions.get('window');
+const AUTO_CYCLE_INTERVAL = 10000;
 
-export default function FeaturedHero({title, source, image, onPress}: Props) {
+export default function FeaturedHero({
+  title,
+  source,
+  image,
+  onPress,
+  items,
+  onItemPress,
+}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const scale = useRef(new Animated.Value(1)).current;
+
+  // Cycling state for multiple items
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const cycleTimer = useRef<NodeJS.Timeout | null>(null);
+  const textSlideAnim = useRef(new Animated.Value(0)).current;
+  const imageOpacity = useRef(new Animated.Value(1)).current;
+
+  // Get current item - either from items array or single props
+  const feedItems =
+    items && items.length > 0 ? items : [{title, source, image}];
+  const currentItem = feedItems[currentIndex] || feedItems[0];
+
+  // Animate text sliding up when item changes
+  const animateTextSlideUp = useCallback(() => {
+    textSlideAnim.setValue(30);
+    Animated.timing(textSlideAnim, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, [textSlideAnim]);
+
+  // Animate image crossfade
+  const animateImageTransition = useCallback(() => {
+    imageOpacity.setValue(0.7);
+    Animated.timing(imageOpacity, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, [imageOpacity]);
+
+  // Start auto-cycle timer
+  const startCycleTimer = useCallback(() => {
+    if (cycleTimer.current) {
+      clearInterval(cycleTimer.current);
+    }
+    if (feedItems.length > 1) {
+      cycleTimer.current = setInterval(() => {
+        setCurrentIndex(prev => {
+          const nextIndex = (prev + 1) % feedItems.length;
+          return nextIndex;
+        });
+      }, AUTO_CYCLE_INTERVAL);
+    }
+  }, [feedItems.length]);
+
+  // Trigger animations when index changes
+  useEffect(() => {
+    if (feedItems.length > 1) {
+      animateTextSlideUp();
+      animateImageTransition();
+    }
+  }, [
+    currentIndex,
+    feedItems.length,
+    animateTextSlideUp,
+    animateImageTransition,
+  ]);
+
+  // Setup and cleanup cycle timer
+  useEffect(() => {
+    startCycleTimer();
+    return () => {
+      if (cycleTimer.current) {
+        clearInterval(cycleTimer.current);
+      }
+    };
+  }, [startCycleTimer]);
+
+  // Handle press - use onItemPress if available, otherwise onPress
+  const handlePress = () => {
+    if (onItemPress && items && items.length > 0) {
+      onItemPress(currentItem as FeedItem);
+    } else {
+      onPress();
+    }
+  };
 
   const styles = StyleSheet.create({
     wrap: {
@@ -97,11 +188,14 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
         <Pressable
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          onPress={onPress}>
+          onPress={handlePress}>
           <View style={styles.wrap}>
-            <Animated.View style={globalStyles.bgContainer1}>
+            <Animated.View
+              style={[globalStyles.bgContainer1, {opacity: imageOpacity}]}>
               <ImageBackground
-                source={image ? {uri: image} : undefined}
+                source={
+                  currentItem.image ? {uri: currentItem.image} : undefined
+                }
                 style={styles.bgImg}
                 imageStyle={styles.bgImg}
                 resizeMode="cover">
@@ -111,12 +205,16 @@ export default function FeaturedHero({title, source, image, onPress}: Props) {
                   delay={300}
                   style={styles.overlay}
                 />
-                <View style={styles.textBox}>
-                  <Text style={styles.source}>{source}</Text>
+                <Animated.View
+                  style={[
+                    styles.textBox,
+                    {transform: [{translateY: textSlideAnim}]},
+                  ]}>
+                  <Text style={styles.source}>{currentItem.source}</Text>
                   <Text numberOfLines={3} style={styles.title}>
-                    {title}
+                    {currentItem.title}
                   </Text>
-                </View>
+                </Animated.View>
               </ImageBackground>
             </Animated.View>
           </View>
