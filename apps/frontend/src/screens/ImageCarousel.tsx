@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import Animated, {
   ZoomIn,
   Easing,
 } from 'react-native-reanimated';
+
+const AUTO_SCROLL_INTERVAL = 5000; // 5 seconds per image
 import {LiquidGlassView} from '@callstack/liquid-glass';
 import {useAppTheme} from '../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -175,14 +177,34 @@ export default function ImageCarouselScreen({
 }) {
   const [index, setIndex] = useState(0);
   const scrollX = useSharedValue(0);
+  const scrollViewRef = useRef<Animated.ScrollView>(null);
+  const autoScrollTimer = useRef<NodeJS.Timeout | null>(null);
   const {theme} = useAppTheme();
+
+  // Reset auto-scroll timer
+  const resetAutoScrollTimer = useCallback(() => {
+    if (autoScrollTimer.current) {
+      clearInterval(autoScrollTimer.current);
+    }
+    autoScrollTimer.current = setInterval(() => {
+      setIndex(prev => {
+        const nextIndex = prev + 1 >= images.length ? 0 : prev + 1;
+        scrollViewRef.current?.scrollTo({x: nextIndex * width, animated: true});
+        return nextIndex;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+  }, []);
 
   useEffect(() => {
     StatusBar.setHidden(true);
+    resetAutoScrollTimer();
     return () => {
       StatusBar.setHidden(false);
+      if (autoScrollTimer.current) {
+        clearInterval(autoScrollTimer.current);
+      }
     };
-  }, []);
+  }, [resetAutoScrollTimer]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: e => {
@@ -191,6 +213,8 @@ export default function ImageCarouselScreen({
   });
 
   const onScrollEnd = (e: any) => {
+    // Reset timer when user manually swipes
+    resetAutoScrollTimer();
     const newIndex = Math.round(e.nativeEvent.contentOffset.x / width);
     setIndex(newIndex);
   };
@@ -208,6 +232,7 @@ export default function ImageCarouselScreen({
     <View style={styles.container}>
       {/* 🧊 Cube Scroll */}
       <Animated.ScrollView
+        ref={scrollViewRef}
         horizontal
         pagingEnabled
         scrollEventThrottle={16}

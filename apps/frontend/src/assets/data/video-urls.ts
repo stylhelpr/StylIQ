@@ -1,92 +1,26 @@
-///// Data 1
-export const video1 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-1.mp4';
+export const allVideos = [
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-1.mp4',
 
-export const video5 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-9.mp4';
-
-export const video3 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-10.mp4';
-
-export const video6 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-2.mp4';
-
-export const video2 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-3.mp4';
-
-export const video4 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-8.mp4';
-
-export const videos = [video1, video2, video3, video4, video5, video6];
-
-///// Data 2
-
-export const video7 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-5.mp4';
-
-export const video8 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-6.mp4';
-
-export const video9 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-4.mp4';
-
-export const videos2 = [video7, video8, video9];
-
-/// Data 3
-
-export const video10 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-7.mp4';
-
-export const video11 =
-  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-7.mp4';
-
-export const videos3 = [video10];
-// ('https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-11.mp4');
-///////////////////
-
-// ///// Data 1
-// export const video1 =
-//   'https://videos.pexels.com/video-files/30280414/12980115_1440_2560_25fps.mp4';
-
-// export const video2 =
-//   'https://videos.pexels.com/video-files/5532771/5532771-sd_226_426_25fps.mp4';
-
-// export const video3 =
-//   'https://videos.pexels.com/video-files/30043254/12887771_1080_1920_30fps.mp4';
-
-// export const video4 =
-//   'https://videos.pexels.com/video-files/28836213/12491352_1440_2560_30fps.mp4';
-
-// export const video5 =
-//   'https://videos.pexels.com/video-files/29842217/12815329_1080_1920_30fps.mp4';
-
-// export const video6 =
-//   'https://videos.pexels.com/video-files/5863152/5863152-sd_240_426_29fps.mp4';
-
-// export const videos = [video1, video2, video3, video4, video5, video6];
-
-// ///// Data 2
-
-// export const video7 =
-//   'https://videos.pexels.com/video-files/5532765/5532765-uhd_2160_4096_25fps.mp4';
-
-// export const video8 =
-//   'https://videos.pexels.com/video-files/30129754/12920666_1440_2560_30fps.mp4';
-
-// export const video9 =
-//   'https://videos.pexels.com/video-files/28728787/12464794_1080_1920_30fps.mp4';
-
-// export const videos2 = [video7, video8, video9];
-
-// /// Data 3
-
-// export const video10 =
-//   'https://videos.pexels.com/video-files/4620573/4620573-sd_226_426_25fps.mp4';
-
-// export const video11 =
-//   'https://videos.pexels.com/video-files/9574139/9574139-sd_226_426_25fps.mp4';
-
-// export const video12 =
-//   'https://videos.pexels.com/video-files/29634981/12750961_1440_2560_60fps.mp4';
-
-// export const videos3 = [video10, video11, video12];
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-2.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/189451_Woman%20holding%20a%20sparkler%20on%20a%20rooftop_By_Erwin_De_Boer_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/6105478_Fighter%20Studio%20Flexing%20Portrait_By_Thomas_Gellert_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-8.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/6507059_Woman%20City%20Evening%20Lifestyle_By_Stockbusters_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/288812_Steps%20Sitting%20Teenager%20Tattoo_By_Cinematic_Vision_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-10.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-9.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-3.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-5.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/fashion-video-7.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/285507_Fashion%20Stage%20Fashion%20Runway%20Model_By_Ross_Hillier_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/6127942_Looking%20At%20Camera%20Walking%20Woman%20City_By_Stockbusters_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/406864_Posing%20Building%20Lights%20Model%20Pvc%20Outfit_By_Morten_Lovechild_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/6313569_Business%20District%20K%20Pop%20Man%20Woman_By_SeventyFour_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/747528_Sidewalk%20Looking%20At%20Camera%20Portrait%20Man_By_VITALY_GARIEV_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/405298_Businessmen%20Coffee%20Conversation%20Break_By_AnnaStills_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/755423_Portrait%20Pedestrian%20Walking%20City_By_VITALY_GARIEV_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/378314_Concrete%20Floor%20Baggy%20Clothes%20Sunglasses_By_Thomas_Gellert_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/711849_Standing%20Office%20People%20%20Workplace_By_Pressmaster_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/6002672_Photoshoot%20Posing%20Gay%20Diverse_By_Daniel_Megias_Del_Pozo_Artlist_HD.mp4',
+  'https://storage.googleapis.com/stylhelpr-prod-bucket/392933_Sidewalk%20Typing%20Earphones%20Bag_By_AnnaStills_Artlist_HD.mp4',
+];

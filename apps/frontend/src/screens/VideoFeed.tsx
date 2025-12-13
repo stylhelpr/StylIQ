@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   Dimensions,
   FlatList,
@@ -14,10 +14,12 @@ import {
   Share,
   Image,
   StatusBar,
+  Animated,
+  Easing,
 } from 'react-native';
 import Video, {ResizeMode, VideoRef} from 'react-native-video';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {videos, videos2, videos3} from '../assets/data/video-urls';
+import {allVideos} from '../assets/data/video-urls';
 import {fontScale, moderateScale} from '../utils/scale';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
@@ -103,18 +105,73 @@ const VideoWrapper = ({
   );
 };
 
+const AUTO_SCROLL_INTERVAL = 8000; // 7 seconds per video
+const SCROLL_ANIMATION_DURATION = 700; // 800ms for gradual scroll
+
 export default function VideoFeedScreen({
   navigate,
 }: {
   navigate: (screen: string) => void;
 }) {
-  const [allVideos, setAllVideos] = useState(videos);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [pauseOverride, setPauseOverride] = useState(false);
-  const numOfRefreshes = useRef(0);
+  const flatListRef = useRef<FlatList<string>>(null);
+  const autoScrollTimer = useRef<NodeJS.Timeout | null>(null);
+  const scrollAnimation = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  // Smooth scroll to a specific index with custom duration
+  const smoothScrollToIndex = useCallback(
+    (targetIndex: number) => {
+      const currentOffset = visibleIndex * SCREEN_HEIGHT;
+      const targetOffset = targetIndex * SCREEN_HEIGHT;
+
+      scrollAnimation.setValue(currentOffset);
+      Animated.timing(scrollAnimation, {
+        toValue: targetOffset,
+        duration: SCROLL_ANIMATION_DURATION,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+
+      // Listen to animation and update scroll position
+      const listenerId = scrollAnimation.addListener(({value}) => {
+        flatListRef.current?.scrollToOffset({offset: value, animated: false});
+      });
+
+      // Clean up listener after animation
+      setTimeout(() => {
+        scrollAnimation.removeListener(listenerId);
+      }, SCROLL_ANIMATION_DURATION + 50);
+    },
+    [visibleIndex, scrollAnimation],
+  );
+
+  // Reset auto-scroll timer
+  const resetAutoScrollTimer = useCallback(() => {
+    if (autoScrollTimer.current) {
+      clearInterval(autoScrollTimer.current);
+    }
+    autoScrollTimer.current = setInterval(() => {
+      setVisibleIndex(prev => {
+        const nextIndex = prev + 1 >= allVideos.length ? 0 : prev + 1;
+        smoothScrollToIndex(nextIndex);
+        return nextIndex;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+  }, [smoothScrollToIndex]);
+
+  // Start auto-scroll on mount, cleanup on unmount
+  useEffect(() => {
+    resetAutoScrollTimer();
+    return () => {
+      if (autoScrollTimer.current) {
+        clearInterval(autoScrollTimer.current);
+      }
+    };
+  }, [resetAutoScrollTimer]);
 
   const styles = StyleSheet.create({
     overlay: {
@@ -181,15 +238,9 @@ export default function VideoFeedScreen({
     };
   }, []);
 
-  const fetchMoreData = () => {
-    if (numOfRefreshes.current === 0)
-      setAllVideos(prev => [...prev, ...videos2]);
-    if (numOfRefreshes.current === 1)
-      setAllVideos(prev => [...prev, ...videos3]);
-    numOfRefreshes.current += 1;
-  };
-
   const onViewableItemsChanged = (event: any) => {
+    // Reset auto-scroll timer when user manually swipes
+    resetAutoScrollTimer();
     const newIndex = Number(event.viewableItems.at(-1)?.key ?? 0);
     setVisibleIndex(newIndex);
   };
@@ -230,14 +281,13 @@ export default function VideoFeedScreen({
             }}
           />
         )}
+        ref={flatListRef}
         keyExtractor={(_, i) => String(i)}
         initialNumToRender={1}
         pagingEnabled
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
-        onEndReached={fetchMoreData}
-        onEndReachedThreshold={0.3}
         snapToInterval={SCREEN_HEIGHT}
         getItemLayout={(_, index) => ({
           length: SCREEN_HEIGHT,
@@ -269,7 +319,9 @@ export default function VideoFeedScreen({
       {/* 🔘 Floating FABs */}
       <View style={styles.fabContainer}>
         {/* Community Button */}
-        <AppleTouchFeedback onPress={handleCommunity} style={{marginBottom: 12}}>
+        <AppleTouchFeedback
+          onPress={handleCommunity}
+          style={{marginBottom: 12}}>
           <View
             style={[
               styles.fabButton,
