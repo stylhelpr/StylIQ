@@ -405,7 +405,7 @@ export default function ExploreScreen() {
   const [addError, setAddError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const {articles, loading, refresh} = useFashionFeeds(
+  const {articles, loading, refreshing, refresh} = useFashionFeeds(
     feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
     {userId},
   );
@@ -987,7 +987,7 @@ export default function ExploreScreen() {
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
-            refreshing={loading || sourcesLoading}
+            refreshing={refreshing || sourcesLoading}
             onRefresh={refresh}
             tintColor="#fff"
           />

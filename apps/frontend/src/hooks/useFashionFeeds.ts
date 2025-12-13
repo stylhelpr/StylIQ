@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {XMLParser} from 'fast-xml-parser';
 import dayjs from 'dayjs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {API_BASE_URL} from '../config/api';
 
 export type Article = {
@@ -20,6 +21,45 @@ const parser = new XMLParser({
   attributeNamePrefix: '',
   allowBooleanAttributes: true,
 });
+
+// Cache configuration
+const CACHE_KEY = 'fashionFeeds_cache';
+const CACHE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+// In-memory cache for instant access across remounts
+let memoryCache: {articles: Article[]; timestamp: number} | null = null;
+
+async function loadCachedArticles(): Promise<Article[] | null> {
+  // Check memory cache first (instant)
+  if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_EXPIRY_MS) {
+    return memoryCache.articles;
+  }
+
+  // Fall back to AsyncStorage
+  try {
+    const cached = await AsyncStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const {articles, timestamp} = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_EXPIRY_MS) {
+        memoryCache = {articles, timestamp};
+        return articles;
+      }
+    }
+  } catch (e) {
+    console.log('📰 Cache read failed:', e);
+  }
+  return null;
+}
+
+async function saveCachedArticles(articles: Article[]): Promise<void> {
+  const timestamp = Date.now();
+  memoryCache = {articles, timestamp};
+  try {
+    await AsyncStorage.setItem(CACHE_KEY, JSON.stringify({articles, timestamp}));
+  } catch (e) {
+    console.log('📰 Cache write failed:', e);
+  }
+}
 
 function getFirst<T>(val: any): T | undefined {
   if (!val) return undefined;
@@ -182,10 +222,23 @@ function buildTrending(articles: Article[], windowHours = 72): string[] {
 export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
+  const initialLoadDone = useRef(false);
 
-  const load = useCallback(async () => {
+  // Load cached articles immediately on mount
+  useEffect(() => {
+    const loadCache = async () => {
+      const cached = await loadCachedArticles();
+      if (cached && cached.length > 0 && articles.length === 0) {
+        setArticles(cached);
+      }
+    };
+    loadCache();
+  }, []);
+
+  const load = useCallback(async (isRefresh = false) => {
     if (loadingRef.current) return;
     loadingRef.current = true;
 
@@ -194,11 +247,37 @@ export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
       return;
     }
 
-    setLoading(true);
+    // Only show loading spinner if we have no cached articles
+    if (articles.length === 0) {
+      setLoading(true);
+    }
+    if (isRefresh) {
+      setRefreshing(true);
+    }
     setError(null);
+
     try {
-      const batches = await Promise.all(sources.map(fetchFeed));
-      const merged = [...batches.flat()]
+      // Fetch feeds in parallel but update state progressively
+      const feedPromises = sources.map(async (src) => {
+        try {
+          const feedArticles = await fetchFeed(src);
+          return feedArticles;
+        } catch {
+          return [];
+        }
+      });
+
+      // Use Promise.allSettled to not block on slow feeds
+      const results = await Promise.allSettled(feedPromises);
+
+      const newArticles: Article[] = [];
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          newArticles.push(...result.value);
+        }
+      }
+
+      const merged = [...newArticles]
         .filter(a => !!a.title && !!a.link)
         .reduce<Article[]>((acc, cur) => {
           if (!acc.find(x => x.id === cur.id)) acc.push(cur);
@@ -211,17 +290,35 @@ export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
         });
 
       setArticles(merged);
+
+      // Cache the results for next time
+      if (merged.length > 0) {
+        saveCachedArticles(merged);
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load feeds');
     } finally {
       setLoading(false);
+      setRefreshing(false);
       loadingRef.current = false;
+      initialLoadDone.current = true;
     }
-  }, [sources]);
+  }, [sources, articles.length]);
 
   useEffect(() => {
-    load();
-    // ✅ run only when sources array *length or values* change
+    // Only fetch if we don't have cached data or it's stale
+    const shouldFetch = async () => {
+      const cached = await loadCachedArticles();
+      if (!cached || cached.length === 0) {
+        load();
+      } else if (!initialLoadDone.current) {
+        // We have cache, but still refresh in background
+        setArticles(cached);
+        // Delay background refresh slightly to prioritize UI
+        setTimeout(() => load(), 500);
+      }
+    };
+    shouldFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(sources), opts?.userId]);
 
@@ -231,8 +328,9 @@ export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
     articles,
     trending,
     loading,
+    refreshing,
     error,
-    refresh: load,
+    refresh: () => load(true),
     loadMore: () => {},
     hasMore: false,
   };
