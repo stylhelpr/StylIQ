@@ -10,6 +10,48 @@ import {
   Easing,
   Pressable,
 } from 'react-native';
+
+// Animated pressable with scale effect for images
+const ScalePressable = ({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: any;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}>
+      <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
 import {API_BASE_URL} from '../../config/api';
 import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
@@ -145,7 +187,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
                 },
               ],
             }}>
-            <Pressable
+            <ScalePressable
               style={globalStyles.outfitCard2}
               onPress={() => {
                 if (onOpenItem) {
@@ -182,7 +224,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
                 ]}>
                 {item.brand || 'Brand'}
               </Text>
-            </Pressable>
+            </ScalePressable>
           </Animated.View>
         ))
       )}

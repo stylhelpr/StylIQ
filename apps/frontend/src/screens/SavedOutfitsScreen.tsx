@@ -43,6 +43,48 @@ import {Share} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 
+// Animated pressable with scale effect for images
+const ScalePressable = ({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: any;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}>
+      <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 type SavedOutfit = {
   id: string;
   name?: string;
@@ -1111,8 +1153,7 @@ export default function SavedOutfitsScreen() {
                     <ViewShot
                       ref={ref => (viewRefs.current[outfit.id] = ref)}
                       options={{format: 'png', quality: 0.9}}>
-                      <TouchableOpacity
-                        activeOpacity={0.9}
+                      <ScalePressable
                         onPress={() => setFullScreenOutfit(outfit)}
                         style={[globalStyles.cardStyles1, {marginBottom: 12}]}>
                         {/* 🧵 Outfit Header Row */}
@@ -1386,7 +1427,7 @@ export default function SavedOutfitsScreen() {
                             ))}
                           </View>
                         )}
-                      </TouchableOpacity>
+                      </ScalePressable>
                     </ViewShot>
                   </Animatable.View>
                 </SwipeableCard>

@@ -71,6 +71,48 @@ type Props = {
   wardrobe: any[];
 };
 
+// Animated pressable with scale effect for images
+const ScalePressable = ({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: any;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}>
+      <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -298,7 +340,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   // Fashion hero text messages
   const fashionTexts = [
     {
-      title: 'They Line Up\nFor A Revolution.',
+      title: 'Get Ready\nFor A Revolution.',
       subtitle: 'Discover the latest in fashion innovation and style',
     },
     {
@@ -1186,6 +1228,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   }}
                   resizeMode="cover"
                 />
+                {/* Light tinted overlay for better text visibility */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                  }}
+                />
                 <Animatable.View
                   key={`hero-text-${currentImageIndex}`}
                   animation="fadeInUp"
@@ -1708,7 +1761,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         }}>
                         {savedLooks.map((look, index) => (
                           <View key={look.id} style={globalStyles.outfitCard}>
-                            <Pressable
+                            <ScalePressable
                               onPress={() => {
                                 setSelectedLook(look);
                                 setPreviewVisible(true);
@@ -1746,7 +1799,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 numberOfLines={1}>
                                 {look.name}
                               </Text>
-                            </Pressable>
+                            </ScalePressable>
                           </View>
                         ))}
                       </ScrollView>
@@ -1787,15 +1840,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       horizontal
                       showsHorizontalScrollIndicator={false}>
                       {recentCreations.map(c => (
-                        <TouchableOpacity
-                          key={c.id}
-                          onPress={() =>
-                            navigate('RecreatedLook', {
-                              data: c.generated_outfit,
-                            })
-                          }
-                          style={globalStyles.outfitCard}>
-                          <Pressable
+                        <View key={c.id} style={globalStyles.outfitCard}>
+                          <ScalePressable
                             onPress={() => {
                               navigate('RecreatedLook', {
                                 data: c.generated_outfit,
@@ -1807,35 +1853,35 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               style={[globalStyles.image8]}
                               resizeMode="cover"
                             />
-                          </Pressable>
-                          {/* 👇 ADD THIS just below the image */}
-                          <TouchableOpacity
-                            onPress={() => handleShareVibe(c)}
-                            style={{
-                              position: 'absolute',
-                              top: 6,
-                              right: 6,
-                              backgroundColor: 'rgba(0,0,0,0.4)',
-                              borderRadius: 20,
-                              padding: 6,
-                            }}>
-                            <Icon
-                              name="ios-share"
-                              size={20}
-                              color={theme.colors.buttonText1}
-                            />
-                          </TouchableOpacity>
+                            {/* 👇 ADD THIS just below the image */}
+                            <TouchableOpacity
+                              onPress={() => handleShareVibe(c)}
+                              style={{
+                                position: 'absolute',
+                                top: 6,
+                                right: 6,
+                                backgroundColor: 'rgba(0,0,0,0.4)',
+                                borderRadius: 20,
+                                padding: 6,
+                              }}>
+                              <Icon
+                                name="ios-share"
+                                size={20}
+                                color={theme.colors.buttonText1}
+                              />
+                            </TouchableOpacity>
 
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              globalStyles.subLabel,
-                              {marginTop: 4, textAlign: 'center'},
-                            ]}>
-                            {(c.tags && c.tags.slice(0, 3).join(' ')) ||
-                              'AI Look'}
-                          </Text>
-                        </TouchableOpacity>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                globalStyles.subLabel,
+                                {marginTop: 4, textAlign: 'center'},
+                              ]}>
+                              {(c.tags && c.tags.slice(0, 3).join(' ')) ||
+                                'AI Look'}
+                            </Text>
+                          </ScalePressable>
+                        </View>
                       ))}
                     </ScrollView>
                   </View>
@@ -1873,14 +1919,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}>
-                      {recentVibes.map(vibe => (
-                        <TouchableOpacity
-                          activeOpacity={0.85}
-                          onPress={() => {
-                            handleShopModal([vibe.query_used]);
-                          }}
-                          style={globalStyles.outfitCard}>
-                          <Pressable
+                      {recentVibes.map((vibe, index) => (
+                        <View key={index} style={globalStyles.outfitCard}>
+                          <ScalePressable
                             onPress={() => {
                               handleShopModal([vibe.query_used]);
                             }}
@@ -1890,33 +1931,33 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               style={[globalStyles.image8]}
                               resizeMode="cover"
                             />
-                          </Pressable>
-                          {/* 👇 Add share button */}
-                          <TouchableOpacity
-                            onPress={() => handleShareVibe(vibe)}
-                            style={{
-                              position: 'absolute',
-                              top: 6,
-                              right: 6,
-                              backgroundColor: 'rgba(0,0,0,0.4)',
-                              borderRadius: 20,
-                              padding: moderateScale(tokens.spacing.xxs),
-                            }}>
-                            <Icon name="ios-share" size={20} color="#fff" />
-                          </TouchableOpacity>
+                            {/* 👇 Add share button */}
+                            <TouchableOpacity
+                              onPress={() => handleShareVibe(vibe)}
+                              style={{
+                                position: 'absolute',
+                                top: 6,
+                                right: 6,
+                                backgroundColor: 'rgba(0,0,0,0.4)',
+                                borderRadius: 20,
+                                padding: moderateScale(tokens.spacing.xxs),
+                              }}>
+                              <Icon name="ios-share" size={20} color="#fff" />
+                            </TouchableOpacity>
 
-                          <Text
-                            numberOfLines={1}
-                            style={[
-                              globalStyles.subLabel,
-                              {marginTop: 4, textAlign: 'center'},
-                            ]}>
-                            {vibe.query_used
-                              ?.split(' ')
-                              .slice(0, 3)
-                              .join(' ') || 'Recent'}
-                          </Text>
-                        </TouchableOpacity>
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                globalStyles.subLabel,
+                                {marginTop: 4, textAlign: 'center'},
+                              ]}>
+                              {vibe.query_used
+                                ?.split(' ')
+                                .slice(0, 3)
+                                .join(' ') || 'Recent'}
+                            </Text>
+                          </ScalePressable>
+                        </View>
                       ))}
                     </ScrollView>
                   </View>

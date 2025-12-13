@@ -778,28 +778,28 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  const fashionImages = [
-    require('../assets/images/fashion/starry-night-fashion-stockcake.webp'),
-    require('../assets/images/fashion/fashion-runway-show-stockcake3.webp'),
-    require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
-    require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
-    require('../assets/images/fashion/futuristic-fashion-model-stockcake.webp'),
-    require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
-    require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
-    require('../assets/images/fashion/backstage-fashion-moment-stockcake.jpg'),
-    require('../assets/images/fashion/fashion-show-elegance-stockcake.webp'),
-    require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
-    require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
-    require('../assets/images/fashion/fashion-runway-model-stockcake2.webp'),
-    require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
-    require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
-    require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
-    require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
-    require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
-    require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
-    require('../assets/images/fashion/fashion-show-silhouette-stockcake.webp'),
-    require('../assets/images/fashion/fashion-show-glamour-stockcake.webp'),
-  ];
+  // const fashionImages = [
+  //   require('../assets/images/fashion/starry-night-fashion-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-runway-show-stockcake3.webp'),
+  //   require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+  //   require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+  //   require('../assets/images/fashion/futuristic-fashion-model-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
+  //   require('../assets/images/fashion/backstage-fashion-moment-stockcake.jpg'),
+  //   require('../assets/images/fashion/fashion-show-elegance-stockcake.webp'),
+  //   require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+  //   require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-runway-model-stockcake2.webp'),
+  //   require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
+  //   require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
+  //   require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
+  //   require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-show-silhouette-stockcake.webp'),
+  //   require('../assets/images/fashion/fashion-show-glamour-stockcake.webp'),
+  // ];
 
   // Scroll tracking for bottom nav hide/show
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -836,7 +836,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     ]).start();
   }, []);
 
-  // Auto-cycle through fashion images with fade transition timed with text animation
+  // Auto-cycle through user share images with fade transition timed with text animation
   useEffect(() => {
     const interval = setInterval(() => {
       // Fade out
@@ -845,7 +845,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         duration: 800,
         useNativeDriver: true,
       }).start(() => {
-        setCurrentImageIndex(prev => (prev + 1) % fashionImages.length);
+        setCurrentImageIndex(prev => (prev + 1) % MOCK_POSTS.length);
         // Fade in (timing: 200ms delay + 1200ms animation = 1400ms total, coincides with text fadeInUp)
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -855,7 +855,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       });
     }, 8000);
     return () => clearInterval(interval);
-  }, [fashionImages.length, fadeAnim]);
+  }, [fadeAnim]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -1381,7 +1381,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           }}>
           <Animated.Image
             key={`image-${currentImageIndex}`}
-            source={fashionImages[currentImageIndex]}
+            source={{uri: MOCK_POSTS[currentImageIndex].imageUrl}}
             style={{
               width: '100%',
               height: '100%',
@@ -1392,6 +1392,39 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             }}
             resizeMode="cover"
           />
+
+          {/* Light tinted overlay for better text visibility */}
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.15)',
+              borderRadius: tokens.borderRadius.lg,
+            }}
+          />
+
+          {/* TOP PICKS label */}
+          {/* <View
+            style={{
+              position: 'absolute',
+              top: moderateScale(tokens.spacing.md),
+              left: moderateScale(tokens.spacing.md),
+            }}>
+            <Text
+              style={{
+                fontSize: fontScale(tokens.fontSize['2xl']),
+                fontWeight: tokens.fontWeight.extraBold,
+                color: '#ffffff',
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+              }}>
+              TOP PICKS
+            </Text>
+          </View> */}
+
           <Animatable.View
             key={`text-${currentImageIndex}`}
             animation="fadeInUp"
@@ -1417,7 +1450,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 textShadowOffset: {width: 0, height: 2},
                 textShadowRadius: 4,
               }}>
-              They Line Up{'\n'}For A Revolution.
+              @{MOCK_POSTS[currentImageIndex].userName}
             </Text>
             <Text
               style={{
@@ -1429,7 +1462,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 textShadowOffset: {width: 0, height: 1},
                 textShadowRadius: 3,
               }}>
-              Discover the latest in fashion innovation and style
+              #{MOCK_POSTS[currentImageIndex].tags.join(' #')} •{' '}
+              {MOCK_POSTS[currentImageIndex].likes} likes
             </Text>
           </Animatable.View>
         </View>

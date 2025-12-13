@@ -34,6 +34,51 @@ import {GradientBackground} from '../components/LinearGradientComponents/Gradien
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
+// Animated pressable with scale effect for images
+const ScalePressable = ({
+  children,
+  onPress,
+  onLongPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  onLongPress?: () => void;
+  style?: any;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}>
+      <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 type WardrobeItem = {
   id: string;
   image_url: string;
@@ -479,9 +524,8 @@ export default function ClosetScreen({navigate}: Props) {
                         style={{
                           marginBottom: 15,
                         }}>
-                        <Pressable
+                        <ScalePressable
                           style={globalStyles.outfitCard4}
-                          hapticStyle="impactLight"
                           onPress={() =>
                             navigate('ItemDetail', {itemId: item.id, item})
                           }
@@ -580,7 +624,7 @@ export default function ClosetScreen({navigate}: Props) {
                               Try On
                             </Text>
                           </AppleTouchFeedback>
-                        </Pressable>
+                        </ScalePressable>
                       </View>
                     ))}
                   </View>
