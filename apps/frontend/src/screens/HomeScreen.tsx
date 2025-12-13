@@ -74,6 +74,12 @@ type Props = {
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // Track if initial entrance animations have played to prevent re-animating on re-renders
+  const hasAnimated = useRef(false);
+  useEffect(() => {
+    hasAnimated.current = true;
+  }, []);
+
   // Sync local scrollY with global nav scrollY for bottom nav hide/show
   useEffect(() => {
     const listenerId = scrollY.addListener(({value}) => {
@@ -1040,7 +1046,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           showsVerticalScrollIndicator={false}>
           {/* Header Row: Greeting + Menu */}
           <Animatable.View
-            animation="fadeInDown"
+            animation={hasAnimated.current ? undefined : 'fadeInDown'}
             duration={600}
             delay={100}
             useNativeDriver
@@ -1145,7 +1151,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
           {prefs.weather && (
             <Animatable.View
-              animation="fadeInUp"
+              animation={hasAnimated.current ? undefined : 'fadeInUp'}
               duration={700}
               delay={200}
               useNativeDriver
@@ -1354,7 +1360,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           {/* Map Section — collapsible with animated height & fade */}
           {prefs.locationMap && (
             <Animatable.View
-              animation="fadeInUp"
+              animation={hasAnimated.current ? undefined : 'fadeInUp'}
               delay={300}
               duration={700}
               useNativeDriver
@@ -1429,7 +1435,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           {/* Quick Access Section */}
           {prefs.quickAccess && (
             <Animatable.View
-              animation="fadeInUp"
+              animation={hasAnimated.current ? undefined : 'fadeInUp'}
               delay={500}
               duration={700}
               useNativeDriver
@@ -1456,7 +1462,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     ].map((btn, idx) => (
                       <Animatable.View
                         key={btn.screen}
-                        animation="zoomIn"
+                        animation={hasAnimated.current ? undefined : 'zoomIn'}
                         delay={600 + idx * 100}
                         duration={500}
                         useNativeDriver
@@ -1490,7 +1496,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           {/* Shopping Button */}
           {/* --- Video Feed Button --- */}
           <Animatable.View
-            animation="fadeInUp"
+            animation={hasAnimated.current ? undefined : 'fadeInUp'}
             delay={180}
             duration={500}
             useNativeDriver
@@ -1531,7 +1537,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           {/* Top Fashion Stories / News Carousel */}
           {prefs.topFashionStories && (
             <Animatable.View
-              animation="fadeInUp"
+              animation={hasAnimated.current ? undefined : 'fadeInUp'}
               delay={600}
               duration={700}
               useNativeDriver
@@ -1545,7 +1551,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           {/* Discover / Recommended Items */}
           {prefs.recommendedItems && (
             <Animatable.View
-              animation="fadeInUp"
+              animation={hasAnimated.current ? undefined : 'fadeInUp'}
               delay={700}
               duration={700}
               useNativeDriver
@@ -1595,7 +1601,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     );
                   }}>
                   <Animatable.View
-                    animation="fadeInUp"
+                    animation={hasAnimated.current ? undefined : 'fadeInUp'}
                     delay={800}
                     duration={700}
                     useNativeDriver
@@ -1622,7 +1628,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         {savedLooks.map((look, index) => (
                           <Animatable.View
                             key={look.id}
-                            animation="fadeInUp"
+                            animation={hasAnimated.current ? undefined : 'fadeInUp'}
                             delay={900 + index * 100}
                             useNativeDriver
                             style={globalStyles.outfitCard}>
@@ -1676,7 +1682,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               {/* RECENTLY CREATED VIBE SECTION*/}
               {loadingCreations && (
                 <Animatable.View
-                  animation="fadeIn"
+                  animation={hasAnimated.current ? undefined : 'fadeIn'}
                   duration={400}
                   useNativeDriver
                   style={{
@@ -1701,7 +1707,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     );
                   }}>
                   <Animatable.View
-                    animation="fadeInUp"
+                    animation={hasAnimated.current ? undefined : 'fadeInUp'}
                     delay={150}
                     duration={600}
                     useNativeDriver
@@ -1768,7 +1774,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               {/* RECENTLY SHOPPED VIBES SECTION */}
               {loadingVibes && (
                 <Animatable.View
-                  animation="fadeIn"
+                  animation={hasAnimated.current ? undefined : 'fadeIn'}
                   duration={400}
                   useNativeDriver
                   style={{
@@ -1793,7 +1799,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     );
                   }}>
                   <Animatable.View
-                    animation="fadeInUp"
+                    animation={hasAnimated.current ? undefined : 'fadeInUp'}
                     delay={150}
                     duration={600}
                     useNativeDriver

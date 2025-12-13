@@ -62,9 +62,18 @@ const CLOSET_KEY = 'savedOutfits';
 const FAVORITES_KEY = 'favoriteOutfits';
 const SHEET_MAX_H = Math.min(Dimensions.get('window').height * 0.2, 560);
 
+// Module-level flag to persist across remounts
+let savedOutfitsHasAnimated = false;
+
 export default function SavedOutfitsScreen() {
   const userId = useUUID();
   if (!userId) return null;
+
+  // Track animation state and mark as animated on mount
+  const hasAnimated = useRef(savedOutfitsHasAnimated);
+  useEffect(() => {
+    savedOutfitsHasAnimated = true;
+  }, []);
 
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -965,7 +974,7 @@ export default function SavedOutfitsScreen() {
       </Text>
 
       <Animatable.View
-        animation="fadeInDown"
+        animation={hasAnimated.current ? undefined : 'fadeInDown'}
         delay={300}
         duration={800}
         style={[globalStyles.section]}>
@@ -998,7 +1007,7 @@ export default function SavedOutfitsScreen() {
             return (
               <Animatable.View
                 key={key}
-                animation={{
+                animation={hasAnimated.current ? undefined : {
                   from: {opacity: 0, translateX: 40},
                   to: {opacity: 1, translateX: 0},
                 }}
@@ -1105,7 +1114,7 @@ export default function SavedOutfitsScreen() {
                   }>
                   <Animatable.View
                     key={outfit.id}
-                    animation="fadeInUp"
+                    animation={hasAnimated.current ? undefined : 'fadeInUp'}
                     delay={150 + index * 120}
                     duration={800}
                     easing="ease-out-cubic"

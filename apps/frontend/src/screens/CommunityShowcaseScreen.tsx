@@ -36,6 +36,9 @@ const BOTTOM_NAV_HEIGHT = 90;
 const HEART_ICON_SIZE = 22;
 const LIKE_COUNT_SIZE = 12;
 
+// Module-level flag to persist across remounts
+let communityHasAnimated = false;
+
 // Demo outfit posts with top/bottom/shoes/accessory images (2x2 grid)
 const DEMO_OUTFIT_POSTS = [
   {
@@ -768,6 +771,12 @@ const h = (
   });
 
 export default function CommunityShowcaseScreen({navigate}: Props) {
+  // Track animation state and mark as animated on mount
+  const hasAnimated = useRef(communityHasAnimated);
+  useEffect(() => {
+    communityHasAnimated = true;
+  }, []);
+
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
@@ -791,10 +800,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   }, [scrollY]);
 
   // Screen entrance animation
-  const screenFade = useRef(new Animated.Value(0)).current;
-  const screenTranslate = useRef(new Animated.Value(30)).current;
+  const screenFade = useRef(new Animated.Value(hasAnimated.current ? 1 : 0)).current;
+  const screenTranslate = useRef(new Animated.Value(hasAnimated.current ? 0 : 30)).current;
 
   useEffect(() => {
+    if (hasAnimated.current) return;
+
     Animated.parallel([
       Animated.timing(screenFade, {
         toValue: 1,
@@ -1076,7 +1087,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     return (
       <Animatable.View
         key={post.id}
-        animation="fadeInUp"
+        animation={hasAnimated.current ? undefined : 'fadeInUp'}
         duration={500}
         delay={index * 80}
         useNativeDriver>
@@ -1185,7 +1196,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     return (
       <Animatable.View
         key={post.id}
-        animation="fadeInUp"
+        animation={hasAnimated.current ? undefined : 'fadeInUp'}
         duration={500}
         delay={index * 80}
         useNativeDriver>

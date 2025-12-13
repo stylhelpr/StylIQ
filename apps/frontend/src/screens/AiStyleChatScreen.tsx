@@ -90,8 +90,11 @@ const SUGGESTIONS_DEFAULT = [
   'Build a smart-casual look for 75°F',
   'What should I wear to a gallery opening?',
   'Make 3 outfit ideas from my polos + loafers',
-  'Refine that last look for “business creative”',
+  'Refine that last look for "business creative"',
 ];
+
+// Module-level flag to persist across remounts
+let aiChatHasAnimated = false;
 
 const h = (
   type: 'selection' | 'impactLight' | 'impactMedium' | 'notificationError',
@@ -102,6 +105,12 @@ const h = (
   });
 
 export default function AiStylistChatScreen({navigate}: Props) {
+  // Track animation state and mark as animated on mount
+  const hasAnimated = useRef(aiChatHasAnimated);
+  useEffect(() => {
+    aiChatHasAnimated = true;
+  }, []);
+
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
@@ -119,10 +128,12 @@ export default function AiStylistChatScreen({navigate}: Props) {
   const animatedHeight = useRef(new Animated.Value(42)).current;
 
   // Screen entrance animation
-  const screenFade = useRef(new Animated.Value(0)).current;
-  const screenTranslate = useRef(new Animated.Value(30)).current;
+  const screenFade = useRef(new Animated.Value(hasAnimated.current ? 1 : 0)).current;
+  const screenTranslate = useRef(new Animated.Value(hasAnimated.current ? 0 : 30)).current;
 
   useEffect(() => {
+    if (hasAnimated.current) return;
+
     Animated.parallel([
       Animated.timing(screenFade, {
         toValue: 1,
@@ -1415,7 +1426,7 @@ export function AnimatedInputBar({
 
   return (
     <Animatable.View
-      animation="fadeInUp"
+      animation={aiChatHasAnimated ? undefined : 'fadeInUp'}
       duration={600}
       delay={200}
       style={{

@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,9 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Module-level flag to persist across remounts
+let notificationsHasAnimated = false;
+
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type, {
     // enableVibrateFallback: true,
@@ -86,6 +89,12 @@ export default function NotificationsScreen({
 }: {
   navigate: (screen: string) => void;
 }) {
+  // Track animation state and mark as animated on mount
+  const hasAnimated = useRef(notificationsHasAnimated);
+  useEffect(() => {
+    notificationsHasAnimated = true;
+  }, []);
+
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const userId = useUUID() ?? '';
@@ -271,12 +280,12 @@ export default function NotificationsScreen({
         </View>
 
         <Animatable.View
-          animation="fadeInUp"
+          animation={hasAnimated.current ? undefined : 'fadeInUp'}
           delay={200}
           duration={700}
           style={styles.headerRow}>
           <Animatable.View
-            animation="slideInLeft"
+            animation={hasAnimated.current ? undefined : 'slideInLeft'}
             delay={300}
             style={styles.leftGroup}>
             <AppleTouchFeedback
@@ -313,7 +322,7 @@ export default function NotificationsScreen({
           </Animatable.View>
 
           <Animatable.View
-            animation="slideInRight"
+            animation={hasAnimated.current ? undefined : 'slideInRight'}
             delay={400}
             style={styles.rightGroup}>
             <AppleTouchFeedback
@@ -326,7 +335,7 @@ export default function NotificationsScreen({
               // hapticStyle="impactLight"
               style={styles.actionBtn}>
               <Animatable.Text
-                animation="fadeIn"
+                animation={hasAnimated.current ? undefined : 'fadeIn'}
                 duration={800}
                 style={styles.actionText}>
                 Mark All
@@ -361,7 +370,7 @@ export default function NotificationsScreen({
               // hapticStyle="impactLight"
               style={[styles.actionBtn, styles.actionDanger]}>
               <Animatable.Text
-                animation="fadeIn"
+                animation={hasAnimated.current ? undefined : 'fadeIn'}
                 duration={800}
                 style={styles.actionText}>
                 Clear All
@@ -372,7 +381,7 @@ export default function NotificationsScreen({
 
         {loading ? (
           <Animatable.View
-            animation="fadeIn"
+            animation={hasAnimated.current ? undefined : 'fadeIn'}
             iterationCount="infinite"
             duration={1600}
             style={styles.center}>
@@ -391,12 +400,12 @@ export default function NotificationsScreen({
             showsVerticalScrollIndicator={false}>
             {filtered.length === 0 ? (
               <Animatable.View
-                animation="fadeInUp"
+                animation={hasAnimated.current ? undefined : 'fadeInUp'}
                 delay={300}
                 duration={800}
                 style={styles.empty}>
                 <Animatable.Text
-                  animation="pulse"
+                  animation={hasAnimated.current ? undefined : 'pulse'}
                   iterationCount="infinite"
                   duration={4000}
                   style={[styles.emptyBig, {lineHeight: 28}]}>
@@ -409,12 +418,12 @@ export default function NotificationsScreen({
                   />
                 </Animatable.Text>
                 <Animatable.Text
-                  animation="fadeIn"
+                  animation={hasAnimated.current ? undefined : 'fadeIn'}
                   delay={500}
                   style={styles.emptySub}>
                   {filter === 'unread'
                     ? 'All your notifications have been read.'
-                    : 'You’ll see outfit reminders, weather changes, and brand news here.'}
+                    : "You'll see outfit reminders, weather changes, and brand news here."}
                 </Animatable.Text>
               </Animatable.View>
             ) : (
@@ -555,7 +564,7 @@ export default function NotificationsScreen({
                         {visibleItems.map((n, index) => (
                           <Animatable.View
                             key={n.id}
-                            animation="fadeInUp"
+                            animation={hasAnimated.current ? undefined : 'fadeInUp'}
                             duration={500}
                             delay={index * 60}
                             useNativeDriver

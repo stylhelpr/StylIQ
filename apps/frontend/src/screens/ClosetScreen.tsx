@@ -83,6 +83,9 @@ const sortOptions = [
   {label: 'Favorites First', value: 'favorites'},
 ];
 
+// Module-level flag to persist across remounts (key changes cause remount)
+let closetHasAnimated = false;
+
 export default function ClosetScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -118,14 +121,17 @@ export default function ClosetScreen({navigate}: Props) {
   const [editedName, setEditedName] = useState('');
   const [editedColor, setEditedColor] = useState('');
 
-  const screenFade = useRef(new Animated.Value(0)).current;
-  const screenTranslate = useRef(new Animated.Value(50)).current;
+  const screenFade = useRef(new Animated.Value(closetHasAnimated ? 1 : 0)).current;
+  const screenTranslate = useRef(new Animated.Value(closetHasAnimated ? 0 : 50)).current;
   // const fabBounce = useRef(new Animated.Value(100)).current;
-  const fabBounce = useRef(new Animated.Value(250)).current;
+  const fabBounce = useRef(new Animated.Value(closetHasAnimated ? 0 : 250)).current;
 
   const submenuOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (closetHasAnimated) return;
+    closetHasAnimated = true;
+
     Animated.sequence([
       Animated.timing(screenFade, {
         toValue: 1,

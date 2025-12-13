@@ -1,6 +1,6 @@
 // FILTERED CHIPS AND ARTICLES IN UI LOGIC WORKING BELOW HERE - KEEP
 
-import React, {useEffect, useMemo, useState, useCallback} from 'react';
+import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,12 @@ const triggerSelection = () =>
 
 export default function ExploreScreen() {
   const userId = useUUID() ?? '';
+
+  // Track if initial entrance animations have played to prevent re-animating on re-renders
+  const hasAnimated = useRef(false);
+  useEffect(() => {
+    hasAnimated.current = true;
+  }, []);
 
   const {
     sources,
@@ -995,7 +1001,7 @@ export default function ExploreScreen() {
           },
         ]}>
         <Animatable.Text
-          animation="fadeInDown"
+          animation={hasAnimated.current ? undefined : 'fadeInDown'}
           duration={900}
           delay={100}
           easing="ease-out-cubic"

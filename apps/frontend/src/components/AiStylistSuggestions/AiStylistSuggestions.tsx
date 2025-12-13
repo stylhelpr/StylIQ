@@ -57,6 +57,9 @@ const AI_SUGGESTION_STORAGE_KEY = 'aiStylist_lastSuggestion';
 // ✅ Persistent expanded state key
 const AI_SUGGESTION_EXPANDED_KEY = 'aiStylist_isExpanded';
 
+// Module-level flag to persist across remounts
+let aiSuggestionsHasAnimated = false;
+
 const AiStylistSuggestions: React.FC<Props> = ({
   weather,
   navigate,
@@ -64,6 +67,12 @@ const AiStylistSuggestions: React.FC<Props> = ({
   wardrobe = [],
   preferences = {},
 }) => {
+  // Track animation state and mark as animated on mount
+  const hasAnimated = useRef(aiSuggestionsHasAnimated);
+  useEffect(() => {
+    aiSuggestionsHasAnimated = true;
+  }, []);
+
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
@@ -364,7 +373,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[globalStyles.section, {marginTop: 6}]}>
         <Animatable.View
-          animation="fadeInUp"
+          animation={hasAnimated.current ? undefined : 'fadeInUp'}
           delay={200}
           duration={700}
           useNativeDriver

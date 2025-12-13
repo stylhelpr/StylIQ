@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,9 @@ import ConnectedAccountsSection from '../components/ConnectedAccounts/ConnectedA
 const screenWidth = Dimensions.get('window').width;
 const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
 
+// Module-level flag to persist across remounts
+let profileHasAnimated = false;
+
 type WardrobeItem = {
   id: string;
   image_url: string;
@@ -50,6 +53,12 @@ type UserProfile = {
 };
 
 export default function ProfileScreen({navigate}: Props) {
+  // Track animation state and mark as animated on mount
+  const hasAnimated = useRef(profileHasAnimated);
+  useEffect(() => {
+    profileHasAnimated = true;
+  }, []);
+
   const userId = useUUID();
   const {theme} = useAppTheme();
   const {user} = useAuth0();
@@ -363,7 +372,7 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Header Row */}
       <Animatable.View
-        animation="fadeInUp"
+        animation={hasAnimated.current ? undefined : 'fadeInUp'}
         delay={300}
         style={globalStyles.section}>
         <View style={styles.headerRow}>
@@ -387,12 +396,12 @@ export default function ProfileScreen({navigate}: Props) {
           {/* Stats */}
           <View style={styles.statsContainer}>
             <Animatable.View
-              animation="fadeIn"
+              animation={hasAnimated.current ? undefined : 'fadeIn'}
               delay={500}
               style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Animatable.Text
-                  animation="bounceIn"
+                  animation={hasAnimated.current ? undefined : 'bounceIn'}
                   delay={600}
                   style={styles.statNumber}>
                   {totalItems}
@@ -401,7 +410,7 @@ export default function ProfileScreen({navigate}: Props) {
               </View>
               <View style={styles.statBox}>
                 <Animatable.Text
-                  animation="bounceIn"
+                  animation={hasAnimated.current ? undefined : 'bounceIn'}
                   delay={800}
                   style={styles.statNumber}>
                   {totalCustomOutfits}
@@ -410,7 +419,7 @@ export default function ProfileScreen({navigate}: Props) {
               </View>
               <View style={styles.statBox}>
                 <Animatable.Text
-                  animation="bounceIn"
+                  animation={hasAnimated.current ? undefined : 'bounceIn'}
                   delay={1000}
                   style={styles.statNumber}>
                   {totalFavorites}
@@ -419,12 +428,12 @@ export default function ProfileScreen({navigate}: Props) {
               </View>
             </Animatable.View>
             <Animatable.View
-              animation="fadeIn"
+              animation={hasAnimated.current ? undefined : 'fadeIn'}
               delay={700}
               style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Animatable.Text
-                  animation="bounceIn"
+                  animation={hasAnimated.current ? undefined : 'bounceIn'}
                   delay={1100}
                   style={styles.statNumber}>
                   0
@@ -433,7 +442,7 @@ export default function ProfileScreen({navigate}: Props) {
               </View>
               <View style={styles.statBox}>
                 <Animatable.Text
-                  animation="bounceIn"
+                  animation={hasAnimated.current ? undefined : 'bounceIn'}
                   delay={1200}
                   style={styles.statNumber}>
                   0
@@ -442,7 +451,7 @@ export default function ProfileScreen({navigate}: Props) {
               </View>
               <View style={styles.statBox}>
                 <Animatable.Text
-                  animation="bounceIn"
+                  animation={hasAnimated.current ? undefined : 'bounceIn'}
                   delay={1300}
                   style={styles.statNumber}>
                   0
@@ -455,7 +464,7 @@ export default function ProfileScreen({navigate}: Props) {
 
         {/* Bio Section */}
         <Animatable.View
-          animation="fadeInUp"
+          animation={hasAnimated.current ? undefined : 'fadeInUp'}
           delay={1200}
           style={styles.bioContainer}>
           <Text style={styles.nameText}>
@@ -475,7 +484,7 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Style Profile CTA */}
       <Animatable.View
-        animation="fadeInUp"
+        animation={hasAnimated.current ? undefined : 'fadeInUp'}
         delay={1400}
         style={globalStyles.section}>
         <Text style={globalStyles.sectionTitle}>Style Profile</Text>
@@ -516,7 +525,7 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Style Tags */}
       <Animatable.View
-        animation="fadeInLeft"
+        animation={hasAnimated.current ? undefined : 'fadeInLeft'}
         delay={1600}
         style={globalStyles.sectionScroll}>
         <Text style={globalStyles.sectionTitle}>Style Tags</Text>
@@ -538,7 +547,7 @@ export default function ProfileScreen({navigate}: Props) {
             styleTags.map((tag, index) => (
               <Animatable.View
                 key={tag}
-                animation="bounceInRight"
+                animation={hasAnimated.current ? undefined : 'bounceInRight'}
                 delay={1700 + index * 80}
                 useNativeDriver
                 style={[
@@ -554,7 +563,7 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Favorite Brands */}
       <Animatable.View
-        animation="fadeInRight"
+        animation={hasAnimated.current ? undefined : 'fadeInRight'}
         delay={1900}
         style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Saved Brand Tags</Text>
@@ -576,7 +585,7 @@ export default function ProfileScreen({navigate}: Props) {
             favoriteBrands.map((brand, index) => (
               <Animatable.View
                 key={brand}
-                animation="bounceInLeft"
+                animation={hasAnimated.current ? undefined : 'bounceInLeft'}
                 delay={2000 + index * 90}
                 useNativeDriver
                 style={[
@@ -592,7 +601,7 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Saved Looks */}
       <Animatable.View
-        animation="fadeInUpBig"
+        animation={hasAnimated.current ? undefined : 'fadeInUpBig'}
         delay={2400}
         style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Inspired Looks</Text>
@@ -602,7 +611,7 @@ export default function ProfileScreen({navigate}: Props) {
               No saved looks.
             </Text>
             <TooltipBubble
-              message='You haven’t saved any looks yet. Tap "Home" in the bottom navigation bar and then tap "Add Look" to add your favorite looks.'
+              message="You haven't saved any looks yet. Tap Home in the bottom navigation bar and then tap Add Look to add your favorite looks."
               position="top"
             />
           </View>
@@ -614,7 +623,7 @@ export default function ProfileScreen({navigate}: Props) {
             {savedLooks.map((look, index) => (
               <Animatable.View
                 key={look.id}
-                animation="zoomInUp"
+                animation={hasAnimated.current ? undefined : 'zoomInUp'}
                 delay={2300 + index * 120}
                 useNativeDriver
                 style={globalStyles.outfitCard}>
@@ -632,7 +641,7 @@ export default function ProfileScreen({navigate}: Props) {
                     />
                   </View>
                   <Animatable.Text
-                    animation="fadeIn"
+                    animation={hasAnimated.current ? undefined : 'fadeIn'}
                     delay={2500 + index * 100}
                     style={[
                       globalStyles.subLabel,
@@ -653,7 +662,7 @@ export default function ProfileScreen({navigate}: Props) {
 
       {/* Footer */}
       <Animatable.View
-        animation="fadeIn"
+        animation={hasAnimated.current ? undefined : 'fadeIn'}
         delay={2800}
         style={[globalStyles.section, {paddingTop: 8}]}>
         <AppleTouchFeedback
@@ -677,7 +686,7 @@ export default function ProfileScreen({navigate}: Props) {
           hapticStyle="impactLight"
           onPress={() => navigate('AboutScreen')}>
           <Animatable.Text
-            animation="fadeInUp"
+            animation={hasAnimated.current ? undefined : 'fadeInUp'}
             delay={3000}
             style={{
               textAlign: 'center',
