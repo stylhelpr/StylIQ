@@ -22,6 +22,16 @@ import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
 import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
 import {globalNavigate} from '../MainApp';
 import {instantSpeak} from '../utils/VoiceUtils/instantTts';
+import {AudioMode} from '../utils/VoiceUtils/AudioMode';
+import {
+  isPassiveMode,
+  processWakeWordResult,
+  processWakeWordPartial,
+  onWakeSpeechStart,
+  onWakeSpeechEnd,
+  onWakeSpeechError,
+} from '../utils/VoiceUtils/WakeWordManager';
+import {isVideoFeedVoiceActive, getVideoFeedCallbacks} from '../voice/VideoFeedVoiceSession';
 
 const DEBUG = true;
 const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
@@ -29,6 +39,36 @@ const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
 const {RCTVoice} = NativeModules as {
   RCTVoice?: {setupAudioSession?: () => Promise<void> | void};
 };
+
+// Module-level flag to prevent multiple components from registering Voice handlers
+// The first component to mount (usually FloatingMicButton) will register handlers,
+// and subsequent mounts will skip registration
+let voiceHandlersRegistered = false;
+
+/**
+ * Reset the voice handler registration flag.
+ * Call this when a screen-scoped voice session (like VideoFeed) ends
+ * to allow the global voice system to re-register its handlers.
+ */
+export function resetVoiceHandlerRegistration(): void {
+  console.log('[VOICE] 🔄 Force resetting voiceHandlersRegistered flag');
+  voiceHandlersRegistered = false;
+}
+
+// Store the handler registration function so it can be called externally
+let registerHandlersFn: (() => void) | null = null;
+
+/**
+ * Force re-registration of global voice handlers.
+ * Call this after a screen-scoped voice session ends.
+ */
+export function forceReregisterVoiceHandlers(): void {
+  console.log('[VOICE] 🔄 Force re-registering global voice handlers');
+  voiceHandlersRegistered = false;
+  if (registerHandlersFn) {
+    registerHandlersFn();
+  }
+}
 
 export const useVoiceControl = () => {
   const [speech, setSpeech] = useState('');
@@ -58,51 +98,93 @@ export const useVoiceControl = () => {
     else VoiceBus.stopListening();
   }, [isRecording]);
 
-  // 🧹 Full destroy (used on navigation or stuck sessions)
+  // 🧹 Stop current session (preserves handlers for next use)
   const forceStop = async (source = 'forceStop') => {
     log('🧹 forceStop()', source);
     try {
       await Voice.stop();
     } catch {}
-    try {
-      await Voice.destroy();
-    } catch {}
+    // NOTE: Don't call Voice.destroy() here - it removes all event handlers
+    // The handlers are set once in useEffect and must persist
     setIsRecording(false);
     VoiceBus.stopListening();
     if (silenceTimer.current) clearTimeout(silenceTimer.current);
+
+    // Reset AudioMode if we were in listening mode
+    if (AudioMode.mode === 'listening') {
+      await AudioMode.setMode('idle');
+    }
   };
 
   // 🎙️ Start listening cleanly
   const startListening = async () => {
     log('🎙️ startListening()');
+
+    // Check if AudioMode allows mic access
+    if (!AudioMode.canUseMic()) {
+      log('❌ AudioMode blocks mic access, current mode:', AudioMode.mode);
+      return;
+    }
+
     if (!(await requestMic())) {
       log('❌ Mic permission denied');
       return;
     }
 
     try {
-      await Tts.stop();
+      // Wrap Tts.stop() in try-catch to handle iOS bridge type conversion errors
+      // The library sometimes throws "Error while converting JavaScript argument 0 to Objective C type BOOL"
+      try {
+        await Tts.stop();
+      } catch (ttsErr) {
+        log('⚠️ Tts.stop() error (non-fatal):', ttsErr);
+      }
       await forceStop('pre-start');
       await new Promise(res => setTimeout(res, 120));
 
-      // if (Platform.OS === 'ios' && RCTVoice?.setupAudioSession) {
-      //   try {
-      //     await RCTVoice.setupAudioSession();
-      //   } catch (err) {
-      //     log('setupAudioSession error', err);
-      //   }
-      // }
+      // Set AudioMode to 'listening' before starting voice recognition
+      // This triggers the native audio session switch (playback → voice)
+      const modeSet = await AudioMode.setMode('listening');
+      if (!modeSet) {
+        log('❌ Failed to set AudioMode to listening');
+        return;
+      }
+
+      // Wait for iOS audio session to fully reconfigure after category switch
+      // The native AudioSessionManager needs time to deactivate, switch category, and reactivate
+      // Longer delay needed when switching from video playback mode
+      await new Promise(res => setTimeout(res, 500));
 
       finalRef.current = '';
       setSpeech('');
       VoiceBus.startListening();
-      await Voice.start('en-US');
+
+      // Voice.start() internally sets up its own audio recording tap
+      // Adding retry logic in case the first attempt fails due to timing
+      let attempts = 0;
+      const maxAttempts = 3;
+      while (attempts < maxAttempts) {
+        try {
+          await Voice.start('en-US');
+          break; // Success, exit loop
+        } catch (voiceErr: any) {
+          attempts++;
+          log(`Voice.start attempt ${attempts} failed:`, voiceErr?.message);
+          if (attempts < maxAttempts) {
+            await new Promise(res => setTimeout(res, 300));
+          } else {
+            throw voiceErr; // Re-throw on final attempt
+          }
+        }
+      }
+
       setIsRecording(true);
-      // instantSpeak('Listening');
-      log('✅ Voice listening started');
+      log('✅ Voice listening started, AudioMode:', AudioMode.mode);
     } catch (err) {
       log('Voice.start ERROR', err);
       setIsRecording(false);
+      // Reset AudioMode on error
+      await AudioMode.setMode('idle');
     }
   };
 
@@ -116,7 +198,12 @@ export const useVoiceControl = () => {
     }
     setIsRecording(false);
     VoiceBus.stopListening();
-    // instantSpeak('Got it');
+
+    // Reset AudioMode to idle when done listening
+    if (AudioMode.mode === 'listening') {
+      await AudioMode.setMode('idle');
+      log('✅ AudioMode reset to idle');
+    }
   };
 
   // 💬 Commit final recognized text
@@ -146,14 +233,59 @@ export const useVoiceControl = () => {
   };
 
   // 🔗 Setup speech listeners
+  // IMPORTANT: This is the SINGLE source of truth for Voice event handlers.
+  // WakeWordManager exports functions that we call when in passive/wake mode.
+  // Only the FIRST component to mount registers handlers (prevents overwrites).
   useEffect(() => {
+    if (voiceHandlersRegistered) {
+      log('⚠️ Voice handlers already registered by another component, skipping');
+      return;
+    }
+    voiceHandlersRegistered = true;
+    log('🎧 Registering Voice handlers (first mount)');
+
     Voice.onSpeechStart = (e: SpeechStartEvent) => {
-      log('onSpeechStart', e);
+      log('onSpeechStart', {event: e, isPassive: isPassiveMode(), audioMode: AudioMode.mode});
+
+      // Forward to VideoFeed if its session owns voice
+      if (isVideoFeedVoiceActive()) {
+        log('📹 Forwarding onSpeechStart to VideoFeed');
+        // onListeningStart is called at session start, not here
+        return;
+      }
+
+      // Delegate to WakeWordManager if in passive wake mode
+      if (isPassiveMode()) {
+        onWakeSpeechStart();
+        return;
+      }
+
+      // Active voice recognition mode
+      log('✅ Setting isRecording = true');
       setIsRecording(true);
     };
 
     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
       const text = e.value?.[0] || '';
+      log('onSpeechPartialResults', {text, isPassive: isPassiveMode(), audioMode: AudioMode.mode});
+
+      // Forward to VideoFeed if its session owns voice
+      if (isVideoFeedVoiceActive()) {
+        const callbacks = getVideoFeedCallbacks();
+        if (callbacks) {
+          log('📹 Forwarding partial result to VideoFeed:', text);
+          callbacks.onPartialResult(text);
+        }
+        return;
+      }
+
+      // Delegate to WakeWordManager if in passive wake mode
+      if (isPassiveMode()) {
+        processWakeWordPartial(text);
+        return;
+      }
+
+      // Active voice recognition mode
       finalRef.current = text;
       setSpeech(text);
       VoiceBus.updateSpeech(text);
@@ -178,6 +310,24 @@ export const useVoiceControl = () => {
 
     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
       const text = e.value?.[0] || '';
+
+      // Forward to VideoFeed if its session owns voice
+      if (isVideoFeedVoiceActive()) {
+        const callbacks = getVideoFeedCallbacks();
+        if (callbacks) {
+          log('📹 Forwarding final result to VideoFeed:', text);
+          callbacks.onFinalResult(text);
+        }
+        return;
+      }
+
+      // Delegate to WakeWordManager if in passive wake mode
+      if (isPassiveMode()) {
+        processWakeWordResult(text);
+        return;
+      }
+
+      // Active voice recognition mode
       finalRef.current = text;
       setSpeech(text);
       VoiceBus.updateSpeech(text);
@@ -185,6 +335,25 @@ export const useVoiceControl = () => {
     };
 
     Voice.onSpeechEnd = () => {
+      log('onSpeechEnd');
+
+      // Forward to VideoFeed if its session owns voice
+      if (isVideoFeedVoiceActive()) {
+        const callbacks = getVideoFeedCallbacks();
+        if (callbacks) {
+          log('📹 Forwarding onSpeechEnd to VideoFeed');
+          callbacks.onListeningEnd();
+        }
+        return;
+      }
+
+      // Delegate to WakeWordManager if in passive wake mode
+      if (isPassiveMode()) {
+        onWakeSpeechEnd();
+        return;
+      }
+
+      // Active voice recognition mode - grace period before commit
       log('onSpeechEnd (grace period delay)');
       if (silenceTimer.current) clearTimeout(silenceTimer.current);
       silenceTimer.current = setTimeout(() => {
@@ -193,21 +362,73 @@ export const useVoiceControl = () => {
       }, 1000);
     };
 
-    Voice.onSpeechError = (e: SpeechErrorEvent) => {
-      log('onSpeechError', e);
+    Voice.onSpeechError = async (e: SpeechErrorEvent) => {
+      const errorCode = e.error?.code || 'unknown';
+      const errorMsg = e.error?.message || String(e.error);
+      log('onSpeechError', {code: errorCode, message: errorMsg, isPassive: isPassiveMode(), audioMode: AudioMode.mode});
+
+      // Forward to VideoFeed if its session owns voice
+      if (isVideoFeedVoiceActive()) {
+        const callbacks = getVideoFeedCallbacks();
+        if (callbacks) {
+          log('📹 Forwarding error to VideoFeed:', errorMsg);
+          callbacks.onError(errorMsg);
+        }
+        return;
+      }
+
+      // Delegate to WakeWordManager if in passive wake mode
+      if (isPassiveMode()) {
+        onWakeSpeechError(e.error);
+        return;
+      }
+
+      // Check if this is the iOS audio format error that can be recovered from
+      const isIOSFormatError =
+        errorCode === 'start_recording' &&
+        errorMsg.includes('IsFormatSampleRateAndChannelCountValid');
+
+      if (isIOSFormatError) {
+        log('⚠️ iOS format error detected - this may be recoverable');
+        // Don't reset state on this error - let the retry logic in startListening handle it
+        return;
+      }
+
+      // Active voice recognition mode - reset state properly
       setIsRecording(false);
       VoiceBus.stopListening();
+
+      // Reset AudioMode to idle on error to allow recovery
+      if (AudioMode.mode === 'listening') {
+        log('🔄 Resetting AudioMode to idle after error');
+        await AudioMode.setMode('idle');
+      }
     };
 
     const handleStop = async () => {
+      log('📢 VoiceBus stopListening event received');
       await forceStop('VoiceBus.stopListening');
       VoiceTarget.clear();
     };
     VoiceBus.on('stopListening', handleStop);
 
+    log('🎧 Voice handlers registered');
+
+    // Track that THIS component instance registered the handlers
+    const thisComponentRegistered = true;
+
     return () => {
-      log('🧹 Cleanup voice listeners');
-      Voice.destroy().then(Voice.removeAllListeners);
+      log('🧹 Cleanup voice listeners (component unmount)');
+      // NOTE: Do NOT call Voice.destroy() here!
+      // Multiple components use useVoiceControl, and destroying Voice when
+      // any one of them unmounts would break voice for all other components.
+      // Voice.destroy() should only be called on app-level cleanup.
+
+      // Only reset the flag if THIS component was the one that registered
+      if (thisComponentRegistered) {
+        voiceHandlersRegistered = false;
+        log('🔄 Voice handler registration flag reset');
+      }
       VoiceBus.off('stopListening', handleStop);
       if (silenceTimer.current) clearTimeout(silenceTimer.current);
     };

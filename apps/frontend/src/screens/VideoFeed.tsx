@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, useCallback} from 'react';
 import {
   Dimensions,
   FlatList,
@@ -14,6 +14,7 @@ import {
   Share,
   Image,
   StatusBar,
+  Animated,
 } from 'react-native';
 import Video, {ResizeMode, VideoRef} from 'react-native-video';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -27,6 +28,13 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+
+// Audio mode management for video/voice mutual exclusion
+import {AudioMode} from '../utils/VoiceUtils/AudioMode';
+import {suspend as suspendWakeWord, resume as resumeWakeWord} from '../utils/VoiceUtils/WakeWordManager';
+
+// Screen-scoped voice session (bypasses global voice infrastructure)
+import {startVideoFeedVoiceSession} from '../voice/VideoFeedVoiceSession';
 
 // ✅ Use full 'screen' height on Android; 'window' on iOS
 const SCREEN = Platform.select({
@@ -116,6 +124,12 @@ export default function VideoFeedScreen({
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
+  // Local voice session state (screen-scoped, bypasses global voice)
+  const [isListening, setIsListening] = useState(false);
+  const [voiceText, setVoiceText] = useState('');
+  const stopSessionRef = useRef<(() => Promise<void>) | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   const styles = StyleSheet.create({
     overlay: {
       ...StyleSheet.absoluteFill,
@@ -178,6 +192,120 @@ export default function VideoFeedScreen({
     StatusBar.setBarStyle('light-content');
     return () => {
       StatusBar.setHidden(false);
+    };
+  }, []);
+
+  // Audio mode lifecycle: suspend wake word and claim video mode on mount
+  useEffect(() => {
+    const setupAudioMode = async () => {
+      console.log('[VideoFeed] Mounting → suspending wake word, setting video mode');
+      await suspendWakeWord();
+      await AudioMode.setMode('video');
+    };
+
+    setupAudioMode();
+
+    // Cleanup: release video mode and resume wake word on unmount
+    return () => {
+      console.log('[VideoFeed] Unmounting → releasing video mode, resuming wake word');
+      AudioMode.setMode('idle').then(() => {
+        resumeWakeWord();
+      });
+    };
+  }, []);
+
+  // Pulse animation for mic button when listening
+  useEffect(() => {
+    if (isListening) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isListening, pulseAnim]);
+
+  // Local mic button handler - uses screen-scoped voice session
+  const handleLocalMicPress = useCallback(async () => {
+    console.log('[VideoFeed] 🎤 Local mic button pressed');
+    ReactNativeHapticFeedback.trigger('impactMedium');
+
+    if (isListening) {
+      // Stop current session
+      console.log('[VideoFeed] Stopping voice session');
+      if (stopSessionRef.current) {
+        await stopSessionRef.current();
+        stopSessionRef.current = null;
+      }
+      setIsListening(false);
+      setVoiceText('');
+      return;
+    }
+
+    // Start new voice session
+    setIsListening(true);
+    setVoiceText('');
+
+    const stopFn = await startVideoFeedVoiceSession({
+      onListeningStart: () => {
+        console.log('[VideoFeed] Voice session started');
+      },
+      onPartialResult: (text) => {
+        console.log('[VideoFeed] Partial:', text);
+        setVoiceText(text);
+      },
+      onFinalResult: (text) => {
+        console.log('[VideoFeed] Final result:', text);
+        setVoiceText(text);
+        // Auto-stop after getting final result
+        setTimeout(async () => {
+          if (stopSessionRef.current) {
+            await stopSessionRef.current();
+            stopSessionRef.current = null;
+          }
+          setIsListening(false);
+        }, 1500);
+      },
+      onError: (error) => {
+        console.log('[VideoFeed] Voice error:', error);
+        setIsListening(false);
+        setVoiceText('');
+      },
+      onListeningEnd: () => {
+        console.log('[VideoFeed] Voice session ended');
+      },
+      pauseVideo: () => {
+        console.log('[VideoFeed] Pausing video for voice');
+        setPauseOverride(true);
+      },
+      resumeVideo: () => {
+        console.log('[VideoFeed] Resuming video after voice');
+        setPauseOverride(false);
+      },
+    });
+
+    stopSessionRef.current = stopFn;
+  }, [isListening, pulseAnim]);
+
+  // Cleanup voice session on unmount
+  useEffect(() => {
+    return () => {
+      if (stopSessionRef.current) {
+        stopSessionRef.current();
+      }
     };
   }, []);
 
@@ -292,7 +420,7 @@ export default function VideoFeedScreen({
         </AppleTouchFeedback>
 
         {/* Photo Library Button */}
-        <AppleTouchFeedback onPress={handleNavigate}>
+        <AppleTouchFeedback onPress={handleNavigate} style={{marginBottom: 12}}>
           <View
             style={[
               styles.fabButton,
@@ -313,7 +441,59 @@ export default function VideoFeedScreen({
             />
           </View>
         </AppleTouchFeedback>
+
+        {/* 🎤 LOCAL Mic Button - Screen-scoped voice, NO global navigation */}
+        <AppleTouchFeedback onPress={handleLocalMicPress}>
+          <Animated.View
+            style={[
+              styles.fabButton,
+              {
+                backgroundColor: isListening ? 'rgba(255,59,48,0.8)' : 'rgba(0,0,0,0.35)',
+                borderWidth: tokens.borderWidth.md,
+                borderColor: isListening ? 'rgba(255,59,48,1)' : theme.colors.muted,
+                shadowColor: isListening ? '#FF3B30' : '#000',
+                shadowOpacity: isListening ? 0.5 : 0.2,
+                shadowRadius: 8,
+                shadowOffset: {width: 0, height: 4},
+                transform: [{scale: pulseAnim}],
+              },
+            ]}>
+            <MaterialIcons
+              name={isListening ? 'mic' : 'mic-none'}
+              size={22}
+              color={isListening ? '#fff' : theme.colors.buttonText1}
+            />
+          </Animated.View>
+        </AppleTouchFeedback>
       </View>
+
+      {/* 🎤 Voice overlay - shows transcribed text */}
+      {isListening && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: insets.bottom + 120,
+            left: 20,
+            right: 20,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            borderRadius: 16,
+            padding: 16,
+            alignItems: 'center',
+          }}>
+          <Text style={{color: '#fff', fontSize: 14, marginBottom: 8}}>
+            🎤 Listening...
+          </Text>
+          {voiceText ? (
+            <Text style={{color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center'}}>
+              "{voiceText}"
+            </Text>
+          ) : (
+            <Text style={{color: 'rgba(255,255,255,0.6)', fontSize: 14, fontStyle: 'italic'}}>
+              Say something...
+            </Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }

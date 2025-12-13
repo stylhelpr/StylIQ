@@ -77,7 +77,12 @@ class AssistantSessionManager {
 
     this.setState('speaking');
     try {
-      await Tts.stop();
+      // Wrap Tts.stop() separately to handle iOS bridge type errors
+      try {
+        await Tts.stop();
+      } catch {
+        // Non-fatal: library sometimes throws bridge type errors
+      }
       await Tts.speak(text);
     } catch (err) {
       console.log('TTS error:', err);

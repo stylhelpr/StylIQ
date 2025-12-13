@@ -1,23 +1,111 @@
 // src/utils/WakeWordManager.ts
 // -----------------------------------------------------------------------------
 // 💤 WakeWordManager — resilient (iOS + Android)
-// Keeps “Hey Charlie” detection alive indefinitely, even after idle or iOS freeze
+// Keeps "Hey Charlie" detection alive indefinitely, even after idle or iOS freeze
+// -----------------------------------------------------------------------------
+// AUDIO MODE INTEGRATION:
+// This module respects AudioMode state and will NOT claim the microphone when:
+//   - AudioMode === 'video'    (video playback active)
+//   - AudioMode === 'listening' (active voice recognition)
+//   - AudioMode === 'speaking'  (TTS output active)
+// Use suspend() before video playback and resume() after.
 // -----------------------------------------------------------------------------
 
 import Voice from '@react-native-voice/voice';
 import {Platform} from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {VoiceBus} from './VoiceBus';
+import {AudioMode} from './AudioMode';
 
 let passive = false;
 let inSession = false;
 let wakeTriggered = false;
 let rearmTimer: NodeJS.Timeout | null = null;
+let suspended = false; // Explicitly suspended by external caller
 
 /**
- * 💤 Start or restart passive “Hey Charlie” listener
+ * 🛑 Suspend wake word detection immediately
+ * Call this before video playback or when another audio mode takes priority.
+ * NOTE: We only stop(), not destroy(), to preserve Voice handlers set by useVoiceControl
+ */
+export async function suspend(): Promise<void> {
+  if (suspended) {
+    console.log('[WakeWord] Already suspended');
+    return;
+  }
+
+  console.log('[WakeWord] 🛑 Suspending wake word detection');
+  suspended = true;
+  passive = false;
+  clearRearmTimer();
+
+  try {
+    // Only stop the current session, don't destroy
+    // Voice.destroy() would remove all listeners including useVoiceControl's
+    await Voice.stop();
+  } catch (err) {
+    console.warn('[WakeWord] Error during suspend cleanup:', err);
+  }
+
+  inSession = false;
+  console.log('[WakeWord] ✅ Suspended successfully');
+}
+
+/**
+ * ▶️ Resume wake word detection
+ * Only restarts if AudioMode === 'idle'. Otherwise waits for idle state.
+ */
+export async function resume(): Promise<void> {
+  if (!suspended) {
+    console.log('[WakeWord] Not suspended, nothing to resume');
+    return;
+  }
+
+  console.log('[WakeWord] ▶️ Resume requested');
+  suspended = false;
+
+  // Only restart if AudioMode is idle
+  if (AudioMode.mode !== 'idle') {
+    console.log(
+      `[WakeWord] Cannot resume yet — AudioMode is '${AudioMode.mode}', waiting for idle`,
+    );
+    return;
+  }
+
+  console.log('[WakeWord] AudioMode is idle → restarting wake listener');
+  wakeTriggered = false;
+  await startWakeListener(true);
+}
+
+/**
+ * Check if wake word can start based on current AudioMode
+ */
+function canStartWakeListener(): boolean {
+  const mode = AudioMode.mode;
+  if (mode === 'video' || mode === 'listening' || mode === 'speaking') {
+    console.log(
+      `[WakeWord] ⚠️ Cannot start — AudioMode is '${mode}', mic not available`,
+    );
+    return false;
+  }
+  return true;
+}
+
+/**
+ * 💤 Start or restart passive "Hey Charlie" listener
  */
 export async function startWakeListener(force = false) {
+  // Respect suspension state
+  if (suspended) {
+    console.log('[WakeWord] Cannot start — currently suspended');
+    return;
+  }
+
+  // Respect AudioMode state
+  if (!canStartWakeListener()) {
+    return;
+  }
+
   if ((inSession && !force) || wakeTriggered) return;
 
   passive = true;
@@ -95,41 +183,61 @@ function triggerWake() {
   setTimeout(() => VoiceBus.emit('startListening'), 500);
 }
 
-/**
- * ✅ Final speech results
- */
-Voice.onSpeechResults = e => {
-  const transcript = (e.value?.[0] || '').toLowerCase().trim();
-  if (!transcript) return;
-  console.log('🎧 Heard (final):', transcript);
+// =============================================================================
+// IMPORTANT: Voice event handlers are ONLY for wake word detection.
+// When AudioMode !== 'idle', useVoiceControl manages its own handlers.
+// We DO NOT set global Voice handlers here to avoid conflicts.
+// Instead, useVoiceControl will call WakeWordManager functions when needed.
+// =============================================================================
 
-  if (matchesWakeWord(transcript)) {
+/**
+ * Process speech results for wake word detection
+ * Called by useVoiceControl when in passive/wake mode
+ */
+export function processWakeWordResult(transcript: string): boolean {
+  const text = transcript.toLowerCase().trim();
+  if (!text) return false;
+
+  console.log('🎧 [WakeWord] Checking:', text);
+
+  if (matchesWakeWord(text)) {
     triggerWake();
-    return;
+    return true; // Consumed by wake word
   }
-  if (!passive) VoiceBus.emit('voiceCommand', transcript);
-};
+  return false; // Not a wake word, let caller handle it
+}
 
 /**
- * 💬 Partial results (fast hotword)
+ * Process partial results for fast wake word detection
  */
-Voice.onSpeechPartialResults = e => {
-  const partial = (e.value?.[0] || '').toLowerCase().trim();
-  if (!partial) return;
+export function processWakeWordPartial(partial: string): boolean {
+  const text = partial.toLowerCase().trim();
+  if (!text) return false;
 
-  if (passive && matchesWakeWord(partial)) {
+  if (passive && matchesWakeWord(text)) {
     console.log('🪄 Wake word (partial) detected fast!');
     triggerWake();
+    return true;
   }
-};
+  return false;
+}
 
 /**
- * 👂 Track microphone open
+ * Track speech start for wake word session
  */
-Voice.onSpeechStart = e => {
-  console.log('[VOICE] onSpeechStart', e);
-  inSession = true;
-};
+export function onWakeSpeechStart(): void {
+  if (AudioMode.mode === 'idle' && passive) {
+    console.log('[WakeWord] onSpeechStart → session active');
+    inSession = true;
+  }
+}
+
+/**
+ * Check if currently in passive wake word mode
+ */
+export function isPassiveMode(): boolean {
+  return passive && !suspended && AudioMode.mode === 'idle';
+}
 
 /**
  * Helper: detect wake phrase
@@ -148,38 +256,65 @@ function matchesWakeWord(text: string) {
 
 /**
  * 🔁 Assistant done → re-arm listener
+ * Respects suspension and AudioMode state
  */
 VoiceBus.on('assistant:done', () => {
-  console.log('🔁 Assistant done → re-arming passive wake listener');
+  console.log('🔁 Assistant done → checking if can re-arm');
+
+  if (suspended) {
+    console.log('[WakeWord] Cannot re-arm — currently suspended');
+    return;
+  }
+
+  if (!canStartWakeListener()) {
+    console.log('[WakeWord] Cannot re-arm — AudioMode blocks mic access');
+    return;
+  }
+
+  console.log('[WakeWord] Re-arming passive wake listener');
   wakeTriggered = false;
   scheduleRearm(1000);
 });
 
 /**
- * 🔁 iOS auto-end patch — ensures continual listening
+ * 🔁 Handle speech end for wake word mode
+ * Called by useVoiceControl when AudioMode is idle
  */
-Voice.onSpeechEnd = () => {
-  console.log('[VOICE] onSpeechEnd → auto-rearm safeguard', {
+export function onWakeSpeechEnd(): void {
+  if (AudioMode.mode !== 'idle') {
+    return; // Not in wake word mode
+  }
+
+  console.log('[WakeWord] onSpeechEnd → auto-rearm safeguard', {
     passive,
     wakeTriggered,
   });
   inSession = false;
   if (passive && !wakeTriggered) scheduleRearm(800);
-};
+}
 
 /**
- * 🚨 Error handler (mic interrupted / recognizer closed)
+ * 🚨 Handle speech error for wake word mode
+ * Called by useVoiceControl when AudioMode is idle
  */
-Voice.onSpeechError = e => {
-  console.log('⚠️ Wake listener error:', e.error);
+export function onWakeSpeechError(error: any): void {
+  if (AudioMode.mode !== 'idle') {
+    return; // Not in wake word mode
+  }
+
+  console.log('⚠️ [WakeWord] error:', error);
   inSession = false;
   if (passive && !wakeTriggered) scheduleRearm(1200);
-};
+}
 
 /**
  * 🩺 Watchdog — ensures hotword stays armed every 15 s
+ * Respects suspension and AudioMode state
  */
 setInterval(() => {
+  if (suspended) return; // Don't restart if suspended
+  if (!canStartWakeListener()) return; // Don't restart if AudioMode blocks it
+
   if (passive && !inSession && !wakeTriggered) {
     console.log('🩺 Watchdog → restarting listener');
     startWakeListener();
@@ -188,10 +323,13 @@ setInterval(() => {
 
 /**
  * Utility: schedule re-arm safely
+ * Respects suspension and AudioMode state
  */
 function scheduleRearm(delay = 1000) {
   clearRearmTimer();
   rearmTimer = setTimeout(() => {
+    if (suspended) return;
+    if (!canStartWakeListener()) return;
     if (!wakeTriggered) startWakeListener();
   }, delay);
 }
@@ -202,4 +340,11 @@ function scheduleRearm(delay = 1000) {
 function clearRearmTimer() {
   if (rearmTimer) clearTimeout(rearmTimer);
   rearmTimer = null;
+}
+
+/**
+ * Check if wake word detection is currently suspended
+ */
+export function isSuspended(): boolean {
+  return suspended;
 }

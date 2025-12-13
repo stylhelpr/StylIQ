@@ -91,7 +91,12 @@ export const instantSpeak = async (text: string): Promise<void> => {
     // 🔊 Announce lifecycle
     safeEmit('tts-start');
 
-    await Tts.stop();
+    // Wrap Tts.stop() in try-catch to handle iOS bridge type conversion errors
+    try {
+      await Tts.stop();
+    } catch {
+      // Non-fatal: library sometimes throws bridge type errors
+    }
 
     await Tts.speak(text, {
       iosVoiceId: currentVoiceId,

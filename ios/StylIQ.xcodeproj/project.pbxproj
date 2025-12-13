@@ -39,6 +39,8 @@
 		C2D0CF702ED798BE0033133C /* EmotionModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D0CF6D2ED798BE0033133C /* EmotionModule.swift */; };
 		C2DCB8E42EDA11470048328C /* HandTrackingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2DCB8E32EDA11470048328C /* HandTrackingModule.swift */; };
 		C2DCB8E52EDA11470048328C /* HandTrackingModule.m in Sources */ = {isa = PBXBuildFile; fileRef = C2DCB8E22EDA11470048328C /* HandTrackingModule.m */; };
+		C2DB9AF02EDD3E5A00123ABC /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2DB9AEF2EDD3E5A00123ABC /* AudioSessionManager.swift */; };
+		C2DB9AF12EDD3E5A00123ABC /* AudioSessionManager.m in Sources */ = {isa = PBXBuildFile; fileRef = C2DB9AEE2EDD3E5A00123ABC /* AudioSessionManager.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,6 +116,8 @@
 		C2D0CF6E2ED798BE0033133C /* EmotionModuleBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EmotionModuleBridge.m; sourceTree = "<group>"; };
 		C2DCB8E22EDA11470048328C /* HandTrackingModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HandTrackingModule.m; sourceTree = "<group>"; };
 		C2DCB8E32EDA11470048328C /* HandTrackingModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandTrackingModule.swift; sourceTree = "<group>"; };
+		C2DB9AEE2EDD3E5A00123ABC /* AudioSessionManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AudioSessionManager.m; sourceTree = "<group>"; };
+		C2DB9AEF2EDD3E5A00123ABC /* AudioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSessionManager.swift; sourceTree = "<group>"; };
 		DD50ECA303AFE13BDE439D58 /* Pods-StylIQ.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.release.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.release.xcconfig"; sourceTree = "<group>"; };
 		E4C7EBD29344171E2BC84D57 /* Pods-StylIQ.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -245,6 +249,8 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				C2DB9AEE2EDD3E5A00123ABC /* AudioSessionManager.m */,
+				C2DB9AEF2EDD3E5A00123ABC /* AudioSessionManager.swift */,
 				C2DCB8E22EDA11470048328C /* HandTrackingModule.m */,
 				C2DCB8E32EDA11470048328C /* HandTrackingModule.swift */,
 				C25ACD1D2ED926920079C030 /* HeadPoseModuleBridge.m */,
@@ -621,6 +627,8 @@
 				C2C53F932ED91F2800108BF6 /* HeadPoseModule.swift in Sources */,
 				C2DCB8E42EDA11470048328C /* HandTrackingModule.swift in Sources */,
 				C2DCB8E52EDA11470048328C /* HandTrackingModule.m in Sources */,
+				C2DB9AF02EDD3E5A00123ABC /* AudioSessionManager.swift in Sources */,
+				C2DB9AF12EDD3E5A00123ABC /* AudioSessionManager.m in Sources */,
 				C278CC812ECA4E2100EC355E /* SceneDelegate.swift in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				C25CCD3D2EC99CB30079777C /* StylIQDynamicIslandBridge.m in Sources */,

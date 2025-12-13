@@ -133,9 +133,11 @@ const MainApp = () => {
         onScreenChange={setActiveScreen}
       />
       <WeatherOverlay />
-      {activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && (
-        <FloatingMicButton navigate={globalNavigate} />
-      )}
+      {/* Hide global FloatingMicButton on screens with local voice handling */}
+      {activeScreen !== 'VideoFeedScreen' &&
+        activeScreen !== 'ImageCarouselScreen' && (
+          <FloatingMicButton navigate={globalNavigate} />
+        )}
       <WeatherPromptOverlay
         visible={weatherVisible}
         city={weatherData?.city || 'Los Angeles'}
