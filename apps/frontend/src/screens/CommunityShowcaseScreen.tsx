@@ -907,7 +907,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     filterText: {
       fontSize: 12,
       fontWeight: tokens.fontWeight.medium,
-      color: theme.colors.muted,
+      color: theme.colors.buttonText1,
       textTransform: 'capitalize',
     },
     filterTextActive: {
@@ -928,16 +928,40 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       height: CARD_HEIGHT,
       marginBottom: moderateScale(tokens.spacing.md),
       borderRadius: tokens.borderRadius.md,
+      // borderColor: theme.colors.muted,
+      // borderWidth: tokens.borderWidth.hairline,
       overflow: 'hidden',
-      backgroundColor: theme.colors.pillDark1,
+      backgroundColor: theme.colors.muted,
     },
     cardImage: {
       width: '100%',
       height: '100%',
     },
     cardOverlay: {
-      ...StyleSheet.absoluteFill,
-      justifyContent: 'flex-end',
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 78,
+      borderBottomLeftRadius: tokens.borderRadius.md,
+      borderBottomRightRadius: tokens.borderRadius.md,
+      overflow: 'hidden',
+    },
+    cardOverlayContainer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: 78,
+    },
+    cardGradient: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderBottomLeftRadius: tokens.borderRadius.md,
+      borderBottomRightRadius: tokens.borderRadius.md,
     },
 
     cardContent: {
@@ -950,8 +974,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       marginBottom: 8,
     },
     cardAvatar: {
-      width: 30,
-      height: 30,
+      width: 35,
+      height: 35,
       borderRadius: 50,
       marginRight: 8,
       borderWidth: 1.5,
@@ -1068,76 +1092,86 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             {/* Row 1 */}
             <View style={{flexDirection: 'row', height: cellSize}}>
               {/* Top */}
-              <View style={{width: cellSize, height: cellSize}}>
-                <Image
-                  source={{uri: post.top}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
+              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+                {post.top ? (
+                  <Image
+                    source={{uri: post.top}}
+                    style={{width: '100%', height: '100%'}}
+                    resizeMode="cover"
+                  />
+                ) : null}
               </View>
               {/* Bottom */}
-              <View style={{width: cellSize, height: cellSize}}>
-                <Image
-                  source={{uri: post.bottom}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
+              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+                {post.bottom ? (
+                  <Image
+                    source={{uri: post.bottom}}
+                    style={{width: '100%', height: '100%'}}
+                    resizeMode="cover"
+                  />
+                ) : null}
               </View>
             </View>
             {/* Row 2 */}
             <View style={{flexDirection: 'row', height: cellSize}}>
               {/* Shoes */}
-              <View style={{width: cellSize, height: cellSize}}>
-                <Image
-                  source={{uri: post.shoes}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
+              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+                {post.shoes ? (
+                  <Image
+                    source={{uri: post.shoes}}
+                    style={{width: '100%', height: '100%'}}
+                    resizeMode="cover"
+                  />
+                ) : null}
               </View>
               {/* Accessory */}
-              <View style={{width: cellSize, height: cellSize}}>
-                <Image
-                  source={{uri: post.accessory}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
-                />
+              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+                {post.accessory ? (
+                  <Image
+                    source={{uri: post.accessory}}
+                    style={{width: '100%', height: '100%'}}
+                    resizeMode="cover"
+                  />
+                ) : null}
               </View>
             </View>
           </View>
-          <View style={styles.cardOverlay}>
-            <LinearGradient colors={['transparent', 'rgba(65, 65, 65, 1)']}>
-              <View style={styles.cardContent}>
-                <View style={styles.cardUserRow}>
-                  <Image
-                    source={{uri: post.userAvatar}}
-                    style={styles.cardAvatar}
-                  />
-                  <Text style={styles.cardUserName}>@{post.userName}</Text>
-                </View>
-                <View style={styles.cardActions}>
-                  <View style={styles.cardTags}>
-                    {post.tags.slice(0, 2).map(tag => (
-                      <Text key={tag} style={styles.cardTag}>
-                        #{tag}
-                      </Text>
-                    ))}
-                  </View>
-                  <AppleTouchFeedback
-                    hapticStyle="impactLight"
-                    onPress={() => toggleLike(post.id)}
-                    style={styles.likeButton}>
-                    <MaterialIcons
-                      name={isLiked ? 'favorite' : 'favorite-border'}
-                      size={HEART_ICON_SIZE}
-                      color={isLiked ? '#FF4D6D' : '#fff'}
-                    />
-                    <Text style={styles.likeCount}>
-                      {isLiked ? post.likes + 1 : post.likes}
-                    </Text>
-                  </AppleTouchFeedback>
-                </View>
+          <View style={styles.cardOverlayContainer}>
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
+              style={styles.cardGradient}
+            />
+            <View style={styles.cardContent}>
+              <View style={styles.cardUserRow}>
+                <Image
+                  source={{uri: post.userAvatar}}
+                  style={styles.cardAvatar}
+                />
+                <Text style={styles.cardUserName}>@{post.userName}</Text>
               </View>
-            </LinearGradient>
+              <View style={styles.cardActions}>
+                <View style={styles.cardTags}>
+                  {post.tags.slice(0, 1).map(tag => (
+                    <Text key={tag} style={styles.cardTag}>
+                      #{tag}
+                    </Text>
+                  ))}
+                </View>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => toggleLike(post.id)}
+                  style={styles.likeButton}>
+                  <MaterialIcons
+                    name={isLiked ? 'favorite' : 'favorite-border'}
+                    size={HEART_ICON_SIZE}
+                    color={isLiked ? '#FF4D6D' : '#fff'}
+                  />
+                  <Text style={styles.likeCount}>
+                    {isLiked ? post.likes + 1 : post.likes}
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </View>
           </View>
         </AppleTouchFeedback>
       </Animatable.View>
@@ -1163,40 +1197,42 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           }}
           style={styles.card}>
           <Image source={{uri: post.imageUrl}} style={styles.cardImage} />
-          <View style={styles.cardOverlay}>
-            <LinearGradient colors={['transparent', 'rgba(0, 0, 0, 1)']}>
-              <View style={styles.cardContent}>
-                <View style={styles.cardUserRow}>
-                  <Image
-                    source={{uri: post.userAvatar}}
-                    style={styles.cardAvatar}
-                  />
-                  <Text style={styles.cardUserName}>@{post.userName}</Text>
-                </View>
-                <View style={styles.cardActions}>
-                  <View style={styles.cardTags}>
-                    {post.tags.slice(0, 2).map(tag => (
-                      <Text key={tag} style={styles.cardTag}>
-                        #{tag}
-                      </Text>
-                    ))}
-                  </View>
-                  <AppleTouchFeedback
-                    hapticStyle="impactLight"
-                    onPress={() => toggleLike(post.id)}
-                    style={styles.likeButton}>
-                    <MaterialIcons
-                      name={isLiked ? 'favorite' : 'favorite-border'}
-                      size={HEART_ICON_SIZE}
-                      color={isLiked ? '#FF4D6D' : '#fff'}
-                    />
-                    <Text style={styles.likeCount}>
-                      {isLiked ? post.likes + 1 : post.likes}
-                    </Text>
-                  </AppleTouchFeedback>
-                </View>
+          <View style={styles.cardOverlayContainer}>
+            <LinearGradient
+              colors={['rgba(0, 0, 0, 0.06)', 'rgba(0, 0, 0, 0.76)']}
+              style={styles.cardGradient}
+            />
+            <View style={styles.cardContent}>
+              <View style={styles.cardUserRow}>
+                <Image
+                  source={{uri: post.userAvatar}}
+                  style={styles.cardAvatar}
+                />
+                <Text style={styles.cardUserName}>@{post.userName}</Text>
               </View>
-            </LinearGradient>
+              <View style={styles.cardActions}>
+                <View style={styles.cardTags}>
+                  {post.tags.slice(0, 1).map(tag => (
+                    <Text key={tag} style={styles.cardTag}>
+                      #{tag}
+                    </Text>
+                  ))}
+                </View>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => toggleLike(post.id)}
+                  style={styles.likeButton}>
+                  <MaterialIcons
+                    name={isLiked ? 'favorite' : 'favorite-border'}
+                    size={HEART_ICON_SIZE}
+                    color={isLiked ? '#FF4D6D' : '#fff'}
+                  />
+                  <Text style={styles.likeCount}>
+                    {isLiked ? post.likes + 1 : post.likes}
+                  </Text>
+                </AppleTouchFeedback>
+              </View>
+            </View>
           </View>
         </AppleTouchFeedback>
       </Animatable.View>
@@ -1215,36 +1251,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          {/* <AppleTouchFeedback
-            hapticStyle="impactLight"
-            onPress={() => navigate('VideoFeedScreen')}
-            style={styles.backButton}>
-            <MaterialIcons
-              name="arrow-back"
-              size={22}
-              color={theme.colors.foreground}
-            />
-          </AppleTouchFeedback> */}
-
           <View style={{alignItems: 'left', flex: 1}}>
             <Text style={globalStyles.sectionTitle}>Community Share</Text>
-            {/* <Text style={styles.headerSubtitle}>Discover shared looks</Text> */}
           </View>
-
-          <AppleTouchFeedback
-            hapticStyle="impactLight"
-            onPress={() => {
-              h('impactMedium');
-              // TODO: Navigate to create post
-            }}
-            style={styles.shareButton}>
-            <MaterialIcons
-              name="add"
-              size={18}
-              color={theme.colors.buttonText1}
-            />
-            <Text style={styles.shareButtonText}>Share</Text>
-          </AppleTouchFeedback>
         </View>
       </View>
 
