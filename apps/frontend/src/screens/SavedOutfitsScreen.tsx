@@ -1095,13 +1095,8 @@ export default function SavedOutfitsScreen() {
                         alignItems: 'flex-end',
                         justifyContent: 'center',
                         paddingRight: 24,
-                      }}>
-                      <MaterialIcons
-                        name="delete"
-                        size={28}
-                        color={theme.colors.error}
-                      />
-                    </View>
+                      }}
+                    />
                   }>
                   <Animatable.View
                     key={outfit.id}
