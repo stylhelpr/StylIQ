@@ -1594,12 +1594,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       JSON.stringify(newState),
                     );
                   }}>
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={800}
-                    duration={700}
-                    useNativeDriver
-                    style={[globalStyles.sectionScroll2]}>
+                  <View style={[globalStyles.sectionScroll2]}>
                     {savedLooks.length === 0 ? (
                       <View
                         style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
@@ -1620,12 +1615,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           paddingRight: moderateScale(tokens.spacing.xs),
                         }}>
                         {savedLooks.map((look, index) => (
-                          <Animatable.View
-                            key={look.id}
-                            animation="fadeInUp"
-                            delay={900 + index * 100}
-                            useNativeDriver
-                            style={globalStyles.outfitCard}>
+                          <View key={look.id} style={globalStyles.outfitCard}>
                             <Pressable
                               onPress={() => {
                                 setSelectedLook(look);
@@ -1665,11 +1655,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 {look.name}
                               </Text>
                             </Pressable>
-                          </Animatable.View>
+                          </View>
                         ))}
                       </ScrollView>
                     )}
-                  </Animatable.View>
+                  </View>
                 </CollapsibleSection>
               )}
 
@@ -1700,12 +1690,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       JSON.stringify(newState),
                     );
                   }}>
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={150}
-                    duration={600}
-                    useNativeDriver
-                    style={globalStyles.sectionScroll2}>
+                  <View style={globalStyles.sectionScroll2}>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}>
@@ -1761,7 +1746,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
-                  </Animatable.View>
+                  </View>
                 </CollapsibleSection>
               )}
 
@@ -1792,16 +1777,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       JSON.stringify(newState),
                     );
                   }}>
-                  <Animatable.View
-                    animation="fadeInUp"
-                    delay={150}
-                    duration={600}
-                    useNativeDriver
-                    style={globalStyles.sectionScroll}>
+                  <View style={globalStyles.sectionScroll}>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}>
-                      {recentVibes.map((vibe, index) => (
+                      {recentVibes.map(vibe => (
                         <TouchableOpacity
                           activeOpacity={0.85}
                           onPress={() => {
@@ -1847,7 +1827,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
-                  </Animatable.View>
+                  </View>
                 </CollapsibleSection>
               )}
             </>

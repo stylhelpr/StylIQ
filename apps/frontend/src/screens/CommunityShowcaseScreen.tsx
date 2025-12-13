@@ -1092,7 +1092,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             {/* Row 1 */}
             <View style={{flexDirection: 'row', height: cellSize}}>
               {/* Top */}
-              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+              <View
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  backgroundColor: '#000',
+                }}>
                 {post.top ? (
                   <Image
                     source={{uri: post.top}}
@@ -1102,7 +1107,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 ) : null}
               </View>
               {/* Bottom */}
-              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+              <View
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  backgroundColor: '#000',
+                }}>
                 {post.bottom ? (
                   <Image
                     source={{uri: post.bottom}}
@@ -1115,7 +1125,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             {/* Row 2 */}
             <View style={{flexDirection: 'row', height: cellSize}}>
               {/* Shoes */}
-              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+              <View
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  backgroundColor: '#000',
+                }}>
                 {post.shoes ? (
                   <Image
                     source={{uri: post.shoes}}
@@ -1125,7 +1140,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 ) : null}
               </View>
               {/* Accessory */}
-              <View style={{width: cellSize, height: cellSize, backgroundColor: '#000'}}>
+              <View
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  backgroundColor: '#000',
+                }}>
                 {post.accessory ? (
                   <Image
                     source={{uri: post.accessory}}

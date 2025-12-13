@@ -980,7 +980,7 @@ export const createGlobalStyles = (theme: Theme) =>
     image7: {
       // width: image4Size,
       // height: image4Size,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.surface3,
       width: '100%',
       // height: isTablet ? 160 : isLargePhone ? 140 : 125,
       height: isTablet ? 160 : isLargePhone ? 110 : isRegularPhone ? 115 : 105,
@@ -1056,7 +1056,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
       marginRight: isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10,
       alignItems: 'flex-start',
-      backgroundColor: theme.colors.surface2,
+      backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       // borderRadius: tokens.borderRadius.lg,
       borderRadius: tokens.borderRadius.sm,

@@ -1444,21 +1444,19 @@ export default function SavedOutfitsScreen() {
         </BlurView>
       )}
 
-      {/* 📅 Step 1: Date Picker — Dramatic Blur Bottom Sheet */}
-      {showDatePicker && planningOutfitId && (
+      {/* 📅 Date/Time Picker — Combined Bottom Sheet */}
+      {(showDatePicker || showTimePicker) && planningOutfitId && (
         <BlurView
           style={[styles.overlay, {marginTop: 0}]}
           blurType="dark"
           blurAmount={20}
           reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <Animatable.View
-            animation="slideInUp"
-            duration={650}
-            easing="ease-out-cubic"
-            style={[styles.sheetContainer]}>
+          <View style={[styles.sheetContainer]}>
             <View style={styles.grabber} />
             <View style={styles.sheetHeaderRow}>
-              <Text style={styles.sheetTitle}>📆 Pick a date</Text>
+              <Text style={styles.sheetTitle}>
+                {showDatePicker ? '📆 Pick a date' : '⏱️ Pick a time'}
+              </Text>
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={resetPlanFlow}
@@ -1470,99 +1468,51 @@ export default function SavedOutfitsScreen() {
             <View
               style={{
                 position: 'relative',
-                backgroundColor: theme.colors.background,
+                backgroundColor: showDatePicker ? theme.colors.background : 'rgba(0, 0, 0, 1)',
                 borderRadius: 25,
                 paddingBottom: insets.bottom + 10,
-                paddingTop: 6,
-                alignItems: 'center',
-              }}>
-              <DateTimePicker
-                value={selectedTempDate || new Date()}
-                mode="date"
-                display="spinner"
-                themeVariant="dark"
-                textColor={theme.colors.foreground}
-                onChange={(e, d) => d && setSelectedTempDate(new Date(d))}
-                style={{marginVertical: -10}}
-              />
-            </View>
-
-            <View style={styles.sheetFooterRow}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={resetPlanFlow}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.surface},
-                ]}>
-                <Text style={styles.sheetPillText}>Cancel</Text>
-              </AppleTouchFeedback>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() => {
-                  setShowDatePicker(false);
-                  setShowTimePicker(true);
-                }}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.background},
-                ]}>
-                <Text
-                  style={{color: theme.colors.foreground, fontWeight: '800'}}>
-                  Next: Time
-                </Text>
-              </AppleTouchFeedback>
-            </View>
-          </Animatable.View>
-        </BlurView>
-      )}
-
-      {/* ⏰ Step 2: Time Picker — Dramatic Blur Bottom Sheet */}
-      {showTimePicker && planningOutfitId && (
-        <BlurView
-          style={styles.overlay}
-          blurType="dark"
-          blurAmount={20}
-          reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <Animatable.View
-            animation="slideInUp"
-            duration={650}
-            easing="ease-out-cubic"
-            style={[styles.sheetContainer]}>
-            <View style={styles.grabber} />
-            <View style={styles.sheetHeaderRow}>
-              <Text style={styles.sheetTitle}>⏱️ Pick a time</Text>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={resetPlanFlow}
-                style={styles.sheetPill}>
-                <Text style={styles.sheetPillText}>Close</Text>
-              </AppleTouchFeedback>
-            </View>
-
-            <View
-              style={{
-                position: 'relative',
-                backgroundColor: 'rgba(0, 0, 0, 1)',
-                borderRadius: 25,
-                paddingBottom: insets.bottom + 10,
-                paddingTop: 12,
+                paddingTop: showDatePicker ? 6 : 12,
                 alignItems: 'center',
                 overflow: 'hidden',
               }}>
-              <DateTimePicker
-                value={selectedTempTime || new Date()}
-                mode="time"
-                display="spinner"
-                // themeVariant="dark"
-                textColor={theme.colors.foreground}
-                onChange={(e, t) => t && setSelectedTempTime(new Date(t))}
-                style={{
-                  width: '100%',
-                  transform: [{scale: 1.05}],
-                  opacity: 1.0,
-                }}
-              />
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                opacity: showDatePicker ? 1 : 0,
+                pointerEvents: showDatePicker ? 'auto' : 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <DateTimePicker
+                  value={selectedTempDate || new Date()}
+                  mode="date"
+                  display="spinner"
+                  themeVariant="dark"
+                  textColor={theme.colors.foreground}
+                  onChange={(e, d) => d && setSelectedTempDate(new Date(d))}
+                  style={{marginVertical: -10}}
+                />
+              </View>
+              <View style={{
+                opacity: showTimePicker ? 1 : 0,
+                pointerEvents: showTimePicker ? 'auto' : 'none',
+              }}>
+                <DateTimePicker
+                  value={selectedTempTime || new Date()}
+                  mode="time"
+                  display="spinner"
+                  textColor={theme.colors.foreground}
+                  onChange={(e, t) => t && setSelectedTempTime(new Date(t))}
+                  style={{
+                    width: '100%',
+                    transform: [{scale: 1.05}],
+                    opacity: 1.0,
+                  }}
+                />
+              </View>
             </View>
 
             <View style={styles.sheetFooterRow}>
@@ -1571,27 +1521,45 @@ export default function SavedOutfitsScreen() {
                 onPress={resetPlanFlow}
                 style={[
                   styles.sheetPill,
-                  {backgroundColor: theme.colors.input2},
+                  {backgroundColor: showDatePicker ? theme.colors.surface : theme.colors.input2},
                 ]}>
                 <Text style={styles.sheetPillText}>Cancel</Text>
               </AppleTouchFeedback>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={commitSchedule}
-                style={[
-                  styles.sheetPill,
-                  {backgroundColor: theme.colors.button1},
-                ]}>
-                <Text
-                  style={{
-                    color: theme.colors.buttonText1,
-                    fontWeight: '800',
-                  }}>
-                  Done
-                </Text>
-              </AppleTouchFeedback>
+              {showDatePicker ? (
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setShowTimePicker(true);
+                    setShowDatePicker(false);
+                  }}
+                  style={[
+                    styles.sheetPill,
+                    {backgroundColor: theme.colors.background},
+                  ]}>
+                  <Text
+                    style={{color: theme.colors.foreground, fontWeight: '800'}}>
+                    Next: Time
+                  </Text>
+                </AppleTouchFeedback>
+              ) : (
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={commitSchedule}
+                  style={[
+                    styles.sheetPill,
+                    {backgroundColor: theme.colors.button1},
+                  ]}>
+                  <Text
+                    style={{
+                      color: theme.colors.buttonText1,
+                      fontWeight: '800',
+                    }}>
+                    Done
+                  </Text>
+                </AppleTouchFeedback>
+              )}
             </View>
-          </Animatable.View>
+          </View>
         </BlurView>
       )}
 

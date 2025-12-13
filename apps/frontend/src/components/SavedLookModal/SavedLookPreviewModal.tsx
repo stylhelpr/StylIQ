@@ -72,7 +72,7 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
     },
     gestureZone: {
       position: 'absolute',
-      top: 28,
+      top: 46,
       height: 110,
       width: '100%',
       zIndex: 999, // ⬅️ crucial
