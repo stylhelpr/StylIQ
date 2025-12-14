@@ -11,6 +11,8 @@ import {VoiceMemory} from './VoiceMemory';
 import {VoiceBus} from './VoiceBus';
 import {instantSpeak} from './instantTts';
 import {Linking} from 'react-native';
+import Geolocation from 'react-native-geolocation-service';
+import {ensureLocationPermission} from '../permissions';
 
 /**
  * Global voice command router for StylHelpr.
@@ -441,6 +443,86 @@ export const routeVoiceCommand = async (
         temperature: 0,
         condition: 'Unable to fetch weather',
       });
+    }
+    return;
+  }
+
+  // ---------------------------
+  // 📍 Location command
+  // ---------------------------
+  if (
+    includesAny([
+      "what's my location",
+      'where am i',
+      'my location',
+      'show my location',
+      'current location',
+      'show location',
+    ])
+  ) {
+    try {
+      let lat: number | undefined;
+      let lon: number | undefined;
+
+      const hasPermission = await ensureLocationPermission();
+      if (hasPermission) {
+        const position = await new Promise<Geolocation.GeoPosition>(
+          (resolve, reject) =>
+            Geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 1000,
+            }),
+        );
+        lat = position.coords.latitude;
+        lon = position.coords.longitude;
+      }
+
+      if (!lat || !lon) {
+        instantSpeak('Unable to get your location. Please check permissions.');
+        return;
+      }
+
+      // Try to get city name via reverse geocoding
+      let city = '';
+      let address = '';
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          {
+            headers: {
+              'User-Agent': 'StylIQ-App/1.0',
+            },
+          },
+        );
+        const data = await response.json();
+        city =
+          data?.address?.city ||
+          data?.address?.town ||
+          data?.address?.village ||
+          '';
+        address = data?.display_name || '';
+      } catch {
+        console.log('Reverse geocoding failed, continuing without city name');
+      }
+
+      VoiceBus.emit('location', {
+        latitude: lat,
+        longitude: lon,
+        city,
+        address,
+      });
+
+      // if (city) {
+      //   instantSpeak(`You're currently in ${city}`);
+      // } else {
+      //   instantSpeak('Here is your current location');
+      // }
+
+      VoiceMemory.set('lastIntent', 'location');
+    } catch (err) {
+      console.log('Location fetch failed:', err);
+      // instantSpeak('Unable to get your location right now.');
     }
     return;
   }

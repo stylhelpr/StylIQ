@@ -35,6 +35,7 @@ export const useVoiceControl = () => {
   const [isRecording, setIsRecording] = useState(false);
   const finalRef = useRef('');
   const silenceTimer = useRef<NodeJS.Timeout | null>(null);
+  const isCommandMode = useRef(false); // Skip commitIfAny when startVoiceCommand is active
 
   // 🔒 Microphone permission
   const requestMic = async () => {
@@ -123,6 +124,12 @@ export const useVoiceControl = () => {
   const commitIfAny = async (source: string) => {
     const text = finalRef.current.trim();
     if (!text) return;
+
+    // Skip if startVoiceCommand is handling this (prevents double routing)
+    if (isCommandMode.current) {
+      log('💬 commitIfAny SKIPPED (command mode active)', source);
+      return;
+    }
 
     log('💬 commitIfAny', source, '=>', text);
     setSpeech(text);
@@ -224,6 +231,7 @@ export const useVoiceControl = () => {
 
   const startVoiceCommand = async (onCommand: (text: string) => void) => {
     log('[VOICE] startVoiceCommand()');
+    isCommandMode.current = true; // Prevent commitIfAny from double-routing
     await forceStop('pre-command');
     await startListening();
 
@@ -245,6 +253,7 @@ export const useVoiceControl = () => {
         stopListening('stable-final');
         log('[VOICE] ✅ Finalized phrase:', current);
         VoiceBus.updateSpeech(current);
+        isCommandMode.current = false; // Reset before calling onCommand
         onCommand(current);
       }
     }, 500);
@@ -257,7 +266,10 @@ export const useVoiceControl = () => {
           log('[VOICE] ⚠️ Timeout fallback phrase:', final);
           stopListening('timeout');
           VoiceBus.updateSpeech(final);
+          isCommandMode.current = false; // Reset before calling onCommand
           onCommand(final);
+        } else {
+          isCommandMode.current = false; // Reset even if no command
         }
       }
     }, 3000);

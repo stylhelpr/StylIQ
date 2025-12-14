@@ -11,6 +11,7 @@ import {initInstantTts, instantSpeak} from './utils/VoiceUtils/instantTts';
 import WeatherPromptOverlay from './components/WeatherPromptOverlay/WeatherPromptOverlay';
 import {syncNativeCalendarToBackend} from './utils/calendarSync';
 import WeatherOverlay from './components/WeatherOverlay/WeatherOverlay';
+import LocationOverlay from './components/LocationOverlay/LocationOverlay';
 import {NativeModules, Platform} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 const {AudioSessionManager} = NativeModules;
@@ -132,6 +133,7 @@ const MainApp = () => {
         onScreenChange={setActiveScreen}
       />
       <WeatherOverlay />
+      <LocationOverlay />
       {activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && (
         <FloatingMicButton navigate={globalNavigate} />
       )}
