@@ -30,19 +30,37 @@ export default function LiveLocationMap({
     longitudeDelta: 0.015,
   });
 
-  const centerOn = useCallback((pos: GeoPosition) => {
-    const {latitude, longitude} = pos.coords;
-    console.log('📍 Position fix:', latitude, longitude);
-    const next: Region = {
-      latitude,
-      longitude,
-      latitudeDelta: 0.015,
-      longitudeDelta: 0.015,
-    };
-    setCoord({lat: latitude, lng: longitude});
-    setRegion(next);
-    mapRef.current?.animateToRegion(next, 500);
-  }, []);
+  // Track whether user has manually zoomed/panned
+  const userHasInteracted = useRef(false);
+
+  const centerOn = useCallback(
+    (pos: GeoPosition, isInitial = false) => {
+      const {latitude, longitude} = pos.coords;
+      console.log('📍 Position fix:', latitude, longitude);
+
+      // For initial position or if user hasn't interacted, animate to default zoom
+      if (isInitial || !userHasInteracted.current) {
+        const next: Region = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        };
+        setCoord({lat: latitude, lng: longitude});
+        setRegion(next);
+        mapRef.current?.animateToRegion(next, 500);
+      } else {
+        // User has interacted - only update coordinates, preserve their zoom level
+        setCoord({lat: latitude, lng: longitude});
+        // Just update the center without changing zoom
+        mapRef.current?.animateCamera(
+          {center: {latitude, longitude}},
+          {duration: 500},
+        );
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -71,7 +89,7 @@ export default function LiveLocationMap({
         pos => {
           if (!mounted) return;
           console.log('📍 Initial position received');
-          centerOn(pos);
+          centerOn(pos, true);
         },
         (err: GeoError) => console.warn('❌ getCurrentPosition error:', err),
         {enableHighAccuracy: true, timeout: 15000, maximumAge: 2000},
@@ -126,15 +144,19 @@ export default function LiveLocationMap({
   return (
     <View style={[styles.container, {height}]}>
       <MapView
-        ref={r => (mapRef.current = r)}
+        ref={mapRef}
         style={StyleSheet.absoluteFill}
         provider={PROVIDER_DEFAULT}
         showsUserLocation={enabled}
-        followsUserLocation={enabled}
+        followsUserLocation={false}
         showsCompass
         rotateEnabled={false}
         initialRegion={region}
         onMapReady={() => mapRef.current?.animateToRegion(region, 250)}
+        onRegionChangeComplete={() => {
+          // Mark that user has interacted with the map (zoomed/panned)
+          userHasInteracted.current = true;
+        }}
       />
       {enabled && useCustomPin && coord ? (
         <Marker
