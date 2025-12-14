@@ -234,21 +234,20 @@ export const VoiceOverlay: React.FC = () => {
       )}
 
       {/* 🎙 Mic + text */}
-      <SafeAreaView
+      <View
         style={{
-          alignItems: 'center',
           position: 'absolute',
-          top: '39%',
-          left: 0,
-          right: 0,
-          transform: [{translateY: -45}],
+          top: 115,
+          bottom: 0,
+          left: 10,
+          right: 10,
+          borderRadius: 50,
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}>
         <View
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.49)',
-            width: 250,
-            height: 250,
-            borderRadius: 150,
             justifyContent: 'center',
             alignItems: 'center',
           }}>
@@ -258,7 +257,7 @@ export const VoiceOverlay: React.FC = () => {
               styles.text,
               {
                 color: theme.colors.foreground,
-                maxWidth: 160,
+                maxWidth: 300,
                 marginTop: 0,
                 textAlign: 'center',
               },
@@ -270,10 +269,289 @@ export const VoiceOverlay: React.FC = () => {
               : ''}
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     </Animated.View>
   );
 };
+
+////////////////
+
+// import React, {useEffect, useRef, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   Animated,
+//   StyleSheet,
+//   Platform,
+//   Dimensions,
+// } from 'react-native';
+// import {useSafeAreaInsets} from 'react-native-safe-area-context';
+// import {BlurView} from '@react-native-community/blur';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import * as Haptics from 'react-native-haptic-feedback';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {moderateScale, fontScale} from '../../utils/scale';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {VoiceBus} from '../../utils/VoiceUtils/VoiceBus';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {
+//   Canvas,
+//   Path,
+//   SweepGradient,
+//   RadialGradient,
+//   BlurMask,
+//   vec,
+//   Skia,
+//   PathOp,
+// } from '@shopify/react-native-skia';
+// import AnimatedReanimated, {
+//   useSharedValue,
+//   withRepeat,
+//   withTiming,
+//   withSequence,
+//   Easing,
+//   useDerivedValue,
+//   useAnimatedReaction,
+//   runOnJS,
+//   FadeIn,
+//   FadeOut,
+// } from 'react-native-reanimated';
+
+// export const VoiceOverlay: React.FC = () => {
+//   const {theme} = useAppTheme();
+//   const fade = useRef(new Animated.Value(0)).current;
+//   const insets = useSafeAreaInsets();
+
+//   const screen = Dimensions.get('screen');
+//   const winW = screen.width;
+//   const winH = screen.height - insets.top + 58; // extend the bottom ~40px
+
+//   const [isListening, setIsListening] = useState(false);
+//   const [partialText, setPartialText] = useState('');
+
+//   // 🌈 Animation drivers
+//   const hueRotate = useSharedValue(0);
+//   const pulseDriver = useSharedValue(0);
+//   const [angle, setAngle] = useState(0);
+//   const [intensity, setIntensity] = useState(1);
+
+//   useEffect(() => {
+//     hueRotate.value = withRepeat(
+//       withTiming(360, {duration: 15000, easing: Easing.linear}),
+//       -1,
+//       false,
+//     );
+//     pulseDriver.value = withRepeat(
+//       withSequence(
+//         withTiming(1, {duration: 1800, easing: Easing.inOut(Easing.ease)}),
+//         withTiming(0, {duration: 1800, easing: Easing.inOut(Easing.ease)}),
+//       ),
+//       -1,
+//       false,
+//     );
+//   }, []);
+
+//   const scaleBreath = useDerivedValue(
+//     () => 1.0 + 0.004 * Math.sin(pulseDriver.value * Math.PI),
+//   );
+//   const blurBreath = useDerivedValue(
+//     () => 140 + 60 * Math.sin(pulseDriver.value * Math.PI),
+//   );
+
+//   useAnimatedReaction(
+//     () => ({a: hueRotate.value, s: scaleBreath.value, b: blurBreath.value}),
+//     v => {
+//       runOnJS(setAngle)(v.a);
+//       runOnJS(setIntensity)(v.s);
+//     },
+//   );
+
+//   useEffect(() => {
+//     const handleStatus = ({speech, isRecording}: any) => {
+//       setPartialText(speech);
+//       setIsListening(isRecording);
+//     };
+//     VoiceBus.on('status', handleStatus);
+//     return () => VoiceBus.off('status', handleStatus);
+//   }, []);
+
+//   useEffect(() => {
+//     if (isListening) {
+//       Haptics.trigger('impactMedium');
+//       Animated.spring(fade, {toValue: 1, useNativeDriver: true}).start();
+//     } else {
+//       Haptics.trigger('impactLight');
+//       Animated.timing(fade, {
+//         toValue: 0,
+//         duration: 220,
+//         useNativeDriver: true,
+//       }).start();
+//     }
+//   }, [isListening]);
+
+//   const siriColors = [
+//     'rgba(10,132,255,0.9)',
+//     'rgba(94,92,230,0.9)',
+//     'rgba(191,90,242,0.9)',
+//     'rgba(255,45,85,0.9)',
+//     'rgba(165, 10, 255, 0.9)',
+//     'rgba(215, 50, 182, 0.9)',
+//     'rgba(10,132,255,0.9)',
+//   ];
+
+//   const warmInner = [
+//     'rgba(255,140,100,0.7)',
+//     'rgba(255,100,80,0.3)',
+//     'rgba(255,80,60,0.1)',
+//     'rgba(255,60,50,0.0)',
+//   ];
+
+//   // Geometry
+//   const overscan = 50;
+//   const bezelRadius = 60;
+//   const inset = 5;
+
+//   const outer = Skia.Path.Make();
+//   outer.addRRect(
+//     Skia.RRectXY(Skia.XYWHRect(0, 0, winW, winH), bezelRadius, bezelRadius),
+//   );
+//   const inner = Skia.Path.Make();
+//   inner.addRRect(
+//     Skia.RRectXY(
+//       Skia.XYWHRect(inset, inset, winW - inset * 2, winH - inset * 2),
+//       Math.max(bezelRadius - inset, 0),
+//       Math.max(bezelRadius - inset, 0),
+//     ),
+//   );
+//   outer.op(inner, PathOp.Difference);
+
+//   const innerGlow = Skia.Path.Make();
+//   innerGlow.addRRect(
+//     Skia.RRectXY(
+//       Skia.XYWHRect(
+//         inset + 3,
+//         inset + 3,
+//         winW - (inset + 3) * 2,
+//         winH - (inset + 3) * 2,
+//       ),
+//       bezelRadius - (inset + 3),
+//       bezelRadius - (inset + 3),
+//     ),
+//   );
+
+//   const styles = StyleSheet.create({
+//     micBlur: {
+//       width: 120,
+//       height: 120,
+//       borderRadius: 60,
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//       overflow: 'hidden',
+//       backgroundColor: 'rgba(93, 0, 255, 1)',
+//       borderColor: 'white',
+//       borderWidth: 1,
+//     },
+//     text: {
+//       marginTop: moderateScale(tokens.spacing.xsm),
+//       fontSize: fontScale(tokens.fontSize.lg),
+//       fontWeight: tokens.fontWeight.medium,
+//       textAlign: 'center',
+//       letterSpacing: 0.3,
+//     },
+//   });
+
+//   return (
+//     <Animated.View
+//       pointerEvents="none"
+//       style={[
+//         StyleSheet.absoluteFill,
+//         {
+//           opacity: fade,
+//           zIndex: 9999,
+//           elevation: 9999,
+//           top: insets.top - 60, // move upward (negative brings it up)
+//           bottom: insets.bottom - 5, // move upward (negative crops less)
+//         },
+//       ]}>
+//       {isListening && (
+//         <AnimatedReanimated.View
+//           entering={FadeIn.duration(400)}
+//           exiting={FadeOut.duration(300)}
+//           style={[
+//             StyleSheet.absoluteFill,
+//             {
+//               transform: [{scale: scaleBreath}],
+//             },
+//           ]}>
+//           <Canvas style={{width: winW, height: winH}}>
+//             {/* Outer bright rainbow rim */}
+//             <Path
+//               path={outer}
+//               opacity={0.75 + 0.35 * Math.sin(pulseDriver.value * Math.PI)}>
+//               <SweepGradient
+//                 c={vec(winW / 2, winH / 2)}
+//                 colors={siriColors}
+//                 transform={[{rotate: (angle * Math.PI) / 180}]}
+//               />
+//               <BlurMask blur={blurBreath.value * 1.5} style="solid" />
+//             </Path>
+
+//             {/* Inner warm inward glow */}
+//             <Path
+//               path={innerGlow}
+//               opacity={0.05 + 0.3 * Math.sin(pulseDriver.value * Math.PI)}>
+//               <RadialGradient
+//                 c={vec(winW / 2, winH / 2)}
+//                 r={Math.max(winW, winH) / 1.1}
+//                 colors={warmInner}
+//               />
+//               <BlurMask blur={blurBreath.value * 2.5} style="solid" />
+//             </Path>
+//           </Canvas>
+//         </AnimatedReanimated.View>
+//       )}
+
+//       {/* 🎙 Mic + text */}
+//       <SafeAreaView
+//         style={{
+//           alignItems: 'center',
+//           position: 'absolute',
+//           top: '39%',
+//           left: 0,
+//           right: 0,
+//           transform: [{translateY: -45}],
+//         }}>
+//         <View
+//           style={{
+//             backgroundColor: 'rgba(0, 0, 0, 0.49)',
+//             width: 250,
+//             height: 250,
+//             borderRadius: 150,
+//             justifyContent: 'center',
+//             alignItems: 'center',
+//           }}>
+//           <Text
+//             numberOfLines={2}
+//             style={[
+//               styles.text,
+//               {
+//                 color: theme.colors.foreground,
+//                 maxWidth: 160,
+//                 marginTop: 0,
+//                 textAlign: 'center',
+//               },
+//             ]}>
+//             {isListening
+//               ? partialText?.length
+//                 ? partialText
+//                 : 'Listening...'
+//               : ''}
+//           </Text>
+//         </View>
+//       </SafeAreaView>
+//     </Animated.View>
+//   );
+// };
 
 // //////////////////
 

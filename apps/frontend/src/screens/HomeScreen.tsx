@@ -1166,8 +1166,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             <Animated.View
               style={{
                 overflow: 'hidden',
-                // marginBottom: 8,
-                borderRadius: tokens.borderRadius.xl,
+                // marginBottom: 6,
+                borderRadius: tokens.borderRadius.xxxl,
                 transform: [
                   {
                     translateY: scrollY.interpolate({
@@ -1256,6 +1256,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               </View>
             </Animated.View>
           </View>
+
           {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
           {prefs.weather && (
             <Animatable.View
@@ -1472,6 +1473,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 wardrobe={wardrobe}
               />
             )}
+
           {/* Map Section — collapsible with animated height & fade */}
           {prefs.locationMap && (
             <Animatable.View
@@ -1482,9 +1484,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               style={[
                 globalStyles.section,
                 {
-                  marginBottom: mapOpen
-                    ? moderateScale(tokens.spacing.quark)
-                    : moderateScale(20), // collapse extra gap when closed
+                  marginBottom: mapOpen ? moderateScale(-20) : moderateScale(4), // collapse extra gap when closed
                 },
               ]}>
               <View
@@ -1616,8 +1616,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             useNativeDriver
             style={{
               paddingHorizontal: moderateScale(tokens.spacing.md),
-              marginTop: moderateScale(tokens.spacing.xxs),
-              marginBottom: moderateScale(tokens.spacing.lg),
+              marginTop: 6,
+              marginBottom: 22,
               width: '100%',
             }}>
             <AppleTouchFeedback
@@ -1626,7 +1626,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               style={[
                 globalStyles.buttonPrimary,
                 {
-                  width: '95%',
+                  width: '50%',
                   justifyContent: 'center',
                   margin: 'auto',
                   backgroundColor: theme.colors.button1,
@@ -1641,7 +1641,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   globalStyles.buttonPrimaryText,
                   {textTransform: 'uppercase', fontWeight: '700'},
                 ]}>
-                Share Center
+                Community Share
               </Text>
             </AppleTouchFeedback>
           </Animatable.View>

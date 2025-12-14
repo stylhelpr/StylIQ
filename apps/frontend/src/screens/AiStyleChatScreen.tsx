@@ -1721,8 +1721,8 @@ function stylesUserBubble(
       borderBottomLeftRadius: 22,
       borderTopRightRadius: 22,
       marginRight: 8,
-      borderColor: theme.colors.muted,
-      borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.muted,
+      // borderWidth: tokens.borderWidth.hairline,
     },
     text: {
       color: theme.colors.foreground,
@@ -1756,8 +1756,8 @@ function stylesAssistantBubble(
     bubble: {
       maxWidth: '82%',
       backgroundColor: theme.colors.surface,
-      borderColor: theme.colors.muted,
-      borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.muted,
+      // borderWidth: tokens.borderWidth.hairline,
       paddingHorizontal: isTablet ? 20 : 16,
       paddingVertical: isTablet ? 14 : 12,
       borderTopLeftRadius: 22,
