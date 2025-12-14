@@ -518,10 +518,7 @@ export default function ExploreScreen() {
         pushEnabled ? 'true' : 'false',
       );
       if (pushEnabled) {
-        await initializeNotifications(userId); // requests perms, gets token, registers
-        console.log('✅ Push initialized & token registration attempted');
-      } else {
-        console.log('🔕 Push disabled locally');
+        await initializeNotifications(userId);
       }
     })();
   }, [userId, prefsLoaded, pushEnabled]);

@@ -78,8 +78,6 @@ export async function fetchWeather(
   city?: string,
 ) {
   const cleanKey = OPENWEATHER_API_KEY?.trim();
-  console.log('🔑 OPENWEATHER_API_KEY:', cleanKey);
-  console.log('🌍 Fetching weather for:', {lat, lon, city, day});
 
   try {
     // ───── When a city name is provided ─────
@@ -93,7 +91,6 @@ export async function fetchWeather(
               city,
             )}&appid=${cleanKey}&units=${units}`;
 
-      console.log('🌐 City-based URL:', endpoint);
       const res = await axios.get(endpoint);
 
       if (day === 'tomorrow') {
@@ -101,7 +98,6 @@ export async function fetchWeather(
         const tomorrowData = list.find((x: any) =>
           x.dt_txt?.includes('12:00:00'),
         );
-        console.log('✅ Tomorrow forecast (city):', tomorrowData);
 
         return {
           city: res.data.city?.name || city,
@@ -111,7 +107,6 @@ export async function fetchWeather(
         };
       }
 
-      console.log('✅ Current weather (city):', res.data);
       return {
         city: res.data.name || city,
         temperature: Math.round(res.data.main?.temp ?? 0),
@@ -125,14 +120,12 @@ export async function fetchWeather(
 
     if (day === 'tomorrow') {
       const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=${units}`;
-      console.log('🌐 Forecast URL:', forecastUrl);
 
       const res = await axios.get(forecastUrl);
       const list = res.data.list || [];
       const tomorrowData = list.find((x: any) =>
         x.dt_txt?.includes('12:00:00'),
       );
-      console.log('✅ Tomorrow forecast:', tomorrowData);
 
       return {
         city: res.data.city?.name,
@@ -146,16 +139,10 @@ export async function fetchWeather(
     const metricUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=metric`;
     const imperialUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${cleanKey}&units=imperial`;
 
-    console.log('🌐 Metric URL:', metricUrl);
-    console.log('🌐 Imperial URL:', imperialUrl);
-
     const [metricRes, imperialRes] = await Promise.all([
       axios.get(metricUrl),
       axios.get(imperialUrl),
     ]);
-
-    console.log('✅ Metric weather:', metricRes.data);
-    console.log('✅ Imperial weather:', imperialRes.data);
 
     return {
       celsius: metricRes.data,

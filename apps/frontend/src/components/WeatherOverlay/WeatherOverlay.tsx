@@ -36,7 +36,6 @@ export default function WeatherOverlay() {
     if (!bus) return;
 
     const handler = (data: WeatherData) => {
-      console.log('🌡️ Weather overlay updated →', data);
       setWeather(data);
 
       // auto-hide banner after 5s
@@ -46,7 +45,6 @@ export default function WeatherOverlay() {
     bus.on('update', handler);
     return () => bus.off('update', handler);
   }, []);
-  console.log('🧩 Overlay mounted. WeatherBus:', globalThis.WeatherBus);
 
   if (!weather) return null;
 

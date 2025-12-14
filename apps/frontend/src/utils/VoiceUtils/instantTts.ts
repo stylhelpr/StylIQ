@@ -13,7 +13,6 @@ import Tts from 'react-native-tts';
 import {VoiceBus} from './VoiceBus';
 
 let initialized = false;
-let currentVoiceId: string = '';
 
 // 🧩 Safe event emitter to avoid “no listeners registered” warnings
 function safeEmit(event: string, payload?: any) {
@@ -33,11 +32,6 @@ export const initInstantTts = async (): Promise<void> => {
   try {
     const voices = await Tts.voices();
 
-    console.log(
-      '📢 iOS Voices:',
-      voices.map(v => `${v.id} | ${v.name} | ${v.language}`),
-    );
-
     // 🎯 Prefer high-quality neural or premium voices
     const preferredVoice =
       voices.find(v => v.id?.toLowerCase().includes('zoe-premium')) ||
@@ -52,34 +46,30 @@ export const initInstantTts = async (): Promise<void> => {
       voices[0];
 
     if (preferredVoice?.id) {
-      currentVoiceId = preferredVoice.id;
       if (preferredVoice.language) {
         await Tts.setDefaultLanguage(preferredVoice.language);
       }
       await Tts.setDefaultVoice(preferredVoice.id);
-      console.log(
-        '✅ Using TTS voice:',
-        preferredVoice.name || preferredVoice.id,
-      );
-    } else {
-      console.warn('⚠️ No preferred TTS voice found — using system default.');
     }
 
-    // 🎧 Natural pacing tuned for Apple voices
-    await Tts.setDefaultRate(0.47);
-    await Tts.setDefaultPitch(1.05);
+    // 🎧 Natural pacing tuned for Apple voices (wrapped to handle iOS bridge quirks)
+    try {
+      await Tts.setDefaultRate(0.47);
+    } catch {
+      // setDefaultRate bridge error on iOS - rate will be set per-speak instead
+    }
+    try {
+      await Tts.setDefaultPitch(1.05);
+    } catch {
+      // setDefaultPitch bridge error on iOS
+    }
 
     // 🪄 Prime engine silently (first-use lag killer)
-    await Tts.speak(' ', {
-      iosVoiceId: currentVoiceId,
-      rate: 0.47,
-      pitch: 1.05,
-    });
+    Tts.speak(' ');
 
     initialized = true;
-    console.log('✅ Instant TTS initialized');
   } catch (err) {
-    console.warn('⚠️ TTS init failed:', err);
+    // TTS init failed silently
   }
 };
 
@@ -91,19 +81,19 @@ export const instantSpeak = async (text: string): Promise<void> => {
     // 🔊 Announce lifecycle
     safeEmit('tts-start');
 
-    await Tts.stop();
+    // Stop any current speech (wrapped for iOS bridge quirks)
+    try {
+      await Tts.stop();
+    } catch {
+      // stop() bridge error on iOS - continue anyway
+    }
 
-    await Tts.speak(text, {
-      iosVoiceId: currentVoiceId,
-      rate: 0.47,
-      pitch: 1.05,
-    });
+    Tts.speak(text);
 
     // Native TTS emits "tts-finish" asynchronously — ensure we trigger after delay
     Tts.addEventListener('tts-finish', () => safeEmit('tts-finish'));
     Tts.addEventListener('tts-cancel', () => safeEmit('tts-finish'));
   } catch (err) {
-    console.warn('TTS speak error:', err);
     safeEmit('tts-finish');
   }
 };

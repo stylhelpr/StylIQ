@@ -22,14 +22,12 @@ class HandTrackingModule: RCTEventEmitter, ARSessionDelegate {
             guard #available(iOS 18.0, *),
                   let configType = NSClassFromString("ARHandTrackingConfiguration") as? ARConfiguration.Type,
                   configType.isSupported else {
-                print("❌ ARHandTrackingConfiguration not available on this SDK")
                 return
             }
             guard !self.isTracking else { return }
 
-            // Create config dynamically so compiler doesn’t need the symbol
+            // Create config dynamically so compiler doesn't need the symbol
             guard let config = (configType as? NSObject.Type)?.init() as? ARConfiguration else {
-                print("⚠️ Could not initialize ARHandTrackingConfiguration dynamically")
                 return
             }
 

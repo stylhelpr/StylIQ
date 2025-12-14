@@ -47,15 +47,15 @@ if (!admin.apps.length) {
     projectId: FIREBASE_PROJECT_ID || undefined,
   });
 
-  const appOpts: any = (admin as any).app().options || {};
-  console.log('🔐 Firebase Admin initialized', {
-    loadedPath,
-    adminProjectId:
-      FIREBASE_PROJECT_ID || appOpts.projectId || projectIdFromKey,
-    keyProjectId: projectIdFromKey,
-    senderIdExpected: EXPECTED_SENDER_ID ?? 'n/a',
-    iosBundleId: IOS_BUNDLE_ID || '(unset)',
-  });
+  // const appOpts: any = (admin as any).app().options || {};
+  // console.log('🔐 Firebase Admin initialized', {
+  //   loadedPath,
+  //   adminProjectId:
+  //     FIREBASE_PROJECT_ID || appOpts.projectId || projectIdFromKey,
+  //   keyProjectId: projectIdFromKey,
+  //   senderIdExpected: EXPECTED_SENDER_ID ?? 'n/a',
+  //   iosBundleId: IOS_BUNDLE_ID || '(unset)',
+  // });
 }
 
 // ── APNs topic (bundle id) for iOS ─────────────────────────
@@ -83,13 +83,13 @@ export class NotificationsService {
   }) {
     const { user_id, device_token, platform, sender_id, project_id } = dto;
 
-    console.log('📥 registerToken called with', {
-      user_id,
-      platform,
-      sender_id,
-      project_id,
-      token_prefix: device_token?.slice(0, 12) + '…',
-    });
+    // console.log('📥 registerToken called with', {
+    //   user_id,
+    //   platform,
+    //   sender_id,
+    //   project_id,
+    //   token_prefix: device_token?.slice(0, 12) + '…',
+    // });
 
     if (!user_id || !device_token) {
       return { ok: false, error: 'user_id and device_token are required' };
@@ -136,13 +136,13 @@ export class NotificationsService {
       [user_id, device_token, platform, sender_id ?? null, project_id ?? null],
     );
 
-    console.log('✅ token upserted:', {
-      user_id: res.rows[0]?.user_id,
-      token_prefix: res.rows[0]?.token?.slice(0, 12) + '…',
-      platform: res.rows[0]?.platform,
-      sender_id: res.rows[0]?.sender_id,
-      project_id: res.rows[0]?.project_id,
-    });
+    // console.log('✅ token upserted:', {
+    //   user_id: res.rows[0]?.user_id,
+    //   token_prefix: res.rows[0]?.token?.slice(0, 12) + '…',
+    //   platform: res.rows[0]?.platform,
+    //   sender_id: res.rows[0]?.sender_id,
+    //   project_id: res.rows[0]?.project_id,
+    // });
 
     return { ok: true, token: res.rows[0] };
   }

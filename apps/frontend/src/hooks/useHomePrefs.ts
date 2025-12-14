@@ -36,9 +36,8 @@ export function useHomePrefs() {
       const parsed = json ? JSON.parse(json) : {};
       const merged = {...DEFAULT_PREFS, ...parsed};
       setPrefs(merged);
-      console.log('🔁 HomePrefs loaded:', merged);
     } catch (err) {
-      console.warn('⚠️ Failed to load prefs', err);
+      // Failed to load prefs
     } finally {
       setReady(true);
     }

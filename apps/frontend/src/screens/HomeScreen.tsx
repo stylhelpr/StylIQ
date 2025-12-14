@@ -152,10 +152,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   useEffect(() => {
     (async () => {
       const status = await Camera.getCameraPermissionStatus();
-      console.log('🔒 Camera permission status:', status);
       if (status !== 'authorized') {
-        const newStatus = await Camera.requestCameraPermission();
-        console.log('🔓 New camera permission:', newStatus);
+        await Camera.requestCameraPermission();
       }
     })();
   }, []);
@@ -163,11 +161,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   // Head Gestures
   useHeadPoseActions(
     () => {
-      console.log('⬅️ Head → Notifications');
       navigate('Notifications');
     },
     () => {
-      console.log('➡️ Head → VideoFeedScreen');
       navigate('VideoFeedScreen');
     },
   );
@@ -175,17 +171,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   useHeadPoseActions(
     // LEFT → open modal
     () => {
-      console.log('⬅️ Head: open saved looks modal');
       setImageModalVisible(true);
     },
 
     // RIGHT → close modal
     () => {
       if (imageModalVisible) {
-        console.log('➡️ Head: close saved looks modal');
         setImageModalVisible(false);
-      } else {
-        console.log('➡️ Head: nothing to close');
       }
     },
   );
@@ -296,11 +288,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         const data = await res.json();
 
         if (data?.theme_mode) {
-          console.log('🎨 Applying saved theme:', data.theme_mode);
           setSkin(data.theme_mode);
         }
       } catch (err) {
-        console.error('❌ Failed to load theme mode:', err);
+        // Failed to load theme mode
       }
     };
     loadTheme();
@@ -519,20 +510,16 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       if (!userId) return;
       setLoadingVibes(true);
       try {
-        console.log('[RecentVibes] Fetching for user:', userId);
         const res = await fetch(`${API_BASE_URL}/users/${userId}/look-memory`);
         const json = await res.json();
-        console.log('[RecentVibes] API Response:', json);
 
         if (json?.data?.length) {
           setRecentVibes(json.data);
         } else if (Array.isArray(json)) {
           setRecentVibes(json);
-        } else {
-          console.warn('[RecentVibes] Unexpected shape:', json);
         }
       } catch (err) {
-        console.error('[RecentVibes] Load failed:', err);
+        // RecentVibes load failed silently
       } finally {
         setLoadingVibes(false);
       }
@@ -542,26 +529,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
   useEffect(() => {
     const loadRecentCreations = async () => {
-      console.log;
       if (!userId) return;
       setLoadingCreations(true);
       try {
-        console.log('[RecentCreations] Fetching for user:', userId);
         const res = await fetch(
           `${API_BASE_URL}/users/${userId}/recreated-looks`,
         );
         const json = await res.json();
-        console.log('[RecentCreations] API Response:', json);
 
         if (json?.data?.length) {
           setRecentCreations(json.data);
         } else if (Array.isArray(json)) {
           setRecentCreations(json);
-        } else {
-          console.warn('[RecentCreations] Unexpected shape:', json);
         }
       } catch (err) {
-        console.error('[RecentCreations] Load failed:', err);
+        // RecentCreations load failed silently
       } finally {
         setLoadingCreations(false);
       }
@@ -841,9 +823,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   // 🧥 Recreate Look
   const handleRecreateLook = async ({image_url, tags}) => {
     try {
-      console.log('[Home] Recreate from Saved Look:', image_url, tags);
       const result = await recreateLook({user_id: userId, tags, image_url});
-      console.log('[Home] Recreated outfit result:', result);
 
       // 💾 Save recreated look for recall
       if (userId && result) {
@@ -853,9 +833,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             generated_outfit: result,
             tags,
           };
-          console.log('💾 [RecreateSave] POST payload:', payload);
 
-          const res = await fetch(
+          await fetch(
             `${API_BASE_URL}/users/${userId}/recreated-looks`,
             {
               method: 'POST',
@@ -863,11 +842,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               body: JSON.stringify(payload),
             },
           );
-
-          const json = await res.json();
-          console.log('💾 [RecreateSave] response:', json);
         } catch (err) {
-          console.error('❌ [RecreateSave] failed:', err);
+          // RecreateSave failed silently
         }
       }
 
@@ -875,28 +851,22 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       setRecreatedData(result);
       setShowRecreatedModal(true);
     } catch (err) {
-      console.error('[Home] Failed to recreate:', err);
+      // Recreate look failed silently
     }
   };
 
   // 🛍️ Shop The Vibe
   const handleShopModal = async (tags?: string[]) => {
     try {
-      // ReactNativeHapticFeedback.trigger('impactMedium');
-      console.log('[Home] Shop tags:', tags);
-
       const query = tags && tags.length > 0 ? tags.join(' ') : 'outfit';
       const results = await searchProducts(query);
-      console.log('[Home] Shop results:', results);
 
       if (results && results.length > 0) {
-        setShopResults(results); // ✅ saves results to modal state
-        setShopVisible(true); // ✅ opens modal
-      } else {
-        console.warn('[Home] No products found for', query);
+        setShopResults(results);
+        setShopVisible(true);
       }
     } catch (err) {
-      console.error('[Home] Shop modal failed:', err);
+      // Shop modal failed silently
     }
   };
 

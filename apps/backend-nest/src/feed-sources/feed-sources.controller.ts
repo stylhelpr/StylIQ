@@ -21,10 +21,10 @@ export class FeedSourcesController {
 
   @Put()
   replaceAll(@Param('userId') userId: string, @Body('sources') sources: any[]) {
-    console.log('FEED PUT', {
-      userId,
-      count: Array.isArray(sources) ? sources.length : 'no sources',
-    });
+    // console.log('FEED PUT', {
+    //   userId,
+    //   count: Array.isArray(sources) ? sources.length : 'no sources',
+    // });
     return this.service.replaceAll(userId, sources);
   }
 

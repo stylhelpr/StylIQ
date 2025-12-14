@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -101,6 +101,8 @@ export default function NotificationsScreen({
   }>({});
   const [openUrl, setOpenUrl] = useState<string | undefined>();
   const [openTitle, setOpenTitle] = useState<string | undefined>();
+
+  const scrollRef = useRef<ScrollView>(null);
 
   const styles = StyleSheet.create({
     screen: {flex: 1},
@@ -236,487 +238,515 @@ export default function NotificationsScreen({
 
   return (
     // <GradientBackground>
-    <SafeAreaView
-      style={[
-        globalStyles.container,
-        {flex: 1, backgroundColor: theme.colors.background},
-      ]}
-      edges={['left', 'right']}>
-      {/* 🔹 Spacer to match old navbar height */}
-      <View
-        style={{
-          height: insets.top + 53,
-          backgroundColor: theme.colors.background,
-        }}
-      />
-      <ScrollView
+    <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+      <SafeAreaView
         style={[
           globalStyles.container,
-          {backgroundColor: theme.colors.background},
+          {flex: 1, backgroundColor: theme.colors.background},
         ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.foreground}
-            colors={[theme.colors.primary]}
-            progressViewOffset={32}
-          />
-        }
-        contentContainerStyle={{paddingBottom: 32}}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-        <View style={globalStyles.sectionTitle}>
-          <Text style={globalStyles.header}>Notifications</Text>
-        </View>
-
-        <Animatable.View
-          animation="fadeInUp"
-          delay={200}
-          duration={700}
-          style={styles.headerRow}>
-          <Animatable.View
-            animation="slideInLeft"
-            delay={300}
-            style={styles.leftGroup}>
-            <AppleTouchFeedback
-              onPress={() => {
-                if (filter !== 'all') h('selection');
-                setFilter('all');
-              }}
-              // hapticStyle="impactLight"
-              style={[styles.pill, filter === 'all' && styles.pillActive]}>
-              <Animatable.Text
-                animation={filter === 'all' ? 'pulse' : undefined}
-                iterationCount="infinite"
-                duration={2500}
-                style={styles.pillText}>
-                All
-              </Animatable.Text>
-            </AppleTouchFeedback>
-
-            <AppleTouchFeedback
-              onPress={() => {
-                if (filter !== 'unread') h('selection');
-                setFilter('unread');
-              }}
-              // hapticStyle="impactLight"
-              style={[styles.pill, filter === 'unread' && styles.pillActive]}>
-              <Animatable.Text
-                animation={filter === 'unread' ? 'pulse' : undefined}
-                iterationCount="infinite"
-                duration={2500}
-                style={styles.pillText}>
-                Unread
-              </Animatable.Text>
-            </AppleTouchFeedback>
-          </Animatable.View>
+        edges={['left', 'right']}>
+        {/* 🔹 Spacer to match old navbar height */}
+        <View
+          style={{
+            height: insets.top + 53,
+            backgroundColor: theme.colors.background,
+          }}
+        />
+        <ScrollView
+          ref={scrollRef}
+          style={[
+            globalStyles.container,
+            {backgroundColor: theme.colors.background},
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.foreground}
+              colors={[theme.colors.primary]}
+              progressViewOffset={32}
+            />
+          }
+          contentContainerStyle={{paddingBottom: 32}}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          <View style={globalStyles.sectionTitle}>
+            <Text style={globalStyles.header}>Notifications</Text>
+          </View>
 
           <Animatable.View
-            animation="slideInRight"
-            delay={400}
-            style={styles.rightGroup}>
-            <AppleTouchFeedback
-              onPress={async () => {
-                // h('impactMedium');
-                await markAllRead(userId);
-                await load();
-                // h('notificationSuccess');
-              }}
-              // hapticStyle="impactLight"
-              style={styles.actionBtn}>
-              <Animatable.Text
-                animation="fadeIn"
-                duration={800}
-                style={styles.actionText}>
-                Mark All
-              </Animatable.Text>
-            </AppleTouchFeedback>
-
-            <AppleTouchFeedback
-              onPress={() => {
-                // h('impactHeavy');
-                Alert.alert(
-                  'Clear All Notifications?',
-                  'This will permanently delete all your notifications and cannot be undone.',
-                  [
-                    {
-                      text: 'Cancel',
-                      style: 'cancel',
-                      onPress: () => h('selection'),
-                    },
-                    {
-                      text: 'Delete All',
-                      style: 'destructive',
-                      onPress: async () => {
-                        h('notificationWarning');
-                        await clearAll(userId);
-                        await load();
-                      },
-                    },
-                  ],
-                  {cancelable: true},
-                );
-              }}
-              // hapticStyle="impactLight"
-              style={[styles.actionBtn, styles.actionDanger]}>
-              <Animatable.Text
-                animation="fadeIn"
-                duration={800}
-                style={styles.actionText}>
-                Clear All
-              </Animatable.Text>
-            </AppleTouchFeedback>
-          </Animatable.View>
-        </Animatable.View>
-
-        {loading ? (
-          <Animatable.View
-            animation="fadeIn"
-            iterationCount="infinite"
-            duration={1600}
-            style={styles.center}>
-            <ActivityIndicator color={theme.colors.primary} size="large" />
-          </Animatable.View>
-        ) : (
-          <ScrollView
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.foreground}
-              />
-            }
-            contentContainerStyle={{padding: 16, paddingBottom: 32}}
-            showsVerticalScrollIndicator={false}>
-            {filtered.length === 0 ? (
-              <Animatable.View
-                animation="fadeInUp"
-                delay={300}
-                duration={800}
-                style={styles.empty}>
+            animation="fadeInUp"
+            delay={200}
+            duration={700}
+            style={styles.headerRow}>
+            <Animatable.View
+              animation="slideInLeft"
+              delay={300}
+              style={styles.leftGroup}>
+              <AppleTouchFeedback
+                onPress={() => {
+                  if (filter !== 'all') h('selection');
+                  setFilter('all');
+                }}
+                // hapticStyle="impactLight"
+                style={[styles.pill, filter === 'all' && styles.pillActive]}>
                 <Animatable.Text
-                  animation="pulse"
+                  animation={filter === 'all' ? 'pulse' : undefined}
                   iterationCount="infinite"
-                  duration={4000}
-                  style={[styles.emptyBig, {lineHeight: 28}]}>
-                  {filter === 'unread'
-                    ? "You're all caught up — No unread notifications!"
-                    : 'No notifications yet'}
-                  <TooltipBubble
-                    message='Tap "Saved Outfits" in the bottom navigation bar and head to the Saved Outfits screen to schedule an outfit, then you will receive those notifications here.'
-                    position="top"
-                  />
+                  duration={2500}
+                  style={styles.pillText}>
+                  All
                 </Animatable.Text>
+              </AppleTouchFeedback>
+
+              <AppleTouchFeedback
+                onPress={() => {
+                  if (filter !== 'unread') h('selection');
+                  setFilter('unread');
+                }}
+                // hapticStyle="impactLight"
+                style={[styles.pill, filter === 'unread' && styles.pillActive]}>
+                <Animatable.Text
+                  animation={filter === 'unread' ? 'pulse' : undefined}
+                  iterationCount="infinite"
+                  duration={2500}
+                  style={styles.pillText}>
+                  Unread
+                </Animatable.Text>
+              </AppleTouchFeedback>
+            </Animatable.View>
+
+            <Animatable.View
+              animation="slideInRight"
+              delay={400}
+              style={styles.rightGroup}>
+              <AppleTouchFeedback
+                onPress={async () => {
+                  // h('impactMedium');
+                  await markAllRead(userId);
+                  await load();
+                  // h('notificationSuccess');
+                }}
+                // hapticStyle="impactLight"
+                style={styles.actionBtn}>
                 <Animatable.Text
                   animation="fadeIn"
-                  delay={500}
-                  style={styles.emptySub}>
-                  {filter === 'unread'
-                    ? 'All your notifications have been read.'
-                    : 'You’ll see outfit reminders, weather changes, and brand news here.'}
+                  duration={800}
+                  style={styles.actionText}>
+                  Mark All
                 </Animatable.Text>
-              </Animatable.View>
-            ) : (
-              <>
-                {(() => {
-                  const sources: {[key: string]: AppNotification[]} = {
-                    'Scheduled Outfits': [],
-                    'News Stories': [],
-                    'Weather Alerts': [],
-                    'Care Reminders': [],
-                    'Fashion News Stories': [],
-                  };
+              </AppleTouchFeedback>
 
-                  filtered.forEach(n => {
-                    const cat = (n.category || '').toLowerCase();
-                    const title = (n.title || '').toLowerCase();
-                    const message = (n.message || '').toLowerCase();
+              <AppleTouchFeedback
+                onPress={() => {
+                  // h('impactHeavy');
+                  Alert.alert(
+                    'Clear All Notifications?',
+                    'This will permanently delete all your notifications and cannot be undone.',
+                    [
+                      {
+                        text: 'Cancel',
+                        style: 'cancel',
+                        onPress: () => h('selection'),
+                      },
+                      {
+                        text: 'Delete All',
+                        style: 'destructive',
+                        onPress: async () => {
+                          h('notificationWarning');
+                          await clearAll(userId);
+                          await load();
+                        },
+                      },
+                    ],
+                    {cancelable: true},
+                  );
+                }}
+                // hapticStyle="impactLight"
+                style={[styles.actionBtn, styles.actionDanger]}>
+                <Animatable.Text
+                  animation="fadeIn"
+                  duration={800}
+                  style={styles.actionText}>
+                  Clear All
+                </Animatable.Text>
+              </AppleTouchFeedback>
+            </Animatable.View>
+          </Animatable.View>
 
-                    if (
-                      cat === 'scheduled_outfit' ||
-                      title.includes('outfit') ||
-                      message.includes('outfit') ||
-                      message.includes('reminder') ||
-                      message.includes('planned')
-                    ) {
-                      sources['Scheduled Outfits'].push(n);
-                    } else if (
-                      cat === 'news' ||
-                      title.includes('news') ||
-                      message.includes('headline') ||
-                      message.includes('story')
-                    ) {
-                      sources['News Stories'].push(n);
-                    } else if (
-                      cat === 'weather' ||
-                      title.includes('weather') ||
-                      message.includes('forecast') ||
-                      message.includes('temperature')
-                    ) {
-                      sources['Weather Alerts'].push(n);
-                    } else if (
-                      cat === 'care' ||
-                      title.includes('care') ||
-                      message.includes('wash') ||
-                      message.includes('laundry')
-                    ) {
-                      sources['Care Reminders'].push(n);
-                    } else {
-                      sources['Fashion News Stories'].push(n);
-                    }
-                  });
+          {loading ? (
+            <Animatable.View
+              animation="fadeIn"
+              iterationCount="infinite"
+              duration={1600}
+              style={styles.center}>
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+            </Animatable.View>
+          ) : (
+            <ScrollView
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={theme.colors.foreground}
+                />
+              }
+              contentContainerStyle={{padding: 16, paddingBottom: 32}}
+              showsVerticalScrollIndicator={false}>
+              {filtered.length === 0 ? (
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={300}
+                  duration={800}
+                  style={styles.empty}>
+                  <Animatable.Text
+                    animation="pulse"
+                    iterationCount="infinite"
+                    duration={4000}
+                    style={[styles.emptyBig, {lineHeight: 28}]}>
+                    {filter === 'unread'
+                      ? "You're all caught up — No unread notifications!"
+                      : 'No notifications yet'}
+                    <TooltipBubble
+                      message='Tap "Saved Outfits" in the bottom navigation bar and head to the Saved Outfits screen to schedule an outfit, then you will receive those notifications here.'
+                      position="top"
+                    />
+                  </Animatable.Text>
+                  <Animatable.Text
+                    animation="fadeIn"
+                    delay={500}
+                    style={styles.emptySub}>
+                    {filter === 'unread'
+                      ? 'All your notifications have been read.'
+                      : 'You’ll see outfit reminders, weather changes, and brand news here.'}
+                  </Animatable.Text>
+                </Animatable.View>
+              ) : (
+                <>
+                  {(() => {
+                    const sources: {[key: string]: AppNotification[]} = {
+                      'Scheduled Outfits': [],
+                      'News Stories': [],
+                      'Weather Alerts': [],
+                      'Care Reminders': [],
+                      'Fashion News Stories': [],
+                    };
 
-                  const order = [
-                    'Scheduled Outfits',
-                    'News Stories',
-                    'Weather Alerts',
-                    'Care Reminders',
-                    'Fashion News Stories',
-                  ];
+                    filtered.forEach(n => {
+                      const cat = (n.category || '').toLowerCase();
+                      const title = (n.title || '').toLowerCase();
+                      const message = (n.message || '').toLowerCase();
 
-                  const toggleGroup = (section: string) => {
-                    LayoutAnimation.configureNext(
-                      LayoutAnimation.create(
-                        300,
-                        LayoutAnimation.Types.easeInEaseOut,
-                        LayoutAnimation.Properties.opacity,
-                      ),
-                    );
-                    setExpandedGroups(prev => ({
-                      ...prev,
-                      [section]: !prev[section],
-                    }));
-                    h('selection');
-                  };
+                      if (
+                        cat === 'scheduled_outfit' ||
+                        title.includes('outfit') ||
+                        message.includes('outfit') ||
+                        message.includes('reminder') ||
+                        message.includes('planned')
+                      ) {
+                        sources['Scheduled Outfits'].push(n);
+                      } else if (
+                        cat === 'news' ||
+                        title.includes('news') ||
+                        message.includes('headline') ||
+                        message.includes('story')
+                      ) {
+                        sources['News Stories'].push(n);
+                      } else if (
+                        cat === 'weather' ||
+                        title.includes('weather') ||
+                        message.includes('forecast') ||
+                        message.includes('temperature')
+                      ) {
+                        sources['Weather Alerts'].push(n);
+                      } else if (
+                        cat === 'care' ||
+                        title.includes('care') ||
+                        message.includes('wash') ||
+                        message.includes('laundry')
+                      ) {
+                        sources['Care Reminders'].push(n);
+                      } else {
+                        sources['Fashion News Stories'].push(n);
+                      }
+                    });
 
-                  return order.map(section => {
-                    const list = sources[section];
-                    if (!list || list.length === 0) return null;
+                    const order = [
+                      'Scheduled Outfits',
+                      'News Stories',
+                      'Weather Alerts',
+                      'Care Reminders',
+                      'Fashion News Stories',
+                    ];
 
-                    const expanded = expandedGroups[section] ?? false;
-                    const visibleItems = expanded ? list : list.slice(0, 2);
+                    const toggleGroup = (section: string) => {
+                      LayoutAnimation.configureNext(
+                        LayoutAnimation.create(
+                          300,
+                          LayoutAnimation.Types.easeInEaseOut,
+                          LayoutAnimation.Properties.opacity,
+                        ),
+                      );
+                      setExpandedGroups(prev => ({
+                        ...prev,
+                        [section]: !prev[section],
+                      }));
+                      h('selection');
+                    };
 
-                    return (
-                      <View key={section} style={{marginBottom: 18}}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginBottom: 12,
-                            paddingHorizontal: 4,
-                          }}>
-                          <Text
+                    return order.map(section => {
+                      const list = sources[section];
+                      if (!list || list.length === 0) return null;
+
+                      const expanded = expandedGroups[section] ?? false;
+                      const visibleItems = expanded ? list : list.slice(0, 2);
+
+                      return (
+                        <View key={section} style={{marginBottom: 18}}>
+                          <View
                             style={{
-                              fontSize: 22,
-                              fontWeight: tokens.fontWeight.medium,
-                              color: theme.colors.foreground,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: 12,
+                              paddingHorizontal: 4,
                             }}>
-                            {section}
-                          </Text>
-
-                          {list.length > 3 && (
-                            <AppleTouchFeedback
-                              onPress={() => toggleGroup(section)}
-                              hapticStyle="impactLight"
+                            <Text
                               style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                paddingVertical: 2,
-                                paddingHorizontal: 6,
-                                backgroundColor: theme.colors.button1,
-                                borderRadius: 20,
+                                fontSize: 22,
+                                fontWeight: tokens.fontWeight.medium,
+                                color: theme.colors.foreground,
                               }}>
-                              <MaterialIcons
-                                name="keyboard-arrow-down"
-                                size={28}
-                                color={theme.colors.buttonText1}
+                              {section}
+                            </Text>
+
+                            {list.length > 3 && (
+                              <AppleTouchFeedback
+                                onPress={() => toggleGroup(section)}
+                                hapticStyle="impactLight"
                                 style={{
-                                  marginTop: 1,
-                                  transform: [
-                                    {rotate: expanded ? '180deg' : '0deg'},
-                                  ],
-                                }}
-                              />
-                              <Text
-                                style={{
-                                  color: theme.colors.buttonText1,
-                                  fontWeight: tokens.fontWeight.medium,
-                                  fontSize: 13,
-                                  marginRight: 4,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 2,
+                                  paddingHorizontal: 6,
+                                  backgroundColor: theme.colors.button1,
+                                  borderRadius: 20,
                                 }}>
-                                {expanded ? 'Show Less' : 'Show More'}
-                              </Text>
-                            </AppleTouchFeedback>
-                          )}
-                        </View>
+                                <MaterialIcons
+                                  name="keyboard-arrow-down"
+                                  size={28}
+                                  color={theme.colors.buttonText1}
+                                  style={{
+                                    marginTop: 1,
+                                    transform: [
+                                      {rotate: expanded ? '180deg' : '0deg'},
+                                    ],
+                                  }}
+                                />
+                                <Text
+                                  style={{
+                                    color: theme.colors.buttonText1,
+                                    fontWeight: tokens.fontWeight.medium,
+                                    fontSize: 13,
+                                    marginRight: 4,
+                                  }}>
+                                  {expanded ? 'Show Less' : 'Show More'}
+                                </Text>
+                              </AppleTouchFeedback>
+                            )}
+                          </View>
 
-                        {visibleItems.map((n, index) => (
-                          <Animatable.View
-                            key={n.id}
-                            animation="fadeInUp"
-                            duration={500}
-                            delay={index * 60}
-                            useNativeDriver
-                            style={{
-                              borderRadius: 20,
-                              overflow: 'hidden',
-                            }}>
-                            <NotificationCard
-                              n={n}
-                              onPress={async () => {
-                                h('selection');
-                                await markRead(userId, n.id);
-                                // Update local state to reflect read status immediately
-                                setItems(prev =>
-                                  prev.map(item =>
-                                    item.id === n.id
-                                      ? {...item, read: true}
-                                      : item,
-                                  ),
-                                );
+                          {visibleItems.map((n, index) => (
+                            <Animatable.View
+                              key={n.id}
+                              animation="fadeInUp"
+                              duration={500}
+                              delay={index * 60}
+                              useNativeDriver
+                              style={{
+                                borderRadius: 20,
+                                overflow: 'hidden',
+                              }}>
+                              <NotificationCard
+                                n={n}
+                                onPress={async () => {
+                                  h('selection');
+                                  await markRead(userId, n.id);
+                                  // Update local state to reflect read status immediately
+                                  setItems(prev =>
+                                    prev.map(item =>
+                                      item.id === n.id
+                                        ? {...item, read: true}
+                                        : item,
+                                    ),
+                                  );
 
-                                if (n.deeplink) {
-                                  try {
-                                    await Linking.openURL(n.deeplink);
-                                    return;
-                                  } catch (e) {
-                                    console.error(
-                                      '❌ Failed to open deeplink:',
-                                      e,
-                                    );
+                                  if (n.deeplink) {
+                                    try {
+                                      await Linking.openURL(n.deeplink);
+                                      return;
+                                    } catch (e) {
+                                      console.error(
+                                        '❌ Failed to open deeplink:',
+                                        e,
+                                      );
+                                    }
                                   }
-                                }
 
-                                if (n?.data?.url) {
-                                  setOpenUrl(n.data.url);
-                                  setOpenTitle(n.title || 'Article');
-                                  return;
-                                }
+                                  if (n?.data?.url) {
+                                    setOpenUrl(n.data.url);
+                                    setOpenTitle(n.title || 'Article');
+                                    return;
+                                  }
 
-                                // Handle scheduled_outfit before data.screen to ensure correct navigation
-                                if (
-                                  (n.category || '').toLowerCase() ===
-                                  'scheduled_outfit'
-                                ) {
-                                  navigate('Planner');
-                                  return;
-                                }
+                                  // Handle scheduled_outfit before data.screen to ensure correct navigation
+                                  if (
+                                    (n.category || '').toLowerCase() ===
+                                    'scheduled_outfit'
+                                  ) {
+                                    navigate('Planner');
+                                    return;
+                                  }
 
-                                if (n?.data?.screen) {
-                                  navigate(n.data.screen);
-                                  return;
-                                }
+                                  if (n?.data?.screen) {
+                                    navigate(n.data.screen);
+                                    return;
+                                  }
 
-                                switch ((n.category || '').toLowerCase()) {
-                                  case 'news':
+                                  switch ((n.category || '').toLowerCase()) {
+                                    case 'news':
+                                      navigate('FashionFeedScreen');
+                                      return;
+                                    case 'outfit':
+                                      navigate('SavedOutfitsScreen');
+                                      return;
+                                    case 'weather':
+                                      navigate('WeatherScreen');
+                                      return;
+                                    case 'care':
+                                      navigate('CareRemindersScreen');
+                                      return;
+                                  }
+
+                                  const title = (n.title || '').toLowerCase();
+                                  const msg = (n.message || '').toLowerCase();
+
+                                  if (
+                                    title.includes('outfit') ||
+                                    msg.includes('outfit')
+                                  ) {
+                                    navigate('SavedOutfits');
+                                    return;
+                                  }
+
+                                  if (
+                                    title.includes('news') ||
+                                    msg.includes('headline')
+                                  ) {
                                     navigate('FashionFeedScreen');
                                     return;
-                                  case 'outfit':
-                                    navigate('SavedOutfitsScreen');
-                                    return;
-                                  case 'weather':
+                                  }
+
+                                  if (
+                                    title.includes('weather') ||
+                                    msg.includes('forecast')
+                                  ) {
                                     navigate('WeatherScreen');
                                     return;
-                                  case 'care':
+                                  }
+
+                                  if (
+                                    title.includes('care') ||
+                                    msg.includes('laundry')
+                                  ) {
                                     navigate('CareRemindersScreen');
                                     return;
-                                }
+                                  }
 
-                                const title = (n.title || '').toLowerCase();
-                                const msg = (n.message || '').toLowerCase();
-
-                                if (
-                                  title.includes('outfit') ||
-                                  msg.includes('outfit')
-                                ) {
-                                  navigate('SavedOutfits');
-                                  return;
-                                }
-
-                                if (
-                                  title.includes('news') ||
-                                  msg.includes('headline')
-                                ) {
-                                  navigate('FashionFeedScreen');
-                                  return;
-                                }
-
-                                if (
-                                  title.includes('weather') ||
-                                  msg.includes('forecast')
-                                ) {
-                                  navigate('WeatherScreen');
-                                  return;
-                                }
-
-                                if (
-                                  title.includes('care') ||
-                                  msg.includes('laundry')
-                                ) {
-                                  navigate('CareRemindersScreen');
-                                  return;
-                                }
-
-                                Alert.alert(
-                                  'Unknown notification',
-                                  `No screen mapped for:\nCategory: ${n.category}\nTitle: ${n.title}`,
-                                );
-                              }}
-                              onDelete={async id => {
-                                Alert.alert(
-                                  'Delete Notification?',
-                                  'Are you sure you want to delete this notification?',
-                                  [
-                                    {
-                                      text: 'Cancel',
-                                      style: 'cancel',
-                                      onPress: () => h('selection'),
-                                    },
-                                    {
-                                      text: 'Delete',
-                                      style: 'destructive',
-                                      onPress: async () => {
-                                        try {
-                                          h('impactHeavy');
-                                          await markRead(userId, id);
-                                          const updated = items.filter(
-                                            item => item.id !== id,
-                                          );
-                                          setItems(updated);
-                                        } catch (err) {
-                                          console.error(
-                                            '❌ Failed to delete notification:',
-                                            err,
-                                          );
-                                        }
+                                  Alert.alert(
+                                    'Unknown notification',
+                                    `No screen mapped for:\nCategory: ${n.category}\nTitle: ${n.title}`,
+                                  );
+                                }}
+                                onDelete={async id => {
+                                  Alert.alert(
+                                    'Delete Notification?',
+                                    'Are you sure you want to delete this notification?',
+                                    [
+                                      {
+                                        text: 'Cancel',
+                                        style: 'cancel',
+                                        onPress: () => h('selection'),
                                       },
-                                    },
-                                  ],
-                                  {cancelable: true},
-                                );
-                              }}
-                            />
-                          </Animatable.View>
-                        ))}
-                      </View>
-                    );
-                  });
-                })()}
-              </>
-            )}
-          </ScrollView>
-        )}
-      </ScrollView>
+                                      {
+                                        text: 'Delete',
+                                        style: 'destructive',
+                                        onPress: async () => {
+                                          try {
+                                            h('impactHeavy');
+                                            await markRead(userId, id);
+                                            const updated = items.filter(
+                                              item => item.id !== id,
+                                            );
+                                            setItems(updated);
+                                          } catch (err) {
+                                            console.error(
+                                              '❌ Failed to delete notification:',
+                                              err,
+                                            );
+                                          }
+                                        },
+                                      },
+                                    ],
+                                    {cancelable: true},
+                                  );
+                                }}
+                              />
+                            </Animatable.View>
+                          ))}
+                        </View>
+                      );
+                    });
+                  })()}
+                </>
+              )}
+            </ScrollView>
+          )}
+        </ScrollView>
 
-      <ReaderModal
-        visible={!!openUrl}
-        url={openUrl}
-        title={openTitle}
-        onClose={() => setOpenUrl(undefined)}
-      />
-    </SafeAreaView>
+        <ReaderModal
+          visible={!!openUrl}
+          url={openUrl}
+          title={openTitle}
+          onClose={() => setOpenUrl(undefined)}
+        />
+
+        {/* 🆙 Scroll-to-top button */}
+        <AppleTouchFeedback
+          onPress={() => {
+            scrollRef.current?.scrollTo({y: 0, animated: true});
+          }}
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            right: 20,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            borderColor: theme.colors.muted,
+            borderWidth: tokens.borderWidth.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            shadowOffset: {width: 0, height: 4},
+          }}>
+          <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
+        </AppleTouchFeedback>
+      </SafeAreaView>
+    </View>
     // </GradientBackground>
   );
 }

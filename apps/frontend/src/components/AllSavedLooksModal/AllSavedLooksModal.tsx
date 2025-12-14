@@ -63,7 +63,6 @@ export default function AllSavedLooksModal({
   const uuidContext = useUUID();
 
   const userId = uuidContext?.uuid || uuidContext; // ✅ works with both string or object
-  console.log('[UUIDContext] resolved userId →', userId);
 
   const {analyzeLook} = useAnalyzeLook();
   const translateY = useRef(new Animated.Value(0)).current;

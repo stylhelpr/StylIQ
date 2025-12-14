@@ -10,18 +10,13 @@ export function useStyleProfile(userId: string) {
     queryKey: ['styleProfile', userId],
     enabled: !!userId,
     queryFn: async () => {
-      console.log('🔍 Fetching style profile for:', userId);
       try {
         const response = await axios.get(
           `${API_BASE_URL}/style-profile/${userId}`,
         );
-        console.log('✅ Fetched style profile:', response.data);
         return response.data;
       } catch (err: any) {
-        console.error(
-          '❌ Error fetching style profile:',
-          err?.response?.data || err.message || err,
-        );
+        // Style profile fetch failed
         throw err;
       }
     },

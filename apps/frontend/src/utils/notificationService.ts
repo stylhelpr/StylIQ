@@ -57,12 +57,9 @@ export const initializeNotifications = async (userId?: string) => {
       return;
     }
 
-    console.log('⚡️ Initializing notifications…');
-
     // 🔔 Local notification setup (Android heads-up support)
     PushNotification.configure({
       onNotification: async (n: any) => {
-        console.log('🔔 Local notification:', n);
 
         // 🏝️ Show in Dynamic Island for local notifications (scheduled outfits)
         try {
@@ -112,19 +109,10 @@ export const initializeNotifications = async (userId?: string) => {
     }
 
     // 🔐 Request push permissions
-    const status = await messaging().requestPermission();
-    const granted =
-      status === messaging.AuthorizationStatus.AUTHORIZED ||
-      status === messaging.AuthorizationStatus.PROVISIONAL;
-    console.log('📛 Push permission status:', status, 'granted=', granted);
-
+    await messaging().requestPermission();
     await messaging().registerDeviceForRemoteMessages();
 
     const fcmToken = await messaging().getToken();
-    console.log(
-      '🎫 FCM token:',
-      fcmToken ? fcmToken.slice(0, 28) + '…' : '(null)',
-    );
 
     // 🔍 Gather Firebase project metadata
     let senderId: string | undefined;
@@ -134,11 +122,10 @@ export const initializeNotifications = async (userId?: string) => {
       senderId = opts.messagingSenderId;
       projectId = opts.projectId;
     } catch {}
-    console.log('🏷️ Firebase opts:', {senderId, projectId});
 
     // 📡 Register token with backend
     if (fcmToken) {
-      const r = await fetch(`${API_BASE_URL}/notifications/register`, {
+      await fetch(`${API_BASE_URL}/notifications/register`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
@@ -149,10 +136,6 @@ export const initializeNotifications = async (userId?: string) => {
           project_id: projectId,
         }),
       });
-      const j = await r.json().catch(() => ({}));
-      console.log('📨 /notifications/register =>', r.status, j);
-    } else {
-      console.warn('⚠️ No FCM token; cannot register.');
     }
 
     // 🧹 Clean up any old listeners
@@ -251,7 +234,6 @@ export const initializeNotifications = async (userId?: string) => {
 
     // 🔄 Token refresh → register again
     messaging().onTokenRefresh(async newTok => {
-      console.log('🔄 FCM token refreshed:', newTok.slice(0, 28) + '…');
       try {
         await fetch(`${API_BASE_URL}/notifications/register`, {
           method: 'POST',
@@ -265,13 +247,12 @@ export const initializeNotifications = async (userId?: string) => {
           }),
         });
       } catch (e) {
-        console.log('⚠️ register(refresh) failed:', e);
+        // register(refresh) failed
       }
     });
 
-    console.log('✅ Push initialized, listeners armed, inbox enabled');
   } catch (err) {
-    console.error('❌ initializeNotifications error:', err);
+    // initializeNotifications error
   }
 };
 

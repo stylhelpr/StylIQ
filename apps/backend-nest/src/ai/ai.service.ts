@@ -130,7 +130,6 @@ async function fetchWeatherForAI(
   try {
     const apiKey = process.env.TOMORROW_API_KEY;
     if (!apiKey) {
-      console.warn('⚠️ TOMORROW_API_KEY not set - weather unavailable for AI');
       return null;
     }
     const url = `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${apiKey}`;
@@ -172,7 +171,6 @@ async function fetchWeatherForAI(
       condition: weatherConditions[values.weatherCode] || 'Unknown',
     };
   } catch (err: any) {
-    console.warn('⚠️ Weather fetch failed:', err.message);
     return null;
   }
 }
@@ -189,12 +187,12 @@ export class AiService {
   constructor(vertexService?: VertexService) {
     const { apiKey, project, source } = loadOpenAISecrets();
 
-    const snippet = apiKey?.slice(0, 20) ?? '';
-    const len = apiKey?.length ?? 0;
-    console.log('🔑 OPENAI key source:', source);
-    console.log('🔑 OPENAI key snippet:', JSON.stringify(snippet));
-    console.log('🔑 OPENAI key length:', len);
-    console.log('📂 CWD:', process.cwd());
+    // const snippet = apiKey?.slice(0, 20) ?? '';
+    // const len = apiKey?.length ?? 0;
+    // console.log('🔑 OPENAI key source:', source);
+    // console.log('🔑 OPENAI key snippet:', JSON.stringify(snippet));
+    // console.log('🔑 OPENAI key length:', len);
+    // console.log('📂 CWD:', process.cwd());
 
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY not found in .env or environment.');
@@ -214,7 +212,7 @@ export class AiService {
     this.useVertex = process.env.USE_VERTEX === 'true';
     if (this.useVertex) {
       this.vertexService = vertexService;
-      console.log('🧠 Vertex/Gemini mode enabled for analyze/recreate');
+      // console.log('🧠 Vertex/Gemini mode enabled for analyze/recreate');
     }
 
     this.productSearch = new ProductSearchService(); // NEW
@@ -2056,10 +2054,10 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           savedLooksContext =
             '\n\n⭐ SAVED LOOKS:\n' +
             savedRows.map((l) => `• ${l.name}`).join('\n');
-          console.log(`⭐ Chat: Loaded ${savedRows.length} saved looks`);
+          // console.log(`⭐ Chat: Loaded ${savedRows.length} saved looks`);
         }
       } catch (err: any) {
-        console.warn('⚠️ failed to load saved looks for chat:', err.message);
+        // console.warn('⚠️ failed to load saved looks for chat:', err.message);
       }
 
     /* 🎨 --- LOAD RECREATED LOOKS FOR CHAT CONTEXT --- */
@@ -2171,11 +2169,11 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           if (recentWears.length > 0) {
             wearHistoryContext =
               '\n\n👕 RECENTLY WORN:\n' + recentWears.join('\n');
-            console.log(`👕 Chat: Loaded ${wearRows.length} wear events`);
+            // console.log(`👕 Chat: Loaded ${wearRows.length} wear events`);
           }
         }
       } catch (err: any) {
-        console.warn('⚠️ failed to load wear history for chat:', err.message);
+        // console.warn('⚠️ failed to load wear history for chat:', err.message);
       }
 
     /* 📆 --- LOAD SCHEDULED OUTFITS FOR CHAT CONTEXT --- */
@@ -2263,10 +2261,10 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
                   `• ${c.name}${c.rating ? ' (rated ' + c.rating + '/5)' : ''}${c.notes ? ' - ' + c.notes : ''}`,
               )
               .join('\n');
-          console.log(`🎯 Chat: Loaded ${customRows.length} custom outfits`);
+          // console.log(`🎯 Chat: Loaded ${customRows.length} custom outfits`);
         }
       } catch (err: any) {
-        console.warn('⚠️ failed to load custom outfits for chat:', err.message);
+        // console.warn('⚠️ failed to load custom outfits for chat:', err.message);
       }
 
     /* 👍 --- LOAD ITEM PREFERENCES FOR CHAT CONTEXT --- */
@@ -2306,14 +2304,14 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           }
           if (parts.length > 0) {
             itemPrefsContext = '\n\n👍 ITEM PREFERENCES:\n' + parts.join('\n');
-            console.log(`👍 Chat: Loaded ${prefRows.length} item preferences`);
+            // console.log(`👍 Chat: Loaded ${prefRows.length} item preferences`);
           }
         }
       } catch (err: any) {
-        console.warn(
-          '⚠️ failed to load item preferences for chat:',
-          err.message,
-        );
+        // console.warn(
+        //   '⚠️ failed to load item preferences for chat:',
+        //   err.message,
+        // );
       }
 
     /* 🔍 --- LOAD LOOK MEMORIES FOR CHAT CONTEXT --- */
@@ -2344,11 +2342,11 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           if (parts.length > 0) {
             lookMemoriesContext =
               '\n\n🔍 LOOK EXPLORATION HISTORY:\n' + parts.join('\n');
-            console.log(`🔍 Chat: Loaded ${memRows.length} look memories`);
+            // console.log(`🔍 Chat: Loaded ${memRows.length} look memories`);
           }
         }
       } catch (err: any) {
-        console.warn('⚠️ failed to load look memories for chat:', err.message);
+        // console.warn('⚠️ failed to load look memories for chat:', err.message);
       }
 
     /* 🔔 --- LOAD NOTIFICATIONS FOR CHAT CONTEXT --- */
@@ -2376,13 +2374,13 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
                 return `${i + 1}. [${date}] ${n.title || n.category || 'Notification'}: ${n.message}${readStatus}`;
               })
               .join('\n');
-          console.log(`🔔 Chat: Loaded ${notifRows.length} notifications`);
-          console.log(
-            `🔔 Chat: Notifications preview: ${notificationsContext.substring(0, 500)}`,
-          );
+          // console.log(`🔔 Chat: Loaded ${notifRows.length} notifications`);
+          // console.log(
+          //   `🔔 Chat: Notifications preview: ${notificationsContext.substring(0, 500)}`,
+          // );
         }
       } catch (err: any) {
-        console.warn('⚠️ failed to load notifications for chat:', err.message);
+        // console.warn('⚠️ failed to load notifications for chat:', err.message);
       }
 
     /* 🌦️ --- FETCH CURRENT WEATHER FOR CHAT CONTEXT --- */
@@ -2393,9 +2391,9 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           const weather = await fetchWeatherForAI(dto.lat, dto.lon);
           if (weather) {
             weatherContext = `\n\n🌦️ CURRENT WEATHER:\n• Temperature: ${weather.tempF}°F\n• Condition: ${weather.condition}\n• Humidity: ${weather.humidity}%\n• Wind: ${weather.windSpeed} mph`;
-            console.log(
-              `🌦️ Chat: Loaded weather - ${weather.tempF}°F, ${weather.condition}`,
-            );
+            // console.log(
+            //   `🌦️ Chat: Loaded weather - ${weather.tempF}°F, ${weather.condition}`,
+            // );
           }
         } else if (dto.weather) {
           // Use weather passed directly from frontend if no lat/lon
@@ -2403,11 +2401,10 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
           if (w.tempF || w.temperature) {
             const temp = w.tempF || Math.round((w.temperature * 9) / 5 + 32);
             weatherContext = `\n\n🌦️ CURRENT WEATHER:\n• Temperature: ${temp}°F${w.condition ? `\n• Condition: ${w.condition}` : ''}`;
-            console.log(`🌦️ Chat: Using passed weather - ${temp}°F`);
           }
         }
       } catch (err: any) {
-        console.warn('⚠️ failed to fetch weather for chat:', err.message);
+        // Weather fetch for chat failed silently
       }
 
     // Combine all context into enhanced summary
@@ -2428,20 +2425,20 @@ NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
       notificationsContext +
       weatherContext;
 
-    console.log(`📊 Chat: Full context length: ${fullContext.length} chars`);
-    console.log(
-      `📊 Chat: Calendar context included: ${calendarContext.length > 0}`,
-    );
-    console.log(
-      `📊 Chat: Calendar context length: ${calendarContext.length} chars`,
-    );
-    console.log(`📊 Chat: Calendar data: ${calendarContext.substring(0, 200)}`);
-    console.log(
-      `📊 Chat: Wardrobe context included: ${wardrobeContext.length > 0}`,
-    );
-    console.log(
-      `📊 Chat: Style profile context included: ${styleProfileContext.length > 0}`,
-    );
+    // console.log(`📊 Chat: Full context length: ${fullContext.length} chars`);
+    // console.log(
+    //   `📊 Chat: Calendar context included: ${calendarContext.length > 0}`,
+    // );
+    // console.log(
+    //   `📊 Chat: Calendar context length: ${calendarContext.length} chars`,
+    // );
+    // console.log(`📊 Chat: Calendar data: ${calendarContext.substring(0, 200)}`);
+    // console.log(
+    //   `📊 Chat: Wardrobe context included: ${wardrobeContext.length > 0}`,
+    // );
+    // console.log(
+    //   `📊 Chat: Style profile context included: ${styleProfileContext.length > 0}`,
+    // );
 
     // 1️⃣ Generate base text with OpenAI
     const completion = await this.openai.chat.completions.create({

@@ -19,14 +19,14 @@ export class CalendarController {
   @Post('sync-native')
   @HttpCode(HttpStatus.CREATED)
   async syncNative(@Body() body: { userId?: string; events?: any[] }) {
-    console.log('📥 /calendar/sync-native received:', {
-      userId: body?.userId,
-      eventCount: body?.events?.length ?? 0,
-      sample: body?.events?.[0] ?? null,
-    });
+    // console.log('📥 /calendar/sync-native received:', {
+    //   userId: body?.userId,
+    //   eventCount: body?.events?.length ?? 0,
+    //   sample: body?.events?.[0] ?? null,
+    // });
 
     if (!body?.userId || !Array.isArray(body?.events)) {
-      console.warn('⚠️ Invalid request payload received:', body);
+      // console.warn('⚠️ Invalid request payload received:', body);
       return { ok: false, error: 'invalid_payload' };
     }
 
@@ -35,7 +35,7 @@ export class CalendarController {
       events: body.events,
     });
 
-    console.log('📤 /calendar/sync-native response:', res);
+    // console.log('📤 /calendar/sync-native response:', res);
     return res;
   }
 
@@ -45,10 +45,10 @@ export class CalendarController {
   @Get('user/:user_id')
   @HttpCode(HttpStatus.OK)
   async getUserEvents(@Param('user_id') user_id: string) {
-    console.log(`📡 Fetching stored events for user: ${user_id}`);
+    // console.log(`📡 Fetching stored events for user: ${user_id}`);
     const events = await this.calendarService.getEventsForUser(user_id);
 
-    console.log(`📦 Retrieved ${events.length} events for ${user_id}`);
+    // console.log(`📦 Retrieved ${events.length} events for ${user_id}`);
     return { ok: true, count: events.length, events };
   }
 }

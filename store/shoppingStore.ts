@@ -697,10 +697,6 @@ export const useShoppingStore = create<ShoppingState>()(
       }),
       onRehydrateStorage: () => state => {
         if (state) {
-          console.log(
-            'Shopping store rehydrated, tabs:',
-            state.tabs?.length || 0,
-          );
           state.setHasHydrated(true);
         }
       },

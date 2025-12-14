@@ -538,11 +538,6 @@ export default function OutfitPlannerScreen() {
               ) : (
                 <>
                   <Text style={styles.promptText}>Your Styled Look</Text>
-                  {console.log('📸 Rendering outfit pieces:', {
-                    top: aiOutfit?.top,
-                    bottom: aiOutfit?.bottom,
-                    shoes: aiOutfit?.shoes,
-                  })}
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {[aiOutfit?.top, aiOutfit?.bottom, aiOutfit?.shoes].map(
                       (piece: any, idx: number) =>

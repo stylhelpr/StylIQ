@@ -209,8 +209,6 @@ export function useOutfitApi(userId?: string) {
           };
         }
 
-        console.log('POST /wardrobe/outfits →', body);
-
         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
           method: 'POST',
           headers: {

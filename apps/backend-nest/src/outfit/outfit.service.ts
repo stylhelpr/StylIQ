@@ -26,11 +26,11 @@ export class OutfitService {
     } = dto;
 
     // 🔍 Debug log to verify input (you can remove later)
-    console.log('🧠 SuggestOutfit incoming IDs:', {
-      top_id,
-      bottom_id,
-      shoes_id,
-    });
+    // console.log('🧠 SuggestOutfit incoming IDs:', {
+    //   top_id,
+    //   bottom_id,
+    //   shoes_id,
+    // });
 
     // 🚨 Enforce presence of required wardrobe IDs
     if (!top_id || !bottom_id || !shoes_id) {
@@ -200,7 +200,7 @@ export class OutfitService {
       [userId],
     );
 
-    console.log('🧵 CUSTOM OUTFIT DB ROWS:', res.rows);
+    // console.log('🧵 CUSTOM OUTFIT DB ROWS:', res.rows);
 
     return res.rows.map((row) => ({
       id: row.id,

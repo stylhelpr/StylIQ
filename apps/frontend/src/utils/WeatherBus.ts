@@ -31,7 +31,6 @@ declare global {
 
 if (!globalThis.WeatherBus) {
   globalThis.WeatherBus = new SimpleWeatherBus();
-  console.log('🌍 WeatherBus initialized globally (pure JS)');
 }
 
 export const WeatherBus = globalThis.WeatherBus!;

@@ -123,7 +123,6 @@ const MainApp = () => {
       setTimeout(() => navFn(screen, params), 80);
     };
   };
-  console.log('🌡️ Weather overlay data:', weatherData);
 
   return (
     <View style={styles.root}>

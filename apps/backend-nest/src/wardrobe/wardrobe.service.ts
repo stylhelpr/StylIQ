@@ -1090,7 +1090,7 @@ export class WardrobeService {
 
           return !(loudPrint || sporty || neon);
         });
-        console.log(`🎯 Agent12 refined filter: ${catalog.length} items left`);
+        // console.log(`🎯 Agent12 refined filter: ${catalog.length} items left`);
       }
 
       // 3) Contextual pre-filters — ALWAYS apply (even with styleAgent)
@@ -1133,7 +1133,7 @@ export class WardrobeService {
       const envDisable = process.env.DISABLE_FEEDBACK === '1';
       const disableFeedback = !clientWantsFeedback || envDisable;
 
-      console.log('[FEEDBACK] useFeedback (client):', opts?.useFeedback);
+      // console.log('[FEEDBACK] useFeedback (client):', opts?.useFeedback);
 
       if (!disableFeedback) {
         feedbackRows = await this.fetchFeedbackRows(userId);
@@ -1160,7 +1160,7 @@ export class WardrobeService {
           userPrefs.set(itemId, existing + score);
         }
       } else {
-        console.log('[FEEDBACK] Feedback influence skipped.');
+        // console.log('[FEEDBACK] Feedback influence skipped.');
       }
 
       // 3c) Soft-boost requested slots from refinement
@@ -1235,14 +1235,6 @@ export class WardrobeService {
         console.log('⚪ No style profile or agent applied');
       }
 
-      // Debug
-      console.log('[DEBUG] weights =', tunedWeights);
-      console.log('[DEBUG] useWeather =', opts?.useWeather);
-      console.log('[DEBUG] useFeedback =', opts?.useFeedback);
-      console.log(
-        '[DEBUG] userPrefs (from feedback/refinement) =',
-        Array.from(userPrefs.entries()),
-      );
 
       // 4) Rerank
       let reranked: CatalogItem[];

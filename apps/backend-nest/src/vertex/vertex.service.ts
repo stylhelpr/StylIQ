@@ -202,14 +202,14 @@ export class VertexService {
       location: this.location,
     });
 
-    console.log('🔌 VertexService initialized:', this.projectId, this.location);
-    console.log('📦 Models:', {
-      text: this.textModel,
-      image: this.imageModel,
-      generation: this.generationModel,
-      reasoning: this.reasoningModel,
-      maxConcurrent: VertexService.MAX_CONCURRENT,
-    });
+    // console.log('🔌 VertexService initialized:', this.projectId, this.location);
+    // console.log('📦 Models:', {
+    //   text: this.textModel,
+    //   image: this.imageModel,
+    //   generation: this.generationModel,
+    //   reasoning: this.reasoningModel,
+    //   maxConcurrent: VertexService.MAX_CONCURRENT,
+    // });
   }
 
   // -------------------

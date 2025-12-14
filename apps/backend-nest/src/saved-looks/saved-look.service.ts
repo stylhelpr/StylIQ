@@ -34,7 +34,7 @@ export class SavedLookService {
        ORDER BY created_at DESC`,
       [userId],
     );
-    console.log('✅ Saved looks found:', res.rows);
+    // console.log('✅ Saved looks found:', res.rows);
     return res.rows;
   }
 

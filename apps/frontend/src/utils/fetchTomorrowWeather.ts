@@ -3,8 +3,6 @@ import {TOMORROW_API_KEY, OPENCAGE_API_KEY} from '@env';
 export async function fetchTomorrowWeather(lat: number, lon: number) {
   const url = `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${TOMORROW_API_KEY}`;
 
-  console.log('🌦️ Fetching Tomorrow.io weather from:', url);
-
   const res = await fetch(url);
   if (!res.ok) {
     const errorText = await res.text();
@@ -12,7 +10,6 @@ export async function fetchTomorrowWeather(lat: number, lon: number) {
   }
 
   const data = await res.json();
-  console.log('✅ Tomorrow.io Weather:', data);
   return data;
 }
 

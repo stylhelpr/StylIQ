@@ -323,10 +323,8 @@ export const routeVoiceCommand = async (
       VoiceMemory.set('lastCity', city);
       VoiceMemory.set('lastCondition', condition);
       VoiceMemory.set('lastTemp', temperature);
-
-      console.log(`🌍 Weather follow-up city switch → ${city}`);
     } catch (err) {
-      console.log('⚠️ Weather follow-up (city) failed:', err);
+      // Weather follow-up (city) failed silently
     }
     return;
   }
@@ -379,7 +377,7 @@ export const routeVoiceCommand = async (
       VoiceMemory.set('lastCondition', condition);
       VoiceMemory.set('lastTemp', temperature);
     } catch (err) {
-      console.log('⚠️ Weather follow-up failed:', err);
+      // Weather follow-up failed silently
     }
     return;
   }
@@ -416,7 +414,6 @@ export const routeVoiceCommand = async (
       }
 
       const weatherResponse = await fetchWeather(lat, lon, 'imperial');
-      console.log('✅ Full weather response:', weatherResponse);
 
       const data = weatherResponse?.fahrenheit;
 
@@ -426,12 +423,6 @@ export const routeVoiceCommand = async (
         data?.description ||
         'Unknown conditions';
       const temperature = Math.round(data?.main?.temp ?? 0);
-
-      console.log('🌡️ Weather overlay emitting (FIXED):', {
-        city,
-        condition,
-        temperature,
-      });
 
       VoiceBus.emit('weather', {
         city,
@@ -445,7 +436,6 @@ export const routeVoiceCommand = async (
       VoiceMemory.set('lastCondition', condition);
       VoiceMemory.set('lastTemp', temperature);
     } catch (err) {
-      console.log('⚠️ Weather fetch failed:', err);
       VoiceBus.emit('weather', {
         city: 'Los Angeles',
         temperature: 0,

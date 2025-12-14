@@ -59,11 +59,7 @@ export default function GlobalGestureHandler({
   };
 
   useEffect(() => {
-    if (!global.__rootGoBack) {
-      console.warn(
-        '[GlobalGesture] ⚠️ global.__rootGoBack is not defined. Make sure RootNavigator sets it in useEffect.',
-      );
-    }
+    // Check for global.__rootGoBack silently
   }, []);
 
   const panResponder = useRef(

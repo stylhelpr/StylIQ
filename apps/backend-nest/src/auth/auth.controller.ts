@@ -90,10 +90,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Req() req: Request) {
-    console.log('🧠 req.user:', req.user);
+    // console.log('🧠 req.user:', req.user);
 
     const auth0Sub = (req.user as any)?.sub;
-    console.log('🔍 Extracted sub:', auth0Sub);
+    // console.log('🔍 Extracted sub:', auth0Sub);
 
     if (!auth0Sub) {
       return { error: 'Missing auth0_sub in token' };
@@ -105,14 +105,14 @@ export class AuthController {
         [auth0Sub],
       );
 
-      console.log('📦 DB Result:', result.rows);
+      // console.log('📦 DB Result:', result.rows);
 
       if (result.rows.length === 0) {
         return { error: 'User not found in DB' };
       }
 
       const user = result.rows[0];
-      console.log('✅ User found:', user);
+      // console.log('✅ User found:', user);
 
       return { uuid: user.id };
     } catch (err) {

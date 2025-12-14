@@ -337,7 +337,6 @@ const RootNavigator = ({
   // ✅ Register global goBack for gestures
   useEffect(() => {
     global.__rootGoBack = goBack;
-    console.log('🌍 Global goBack registered');
     return () => {
       global.__rootGoBack = undefined;
     };

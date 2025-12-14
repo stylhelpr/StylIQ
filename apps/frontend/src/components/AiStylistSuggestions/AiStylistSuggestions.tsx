@@ -92,7 +92,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
   const fetchSuggestion = async (trigger: string = 'manual') => {
     if (!weather?.fahrenheit?.main?.temp) {
-      console.log('⏸️ Weather not ready, skipping AI fetch.');
       return;
     }
 
@@ -101,7 +100,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
       setError(null);
 
       const payload = {user: userName, weather, wardrobe, preferences};
-      console.log(`🤖 [${trigger}] Fetching AI suggestion...`);
 
       const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
         method: 'POST',
@@ -112,14 +110,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
       if (!res.ok) throw new Error('Failed to fetch suggestion');
       const data: AiSuggestionResponse = await res.json();
 
-      console.log(
-        '✅ [fetchSuggestion] Response received:',
-        data?.suggestion?.slice(0, 80),
-      );
-
       // 1️⃣ Update UI immediately
       setAiData(data);
-      console.log('🧩 [setAiData] Initial state set');
 
       // 2️⃣ Persist suggestion AFTER render commit
       requestAnimationFrame(async () => {
@@ -128,15 +120,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             AI_SUGGESTION_STORAGE_KEY,
             JSON.stringify(data),
           );
-          console.log('💾 [AsyncStorage] Saved suggestion successfully');
         } catch (err) {
-          console.warn('⚠️ Failed to save AI suggestion', err);
+          // Failed to save AI suggestion
         }
 
         // 3️⃣ Guaranteed repaint tick (forces text paint but keeps data stable)
         setTimeout(() => {
           setAiData(prev => ({...prev}));
-          console.log('🎯 [LayoutFlush] Safe repaint tick');
         }, 25);
       });
 
@@ -156,7 +146,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
           channelId: 'ai-suggestions',
         });
         lastNotifyTimeRef.current = now;
-        console.log('🔔 [Notification] Sent new style suggestion');
       }
 
       lastSuggestionRef.current = data.suggestion;
@@ -164,13 +153,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
       // 5️⃣ Persist fetch time
       await AsyncStorage.setItem('aiStylist_lastFetchTime', String(now));
-      console.log('⏰ [FetchTime] Saved last fetch timestamp');
     } catch (err) {
-      console.error('❌ [fetchSuggestion] Error:', err);
       setError('Unable to load AI suggestions right now.');
     } finally {
       setLoading(false);
-      console.log('🏁 [fetchSuggestion] Finished');
     }
   };
 

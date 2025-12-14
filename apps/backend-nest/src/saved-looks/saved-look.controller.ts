@@ -23,7 +23,7 @@ export class SavedLookController {
 
   @Get(':userId')
   getUserLooks(@Param('userId') userId: string) {
-    console.log('📡 GET /saved-looks/:userId hit →', userId);
+    // console.log('📡 GET /saved-looks/:userId hit →', userId);
     return this.service.getByUser(userId);
   }
 

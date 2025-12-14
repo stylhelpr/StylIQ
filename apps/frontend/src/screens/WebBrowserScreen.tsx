@@ -122,14 +122,7 @@ export default function WebBrowserScreen({route}: Props) {
 
   // 🛍️ Fetch shopping suggestions with smart context classification
   async function fetchShoppingAssistantSuggestions() {
-    console.log('🛍️ fetchShoppingAssistantSuggestions called');
-    console.log('userId:', userId);
-    console.log('hasAiSuggestionsLoaded:', hasAiSuggestionsLoaded);
-    console.log('isAiSuggestionsStale():', isAiSuggestionsStale());
     if (!userId || (hasAiSuggestionsLoaded && !isAiSuggestionsStale())) {
-      console.log(
-        '⛔ Early return: userId missing or already loaded and not stale',
-      );
       return;
     }
 
@@ -169,10 +162,6 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   ...
 ]`;
 
-    console.log(
-      '🛍️ [WebBrowserScreen] SHOPPING_PROMPT - will trigger wardrobe context load',
-    );
-
     try {
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: 'POST',
@@ -180,8 +169,6 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         body: JSON.stringify({
           user_id: userId,
           messages: [{role: 'user', content: SHOPPING_PROMPT}],
-          // Smart context: shopping assistant needs calendar, wardrobe, and style profile
-          // Backend will classify and only load relevant data
         }),
       });
 
@@ -195,17 +182,12 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         if (Array.isArray(parsed) && parsed.length > 0) {
           setAiShoppingAssistantSuggestions(parsed);
           setHasAiSuggestionsLoaded(true);
-          console.log('✅ Shopping suggestions loaded:', parsed.length);
-          console.log(
-            '📦 Suggestions:',
-            parsed.map((s: any) => s.text),
-          );
         }
       } catch {
-        console.log('⚠️ Failed to parse shopping suggestions');
+        // Failed to parse shopping suggestions
       }
     } catch (err) {
-      console.log('⚠️ Shopping suggestions fetch failed:', err);
+      // Shopping suggestions fetch failed
     }
   }
 
@@ -291,12 +273,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 
   // 🛍️ Fetch AI Shopping Suggestions once per app session (or if stale after 24h)
   useEffect(() => {
-    console.log('🛍️ useEffect for suggestions triggered');
-    console.log('userId:', userId);
-    console.log('hasAiSuggestionsLoaded:', hasAiSuggestionsLoaded);
-    console.log('isAiSuggestionsStale():', isAiSuggestionsStale());
     if (userId && (!hasAiSuggestionsLoaded || isAiSuggestionsStale())) {
-      console.log('🛍️ Calling fetchShoppingAssistantSuggestions');
       fetchShoppingAssistantSuggestions();
     }
   }, [userId, hasAiSuggestionsLoaded]);

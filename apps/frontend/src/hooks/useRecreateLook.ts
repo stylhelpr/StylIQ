@@ -71,11 +71,8 @@ export function useRecreateLook() {
           try {
             const analysis = await analyzeLook(image_url);
             aiTags = analysis?.tags || [];
-            console.log('[useRecreateLook] AI tags:', aiTags);
           } catch {
-            console.warn(
-              '[useRecreateLook] analyzeLook failed → fallback tags',
-            );
+            // analyzeLook failed → fallback tags
           }
         }
 
@@ -94,7 +91,6 @@ export function useRecreateLook() {
         });
 
         const safeTags = Array.from(new Set(weighted)).filter(Boolean);
-        console.log('[useRecreateLook] Final tag set →', safeTags);
 
         // 🪄 Step 3: Backend call
         const res = await fetch(`${API_BASE_URL}/ai/recreate`, {
@@ -122,7 +118,6 @@ export function useRecreateLook() {
           user_id: data.user_id ?? user_id,
         };
       } catch (err: any) {
-        console.error('[useRecreateLook] ❌ Error:', err);
         setError(err.message || 'Recreate look failed');
         throw err;
       } finally {
@@ -149,8 +144,6 @@ export function useRecreateLook() {
       setLoading(true);
 
       try {
-        console.log('💎 [useRecreateLook] personalizedRecreate() start');
-
         const res = await fetch(`${API_BASE_URL}/ai/personalized-shop`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
@@ -165,7 +158,6 @@ export function useRecreateLook() {
         }
 
         const data: any = await res.json();
-        console.log('💎 [useRecreateLook] personalized result:', data);
 
         // 🔧 Normalize both snake_case and camelCase from backend
         const recreated_outfit =
@@ -180,7 +172,6 @@ export function useRecreateLook() {
 
         return {recreated_outfit, suggested_purchases, style_note, tags};
       } catch (err: any) {
-        console.error('[useRecreateLook] ❌ Personalized error:', err);
         setError(err.message || 'Personalized recreate failed');
         throw err;
       } finally {

@@ -245,16 +245,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   };
 
   useEffect(() => {
-    console.log('👗 OutfitSuggestionScreen mounted');
     // pick up anything sent before mount
     const first = consumeHandoff();
     if (first) {
-      console.log('⬅️ handoff (initial)', first);
       applyHandoff(first);
     }
     // and react to handoffs while mounted
     const unsub = subscribeHandoff(p => {
-      console.log('⬅️ handoff (live)', p);
       applyHandoff(p);
     });
     return unsub;
@@ -278,14 +275,14 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           }
         }
       } catch (e) {
-        console.warn('weights load failed', e);
+        // weights load failed silently
       }
     })();
   }, []);
 
   useEffect(() => {
     AsyncStorage.setItem(WEIGHTS_STORAGE_KEY, JSON.stringify(weights)).catch(
-      e => console.warn('weights save failed', e),
+      () => {},
     );
   }, [weights]);
 
@@ -384,11 +381,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
         if (!cancelled) {
           setLiveWeatherCtx(ctx);
-          console.log('🌡️ Live WeatherContext ready:', ctx);
         }
       } catch (e: any) {
         if (!cancelled) {
-          console.warn('⚠️ Live weather fetch failed:', e?.message || e);
           setLiveWeatherCtx(null);
           setLiveWxError(e?.message || 'Failed to fetch weather');
         }
@@ -1160,10 +1155,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         `Failed to save outfit: ${response.status}`,
                       );
                     }
-                    const result = await response.json();
-                    console.log('✅ Outfit saved:', result);
+                    await response.json();
                   } catch (err) {
-                    console.error('❌ Error saving outfit:', err);
+                    // Error saving outfit silently
                   } finally {
                     setShowNameModal(false);
                     setPendingSaveOutfit(null);

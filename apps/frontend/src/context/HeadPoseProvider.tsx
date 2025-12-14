@@ -37,18 +37,15 @@ export const HeadPoseProvider: React.FC<{children: React.ReactNode}> = ({
   useEffect(() => {
     if (!HeadPoseModule?.startHeadTracking) return;
 
-    console.log('🧠 Head tracking initialized');
     HeadPoseModule.startHeadTracking();
 
     const leftListener = emitter.addListener('onHeadTurnLeft', () => {
       ReactNativeHapticFeedback.trigger('impactMedium');
-      console.log('⬅️ LEFT gesture');
       leftActionRef.current();
     });
 
     const rightListener = emitter.addListener('onHeadTurnRight', () => {
       ReactNativeHapticFeedback.trigger('impactMedium');
-      console.log('➡️ RIGHT gesture');
       rightActionRef.current();
     });
 
@@ -56,7 +53,6 @@ export const HeadPoseProvider: React.FC<{children: React.ReactNode}> = ({
       leftListener.remove();
       rightListener.remove();
       HeadPoseModule.stopHeadTracking();
-      console.log('🛑 Head tracking stopped');
     };
   }, [leftActionRef, rightActionRef]);
 

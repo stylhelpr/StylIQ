@@ -8,7 +8,6 @@ import {API_BASE_URL} from '../config/api';
 export async function syncNativeCalendarToBackend(userId: string) {
   try {
     if (!userId) {
-      console.warn('⚠️ Missing userId — aborting sync');
       return;
     }
 
@@ -50,9 +49,8 @@ export async function syncNativeCalendarToBackend(userId: string) {
       body: JSON.stringify({userId, events: simplified}),
     });
 
-    const json = await res.json();
-    console.log('✅ Calendar sync response:', json);
+    await res.json();
   } catch (err) {
-    console.error('❌ Calendar sync error:', err);
+    // Calendar sync failed silently
   }
 }

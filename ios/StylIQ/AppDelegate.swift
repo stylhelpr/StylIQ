@@ -31,12 +31,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     Messaging.messaging().delegate = self
 
     // Request notification permissions
-    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-      print("📱 Notification permission granted: \(granted)")
-      if let error = error {
-        print("❌ Notification permission error: \(error)")
-      }
-    }
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
     application.registerForRemoteNotifications()
 
     factory.startReactNative(
@@ -59,15 +54,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    let userInfo = notification.request.content.userInfo
-    print("📬 Foreground notification received: \(userInfo)")
-
-    // Check if this is a local notification (triggered by JS) vs remote (FCM)
-    // Local notifications have trigger type UNNotificationTrigger, remote have none or push trigger
-    let isLocalNotification = notification.request.trigger is UNTimeIntervalNotificationTrigger ||
-                              notification.request.trigger is UNCalendarNotificationTrigger ||
-                              notification.request.trigger == nil && notification.request.identifier.hasPrefix("local")
-
     if notification.request.trigger is UNPushNotificationTrigger {
       // Remote FCM notification - suppress banner, JS will show local notification
       completionHandler([])
@@ -83,8 +69,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    let userInfo = response.notification.request.content.userInfo
-    print("📬 Notification tapped: \(userInfo)")
     completionHandler()
   }
 
@@ -95,20 +79,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
     Messaging.messaging().apnsToken = deviceToken
-    print("📱 APNs token registered")
   }
 
   func application(
     _ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
-    print("❌ Failed to register for remote notifications: \(error)")
   }
 
   // MARK: - MessagingDelegate
 
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-    print("🔥 FCM token: \(fcmToken ?? "nil")")
   }
 }
 

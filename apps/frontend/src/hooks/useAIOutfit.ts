@@ -100,8 +100,6 @@ export function useAIOutfit(userId?: string) {
         const mappedStyle = mapStyleProfileToUserStyle(opts?.styleProfile);
         if (mappedStyle) body.style_profile = mappedStyle;
 
-        console.log('POST /wardrobe/outfits →', body);
-
         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
           method: 'POST',
           headers: {

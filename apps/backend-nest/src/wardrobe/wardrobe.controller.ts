@@ -137,14 +137,14 @@ export class WardrobeController {
     const weatherArg = body.useWeather === false ? undefined : body.weather;
     const userStyle = normalizeUserStyle(body.style_profile);
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[CTRL] raw style_profile =', body.style_profile);
-      console.log('[CTRL] useFeedback =', body.useFeedback);
-      console.log('[CTRL] styleAgent =', body.styleAgent);
-      console.log('[CTRL] session_id =', body.session_id);
-      console.log('[CTRL] refinementPrompt =', body.refinementPrompt);
-      console.log('[CTRL] lockedItemIds =', body.lockedItemIds); // 👈 add this
-    }
+    // if (process.env.NODE_ENV !== 'production') {
+    //   console.log('[CTRL] raw style_profile =', body.style_profile);
+    //   console.log('[CTRL] useFeedback =', body.useFeedback);
+    //   console.log('[CTRL] styleAgent =', body.styleAgent);
+    //   console.log('[CTRL] session_id =', body.session_id);
+    //   console.log('[CTRL] refinementPrompt =', body.refinementPrompt);
+    //   console.log('[CTRL] lockedItemIds =', body.lockedItemIds);
+    // }
 
     return this.service.generateOutfits(
       body.user_id,

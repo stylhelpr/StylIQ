@@ -12,13 +12,10 @@ export const useHeadPoseActions = (
   const {setLeftAction, setRightAction} = useHeadPose();
 
   useEffect(() => {
-    console.log('🎯 registering head actions for this screen');
-
     if (onLeft) setLeftAction(onLeft);
     if (onRight) setRightAction(onRight);
 
     return () => {
-      console.log('🧹 clearing head actions for this screen');
       setLeftAction(() => {});
       setRightAction(() => {});
     };

@@ -18,21 +18,18 @@ export function useAiSuggestionVoiceCommands(
         text.includes('new suggestion') ||
         text.includes('refresh suggestion')
       ) {
-        console.log('🎙️ Voice: new suggestion');
         fetchSuggestion('voice');
         return;
       }
 
       // 🔹 Go to wardrobe
       if (text.includes('show wardrobe gaps') || text.includes('wardrobe')) {
-        console.log('🎙️ Voice: open wardrobe');
         navigate('Wardrobe');
         return;
       }
 
       // 🔹 Ask stylist
       if (text.includes('ask stylist') || text.includes('styling question')) {
-        console.log('🎙️ Voice: open stylist chat');
         navigate('AiStylistChatScreen');
         return;
       }
