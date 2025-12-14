@@ -414,10 +414,15 @@ export default function AiStylistChatScreen({navigate}: Props) {
 
   /** 📤 Send message (with fashion filter) */
   const send = useCallback(async () => {
+    console.log('📤 [AIChat] send() called');
     const trimmed = input.trim();
-    if (!trimmed || isTyping) return;
+    if (!trimmed || isTyping) {
+      console.log('📤 [AIChat] send() early return - trimmed:', !!trimmed, 'isTyping:', isTyping);
+      return;
+    }
 
     const lower = trimmed.toLowerCase();
+    console.log('📤 [AIChat] Processing message:', lower.substring(0, 50));
 
     // 🌦️ Quick weather check - respond locally without hitting AI API
     const pureWeatherPhrases = [
@@ -734,6 +739,20 @@ export default function AiStylistChatScreen({navigate}: Props) {
       'match',
       'coordinate',
       'dress code',
+      'image',
+      'images',
+      'picture',
+      'pictures',
+      'photo',
+      'photos',
+      'link',
+      'links',
+      'shop',
+      'buy',
+      'purchase',
+      'fashion',
+      'brand',
+      'designer',
     ];
     const hasFashionKeyword = fashionKeywords.some(kw => lower.includes(kw));
     const commonPhrases = [
@@ -748,17 +767,29 @@ export default function AiStylistChatScreen({navigate}: Props) {
       'style me',
       'pair with',
       'does this match',
+      'show me',
+      'find me',
+      'get me',
+      'give me',
+      'where can i',
+      'where to buy',
+      'where to shop',
     ];
     const hasCommonPhrase = commonPhrases.some(p => lower.includes(p));
     const isFashionRelated = hasFashionKeyword || hasCommonPhrase;
 
+    console.log('📤 [AIChat] Fashion check:', {hasFashionKeyword, hasCommonPhrase, isFashionRelated});
+
     if (!isFashionRelated) {
+      console.log('📤 [AIChat] Rejected - not fashion related');
       Alert.alert(
         'Styling Questions Only ✨',
         "I'm your personal stylist — I can only help with outfits, clothing advice, or fashion-related questions.",
       );
       return;
     }
+
+    console.log('📤 [AIChat] Passed fashion filter, proceeding to API call');
 
     setInput('');
     inputRef.current?.clear();
@@ -807,6 +838,12 @@ export default function AiStylistChatScreen({navigate}: Props) {
         .replace(/```json[\s\S]*?```/g, '') // hide raw json blocks
         .trim();
 
+      console.log('📤 [AIChat] API response received:', {
+        textLength: assistant.text?.length,
+        imagesCount: assistant.images?.length ?? 0,
+        linksCount: assistant.links?.length ?? 0,
+      });
+
       const aiMsg: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
@@ -816,11 +853,16 @@ export default function AiStylistChatScreen({navigate}: Props) {
         links: assistant.links ?? [],
       };
 
+      console.log('📤 [AIChat] Setting message with images:', aiMsg.images?.length);
       setMessages(prev => [...prev, aiMsg]);
+      console.log('📤 [AIChat] Message set, calling haptic');
       h('selection');
       // 🗣️ Speak it aloud
+      console.log('📤 [AIChat] Calling speakResponse');
       speakResponse(aiMsg.text);
-    } catch {
+      console.log('📤 [AIChat] speakResponse called, send() complete');
+    } catch (err: any) {
+      console.error('❌ [AIChat] API call failed:', err?.message || err);
       setMessages(prev => [
         ...prev,
         {

@@ -2478,6 +2478,14 @@ CRITICAL RULES - MANDATORY FOR ALL RESPONSES:
 - Example WRONG answer: "Add a navy blazer to complete your look" ← NEVER do this
 
 Respond naturally about outfits, wardrobe planning, or styling using ONLY the user data provided.
+
+🖼️ IMAGES & LINKS - IMPORTANT:
+- You ARE able to show images and shopping links to users
+- The app will automatically display relevant images and shopping links based on your search_terms
+- When users ask to "show me images" or "give me links", respond helpfully and include relevant search_terms
+- NEVER say you "can't display images" or "can't provide links" - the system handles this automatically
+- Just respond naturally and provide good search_terms at the end
+
 At the end, return a short JSON block like:
 {"search_terms":["smart casual men","navy blazer outfit","loafers"]}
         `,
@@ -2513,13 +2521,17 @@ At the end, return a short JSON block like:
     }
 
     // 4️⃣ Fetch Unsplash images
+    console.log('🖼️ Fetching Unsplash for terms:', searchTerms);
     const images = await this.fetchUnsplash(searchTerms);
+    console.log('🖼️ Unsplash returned:', images?.length, 'images');
 
     // 5️⃣ Build shoppable links
     const links = searchTerms.map((term) => ({
       label: `Shop ${term} on ASOS`,
       url: `https://www.asos.com/search/?q=${encodeURIComponent(term)}`,
     }));
+    console.log('🔗 Built', links?.length, 'shopping links');
+    console.log('✅ Chat response ready - images:', images?.length, 'links:', links?.length);
 
     /* 🧠 --- SAVE ASSISTANT REPLY --- */
     try {

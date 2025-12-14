@@ -170,7 +170,21 @@ export const routeVoiceCommand = async (
   // ----------------------------
   // 🧠 Memory-driven commands
   // ----------------------------
-  if (includesAny(['show me', 'find', 'search'])) {
+  // 🚫 Don't intercept "show me images/pictures/links" - let chat screen handle these
+  const isImageLinkRequest = includesAny([
+    'images of',
+    'pictures of',
+    'photos of',
+    'links to',
+    'links for',
+    'show me image',
+    'show me picture',
+    'show me photo',
+    'give me link',
+    'give me image',
+  ]);
+
+  if (includesAny(['show me', 'find', 'search']) && !isImageLinkRequest) {
     const query = lower
       .replace(/show me|find|search|for|look for/gi, '')
       .trim();
