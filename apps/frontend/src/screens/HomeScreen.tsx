@@ -1613,8 +1613,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     justifyContent: 'center',
                     backgroundColor: theme.colors.button1,
                     // backgroundColor: 'transparent',
-                    borderWidth: tokens.borderWidth.hairline,
-                    borderColor: theme.colors.foreground,
+                    // borderWidth: tokens.borderWidth.hairline,
+                    // borderColor: theme.colors.foreground,
                     borderRadius: tokens.borderRadius.xxxl,
                   },
                 ]}>

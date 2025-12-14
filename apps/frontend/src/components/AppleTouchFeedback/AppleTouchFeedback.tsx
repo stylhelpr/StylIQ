@@ -7,6 +7,8 @@ type Props = {
   onPress: () => void;
   onLongPress?: () => void;
   hapticStyle?:
+    | 'none'
+    | 'selection'
     | 'impactLight'
     | 'impactMedium'
     | 'impactHeavy'
@@ -29,7 +31,7 @@ export default function AppleTouchFeedback({
 
   const handlePressIn = () => {
     if (disabled) return;
-    if (hapticStyle) {
+    if (hapticStyle && hapticStyle !== 'none') {
       triggerHaptic(hapticStyle);
     }
     Animated.spring(scale, {

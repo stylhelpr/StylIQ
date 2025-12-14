@@ -2,6 +2,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 export const triggerHaptic = (
   style:
+    | 'selection'
     | 'impactLight'
     | 'impactMedium'
     | 'impactHeavy'

@@ -1127,9 +1127,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         delay={index * 80}
         useNativeDriver>
         <AppleTouchFeedback
-          hapticStyle="impactLight"
+          hapticStyle="none"
           onPress={() => {
-            h('impactLight');
             // TODO: Navigate to post detail
           }}
           style={styles.card}>
@@ -1224,7 +1223,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   ))}
                 </View>
                 <AppleTouchFeedback
-                  hapticStyle="impactLight"
+                  hapticStyle="none"
                   onPress={() => toggleLike(post.id)}
                   style={styles.likeButton}>
                   <MaterialIcons
@@ -1256,9 +1255,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         delay={index * 80}
         useNativeDriver>
         <AppleTouchFeedback
-          hapticStyle="impactLight"
+          hapticStyle="none"
           onPress={() => {
-            h('impactLight');
             // TODO: Navigate to post detail
           }}
           style={styles.card}>
@@ -1285,7 +1283,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   ))}
                 </View>
                 <AppleTouchFeedback
-                  hapticStyle="impactLight"
+                  hapticStyle="none"
                   onPress={() => toggleLike(post.id)}
                   style={styles.likeButton}>
                   <MaterialIcons

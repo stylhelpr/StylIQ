@@ -1127,15 +1127,40 @@ export default function SavedOutfitsScreen() {
           ) : (
             sortedOutfits.map((outfit, index) => {
               // 🎞️ Compute parallax transform for each card
-              const inputRange = [-1, 0, 200 * index, 200 * (index + 2)];
+              const cardHeight = 280; // Approximate card height for smooth transitions
+              const inputRange = [
+                -1,
+                0,
+                cardHeight * index,
+                cardHeight * (index + 0.5),
+                cardHeight * (index + 1.5),
+              ];
+
+              // 🌊 Smooth scale effect - cards subtly shrink as they scroll up
               const scale = scrollY.interpolate({
                 inputRange,
-                outputRange: [1, 1, 1, 0.9],
+                outputRange: [1.02, 1, 1, 0.98, 0.94],
                 extrapolate: 'clamp',
               });
-              const translateY = scrollY.interpolate({
+
+              // 🎢 Parallax translateY - cards move at different speeds for depth
+              const cardTranslateY = scrollY.interpolate({
                 inputRange,
-                outputRange: [0, 0, 0, -20],
+                outputRange: [0, 0, 0, -8, -25],
+                extrapolate: 'clamp',
+              });
+
+              // 💨 Subtle opacity fade for cards scrolling out of view
+              const opacity = scrollY.interpolate({
+                inputRange,
+                outputRange: [1, 1, 1, 0.95, 0.85],
+                extrapolate: 'clamp',
+              });
+
+              // 🎯 Micro-rotation for a natural 3D feel
+              const rotateX = scrollY.interpolate({
+                inputRange,
+                outputRange: ['0deg', '0deg', '0deg', '-1deg', '-2.5deg'],
                 extrapolate: 'clamp',
               });
 
@@ -1157,17 +1182,24 @@ export default function SavedOutfitsScreen() {
                       }}
                     />
                   }>
-                  <Animatable.View
-                    key={outfit.id}
-                    animation="fadeInUp"
-                    delay={150 + index * 120}
-                    duration={800}
-                    easing="ease-out-cubic"
+                  <Animated.View
                     style={{
-                      transform: [{scale}, {translateY}],
+                      transform: [
+                        {scale},
+                        {translateY: cardTranslateY},
+                        {perspective: 1000},
+                        {rotateX},
+                      ],
+                      opacity,
                       paddingHorizontal: 6,
                     }}>
-                    <ViewShot
+                    <Animatable.View
+                      key={outfit.id}
+                      animation="fadeInUp"
+                      delay={150 + index * 120}
+                      duration={800}
+                      easing="ease-out-cubic">
+                      <ViewShot
                       ref={ref => (viewRefs.current[outfit.id] = ref)}
                       options={{format: 'png', quality: 0.9}}>
                       <ScalePressable
@@ -1446,7 +1478,8 @@ export default function SavedOutfitsScreen() {
                         )}
                       </ScalePressable>
                     </ViewShot>
-                  </Animatable.View>
+                    </Animatable.View>
+                  </Animated.View>
                 </SwipeableCard>
               );
             })
