@@ -116,15 +116,53 @@ const ScalePressable = ({
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // 🎢 Scroll-active scale for weather & AI cards
+  const scrollActiveScale = useRef(new Animated.Value(1)).current;
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollY = useRef(0);
+
   // Sync local scrollY with global nav scrollY for bottom nav hide/show
   useEffect(() => {
     const listenerId = scrollY.addListener(({value}) => {
       if (global.__navScrollY) {
         global.__navScrollY.setValue(value);
       }
+
+      // Detect scroll activity and animate scale
+      const scrollDelta = Math.abs(value - lastScrollY.current);
+      lastScrollY.current = value;
+
+      if (scrollDelta > 1) {
+        // Scrolling - shrink slightly with smooth ease
+        Animated.timing(scrollActiveScale, {
+          toValue: 0.985,
+          duration: 200,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }).start();
+
+        // Reset timeout
+        if (scrollTimeout.current) {
+          clearTimeout(scrollTimeout.current);
+        }
+        scrollTimeout.current = setTimeout(() => {
+          // Stopped scrolling - return to normal with gentle ease
+          Animated.timing(scrollActiveScale, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.cubic),
+          }).start();
+        }, 150);
+      }
     });
-    return () => scrollY.removeListener(listenerId);
-  }, [scrollY]);
+    return () => {
+      scrollY.removeListener(listenerId);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, [scrollY, scrollActiveScale]);
 
   // Parallax / blur / shadow interpolations
   const interpolatedBlurAmount = scrollY.interpolate({
@@ -1259,6 +1297,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
           {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
           {prefs.weather && (
+            <Animated.View
+              style={{
+                transform: [{scale: scrollActiveScale}],
+              }}>
             <Animatable.View
               animation="fadeInUp"
               duration={700}
@@ -1432,18 +1474,24 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </View>
               )}
             </Animatable.View>
+            </Animated.View>
           )}
 
           {/* AI SUGGESTS SECTION */}
           {prefs.aiSuggestions &&
             typeof weather?.fahrenheit?.main?.temp === 'number' && (
-              <AiStylistSuggestions
-                theme={theme}
-                weather={weather}
-                globalStyles={globalStyles}
-                navigate={navigate}
-                wardrobe={wardrobe}
-              />
+              <Animated.View
+                style={{
+                  transform: [{scale: scrollActiveScale}],
+                }}>
+                <AiStylistSuggestions
+                  theme={theme}
+                  weather={weather}
+                  globalStyles={globalStyles}
+                  navigate={navigate}
+                  wardrobe={wardrobe}
+                />
+              </Animated.View>
             )}
 
           {/* Map Section — collapsible with animated height & fade */}
