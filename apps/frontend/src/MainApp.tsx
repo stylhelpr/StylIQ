@@ -7,7 +7,7 @@ import FloatingMicButton from './components/FloatingMicButton';
 import {VoiceOverlay} from './components/VoiceOverlay/VoiceOverlay';
 import {VoiceBus} from './utils/VoiceUtils/VoiceBus';
 import {VoiceTarget} from './utils/VoiceUtils/voiceTarget';
-import {initInstantTts, instantSpeak} from './utils/VoiceUtils/instantTts';
+import {initInstantTts} from './utils/VoiceUtils/instantTts';
 import WeatherPromptOverlay from './components/WeatherPromptOverlay/WeatherPromptOverlay';
 import {syncNativeCalendarToBackend} from './utils/calendarSync';
 import WeatherOverlay from './components/WeatherOverlay/WeatherOverlay';
@@ -57,7 +57,6 @@ const MainApp = () => {
   // 🔊 Initialize TTS once
   useEffect(() => {
     initInstantTts(); // preload Siri / Google voice
-    instantSpeak('Ready.'); // optional startup cue
   }, []);
 
   useEffect(() => {

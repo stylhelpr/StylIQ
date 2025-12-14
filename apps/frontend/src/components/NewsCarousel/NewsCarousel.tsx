@@ -197,7 +197,7 @@
 
 ///////////////////
 
-import React, {useMemo, useEffect, useRef} from 'react';
+import React, {useMemo, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -209,7 +209,16 @@ import {
   Easing,
   Pressable,
   TouchableWithoutFeedback,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
+import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
+
+// Card dimensions for auto-scroll calculation
+const CARD_WIDTH = isTablet ? 275 : isLargePhone ? 235 : isRegularPhone ? 230 : 230;
+const CARD_MARGIN = isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10;
+const SCROLL_INTERVAL = CARD_WIDTH + CARD_MARGIN;
+const AUTO_SCROLL_DELAY = 8000; // 8 seconds
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -307,6 +316,59 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
   const fadeAnims = useRef<Animated.Value[]>([]);
   const translateAnims = useRef<Animated.Value[]>([]);
 
+  // Auto-scroll refs
+  const scrollViewRef = useRef<ScrollView>(null);
+  const currentIndexRef = useRef(0);
+  const autoScrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isUserScrollingRef = useRef(false);
+
+  // Auto-scroll effect - scrolls every 8 seconds
+  useEffect(() => {
+    if (topTen.length <= 1) return;
+
+    const startAutoScroll = () => {
+      autoScrollTimerRef.current = setInterval(() => {
+        if (isUserScrollingRef.current) return;
+
+        currentIndexRef.current = (currentIndexRef.current + 1) % topTen.length;
+        const scrollX = currentIndexRef.current * SCROLL_INTERVAL;
+
+        scrollViewRef.current?.scrollTo({
+          x: scrollX,
+          animated: true,
+        });
+      }, AUTO_SCROLL_DELAY);
+    };
+
+    startAutoScroll();
+
+    return () => {
+      if (autoScrollTimerRef.current) {
+        clearInterval(autoScrollTimerRef.current);
+      }
+    };
+  }, [topTen.length]);
+
+  // Handle scroll events to sync current index and pause auto-scroll during user interaction
+  const handleScrollBeginDrag = useCallback(() => {
+    isUserScrollingRef.current = true;
+  }, []);
+
+  const handleScrollEndDrag = useCallback(() => {
+    // Resume auto-scroll after a short delay
+    setTimeout(() => {
+      isUserScrollingRef.current = false;
+    }, 2000);
+  }, []);
+
+  const handleMomentumScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetX = event.nativeEvent.contentOffset.x;
+      currentIndexRef.current = Math.round(offsetX / SCROLL_INTERVAL);
+    },
+    [],
+  );
+
   useEffect(() => {
     fadeAnims.current = topTen.map(() => new Animated.Value(0));
     translateAnims.current = topTen.map(() => new Animated.Value(20));
@@ -358,9 +420,14 @@ const NewsCarousel: React.FC<NewsCarouselProps> = ({onOpenArticle}) => {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{paddingRight: 8}}>
+      contentContainerStyle={{paddingRight: 8}}
+      onScrollBeginDrag={handleScrollBeginDrag}
+      onScrollEndDrag={handleScrollEndDrag}
+      onMomentumScrollEnd={handleMomentumScrollEnd}
+      scrollEventThrottle={16}>
       {topTen.map((a, index) => {
         const fade = fadeAnims.current[index] || new Animated.Value(1);
         const translate =

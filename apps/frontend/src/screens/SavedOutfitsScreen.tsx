@@ -618,7 +618,10 @@ export default function SavedOutfitsScreen() {
   const resetPlanFlow = async () => {
     if (datePickerRef.current) {
       await (datePickerRef.current as any).animate(
-        {from: {opacity: 1, translateY: 0, scale: 1}, to: {opacity: 0, translateY: 60, scale: 0.97}},
+        {
+          from: {opacity: 1, translateY: 0, scale: 1},
+          to: {opacity: 0, translateY: 60, scale: 0.97},
+        },
         400,
       );
     }

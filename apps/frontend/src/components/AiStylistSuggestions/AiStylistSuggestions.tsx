@@ -402,6 +402,40 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}>
               Styla's Suggestions
             </Text>
+
+            {/* Status dot: pulsing green when Auto, grey outline when Manual */}
+            {isAutoMode ? (
+              <Animatable.View
+                animation={{
+                  0: {scale: 1, opacity: 0.7},
+                  0.5: {scale: 1.3, opacity: 1},
+                  1: {scale: 1, opacity: 0.7},
+                }}
+                iterationCount="infinite"
+                duration={1500}
+                easing="ease-in-out"
+                useNativeDriver
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: '#34C759',
+                  marginLeft: moderateScale(tokens.spacing.xs),
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  borderWidth: 1.5,
+                  borderColor: theme.colors.muted,
+                  backgroundColor: 'transparent',
+                  marginLeft: moderateScale(tokens.spacing.xs),
+                }}
+              />
+            )}
           </View>
 
           {/* 🧠 Manual / Auto Switch */}

@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,16 @@ import {
   Animated,
   Easing,
   Pressable,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
+import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
+
+// Card dimensions for auto-scroll calculation
+const CARD_WIDTH = isTablet ? 160 : isLargePhone ? 180 : isRegularPhone ? 160 : 160;
+const CARD_MARGIN = isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10;
+const SCROLL_INTERVAL = CARD_WIDTH + CARD_MARGIN;
+const AUTO_SCROLL_DELAY = 10000; // 10 seconds
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -83,6 +92,60 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
 
   const fadeAnims = useRef<Animated.Value[]>([]);
   const translateAnims = useRef<Animated.Value[]>([]);
+
+  // Auto-scroll refs
+  const scrollViewRef = useRef<ScrollView>(null);
+  const currentIndexRef = useRef(0);
+  const autoScrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isUserScrollingRef = useRef(false);
+
+  // Auto-scroll effect - scrolls every 10 seconds
+  useEffect(() => {
+    if (recommended.length <= 1) return;
+
+    const startAutoScroll = () => {
+      autoScrollTimerRef.current = setInterval(() => {
+        if (isUserScrollingRef.current) return;
+
+        currentIndexRef.current =
+          (currentIndexRef.current + 1) % recommended.length;
+        const scrollX = currentIndexRef.current * SCROLL_INTERVAL;
+
+        scrollViewRef.current?.scrollTo({
+          x: scrollX,
+          animated: true,
+        });
+      }, AUTO_SCROLL_DELAY);
+    };
+
+    startAutoScroll();
+
+    return () => {
+      if (autoScrollTimerRef.current) {
+        clearInterval(autoScrollTimerRef.current);
+      }
+    };
+  }, [recommended.length]);
+
+  // Handle scroll events to sync current index and pause auto-scroll during user interaction
+  const handleScrollBeginDrag = useCallback(() => {
+    isUserScrollingRef.current = true;
+  }, []);
+
+  const handleScrollEndDrag = useCallback(() => {
+    // Resume auto-scroll after a short delay
+    setTimeout(() => {
+      isUserScrollingRef.current = false;
+    }, 2000);
+  }, []);
+
+  const handleMomentumScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offsetX = event.nativeEvent.contentOffset.x;
+      currentIndexRef.current = Math.round(offsetX / SCROLL_INTERVAL);
+    },
+    [],
+  );
 
   const styles = StyleSheet.create({
     image: {
@@ -169,7 +232,14 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
     return <Text style={{padding: 16}}>{error}</Text>;
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    <ScrollView
+      ref={scrollViewRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      onScrollBeginDrag={handleScrollBeginDrag}
+      onScrollEndDrag={handleScrollEndDrag}
+      onMomentumScrollEnd={handleMomentumScrollEnd}
+      scrollEventThrottle={16}>
       {recommended.length === 0 ? (
         <Text style={{padding: 16, color: theme.colors.foreground2}}>
           No picks found

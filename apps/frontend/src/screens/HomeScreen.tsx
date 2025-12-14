@@ -1124,11 +1124,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           )}
           showsVerticalScrollIndicator={false}>
           {/* Header Row: Greeting + Menu */}
-          <Animatable.View
-            animation="fadeInDown"
-            duration={600}
-            delay={100}
-            useNativeDriver
+          <View
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
@@ -1136,7 +1132,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               paddingHorizontal: moderateScale(tokens.spacing.md),
               marginBottom: moderateScale(tokens.spacing.xxs),
             }}>
-            <Text
+            <Animatable.Text
+              animation="fadeInLeft"
+              duration={500}
+              delay={150}
+              useNativeDriver
               style={{
                 flex: 1,
                 fontSize: fontScale(tokens.fontSize.xl),
@@ -1148,7 +1148,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               {firstName
                 ? `Hi ${firstName}, ready to get styled today?`
                 : 'i there, ready to get styled today?'}
-            </Text>
+            </Animatable.Text>
 
             <AppleTouchFeedback
               onPress={() => navigate('Settings')}
@@ -1159,7 +1159,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               }}>
               <Icon name="tune" size={22} color={theme.colors.button1} />
             </AppleTouchFeedback>
-          </Animatable.View>
+          </View>
 
           {/* <View style={globalStyles.section}> */}
           <View style={globalStyles.section}>
@@ -1289,22 +1289,47 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         alignItems: 'center',
                         flex: 1,
                       }}>
-                      <Icon
-                        name={(() => {
-                          const condition = weather.celsius.weather[0].main;
-                          if (condition === 'Rain') return 'umbrella';
-                          if (condition === 'Snow') return 'ac-unit';
-                          if (condition === 'Clouds') return 'wb-cloudy';
-                          if (condition === 'Clear') return 'wb-sunny';
-                          return 'wb-sunny';
-                        })()}
-                        size={36}
-                        color={theme.colors.foreground}
+                      <Animatable.View
+                        animation={{
+                          0: {
+                            opacity: 1,
+                            scale: 1,
+                            translateY: 0,
+                          },
+                          0.5: {
+                            opacity: 0.99,
+                            scale: 1.2,
+                            translateY: -2,
+                          },
+                          1: {
+                            opacity: 1,
+                            scale: 1,
+                            translateY: 0,
+                          },
+                        }}
+                        iterationCount="infinite"
+                        duration={2000}
+                        easing="ease-in-out"
+                        useNativeDriver
                         style={{
                           marginRight: moderateScale(tokens.spacing.xsm),
-                          alignSelf: 'center',
-                        }}
-                      />
+                        }}>
+                        <Icon
+                          name={(() => {
+                            const condition = weather.celsius.weather[0].main;
+                            if (condition === 'Rain') return 'umbrella';
+                            if (condition === 'Snow') return 'ac-unit';
+                            if (condition === 'Clouds') return 'wb-cloudy';
+                            if (condition === 'Clear') return 'wb-sunny';
+                            return 'wb-sunny';
+                          })()}
+                          size={36}
+                          color={theme.colors.foreground}
+                          style={{
+                            alignSelf: 'center',
+                          }}
+                        />
+                      </Animatable.View>
                       <View>
                         <Text
                           style={[
@@ -1408,59 +1433,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               )}
             </Animatable.View>
           )}
-
-          {/* <AppleTouchFeedback
-            onPress={async () => {
-              try {
-                const enabled = await DynamicIsland.isEnabled();
-                console.log('🔔 Live Activities enabled?', enabled);
-
-                if (!enabled) {
-                  console.log(
-                    '⚠️ Live Activities not allowed on this device / settings.',
-                  );
-                  return;
-                }
-
-                const result = await DynamicIsland.start(
-                  'StylHelpr Message',
-                  'Your personalized outfit is ready.',
-                );
-                console.log('✅ startActivity result:', result);
-              } catch (err) {
-                console.log('❌ startActivity error:', err);
-              }
-            }}
-            hapticStyle="impactMedium"
-            style={{
-              padding: 12,
-              backgroundColor: theme.colors.button1,
-              borderRadius: 16,
-              marginBottom: 12,
-              marginTop: 12,
-            }}>
-            <Text style={{color: theme.colors.buttonText1}}>
-              Test Dynamic Island
-            </Text>
-          </AppleTouchFeedback>
-
-          <AppleTouchFeedback
-            onPress={async () => {
-              const r = await DynamicIsland.resetAll();
-              console.log('🧹 Reset All:', r);
-            }}
-            hapticStyle="impactLight"
-            style={{
-              padding: 12,
-              backgroundColor: theme.colors.button1,
-              borderRadius: 16,
-              marginBottom: 12,
-              marginTop: 12,
-            }}>
-            <Text style={{color: theme.colors.buttonText1}}>
-              Reset All Activities
-            </Text>
-          </AppleTouchFeedback> */}
 
           {/* AI SUGGESTS SECTION */}
           {prefs.aiSuggestions &&
@@ -1620,30 +1592,41 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               marginBottom: 22,
               width: '100%',
             }}>
-            <AppleTouchFeedback
-              onPress={() => navigate('VideoFeedScreen')}
-              hapticStyle="impactLight"
-              style={[
-                globalStyles.buttonPrimary,
-                {
-                  width: '50%',
-                  justifyContent: 'center',
-                  margin: 'auto',
-                  backgroundColor: theme.colors.button1,
-                  // backgroundColor: 'transparent',
-                  // borderWidth: tokens.borderWidth.hairline,
-                  // borderColor: theme.colors.foreground,
-                  // borderRadius: tokens.borderRadius.xl,
-                },
-              ]}>
-              <Text
+            <Animatable.View
+              // animation={{
+              //   0: {scale: 1},
+              //   0.5: {scale: 1.05},
+              //   1: {scale: 1},
+              // }}
+              iterationCount="infinite"
+              duration={2500}
+              easing="ease-in-out"
+              useNativeDriver
+              style={{width: '70%', margin: 'auto'}}>
+              <AppleTouchFeedback
+                onPress={() => navigate('VideoFeedScreen')}
+                hapticStyle="impactLight"
                 style={[
-                  globalStyles.buttonPrimaryText,
-                  {textTransform: 'uppercase', fontWeight: '700'},
+                  globalStyles.buttonPrimary,
+                  {
+                    width: '100%',
+                    justifyContent: 'center',
+                    backgroundColor: theme.colors.button1,
+                    // backgroundColor: 'transparent',
+                    borderWidth: tokens.borderWidth.hairline,
+                    borderColor: theme.colors.foreground,
+                    borderRadius: tokens.borderRadius.xxxl,
+                  },
                 ]}>
-                Community Share
-              </Text>
-            </AppleTouchFeedback>
+                <Text
+                  style={[
+                    globalStyles.buttonPrimaryText,
+                    {textTransform: 'uppercase', fontWeight: '700'},
+                  ]}>
+                  Community Share Center
+                </Text>
+              </AppleTouchFeedback>
+            </Animatable.View>
           </Animatable.View>
 
           {/* <FilamentPreview /> */}
