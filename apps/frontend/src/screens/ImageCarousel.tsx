@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import {useAppTheme} from '../context/ThemeContext';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -97,9 +98,25 @@ interface CardProps {
   scrollY: SharedValue<number>;
   title: string;
   subtitle: string;
+  progressWidth: SharedValue<number>;
+  isActive: boolean;
 }
 
-function Card({image, index, scrollY, title, subtitle}: CardProps) {
+function Card({
+  image,
+  index,
+  scrollY,
+  title,
+  subtitle,
+  progressWidth,
+  isActive,
+}: CardProps) {
+  const progressAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      width: `${progressWidth.value * 100}%`,
+    };
+  });
+
   const animatedStyle = useAnimatedStyle(() => {
     const scrollPosition = scrollY.value;
     const cardScrollStart = index * CARD_HEIGHT;
@@ -175,10 +192,20 @@ function Card({image, index, scrollY, title, subtitle}: CardProps) {
       <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
+        {/* Progress bar under subtitle - only show on active card */}
+        {isActive && (
+          <View style={styles.progressBarContainer}>
+            <Animated.View
+              style={[styles.progressBar, progressAnimatedStyle]}
+            />
+          </View>
+        )}
       </Animated.View>
     </Animated.View>
   );
 }
+
+const INTERVAL_DURATION = 8000;
 
 export default function ImageCarouselScreen({
   navigate,
@@ -187,9 +214,11 @@ export default function ImageCarouselScreen({
 }) {
   const scrollY = useSharedValue(0);
   const screenOpacity = useSharedValue(0);
+  const progressWidth = useSharedValue(0);
   const {theme} = useAppTheme();
   const scrollViewRef = useRef<Animated.ScrollView>(null);
   const currentIndexRef = useRef(0);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     StatusBar.setHidden(true);
@@ -200,15 +229,27 @@ export default function ImageCarouselScreen({
     };
   }, []);
 
-  // Auto-advance every 8 seconds
+  // Auto-advance every 8 seconds with progress bar
   useEffect(() => {
+    // Start the progress bar animation
+    const startProgress = () => {
+      progressWidth.value = 0;
+      progressWidth.value = withTiming(1, {duration: INTERVAL_DURATION});
+    };
+
+    // Start initial progress
+    startProgress();
+
     const interval = setInterval(() => {
       currentIndexRef.current = (currentIndexRef.current + 1) % images.length;
+      setActiveIndex(currentIndexRef.current);
       scrollViewRef.current?.scrollTo({
         y: currentIndexRef.current * CARD_HEIGHT,
         animated: true,
       });
-    }, 8000);
+      // Reset and restart progress bar
+      startProgress();
+    }, INTERVAL_DURATION);
 
     return () => clearInterval(interval);
   }, []);
@@ -249,6 +290,8 @@ export default function ImageCarouselScreen({
               scrollY={scrollY}
               title={textContent[i].title}
               subtitle={textContent[i].subtitle}
+              progressWidth={progressWidth}
+              isActive={i === activeIndex}
             />
           );
         })}
@@ -294,6 +337,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  progressBarContainer: {
+    width: '50%',
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 1,
+    marginTop: 16,
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: 'rgba(144, 0, 255, 1)',
+    borderRadius: 1,
+  },
   cardsContainer: {
     flex: 1,
     position: 'relative',
@@ -331,6 +386,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 100,
   },
+  // textContainer: {
+  //   position: 'absolute',
+  //   left: 0,
+  //   right: 0,
+  //   paddingHorizontal: 20,
+  //   textAlign: 'left',
+  // },
+  // title: {
+  //   color: '#fff',
+  //   fontSize: 25,
+  //   fontWeight: '700',
+  //   letterSpacing: 1.5,
+  //   textAlign: 'left',
+  //   textTransform: 'uppercase',
+  // },
+  // subtitle: {
+  //   color: 'rgba(255, 255, 255, 0.85)',
+  //   fontSize: 12,
+  //   fontWeight: '700',
+  //   letterSpacing: 1.5,
+  //   textAlign: 'right',
+  //   textTransform: 'uppercase',
+  //   marginTop: 12,
+  // },
   textContainer: {
     position: 'absolute',
     left: 0,
@@ -395,6 +474,1309 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 });
+
+////////////////////
+
+// import React, {useEffect, useRef, useState} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   Dimensions,
+//   Pressable,
+//   StatusBar,
+// } from 'react-native';
+// import LinearGradient from 'react-native-linear-gradient';
+// import Animated, {
+//   useSharedValue,
+//   useAnimatedScrollHandler,
+//   useAnimatedStyle,
+//   interpolate,
+//   Extrapolation,
+//   SharedValue,
+//   withTiming,
+// } from 'react-native-reanimated';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {tokens} from '../styles/tokens/tokens';
+
+// const {width, height} = Dimensions.get('window');
+
+// // Card height - shows peek of next card at bottom
+// const CARD_HEIGHT = height * 0.87;
+// const PEEK_HEIGHT = height - CARD_HEIGHT; // The visible peek area at bottom
+
+// const images = [
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
+//   require('../assets/images/headshot-6.jpg'),
+
+//   require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
+//   require('../assets/images/headshot-2.webp'),
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
+//   require('../assets/images/headshot-4.jpg'),
+//   require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+//   require('../assets/images/headshot-3.jpg'),
+
+//   require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+//   require('../assets/images/headshot-1.webp'),
+
+//   require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
+//   require('../assets/images/headshot-5.jpg'),
+//   require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+//   require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
+//   require('../assets/images/fashion/starry-night-fashion-stockcake.webp'),
+//   require('../assets/images/fashion/futuristic-fashion-model-stockcake.webp'),
+//   require('../assets/images/fashion/backstage-fashion-moment-stockcake.jpg'),
+//   require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-model-stockcake2.webp'),
+//   require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-show-stockcake3.webp'),
+//   require('../assets/images/fashion/fashion-show-elegance-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-show-silhouette-stockcake.webp'),
+// ];
+
+// const textContent = [
+//   {title: 'UPGRADE YOUR STYLE', subtitle: 'LIKE NEVER BEFORE'},
+//   {title: 'DISCOVER YOUR LOOK', subtitle: 'EXPRESS YOURSELF'},
+//   {title: 'FASHION FORWARD', subtitle: 'STAY AHEAD OF TRENDS'},
+//   {title: 'PERSONALIZED STYLE', subtitle: 'MADE JUST FOR YOU'},
+//   {title: 'UP YOUR WARDROBE', subtitle: 'LOOK YOUR BEST'},
+//   {title: 'STYLE CONFIDENCE', subtitle: 'OWN EVERY MOMENT'},
+//   {title: 'DEFINE YOUR EDGE', subtitle: 'STAND OUT FROM THE CROWD'},
+//   {title: 'CURATED FOR YOU', subtitle: 'AI-POWERED RECOMMENDATIONS'},
+//   {title: 'EFFORTLESS ELEGANCE', subtitle: 'EVERY DAY, EVERY OCCASION'},
+//   {title: 'YOUR STYLE JOURNEY', subtitle: 'STARTS HERE'},
+//   {title: 'BOLD CHOICES', subtitle: 'MAKE A STATEMENT'},
+//   {title: 'TIMELESS LOOKS', subtitle: 'NEVER GO OUT OF STYLE'},
+//   {title: 'DRESS THE PART', subtitle: 'FOR EVERY MOMENT'},
+//   {title: 'FIND YOUR FIT', subtitle: 'PERFECTLY TAILORED'},
+//   {title: 'UNLEASH CREATIVITY', subtitle: 'MIX AND MATCH'},
+//   {title: 'ELEVATE EVERYDAY', subtitle: 'FROM CASUAL TO CHIC'},
+//   {title: 'BE UNFORGETTABLE', subtitle: 'LEAVE AN IMPRESSION'},
+//   {title: 'STYLE REINVENTED', subtitle: 'FRESH PERSPECTIVES'},
+//   {title: 'YOUR SIGNATURE LOOK', subtitle: 'UNIQUELY YOU'},
+//   {title: 'CONFIDENCE STARTS', subtitle: 'WITH WHAT YOU WEAR'},
+//   {title: 'TRANSFORM YOUR CLOSET', subtitle: 'ENDLESS POSSIBILITIES'},
+//   {title: 'TREND SETTER', subtitle: 'LEAD THE WAY'},
+//   {title: 'WARDROBE GOALS', subtitle: 'ACHIEVE THEM ALL'},
+//   {title: 'DRESS SMARTER', subtitle: 'LOOK BETTER'},
+//   {title: 'STYLE REVOLUTION', subtitle: 'JOIN THE MOVEMENT'},
+//   {title: 'YOUR BEST SELF', subtitle: 'EVERY SINGLE DAY'},
+// ];
+
+// interface CardProps {
+//   image: any;
+//   index: number;
+//   scrollY: SharedValue<number>;
+//   title: string;
+//   subtitle: string;
+//   progressWidth: SharedValue<number>;
+//   isActive: boolean;
+// }
+
+// function Card({
+//   image,
+//   index,
+//   scrollY,
+//   title,
+//   subtitle,
+//   progressWidth,
+//   isActive,
+// }: CardProps) {
+//   const progressAnimatedStyle = useAnimatedStyle(() => {
+//     return {
+//       width: `${progressWidth.value * 100}%`,
+//     };
+//   });
+
+//   const animatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     // Current card slides UP as user scrolls
+//     const translateY = interpolate(
+//       scrollPosition,
+//       [
+//         cardScrollStart - CARD_HEIGHT,
+//         cardScrollStart,
+//         cardScrollStart + CARD_HEIGHT,
+//       ],
+//       [CARD_HEIGHT, 0, -CARD_HEIGHT],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       transform: [{translateY}],
+//     };
+//   });
+
+//   // Parallax effect for the image - moves slower than the card
+//   const imageAnimatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     // Image shifts up slightly as card scrolls (parallax)
+//     const imageTranslateY = interpolate(
+//       scrollPosition,
+//       [
+//         cardScrollStart - CARD_HEIGHT,
+//         cardScrollStart,
+//         cardScrollStart + CARD_HEIGHT,
+//       ],
+//       [50, 0, -50],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       transform: [{translateY: imageTranslateY}],
+//     };
+//   });
+
+//   const textAnimatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     const textBottomPosition = interpolate(
+//       scrollPosition,
+//       [cardScrollStart - CARD_HEIGHT, cardScrollStart],
+//       [CARD_HEIGHT - PEEK_HEIGHT / 2 - 25, 40],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       bottom: textBottomPosition,
+//     };
+//   });
+
+//   return (
+//     <Animated.View style={[styles.card, animatedStyle]}>
+//       <Animated.Image
+//         source={image}
+//         style={[styles.cardImage, imageAnimatedStyle]}
+//         resizeMode="cover"
+//       />
+//       {/* Gradient overlay for text readability */}
+//       <LinearGradient
+//         colors={['transparent', 'rgba(0,0,0,0.5)']}
+//         style={styles.gradientOverlay}
+//       />
+//       {/* Text content - animated position */}
+//       <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
+//         <Text style={styles.title}>{title}</Text>
+//         <Text style={styles.subtitle}>{subtitle}</Text>
+//         {/* Progress bar under subtitle - only show on active card */}
+//         {isActive && (
+//           <View style={styles.progressBarContainer}>
+//             <Animated.View
+//               style={[styles.progressBar, progressAnimatedStyle]}
+//             />
+//           </View>
+//         )}
+//       </Animated.View>
+//     </Animated.View>
+//   );
+// }
+
+// const INTERVAL_DURATION = 8000;
+
+// export default function ImageCarouselScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const scrollY = useSharedValue(0);
+//   const screenOpacity = useSharedValue(0);
+//   const progressWidth = useSharedValue(0);
+//   const {theme} = useAppTheme();
+//   const scrollViewRef = useRef<Animated.ScrollView>(null);
+//   const currentIndexRef = useRef(0);
+//   const [activeIndex, setActiveIndex] = useState(0);
+
+//   useEffect(() => {
+//     StatusBar.setHidden(true);
+//     // Fade in the screen
+//     screenOpacity.value = withTiming(1, {duration: 400});
+//     return () => {
+//       StatusBar.setHidden(false);
+//     };
+//   }, []);
+
+//   // Auto-advance every 8 seconds with progress bar
+//   useEffect(() => {
+//     // Start the progress bar animation
+//     const startProgress = () => {
+//       progressWidth.value = 0;
+//       progressWidth.value = withTiming(1, {duration: INTERVAL_DURATION});
+//     };
+
+//     // Start initial progress
+//     startProgress();
+
+//     const interval = setInterval(() => {
+//       currentIndexRef.current = (currentIndexRef.current + 1) % images.length;
+//       setActiveIndex(currentIndexRef.current);
+//       scrollViewRef.current?.scrollTo({
+//         y: currentIndexRef.current * CARD_HEIGHT,
+//         animated: true,
+//       });
+//       // Reset and restart progress bar
+//       startProgress();
+//     }, INTERVAL_DURATION);
+
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const scrollHandler = useAnimatedScrollHandler({
+//     onScroll: e => {
+//       scrollY.value = e.contentOffset.y;
+//       // Update current index based on scroll position
+//     },
+//   });
+
+//   const screenAnimatedStyle = useAnimatedStyle(() => {
+//     return {
+//       opacity: screenOpacity.value,
+//     };
+//   });
+
+//   const handleClose = () => {
+//     navigate('HomeScreen');
+//   };
+
+//   const handleCommunity = () => {
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     navigate('CommunityShowcaseScreen');
+//   };
+
+//   return (
+//     <Animated.View style={[styles.container, screenAnimatedStyle]}>
+//       {/* Cards rendered in reverse order so first card is on top */}
+//       <View style={styles.cardsContainer}>
+//         {[...images].reverse().map((img, reverseIndex) => {
+//           const i = images.length - 1 - reverseIndex;
+//           return (
+//             <Card
+//               key={i}
+//               image={img}
+//               index={i}
+//               scrollY={scrollY}
+//               title={textContent[i].title}
+//               subtitle={textContent[i].subtitle}
+//               progressWidth={progressWidth}
+//               isActive={i === activeIndex}
+//             />
+//           );
+//         })}
+//       </View>
+
+//       {/* Invisible scroll view for gesture handling */}
+//       <Animated.ScrollView
+//         ref={scrollViewRef}
+//         style={styles.scrollView}
+//         contentContainerStyle={{height: CARD_HEIGHT * images.length}}
+//         showsVerticalScrollIndicator={false}
+//         scrollEventThrottle={16}
+//         onScroll={scrollHandler}
+//         snapToInterval={CARD_HEIGHT}
+//         decelerationRate={0.1}
+//       />
+
+//       {/* Community FAB */}
+//       <View style={styles.communityButton}>
+//         <AppleTouchFeedback onPress={handleCommunity}>
+//           <View style={[styles.fabButton, {borderColor: theme.colors.muted}]}>
+//             <MaterialIcons
+//               name="people"
+//               size={22}
+//               color={theme.colors.buttonText1}
+//             />
+//           </View>
+//         </AppleTouchFeedback>
+//       </View>
+
+//       {/* Close button */}
+//       <View style={styles.closeButtonContainer}>
+//         <Pressable onPress={handleClose} style={styles.closeButton}>
+//           <MaterialIcons name="close" size={18} color="white" />
+//         </Pressable>
+//       </View>
+//     </Animated.View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#000',
+//   },
+//   progressBarContainer: {
+//     width: '50%',
+//     height: 3,
+//     backgroundColor: 'rgba(255, 255, 255, 0.3)',
+//     borderRadius: 1,
+//     marginTop: 16,
+//   },
+//   progressBar: {
+//     height: '100%',
+//     backgroundColor: 'rgba(144, 0, 255, 1)',
+//     borderRadius: 1,
+//   },
+//   cardsContainer: {
+//     flex: 1,
+//     position: 'relative',
+//   },
+//   scrollView: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     zIndex: 10,
+//   },
+//   card: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     height: CARD_HEIGHT,
+//     overflow: 'hidden',
+//   },
+//   cardImage: {
+//     width: width,
+//     height: CARD_HEIGHT + 100,
+//     marginTop: -50,
+//   },
+//   gradientOverlay: {
+//     position: 'absolute',
+//     bottom: 0,
+//     left: 0,
+//     right: 0,
+//     height: CARD_HEIGHT * 0.15,
+//     backgroundColor: 'transparent',
+//     shadowColor: '#000',
+//     shadowOffset: {width: 0, height: -100},
+//     shadowOpacity: 0.3,
+//     shadowRadius: 100,
+//   },
+//   // textContainer: {
+//   //   position: 'absolute',
+//   //   left: 0,
+//   //   right: 0,
+//   //   paddingHorizontal: 20,
+//   //   textAlign: 'left',
+//   // },
+//   // title: {
+//   //   color: '#fff',
+//   //   fontSize: 25,
+//   //   fontWeight: '700',
+//   //   letterSpacing: 1.5,
+//   //   textAlign: 'left',
+//   //   textTransform: 'uppercase',
+//   // },
+//   // subtitle: {
+//   //   color: 'rgba(255, 255, 255, 0.85)',
+//   //   fontSize: 12,
+//   //   fontWeight: '700',
+//   //   letterSpacing: 1.5,
+//   //   textAlign: 'right',
+//   //   textTransform: 'uppercase',
+//   //   marginTop: 12,
+//   // },
+//   textContainer: {
+//     position: 'absolute',
+//     left: 0,
+//     right: 0,
+//     alignItems: 'center',
+//     paddingHorizontal: 20,
+//   },
+//   title: {
+//     color: '#fff',
+//     fontSize: 20,
+//     fontWeight: '700',
+//     letterSpacing: 1.5,
+//     textAlign: 'center',
+//     textTransform: 'uppercase',
+//     marginBottom: 8,
+//   },
+//   subtitle: {
+//     color: 'rgba(255, 255, 255, 0.85)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     letterSpacing: 1.5,
+//     textTransform: 'uppercase',
+//   },
+//   communityButton: {
+//     position: 'absolute',
+//     top: 60,
+//     right: 15,
+//     zIndex: 999,
+//   },
+//   fabButton: {
+//     width: 38,
+//     height: 38,
+//     borderRadius: 20,
+//     backgroundColor: 'rgba(0, 0, 0, 0.35)',
+//     borderWidth: tokens.borderWidth.md,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 4},
+//   },
+//   closeButtonContainer: {
+//     position: 'absolute',
+//     top: 108,
+//     right: 15,
+//     zIndex: 999,
+//   },
+//   closeButton: {
+//     width: 38,
+//     height: 38,
+//     backgroundColor: 'rgba(7, 0, 0, 1)',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     borderWidth: 1,
+//     borderColor: 'rgba(255, 255, 255, 0.3)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.5,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 2},
+//     elevation: 10,
+//     borderRadius: 20,
+//   },
+// });
+
+////////////////
+
+// import React, {useEffect, useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   Dimensions,
+//   Pressable,
+//   StatusBar,
+// } from 'react-native';
+// import LinearGradient from 'react-native-linear-gradient';
+// import Animated, {
+//   useSharedValue,
+//   useAnimatedScrollHandler,
+//   useAnimatedStyle,
+//   interpolate,
+//   Extrapolation,
+//   SharedValue,
+//   withTiming,
+// } from 'react-native-reanimated';
+// import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {tokens} from '../styles/tokens/tokens';
+
+// const {width, height} = Dimensions.get('window');
+
+// // Card height - shows peek of next card at bottom
+// const CARD_HEIGHT = height * 0.87;
+// const PEEK_HEIGHT = height - CARD_HEIGHT; // The visible peek area at bottom
+
+// const images = [
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
+//   require('../assets/images/headshot-6.jpg'),
+
+//   require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
+//   require('../assets/images/headshot-2.webp'),
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
+//   require('../assets/images/headshot-4.jpg'),
+//   require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+//   require('../assets/images/headshot-3.jpg'),
+
+//   require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+//   require('../assets/images/headshot-1.webp'),
+
+//   require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
+//   require('../assets/images/headshot-5.jpg'),
+//   require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+//   require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
+//   require('../assets/images/fashion/starry-night-fashion-stockcake.webp'),
+//   require('../assets/images/fashion/futuristic-fashion-model-stockcake.webp'),
+//   require('../assets/images/fashion/backstage-fashion-moment-stockcake.jpg'),
+//   require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-model-stockcake2.webp'),
+//   require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-show-stockcake3.webp'),
+//   require('../assets/images/fashion/fashion-show-elegance-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-show-silhouette-stockcake.webp'),
+// ];
+
+// const textContent = [
+//   {title: 'UPGRADE YOUR STYLE', subtitle: 'LIKE NEVER BEFORE'},
+//   {title: 'DISCOVER YOUR LOOK', subtitle: 'EXPRESS YOURSELF'},
+//   {title: 'FASHION FORWARD', subtitle: 'STAY AHEAD OF TRENDS'},
+//   {title: 'PERSONALIZED STYLE', subtitle: 'MADE JUST FOR YOU'},
+//   {title: 'UP YOUR WARDROBE', subtitle: 'LOOK YOUR BEST'},
+//   {title: 'STYLE CONFIDENCE', subtitle: 'OWN EVERY MOMENT'},
+//   {title: 'DEFINE YOUR EDGE', subtitle: 'STAND OUT FROM THE CROWD'},
+//   {title: 'CURATED FOR YOU', subtitle: 'AI-POWERED RECOMMENDATIONS'},
+//   {title: 'EFFORTLESS ELEGANCE', subtitle: 'EVERY DAY, EVERY OCCASION'},
+//   {title: 'YOUR STYLE JOURNEY', subtitle: 'STARTS HERE'},
+//   {title: 'BOLD CHOICES', subtitle: 'MAKE A STATEMENT'},
+//   {title: 'TIMELESS LOOKS', subtitle: 'NEVER GO OUT OF STYLE'},
+//   {title: 'DRESS THE PART', subtitle: 'FOR EVERY MOMENT'},
+//   {title: 'FIND YOUR FIT', subtitle: 'PERFECTLY TAILORED'},
+//   {title: 'UNLEASH CREATIVITY', subtitle: 'MIX AND MATCH'},
+//   {title: 'ELEVATE EVERYDAY', subtitle: 'FROM CASUAL TO CHIC'},
+//   {title: 'BE UNFORGETTABLE', subtitle: 'LEAVE AN IMPRESSION'},
+//   {title: 'STYLE REINVENTED', subtitle: 'FRESH PERSPECTIVES'},
+//   {title: 'YOUR SIGNATURE LOOK', subtitle: 'UNIQUELY YOU'},
+//   {title: 'CONFIDENCE STARTS', subtitle: 'WITH WHAT YOU WEAR'},
+//   {title: 'TRANSFORM YOUR CLOSET', subtitle: 'ENDLESS POSSIBILITIES'},
+//   {title: 'TREND SETTER', subtitle: 'LEAD THE WAY'},
+//   {title: 'WARDROBE GOALS', subtitle: 'ACHIEVE THEM ALL'},
+//   {title: 'DRESS SMARTER', subtitle: 'LOOK BETTER'},
+//   {title: 'STYLE REVOLUTION', subtitle: 'JOIN THE MOVEMENT'},
+//   {title: 'YOUR BEST SELF', subtitle: 'EVERY SINGLE DAY'},
+// ];
+
+// interface CardProps {
+//   image: any;
+//   index: number;
+//   scrollY: SharedValue<number>;
+//   title: string;
+//   subtitle: string;
+// }
+
+// function Card({image, index, scrollY, title, subtitle}: CardProps) {
+//   const animatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     // Current card slides UP as user scrolls
+//     const translateY = interpolate(
+//       scrollPosition,
+//       [
+//         cardScrollStart - CARD_HEIGHT,
+//         cardScrollStart,
+//         cardScrollStart + CARD_HEIGHT,
+//       ],
+//       [CARD_HEIGHT, 0, -CARD_HEIGHT],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       transform: [{translateY}],
+//     };
+//   });
+
+//   // Parallax effect for the image - moves slower than the card
+//   const imageAnimatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     // Image shifts up slightly as card scrolls (parallax)
+//     const imageTranslateY = interpolate(
+//       scrollPosition,
+//       [
+//         cardScrollStart - CARD_HEIGHT,
+//         cardScrollStart,
+//         cardScrollStart + CARD_HEIGHT,
+//       ],
+//       [50, 0, -50],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       transform: [{translateY: imageTranslateY}],
+//     };
+//   });
+
+//   const textAnimatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     const textBottomPosition = interpolate(
+//       scrollPosition,
+//       [cardScrollStart - CARD_HEIGHT, cardScrollStart],
+//       [CARD_HEIGHT - PEEK_HEIGHT / 2 - 25, 40],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       bottom: textBottomPosition,
+//     };
+//   });
+
+//   return (
+//     <Animated.View style={[styles.card, animatedStyle]}>
+//       <Animated.Image
+//         source={image}
+//         style={[styles.cardImage, imageAnimatedStyle]}
+//         resizeMode="cover"
+//       />
+//       {/* Gradient overlay for text readability */}
+//       <LinearGradient
+//         colors={['transparent', 'rgba(0,0,0,0.5)']}
+//         style={styles.gradientOverlay}
+//       />
+//       {/* Text content - animated position */}
+//       <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
+//         <Text style={styles.title}>{title}</Text>
+//         <Text style={styles.subtitle}>{subtitle}</Text>
+//       </Animated.View>
+//     </Animated.View>
+//   );
+// }
+
+// export default function ImageCarouselScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const scrollY = useSharedValue(0);
+//   const screenOpacity = useSharedValue(0);
+//   const {theme} = useAppTheme();
+//   const scrollViewRef = useRef<Animated.ScrollView>(null);
+//   const currentIndexRef = useRef(0);
+
+//   useEffect(() => {
+//     StatusBar.setHidden(true);
+//     // Fade in the screen
+//     screenOpacity.value = withTiming(1, {duration: 400});
+//     return () => {
+//       StatusBar.setHidden(false);
+//     };
+//   }, []);
+
+//   // Auto-advance every 8 seconds
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       currentIndexRef.current = (currentIndexRef.current + 1) % images.length;
+//       scrollViewRef.current?.scrollTo({
+//         y: currentIndexRef.current * CARD_HEIGHT,
+//         animated: true,
+//       });
+//     }, 8000);
+
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const scrollHandler = useAnimatedScrollHandler({
+//     onScroll: e => {
+//       scrollY.value = e.contentOffset.y;
+//       // Update current index based on scroll position
+//     },
+//   });
+
+//   const screenAnimatedStyle = useAnimatedStyle(() => {
+//     return {
+//       opacity: screenOpacity.value,
+//     };
+//   });
+
+//   const handleClose = () => {
+//     navigate('HomeScreen');
+//   };
+
+//   const handleCommunity = () => {
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     navigate('CommunityShowcaseScreen');
+//   };
+
+//   return (
+//     <Animated.View style={[styles.container, screenAnimatedStyle]}>
+//       {/* Cards rendered in reverse order so first card is on top */}
+//       <View style={styles.cardsContainer}>
+//         {[...images].reverse().map((img, reverseIndex) => {
+//           const i = images.length - 1 - reverseIndex;
+//           return (
+//             <Card
+//               key={i}
+//               image={img}
+//               index={i}
+//               scrollY={scrollY}
+//               title={textContent[i].title}
+//               subtitle={textContent[i].subtitle}
+//             />
+//           );
+//         })}
+//       </View>
+
+//       {/* Invisible scroll view for gesture handling */}
+//       <Animated.ScrollView
+//         ref={scrollViewRef}
+//         style={styles.scrollView}
+//         contentContainerStyle={{height: CARD_HEIGHT * images.length}}
+//         showsVerticalScrollIndicator={false}
+//         scrollEventThrottle={16}
+//         onScroll={scrollHandler}
+//         snapToInterval={CARD_HEIGHT}
+//         decelerationRate={0.1}
+//       />
+
+//       {/* Community FAB */}
+//       <View style={styles.communityButton}>
+//         <AppleTouchFeedback onPress={handleCommunity}>
+//           <View style={[styles.fabButton, {borderColor: theme.colors.muted}]}>
+//             <MaterialIcons
+//               name="people"
+//               size={22}
+//               color={theme.colors.buttonText1}
+//             />
+//           </View>
+//         </AppleTouchFeedback>
+//       </View>
+
+//       {/* Close button */}
+//       <View style={styles.closeButtonContainer}>
+//         <Pressable onPress={handleClose} style={styles.closeButton}>
+//           <MaterialIcons name="close" size={18} color="white" />
+//         </Pressable>
+//       </View>
+//     </Animated.View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#000',
+//   },
+//   cardsContainer: {
+//     flex: 1,
+//     position: 'relative',
+//   },
+//   scrollView: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     zIndex: 10,
+//   },
+//   card: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     height: CARD_HEIGHT,
+//     overflow: 'hidden',
+//   },
+//   cardImage: {
+//     width: width,
+//     height: CARD_HEIGHT + 100,
+//     marginTop: -50,
+//   },
+//   gradientOverlay: {
+//     position: 'absolute',
+//     bottom: 0,
+//     left: 0,
+//     right: 0,
+//     height: CARD_HEIGHT * 0.15,
+//     backgroundColor: 'transparent',
+//     shadowColor: '#000',
+//     shadowOffset: {width: 0, height: -100},
+//     shadowOpacity: 0.3,
+//     shadowRadius: 100,
+//   },
+//   // textContainer: {
+//   //   position: 'absolute',
+//   //   left: 0,
+//   //   right: 0,
+//   //   paddingHorizontal: 20,
+//   //   textAlign: 'left',
+//   // },
+//   // title: {
+//   //   color: '#fff',
+//   //   fontSize: 25,
+//   //   fontWeight: '700',
+//   //   letterSpacing: 1.5,
+//   //   textAlign: 'left',
+//   //   textTransform: 'uppercase',
+//   // },
+//   // subtitle: {
+//   //   color: 'rgba(255, 255, 255, 0.85)',
+//   //   fontSize: 12,
+//   //   fontWeight: '700',
+//   //   letterSpacing: 1.5,
+//   //   textAlign: 'right',
+//   //   textTransform: 'uppercase',
+//   //   marginTop: 12,
+//   // },
+//   textContainer: {
+//     position: 'absolute',
+//     left: 0,
+//     right: 0,
+//     alignItems: 'center',
+//     paddingHorizontal: 20,
+//   },
+//   title: {
+//     color: '#fff',
+//     fontSize: 20,
+//     fontWeight: '700',
+//     letterSpacing: 1.5,
+//     textAlign: 'center',
+//     textTransform: 'uppercase',
+//     marginBottom: 8,
+//   },
+//   subtitle: {
+//     color: 'rgba(255, 255, 255, 0.85)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     letterSpacing: 1.5,
+//     textTransform: 'uppercase',
+//   },
+//   communityButton: {
+//     position: 'absolute',
+//     top: 60,
+//     right: 15,
+//     zIndex: 999,
+//   },
+//   fabButton: {
+//     width: 38,
+//     height: 38,
+//     borderRadius: 20,
+//     backgroundColor: 'rgba(0, 0, 0, 0.35)',
+//     borderWidth: tokens.borderWidth.md,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 4},
+//   },
+//   closeButtonContainer: {
+//     position: 'absolute',
+//     top: 108,
+//     right: 15,
+//     zIndex: 999,
+//   },
+//   closeButton: {
+//     width: 38,
+//     height: 38,
+//     backgroundColor: 'rgba(7, 0, 0, 1)',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     borderWidth: 1,
+//     borderColor: 'rgba(255, 255, 255, 0.3)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.5,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 2},
+//     elevation: 10,
+//     borderRadius: 20,
+//   },
+// });
+
+/////////////////
+
+// import React, {useEffect, useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   Dimensions,
+//   Pressable,
+//   StatusBar,
+// } from 'react-native';
+// import LinearGradient from 'react-native-linear-gradient';
+// import Animated, {
+//   useSharedValue,
+//   useAnimatedScrollHandler,
+//   useAnimatedStyle,
+//   interpolate,
+//   Extrapolation,
+//   SharedValue,
+//   withTiming,
+// } from 'react-native-reanimated';
+// import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {tokens} from '../styles/tokens/tokens';
+
+// const {width, height} = Dimensions.get('window');
+
+// // Card height - shows peek of next card at bottom
+// const CARD_HEIGHT = height * 0.87;
+// const PEEK_HEIGHT = height - CARD_HEIGHT; // The visible peek area at bottom
+
+// const images = [
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
+//   require('../assets/images/headshot-6.jpg'),
+
+//   require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
+//   require('../assets/images/headshot-2.webp'),
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
+//   require('../assets/images/headshot-4.jpg'),
+//   require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+//   require('../assets/images/headshot-3.jpg'),
+
+//   require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+//   require('../assets/images/headshot-1.webp'),
+
+//   require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
+//   require('../assets/images/headshot-5.jpg'),
+//   require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+//   require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
+//   require('../assets/images/fashion/starry-night-fashion-stockcake.webp'),
+//   require('../assets/images/fashion/futuristic-fashion-model-stockcake.webp'),
+//   require('../assets/images/fashion/backstage-fashion-moment-stockcake.jpg'),
+//   require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-model-stockcake2.webp'),
+//   require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-runway-show-stockcake3.webp'),
+//   require('../assets/images/fashion/fashion-show-elegance-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-show-glamour-stockcake.webp'),
+//   require('../assets/images/fashion/fashion-show-silhouette-stockcake.webp'),
+// ];
+
+// const textContent = [
+//   {title: 'UPGRADE YOUR STYLE', subtitle: 'LIKE NEVER BEFORE'},
+//   {title: 'DISCOVER YOUR LOOK', subtitle: 'EXPRESS YOURSELF'},
+//   {title: 'FASHION FORWARD', subtitle: 'STAY AHEAD OF TRENDS'},
+//   {title: 'PERSONALIZED STYLE', subtitle: 'MADE JUST FOR YOU'},
+//   {title: 'UP YOUR WARDROBE', subtitle: 'LOOK YOUR BEST'},
+//   {title: 'STYLE CONFIDENCE', subtitle: 'OWN EVERY MOMENT'},
+//   {title: 'DEFINE YOUR EDGE', subtitle: 'STAND OUT FROM THE CROWD'},
+//   {title: 'CURATED FOR YOU', subtitle: 'AI-POWERED RECOMMENDATIONS'},
+//   {title: 'EFFORTLESS ELEGANCE', subtitle: 'EVERY DAY, EVERY OCCASION'},
+//   {title: 'YOUR STYLE JOURNEY', subtitle: 'STARTS HERE'},
+//   {title: 'BOLD CHOICES', subtitle: 'MAKE A STATEMENT'},
+//   {title: 'TIMELESS LOOKS', subtitle: 'NEVER GO OUT OF STYLE'},
+//   {title: 'DRESS THE PART', subtitle: 'FOR EVERY MOMENT'},
+//   {title: 'FIND YOUR FIT', subtitle: 'PERFECTLY TAILORED'},
+//   {title: 'UNLEASH CREATIVITY', subtitle: 'MIX AND MATCH'},
+//   {title: 'ELEVATE EVERYDAY', subtitle: 'FROM CASUAL TO CHIC'},
+//   {title: 'BE UNFORGETTABLE', subtitle: 'LEAVE AN IMPRESSION'},
+//   {title: 'STYLE REINVENTED', subtitle: 'FRESH PERSPECTIVES'},
+//   {title: 'YOUR SIGNATURE LOOK', subtitle: 'UNIQUELY YOU'},
+//   {title: 'CONFIDENCE STARTS', subtitle: 'WITH WHAT YOU WEAR'},
+//   {title: 'TRANSFORM YOUR CLOSET', subtitle: 'ENDLESS POSSIBILITIES'},
+//   {title: 'TREND SETTER', subtitle: 'LEAD THE WAY'},
+//   {title: 'WARDROBE GOALS', subtitle: 'ACHIEVE THEM ALL'},
+//   {title: 'DRESS SMARTER', subtitle: 'LOOK BETTER'},
+//   {title: 'STYLE REVOLUTION', subtitle: 'JOIN THE MOVEMENT'},
+//   {title: 'YOUR BEST SELF', subtitle: 'EVERY SINGLE DAY'},
+// ];
+
+// interface CardProps {
+//   image: any;
+//   index: number;
+//   scrollY: SharedValue<number>;
+//   title: string;
+//   subtitle: string;
+// }
+
+// function Card({image, index, scrollY, title, subtitle}: CardProps) {
+//   const animatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     // Current card slides UP as user scrolls
+//     const translateY = interpolate(
+//       scrollPosition,
+//       [
+//         cardScrollStart - CARD_HEIGHT,
+//         cardScrollStart,
+//         cardScrollStart + CARD_HEIGHT,
+//       ],
+//       [CARD_HEIGHT, 0, -CARD_HEIGHT],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       transform: [{translateY}],
+//     };
+//   });
+
+//   // Parallax effect for the image - moves slower than the card
+//   const imageAnimatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     // Image shifts up slightly as card scrolls (parallax)
+//     const imageTranslateY = interpolate(
+//       scrollPosition,
+//       [
+//         cardScrollStart - CARD_HEIGHT,
+//         cardScrollStart,
+//         cardScrollStart + CARD_HEIGHT,
+//       ],
+//       [50, 0, -50],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       transform: [{translateY: imageTranslateY}],
+//     };
+//   });
+
+//   const textAnimatedStyle = useAnimatedStyle(() => {
+//     const scrollPosition = scrollY.value;
+//     const cardScrollStart = index * CARD_HEIGHT;
+
+//     const textBottomPosition = interpolate(
+//       scrollPosition,
+//       [cardScrollStart - CARD_HEIGHT, cardScrollStart],
+//       [CARD_HEIGHT - PEEK_HEIGHT / 2 - 25, 40],
+//       Extrapolation.CLAMP,
+//     );
+
+//     return {
+//       bottom: textBottomPosition,
+//     };
+//   });
+
+//   return (
+//     <Animated.View style={[styles.card, animatedStyle]}>
+//       <Animated.Image
+//         source={image}
+//         style={[styles.cardImage, imageAnimatedStyle]}
+//         resizeMode="cover"
+//       />
+//       {/* Gradient overlay for text readability */}
+//       <LinearGradient
+//         colors={['transparent', 'rgba(0,0,0,0.5)']}
+//         style={styles.gradientOverlay}
+//       />
+//       {/* Text content - animated position */}
+//       <Animated.View style={[styles.textContainer, textAnimatedStyle]}>
+//         <Text style={styles.title}>{title}</Text>
+//         <Text style={styles.subtitle}>{subtitle}</Text>
+//       </Animated.View>
+//     </Animated.View>
+//   );
+// }
+
+// export default function ImageCarouselScreen({
+//   navigate,
+// }: {
+//   navigate: (screen: string) => void;
+// }) {
+//   const scrollY = useSharedValue(0);
+//   const screenOpacity = useSharedValue(0);
+//   const {theme} = useAppTheme();
+//   const scrollViewRef = useRef<Animated.ScrollView>(null);
+//   const currentIndexRef = useRef(0);
+
+//   useEffect(() => {
+//     StatusBar.setHidden(true);
+//     // Fade in the screen
+//     screenOpacity.value = withTiming(1, {duration: 400});
+//     return () => {
+//       StatusBar.setHidden(false);
+//     };
+//   }, []);
+
+//   // Auto-advance every 8 seconds
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       currentIndexRef.current = (currentIndexRef.current + 1) % images.length;
+//       scrollViewRef.current?.scrollTo({
+//         y: currentIndexRef.current * CARD_HEIGHT,
+//         animated: true,
+//       });
+//     }, 8000);
+
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const scrollHandler = useAnimatedScrollHandler({
+//     onScroll: e => {
+//       scrollY.value = e.contentOffset.y;
+//       // Update current index based on scroll position
+//     },
+//   });
+
+//   const screenAnimatedStyle = useAnimatedStyle(() => {
+//     return {
+//       opacity: screenOpacity.value,
+//     };
+//   });
+
+//   const handleClose = () => {
+//     navigate('HomeScreen');
+//   };
+
+//   const handleCommunity = () => {
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     navigate('CommunityShowcaseScreen');
+//   };
+
+//   return (
+//     <Animated.View style={[styles.container, screenAnimatedStyle]}>
+//       {/* Cards rendered in reverse order so first card is on top */}
+//       <View style={styles.cardsContainer}>
+//         {[...images].reverse().map((img, reverseIndex) => {
+//           const i = images.length - 1 - reverseIndex;
+//           return (
+//             <Card
+//               key={i}
+//               image={img}
+//               index={i}
+//               scrollY={scrollY}
+//               title={textContent[i].title}
+//               subtitle={textContent[i].subtitle}
+//             />
+//           );
+//         })}
+//       </View>
+
+//       {/* Invisible scroll view for gesture handling */}
+//       <Animated.ScrollView
+//         ref={scrollViewRef}
+//         style={styles.scrollView}
+//         contentContainerStyle={{height: CARD_HEIGHT * images.length}}
+//         showsVerticalScrollIndicator={false}
+//         scrollEventThrottle={16}
+//         onScroll={scrollHandler}
+//         snapToInterval={CARD_HEIGHT}
+//         decelerationRate={0.1}
+//       />
+
+//       {/* Community FAB */}
+//       <View style={styles.communityButton}>
+//         <AppleTouchFeedback onPress={handleCommunity}>
+//           <View style={[styles.fabButton, {borderColor: theme.colors.muted}]}>
+//             <MaterialIcons
+//               name="people"
+//               size={22}
+//               color={theme.colors.buttonText1}
+//             />
+//           </View>
+//         </AppleTouchFeedback>
+//       </View>
+
+//       {/* Close button */}
+//       <View style={styles.closeButtonContainer}>
+//         <Pressable onPress={handleClose} style={styles.closeButton}>
+//           <MaterialIcons name="close" size={18} color="white" />
+//         </Pressable>
+//       </View>
+//     </Animated.View>
+//   );
+// }
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#000',
+//   },
+//   cardsContainer: {
+//     flex: 1,
+//     position: 'relative',
+//   },
+//   scrollView: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     zIndex: 10,
+//   },
+//   card: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     height: CARD_HEIGHT,
+//     overflow: 'hidden',
+//   },
+//   cardImage: {
+//     width: width,
+//     height: CARD_HEIGHT + 100,
+//     marginTop: -50,
+//   },
+//   gradientOverlay: {
+//     position: 'absolute',
+//     bottom: 0,
+//     left: 0,
+//     right: 0,
+//     height: CARD_HEIGHT * 0.15,
+//     backgroundColor: 'transparent',
+//     shadowColor: '#000',
+//     shadowOffset: {width: 0, height: -100},
+//     shadowOpacity: 0.3,
+//     shadowRadius: 100,
+//   },
+//   textContainer: {
+//     position: 'absolute',
+//     left: 0,
+//     right: 0,
+//     alignItems: 'center',
+//     paddingHorizontal: 20,
+//   },
+//   title: {
+//     color: '#fff',
+//     fontSize: 20,
+//     fontWeight: '700',
+//     letterSpacing: 1.5,
+//     textAlign: 'center',
+//     textTransform: 'uppercase',
+//     marginBottom: 8,
+//   },
+//   subtitle: {
+//     color: 'rgba(255, 255, 255, 0.85)',
+//     fontSize: 12,
+//     fontWeight: '700',
+//     letterSpacing: 1.5,
+//     textTransform: 'uppercase',
+//   },
+//   communityButton: {
+//     position: 'absolute',
+//     top: 60,
+//     right: 15,
+//     zIndex: 999,
+//   },
+//   fabButton: {
+//     width: 38,
+//     height: 38,
+//     borderRadius: 20,
+//     backgroundColor: 'rgba(0, 0, 0, 0.35)',
+//     borderWidth: tokens.borderWidth.md,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 4},
+//   },
+//   closeButtonContainer: {
+//     position: 'absolute',
+//     top: 108,
+//     right: 15,
+//     zIndex: 999,
+//   },
+//   closeButton: {
+//     width: 38,
+//     height: 38,
+//     backgroundColor: 'rgba(7, 0, 0, 1)',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     borderWidth: 1,
+//     borderColor: 'rgba(255, 255, 255, 0.3)',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.5,
+//     shadowRadius: 8,
+//     shadowOffset: {width: 0, height: 2},
+//     elevation: 10,
+//     borderRadius: 20,
+//   },
+// });
 
 //////////
 
