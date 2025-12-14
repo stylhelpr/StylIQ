@@ -346,6 +346,8 @@ export default function SavedOutfitsScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
+  const datePickerRef = useRef<Animatable.View & View>(null);
+
   const viewRefs = useRef<{[key: string]: ViewShot | null}>({});
   const [fullScreenOutfit, setFullScreenOutfit] = useState<SavedOutfit | null>(
     null,
@@ -612,9 +614,14 @@ export default function SavedOutfitsScreen() {
   };
 
   // 🔄 Reset all scheduling state (Close / Cancel handlers)
-  // ⏮️ Restored originals
 
-  const resetPlanFlow = () => {
+  const resetPlanFlow = async () => {
+    if (datePickerRef.current) {
+      await (datePickerRef.current as any).animate(
+        {from: {opacity: 1, translateY: 0, scale: 1}, to: {opacity: 0, translateY: 60, scale: 0.97}},
+        400,
+      );
+    }
     setPlanningOutfitId(null);
     setShowDatePicker(false);
     setShowTimePicker(false);
@@ -952,7 +959,12 @@ export default function SavedOutfitsScreen() {
                 numberOfLines={1}>
                 {shareOutfit.name || 'My Outfit'}
               </Text>
-              <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
                   <Image
                     source={
@@ -1341,7 +1353,7 @@ export default function SavedOutfitsScreen() {
                           }}>
                           <AppleTouchFeedback
                             hapticStyle="impactLight"
-                            onPress={e => {
+                            onPress={() => {
                               setPlanningOutfitId(outfit.id);
                               const now = new Date();
                               setSelectedTempDate(now);
@@ -1494,7 +1506,15 @@ export default function SavedOutfitsScreen() {
           blurType="dark"
           blurAmount={20}
           reducedTransparencyFallbackColor="rgba(0,0,0,0.7)">
-          <View style={[styles.sheetContainer]}>
+          <Animatable.View
+            ref={datePickerRef}
+            animation={{
+              from: {opacity: 0, translateY: 100, scale: 0.96},
+              to: {opacity: 1, translateY: 0, scale: 1},
+            }}
+            duration={1000}
+            easing="ease-out-quint"
+            style={[styles.sheetContainer]}>
             <View style={styles.grabber} />
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>
@@ -1511,24 +1531,27 @@ export default function SavedOutfitsScreen() {
             <View
               style={{
                 position: 'relative',
-                backgroundColor: showDatePicker ? theme.colors.background : 'rgba(0, 0, 0, 1)',
+                backgroundColor: showDatePicker
+                  ? theme.colors.background
+                  : 'rgba(0, 0, 0, 1)',
                 borderRadius: 25,
                 paddingBottom: insets.bottom + 10,
                 paddingTop: showDatePicker ? 6 : 12,
                 alignItems: 'center',
                 overflow: 'hidden',
               }}>
-              <View style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                opacity: showDatePicker ? 1 : 0,
-                pointerEvents: showDatePicker ? 'auto' : 'none',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  opacity: showDatePicker ? 1 : 0,
+                  pointerEvents: showDatePicker ? 'auto' : 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
                 <DateTimePicker
                   value={selectedTempDate || new Date()}
                   mode="date"
@@ -1539,10 +1562,11 @@ export default function SavedOutfitsScreen() {
                   style={{marginVertical: -10}}
                 />
               </View>
-              <View style={{
-                opacity: showTimePicker ? 1 : 0,
-                pointerEvents: showTimePicker ? 'auto' : 'none',
-              }}>
+              <View
+                style={{
+                  opacity: showTimePicker ? 1 : 0,
+                  pointerEvents: showTimePicker ? 'auto' : 'none',
+                }}>
                 <DateTimePicker
                   value={selectedTempTime || new Date()}
                   mode="time"
@@ -1564,7 +1588,11 @@ export default function SavedOutfitsScreen() {
                 onPress={resetPlanFlow}
                 style={[
                   styles.sheetPill,
-                  {backgroundColor: showDatePicker ? theme.colors.surface : theme.colors.input2},
+                  {
+                    backgroundColor: showDatePicker
+                      ? theme.colors.surface
+                      : theme.colors.input2,
+                  },
                 ]}>
                 <Text style={styles.sheetPillText}>Cancel</Text>
               </AppleTouchFeedback>
@@ -1602,7 +1630,7 @@ export default function SavedOutfitsScreen() {
                 </AppleTouchFeedback>
               )}
             </View>
-          </View>
+          </Animatable.View>
         </BlurView>
       )}
 

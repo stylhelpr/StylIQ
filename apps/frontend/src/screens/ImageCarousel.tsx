@@ -16,6 +16,7 @@ import Animated, {
   Extrapolation,
   SharedValue,
   withTiming,
+  withSpring,
   useDerivedValue,
 } from 'react-native-reanimated';
 import {
@@ -267,6 +268,8 @@ export default function ImageCarouselScreen({
 }) {
   const scrollY = useSharedValue(0);
   const screenOpacity = useSharedValue(0);
+  const screenScale = useSharedValue(0.92);
+  const screenTranslateY = useSharedValue(40);
   const progressWidth = useSharedValue(0);
   const {theme} = useAppTheme();
   const scrollViewRef = useRef<Animated.ScrollView>(null);
@@ -274,12 +277,18 @@ export default function ImageCarouselScreen({
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    StatusBar.setHidden(true);
-    // Fade in the screen
-    screenOpacity.value = withTiming(1, {duration: 400});
-    return () => {
-      StatusBar.setHidden(false);
-    };
+    // Buttery smooth entrance: fade + scale + slide
+    screenOpacity.value = withTiming(1, {duration: 350});
+    screenScale.value = withSpring(1, {
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    });
+    screenTranslateY.value = withSpring(0, {
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    });
   }, []);
 
   // Auto-advance every 8 seconds with progress bar
@@ -317,6 +326,10 @@ export default function ImageCarouselScreen({
   const screenAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: screenOpacity.value,
+      transform: [
+        {scale: screenScale.value},
+        {translateY: screenTranslateY.value},
+      ],
     };
   });
 
@@ -331,6 +344,8 @@ export default function ImageCarouselScreen({
 
   return (
     <Animated.View style={[styles.container, screenAnimatedStyle]}>
+      {/* Hide status bar immediately to prevent flicker */}
+      <StatusBar hidden />
       {/* Cards rendered in reverse order so first card is on top */}
       <View style={styles.cardsContainer}>
         {[...images].reverse().map((img, reverseIndex) => {

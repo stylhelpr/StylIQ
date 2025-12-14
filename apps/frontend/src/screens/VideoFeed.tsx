@@ -17,6 +17,12 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+} from 'react-native-reanimated';
 import Video, {ResizeMode, VideoRef} from 'react-native-video';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {allVideos} from '../assets/data/video-urls';
@@ -122,6 +128,34 @@ export default function VideoFeedScreen({
   const insets = useSafeAreaInsets();
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  // Entrance animation values
+  const screenOpacity = useSharedValue(0);
+  const screenScale = useSharedValue(0.92);
+  const screenTranslateY = useSharedValue(40);
+
+  // Entrance animation - buttery smooth fade + scale + slide
+  useEffect(() => {
+    screenOpacity.value = withTiming(1, {duration: 350});
+    screenScale.value = withSpring(1, {
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    });
+    screenTranslateY.value = withSpring(0, {
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    });
+  }, []);
+
+  const screenAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [
+      {scale: screenScale.value},
+      {translateY: screenTranslateY.value},
+    ],
+  }));
 
   // Start progress bar animation
   const startProgressBar = useCallback(() => {
@@ -259,13 +293,9 @@ export default function VideoFeedScreen({
   });
 
   useEffect(() => {
-    StatusBar.setHidden(true);
     StatusBar.setTranslucent(true);
     StatusBar.setBackgroundColor('transparent');
     StatusBar.setBarStyle('light-content');
-    return () => {
-      StatusBar.setHidden(false);
-    };
   }, []);
 
   const onViewableItemsChanged = (event: any) => {
@@ -296,7 +326,8 @@ export default function VideoFeedScreen({
     Platform.OS === 'ios' && parseInt(Platform.Version as string, 10) <= 25;
 
   return (
-    <View style={{flex: 1, backgroundColor: 'black'}}>
+    <ReAnimated.View style={[{flex: 1, backgroundColor: 'black'}, screenAnimatedStyle]}>
+      <StatusBar hidden />
       <FlatList
         data={allVideos}
         renderItem={data => (
@@ -409,7 +440,7 @@ export default function VideoFeedScreen({
           </View>
         </AppleTouchFeedback>
       </View>
-    </View>
+    </ReAnimated.View>
   );
 }
 
