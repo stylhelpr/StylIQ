@@ -118,9 +118,21 @@ export default function VideoFeedScreen({
   const flatListRef = useRef<FlatList<string>>(null);
   const autoScrollTimer = useRef<NodeJS.Timeout | null>(null);
   const scrollAnimation = useRef(new Animated.Value(0)).current;
+  const progressAnimation = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  // Start progress bar animation
+  const startProgressBar = useCallback(() => {
+    progressAnimation.setValue(0);
+    Animated.timing(progressAnimation, {
+      toValue: 1,
+      duration: AUTO_SCROLL_INTERVAL,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+  }, [progressAnimation]);
 
   // Smooth scroll to a specific index with custom duration
   const smoothScrollToIndex = useCallback(
@@ -154,14 +166,18 @@ export default function VideoFeedScreen({
     if (autoScrollTimer.current) {
       clearInterval(autoScrollTimer.current);
     }
+    // Start progress bar immediately
+    startProgressBar();
     autoScrollTimer.current = setInterval(() => {
       setVisibleIndex(prev => {
         const nextIndex = prev + 1 >= allVideos.length ? 0 : prev + 1;
         smoothScrollToIndex(nextIndex);
         return nextIndex;
       });
+      // Reset and restart progress bar
+      startProgressBar();
     }, AUTO_SCROLL_INTERVAL);
-  }, [smoothScrollToIndex]);
+  }, [smoothScrollToIndex, startProgressBar]);
 
   // Start auto-scroll on mount, cleanup on unmount
   useEffect(() => {
@@ -225,6 +241,20 @@ export default function VideoFeedScreen({
       elevation: 10,
       borderRadius: 20,
       padding: 6,
+    },
+    progressBarContainer: {
+      position: 'absolute',
+      bottom: 80,
+      width: '50%',
+      height: 3,
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      borderRadius: 1,
+      marginTop: 16,
+    },
+    progressBar: {
+      height: '100%',
+      backgroundColor: 'rgba(144, 0, 255, 1)',
+      borderRadius: 1,
     },
   });
 
@@ -301,6 +331,19 @@ export default function VideoFeedScreen({
       {/* 🟣 Centered transparent overlay text */}
       <View style={styles.overlayTextContainer} pointerEvents="none">
         <Text style={styles.overlayText}>StylHelpr</Text>
+        {/* <View style={styles.progressBarContainer}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                width: progressAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
+          />
+        </View> */}
       </View>
 
       {/* ❌ Close button */}
