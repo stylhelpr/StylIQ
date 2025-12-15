@@ -53,6 +53,13 @@ export default function SavedMeasurementsScreen({navigate}: Props) {
   // Conversion functions
   const kgToLbs = (kg: number) => Math.round(kg * 2.20462 * 100) / 100;
   const lbsToKg = (lbs: number) => Math.round((lbs / 2.20462) * 100) / 100;
+  const cmToInches = (cm: number) => cm / 2.54;
+
+  // Format measurement with both cm and inches
+  const formatMeasurement = (cm: number) => {
+    const inches = cmToInches(cm);
+    return `${cm.toFixed(1)} cm (${inches.toFixed(1)}″)`;
+  };
 
   // Get height in display format
   const getHeightDisplay = () => {
@@ -412,48 +419,45 @@ export default function SavedMeasurementsScreen({navigate}: Props) {
                 <View style={styles.measurementRow}>
                   <Text style={styles.measurementLabel}>Chest</Text>
                   <Text style={styles.measurementValue}>
-                    {parseFloat(String(savedMeasurements.chest || 0)).toFixed(
-                      1,
-                    )}{' '}
-                    cm
+                    {formatMeasurement(
+                      parseFloat(String(savedMeasurements.chest || 0)),
+                    )}
                   </Text>
                 </View>
 
                 <View style={styles.measurementRow}>
                   <Text style={styles.measurementLabel}>Waist</Text>
                   <Text style={styles.measurementValue}>
-                    {parseFloat(String(savedMeasurements.waist || 0)).toFixed(
-                      1,
-                    )}{' '}
-                    cm
+                    {formatMeasurement(
+                      parseFloat(String(savedMeasurements.waist || 0)),
+                    )}
                   </Text>
                 </View>
 
                 <View style={styles.measurementRow}>
                   <Text style={styles.measurementLabel}>Hip</Text>
                   <Text style={styles.measurementValue}>
-                    {parseFloat(String(savedMeasurements.hip || 0)).toFixed(1)}{' '}
-                    cm
+                    {formatMeasurement(
+                      parseFloat(String(savedMeasurements.hip || 0)),
+                    )}
                   </Text>
                 </View>
 
                 <View style={styles.measurementRow}>
                   <Text style={styles.measurementLabel}>Shoulder Width</Text>
                   <Text style={styles.measurementValue}>
-                    {parseFloat(
-                      String(savedMeasurements.shoulder_width || 0),
-                    ).toFixed(1)}{' '}
-                    cm
+                    {formatMeasurement(
+                      parseFloat(String(savedMeasurements.shoulder_width || 0)),
+                    )}
                   </Text>
                 </View>
 
                 <View style={[styles.measurementRow, {borderBottomWidth: 0}]}>
                   <Text style={styles.measurementLabel}>Inseam</Text>
                   <Text style={styles.measurementValue}>
-                    {parseFloat(String(savedMeasurements.inseam || 0)).toFixed(
-                      1,
-                    )}{' '}
-                    cm
+                    {formatMeasurement(
+                      parseFloat(String(savedMeasurements.inseam || 0)),
+                    )}
                   </Text>
                 </View>
               </View>
@@ -482,7 +486,7 @@ export default function SavedMeasurementsScreen({navigate}: Props) {
                           ]}>
                           <Text style={styles.measurementLabel}>{label}</Text>
                           <Text style={styles.measurementValue}>
-                            {parseFloat(String(value || 0)).toFixed(1)} cm
+                            {formatMeasurement(parseFloat(String(value || 0)))}
                           </Text>
                         </View>
                       ),

@@ -9,10 +9,10 @@ const {ARKitModule} = NativeModules;
 // ⚙️ Adjustable calibration multipliers
 // ---------------------------------------------------
 const CALIBRATION_MULTIPLIERS = {
-  shoulders: 1.0, // already correct
+  shoulders: 2.3, // converts half-width (~20cm) → full width (~46cm)
   chest: 2.05, // converts half-width (~52cm) → full circumference (~107cm)
-  waist: 2.0,
-  hips: 2.1,
+  waist: 3.75, // converts half-width (~22cm) → circumference (~83cm / 32-34″)
+  hips: 3.7, // converts half-width (~27cm) → circumference (~100cm / 39-40″)
   inseam: 1.0, // vertical scale accurate from ARKit
 };
 
@@ -114,7 +114,8 @@ export const useMeasurementStore = create<MeasurementState>((set, get) => ({
         dist(s.left_upLeg_joint, s.left_foot_joint) *
         scaleFactor *
         100 *
-        CALIBRATION_MULTIPLIERS.inseam,
+        CALIBRATION_MULTIPLIERS.inseam *
+        0.82, // Convert outseam to inseam (inseam is ~82% of outseam)
     };
 
     set({computedResults: results});

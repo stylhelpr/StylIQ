@@ -119,10 +119,6 @@ export default function MeasurementResultsManualScreen({
       const f = normalized.front.joints;
 
       const joint = (name: string) => f[name] || undefined;
-      const mid = (a?: number[], b?: number[]) =>
-        a && b
-          ? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2]
-          : undefined;
 
       const getDistance = (a?: number[], b?: number[]) => {
         if (!a || !b) return 0;
@@ -158,12 +154,6 @@ export default function MeasurementResultsManualScreen({
         inseam: 1.0,
       };
 
-      const leftKnee = mid(joint('left_upLeg_joint'), joint('left_leg_joint'));
-      const rightKnee = mid(
-        joint('right_upLeg_joint'),
-        joint('right_leg_joint'),
-      );
-
       const extended: MeasurementResult[] = [
         {
           label: 'Arm Length',
@@ -191,10 +181,8 @@ export default function MeasurementResultsManualScreen({
         },
         {
           label: 'Thigh Circumference',
-          value:
-            scaleToCM(getDistance(leftKnee, rightKnee)) *
-            Math.PI *
-            CALIBRATION.hips,
+          // Thigh is typically ~55-60% of hip circumference
+          value: computedResults.hips * 0.58,
           unit: 'cm',
         },
         {
@@ -234,69 +222,46 @@ export default function MeasurementResultsManualScreen({
       ];
 
       // --- Secondary (8) ---
+      // Note: For limb circumferences, we estimate based on proportions
+      // since ARKit doesn't provide limb thickness directly
+      // Average proportions: bicep ~30cm, forearm ~25cm, wrist ~17cm, calf ~38cm, ankle ~22cm, neck ~38cm
+      const chestCm = computedResults.chest;
+
       const secondary: MeasurementResult[] = [
         {
           label: 'Neck Circumference',
-          value:
-            scaleToCM(
-              getDistance(joint('neck_1_joint'), joint('neck_4_joint')) +
-                getDistance(joint('neck_2_joint'), joint('neck_3_joint')),
-            ) *
-            (Math.PI / 2) *
-            1.5, // neck calibration factor
+          // Neck is typically ~35-40% of chest
+          value: chestCm * 0.37,
           unit: 'cm',
         },
         {
           label: 'Bicep Circumference',
-          value:
-            scaleToCM(
-              getDistance(joint('left_arm_joint'), joint('right_arm_joint')),
-            ) *
-            Math.PI *
-            CALIBRATION.chest, // arm uses chest-like calibration
+          // Bicep is typically ~28-32% of chest
+          value: chestCm * 0.30,
           unit: 'cm',
         },
         {
           label: 'Forearm Circumference',
-          value:
-            scaleToCM(
-              getDistance(
-                joint('left_forearm_joint'),
-                joint('right_forearm_joint'),
-              ),
-            ) *
-            Math.PI *
-            CALIBRATION.chest,
+          // Forearm is typically ~24-28% of chest
+          value: chestCm * 0.26,
           unit: 'cm',
         },
         {
           label: 'Wrist Circumference',
-          value:
-            scaleToCM(
-              getDistance(joint('left_hand_joint'), joint('right_hand_joint')),
-            ) *
-            Math.PI *
-            1.5, // wrist calibration
+          // Wrist is typically ~15-18% of chest
+          value: chestCm * 0.165,
           unit: 'cm',
         },
         {
           label: 'Calf Circumference',
-          value:
-            scaleToCM(
-              getDistance(joint('left_leg_joint'), joint('right_leg_joint')),
-            ) *
-            Math.PI *
-            CALIBRATION.hips,
+          // Calf is typically ~35-40% of chest
+          value: chestCm * 0.38,
           unit: 'cm',
         },
         {
           label: 'Ankle Circumference',
-          value:
-            scaleToCM(
-              getDistance(joint('left_foot_joint'), joint('right_foot_joint')),
-            ) *
-            Math.PI *
-            1.5, // ankle calibration
+          // Ankle is typically ~20-24% of chest
+          value: chestCm * 0.22,
           unit: 'cm',
         },
         {
@@ -345,10 +310,8 @@ export default function MeasurementResultsManualScreen({
         },
         {
           label: 'Knee Circumference',
-          value:
-            scaleToCM(getDistance(leftKnee, rightKnee)) *
-            Math.PI *
-            CALIBRATION.hips,
+          // Knee is typically ~38-42% of hip circumference
+          value: computedResults.hips * 0.40,
           unit: 'cm',
         },
         {
@@ -359,9 +322,8 @@ export default function MeasurementResultsManualScreen({
         },
         {
           label: 'Arm Span (Fingertip to Fingertip)',
-          value: scaleToCM(
-            getDistance(joint('left_hand_joint'), joint('right_hand_joint')),
-          ),
+          // Arm span typically equals height for most people
+          value: userHeightMeters * 100,
           unit: 'cm',
         },
         {
@@ -375,6 +337,21 @@ export default function MeasurementResultsManualScreen({
 
       // Combine all measurements - scale factor and calibration already applied above
       const allResults = [...core, ...extended, ...secondary, ...refinement];
+
+      // 📊 Log all measurements for debugging
+      console.log('📏 ===== MEASUREMENT RESULTS =====');
+      console.log('📏 Scale Factor:', scaleFactor);
+      console.log('📏 User Height (m):', userHeightMeters);
+      console.log('📏 Core Results from Store:', JSON.stringify(computedResults, null, 2));
+      console.log('📏 --- CORE (5) ---');
+      core.forEach(m => console.log(`📏 ${m.label}: ${m.value.toFixed(2)} cm (${(m.value / 2.54).toFixed(2)}″)`));
+      console.log('📏 --- EXTENDED (9) ---');
+      extended.forEach(m => console.log(`📏 ${m.label}: ${m.value.toFixed(2)} cm (${(m.value / 2.54).toFixed(2)}″)`));
+      console.log('📏 --- SECONDARY (8) ---');
+      secondary.forEach(m => console.log(`📏 ${m.label}: ${m.value.toFixed(2)} cm (${(m.value / 2.54).toFixed(2)}″)`));
+      console.log('📏 --- REFINEMENT (7) ---');
+      refinement.forEach(m => console.log(`📏 ${m.label}: ${m.value.toFixed(2)} cm (${(m.value / 2.54).toFixed(2)}″)`));
+      console.log('📏 ===== END MEASUREMENTS =====');
 
       setResults(allResults.filter(r => r.value > 0));
       setLoading(false);
