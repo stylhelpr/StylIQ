@@ -763,7 +763,7 @@ export default function ProfileScreen({navigate}: Props) {
                   delay={2500 + index * 100}
                   style={{marginTop: 6, alignItems: 'center'}}>
                   <Text
-                    style={[globalStyles.subLabel, {textAlign: 'center'}]}
+                    style={[globalStyles.cardSubLabel, {textAlign: 'center'}]}
                     numberOfLines={1}>
                     {look.name}
                   </Text>

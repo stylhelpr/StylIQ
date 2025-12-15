@@ -336,6 +336,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   }, [userId, setSkin]);
 
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [userPicture, setUserPicture] = useState<string | null>(null);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedLook, setSelectedLook] = useState<any | null>(null);
@@ -531,17 +533,34 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   }, []);
 
   useEffect(() => {
-    const fetchFirstName = async () => {
+    const fetchUserData = async () => {
       if (!userId) return;
       try {
         const res = await fetch(`${API_BASE_URL}/users/${userId}`);
         const data = await res.json();
-        setFirstName(data.first_name);
+        setFirstName(data.first_name || '');
+        setLastName(data.last_name || '');
+        if (data.picture) {
+          setUserPicture(data.picture);
+        }
       } catch (err) {
         console.error('❌ Failed to fetch user:', err);
       }
     };
-    fetchFirstName();
+    fetchUserData();
+  }, [userId]);
+
+  // Load profile picture from AsyncStorage
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
+      if (cached) {
+        setUserPicture(
+          `${cached}${cached.includes('?') ? '&' : '?'}v=${Date.now()}`,
+        );
+      }
+    })();
   }, [userId]);
 
   useEffect(() => {
@@ -1065,17 +1084,26 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 }}>
                 <View
                   style={{
-                    backgroundColor: 'rgba(0,0,0,0.35)',
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    paddingHorizontal: 32,
+                    paddingVertical: 16,
+                    borderRadius: 40,
+                    borderWidth: 1.5,
+                    borderColor: 'rgba(255,255,255,0.25)',
+                    shadowColor: '#000',
+                    shadowOffset: {width: 0, height: 4},
+                    shadowOpacity: 0.4,
+                    shadowRadius: 12,
                   }}>
                   <Text
                     style={{
                       color: '#fff',
-                      fontSize: 14,
-                      fontWeight: '700',
-                      letterSpacing: 0.3,
+                      fontSize: 28,
+                      fontWeight: '800',
+                      letterSpacing: 1.5,
+                      textShadowColor: 'rgba(0,0,0,0.5)',
+                      textShadowOffset: {width: 0, height: 2},
+                      textShadowRadius: 4,
                     }}>
                     StylHelpr
                   </Text>
@@ -1109,15 +1137,37 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     justifyContent: 'space-between',
                   }}>
                   <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Image
-                      source={require('../assets/images/icon.png')}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        marginRight: 8,
-                      }}
-                    />
+                    {userPicture ? (
+                      <Image
+                        source={{uri: userPicture}}
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          marginRight: 8,
+                        }}
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          marginRight: 8,
+                          backgroundColor: '#000',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}>
+                        <Text
+                          style={{
+                            color: '#fff',
+                            fontSize: 10,
+                            fontWeight: '700',
+                          }}>
+                          SH
+                        </Text>
+                      </View>
+                    )}
                     <Text
                       style={{
                         fontSize: 14,
@@ -1125,7 +1175,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         color: theme.colors.muted,
                       }}
                       numberOfLines={1}>
-                      @{firstName || 'StylHelpr'}
+                      {firstName && lastName ? `${firstName}${lastName}` : 'StylHelpr'}@stylhelpr.com
                     </Text>
                   </View>
                   <Text

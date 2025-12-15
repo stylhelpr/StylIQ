@@ -106,13 +106,41 @@ const SHEET_MAX_H = Math.min(Dimensions.get('window').height * 0.2, 560);
 
 export default function SavedOutfitsScreen() {
   const userId = useUUID();
-  if (!userId) return null;
-
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const {user} = useAuth0();
-
   const insets = useSafeAreaInsets();
+  const [profilePicture, setProfilePicture] = useState<string>('');
+  const [userName, setUserName] = useState<string>('');
+
+  // Load profile picture from AsyncStorage
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
+      if (cached) {
+        setProfilePicture(cached);
+      }
+    })();
+  }, [userId]);
+
+  // Fetch user's first and last name
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+        const data = await res.json();
+        const first = data.first_name || '';
+        const last = data.last_name || '';
+        setUserName(`${first}${last}`.trim() || 'StylHelpr');
+      } catch (err) {
+        setUserName('StylHelpr');
+      }
+    })();
+  }, [userId]);
+
+  if (!userId) return null;
 
   const styles = StyleSheet.create({
     screen: {
@@ -489,11 +517,16 @@ export default function SavedOutfitsScreen() {
         ignoreAndroidSystemSettings: false,
       });
 
+      // Preload profile picture if available
+      if (profilePicture) {
+        await Image.prefetch(profilePicture);
+      }
+
       // Set the outfit to render the composite
       setShareOutfit(outfit);
 
       // Wait for the composite to render
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       // Capture the 2x2 grid composite
       if (!shareCompositeRef.current) {
@@ -929,19 +962,35 @@ export default function SavedOutfitsScreen() {
                 left: 0,
                 right: 0,
                 bottom: 80,
-                backgroundColor: 'rgba(0,0,0,0.4)',
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              <Text
+              <View
                 style={{
-                  color: '#fff',
-                  fontSize: 36,
-                  fontWeight: '800',
-                  letterSpacing: 3,
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  paddingHorizontal: 32,
+                  paddingVertical: 16,
+                  borderRadius: 40,
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(255,255,255,0.25)',
+                  shadowColor: '#000',
+                  shadowOffset: {width: 0, height: 4},
+                  shadowOpacity: 0.4,
+                  shadowRadius: 12,
                 }}>
-                StylHelpr
-              </Text>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 28,
+                    fontWeight: '800',
+                    letterSpacing: 1.5,
+                    textShadowColor: 'rgba(0,0,0,0.5)',
+                    textShadowOffset: {width: 0, height: 2},
+                    textShadowRadius: 4,
+                  }}>
+                  StylHelpr
+                </Text>
+              </View>
             </View>
 
             {/* Bottom info section */}
@@ -969,19 +1018,36 @@ export default function SavedOutfitsScreen() {
                   justifyContent: 'space-between',
                 }}>
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                  <Image
-                    source={
-                      user?.picture
-                        ? {uri: user.picture}
-                        : require('../assets/images/icon.png')
-                    }
+                  <View
                     style={{
                       width: 24,
                       height: 24,
                       borderRadius: 12,
                       marginRight: 8,
-                    }}
-                  />
+                      backgroundColor: '#000',
+                      overflow: 'hidden',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    {profilePicture ? (
+                      <Image
+                        source={{uri: profilePicture}}
+                        style={{
+                          width: 24,
+                          height: 24,
+                        }}
+                      />
+                    ) : (
+                      <Text
+                        style={{
+                          color: '#fff',
+                          fontSize: 10,
+                          fontWeight: '700',
+                        }}>
+                        SH
+                      </Text>
+                    )}
+                  </View>
                   <Text
                     style={{
                       fontSize: 14,
@@ -989,7 +1055,7 @@ export default function SavedOutfitsScreen() {
                       color: theme.colors.muted,
                     }}
                     numberOfLines={1}>
-                    @{user?.name || user?.nickname || 'StylHelpr'}
+                    {userName}@stylhelpr.com
                   </Text>
                 </View>
                 <Text
