@@ -20,7 +20,6 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {normalizeJoints} from '../utils/normalizeJoints';
 import {buildMeshVertices} from '../utils/buildMeshVerticles';
 import BodyCard from '../components/features/BodyCard';
-import {applyHeightCalibration} from '../utils/applyHeightCalibration';
 import {API_BASE_URL} from '../config/api';
 import {getAccessToken} from '../utils/auth';
 
@@ -30,9 +29,6 @@ const {ARKitModule} = NativeModules;
 const cmToInches = (cm: number) => cm / 2.54;
 const garmentInches = (cm: number) => Math.round(cmToInches(cm));
 
-// 🔹 Sectional scale factors
-const UPPER_SCALE = 1.0; // chest / shoulders realistic
-const LOWER_SCALE = 1.8; // waist / hips / inseam realistic
 
 interface MeasurementResultsScreenProps {
   navigate: (screen: string, params?: any) => void;
@@ -136,7 +132,14 @@ export default function MeasurementResultsManualScreen({
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
       };
 
-      const scaleToCM = (v: number) => v * 100;
+      // 📏 Calculate proper scale factor from user height (same as measurementStore)
+      const userHeightMeters = 1.78; // TODO: Get from user profile
+      const headY = f.head_joint?.[1] ?? 0;
+      const footY = f.left_foot_joint?.[1] ?? 1;
+      const scaleFactor = userHeightMeters / Math.abs(headY - footY);
+
+      // ✅ Scale to CM using the proper scale factor (matches measurementStore logic)
+      const scaleToCM = (v: number) => v * scaleFactor * 100;
 
       // --- Core (5) ---
       const core = Object.entries(computedResults).map(([k, v]) => ({
@@ -146,6 +149,15 @@ export default function MeasurementResultsManualScreen({
       }));
 
       // --- Extended (9) ---
+      // Use calibration multipliers matching measurementStore for consistency
+      const CALIBRATION = {
+        shoulders: 1.0,
+        chest: 2.05,
+        waist: 2.0,
+        hips: 2.1,
+        inseam: 1.0,
+      };
+
       const leftKnee = mid(joint('left_upLeg_joint'), joint('left_leg_joint'));
       const rightKnee = mid(
         joint('right_upLeg_joint'),
@@ -179,47 +191,44 @@ export default function MeasurementResultsManualScreen({
         },
         {
           label: 'Thigh Circumference',
-          value: scaleToCM(getDistance(leftKnee, rightKnee) * Math.PI),
+          value:
+            scaleToCM(getDistance(leftKnee, rightKnee)) *
+            Math.PI *
+            CALIBRATION.hips,
           unit: 'cm',
         },
         {
           label: 'Hip Width',
-          value: scaleToCM(
-            getDistance(joint('left_upLeg_joint'), joint('right_upLeg_joint')),
-          ),
+          value:
+            scaleToCM(
+              getDistance(
+                joint('left_upLeg_joint'),
+                joint('right_upLeg_joint'),
+              ),
+            ) * CALIBRATION.hips,
           unit: 'cm',
         },
         {
           label: 'Shoulder Width',
-          value: scaleToCM(
-            getDistance(
-              joint('left_shoulder_1_joint'),
-              joint('right_shoulder_1_joint'),
-            ),
-          ),
+          // Use core value directly to ensure consistency
+          value: computedResults.shoulders,
           unit: 'cm',
         },
         {
           label: 'Chest Circumference',
-          value: scaleToCM(
-            getDistance(joint('spine_7_joint'), joint('spine_7_joint')) *
-              Math.PI,
-          ),
+          // Use core chest value (already calibrated)
+          value: computedResults.chest,
           unit: 'cm',
         },
         {
           label: 'Waist Circumference',
-          value: scaleToCM(
-            getDistance(joint('spine_3_joint'), joint('spine_3_joint')) *
-              Math.PI,
-          ),
+          // Use core waist value (already calibrated)
+          value: computedResults.waist,
           unit: 'cm',
         },
         {
           label: 'Height',
-          value: scaleToCM(
-            getDistance(joint('head_joint'), joint('left_foot_joint')),
-          ),
+          value: userHeightMeters * 100, // Use actual user height
           unit: 'cm',
         },
       ];
@@ -228,53 +237,66 @@ export default function MeasurementResultsManualScreen({
       const secondary: MeasurementResult[] = [
         {
           label: 'Neck Circumference',
-          value: scaleToCM(
-            (getDistance(joint('neck_1_joint'), joint('neck_4_joint')) +
-              getDistance(joint('neck_2_joint'), joint('neck_3_joint'))) *
-              (Math.PI / 2),
-          ),
+          value:
+            scaleToCM(
+              getDistance(joint('neck_1_joint'), joint('neck_4_joint')) +
+                getDistance(joint('neck_2_joint'), joint('neck_3_joint')),
+            ) *
+            (Math.PI / 2) *
+            1.5, // neck calibration factor
           unit: 'cm',
         },
         {
           label: 'Bicep Circumference',
-          value: scaleToCM(
-            getDistance(joint('left_arm_joint'), joint('right_arm_joint')) *
-              Math.PI,
-          ),
+          value:
+            scaleToCM(
+              getDistance(joint('left_arm_joint'), joint('right_arm_joint')),
+            ) *
+            Math.PI *
+            CALIBRATION.chest, // arm uses chest-like calibration
           unit: 'cm',
         },
         {
           label: 'Forearm Circumference',
-          value: scaleToCM(
-            getDistance(
-              joint('left_forearm_joint'),
-              joint('right_forearm_joint'),
-            ) * Math.PI,
-          ),
+          value:
+            scaleToCM(
+              getDistance(
+                joint('left_forearm_joint'),
+                joint('right_forearm_joint'),
+              ),
+            ) *
+            Math.PI *
+            CALIBRATION.chest,
           unit: 'cm',
         },
         {
           label: 'Wrist Circumference',
-          value: scaleToCM(
-            getDistance(joint('left_hand_joint'), joint('right_hand_joint')) *
-              Math.PI,
-          ),
+          value:
+            scaleToCM(
+              getDistance(joint('left_hand_joint'), joint('right_hand_joint')),
+            ) *
+            Math.PI *
+            1.5, // wrist calibration
           unit: 'cm',
         },
         {
           label: 'Calf Circumference',
-          value: scaleToCM(
-            getDistance(joint('left_leg_joint'), joint('right_leg_joint')) *
-              Math.PI,
-          ),
+          value:
+            scaleToCM(
+              getDistance(joint('left_leg_joint'), joint('right_leg_joint')),
+            ) *
+            Math.PI *
+            CALIBRATION.hips,
           unit: 'cm',
         },
         {
           label: 'Ankle Circumference',
-          value: scaleToCM(
-            getDistance(joint('left_foot_joint'), joint('right_foot_joint')) *
-              Math.PI,
-          ),
+          value:
+            scaleToCM(
+              getDistance(joint('left_foot_joint'), joint('right_foot_joint')),
+            ) *
+            Math.PI *
+            1.5, // ankle calibration
           unit: 'cm',
         },
         {
@@ -317,22 +339,22 @@ export default function MeasurementResultsManualScreen({
         {
           label: 'Outseam (Hip to Ankle Length)',
           value: scaleToCM(
-            getDistance(joint('left_upLeg_joint'), joint('left_leg_joint')),
+            getDistance(joint('left_upLeg_joint'), joint('left_foot_joint')),
           ),
           unit: 'cm',
         },
         {
           label: 'Knee Circumference',
-          value: scaleToCM(getDistance(leftKnee, rightKnee) * Math.PI),
+          value:
+            scaleToCM(getDistance(leftKnee, rightKnee)) *
+            Math.PI *
+            CALIBRATION.hips,
           unit: 'cm',
         },
         {
           label: 'Underbust Circumference',
-          value: scaleToCM(
-            getDistance(joint('spine_7_joint'), joint('spine_7_joint')) *
-              Math.PI *
-              0.9,
-          ),
+          // Use chest value with slight reduction (underbust is ~90% of chest)
+          value: computedResults.chest * 0.9,
           unit: 'cm',
         },
         {
@@ -351,17 +373,8 @@ export default function MeasurementResultsManualScreen({
         },
       ];
 
-      let allResults = [...core, ...extended, ...secondary, ...refinement];
-
-      // ✅ Height calibration
-      const userHeightCm = 180;
-      allResults = allResults.map(r => {
-        const scaledValue = applyHeightCalibration(
-          {[r.label]: r.value},
-          userHeightCm,
-        )[r.label];
-        return {...r, value: scaledValue};
-      });
+      // Combine all measurements - scale factor and calibration already applied above
+      const allResults = [...core, ...extended, ...secondary, ...refinement];
 
       setResults(allResults.filter(r => r.value > 0));
       setLoading(false);
@@ -439,22 +452,6 @@ export default function MeasurementResultsManualScreen({
     } finally {
       setSaving(false);
     }
-  };
-
-  // ---------------------------------------------------
-  // 🧾 Display dual-scale
-  // ---------------------------------------------------
-  const getScaleForLabel = (label: string) => {
-    const lowerWords = [
-      'Waist',
-      'Hip',
-      'Inseam',
-      'Leg',
-      'Thigh',
-      'Calf',
-      'Ankle',
-    ];
-    return lowerWords.some(w => label.includes(w)) ? LOWER_SCALE : UPPER_SCALE;
   };
 
   if (loading) {
