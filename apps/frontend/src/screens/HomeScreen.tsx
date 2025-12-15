@@ -1098,6 +1098,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <Text
                     style={{
                       color: '#fff',
+                      fontSize: 10,
+                      fontWeight: '500',
+                      letterSpacing: 0.5,
+                      textAlign: 'center',
+                      marginBottom: 4,
+                    }}>
+                    Created on
+                  </Text>
+                  <Text
+                    style={{
+                      color: '#fff',
                       fontSize: 28,
                       fontWeight: '800',
                       letterSpacing: 1.5,
@@ -1114,7 +1125,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               <View
                 style={{
                   height: 80,
-                  backgroundColor: theme.colors.surface,
+                  backgroundColor: 'rgba(144, 0, 255, 1)',
                   paddingHorizontal: 20,
                   paddingVertical: 16,
                 }}>
@@ -1122,7 +1133,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   style={{
                     fontSize: 18,
                     fontWeight: '700',
-                    color: theme.colors.foreground,
+                    color: '#fff',
                     marginBottom: 8,
                   }}
                   numberOfLines={1}>
@@ -1172,7 +1183,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       style={{
                         fontSize: 14,
                         fontWeight: '500',
-                        color: theme.colors.muted,
+                        color: '#fff',
                       }}
                       numberOfLines={1}>
                       {firstName && lastName ? `${firstName}${lastName}` : 'StylHelpr'}@stylhelpr.com
@@ -1182,7 +1193,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     style={{
                       fontSize: 12,
                       fontWeight: '400',
-                      color: theme.colors.muted,
+                      color: 'rgba(255,255,255,0.8)',
                     }}>
                     {shareVibe.created_at
                       ? new Date(shareVibe.created_at).toLocaleDateString()

@@ -60,7 +60,7 @@ export class UsersController {
 
   @Post('sync')
   async sync(@Body() dto: CreateUserDto) {
-    console.log('🟡 SYNC REQUEST BODY:', dto);
+    // console.log('🟡 SYNC REQUEST BODY:', dto);
     return this.service.sync(dto);
   }
 

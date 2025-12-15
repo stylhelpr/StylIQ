@@ -56,7 +56,7 @@ export class UsersService {
   }
 
   async sync(dto: CreateUserDto) {
-    console.log('🔵 SYNC SERVICE CALLED WITH:', dto);
+    // console.log('🔵 SYNC SERVICE CALLED WITH:', dto);
 
     // 1️⃣ Find or create user
     const existing = await pool.query(
