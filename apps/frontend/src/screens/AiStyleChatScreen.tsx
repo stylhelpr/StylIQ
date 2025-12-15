@@ -1139,12 +1139,21 @@ export default function AiStylistChatScreen({navigate}: Props) {
                   flexShrink: 1,
                   minWidth: 0,
                 }}>
-                <View
+                <Animatable.View
+                  animation={{
+                    0: {scale: 1, opacity: 0.7},
+                    0.5: {scale: 1.3, opacity: 1},
+                    1: {scale: 1, opacity: 0.7},
+                  }}
+                  iterationCount="infinite"
+                  duration={1500}
+                  easing="ease-in-out"
+                  useNativeDriver
                   style={{
                     width: width < 360 ? 6 : 8,
                     height: width < 360 ? 6 : 8,
                     borderRadius: 4,
-                    backgroundColor: theme.colors.success,
+                    backgroundColor: '#34C759',
                     marginRight: 6,
                   }}
                 />

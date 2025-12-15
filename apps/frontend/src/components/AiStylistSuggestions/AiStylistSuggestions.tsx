@@ -449,7 +449,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
             <Text
               style={{
                 color: theme.colors.foreground2,
-                fontSize: fontScale(tokens.fontSize.sm),
+                // fontSize: fontScale(tokens.fontSize.sm),
+                fontSize: fontScale(tokens.fontSize.base),
                 marginTop: moderateScale(tokens.spacing.nano),
               }}>
               {isAutoMode ? 'Mode: Automatic' : 'Mode: Manual'}
@@ -605,8 +606,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   <Text
                     style={{
                       color: theme.colors.button1,
-                      fontWeight: tokens.fontWeight.semiBold,
-                      fontSize: fontScale(tokens.fontSize.md),
+                      // fontWeight: tokens.fontWeight.semiBold,
+                      // fontSize: fontScale(tokens.fontSize.md),
+                      fontSize: fontScale(tokens.fontSize.base),
                       marginRight: moderateScale(tokens.spacing.xxs),
                     }}>
                     {isExpanded ? 'Show Less' : 'Show More'}
@@ -645,7 +647,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             <Text
               style={{
                 color: theme.colors.foreground,
-                fontSize: fontScale(tokens.fontSize.base),
+                fontSize: fontScale(tokens.fontSize.md),
               }}>
               Swipe card above for new suggestion
             </Text>
@@ -703,7 +705,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}>
               <Text
                 style={{
-                  fontSize: fontScale(tokens.fontSize.sm),
+                  fontSize: fontScale(tokens.fontSize.md),
                   fontWeight: tokens.fontWeight.semiBold,
                   color: theme.colors.buttonText1,
                 }}>

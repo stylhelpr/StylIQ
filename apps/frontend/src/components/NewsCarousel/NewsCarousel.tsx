@@ -215,8 +215,20 @@ import {
 import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
 
 // Card dimensions for auto-scroll calculation
-const CARD_WIDTH = isTablet ? 275 : isLargePhone ? 235 : isRegularPhone ? 230 : 230;
-const CARD_MARGIN = isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10;
+const CARD_WIDTH = isTablet
+  ? 275
+  : isLargePhone
+  ? 235
+  : isRegularPhone
+  ? 230
+  : 230;
+const CARD_MARGIN = isTablet
+  ? 16
+  : isLargePhone
+  ? 10
+  : isRegularPhone
+  ? 10
+  : 10;
 const SCROLL_INTERVAL = CARD_WIDTH + CARD_MARGIN;
 const AUTO_SCROLL_DELAY = 8000; // 8 seconds
 

@@ -1204,7 +1204,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             <Animated.View
               style={{
                 overflow: 'hidden',
-                // marginBottom: 6,
+                // marginBottom: 8,
                 borderRadius: tokens.borderRadius.xxxl,
                 transform: [
                   {
@@ -1215,11 +1215,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     }),
                   },
                   {
-                    scale: scrollY.interpolate({
-                      inputRange: [-50, 0, 100],
-                      outputRange: [1.05, 1, 0.97],
-                      extrapolate: 'clamp',
-                    }),
+                    scale: scrollActiveScale,
                   },
                 ],
               }}>
@@ -1277,9 +1273,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   </Text>
                   <Text
                     style={{
-                      fontSize: fontScale(tokens.fontSize.md),
-                      fontWeight: tokens.fontWeight.medium,
                       color: 'rgba(255, 255, 255, 1)',
+                      fontSize: fontScale(tokens.fontSize.md),
+                      fontWeight: tokens.fontWeight.semiBold,
+
                       lineHeight: 18,
                       textShadowColor: 'rgba(0, 0, 0, 0.4)',
                       textShadowOffset: {width: 0, height: 1},
@@ -1301,179 +1298,182 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               style={{
                 transform: [{scale: scrollActiveScale}],
               }}>
-            <Animatable.View
-              animation="fadeInUp"
-              duration={700}
-              delay={200}
-              useNativeDriver
-              style={globalStyles.section}>
-              {/* <Text style={globalStyles.sectionTitle}>Weather</Text> */}
+              <Animatable.View
+                animation="fadeInUp"
+                duration={700}
+                delay={200}
+                useNativeDriver
+                style={globalStyles.section}>
+                {/* <Text style={globalStyles.sectionTitle}>Weather</Text> */}
 
-              {weather && (
-                <View
-                  style={[
-                    globalStyles.cardStyles5,
-                    {
-                      paddingVertical: moderateScale(tokens.spacing.md1),
-                      paddingHorizontal: moderateScale(tokens.spacing.md2),
-                    },
-                  ]}>
+                {weather && (
                   <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}>
-                    {/* 🌤️ Left column — City, Condition, Icon */}
+                    style={[
+                      globalStyles.cardStyles5,
+                      {
+                        paddingVertical: moderateScale(tokens.spacing.md1),
+                        paddingHorizontal: moderateScale(tokens.spacing.md2),
+                      },
+                    ]}>
                     <View
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        flex: 1,
+                        justifyContent: 'space-between',
                       }}>
-                      <Animatable.View
-                        animation={{
-                          0: {
-                            opacity: 1,
-                            scale: 1,
-                            translateY: 0,
-                          },
-                          0.5: {
-                            opacity: 0.99,
-                            scale: 1.2,
-                            translateY: -2,
-                          },
-                          1: {
-                            opacity: 1,
-                            scale: 1,
-                            translateY: 0,
-                          },
-                        }}
-                        iterationCount="infinite"
-                        duration={2000}
-                        easing="ease-in-out"
-                        useNativeDriver
+                      {/* 🌤️ Left column — City, Condition, Icon */}
+                      <View
                         style={{
-                          marginRight: moderateScale(tokens.spacing.xsm),
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          flex: 1,
                         }}>
-                        <Icon
-                          name={(() => {
-                            const condition = weather.celsius.weather[0].main;
-                            if (condition === 'Rain') return 'umbrella';
-                            if (condition === 'Snow') return 'ac-unit';
-                            if (condition === 'Clouds') return 'wb-cloudy';
-                            if (condition === 'Clear') return 'wb-sunny';
-                            return 'wb-sunny';
-                          })()}
-                          size={36}
-                          color={theme.colors.foreground}
-                          style={{
-                            alignSelf: 'center',
-                          }}
-                        />
-                      </Animatable.View>
-                      <View>
-                        <Text
-                          style={[
-                            styles.weatherCity,
-                            {
-                              fontSize: fontScale(tokens.fontSize.xl),
-                              fontWeight: tokens.fontWeight.bold,
+                        <Animatable.View
+                          animation={{
+                            0: {
+                              opacity: 1,
+                              scale: 1,
+                              translateY: 0,
                             },
-                          ]}>
-                          {weather.celsius.name}
-                        </Text>
+                            0.5: {
+                              opacity: 0.99,
+                              scale: 1.2,
+                              translateY: -2,
+                            },
+                            1: {
+                              opacity: 1,
+                              scale: 1,
+                              translateY: 0,
+                            },
+                          }}
+                          iterationCount="infinite"
+                          duration={2000}
+                          easing="ease-in-out"
+                          useNativeDriver
+                          style={{
+                            marginRight: moderateScale(tokens.spacing.xsm),
+                          }}>
+                          <Icon
+                            name={(() => {
+                              const condition = weather.celsius.weather[0].main;
+                              if (condition === 'Rain') return 'umbrella';
+                              if (condition === 'Snow') return 'ac-unit';
+                              if (condition === 'Clouds') return 'wb-cloudy';
+                              if (condition === 'Clear') return 'wb-sunny';
+                              return 'wb-sunny';
+                            })()}
+                            size={36}
+                            color={theme.colors.foreground}
+                            style={{
+                              alignSelf: 'center',
+                            }}
+                          />
+                        </Animatable.View>
+                        <View>
+                          <Text
+                            style={[
+                              styles.weatherCity,
+                              {
+                                fontSize: fontScale(tokens.fontSize.xl),
+                                fontWeight: tokens.fontWeight.bold,
+                              },
+                            ]}>
+                            {weather.celsius.name}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: fontScale(tokens.fontSize.base),
+                              color: theme.colors.foreground2,
+                              fontWeight: tokens.fontWeight.bold,
+                              textTransform: 'capitalize',
+                            }}>
+                            {weather.celsius.weather[0].description}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* 🌡️ Right column — Big Temp */}
+                      <View
+                        style={[
+                          styles.weatherTempContainer,
+                          {
+                            alignSelf: 'center',
+                          },
+                          // {
+                          //   shadowColor: '#000',
+                          //   shadowOffset: {width: 8, height: 10},
+                          //   shadowOpacity: 0.5,
+                          //   shadowRadius: 5,
+                          //   elevation: 6,
+                          // },
+                        ]}>
                         <Text
                           style={{
-                            fontSize: fontScale(tokens.fontSize.base),
-                            color: theme.colors.foreground2,
-                            textTransform: 'capitalize',
+                            fontSize: moderateScale(
+                              isXS
+                                ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
+                                : isSM
+                                ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
+                                : isMD
+                                ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
+                                : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
+                            ),
+                            fontWeight: tokens.fontWeight.extraBold,
+                            color: theme.colors.buttonText1,
                           }}>
-                          {weather.celsius.weather[0].description}
+                          {Math.round(weather.fahrenheit.main.temp)}°F
                         </Text>
                       </View>
                     </View>
 
-                    {/* 🌡️ Right column — Big Temp */}
-                    <View
-                      style={[
-                        styles.weatherTempContainer,
-                        {
-                          alignSelf: 'center',
-                        },
-                        // {
-                        //   shadowColor: '#000',
-                        //   shadowOffset: {width: 8, height: 10},
-                        //   shadowOpacity: 0.5,
-                        //   shadowRadius: 5,
-                        //   elevation: 6,
-                        // },
-                      ]}>
+                    {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
+                    <View>
                       <Text
                         style={{
-                          fontSize: moderateScale(
-                            isXS
-                              ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
-                              : isSM
-                              ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
-                              : isMD
-                              ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
-                              : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
-                          ),
-                          fontWeight: tokens.fontWeight.extraBold,
-                          color: theme.colors.buttonText1,
+                          fontSize: fontScale(tokens.fontSize.md),
+                          color: theme.colors.foreground2,
+                          fontWeight: tokens.fontWeight.medium,
+                          marginLeft: 44,
+                          // marginLeft: 42,
                         }}>
-                        {Math.round(weather.fahrenheit.main.temp)}°F
+                        {(() => {
+                          const temp = weather.fahrenheit.main.temp;
+                          const condition = weather.celsius.weather[0].main;
+
+                          if (temp < 25) return 'Brutally Cold';
+                          if (temp < 32) return condition === 'Snow';
+                          // ? 'Freezing & Snowy'
+                          // : 'Freezing';
+                          if (temp < 40)
+                            return condition === 'Clouds'
+                              ? 'Bitter & Overcast'
+                              : 'Bitter Cold';
+                          if (temp < 50)
+                            return condition === 'Rain'
+                              ? 'Cold & Wet'
+                              : 'Chilly';
+                          if (temp < 60)
+                            return condition === 'Clouds'
+                              ? 'Cool & Cloudy'
+                              : 'Crisp & Cool';
+                          if (temp < 70)
+                            return condition === 'Clear'
+                              ? ' Mild & Bright'
+                              : 'Mild';
+                          if (temp < 80)
+                            return condition === 'Clear'
+                              ? 'Warm & Clear'
+                              : 'Warm';
+                          if (temp < 90)
+                            return condition === 'Rain' ? 'Hot & Humid' : 'Hot';
+                          if (temp < 100) return 'Very Hot';
+                          return 'Extreme Heat';
+                        })()}
                       </Text>
                     </View>
                   </View>
-
-                  {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
-                  <View style={{marginTop: moderateScale(tokens.spacing.sm)}}>
-                    <Text
-                      style={{
-                        fontSize: fontScale(tokens.fontSize.md),
-                        color: theme.colors.foreground2,
-                        fontWeight: tokens.fontWeight.medium,
-                        marginLeft: 36 + moderateScale(tokens.spacing.xsm),
-                        // marginLeft: 42,
-                      }}>
-                      {(() => {
-                        const temp = weather.fahrenheit.main.temp;
-                        const condition = weather.celsius.weather[0].main;
-
-                        if (temp < 25) return 'Brutally Cold';
-                        if (temp < 32) return condition === 'Snow';
-                        // ? 'Freezing & Snowy'
-                        // : 'Freezing';
-                        if (temp < 40)
-                          return condition === 'Clouds'
-                            ? 'Bitter & Overcast'
-                            : 'Bitter Cold';
-                        if (temp < 50)
-                          return condition === 'Rain' ? 'Cold & Wet' : 'Chilly';
-                        if (temp < 60)
-                          return condition === 'Clouds'
-                            ? 'Cool & Cloudy'
-                            : 'Crisp & Cool';
-                        if (temp < 70)
-                          return condition === 'Clear'
-                            ? ' Mild & Bright'
-                            : 'Mild';
-                        if (temp < 80)
-                          return condition === 'Clear'
-                            ? 'Warm & Clear'
-                            : 'Warm';
-                        if (temp < 90)
-                          return condition === 'Rain' ? 'Hot & Humid' : 'Hot';
-                        if (temp < 100) return 'Very Hot';
-                        return 'Extreme Heat';
-                      })()}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </Animatable.View>
+                )}
+              </Animatable.View>
             </Animated.View>
           )}
 
@@ -1641,11 +1641,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               width: '100%',
             }}>
             <Animatable.View
-              // animation={{
-              //   0: {scale: 1},
-              //   0.5: {scale: 1.05},
-              //   1: {scale: 1},
-              // }}
+              animation={{
+                0: {scale: 1},
+                0.5: {scale: 1.02},
+                1: {scale: 1},
+              }}
               iterationCount="infinite"
               duration={2500}
               easing="ease-in-out"
@@ -1663,6 +1663,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     // backgroundColor: 'transparent',
                     // borderWidth: tokens.borderWidth.hairline,
                     // borderColor: theme.colors.foreground,
+                    // borderRadius: tokens.borderRadius.md,
                     borderRadius: tokens.borderRadius.xxxl,
                   },
                 ]}>
@@ -1693,6 +1694,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               <NewsCarousel onOpenArticle={openArticle} />
             </Animatable.View>
           )}
+
           {/* Discover / Recommended Items */}
           {prefs.recommendedItems && (
             <Animatable.View
@@ -1799,7 +1801,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               </TouchableOpacity>
                               <Text
                                 style={[
-                                  globalStyles.subLabel,
+                                  globalStyles.cardSubLabel,
                                   {marginTop: 4, textAlign: 'center'},
                                 ]}
                                 numberOfLines={1}>
@@ -1880,7 +1882,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             <Text
                               numberOfLines={1}
                               style={[
-                                globalStyles.subLabel,
+                                globalStyles.cardSubLabel,
                                 {marginTop: 4, textAlign: 'center'},
                               ]}>
                               {(c.tags && c.tags.slice(0, 3).join(' ')) ||
@@ -1954,7 +1956,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                             <Text
                               numberOfLines={1}
                               style={[
-                                globalStyles.subLabel,
+                                globalStyles.cardSubLabel,
                                 {marginTop: 4, textAlign: 'center'},
                               ]}>
                               {vibe.query_used
