@@ -977,7 +977,7 @@ export default function ExploreScreen() {
 
   // Memoized render function for FlatList
   const renderArticle = useCallback(
-    ({item}: {item: typeof list[0]}) => (
+    ({item}: {item: (typeof list)[0]}) => (
       <ArticleCard
         key={item.id}
         title={item.title}
@@ -991,7 +991,7 @@ export default function ExploreScreen() {
   );
 
   // Key extractor for FlatList
-  const keyExtractor = useCallback((item: typeof list[0]) => item.id, []);
+  const keyExtractor = useCallback((item: (typeof list)[0]) => item.id, []);
 
   // Memoized header component
   const ListHeader = useMemo(

@@ -237,12 +237,12 @@ export const VoiceOverlay: React.FC = () => {
       <View
         style={{
           position: 'absolute',
-          top: 115,
-          bottom: 0,
+          top: 10,
+          bottom: -20,
           left: 10,
           right: 10,
           borderRadius: 50,
-          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
           justifyContent: 'center',
           alignItems: 'center',
         }}>
@@ -256,7 +256,7 @@ export const VoiceOverlay: React.FC = () => {
             style={[
               styles.text,
               {
-                color: theme.colors.foreground,
+                color: theme.colors.buttonText1,
                 maxWidth: 300,
                 marginTop: 0,
                 textAlign: 'center',

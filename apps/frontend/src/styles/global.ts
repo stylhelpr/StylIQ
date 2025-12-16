@@ -369,6 +369,13 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.sm,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
+      marginHorizontal: isTablet
+        ? 16
+        : isLargePhone
+        ? 16
+        : isRegularPhone
+        ? 16
+        : 16,
       // elevation: 10,
       transform: [{scale: 1}],
     },
