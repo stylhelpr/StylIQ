@@ -359,7 +359,7 @@ export default function BarcodeScannerScreen({
                 }}>
                 <Text
                   style={{
-                    color: theme.colors.foreground,
+                    color: theme.colors.buttonText1,
                     fontWeight: '600',
                     fontSize: 16,
                   }}>

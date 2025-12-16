@@ -169,7 +169,8 @@ export const skins = {
       background: '#ffffffff',
       foreground: '#000000',
       foreground2: 'rgba(104, 101, 101, 1)',
-      foreground3: 'rgb(97, 153, 232)',
+      foreground3: 'rgba(0, 0, 0, 1)',
+      // foreground3: 'rgb(97, 153, 232)',
       cardBackground: '#F0F0F0',
       header: '#ffffffff',
       muted: '#919191ff',
@@ -204,6 +205,7 @@ export const skins = {
 
       button1: 'rgba(0, 0, 0, 1)',
 
+      // button1: 'rgba(253, 107, 63, 1)',
       // button1: 'rgba(32, 128, 255, 1)',
 
       button2: 'rgba(3, 3, 3, 1)',

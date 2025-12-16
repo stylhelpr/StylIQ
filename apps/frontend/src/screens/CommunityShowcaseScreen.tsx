@@ -919,18 +919,16 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       paddingHorizontal: moderateScale(tokens.spacing.md),
       paddingVertical: moderateScale(tokens.spacing.xs),
       borderRadius: tokens.borderRadius.sm,
-      // // backgroundColor: theme.colors.pillDark1,
       borderWidth: 1,
       borderColor: theme.colors.muted,
     },
     filterPillActive: {
       backgroundColor: theme.colors.button1,
-      // borderColor: theme.colors.surfaceBorder,
     },
     filterText: {
       fontSize: 12,
       fontWeight: tokens.fontWeight.medium,
-      color: theme.colors.buttonText1,
+      color: theme.colors.foreground,
       textTransform: 'capitalize',
     },
     filterTextActive: {
@@ -1007,7 +1005,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     cardUserName: {
       fontSize: fontScale(tokens.fontSize.sm),
       fontWeight: tokens.fontWeight.normal,
-      color: '#fff',
+      color: theme.colors.buttonText1,
       textShadowColor: 'rgba(0,0,0,0.5)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 2,
@@ -1042,7 +1040,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     likeCount: {
       fontSize: LIKE_COUNT_SIZE,
       fontWeight: tokens.fontWeight.normal,
-      color: '#fff',
+      color: theme.colors.buttonText1,
       textShadowColor: 'rgba(0,0,0,0.5)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 2,
@@ -1118,7 +1116,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  backgroundColor: '#000',
+                  backgroundColor: theme.colors.background,
                 }}>
                 {post.top ? (
                   <Image
@@ -1133,7 +1131,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  backgroundColor: '#000',
+                  backgroundColor: theme.colors.background,
                 }}>
                 {post.bottom ? (
                   <Image
@@ -1151,7 +1149,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  backgroundColor: '#000',
+                  backgroundColor: theme.colors.background,
                 }}>
                 {post.shoes ? (
                   <Image
@@ -1166,7 +1164,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  backgroundColor: '#000',
+                  backgroundColor: theme.colors.background,
                 }}>
                 {post.accessory ? (
                   <Image
@@ -1470,7 +1468,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           width: 48,
           height: 48,
           borderRadius: 24,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: theme.colors.background,
           borderColor: theme.colors.muted,
           borderWidth: tokens.borderWidth.md,
           alignItems: 'center',

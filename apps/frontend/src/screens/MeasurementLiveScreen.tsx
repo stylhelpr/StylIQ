@@ -156,13 +156,17 @@ export function MeasurementLiveScreen({navigate, goBack}: Props) {
           <MaterialIcons
             name="arrow-back"
             size={moderateScale(26)}
-            color={theme.colors.foreground}
+            color={theme.colors.buttonText1}
           />
         </AppleTouchFeedback>
         <Text
           style={[
             globalStyles.backText,
-            {marginLeft: spacing.sm, fontSize: typography.body, color: 'white'},
+            {
+              marginLeft: spacing.sm,
+              fontSize: typography.body,
+              color: theme.colors.buttonText1,
+            },
           ]}>
           Back
         </Text>

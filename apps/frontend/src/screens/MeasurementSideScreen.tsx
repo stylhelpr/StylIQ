@@ -282,13 +282,13 @@ export default function MeasurementSideScreen({navigate}: Props) {
       top: 120,
       zIndex: 9999,
       alignSelf: 'center',
-      color: theme.colors.foreground,
+      color: 'white',
       fontSize: 36,
       fontWeight: '700',
       textAlign: 'center',
     },
     holdText: {
-      color: theme.colors.foreground,
+      color: 'white',
       fontSize: 28,
       fontWeight: '600',
       textAlign: 'center',
@@ -297,7 +297,7 @@ export default function MeasurementSideScreen({navigate}: Props) {
       position: 'absolute',
       top: '40%',
       alignSelf: 'center',
-      color: theme.colors.foreground,
+      color: 'white',
       fontSize: Math.min(
         200,
         Math.round(0.25 * Dimensions.get('window').height),
@@ -306,7 +306,7 @@ export default function MeasurementSideScreen({navigate}: Props) {
       textAlign: 'center',
     },
     flashOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'white',
       opacity: flashAnim,
       zIndex: 9999,
