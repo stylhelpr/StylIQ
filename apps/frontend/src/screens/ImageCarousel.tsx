@@ -270,11 +270,11 @@ export default function ImageCarouselScreen({
   });
 
   const handleClose = () => {
+    ReactNativeHapticFeedback.trigger('impactLight');
     navigate('HomeScreen');
   };
 
   const handleCommunity = () => {
-    ReactNativeHapticFeedback.trigger('impactMedium');
     navigate('CommunityShowcaseScreen');
   };
 

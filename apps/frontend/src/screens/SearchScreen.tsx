@@ -324,7 +324,6 @@ export default function SearchScreen({navigate, goBack}) {
                       onPress={async () => {
                         await stopListening();
                         setQuery('');
-                        h('selection');
                       }}
                       hapticStyle="impactLight"
                       style={styles.clearIconInline}>
@@ -364,7 +363,6 @@ export default function SearchScreen({navigate, goBack}) {
                   key={item.id}
                   hapticStyle="impactLight"
                   onPress={() => {
-                    h('selection');
                     navigate('ItemDetail', {item});
                   }}
                   style={[

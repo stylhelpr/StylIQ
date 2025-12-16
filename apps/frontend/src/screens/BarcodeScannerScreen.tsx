@@ -227,8 +227,6 @@ export default function BarcodeScannerScreen({
           ]}>
           <AppleTouchFeedback
             onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactMedium');
-
               try {
                 // ✅ Always try props first
                 if (onClose) return onClose();
@@ -351,7 +349,7 @@ export default function BarcodeScannerScreen({
                   : 24, // Android baseline
               marginBottom: 100, // 👈 pulls the block higher visually
             }}>
-            <AppleTouchFeedback onPress={capturePhoto}>
+            <AppleTouchFeedback onPress={capturePhoto} hapticStyle="none">
               <View
                 style={{
                   backgroundColor: theme.colors.button1,

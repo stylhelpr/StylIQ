@@ -1309,7 +1309,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               key={filter}
               hapticStyle="selection"
               onPress={() => {
-                h('selection');
                 setActiveFilter(filter);
               }}
               style={[
@@ -1463,7 +1462,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       <AppleTouchFeedback
         onPress={() => {
           scrollRef.current?.scrollTo({y: 0, animated: true});
-          h('impactLight');
         }}
         style={{
           position: 'absolute',

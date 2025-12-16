@@ -285,7 +285,6 @@ export default function NotificationsScreen({
               style={styles.leftGroup}>
               <AppleTouchFeedback
                 onPress={() => {
-                  if (filter !== 'all') h('selection');
                   setFilter('all');
                 }}
                 // hapticStyle="impactLight"
@@ -301,7 +300,6 @@ export default function NotificationsScreen({
 
               <AppleTouchFeedback
                 onPress={() => {
-                  if (filter !== 'unread') h('selection');
                   setFilter('unread');
                 }}
                 // hapticStyle="impactLight"

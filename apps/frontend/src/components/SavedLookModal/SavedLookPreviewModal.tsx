@@ -22,6 +22,7 @@ import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {tokens} from '../../styles/tokens/tokens';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 const {height, width} = Dimensions.get('window');
 
@@ -141,6 +142,7 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
   }, [look, visible, translateY]);
 
   const handleClose = () => {
+    ReactNativeHapticFeedback.trigger('impactLight');
     Animated.timing(translateY, {
       toValue: height,
       duration: 220,

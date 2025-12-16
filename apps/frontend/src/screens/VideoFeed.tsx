@@ -337,7 +337,6 @@ export default function VideoFeedScreen({
   };
 
   const handleCommunity = () => {
-    ReactNativeHapticFeedback.trigger('impactMedium');
     navigate('CommunityShowcaseScreen');
   };
 

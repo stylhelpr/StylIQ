@@ -1,5 +1,5 @@
-import React, {memo, useMemo} from 'react';
-import {View, Text, Image, StyleSheet, Pressable} from 'react-native';
+import React, {memo, useMemo, useRef} from 'react';
+import {View, Text, Image, StyleSheet, Pressable, Animated} from 'react-native';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -51,6 +51,25 @@ function ArticleCard({
 }: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
 
   // Memoize theme-dependent styles
   const themedStyles = useMemo(
@@ -76,8 +95,11 @@ function ArticleCard({
   );
 
   return (
-    <Pressable onPress={onPress}>
-      <View style={globalStyles.newsCard1}>
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}>
+      <Animated.View style={[globalStyles.newsCard1, {transform: [{scale: scaleAnim}]}]}>
         <View style={staticStyles.meta}>
           <Text style={themedStyles.source}>{source}</Text>
           {time ? <Text style={staticStyles.dot}>•</Text> : null}
@@ -94,7 +116,7 @@ function ArticleCard({
             <View style={staticStyles.imagePlaceholder} />
           )}
         </View>
-      </View>
+      </Animated.View>
     </Pressable>
   );
 }

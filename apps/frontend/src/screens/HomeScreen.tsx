@@ -1186,7 +1186,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         color: '#fff',
                       }}
                       numberOfLines={1}>
-                      {firstName && lastName ? `${firstName}${lastName}` : 'StylHelpr'}@stylhelpr.com
+                      {firstName && lastName
+                        ? `${firstName}${lastName}`
+                        : 'StylHelpr'}
+                      @stylhelpr.com
                     </Text>
                   </View>
                   <Text
@@ -1781,7 +1784,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 }}>
                 <Text style={globalStyles.sectionTitle}>Inspired Looks</Text>
                 {savedLooks.length > 0 && (
-                  <Pressable onPress={() => setImageModalVisible(true)}>
+                  <Pressable
+                    onPress={() => {
+                      ReactNativeHapticFeedback.trigger('impactLight');
+                      setImageModalVisible(true);
+                    }}>
                     <Text
                       style={{
                         fontSize: fontScale(tokens.fontSize.sm),
@@ -1895,7 +1902,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
               {!loadingCreations && recentCreations.length > 0 && (
                 <CollapsibleSection
-                  title="Created Looks"
+                  title="Recreated Looks"
                   open={createdOpen}
                   onToggle={async newState => {
                     setCreatedOpen(newState);
