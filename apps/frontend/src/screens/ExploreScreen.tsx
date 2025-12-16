@@ -1,9 +1,10 @@
 // FILTERED CHIPS AND ARTICLES IN UI LOGIC WORKING BELOW HERE - KEEP
 
-import React, {useEffect, useMemo, useState, useCallback} from 'react';
+import React, {useEffect, useMemo, useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
+  FlatList,
   ScrollView,
   StyleSheet,
   RefreshControl,
@@ -77,7 +78,7 @@ export default function ExploreScreen() {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
 
-  const scrollRef = React.useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
 
   // Sync scroll position with global nav for bottom nav hide/show
@@ -968,34 +969,35 @@ export default function ExploreScreen() {
     }
   };
 
-  return (
-    // <GradientBackground>
-    <View>
-      <ScrollView
-        ref={scrollRef} // 👈 add this
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading || sourcesLoading}
-            onRefresh={refresh}
-            tintColor="#fff"
-          />
-        }
-        contentContainerStyle={[
-          globalStyles.container,
-          {
-            backgroundColor: theme.colors.background,
-            paddingTop: insets.top + HEADER_HEIGHT, // 👈 restore space for header
-            paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT, // 👈 restore space for bottom nav
-          },
-        ]}>
-        <Animatable.Text
-          animation="fadeInDown"
-          duration={900}
-          delay={100}
-          easing="ease-out-cubic"
+  // Memoized callback for article press
+  const handleArticlePress = useCallback((link: string, title: string) => {
+    setOpenUrl(link);
+    setOpenTitle(title);
+  }, []);
+
+  // Memoized render function for FlatList
+  const renderArticle = useCallback(
+    ({item}: {item: typeof list[0]}) => (
+      <ArticleCard
+        key={item.id}
+        title={item.title}
+        source={item.source}
+        image={item.image}
+        time={item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined}
+        onPress={() => handleArticlePress(item.link, item.title)}
+      />
+    ),
+    [handleArticlePress],
+  );
+
+  // Key extractor for FlatList
+  const keyExtractor = useCallback((item: typeof list[0]) => item.id, []);
+
+  // Memoized header component
+  const ListHeader = useMemo(
+    () => (
+      <>
+        <Text
           style={[
             globalStyles.header,
             {
@@ -1004,7 +1006,7 @@ export default function ExploreScreen() {
             },
           ]}>
           Fashion News
-        </Animatable.Text>
+        </Text>
         <View
           style={[
             styles.topBar,
@@ -1023,17 +1025,13 @@ export default function ExploreScreen() {
             <Segmented
               tab={tab}
               onChange={t => {
-                // triggerSelection();
                 setTab(t);
               }}
             />
-            {/* manual spacing between Segmented + Manage button */}
             <View style={{width: moderateScale(tokens.spacing.sm)}} />
             <AppleTouchFeedback
               onPress={() => setMenuOpen(true)}
-              style={styles.iconBtn}
-              // hapticStyle="impactLight"
-            >
+              style={styles.iconBtn}>
               <Text style={styles.iconBtnText}>Manage</Text>
             </AppleTouchFeedback>
           </View>
@@ -1044,13 +1042,15 @@ export default function ExploreScreen() {
             title={hero.title}
             source={hero.source}
             image={hero.image}
-            items={(tab === 'Following' ? articlesChrono : articles).slice(0, 10).map(a => ({
-              title: a.title,
-              source: a.source,
-              image: a.image,
-              link: a.link,
-            }))}
-            onItemPress={(item) => {
+            items={(tab === 'Following' ? articlesChrono : articles)
+              .slice(0, 10)
+              .map(a => ({
+                title: a.title,
+                source: a.source,
+                image: a.image,
+                link: a.link,
+              }))}
+            onItemPress={item => {
               setOpenUrl(item.link);
               setOpenTitle(item.title);
             }}
@@ -1063,16 +1063,14 @@ export default function ExploreScreen() {
 
         {tab === 'For You' && (
           <TrendChips
-            items={visibleChips.map(c => c.label)} // 👈 changed here
+            items={visibleChips.map(c => c.label)}
             selected={activeChipLabel}
             onTap={label => {
-              // triggerSelection();
               setActiveChipLabel(prev =>
                 prev?.toLowerCase() === label.toLowerCase() ? null : label,
               );
             }}
             onMore={() => {
-              // triggerSelection();
               setManageBrandsOpen(true);
             }}
           />
@@ -1092,43 +1090,76 @@ export default function ExploreScreen() {
             {tab === 'For You' ? 'Recommended for you' : 'Following'}
           </Text>
         </View>
+      </>
+    ),
+    [
+      globalStyles.header,
+      globalStyles.sectionTitle,
+      theme.colors.foreground,
+      theme.colors.button1,
+      tab,
+      hero,
+      articlesChrono,
+      articles,
+      visibleChips,
+      activeChipLabel,
+    ],
+  );
 
-        <View style={globalStyles.section}>
-          {list.map(item => (
-            <ArticleCard
-              key={item.id}
-              title={item.title}
-              source={item.source}
-              image={item.image}
-              time={
-                item.publishedAt ? dayjs(item.publishedAt).fromNow() : undefined
-              }
-              onPress={() => {
-                setOpenUrl(item.link);
-                setOpenTitle(item.title);
-              }}
-            />
-          ))}
-        </View>
-
-        {tab === 'For You' && list.length === 0 && (
-          <View style={{paddingHorizontal: 16, paddingTop: 8}}>
-            <View style={{flexDirection: 'row'}}>
-              <Text style={globalStyles.missingDataMessage1}>
-                No stories found.
-              </Text>
-
-              <View style={{alignSelf: 'flex-start'}}>
-                <TooltipBubble
-                  message='No fashion news feeds chosen yet. Tap the
-              "Manage" button above, and click on "Feeds" or "Brands".'
-                  position="top"
-                />
-              </View>
+  // Empty list component
+  const ListEmpty = useMemo(
+    () =>
+      tab === 'For You' ? (
+        <View style={{paddingHorizontal: 16, paddingTop: 8}}>
+          <View style={{flexDirection: 'row'}}>
+            <Text style={globalStyles.missingDataMessage1}>
+              No stories found.
+            </Text>
+            <View style={{alignSelf: 'flex-start'}}>
+              <TooltipBubble
+                message='No fashion news feeds chosen yet. Tap the "Manage" button above, and click on "Feeds" or "Brands".'
+                position="top"
+              />
             </View>
           </View>
-        )}
-      </ScrollView>
+        </View>
+      ) : null,
+    [tab, globalStyles.missingDataMessage1],
+  );
+
+  return (
+    <View>
+      <FlatList
+        ref={flatListRef}
+        data={list}
+        renderItem={renderArticle}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading || sourcesLoading}
+            onRefresh={refresh}
+            tintColor="#fff"
+          />
+        }
+        contentContainerStyle={[
+          globalStyles.container,
+          {
+            backgroundColor: theme.colors.background,
+            paddingTop: insets.top + HEADER_HEIGHT,
+            paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT,
+          },
+        ]}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={8}
+        getItemLayout={undefined}
+      />
 
       <ReaderModal
         visible={!!openUrl}
@@ -1721,7 +1752,7 @@ export default function ExploreScreen() {
       {/* 🆙 Scroll-to-top button */}
       <AppleTouchFeedback
         onPress={() => {
-          scrollRef.current?.scrollTo({y: 0, animated: true});
+          flatListRef.current?.scrollToOffset({offset: 0, animated: true});
         }}
         style={{
           position: 'absolute',
