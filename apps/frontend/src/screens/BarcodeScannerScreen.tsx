@@ -178,9 +178,11 @@ export default function BarcodeScannerScreen({
         return;
       }
 
+      ReactNativeHapticFeedback.trigger('notificationWarning');
       Alert.alert('No barcode detected', 'Try again with clearer focus.');
     } catch (err) {
       console.warn('❌ processCapturedPhoto error:', err);
+      ReactNativeHapticFeedback.trigger('notificationError');
       Alert.alert('Error', 'Unable to process image.');
     } finally {
       setLoading(false);
@@ -370,7 +372,10 @@ export default function BarcodeScannerScreen({
 
             {onClose && (
               <TouchableOpacity
-                onPress={onClose}
+                onPress={() => {
+                  ReactNativeHapticFeedback.trigger('impactLight');
+                  onClose();
+                }}
                 style={{marginTop: 12, alignItems: 'center'}}>
                 <Text style={{color: theme.colors.foreground}}>Close</Text>
               </TouchableOpacity>
@@ -402,7 +407,10 @@ export default function BarcodeScannerScreen({
             )}
             <View style={{width: '90%'}}>
               <TouchableOpacity
-                onPress={processCapturedPhoto}
+                onPress={() => {
+                  ReactNativeHapticFeedback.trigger('impactMedium');
+                  processCapturedPhoto();
+                }}
                 style={{
                   backgroundColor: theme.colors.button1,
                   paddingVertical: 14,
@@ -420,6 +428,7 @@ export default function BarcodeScannerScreen({
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
+                  ReactNativeHapticFeedback.trigger('impactLight');
                   setCapturedPhoto(null);
                   setConfirmVisible(false);
                 }}
@@ -436,6 +445,7 @@ export default function BarcodeScannerScreen({
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
+                  ReactNativeHapticFeedback.trigger('impactLight');
                   setCapturedPhoto(null);
                   setConfirmVisible(false);
                 }}
@@ -469,7 +479,10 @@ export default function BarcodeScannerScreen({
             {/* 🔹 Backdrop Touchable to close modal */}
             <TouchableOpacity
               activeOpacity={1}
-              onPress={() => setModalVisible(false)}
+              onPress={() => {
+                ReactNativeHapticFeedback.trigger('impactLight');
+                setModalVisible(false);
+              }}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -572,6 +585,7 @@ export default function BarcodeScannerScreen({
               {/* 🔘 Close button or other actions here */}
               <TouchableOpacity
                 onPress={() => {
+                  ReactNativeHapticFeedback.trigger('impactMedium');
                   setModalVisible(false);
                   setOutfitResult(null);
                 }}

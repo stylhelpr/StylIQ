@@ -25,6 +25,19 @@ class EmotionModule: RCTEventEmitter, AVCaptureVideoDataOutputSampleBufferDelega
         DispatchQueue.main.async {
             guard !self.isSessionRunning else { return }
 
+            // Check camera permission first
+            let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
+            guard authStatus == .authorized else {
+                print("❌ Camera not authorized: \(authStatus.rawValue)")
+                self.sendEvent(withName: "onEmotionUpdate", body: [
+                    "emotion": "error",
+                    "confidence": 0,
+                    "errorType": "permission",
+                    "errorMessage": "Camera permission not granted"
+                ])
+                return
+            }
+
             let session = AVCaptureSession()
             session.sessionPreset = .medium
 
@@ -34,6 +47,12 @@ class EmotionModule: RCTEventEmitter, AVCaptureVideoDataOutputSampleBufferDelega
                   let input = try? AVCaptureDeviceInput(device: device)
             else {
                 print("❌ No front camera or failed to create input")
+                self.sendEvent(withName: "onEmotionUpdate", body: [
+                    "emotion": "error",
+                    "confidence": 0,
+                    "errorType": "camera",
+                    "errorMessage": "Failed to access front camera"
+                ])
                 return
             }
 
@@ -129,7 +148,9 @@ class EmotionModule: RCTEventEmitter, AVCaptureVideoDataOutputSampleBufferDelega
         } catch {
             sendEvent(withName: "onEmotionUpdate", body: [
                 "emotion": "error",
-                "confidence": 0
+                "confidence": 0,
+                "errorType": "mlcore",
+                "errorMessage": error.localizedDescription
             ])
             print("⚠️ MLCore error: \(error.localizedDescription)")
         }

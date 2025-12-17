@@ -57,6 +57,7 @@ export default function EmotionTestScreen() {
     fear: '#9D4EDD',
     surprise: '#FB8500',
     neutral: '#AAAAAA',
+    error: '#FF3B30',
   };
 
   const emojiMap: Record<string, string> = {
@@ -66,6 +67,7 @@ export default function EmotionTestScreen() {
     fear: '😱',
     surprise: '😲',
     neutral: '😐',
+    error: '⚠️',
   };
 
   const mood = emotion?.emotion || 'neutral';
@@ -97,9 +99,14 @@ export default function EmotionTestScreen() {
           {emojiMap[mood]}
         </Text>
         <Text style={styles.label}>{mood.toUpperCase()}</Text>
-        {emotion?.confidence && (
+        {emotion?.confidence !== undefined && emotion?.emotion !== 'error' && (
           <Text style={styles.confidence}>
             {(emotion.confidence || 0).toFixed(1)}%
+          </Text>
+        )}
+        {emotion?.errorMessage && (
+          <Text style={[styles.confidence, {color: colorMap.error, marginTop: 8}]}>
+            {emotion.errorType}: {emotion.errorMessage}
           </Text>
         )}
       </View>

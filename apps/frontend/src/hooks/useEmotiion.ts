@@ -8,6 +8,8 @@ const {EmotionModule} = NativeModules;
 export interface EmotionEvent {
   emotion: string;
   confidence: number;
+  errorType?: string;
+  errorMessage?: string;
 }
 
 // ✅ define the hook return type
