@@ -1270,6 +1270,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 overflow: 'hidden',
                 // marginBottom: 8,
                 borderRadius: tokens.borderRadius.xxxl,
+                // borderRadius: tokens.borderRadius.lg,
                 transform: [
                   {
                     translateY: scrollY.interpolate({

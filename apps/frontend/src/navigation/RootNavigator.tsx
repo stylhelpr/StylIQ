@@ -175,8 +175,6 @@ const RootNavigator = ({
   const screenHistory = useRef<Screen[]>([]); // ✅ full navigation history stack
   const isGoingBackRef = useRef(false);
 
-  const profileScreenCache = useRef<JSX.Element | null>(null);
-
   // Shared scroll position for bottom nav hide/show
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -407,6 +405,8 @@ const RootNavigator = ({
                         setUUID(String(user.id));
                       }
                     }
+                    // Small delay to ensure UUID state propagates through context
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await routeAfterLogin();
                   } else {
                     console.log('Face ID authentication failed or cancelled');
@@ -424,16 +424,14 @@ const RootNavigator = ({
         );
 
       case 'Profile':
-        if (!profileScreenCache.current) {
-          profileScreenCache.current = (
-            <ProfileScreen
-              navigate={navigate}
-              user={user}
-              wardrobe={wardrobe}
-            />
-          );
-        }
-        return profileScreenCache.current;
+        // Don't cache ProfileScreen - it needs to re-render when user data changes
+        return (
+          <ProfileScreen
+            navigate={navigate}
+            user={user}
+            wardrobe={wardrobe}
+          />
+        );
 
       case 'RecreatedLook':
         console.log('🧩 Rendering RecreatedLookScreen OVER Home');

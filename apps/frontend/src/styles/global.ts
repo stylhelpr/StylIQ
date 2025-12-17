@@ -366,7 +366,7 @@ export const createGlobalStyles = (theme: Theme) =>
       // backgroundColor: theme.colors.surface,
       marginBottom: isTablet ? 8 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       // borderRadius: tokens.borderRadius.lg,
-      borderRadius: tokens.borderRadius.sm,
+      borderRadius: tokens.borderRadius.xl,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       marginHorizontal: isTablet
@@ -1031,8 +1031,8 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     bgContainer1: {
       height: isTablet ? 260 : isLargePhone ? 305 : isRegularPhone ? 260 : 260,
-      // borderRadius: tokens.borderRadius.xl,
-      borderRadius: tokens.borderRadius.sm,
+      borderRadius: tokens.borderRadius.lg,
+      // borderRadius: tokens.borderRadius.sm,
       overflow: 'hidden',
       // shadowColor: '#000',
       // shadowOpacity: 0.35,

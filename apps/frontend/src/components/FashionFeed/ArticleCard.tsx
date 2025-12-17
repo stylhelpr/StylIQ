@@ -42,13 +42,7 @@ const staticStyles = StyleSheet.create({
   },
 });
 
-function ArticleCard({
-  title,
-  source,
-  onPress,
-  image,
-  time,
-}: Props) {
+function ArticleCard({title, source, onPress, image, time}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -91,7 +85,11 @@ function ArticleCard({
         marginRight: moderateScale(tokens.spacing.md2),
       },
     }),
-    [theme.colors.foreground, theme.colors.foreground2, theme.colors.foreground3],
+    [
+      theme.colors.foreground,
+      theme.colors.foreground2,
+      theme.colors.foreground3,
+    ],
   );
 
   return (
@@ -99,7 +97,8 @@ function ArticleCard({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}>
-      <Animated.View style={[globalStyles.newsCard1, {transform: [{scale: scaleAnim}]}]}>
+      <Animated.View
+        style={[globalStyles.newsCard1, {transform: [{scale: scaleAnim}]}]}>
         <View style={staticStyles.meta}>
           <Text style={themedStyles.source}>{source}</Text>
           {time ? <Text style={staticStyles.dot}>•</Text> : null}

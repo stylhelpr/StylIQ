@@ -57,7 +57,7 @@ export default function LoginScreen({
     },
     imageOverlay: {
       ...StyleSheet.absoluteFill,
-      backgroundColor: 'rgba(0, 0, 0, 0.45)',
+      backgroundColor: 'rgba(0, 0, 0, 0.22)',
       zIndex: 1,
     },
     container: {
@@ -109,7 +109,7 @@ export default function LoginScreen({
       borderColor: 'rgba(144, 0, 255, 1)',
       borderRadius: 20,
       borderWidth: 3,
-      paddingVertical: 7,
+      paddingVertical: 8,
     },
     signup: {
       fontSize: 18,
@@ -124,7 +124,7 @@ export default function LoginScreen({
       borderColor: 'rgba(144, 0, 255, 1)',
       borderRadius: 20,
       borderWidth: 3,
-      paddingVertical: 7,
+      paddingVertical: 8,
     },
     termsContainer: {
       position: 'absolute',
@@ -215,7 +215,14 @@ export default function LoginScreen({
 
       await AsyncStorage.multiSet(sets);
 
-      if (user?.id) setUUID(String(user.id));
+      if (user?.id) {
+        setUUID(String(user.id));
+      }
+
+      // Small delay to ensure UUID state propagates through context before navigation
+      // This prevents race conditions where screens try to fetch data before userId is set
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       onLoginSuccess?.();
     } catch (e) {
       console.error('❌ LOGIN ERROR:', e);
