@@ -12,11 +12,13 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
 import jwtDecode from 'jwt-decode';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {moderateScale, fontScale} from '../utils/scale';
 import {tokens} from '../styles/tokens/tokens';
 import {API_BASE_URL} from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {saveAuthCredentials, getCredentials} from '../utils/auth';
 import {useSetUUID} from '../context/UUIDContext';
+import {triggerHaptic} from '../utils/haptics';
 
 const windowHeight = Dimensions.get('window').height;
 
@@ -46,9 +48,12 @@ export default function LoginScreen({
       alignItems: 'center',
     },
     imageBackground: {
-      ...StyleSheet.absoluteFill,
-      width: '100%',
-      height: '100%',
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      width: '192%',
+      height: '87%',
+      left: '-62%',
     },
     imageOverlay: {
       ...StyleSheet.absoluteFill,
@@ -58,14 +63,16 @@ export default function LoginScreen({
     container: {
       width: '80%',
       alignItems: 'center',
+      justifyContent: 'center',
       zIndex: 2,
+      height: '100%',
     },
     logoContainer: {
-      marginBottom: 40,
+      marginBottom: 22,
       alignItems: 'center',
     },
     logoText: {
-      fontSize: 48,
+      fontSize: 65,
       fontWeight: '900',
       color: '#fff',
       textShadowColor: 'rgba(0,0,0,0.8)',
@@ -73,35 +80,55 @@ export default function LoginScreen({
       textShadowRadius: 6,
     },
     subtitle: {
-      fontSize: 18,
-      fontWeight: '400',
+      fontSize: 17,
+      fontWeight: '500',
       marginTop: 4,
       color: '#fff',
       textShadowColor: 'rgba(0,0,0,0.8)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 4,
     },
+    buttonContainer: {
+      position: 'absolute',
+      bottom: 30,
+      gap: 30,
+      display: 'flex',
+      justifyContent: 'space-between',
+      flexDirection: 'row',
+    },
     passwordLogin: {
       fontSize: 18,
       fontWeight: '600',
-      marginBottom: 20,
-      textDecorationLine: 'underline',
       textShadowColor: 'rgba(0,0,0,0.7)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 2,
       color: '#fff',
+      width: 140,
+      textAlign: 'center',
+      backgroundColor: 'transparent',
+      borderColor: 'rgba(144, 0, 255, 1)',
+      borderRadius: 20,
+      borderWidth: 3,
+      paddingVertical: 7,
     },
     signup: {
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '600',
-      marginBottom: 40,
-      textDecorationLine: 'underline',
       textShadowColor: 'rgba(0,0,0,0.7)',
       textShadowOffset: {width: 0, height: 1},
       textShadowRadius: 2,
       color: '#fff',
+      width: 140,
+      textAlign: 'center',
+      backgroundColor: 'transparent',
+      borderColor: 'rgba(144, 0, 255, 1)',
+      borderRadius: 20,
+      borderWidth: 3,
+      paddingVertical: 7,
     },
     termsContainer: {
+      position: 'absolute',
+      bottom: 160,
       paddingHorizontal: 20,
     },
     termsText: {
@@ -199,7 +226,7 @@ export default function LoginScreen({
     <View style={styles.background}>
       {/* ✅ Replace video with still image */}
       <Image
-        source={require('../assets/images/video-still-2.png')}
+        source={require('../assets/images/landing-page28.jpg')}
         style={styles.imageBackground}
         resizeMode="cover"
       />
@@ -213,20 +240,24 @@ export default function LoginScreen({
           </Text>
         </View>
 
-        {/* <TouchableOpacity
-          style={[globalStyles.buttonHome]}
-          onPress={onFaceIdLogin}
-          activeOpacity={0.8}>
-          <Text style={globalStyles.buttonHomeText}>Face ID</Text>
-        </TouchableOpacity> */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={{marginBottom: 12}}
+            onPress={() => {
+              triggerHaptic('impactMedium');
+              handleLogin();
+            }}>
+            <Text style={[styles.passwordLogin]}>Login</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleLogin}>
-          <Text style={[styles.passwordLogin]}>Login</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={handleLogin}>
-          <Text style={[styles.signup]}>Signup</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              triggerHaptic('impactMedium');
+              handleLogin();
+            }}>
+            <Text style={[styles.signup]}>Signup</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.termsContainer}>
           <Text style={styles.termsText}>
@@ -245,6 +276,265 @@ export default function LoginScreen({
     </View>
   );
 }
+
+/////////////
+
+// import React from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   TouchableOpacity,
+//   Dimensions,
+//   Linking,
+//   Image,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import {useAuth0} from 'react-native-auth0';
+// import jwtDecode from 'jwt-decode';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {moderateScale, fontScale} from '../utils/scale';
+// import {tokens} from '../styles/tokens/tokens';
+// import {API_BASE_URL} from '../config/api';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {saveAuthCredentials, getCredentials} from '../utils/auth';
+// import {useSetUUID} from '../context/UUIDContext';
+
+// const windowHeight = Dimensions.get('window').height;
+
+// type Props = {
+//   email: string;
+//   onFaceIdLogin: () => void;
+//   onPasswordLogin?: () => void;
+//   onGoogleLogin?: () => void;
+//   onLoginSuccess: () => void;
+// };
+
+// export default function LoginScreen({
+//   email,
+//   onFaceIdLogin,
+//   onLoginSuccess,
+// }: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const {authorize} = useAuth0();
+//   const setUUID = useSetUUID();
+
+//   const styles = StyleSheet.create({
+//     background: {
+//       flex: 1,
+//       position: 'relative',
+//       justifyContent: 'center',
+//       alignItems: 'center',
+//     },
+//     imageBackground: {
+//       position: 'absolute',
+//       top: 0,
+//       bottom: 0,
+//       width: '192%',
+//       height: '87%',
+//       left: '-62%',
+//     },
+//     imageOverlay: {
+//       ...StyleSheet.absoluteFill,
+//       backgroundColor: 'rgba(0, 0, 0, 0.45)',
+//       zIndex: 1,
+//     },
+//     container: {
+//       width: '80%',
+//       alignItems: 'center',
+//       zIndex: 2,
+//     },
+//     logoContainer: {
+//       marginBottom: 22,
+//       alignItems: 'center',
+//     },
+//     logoText: {
+//       fontSize: 62,
+//       fontWeight: '900',
+//       color: '#fff',
+//       textShadowColor: 'rgba(0,0,0,0.8)',
+//       textShadowOffset: {width: 0, height: 2},
+//       textShadowRadius: 6,
+//       // textTransform: 'uppercase',
+//     },
+//     subtitle: {
+//       fontSize: 18,
+//       fontWeight: '400',
+//       marginTop: 4,
+//       color: '#fff',
+//       textShadowColor: 'rgba(0,0,0,0.8)',
+//       textShadowOffset: {width: 0, height: 1},
+//       textShadowRadius: 4,
+//     },
+//     passwordLogin: {
+//       fontSize: 18,
+//       fontWeight: '600',
+//       textShadowColor: 'rgba(0,0,0,0.7)',
+//       textShadowOffset: {width: 0, height: 1},
+//       textShadowRadius: 2,
+//       color: '#fff',
+//       width: 110,
+//       textAlign: 'center',
+//       backgroundColor: 'black',
+//       borderColor: 'rgba(144, 0, 255, 1)',
+//       borderRadius: 20,
+//       borderWidth: 3,
+//       paddingVertical: 6,
+//     },
+//     signup: {
+//       fontSize: 18,
+//       fontWeight: '600',
+//       textShadowColor: 'rgba(0,0,0,0.7)',
+//       textShadowOffset: {width: 0, height: 1},
+//       textShadowRadius: 2,
+//       color: '#fff',
+//       width: 110,
+//       textAlign: 'center',
+//       backgroundColor: 'black',
+//       borderColor: 'rgba(144, 0, 255, 1)',
+//       borderRadius: 20,
+//       borderWidth: 3,
+//       paddingVertical: 6,
+//     },
+//     termsContainer: {
+//       marginTop: 22,
+//       paddingHorizontal: 20,
+//     },
+//     termsText: {
+//       fontSize: 14,
+//       textAlign: 'center',
+//       lineHeight: 18,
+//       color: '#fff',
+//       textShadowColor: 'rgba(0,0,0,0.6)',
+//       textShadowOffset: {width: 0, height: 1},
+//       textShadowRadius: 2,
+//     },
+//     linkText: {
+//       color: '#fff',
+//       textDecorationLine: 'underline',
+//       textShadowColor: 'rgba(0,0,0,0.6)',
+//       textShadowOffset: {width: 0, height: 1},
+//       textShadowRadius: 2,
+//     },
+//   });
+
+//   const handleLogin = async () => {
+//     try {
+//       const redirectUrl =
+//         'com.stylhelpr.stylhelpr.auth0://dev-xeaol4s5b2zd7wuz.us.auth0.com/ios/com.stylhelpr.stylhelpr/callback';
+
+//       const credentials = await authorize({
+//         redirectUrl,
+//         audience: 'http://localhost:3001',
+//         scope: 'openid profile email offline_access',
+//         prompt: 'login',
+//       } as any);
+
+//       if (credentials) {
+//         await saveAuthCredentials(credentials);
+//       }
+//       let idToken = credentials?.idToken;
+//       if (!idToken) {
+//         const fresh = await getCredentials();
+//         idToken = fresh?.idToken;
+//       }
+//       if (!idToken) throw new Error('Missing idToken');
+
+//       const decoded: any = jwtDecode(idToken);
+//       const auth0_sub = decoded.sub;
+//       const email = decoded.email;
+//       const name = decoded.name;
+//       const profile_picture = decoded.picture;
+//       const [first_name, ...lastParts] = name?.split(' ') || ['User'];
+//       const last_name = lastParts.join(' ');
+
+//       const response = await fetch(`${API_BASE_URL}/users/sync`, {
+//         method: 'POST',
+//         headers: {'Content-Type': 'application/json'},
+//         body: JSON.stringify({
+//           auth0_sub,
+//           email,
+//           first_name,
+//           last_name,
+//           profile_picture,
+//         }),
+//       });
+//       if (!response.ok) throw new Error('Failed to sync user');
+
+//       const raw = await response.json();
+//       const user = raw?.user ?? raw;
+//       const styleProfile = raw?.style_profile ?? null;
+
+//       const sets: [string, string][] = [['auth_logged_in', 'true']];
+//       if (user?.id) sets.push(['user_id', String(user.id)]);
+
+//       if (typeof user?.onboarding_complete === 'boolean') {
+//         sets.push([
+//           'onboarding_complete',
+//           user.onboarding_complete ? 'true' : 'false',
+//         ]);
+//       } else {
+//         const existing = await AsyncStorage.getItem('onboarding_complete');
+//         if (existing == null) sets.push(['onboarding_complete', 'false']);
+//       }
+
+//       if (styleProfile) {
+//         sets.push(['style_profile', JSON.stringify(styleProfile)]);
+//       }
+
+//       await AsyncStorage.multiSet(sets);
+
+//       if (user?.id) setUUID(String(user.id));
+//       onLoginSuccess?.();
+//     } catch (e) {
+//       console.error('❌ LOGIN ERROR:', e);
+//     }
+//   };
+
+//   return (
+//     <View style={styles.background}>
+//       {/* ✅ Replace video with still image */}
+//       <Image
+//         source={require('../assets/images/landing-page28.jpg')}
+//         style={styles.imageBackground}
+//         resizeMode="cover"
+//       />
+//       <View style={styles.imageOverlay} />
+
+//       <View style={styles.container}>
+//         <View style={styles.logoContainer}>
+//           <Text style={styles.logoText}>StylHelpr</Text>
+//           <Text style={styles.subtitle}>
+//             Your personal AI fashion concierge
+//           </Text>
+//         </View>
+
+//         <TouchableOpacity style={{marginBottom: 12}} onPress={handleLogin}>
+//           <Text style={[styles.passwordLogin]}>Login</Text>
+//         </TouchableOpacity>
+
+//         <TouchableOpacity onPress={handleLogin}>
+//           <Text style={[styles.signup]}>Signup</Text>
+//         </TouchableOpacity>
+
+//         <View style={styles.termsContainer}>
+//           <Text style={styles.termsText}>
+//             By continuing, you agree to the{' '}
+//             <Text style={styles.linkText} onPress={() => Linking.openURL('')}>
+//               StylHelpr Privacy Policy
+//             </Text>
+//             ,{' '}
+//             <Text style={styles.linkText} onPress={() => Linking.openURL('')}>
+//               Terms of Use
+//             </Text>
+//             .
+//           </Text>
+//         </View>
+//       </View>
+//     </View>
+//   );
+// }
 
 /////////////
 
