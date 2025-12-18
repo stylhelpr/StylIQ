@@ -75,7 +75,7 @@ import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
 import {useAppTheme} from '../context/ThemeContext';
 import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
 import {WardrobeItem} from '../hooks/useOutfitSuggestion';
-import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
+import SwipeBackHandler from '../components/Gestures/SwipeBackHandler';
 
 import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
 
@@ -231,37 +231,15 @@ const RootNavigator = ({
   };
 
   const navigate = (screen: Screen, params?: any) => {
-    console.log('🔍 NAVIGATE DEBUG:', {
-      screen,
-      currentScreen,
-      isGoingBack: isGoingBackRef.current,
-      historyLength: screenHistory.current.length,
-      history: screenHistory.current,
-      itemId: params?.itemId,
-      stackTrace: new Error().stack?.split('\n').slice(1, 4).join(' | '),
-    });
-
     if (isGoingBackRef.current) {
-      console.log('⏩ isGoingBackRef is true, attempting to skip push');
       isGoingBackRef.current = false;
-      console.log('✅ Reset isGoingBackRef to false');
-
-      // SAFETY: If history is empty, we likely had a failed goBack() that couldn't navigate
-      // In this case, we should still push to history to recover
       if (screenHistory.current.length === 0 && (screen === 'ItemDetail' || screen === 'AddItem')) {
-        console.log('⚠️ History was empty after goBack flag, pushing to recover');
         screenHistory.current.push(currentScreen);
       }
     } else if (screen !== currentScreen) {
-      console.log('📍 Pushing current to history:', currentScreen);
       screenHistory.current.push(currentScreen);
     } else if (screen === 'ItemDetail' || screen === 'AddItem') {
-      // Always push to history when navigating to detail/add screens, even if on same parent screen
-      // This ensures we can properly navigate back to the originating screen
-      console.log('📍 Pushing current to history (detail screen):', currentScreen);
       screenHistory.current.push(currentScreen);
-    } else {
-      console.log('⚠️ Skipped push because screen is same:', screen);
     }
 
     setCurrentScreen(screen);
@@ -309,28 +287,21 @@ const RootNavigator = ({
   };
 
   const goBack = () => {
-    console.log('⬅️ goBack called, history:', screenHistory.current);
-
     global.goingBack = false;
     isGoingBackRef.current = true;
-    console.log('🚩 Set isGoingBackRef to true');
 
-    // Auto-reset the flag after 500ms to prevent it from persisting
-    // if navigate() doesn't get called
     setTimeout(() => {
-      console.log('🔄 Auto-resetting isGoingBackRef to false (timeout)');
       isGoingBackRef.current = false;
     }, 500);
 
     const prev = screenHistory.current.pop();
+
     if (!prev) {
-      console.warn('⚠️ History empty, defaulting to Home');
       setCurrentScreen('Home');
       return;
     }
 
-    console.log('🔙 Navigating back to:', prev);
-    setScreenParams({__forceRemount: Date.now()});
+    setScreenParams(null);
     setCurrentScreen(prev);
   };
 
@@ -656,9 +627,13 @@ const RootNavigator = ({
         navigate={navigate}
         hideHeader={screensWithNoHeader.includes(currentScreen)}
         showSettings={screensWithSettings.includes(currentScreen)}>
-        <GlobalGestureHandler onEdgeSwipeBack={goBack}>
-          <View style={styles.screen}>{renderScreen()}</View>
-        </GlobalGestureHandler>
+        <SwipeBackHandler
+          onSwipeBack={goBack}
+          enabled={true}>
+          <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
+            {renderScreen()}
+          </View>
+        </SwipeBackHandler>
       </LayoutWrapper>
 
       {/* ✅ Always visible when logged in */}

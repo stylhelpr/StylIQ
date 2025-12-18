@@ -49,6 +49,7 @@ import {
   SafeAreaProvider,
   initialWindowMetrics,
 } from 'react-native-safe-area-context';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {HeadPoseProvider} from '../src/context/HeadPoseProvider';
 import {HandPoseProvider} from '../src/context/HandPoseProvider'; // ✅ Added
 import messaging from '@react-native-firebase/messaging';
@@ -88,23 +89,25 @@ function RootWithNotifications() {
 }
 
 const App = () => (
-  <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-    <Auth0Provider
-      domain="dev-xeaol4s5b2zd7wuz.us.auth0.com"
-      clientId="0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5">
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <UUIDProvider>
-            <HeadPoseProvider>
-              <HandPoseProvider>
-                <RootWithNotifications />
-              </HandPoseProvider>
-            </HeadPoseProvider>
-          </UUIDProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </Auth0Provider>
-  </SafeAreaProvider>
+  <GestureHandlerRootView style={{flex: 1}}>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <Auth0Provider
+        domain="dev-xeaol4s5b2zd7wuz.us.auth0.com"
+        clientId="0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5">
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <UUIDProvider>
+              <HeadPoseProvider>
+                <HandPoseProvider>
+                  <RootWithNotifications />
+                </HandPoseProvider>
+              </HeadPoseProvider>
+            </UUIDProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </Auth0Provider>
+    </SafeAreaProvider>
+  </GestureHandlerRootView>
 );
 
 export default App;
