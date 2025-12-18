@@ -363,7 +363,7 @@ export const createGlobalStyles = (theme: Theme) =>
         : isRegularPhone
         ? 16
         : 16,
-      // backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.surface,
       marginBottom: isTablet ? 8 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       // borderRadius: tokens.borderRadius.lg,
       borderRadius: tokens.borderRadius.xl,

@@ -50,6 +50,7 @@ export const VoiceOverlay: React.FC = () => {
 
   const [isListening, setIsListening] = useState(false);
   const [partialText, setPartialText] = useState('');
+  const hasMounted = useRef(false);
 
   // 🌈 Animation drivers
   const hueRotate = useSharedValue(0);
@@ -102,13 +103,18 @@ export const VoiceOverlay: React.FC = () => {
       Haptics.trigger('impactMedium');
       Animated.spring(fade, {toValue: 1, useNativeDriver: true}).start();
     } else {
-      Haptics.trigger('impactLight');
+      // Only trigger haptic when transitioning from listening to not listening
+      // Skip on initial mount to prevent vibration on app startup
+      if (hasMounted.current) {
+        Haptics.trigger('impactLight');
+      }
       Animated.timing(fade, {
         toValue: 0,
         duration: 220,
         useNativeDriver: true,
       }).start();
     }
+    hasMounted.current = true;
   }, [isListening]);
 
   const siriColors = [

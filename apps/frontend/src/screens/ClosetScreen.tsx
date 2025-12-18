@@ -429,7 +429,7 @@ export default function ClosetScreen({navigate}: Props) {
                   globalStyles.buttonPrimary,
                   {
                     paddingHorizontal: 28,
-                    minWidth: 210,
+                    minWidth: 180,
                     alignSelf: 'center',
                     flexShrink: 0,
                   },

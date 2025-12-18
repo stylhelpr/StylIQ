@@ -1702,7 +1702,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             style={{
               paddingHorizontal: moderateScale(tokens.spacing.md),
               marginTop: 6,
-              marginBottom: 22,
+              marginBottom: 24,
               width: '100%',
             }}>
             <Animatable.View
@@ -1715,7 +1715,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               duration={2500}
               easing="ease-in-out"
               useNativeDriver
-              style={{width: '70%', margin: 'auto'}}>
+              style={{width: '50%', margin: 'auto'}}>
               <AppleTouchFeedback
                 onPress={() => navigate('VideoFeedScreen')}
                 hapticStyle="impactLight"
@@ -1728,7 +1728,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     // backgroundColor: 'transparent',
                     // borderWidth: tokens.borderWidth.hairline,
                     // borderColor: theme.colors.foreground,
-                    // borderRadius: tokens.borderRadius.md,
+                    // borderRadius: tokens.borderRadius.sm,
                     borderRadius: tokens.borderRadius.xxxl,
                   },
                 ]}>
@@ -1737,7 +1737,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     globalStyles.buttonPrimaryText,
                     {textTransform: 'uppercase', fontWeight: '700'},
                   ]}>
-                  Community Share Center
+                  Community Share
                 </Text>
               </AppleTouchFeedback>
             </Animatable.View>

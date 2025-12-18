@@ -1641,39 +1641,46 @@ async function callAiChatAPI(
   };
 }
 
-// /** Typing dots */
+// /** Typing dots - sequential fade animation */
 function TypingDots() {
   const {theme} = useAppTheme();
-  const globalStyles = useGlobalStyles();
-  const dot = {width: 6, height: 6, borderRadius: 3, marginHorizontal: 3};
+  const dot = {width: 8, height: 8, borderRadius: 4, marginHorizontal: 3};
+
+  const fadeAnimation = {
+    0: {opacity: 0.3},
+    0.5: {opacity: 1},
+    1: {opacity: 0.3},
+  };
+
   return (
     <View
       style={{
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
+        height: 24,
       }}>
       <Animatable.View
-        animation="pulse"
+        animation={fadeAnimation}
         iterationCount="infinite"
         easing="ease-in-out"
-        duration={900}
+        duration={800}
         style={[dot, {backgroundColor: theme.colors.buttonText1}]}
       />
       <Animatable.View
-        delay={150}
-        animation="pulse"
+        delay={200}
+        animation={fadeAnimation}
         iterationCount="infinite"
         easing="ease-in-out"
-        duration={900}
+        duration={800}
         style={[dot, {backgroundColor: theme.colors.buttonText1}]}
       />
       <Animatable.View
-        delay={300}
-        animation="pulse"
+        delay={400}
+        animation={fadeAnimation}
         iterationCount="infinite"
         easing="ease-in-out"
-        duration={900}
+        duration={800}
         style={[dot, {backgroundColor: theme.colors.buttonText1}]}
       />
     </View>

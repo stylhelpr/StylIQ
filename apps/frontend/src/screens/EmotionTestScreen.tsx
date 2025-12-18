@@ -105,7 +105,8 @@ export default function EmotionTestScreen() {
           </Text>
         )}
         {emotion?.errorMessage && (
-          <Text style={[styles.confidence, {color: colorMap.error, marginTop: 8}]}>
+          <Text
+            style={[styles.confidence, {color: colorMap.error, marginTop: 8}]}>
             {emotion.errorType}: {emotion.errorMessage}
           </Text>
         )}

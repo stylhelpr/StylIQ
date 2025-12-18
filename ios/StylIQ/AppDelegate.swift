@@ -24,6 +24,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     reactNativeFactory = factory
     window = UIWindow(frame: UIScreen.main.bounds)
 
+    // Set window background to match splash screen to prevent flash
+    window?.backgroundColor = UIColor.black
+
     FirebaseApp.configure()
 
     // Set up push notifications

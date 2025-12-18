@@ -67,6 +67,7 @@ import MeshPreviewScreen from '../screens/MeshPreviewScreen';
 import EmotionTestScreen from '../screens/EmotionTestScreen';
 import SavedMeasurementsScreen from '../screens/SavedMeasurementsScreen';
 import GoldDataViewer from '../screens/GoldDataViewer';
+import SplashScreen from '../screens/SplashScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -88,6 +89,7 @@ import jwtDecode from 'jwt-decode';
 import {API_BASE_URL} from '../config/api';
 
 type Screen =
+  | 'Splash'
   | 'Login'
   | 'Home'
   | 'Profile'
@@ -164,13 +166,13 @@ const RootNavigator = ({
   registerNavigate?: (fn: any) => void;
   onScreenChange?: (screen: string) => void;
 }) => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('Login');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('Splash');
   const [screenParams, setScreenParams] = useState<any>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>(mockClothingItems);
 
-  const screensWithNoHeader = ['Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen'];
+  const screensWithNoHeader = ['Splash', 'Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen'];
   const screensWithSettings = ['Profile'];
-  const screensWithoutBottomNav = ['VideoFeedScreen', 'ImageCarouselScreen'];
+  const screensWithoutBottomNav = ['Splash', 'Login', 'VideoFeedScreen', 'ImageCarouselScreen'];
 
   const screenHistory = useRef<Screen[]>([]); // ✅ full navigation history stack
   const isGoingBackRef = useRef(false);
@@ -351,12 +353,11 @@ const RootNavigator = ({
     };
   }, []);
 
-  useEffect(() => {
-    routeAfterLogin();
-  }, []);
-
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'Splash':
+        return <SplashScreen onReady={routeAfterLogin} />;
+
       case 'Login':
         return (
           <LoginScreen
