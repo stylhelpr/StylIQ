@@ -459,7 +459,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
               <Text
                 style={[
                   globalStyles.sectionTitle,
-                  {marginBottom: 8, textAlign: 'left'},
+                  {marginBottom: 20, textAlign: 'left'},
                 ]}>
                 RECREATED LOOK
               </Text>
@@ -662,7 +662,7 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
                       <Text
                         style={[
                           globalStyles.sectionTitle,
-                          {fontSize: 20, marginBottom: 10},
+                          {fontSize: 20, marginBottom: 20},
                         ]}>
                         SIMILAR ITEMS
                       </Text>

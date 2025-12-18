@@ -11,6 +11,7 @@ if (__DEV__) {
       'Please use `getApp()` instead.',
       'Usage of "messaging().registerDeviceForRemoteMessages()" is not required.',
       '⚠️ No userId provided. Skipping token registration.',
+      'Open debugger to view warnings',
     ]);
 
     const originalWarn = console.warn;

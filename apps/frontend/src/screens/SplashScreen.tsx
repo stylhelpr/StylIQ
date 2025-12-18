@@ -19,7 +19,7 @@ export default function SplashScreen({onReady}: Props) {
     const timer = setTimeout(() => {
       Animated.timing(screenFade, {
         toValue: 0,
-        duration: 300,
+        duration: 150,
         useNativeDriver: true,
       }).start(() => {
         onReady();

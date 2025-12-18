@@ -82,7 +82,7 @@ export default function ReaderModal({
     },
     closeIcon: {
       position: 'absolute',
-      top: 11, // 👈 Sits ABOVE gesture zone
+      top: 11,
       right: 18,
       zIndex: 20,
       backgroundColor: 'white',
@@ -98,7 +98,7 @@ export default function ReaderModal({
       backgroundColor: 'transparent',
     },
     header: {
-      marginTop: 35, // 👈 Push header BELOW swipe zone
+      marginTop: 4,
       height: 56,
       alignItems: 'center',
       flexDirection: 'row',
@@ -114,6 +114,7 @@ export default function ReaderModal({
       fontSize: 17,
       flex: 1,
       textAlign: 'left',
+      paddingRight: 50, // Leave space for close icon
     },
   });
 
@@ -203,7 +204,7 @@ export default function ReaderModal({
             animation="fadeIn"
             delay={250}
             duration={800}
-            style={{flex: 1}}>
+            style={{flex: 1, paddingHorizontal: 16}}>
             <WebView
               source={{uri: url || ''}}
               style={{flex: 1}}
@@ -219,6 +220,230 @@ export default function ReaderModal({
     </Modal>
   );
 }
+
+///////////////
+
+// import React, {useRef, useLayoutEffect, useState} from 'react';
+// import {
+//   Modal,
+//   View,
+//   Text,
+//   StyleSheet,
+//   Dimensions,
+//   Animated,
+//   PanResponder,
+//   TouchableOpacity,
+// } from 'react-native';
+// import {WebView} from 'react-native-webview';
+// import * as Animatable from 'react-native-animatable';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {BlurView} from '@react-native-community/blur';
+// import {useGlobalStyles} from '../..//styles/useGlobalStyles';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// const {height} = Dimensions.get('window');
+
+// export default function ReaderModal({
+//   visible,
+//   url,
+//   title,
+//   onClose,
+// }: {
+//   visible: boolean;
+//   url?: string;
+//   title?: string;
+//   onClose: () => void;
+// }) {
+//   const translateY = useRef(new Animated.Value(0)).current;
+//   const backdropRef = useRef<any>(null);
+//   const isClosingRef = useRef(false);
+
+//   const {theme, setSkin} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   const insets = useSafeAreaInsets();
+
+//   // Reset animation synchronously when modal opens
+//   useLayoutEffect(() => {
+//     if (visible) {
+//       console.log('📖 ReaderModal visible - resetting translateY to 0');
+//       translateY.setValue(0);
+//       isClosingRef.current = false;
+//     }
+//   }, [visible]);
+
+//   // Also reset on modal show event (fires after animation completes)
+//   const handleOnShow = () => {
+//     console.log('✅ Modal onShow fired - resetting translateY');
+//     translateY.setValue(0);
+//   };
+
+//   const styles = StyleSheet.create({
+//     modalContainer: {
+//       flex: 1,
+//       backgroundColor: 'transparent',
+//       justifyContent: 'flex-start',
+//       paddingTop: insets.top,
+//     },
+//     backdrop: {
+//       ...StyleSheet.absoluteFill,
+//       backgroundColor: theme.colors.background,
+//     },
+//     panel: {
+//       flex: 1,
+//       backgroundColor: theme.colors.background,
+//       borderTopLeftRadius: 24,
+//       borderTopRightRadius: 24,
+//       overflow: 'hidden',
+//       shadowColor: '#000',
+//       shadowOpacity: 0.5,
+//       shadowRadius: 24,
+//       shadowOffset: {width: 0, height: -8},
+//       elevation: 20,
+//     },
+//     closeIcon: {
+//       position: 'absolute',
+//       top: 11, // 👈 Sits ABOVE gesture zone
+//       right: 18,
+//       zIndex: 20,
+//       backgroundColor: 'white',
+//       borderRadius: 20,
+//       padding: 6,
+//     },
+//     gestureZone: {
+//       position: 'absolute',
+//       top: 56,
+//       height: 80,
+//       width: '100%',
+//       zIndex: 10,
+//       backgroundColor: 'transparent',
+//     },
+//     header: {
+//       marginTop: 35, // 👈 Push header BELOW swipe zone
+//       height: 56,
+//       alignItems: 'center',
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: 16,
+//       borderBottomColor: 'rgba(255,255,255,0.08)',
+//       borderBottomWidth: StyleSheet.hairlineWidth,
+//       zIndex: 5,
+//     },
+//     title: {
+//       color: '#fff',
+//       fontWeight: tokens.fontWeight.bold,
+//       fontSize: 17,
+//       flex: 1,
+//       textAlign: 'left',
+//     },
+//   });
+
+//   // ✅ Unified close logic for swipe & buttons
+//   const handleClose = () => {
+//     if (isClosingRef.current) return;
+//     console.log('🚪 handleClose - instant close');
+//     onClose();
+//   };
+
+//   // ✅ PanResponder logic for swipe-down
+//   const panResponder = useRef(
+//     PanResponder.create({
+//       onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 8,
+//       onPanResponderRelease: (_e, g) => {
+//         if (g.dy > 100 || g.vy > 0.3) {
+//           handleClose();
+//         }
+//       },
+//     }),
+//   ).current;
+
+//   if (!url) return null;
+
+//   return (
+//     <Modal
+//       visible={visible}
+//       transparent
+//       animationType="slide"
+//       presentationStyle="overFullScreen"
+//       statusBarTranslucent={true}
+//       hardwareAccelerated={true}
+//       onRequestClose={handleClose}
+//       onShow={handleOnShow}>
+//       <View style={styles.modalContainer}>
+//         {/* Dim backdrop */}
+//         <Animatable.View
+//           ref={backdropRef}
+//           animation="fadeIn"
+//           duration={300}
+//           style={styles.backdrop}
+//         />
+
+//         {/* 📜 Animated panel */}
+//         <Animated.View
+//           style={[
+//             styles.panel,
+//             {
+//               transform: [{translateY}],
+//               width: '100%',
+//               height: '100%',
+//             },
+//           ]}>
+//           {/* ❌ Floating close button ABOVE gesture zone */}
+//           <TouchableOpacity
+//             style={[styles.closeIcon]}
+//             onPress={() => {
+//               ReactNativeHapticFeedback.trigger('impactLight');
+//               handleClose();
+//             }}
+//             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+//             <MaterialIcons name="close" size={22} color={'black'} />
+//           </TouchableOpacity>
+
+//           {/* ✅ Swipe gesture zone */}
+//           <View
+//             {...panResponder.panHandlers}
+//             style={[styles.gestureZone]}
+//             onStartShouldSetResponder={() => true}
+//           />
+
+//           {/* 🍏 Header */}
+//           <View
+//             style={[
+//               styles.header,
+//               {backgroundColor: theme.colors.background}, // 👈 solid color same as modal
+//             ]}>
+//             <Text
+//               numberOfLines={1}
+//               style={[styles.title, {color: theme.colors.foreground}]}>
+//               {title || 'Article'}
+//             </Text>
+//           </View>
+
+//           {/* 🌐 WebView */}
+//           <Animatable.View
+//             animation="fadeIn"
+//             delay={250}
+//             duration={800}
+//             style={{flex: 1}}>
+//             <WebView
+//               source={{uri: url || ''}}
+//               style={{flex: 1}}
+//               decelerationRate="normal"
+//               bounces={true}
+//               scrollEnabled={true}
+//               onLoadStart={() => console.log('🌐 WebView load start')}
+//               onLoadEnd={() => console.log('🌐 WebView load end')}
+//             />
+//           </Animatable.View>
+//         </Animated.View>
+//       </View>
+//     </Modal>
+//   );
+// }
 
 /////////////////
 

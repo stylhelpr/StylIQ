@@ -160,7 +160,7 @@ export default function ShopModal({
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text
                 numberOfLines={1}
-                style={[globalStyles.sectionTitle, {marginTop: 0}]}>
+                style={[globalStyles.sectionTitle, {marginBottom: 20}]}>
                 SHOP THE VIBE
               </Text>
 
