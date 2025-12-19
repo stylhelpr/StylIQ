@@ -855,10 +855,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
 
   // Actions modal state (Pinterest-style)
+  type ActionablePost =
+    | (typeof DEMO_OUTFIT_POSTS)[0]
+    | (typeof MOCK_POSTS)[0];
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
-  const [activeActionsPost, setActiveActionsPost] = useState<
-    (typeof DEMO_OUTFIT_POSTS)[0] | null
-  >(null);
+  const [activeActionsPost, setActiveActionsPost] =
+    useState<ActionablePost | null>(null);
 
   const toggleFollow = (userName: string) => {
     h('impactLight');
@@ -879,7 +881,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     setCommentsModalVisible(true);
   };
 
-  const openActionsModal = (post: (typeof DEMO_OUTFIT_POSTS)[0]) => {
+  const openActionsModal = (post: ActionablePost) => {
     h('selection');
     setActiveActionsPost(post);
     setActionsModalVisible(true);
@@ -1774,6 +1776,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   <Text style={styles.likeCount}>
                     {isLiked ? post.likes + 1 : post.likes}
                   </Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  hapticStyle="selection"
+                  onPress={() => openActionsModal(post)}
+                  style={styles.moreButton}>
+                  <MaterialIcons name="more-horiz" size={18} color="#fff" />
                 </AppleTouchFeedback>
               </View>
             </View>
