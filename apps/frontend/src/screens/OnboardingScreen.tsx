@@ -987,7 +987,7 @@ export default function OnboardingScreen({navigate}: Props) {
         if (hasAnySizes) prefsJsonb.sizes = sizes;
         if (Object.keys(prefsJsonb).length > 0) styleProfilePayload.prefs_jsonb = prefsJsonb;
 
-        await fetch(`${API_BASE_URL}/style-profile/${id}`, {
+        await fetch(`${API_BASE_URL}/style-profile/${user?.sub}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

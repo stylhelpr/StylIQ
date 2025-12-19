@@ -41,7 +41,8 @@ export class StyleProfileService {
     return profileRes.rows[0];
   }
 
-  async updateProfile(userId: string, dto: UpdateStyleProfileDto) {
+  async updateProfile(auth0Sub: string, dto: UpdateStyleProfileDto) {
+    const userId = await this.getInternalUserId(auth0Sub);
     const filteredEntries = Object.entries(dto).filter(
       ([, val]) => val !== null && val !== undefined,
     );
