@@ -16,7 +16,7 @@ import {moderateScale, fontScale} from '../utils/scale';
 import {tokens} from '../styles/tokens/tokens';
 import {API_BASE_URL} from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {saveAuthCredentials, getCredentials} from '../utils/auth';
+import {saveAuthCredentials, getCredentials, clearCredentials} from '../utils/auth';
 import {useSetUUID} from '../context/UUIDContext';
 import {triggerHaptic} from '../utils/haptics';
 
@@ -230,6 +230,89 @@ export default function LoginScreen({
     }
   };
 
+  const handleSignup = async () => {
+    try {
+      // Clear local credentials
+      try {
+        await clearCredentials();
+      } catch {
+        // Ignore if no credentials exist
+      }
+
+      const redirectUrl =
+        'com.stylhelpr.stylhelpr.auth0://dev-xeaol4s5b2zd7wuz.us.auth0.com/ios/com.stylhelpr.stylhelpr/callback';
+
+      const credentials = await authorize({
+        redirectUrl,
+        audience: 'http://localhost:3001',
+        scope: 'openid profile email offline_access',
+        additionalParameters: {
+          screen_hint: 'signup',
+          prompt: 'login',
+          max_age: '0',
+        },
+      } as any);
+
+      // User canceled or no credentials returned
+      if (!credentials) {
+        console.log('Signup canceled or no credentials returned');
+        return;
+      }
+
+      await saveAuthCredentials(credentials);
+
+      const idToken = credentials.idToken;
+      if (!idToken) throw new Error('Missing idToken');
+
+      const decoded: any = jwtDecode(idToken);
+      const auth0_sub = decoded.sub;
+      const email = decoded.email;
+      const name = decoded.name;
+      const profile_picture = decoded.picture;
+      const [first_name, ...lastParts] = name?.split(' ') || ['User'];
+      const last_name = lastParts.join(' ');
+
+      const response = await fetch(`${API_BASE_URL}/users/sync`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          auth0_sub,
+          email,
+          first_name,
+          last_name,
+          profile_picture,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to sync user');
+
+      const raw = await response.json();
+      const user = raw?.user ?? raw;
+      const styleProfile = raw?.style_profile ?? null;
+
+      const sets: [string, string][] = [['auth_logged_in', 'true']];
+      if (user?.id) sets.push(['user_id', String(user.id)]);
+
+      // New signup - always start fresh with onboarding
+      sets.push(['onboarding_complete', 'false']);
+
+      if (styleProfile) {
+        sets.push(['style_profile', JSON.stringify(styleProfile)]);
+      }
+
+      await AsyncStorage.multiSet(sets);
+
+      if (user?.id) {
+        setUUID(String(user.id));
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      onLoginSuccess?.();
+    } catch (e) {
+      console.error('❌ SIGNUP ERROR:', e);
+    }
+  };
+
   return (
     <View style={styles.background}>
       {/* ✅ Replace video with still image */}
@@ -261,7 +344,7 @@ export default function LoginScreen({
           <TouchableOpacity
             onPress={() => {
               triggerHaptic('impactMedium');
-              handleLogin();
+              handleSignup();
             }}>
             <Text style={[styles.signup]}>Signup</Text>
           </TouchableOpacity>

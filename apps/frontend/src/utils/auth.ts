@@ -70,6 +70,25 @@ export const logout = async (): Promise<void> => {
 };
 
 /**
+ * Clear only the stored credentials (without clearing Auth0 web session).
+ */
+export const clearCredentials = async (): Promise<void> => {
+  await auth0.credentialsManager.clearCredentials();
+};
+
+/**
+ * Clear Auth0 session for signup - clears both web session and credentials.
+ */
+export const clearSessionForSignup = async (): Promise<void> => {
+  try {
+    await auth0.webAuth.clearSession();
+  } catch {
+    // Ignore - user may have dismissed or no session exists
+  }
+  await auth0.credentialsManager.clearCredentials();
+};
+
+/**
  * Check if credentials exist in the credential manager.
  * Uses minTtl=0 to check for any credentials, even if expired.
  * The credential manager will auto-refresh if refresh token exists.
