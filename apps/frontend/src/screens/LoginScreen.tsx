@@ -46,6 +46,7 @@ export default function LoginScreen({
       position: 'relative',
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: 'black',
     },
     imageBackground: {
       position: 'absolute',

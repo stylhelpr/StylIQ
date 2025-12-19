@@ -430,7 +430,8 @@ export default function OutfitPlannerScreen() {
                   .map(ev => (
                     <AppleTouchFeedback
                       key={ev.id}
-                      onPress={() => h('impactLight')}>
+                      hapticStyle="none"
+                      onPress={() => {}}>
                       <View style={styles.card}>
                         <Text style={styles.name}>{ev.title}</Text>
                         <Text style={styles.time}>

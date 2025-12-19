@@ -345,13 +345,13 @@ export default function NotificationsScreen({
                       {
                         text: 'Cancel',
                         style: 'cancel',
-                        onPress: () => h('selection'),
+                        onPress: () => h('impactLight'),
                       },
                       {
                         text: 'Delete All',
                         style: 'destructive',
                         onPress: async () => {
-                          h('notificationWarning');
+                          h('impactLight');
                           await clearAll(userId);
                           await load();
                         },
@@ -489,7 +489,7 @@ export default function NotificationsScreen({
                         ...prev,
                         [section]: !prev[section],
                       }));
-                      h('selection');
+                      h('impactLight');
                     };
 
                     return order.map(section => {
@@ -568,7 +568,7 @@ export default function NotificationsScreen({
                               <NotificationCard
                                 n={n}
                                 onPress={async () => {
-                                  h('selection');
+                                  h('impactLight');
                                   await markRead(userId, n.id);
                                   // Update local state to reflect read status immediately
                                   setItems(prev =>

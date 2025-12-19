@@ -171,10 +171,7 @@ export default function ReaderModal({
           {/* ❌ Floating close button ABOVE gesture zone */}
           <TouchableOpacity
             style={[styles.closeIcon]}
-            onPress={() => {
-              ReactNativeHapticFeedback.trigger('impactLight');
-              handleClose();
-            }}
+            onPress={handleClose}
             hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
             <MaterialIcons name="close" size={22} color={'black'} />
           </TouchableOpacity>

@@ -29,10 +29,7 @@ export default function IntegratedShopOverlay({
       <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.surface}}>
         {/* Close Button */}
         <TouchableOpacity
-          onPress={() => {
-            ReactNativeHapticFeedback.trigger('impactLight');
-            onClose();
-          }}
+          onPress={onClose}
           style={{
             position: 'absolute',
             top: 72,

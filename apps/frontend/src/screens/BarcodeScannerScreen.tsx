@@ -89,7 +89,7 @@ export default function BarcodeScannerScreen({
   /* ---- Capture photo ---- */
   const capturePhoto = useCallback(async () => {
     if (!cameraRef.current) return;
-    ReactNativeHapticFeedback.trigger('impactMedium');
+    ReactNativeHapticFeedback.trigger('impactLight');
     triggerFlash();
 
     const photo = await cameraRef.current.takePhoto({
@@ -152,7 +152,7 @@ export default function BarcodeScannerScreen({
         });
 
         const outfit = await recreateRes.json();
-        ReactNativeHapticFeedback.trigger('impactMedium');
+        ReactNativeHapticFeedback.trigger('impactLight');
         setOutfitResult(outfit);
         setModalVisible(true);
         return;
@@ -172,7 +172,7 @@ export default function BarcodeScannerScreen({
         });
 
         const outfit = await recreateRes.json();
-        ReactNativeHapticFeedback.trigger('impactMedium');
+        ReactNativeHapticFeedback.trigger('impactLight');
         setOutfitResult(outfit);
         setModalVisible(true);
         return;
@@ -240,7 +240,7 @@ export default function BarcodeScannerScreen({
                 console.warn('Back navigation failed:', e);
               }
             }}
-            hapticStyle="impactMedium"
+            hapticStyle="impactLight"
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -408,7 +408,7 @@ export default function BarcodeScannerScreen({
             <View style={{width: '90%'}}>
               <TouchableOpacity
                 onPress={() => {
-                  ReactNativeHapticFeedback.trigger('impactMedium');
+                  ReactNativeHapticFeedback.trigger('impactLight');
                   processCapturedPhoto();
                 }}
                 style={{
@@ -530,7 +530,7 @@ export default function BarcodeScannerScreen({
                       activeOpacity={0.9}
                       onPress={() => {
                         if (item.shopUrl) {
-                          ReactNativeHapticFeedback.trigger('impactMedium');
+                          ReactNativeHapticFeedback.trigger('impactLight');
                           setModalVisible(false); // 👈 close the Styled Look modal
                           setTimeout(() => {
                             setShopUrl(item.shopUrl);
@@ -585,7 +585,7 @@ export default function BarcodeScannerScreen({
               {/* 🔘 Close button or other actions here */}
               <TouchableOpacity
                 onPress={() => {
-                  ReactNativeHapticFeedback.trigger('impactMedium');
+                  ReactNativeHapticFeedback.trigger('impactLight');
                   setModalVisible(false);
                   setOutfitResult(null);
                 }}

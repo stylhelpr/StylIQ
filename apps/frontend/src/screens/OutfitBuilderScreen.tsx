@@ -408,7 +408,6 @@ export default function OutfitBuilderScreen({navigate}: Props) {
           {selectedItems.length > 0 && (
             <AppleTouchFeedback
               onPress={() => {
-                hSelect();
                 setSelectedItems([]);
               }}
               hapticStyle="impactLight"

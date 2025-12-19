@@ -48,7 +48,6 @@ export default function ShopModal({
   const handleClose = () => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
-    ReactNativeHapticFeedback.trigger('impactLight');
 
     // Animate modal down before closing
     Animated.parallel([
@@ -191,7 +190,7 @@ export default function ShopModal({
                     <TouchableOpacity
                       key={idx}
                       onPress={() => {
-                        ReactNativeHapticFeedback.trigger('impactMedium');
+                        ReactNativeHapticFeedback.trigger('impactLight');
                         setShopUrl(item.shopUrl);
                       }}
                       activeOpacity={0.85}

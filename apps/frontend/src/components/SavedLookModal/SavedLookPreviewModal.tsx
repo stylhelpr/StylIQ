@@ -142,7 +142,6 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
   }, [look, visible, translateY]);
 
   const handleClose = () => {
-    ReactNativeHapticFeedback.trigger('impactLight');
     Animated.timing(translateY, {
       toValue: height,
       duration: 220,

@@ -36,17 +36,15 @@ const PEEK_HEIGHT = height - CARD_HEIGHT; // The visible peek area at bottom
 const images = [
   require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
   require('../assets/images/headshot-6.jpg'),
-
   require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
   require('../assets/images/headshot-2.webp'),
+  require('../assets/images/fashion/runway-200.jpg'),
   require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
   require('../assets/images/headshot-4.jpg'),
   require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
   require('../assets/images/headshot-3.jpg'),
-
   require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
   require('../assets/images/headshot-1.webp'),
-
   require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
   require('../assets/images/headshot-5.jpg'),
   require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
@@ -70,6 +68,7 @@ const textContent = [
   {title: 'DISCOVER YOUR LOOK', subtitle: 'EXPRESS YOURSELF'},
   {title: 'FASHION FORWARD', subtitle: 'STAY AHEAD OF TRENDS'},
   {title: 'PERSONALIZED STYLE', subtitle: 'MADE JUST FOR YOU'},
+  {title: 'RUNWAY READY', subtitle: 'OWN THE SPOTLIGHT'},
   {title: 'UP YOUR WARDROBE', subtitle: 'LOOK YOUR BEST'},
   {title: 'STYLE CONFIDENCE', subtitle: 'OWN EVERY MOMENT'},
   {title: 'DEFINE YOUR EDGE', subtitle: 'STAND OUT FROM THE CROWD'},

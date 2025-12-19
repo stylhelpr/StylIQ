@@ -333,7 +333,6 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
   const handleBack = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
-    ReactNativeHapticFeedback.trigger('impactLight');
 
     Animated.timing(translateY, {
       toValue: 1000,

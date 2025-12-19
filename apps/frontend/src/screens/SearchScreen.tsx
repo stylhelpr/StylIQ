@@ -271,7 +271,7 @@ export default function SearchScreen({navigate, goBack}) {
                 globalStyles.backContainer,
                 {marginTop: spacing.md, paddingLeft: 8},
               ]}>
-              <AppleTouchFeedback onPress={goBack} hapticStyle="impactMedium">
+              <AppleTouchFeedback onPress={goBack} hapticStyle="impactLight">
                 <MaterialIcons
                   name="arrow-back"
                   size={moderateScale(26)}
