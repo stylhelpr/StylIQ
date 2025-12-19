@@ -57,6 +57,7 @@ import VideoFeedScreen from '../screens/VideoFeed';
 import BlurredCardScreen from '../screens/BlurredCardScreen';
 import ImageCarouselScreen from '../screens/ImageCarousel';
 import CommunityShowcaseScreen from '../screens/CommunityShowcaseScreen';
+import ChatScreen from '../screens/ChatScreen';
 import MeasurementAutoScreen from '../screens/MeasurementAutoScreen';
 import {MeasurementLiveScreen} from '../screens/MeasurementLiveScreen';
 import MeasurementFrontScreen from '../screens/MeasurementFrontScreen';
@@ -157,7 +158,8 @@ type Screen =
   | 'MeshPreviewScreen'
   | 'EmotionTestScreen'
   | 'MeasurementAutoScreen'
-  | 'GoldDataViewer';
+  | 'GoldDataViewer'
+  | 'ChatScreen';
 
 const RootNavigator = ({
   registerNavigate,
@@ -588,6 +590,8 @@ const RootNavigator = ({
         return <VideoFeedScreen navigate={navigate} />;
       case 'CommunityShowcaseScreen':
         return <CommunityShowcaseScreen navigate={navigate} />;
+      case 'ChatScreen':
+        return <ChatScreen navigate={navigate} route={screenParams} />;
       case 'PersonalInformation':
         return <PersonalInformationScreen navigate={navigate} />;
       case 'ItemDetail':

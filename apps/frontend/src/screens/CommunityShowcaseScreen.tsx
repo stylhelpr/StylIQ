@@ -9,6 +9,12 @@ import {
   Animated,
   Easing,
   RefreshControl,
+  Modal,
+  TextInput,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -778,6 +784,241 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const searchAnim = useRef(new Animated.Value(0)).current;
+  const searchInputRef = useRef<TextInput>(null);
+
+  // Animated search toggle
+  const toggleSearch = () => {
+    if (showSearch) {
+      // Close search
+      Animated.timing(searchAnim, {
+        toValue: 0,
+        duration: 350,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+        useNativeDriver: false,
+      }).start(() => {
+        setShowSearch(false);
+        setSearchQuery('');
+      });
+    } else {
+      // Open search - slower, sleek slide
+      setShowSearch(true);
+      Animated.timing(searchAnim, {
+        toValue: 1,
+        duration: 750,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        useNativeDriver: false,
+      }).start(() => {
+        searchInputRef.current?.focus();
+      });
+    }
+    h('selection');
+  };
+
+  // Follow state
+  const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+
+  // Saved/Bookmarked posts state
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
+
+  // Blocked/Muted users state
+  const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
+  const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
+
+  // Comments state (with likes and replies support)
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [comments, setComments] = useState<
+    Record<
+      string,
+      Array<{
+        id: string;
+        user: string;
+        avatar: string;
+        text: string;
+        timestamp: Date;
+        likes: number;
+        likedByMe: boolean;
+        replyTo?: string;
+        replyToUser?: string;
+      }>
+    >
+  >({});
+  const [newComment, setNewComment] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{
+    id: string;
+    user: string;
+  } | null>(null);
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+
+  // Actions modal state (Pinterest-style)
+  const [actionsModalVisible, setActionsModalVisible] = useState(false);
+  const [activeActionsPost, setActiveActionsPost] = useState<
+    (typeof DEMO_OUTFIT_POSTS)[0] | null
+  >(null);
+
+  const toggleFollow = (userName: string) => {
+    h('impactLight');
+    setFollowedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(userName)) {
+        next.delete(userName);
+      } else {
+        next.add(userName);
+      }
+      return next;
+    });
+  };
+
+  const openComments = (postId: string) => {
+    h('selection');
+    setActivePostId(postId);
+    setCommentsModalVisible(true);
+  };
+
+  const openActionsModal = (post: (typeof DEMO_OUTFIT_POSTS)[0]) => {
+    h('selection');
+    setActiveActionsPost(post);
+    setActionsModalVisible(true);
+  };
+
+  const addComment = () => {
+    if (!newComment.trim() || !activePostId) return;
+    h('impactLight');
+    const comment = {
+      id: Date.now().toString(),
+      user: 'You',
+      avatar: 'https://i.pravatar.cc/100?img=99',
+      text: replyingTo
+        ? `@${replyingTo.user} ${newComment.trim()}`
+        : newComment.trim(),
+      timestamp: new Date(),
+      likes: 0,
+      likedByMe: false,
+      replyTo: replyingTo?.id,
+      replyToUser: replyingTo?.user,
+    };
+    setComments(prev => ({
+      ...prev,
+      [activePostId]: [...(prev[activePostId] || []), comment],
+    }));
+    setNewComment('');
+    setReplyingTo(null);
+  };
+
+  // Delete own comment
+  const deleteComment = (postId: string, commentId: string) => {
+    h('impactMedium');
+    setComments(prev => ({
+      ...prev,
+      [postId]: (prev[postId] || []).filter(c => c.id !== commentId),
+    }));
+  };
+
+  // Toggle save/bookmark post
+  const toggleSavePost = (postId: string) => {
+    h('impactLight');
+    setSavedPosts(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  };
+
+  // Block user
+  const blockUser = (userName: string) => {
+    h('impactMedium');
+    setBlockedUsers(prev => {
+      const next = new Set(prev);
+      next.add(userName);
+      return next;
+    });
+    setActionsModalVisible(false);
+  };
+
+  // Mute user
+  const muteUser = (userName: string) => {
+    h('impactLight');
+    setMutedUsers(prev => {
+      const next = new Set(prev);
+      if (next.has(userName)) {
+        next.delete(userName);
+      } else {
+        next.add(userName);
+      }
+      return next;
+    });
+  };
+
+  // Like a comment
+  const toggleLikeComment = (postId: string, commentId: string) => {
+    h('impactLight');
+    setLikedComments(prev => {
+      const next = new Set(prev);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
+    setComments(prev => ({
+      ...prev,
+      [postId]: (prev[postId] || []).map(c =>
+        c.id === commentId
+          ? {
+              ...c,
+              likes: c.likedByMe ? c.likes - 1 : c.likes + 1,
+              likedByMe: !c.likedByMe,
+            }
+          : c,
+      ),
+    }));
+  };
+
+  // Reply to a comment
+  const startReply = (commentId: string, userName: string) => {
+    h('selection');
+    setReplyingTo({id: commentId, user: userName});
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  // Handle tag tap - opens search with that tag
+  const handleTagTap = (tag: string) => {
+    h('selection');
+    setSearchQuery(tag);
+    if (!showSearch) {
+      setShowSearch(true);
+      Animated.timing(searchAnim, {
+        toValue: 1,
+        duration: 450,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        useNativeDriver: false,
+      }).start(() => {
+        searchInputRef.current?.focus();
+      });
+    }
+  };
+
+  // Filter posts based on search
+  const filteredPosts = DEMO_OUTFIT_POSTS.filter(
+    post =>
+      post.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.tags.some(tag =>
+        tag.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+  );
+
   // Scroll tracking for bottom nav hide/show
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
@@ -1037,6 +1278,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       alignItems: 'center',
       gap: 4,
     },
+    bookmarkButton: {
+      padding: 2,
+      marginLeft: 6,
+    },
     likeCount: {
       fontSize: LIKE_COUNT_SIZE,
       fontWeight: tokens.fontWeight.normal,
@@ -1083,6 +1328,252 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       fontSize: fontScale(tokens.fontSize.sm),
       fontWeight: tokens.fontWeight.semiBold,
       color: theme.colors.buttonText1,
+    },
+    // Search styles
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      marginHorizontal: moderateScale(tokens.spacing.md1),
+      marginBottom: moderateScale(tokens.spacing.sm),
+      height: 42,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.foreground,
+      marginLeft: 10,
+      paddingVertical: 0,
+    },
+    searchIcon: {
+      padding: 4,
+    },
+    // Follow button styles
+    followButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      backgroundColor: theme.colors.button1,
+      marginLeft: 6,
+    },
+    followButtonFollowing: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: theme.colors.buttonText1,
+    },
+    followButtonText: {
+      fontSize: 10,
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.buttonText1,
+    },
+    // Comments modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    commentsModal: {
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '70%',
+      paddingTop: 12,
+    },
+    modalHandle: {
+      width: 40,
+      height: 4,
+      backgroundColor: theme.colors.muted,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: 12,
+    },
+    commentsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.surface,
+    },
+    commentsTitle: {
+      fontSize: fontScale(tokens.fontSize.lg),
+      fontWeight: tokens.fontWeight.bold,
+      color: theme.colors.foreground,
+    },
+    commentsList: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    commentItem: {
+      flexDirection: 'row',
+      marginBottom: 16,
+    },
+    commentAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      marginRight: 10,
+    },
+    commentContent: {
+      flex: 1,
+    },
+    commentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 4,
+    },
+    commentUser: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.foreground,
+    },
+    commentReplyIndicator: {
+      fontSize: fontScale(tokens.fontSize.xs),
+      color: theme.colors.muted,
+    },
+    commentText: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.foreground,
+      marginTop: 2,
+    },
+    commentActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+      gap: 16,
+    },
+    commentTime: {
+      fontSize: fontScale(tokens.fontSize.xs),
+      color: theme.colors.muted,
+    },
+    commentActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    commentActionText: {
+      fontSize: fontScale(tokens.fontSize.xs),
+      color: theme.colors.muted,
+    },
+    replyingToContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.muted,
+    },
+    replyingToText: {
+      fontSize: fontScale(tokens.fontSize.xs),
+      color: theme.colors.foreground,
+    },
+    commentInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.surface,
+      paddingBottom: insets.bottom + 12,
+    },
+    commentInput: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.foreground,
+      marginRight: 10,
+    },
+    sendCommentButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.colors.button1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noComments: {
+      alignItems: 'center',
+      paddingVertical: 40,
+    },
+    noCommentsText: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.muted,
+      marginTop: 8,
+    },
+    // More button style
+    moreButton: {
+      padding: 4,
+      marginLeft: 6,
+    },
+    // Actions modal styles
+    actionsModal: {
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: 12,
+      paddingBottom: insets.bottom + 20,
+    },
+    actionsUserRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.surface,
+    },
+    actionsAvatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      marginRight: 12,
+    },
+    actionsUserInfo: {
+      flex: 1,
+    },
+    actionsUserName: {
+      fontSize: fontScale(tokens.fontSize.base),
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.foreground,
+    },
+    actionsUserHandle: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.muted,
+      marginTop: 2,
+    },
+    actionsList: {
+      paddingTop: 8,
+    },
+    actionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    actionIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    actionText: {
+      fontSize: fontScale(tokens.fontSize.base),
+      color: theme.colors.foreground,
+      flex: 1,
+    },
+    actionChevron: {
+      opacity: 0.4,
     },
   });
 
@@ -1187,14 +1678,19 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   source={{uri: post.userAvatar}}
                   style={styles.cardAvatar}
                 />
-                <Text style={styles.cardUserName}>@{post.userName}</Text>
+                <Text style={styles.cardUserName} numberOfLines={1}>
+                  @{post.userName}
+                </Text>
               </View>
               <View style={styles.cardActions}>
                 <View style={styles.cardTags}>
                   {post.tags.slice(0, 1).map(tag => (
-                    <Text key={tag} style={styles.cardTag}>
-                      #{tag}
-                    </Text>
+                    <Pressable
+                      key={tag}
+                      onPress={() => handleTagTap(tag)}
+                      hitSlop={8}>
+                      <Text style={styles.cardTag}>#{tag}</Text>
+                    </Pressable>
                   ))}
                 </View>
                 <AppleTouchFeedback
@@ -1209,6 +1705,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   <Text style={styles.likeCount}>
                     {isLiked ? post.likes + 1 : post.likes}
                   </Text>
+                </AppleTouchFeedback>
+                <AppleTouchFeedback
+                  hapticStyle="selection"
+                  onPress={() => openActionsModal(post)}
+                  style={styles.moreButton}>
+                  <MaterialIcons name="more-horiz" size={18} color="#fff" />
                 </AppleTouchFeedback>
               </View>
             </View>
@@ -1252,9 +1754,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               <View style={styles.cardActions}>
                 <View style={styles.cardTags}>
                   {post.tags.slice(0, 1).map(tag => (
-                    <Text key={tag} style={styles.cardTag}>
-                      #{tag}
-                    </Text>
+                    <Pressable
+                      key={tag}
+                      onPress={() => handleTagTap(tag)}
+                      hitSlop={8}>
+                      <Text style={styles.cardTag}>#{tag}</Text>
+                    </Pressable>
                   ))}
                 </View>
                 <AppleTouchFeedback
@@ -1290,11 +1795,59 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View style={{alignItems: 'left', flex: 1}}>
+          <View style={{alignItems: 'flex-start', flex: 1}}>
             <Text style={globalStyles.sectionTitle}>Community Share</Text>
           </View>
+          <Pressable onPress={toggleSearch} style={styles.searchIcon}>
+            <MaterialIcons
+              name={showSearch ? 'close' : 'search'}
+              size={24}
+              color={theme.colors.foreground}
+            />
+          </Pressable>
         </View>
       </View>
+
+      {/* Animated Search Bar - Slides open from right */}
+      {showSearch && (
+        <Animated.View
+          style={[
+            styles.searchContainer,
+            {
+              opacity: searchAnim.interpolate({
+                inputRange: [0, 0.2, 1],
+                outputRange: [0, 1, 1],
+              }),
+              transform: [
+                {
+                  translateX: searchAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [150, 0],
+                  }),
+                },
+              ],
+            },
+          ]}>
+          <MaterialIcons name="search" size={20} color={theme.colors.muted} />
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder="Search users or tags..."
+            placeholderTextColor={theme.colors.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={12}>
+              <MaterialIcons
+                name="close"
+                size={18}
+                color={theme.colors.muted}
+              />
+            </Pressable>
+          )}
+        </Animated.View>
+      )}
 
       {/* Filter Pills */}
       <View style={styles.filtersContainer}>
@@ -1418,16 +1971,15 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           </Animatable.View>
         </View>
 
-        {DEMO_OUTFIT_POSTS.length > 0 || MOCK_POSTS.length > 0 ? (
+        {filteredPosts.length > 0 || MOCK_POSTS.length > 0 ? (
           <View style={styles.grid}>
             {/* Render outfit composite cards (2x2 grid) */}
-            {DEMO_OUTFIT_POSTS.map((post, index) =>
-              renderOutfitCard(post, index),
-            )}
+            {filteredPosts.map((post, index) => renderOutfitCard(post, index))}
             {/* Render legacy single-image cards */}
-            {MOCK_POSTS.map((post, index) =>
-              renderCard(post, DEMO_OUTFIT_POSTS.length + index),
-            )}
+            {!searchQuery &&
+              MOCK_POSTS.map((post, index) =>
+                renderCard(post, filteredPosts.length + index),
+              )}
           </View>
         ) : (
           <View style={styles.emptyState}>
@@ -1480,6 +2032,423 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         }}>
         <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
       </AppleTouchFeedback>
+
+      {/* Comments Modal */}
+      <Modal
+        visible={commentsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCommentsModalVisible(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setCommentsModalVisible(false)}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.commentsModal}>
+            <Pressable onPress={e => e.stopPropagation()}>
+              <View style={styles.modalHandle} />
+              <View style={styles.commentsHeader}>
+                <Text style={styles.commentsTitle}>Comments</Text>
+                <Pressable onPress={() => setCommentsModalVisible(false)}>
+                  <MaterialIcons
+                    name="close"
+                    size={24}
+                    color={theme.colors.foreground}
+                  />
+                </Pressable>
+              </View>
+              <FlatList
+                data={activePostId ? comments[activePostId] || [] : []}
+                keyExtractor={item => item.id}
+                style={{maxHeight: 300}}
+                contentContainerStyle={styles.commentsList}
+                ListEmptyComponent={
+                  <View style={styles.noComments}>
+                    <MaterialIcons
+                      name="chat-bubble-outline"
+                      size={40}
+                      color={theme.colors.muted}
+                    />
+                    <Text style={styles.noCommentsText}>
+                      No comments yet. Be the first!
+                    </Text>
+                  </View>
+                }
+                renderItem={({item}) => (
+                  <View style={styles.commentItem}>
+                    <Image
+                      source={{uri: item.avatar}}
+                      style={styles.commentAvatar}
+                    />
+                    <View style={styles.commentContent}>
+                      <View style={styles.commentHeader}>
+                        <Text style={styles.commentUser}>{item.user}</Text>
+                        {item.replyToUser && (
+                          <Text style={styles.commentReplyIndicator}>
+                            replied to @{item.replyToUser}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.commentText}>{item.text}</Text>
+                      <View style={styles.commentActions}>
+                        <Text style={styles.commentTime}>
+                          {item.timestamp.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Text>
+                        <Pressable
+                          style={styles.commentActionButton}
+                          onPress={() =>
+                            activePostId &&
+                            toggleLikeComment(activePostId, item.id)
+                          }>
+                          <MaterialIcons
+                            name={
+                              item.likedByMe ? 'favorite' : 'favorite-border'
+                            }
+                            size={14}
+                            color={
+                              item.likedByMe ? '#FF4D6D' : theme.colors.muted
+                            }
+                          />
+                          {item.likes > 0 && (
+                            <Text
+                              style={[
+                                styles.commentActionText,
+                                item.likedByMe && {color: '#FF4D6D'},
+                              ]}>
+                              {item.likes}
+                            </Text>
+                          )}
+                        </Pressable>
+                        <Pressable
+                          style={styles.commentActionButton}
+                          onPress={() => startReply(item.id, item.user)}>
+                          <MaterialIcons
+                            name="reply"
+                            size={14}
+                            color={theme.colors.muted}
+                          />
+                          <Text style={styles.commentActionText}>Reply</Text>
+                        </Pressable>
+                        {item.user === 'You' && (
+                          <Pressable
+                            style={styles.commentActionButton}
+                            onPress={() =>
+                              activePostId && deleteComment(activePostId, item.id)
+                            }>
+                            <MaterialIcons
+                              name="delete-outline"
+                              size={14}
+                              color={theme.colors.muted}
+                            />
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+              {/* Reply indicator */}
+              {replyingTo && (
+                <View style={styles.replyingToContainer}>
+                  <Text style={styles.replyingToText}>
+                    Replying to @{replyingTo.user}
+                  </Text>
+                  <Pressable onPress={cancelReply}>
+                    <MaterialIcons
+                      name="close"
+                      size={16}
+                      color={theme.colors.muted}
+                    />
+                  </Pressable>
+                </View>
+              )}
+              <View style={styles.commentInputContainer}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={
+                    replyingTo
+                      ? `Reply to @${replyingTo.user}...`
+                      : 'Add a comment...'
+                  }
+                  placeholderTextColor={theme.colors.muted}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                />
+                <Pressable
+                  style={[
+                    styles.sendCommentButton,
+                    !newComment.trim() && {opacity: 0.5},
+                  ]}
+                  onPress={addComment}
+                  disabled={!newComment.trim()}>
+                  <MaterialIcons
+                    name="send"
+                    size={18}
+                    color={theme.colors.buttonText1}
+                  />
+                </Pressable>
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
+
+      {/* Actions Modal (Pinterest-style) */}
+      <Modal
+        visible={actionsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActionsModalVisible(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setActionsModalVisible(false)}>
+          <View style={styles.actionsModal}>
+            <Pressable onPress={e => e.stopPropagation()}>
+              <View style={styles.modalHandle} />
+
+              {activeActionsPost && (
+                <>
+                  {/* User info row */}
+                  <View style={styles.actionsUserRow}>
+                    <Image
+                      source={{uri: activeActionsPost.userAvatar}}
+                      style={styles.actionsAvatar}
+                    />
+                    <View style={styles.actionsUserInfo}>
+                      <Text style={styles.actionsUserName}>
+                        {activeActionsPost.userName}
+                      </Text>
+                      <Text style={styles.actionsUserHandle}>
+                        @{activeActionsPost.userName.toLowerCase()}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => {
+                        toggleFollow(activeActionsPost.userName);
+                      }}
+                      style={[
+                        styles.followButton,
+                        followedUsers.has(activeActionsPost.userName) &&
+                          styles.followButtonFollowing,
+                        {
+                          marginLeft: 0,
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                        },
+                      ]}>
+                      <Text style={styles.followButtonText}>
+                        {followedUsers.has(activeActionsPost.userName)
+                          ? 'Following'
+                          : 'Follow'}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  {/* Actions list */}
+                  <View style={styles.actionsList}>
+                    {/* Send Message */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        setActionsModalVisible(false);
+                        navigate('ChatScreen', {
+                          recipientId: activeActionsPost.id,
+                          recipientName: activeActionsPost.userName,
+                          recipientAvatar: activeActionsPost.userAvatar,
+                        });
+                      }}>
+                      <View style={styles.actionIcon}>
+                        <MaterialIcons
+                          name="send"
+                          size={20}
+                          color={theme.colors.foreground}
+                        />
+                      </View>
+                      <Text style={styles.actionText}>Send Message</Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color={theme.colors.muted}
+                        style={styles.actionChevron}
+                      />
+                    </Pressable>
+
+                    {/* View Comments */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        setActionsModalVisible(false);
+                        setTimeout(
+                          () => openComments(activeActionsPost.id),
+                          300,
+                        );
+                      }}>
+                      <View style={styles.actionIcon}>
+                        <MaterialIcons
+                          name="chat-bubble-outline"
+                          size={20}
+                          color={theme.colors.foreground}
+                        />
+                      </View>
+                      <Text style={styles.actionText}>
+                        Comments{' '}
+                        {(comments[activeActionsPost.id] || []).length > 0 &&
+                          `(${(comments[activeActionsPost.id] || []).length})`}
+                      </Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color={theme.colors.muted}
+                        style={styles.actionChevron}
+                      />
+                    </Pressable>
+
+                    {/* Share */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        h('selection');
+                      }}>
+                      <View style={styles.actionIcon}>
+                        <MaterialIcons
+                          name="share"
+                          size={20}
+                          color={theme.colors.foreground}
+                        />
+                      </View>
+                      <Text style={styles.actionText}>Share</Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color={theme.colors.muted}
+                        style={styles.actionChevron}
+                      />
+                    </Pressable>
+
+                    {/* Save/Bookmark */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        toggleSavePost(activeActionsPost.id);
+                        setActionsModalVisible(false);
+                      }}>
+                      <View style={styles.actionIcon}>
+                        <MaterialIcons
+                          name={
+                            savedPosts.has(activeActionsPost.id)
+                              ? 'bookmark'
+                              : 'bookmark-border'
+                          }
+                          size={20}
+                          color={
+                            savedPosts.has(activeActionsPost.id)
+                              ? '#FFD700'
+                              : theme.colors.foreground
+                          }
+                        />
+                      </View>
+                      <Text style={styles.actionText}>
+                        {savedPosts.has(activeActionsPost.id)
+                          ? 'Unsave'
+                          : 'Save'}
+                      </Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color={theme.colors.muted}
+                        style={styles.actionChevron}
+                      />
+                    </Pressable>
+
+                    {/* Mute User */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        muteUser(activeActionsPost.userName);
+                        setActionsModalVisible(false);
+                      }}>
+                      <View style={styles.actionIcon}>
+                        <MaterialIcons
+                          name={
+                            mutedUsers.has(activeActionsPost.userName)
+                              ? 'volume-up'
+                              : 'volume-off'
+                          }
+                          size={20}
+                          color={theme.colors.foreground}
+                        />
+                      </View>
+                      <Text style={styles.actionText}>
+                        {mutedUsers.has(activeActionsPost.userName)
+                          ? 'Unmute'
+                          : 'Mute'}{' '}
+                        @{activeActionsPost.userName}
+                      </Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color={theme.colors.muted}
+                        style={styles.actionChevron}
+                      />
+                    </Pressable>
+
+                    {/* Block User */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        blockUser(activeActionsPost.userName);
+                      }}>
+                      <View
+                        style={[
+                          styles.actionIcon,
+                          {backgroundColor: 'rgba(255,77,109,0.1)'},
+                        ]}>
+                        <MaterialIcons name="block" size={20} color="#FF4D6D" />
+                      </View>
+                      <Text style={[styles.actionText, {color: '#FF4D6D'}]}>
+                        Block @{activeActionsPost.userName}
+                      </Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color="#FF4D6D"
+                        style={[styles.actionChevron, {opacity: 0.6}]}
+                      />
+                    </Pressable>
+
+                    {/* Report */}
+                    <Pressable
+                      style={styles.actionItem}
+                      onPress={() => {
+                        h('selection');
+                      }}>
+                      <View
+                        style={[
+                          styles.actionIcon,
+                          {backgroundColor: 'rgba(255,77,109,0.1)'},
+                        ]}>
+                        <MaterialIcons name="flag" size={20} color="#FF4D6D" />
+                      </View>
+                      <Text style={[styles.actionText, {color: '#FF4D6D'}]}>
+                        Report
+                      </Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={20}
+                        color="#FF4D6D"
+                        style={[styles.actionChevron, {opacity: 0.6}]}
+                      />
+                    </Pressable>
+                  </View>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </Animated.View>
   );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import {VoiceBus} from './VoiceBus';
-import {MainCategory} from '@types/categoryTypes';
+import {MainCategory} from '../../types/categoryTypes';
 
 /**
  * 🎯 Registers voice commands that only apply to AiStylistSuggestions screen.
