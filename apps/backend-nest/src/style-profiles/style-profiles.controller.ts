@@ -1,7 +1,7 @@
 import { Controller, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { StyleProfilesService } from './style-profiles.service';
-import { UpdateMeasurementsDto } from './dto/update-measurements.dto';
+import { UpdateStyleProfileDto } from '../style-profile/dto/update-style-profile.dto';
 
 @Controller('style-profiles')
 @UseGuards(AuthGuard('jwt'))
@@ -16,7 +16,7 @@ export class StyleProfilesController {
   @Put(':userId/measurements')
   updateMeasurements(
     @Param('userId') userId: string,
-    @Body() dto: UpdateMeasurementsDto,
+    @Body() dto: UpdateStyleProfileDto,
   ) {
     return this.styleProfilesService.updateMeasurements(userId, dto);
   }

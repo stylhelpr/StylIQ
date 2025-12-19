@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
-import { UpdateMeasurementsDto } from './dto/update-measurements.dto';
+import { UpdateStyleProfileDto } from '../style-profile/dto/update-style-profile.dto';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -32,7 +32,7 @@ export class StyleProfilesService {
     return result.rows[0] || null;
   }
 
-  async updateMeasurements(userId: string, dto: UpdateMeasurementsDto) {
+  async updateMeasurements(userId: string, dto: UpdateStyleProfileDto) {
     const { chest, waist, hip, shoulder_width, inseam, height, weight, shoe_size, all_measurements } = dto;
 
     const result = await pool.query(

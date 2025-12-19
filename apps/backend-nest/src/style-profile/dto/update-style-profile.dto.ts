@@ -1,13 +1,55 @@
 export class UpdateStyleProfileDto {
+  // Appearance
   body_type?: string;
   skin_tone?: string;
   undertone?: string;
+  hair_color?: string;
+  eye_color?: string;
+  proportions?: string;
+
+  // Location & Climate
+  home_city?: string;
   climate?: string;
+
+  // Measurements
+  height?: number;
+  weight?: number;
+  chest?: number;
+  waist?: number;
+  hip?: number;
+  shoulder_width?: number;
+  inseam?: number;
+  shoe_size?: number;
+  all_measurements?: Record<string, number>;
+
+  // Preferences (arrays)
   favorite_colors?: string[];
+  color_preferences?: string[];
   disliked_styles?: string[];
   style_keywords?: string[];
-  budget_level?: string;
+  style_preferences?: string[];
+  fit_preferences?: string[];
   preferred_brands?: string[];
   daily_activities?: string[];
-  goals?: string; // ✅ FIXED HERE
+  shopping_habits?: string[];
+  personality_traits?: string[];
+
+  // Budget & Fashion
+  budget_level?: number;
+  fashion_confidence?: string;
+  fashion_boldness?: string;
+  trend_appetite?: string;
+
+  // Goals & Notes
+  goals?: string;
+  lifestyle_notes?: string;
+
+  // Unit preference
+  unit_preference?: string;
+
+  // Flexible JSONB for sizes, clothing types, etc.
+  prefs_jsonb?: Record<string, any>;
+
+  // Profile completion
+  is_style_profile_complete?: boolean;
 }
