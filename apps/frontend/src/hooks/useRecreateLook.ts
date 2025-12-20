@@ -30,6 +30,32 @@ export interface PersonalizedResult {
   [key: string]: any;
 }
 
+export interface VisualProduct {
+  title: string;
+  brand: string;
+  price: string;
+  image: string | null;
+  shopUrl: string;
+  source: string;
+}
+
+export interface VisualPiece {
+  category: string;
+  item: string;
+  color: string;
+  material?: string;
+  brand?: string;
+  products: VisualProduct[];
+  topMatch: VisualProduct | null;
+}
+
+export interface VisualRecreateResult {
+  user_id: string;
+  outfit: VisualPiece[];
+  style_note: string;
+  error?: string;
+}
+
 export interface StandardResult {
   outfit: any[];
   style_note: string;
@@ -181,7 +207,54 @@ export function useRecreateLook() {
     [],
   );
 
-  return {recreateLook, personalizedRecreate, loading, error};
+  /**
+   * 🔍 Visual recreation — uses Google Lens to find 1:1 purchasable matches
+   * Analyzes each piece in the outfit image and finds purchasable products
+   */
+  const recreateVisual = useCallback(
+    async ({
+      user_id,
+      image_url,
+      user_gender,
+    }: {
+      user_id: string;
+      image_url: string;
+      user_gender?: string;
+    }): Promise<VisualRecreateResult> => {
+      setError(null);
+      setLoading(true);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/ai/recreate-visual`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({user_id, image_url, user_gender}),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Visual recreate failed (${res.status}): ${text}`);
+        }
+
+        const data: VisualRecreateResult = await res.json();
+
+        return {
+          user_id: data.user_id ?? user_id,
+          outfit: data.outfit ?? [],
+          style_note: data.style_note ?? '',
+          error: data.error,
+        };
+      } catch (err: any) {
+        setError(err.message || 'Visual recreate failed');
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return {recreateLook, personalizedRecreate, recreateVisual, loading, error};
 }
 
 /////////////////////

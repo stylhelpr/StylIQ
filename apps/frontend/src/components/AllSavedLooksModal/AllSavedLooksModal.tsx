@@ -45,6 +45,7 @@ export default function AllSavedLooksModal({
   openShopModal,
   shopResults, // ✅ add this
   openPersonalizedShopModal, // ← add this line
+  openVisualRecreateModal, // 🔍 new prop for visual recreate results
 }: {
   visible: boolean;
   onClose: () => void;
@@ -59,6 +60,10 @@ export default function AllSavedLooksModal({
     recreated_outfit?: any[];
     purchases?: any[];
     styleNote?: string;
+  }) => void;
+  openVisualRecreateModal?: (data: {
+    results: any[];
+    source_image?: string;
   }) => void;
 }) {
   const uuidContext = useUUID();
@@ -83,7 +88,6 @@ export default function AllSavedLooksModal({
 
   const [personalizedMode, setPersonalizedMode] = useState(false);
   const {
-    recreateLook: runRecreate,
     personalizedRecreate,
     loading: recreateLoading,
   } = useRecreateLook();
@@ -236,25 +240,62 @@ export default function AllSavedLooksModal({
       }
 
       // -------------------------------
-      // 🧥 Standard (Match Image) path
+      // 🔍 Visual Recreate (Match Image) path - uses Google Lens to find purchasable matches
       // -------------------------------
-      console.log('🧥 Standard Recreate triggered →', look.image_url);
+      console.log('🔍 Google Lens Visual Search triggered');
+      console.log('🔍 Look object:', JSON.stringify(look, null, 2));
+      console.log('🔍 Image URL being sent:', look.image_url);
       ReactNativeHapticFeedback.trigger('impactLight');
 
-      if (recreateLook) {
-        await recreateLook({
-          image_url: look.image_url,
-          tags: look.tags,
-        });
-        onClose();
-      } else {
-        console.warn('⚠️ No recreateLook handler provided.');
+      if (!look.image_url) {
+        console.error('❌ No image_url found in look object!');
+        throw new Error('No image URL available for this saved look');
       }
 
+      // Call Google Lens API directly to get results synchronously
+      console.log('🔍 Calling API:', `${API_BASE_URL}/ai/similar-looks`);
+      const response = await fetch(`${API_BASE_URL}/ai/similar-looks`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({imageUrl: look.image_url}),
+      });
+
+      console.log('🔍 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error:', errorText);
+        throw new Error(`Google Lens search failed (${response.status}): ${errorText}`);
+      }
+
+      const results = await response.json();
+      console.log('🔍 Google Lens results count:', results?.length);
+      console.log('🔍 Google Lens first result:', results?.[0]);
+
       setSuccessState('recreate');
+
+      // Open visual recreate modal with results from Google Lens
+      if (openVisualRecreateModal) {
+        openVisualRecreateModal({
+          results: results || [],
+          source_image: look.image_url,
+        });
+      } else {
+        console.warn('⚠️ No visual recreate modal handler provided.');
+      }
+
+      onClose();
       setTimeout(() => setSuccessState(null), 1200);
-    } catch (e) {
-      console.error('[AllSavedLooksModal] recreateLook failed:', e);
+    } catch (e: any) {
+      console.error('[AllSavedLooksModal] recreateLook failed:', e?.message || e);
+      // Still open the modal even on error so user sees something
+      if (openVisualRecreateModal) {
+        openVisualRecreateModal({
+          results: [],
+          source_image: look.image_url,
+        });
+        onClose();
+      }
     } finally {
       console.log('✅ [handleRecreatePress] Loading cleared');
       setLoading(false);

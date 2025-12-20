@@ -68,8 +68,25 @@ export class AiController {
     );
   }
 
+  @Post('recreate-visual')
+  recreateVisual(
+    @Body()
+    body: {
+      user_id: string;
+      image_url: string;
+      user_gender?: string;
+    },
+  ) {
+    return this.service.recreateVisual(
+      body.user_id,
+      body.image_url,
+      body.user_gender,
+    );
+  }
+
   @Post('similar-looks')
   async findSimilar(@Body('imageUrl') rawUrl: string) {
+    console.log('🔍 [similar-looks] Received request with imageUrl:', rawUrl);
     if (!rawUrl) throw new Error('Missing imageUrl');
     let imageUrl = rawUrl;
 
@@ -84,18 +101,31 @@ export class AiController {
       imageUrl,
     )}&hl=en&gl=us&api_key=${process.env.SERPAPI_KEY}`;
 
+    console.log('🔍 [similar-looks] Calling SerpAPI with URL:', imageUrl);
+
     try {
       const res = await fetch(serpUrl);
+      console.log('🔍 [similar-looks] SerpAPI response status:', res.status);
       if (!res.ok) throw new Error(`SerpAPI failed (${res.status})`);
       const json = await res.json();
 
+      console.log('🔍 [similar-looks] SerpAPI response keys:', Object.keys(json || {}));
+
+      // Try multiple result fields - Google Lens returns different structures
       const matches =
         json?.visual_matches ||
+        json?.shopping_results ||
         json?.inline_images ||
         json?.image_results ||
+        json?.knowledge_graph?.similar_items ||
         [];
 
-      if (!matches.length) return [];
+      console.log('🔍 [similar-looks] Found', matches.length, 'matches');
+
+      if (!matches.length) {
+        console.warn('🔍 [similar-looks] No matches found for:', imageUrl);
+        return [];
+      }
 
       return matches.slice(0, 12).map((m: any) => {
         // 🏷️ Normalize Price
@@ -155,8 +185,8 @@ export class AiController {
         };
       });
     } catch (err: any) {
-      console.error('❌ [AI] similar-looks error:', err.message);
-      return [];
+      console.error('❌ [AI] similar-looks error:', err.message, err.stack);
+      throw new BadRequestException(`Similar looks search failed: ${err.message}`);
     }
   }
 

@@ -51,6 +51,7 @@ import ViewShot from 'react-native-view-shot';
 import {useCreatePost} from '../hooks/useCommunityApi';
 import {BlurView} from '@react-native-community/blur';
 import PersonalizedShopModal from '../components/PersonalizedShopModal/PersonalizedShopModal';
+import VisualRecreateModal from '../components/VisualRecreateModal/VisualRecreateModal';
 import RecreatedLookScreen from './RecreatedLookScreen';
 import {Camera} from 'react-native-vision-camera';
 import {useResponsive} from '../hooks/useResponsive';
@@ -351,6 +352,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
   const [personalizedVisible, setPersonalizedVisible] = useState(false);
   const [personalizedPurchases, setPersonalizedPurchases] = useState<any[]>([]);
+  const [visualRecreateVisible, setVisualRecreateVisible] = useState(false);
+  const [visualRecreateData, setVisualRecreateData] = useState<{
+    results: any[];
+    source_image?: string;
+  } | null>(null);
   const [showSavedLooks, setShowSavedLooks] = useState(true);
 
   // Map dropdown state & animations
@@ -718,6 +724,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
     setTimeout(() => {
       setPersonalizedVisible(true);
+    }, 100);
+  };
+
+  const openVisualRecreateModal = (data: {
+    results: any[];
+    source_image?: string;
+  }) => {
+    if (!data) return;
+    console.log('🔍 Opening Visual Recreate Modal with:', data);
+    setVisualRecreateData(data);
+    setTimeout(() => {
+      setVisualRecreateVisible(true);
     }, 100);
   };
 
@@ -2191,7 +2209,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             recreateLook={handleRecreateLook}
             openShopModal={handleShopModal}
             shopResults={shopResults}
-            openPersonalizedShopModal={openPersonalizedShopModal} // ✅ add this
+            openPersonalizedShopModal={openPersonalizedShopModal}
+            openVisualRecreateModal={openVisualRecreateModal}
           />
           <ShopModal
             visible={shopVisible}
@@ -2221,6 +2240,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               personalizedPurchases?.style_note ??
               ''
             }
+          />
+          <VisualRecreateModal
+            visible={visualRecreateVisible}
+            onClose={() => setVisualRecreateVisible(false)}
+            results={visualRecreateData?.results ?? []}
+            source_image={visualRecreateData?.source_image}
           />
           {showRecreatedModal && recreatedData && (
             <Modal

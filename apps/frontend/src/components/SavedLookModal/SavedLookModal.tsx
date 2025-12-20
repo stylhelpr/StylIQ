@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
@@ -16,6 +17,7 @@ import {API_BASE_URL} from '../../config/api';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useQueryClient} from '@tanstack/react-query';
 import * as ImagePicker from 'react-native-image-picker';
+import {uploadImageToGCS} from '../../api/uploadImageToGCS';
 
 type Props = {
   visible: boolean;
@@ -61,17 +63,37 @@ export default function SaveLookModal({visible, onClose}: Props) {
     }
   };
 
+  const [uploading, setUploading] = useState(false);
+
   const handleSave = async () => {
     if (!url || !userId) return;
     h('impactMedium');
 
     try {
+      setUploading(true);
+
+      // Upload local file to GCS first to get a public URL
+      let imageUrl = url;
+
+      if (url.startsWith('file://') || url.startsWith('ph://') || url.startsWith('assets-library://')) {
+        console.log('📤 Uploading local image to GCS...');
+        const filename = `saved-look-${Date.now()}.jpg`;
+        const userIdStr = typeof userId === 'string' ? userId : (userId as any)?.uuid || String(userId);
+        const uploadResult = await uploadImageToGCS({
+          localUri: url,
+          filename,
+          userId: userIdStr,
+        });
+        imageUrl = uploadResult.publicUrl;
+        console.log('✅ Uploaded to GCS:', imageUrl);
+      }
+
       const res = await fetch(`${API_BASE_URL}/saved-looks`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           user_id: userId,
-          image_url: url,
+          image_url: imageUrl,
           name: name || 'Saved Look',
         }),
       });
@@ -89,6 +111,8 @@ export default function SaveLookModal({visible, onClose}: Props) {
     } catch (err) {
       console.error('❌ Failed to save look:', err);
       h('notificationError');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -254,17 +278,20 @@ export default function SaveLookModal({visible, onClose}: Props) {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleSave}
-            // style={[styles.primaryButton, !url && {opacity: 0.5}]}
-            style={[globalStyles.buttonPrimary, {marginBottom: 10}]}
-            disabled={!url}>
-            <Text
-              style={{
-                color: theme.colors.buttonText1,
-                fontSize: 15,
-                fontWeight: '600',
-              }}>
-              Save
-            </Text>
+            style={[globalStyles.buttonPrimary, {marginBottom: 10}, (uploading || !url) && {opacity: 0.6}]}
+            disabled={!url || uploading}>
+            {uploading ? (
+              <ActivityIndicator size="small" color={theme.colors.buttonText1} />
+            ) : (
+              <Text
+                style={{
+                  color: theme.colors.buttonText1,
+                  fontSize: 15,
+                  fontWeight: '600',
+                }}>
+                Save
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity

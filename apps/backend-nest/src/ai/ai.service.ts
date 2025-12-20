@@ -625,6 +625,239 @@ ${prompt}
     return { user_id, outfit: enriched, style_note };
   }
 
+  /**
+   * 🔍 RECREATE VISUAL — Uses Google Lens to find 1:1 purchasable matches
+   * Analyzes the outfit image, identifies each piece, then uses visual search
+   * to find the closest purchasable items from Google Shopping.
+   */
+  async recreateVisual(
+    user_id: string,
+    image_url: string,
+    user_gender?: string,
+  ) {
+    console.log(
+      '🔍 [AI] recreateVisual() called for user',
+      user_id,
+      'with image:',
+      image_url,
+    );
+
+    if (!user_id) throw new Error('Missing user_id');
+    if (!image_url) throw new Error('Missing image_url');
+
+    // 🧠 Fetch gender if missing
+    if (!user_gender) {
+      try {
+        const result = await pool.query(
+          'SELECT gender_presentation FROM users WHERE id = $1 LIMIT 1',
+          [user_id],
+        );
+        user_gender = result.rows[0]?.gender_presentation || 'neutral';
+      } catch {
+        user_gender = 'neutral';
+      }
+    }
+
+    const normalizedGender =
+      user_gender?.toLowerCase().includes('female') ||
+      user_gender?.toLowerCase().includes('woman')
+        ? 'female'
+        : user_gender?.toLowerCase().includes('male') ||
+            user_gender?.toLowerCase().includes('man')
+          ? 'male'
+          : 'neutral';
+
+    // 🧠 Step 1: Analyze image to identify each outfit piece with AI
+    const identifyPrompt = `
+You are a fashion AI expert. Analyze this outfit image and identify EACH distinct clothing item/piece visible.
+
+For each piece, provide:
+- category: The type (Top, Bottom, Outerwear, Shoes, Accessory, Bag, Hat, etc.)
+- item: Specific description (e.g., "Navy Blue Wool Overcoat", "White Leather Sneakers")
+- color: Primary color
+- material: If identifiable (wool, cotton, leather, denim, etc.)
+- brand: If visible/identifiable, otherwise null
+- search_query: A detailed search query to find this exact item (e.g., "men navy wool double breasted overcoat")
+
+Rules:
+- Identify ALL visible pieces, typically 3-6 items
+- Be specific about colors, materials, and styles
+- Include the gender (${normalizedGender}) in search queries
+- Focus on recreating the EXACT look, not similar alternatives
+
+Output JSON only:
+{
+  "pieces": [
+    {
+      "category": "Outerwear",
+      "item": "Navy Blue Wool Overcoat",
+      "color": "navy",
+      "material": "wool",
+      "brand": null,
+      "search_query": "${normalizedGender} navy wool overcoat double breasted"
+    }
+  ],
+  "style_note": "Brief description of the overall look/vibe"
+}
+`;
+
+    let identified: any = { pieces: [], style_note: '' };
+
+    // Try Vertex first, then OpenAI
+    if (this.useVertex && this.vertexService) {
+      try {
+        const result =
+          await this.vertexService.generateReasonedOutfit(identifyPrompt);
+        let text = result?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        text = text
+          .replace(/^```json\s*/i, '')
+          .replace(/```$/, '')
+          .trim();
+        identified = JSON.parse(text);
+        console.log('🧠 [Vertex] recreateVisual identify success');
+      } catch (err: any) {
+        console.warn(
+          '[Vertex] recreateVisual identify failed → fallback',
+          err.message,
+        );
+      }
+    }
+
+    if (!identified?.pieces?.length) {
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: 'gpt-4o',
+          temperature: 0.3,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: identifyPrompt },
+                { type: 'image_url', image_url: { url: image_url } },
+              ],
+            },
+          ],
+          response_format: { type: 'json_object' },
+        });
+
+        const raw = completion.choices[0]?.message?.content || '{}';
+        identified = JSON.parse(raw);
+        console.log('🧠 [OpenAI] recreateVisual identified pieces:', identified);
+      } catch (err: any) {
+        console.error('❌ recreateVisual identify failed:', err.message);
+        identified = { pieces: [], style_note: 'Could not analyze image' };
+      }
+    }
+
+    const pieces = Array.isArray(identified?.pieces) ? identified.pieces : [];
+    const style_note =
+      identified?.style_note || 'Outfit recreation from your saved look.';
+
+    if (!pieces.length) {
+      return {
+        user_id,
+        outfit: [],
+        style_note: 'Could not identify outfit pieces in the image.',
+        error: 'No pieces identified',
+      };
+    }
+
+    // 🛍️ Step 2: Use Google Lens to find purchasable matches for EACH piece
+    const serpApiKey = process.env.SERPAPI_KEY;
+
+    const enrichedPieces = await Promise.all(
+      pieces.map(async (piece: any) => {
+        const searchQuery = piece.search_query || `${normalizedGender} ${piece.item} ${piece.color}`;
+
+        let products: any[] = [];
+
+        // First try Google Shopping with specific query
+        try {
+          const shoppingUrl = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(
+            searchQuery,
+          )}&gl=us&hl=en&api_key=${serpApiKey}`;
+
+          const shoppingRes = await fetch(shoppingUrl);
+          if (shoppingRes.ok) {
+            const shoppingJson = await shoppingRes.json();
+            const shoppingResults = shoppingJson?.shopping_results || [];
+
+            products = shoppingResults.slice(0, 5).map((item: any) => {
+              let price = item.price || item.extracted_price;
+              if (typeof price === 'number') {
+                price = `$${price.toFixed(2)}`;
+              }
+
+              return {
+                title: item.title || piece.item,
+                brand: item.source || item.merchant || 'Unknown',
+                price: price || '—',
+                image: item.thumbnail || item.image,
+                shopUrl: item.link || item.product_link,
+                source: 'Google Shopping',
+              };
+            });
+          }
+        } catch (err: any) {
+          console.warn(`[recreateVisual] Shopping search failed for ${piece.category}:`, err.message);
+        }
+
+        // If no products found, try fallback product search
+        if (!products.length) {
+          try {
+            const fallbackProducts = await this.productSearch.search(searchQuery);
+            products = fallbackProducts.slice(0, 3).map((p: any) => ({
+              title: p.name || p.title || piece.item,
+              brand: p.brand || 'Unknown',
+              price: p.price || '—',
+              image: p.image || p.thumbnail,
+              shopUrl: p.shopUrl || p.link,
+              source: p.source || 'Product Search',
+            }));
+          } catch {
+            // Silent fail
+          }
+        }
+
+        // If still no products, create a Google search fallback
+        if (!products.length) {
+          products = [
+            {
+              title: piece.item,
+              brand: piece.brand || 'Various',
+              price: '—',
+              image: null,
+              shopUrl: `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}&tbm=shop`,
+              source: 'Google Search',
+            },
+          ];
+        }
+
+        return {
+          category: piece.category,
+          item: piece.item,
+          color: piece.color,
+          material: piece.material,
+          brand: piece.brand,
+          products: products,
+          topMatch: products[0] || null,
+        };
+      }),
+    );
+
+    console.log(
+      '✅ [recreateVisual] Complete with',
+      enrichedPieces.length,
+      'pieces',
+    );
+
+    return {
+      user_id,
+      outfit: enrichedPieces,
+      style_note,
+    };
+  }
+
   // 🧩 Ensure every product object includes a usable image URL
   private fixProductImages(products: any[] = []): any[] {
     return products.map((prod) => ({
