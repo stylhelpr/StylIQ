@@ -200,15 +200,9 @@ export default function LoginScreen({
       const sets: [string, string][] = [['auth_logged_in', 'true']];
       if (user?.id) sets.push(['user_id', String(user.id)]);
 
-      if (typeof user?.onboarding_complete === 'boolean') {
-        sets.push([
-          'onboarding_complete',
-          user.onboarding_complete ? 'true' : 'false',
-        ]);
-      } else {
-        const existing = await AsyncStorage.getItem('onboarding_complete');
-        if (existing == null) sets.push(['onboarding_complete', 'false']);
-      }
+      // Always use server value, fallback to existing or false
+      const serverOnboarded = user?.onboarding_complete === true;
+      sets.push(['onboarding_complete', serverOnboarded ? 'true' : 'false']);
 
       if (styleProfile) {
         sets.push(['style_profile', JSON.stringify(styleProfile)]);

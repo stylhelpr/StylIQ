@@ -453,6 +453,43 @@ export default function PersonalInformationScreen({navigate}: any) {
           placeholder="Enter your profession"
           placeholderTextColor={colors.muted}
         />
+
+        <Text style={[styles.label, {color: colors.foreground}]}>
+          Fashion Expertise
+        </Text>
+        <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
+          {['Beginner', 'Intermediate', 'Advanced', 'Expert'].map(level => (
+            <AppleTouchFeedback
+              key={level}
+              onPress={() => setFashionLevel(level)}
+              hapticStyle="impactLight"
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 20,
+                backgroundColor:
+                  fashionLevel === level
+                    ? theme.colors.button1
+                    : theme.colors.surface3,
+                borderWidth: 1,
+                borderColor:
+                  fashionLevel === level
+                    ? theme.colors.button1
+                    : theme.colors.surfaceBorder,
+              }}>
+              <Text
+                style={{
+                  color:
+                    fashionLevel === level
+                      ? '#fff'
+                      : theme.colors.foreground,
+                  fontWeight: fashionLevel === level ? '600' : '400',
+                }}>
+                {level}
+              </Text>
+            </AppleTouchFeedback>
+          ))}
+        </View>
       </View>
 
       <View style={styles.buttonRow}>

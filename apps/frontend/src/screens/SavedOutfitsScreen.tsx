@@ -1066,7 +1066,7 @@ export default function SavedOutfitsScreen() {
                       color: '#fff',
                     }}
                     numberOfLines={1}>
-                    {userName}@stylhelpr.com
+                    @{userName.toLowerCase() || 'stylhelpr'}
                   </Text>
                 </View>
                 <Text

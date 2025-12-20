@@ -1204,10 +1204,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         color: '#fff',
                       }}
                       numberOfLines={1}>
-                      {firstName && lastName
-                        ? `${firstName}${lastName}`
-                        : 'StylHelpr'}
-                      @stylhelpr.com
+                      @{firstName && lastName
+                        ? `${firstName.toLowerCase()}${lastName.toLowerCase()}`
+                        : 'stylhelpr'}
                     </Text>
                   </View>
                   <Text

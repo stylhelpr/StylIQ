@@ -14,6 +14,7 @@ CREATE TABLE users (
   email TEXT,
   profile_picture TEXT,
   country TEXT,
+  onboarding_complete BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

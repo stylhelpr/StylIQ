@@ -413,6 +413,11 @@ export default function ProfileScreen({navigate}: Props) {
       fontWeight: tokens.fontWeight.bold,
       fontSize: 17,
     },
+    usernameText: {
+      color: theme.colors.button1,
+      fontSize: 16,
+      marginTop: 2,
+    },
     bioText: {
       color: theme.colors.foreground2,
       fontSize: 16,
@@ -558,13 +563,17 @@ export default function ProfileScreen({navigate}: Props) {
               ' ' +
               (userProfile?.last_name || '')}
           </Text>
+          <Text style={styles.usernameText}>
+            @{userProfile?.first_name && userProfile?.last_name
+              ? `${userProfile.first_name.toLowerCase()}${userProfile.last_name.toLowerCase()}`
+              : 'stylhelpr'}
+          </Text>
           {userProfile?.fashion_level && (
             <Text style={styles.bioText}>{userProfile.fashion_level}</Text>
           )}
           {userProfile?.profession && (
             <Text style={styles.bioText}>{userProfile.profession}</Text>
           )}
-          <Text style={styles.linkText}>{userProfile?.email}</Text>
         </Animatable.View>
       </Animatable.View>
 

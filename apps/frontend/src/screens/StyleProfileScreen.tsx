@@ -203,6 +203,7 @@ export default function StyleProfileScreen({navigate}: Props) {
 
   const profileSections = [
     ['Preferences', '🧪', 'Style Preferences'],
+    ['Measurements', '📏', 'Measurements'],
     ['SavedMeasurements', '📊', 'Saved Measurements'],
     ['BudgetAndBrands', '💰', 'Budget & Brands'],
     ['Appearance', '🧍', 'Appearance'],

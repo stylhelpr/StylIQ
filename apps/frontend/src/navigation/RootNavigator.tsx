@@ -67,6 +67,7 @@ import MeasurementResultsManualScreen from '../screens/MesurementResultsScreen';
 import MeshPreviewScreen from '../screens/MeshPreviewScreen';
 import EmotionTestScreen from '../screens/EmotionTestScreen';
 import SavedMeasurementsScreen from '../screens/SavedMeasurementsScreen';
+import MeasurementsScreen from '../screens/MeasurementsScreen';
 import GoldDataViewer from '../screens/GoldDataViewer';
 import SplashScreen from '../screens/SplashScreen';
 
@@ -101,6 +102,7 @@ type Screen =
   | 'Preferences'
   | 'BarcodeScannerScreen'
   | 'SavedMeasurements'
+  | 'Measurements'
   | 'BudgetAndBrands'
   | 'Appearance'
   | 'Lifestyle'
@@ -274,15 +276,28 @@ const RootNavigator = ({
 
   const routeAfterLogin = async () => {
     try {
-      const [[, logged], [, onboarded]] = await AsyncStorage.multiGet([
+      const [[, logged], [, userId]] = await AsyncStorage.multiGet([
         'auth_logged_in',
-        'onboarding_complete',
+        'user_id',
       ]);
-      if (logged === 'true') {
-        setCurrentScreen(onboarded === 'true' ? 'Home' : 'Onboarding');
-      } else {
+      if (logged !== 'true') {
         setCurrentScreen('Login');
+        return;
       }
+      // Fetch fresh onboarding status from server
+      if (userId) {
+        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+        if (res.ok) {
+          const user = await res.json();
+          const onboarded = user?.onboarding_complete === true;
+          await AsyncStorage.setItem('onboarding_complete', onboarded ? 'true' : 'false');
+          setCurrentScreen(onboarded ? 'Home' : 'Onboarding');
+          return;
+        }
+      }
+      // Fallback to local storage if server fetch fails
+      const onboarded = await AsyncStorage.getItem('onboarding_complete');
+      setCurrentScreen(onboarded === 'true' ? 'Home' : 'Onboarding');
     } catch {
       setCurrentScreen('Home');
     }
@@ -479,6 +494,8 @@ const RootNavigator = ({
         return <PreferencesScreen navigate={navigate} />;
       case 'SavedMeasurements':
         return <SavedMeasurementsScreen navigate={navigate} />;
+      case 'Measurements':
+        return <MeasurementsScreen navigate={navigate} />;
 
       case 'MeasurementJointsAutoScreen':
         return <MeasurementJointsAutoScreen navigate={navigate} />;
