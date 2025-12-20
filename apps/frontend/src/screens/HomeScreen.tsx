@@ -46,7 +46,13 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {Linking} from 'react-native';
 import type {ProductResult} from '../services/productSearchClient';
 import ShopModal from '../components/ShopModal/ShopModal';
-import {Share, TextInput, Alert, KeyboardAvoidingView, Platform} from 'react-native';
+import {
+  Share,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import {useCreatePost} from '../hooks/useCommunityApi';
 import {BlurView} from '@react-native-community/blur';
@@ -517,7 +523,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   // Share options state (community vs external)
   const [shareOptionsVisible, setShareOptionsVisible] = useState(false);
   const [pendingShareVibe, setPendingShareVibe] = useState<any | null>(null);
-  const [communityShareModalVisible, setCommunityShareModalVisible] = useState(false);
+  const [communityShareModalVisible, setCommunityShareModalVisible] =
+    useState(false);
   const [communityDescription, setCommunityDescription] = useState('');
   const [communityTags, setCommunityTags] = useState('');
 
@@ -993,7 +1000,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         userId,
         description:
           communityDescription ||
-          (pendingShareVibe.tags && pendingShareVibe.tags.slice(0, 3).join(', ')) ||
+          (pendingShareVibe.tags &&
+            pendingShareVibe.tags.slice(0, 3).join(', ')) ||
           pendingShareVibe.query_used ||
           'My look',
         tags: tagsArray.length > 0 ? tagsArray : ['look'],
@@ -1290,7 +1298,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         color: '#fff',
                       }}
                       numberOfLines={1}>
-                      @{firstName && lastName
+                      @
+                      {firstName && lastName
                         ? `${firstName.toLowerCase()}${lastName.toLowerCase()}`
                         : 'stylhelpr'}
                     </Text>
@@ -1820,7 +1829,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               useNativeDriver
               style={{width: '50%', margin: 'auto'}}>
               <AppleTouchFeedback
-                onPress={() => navigate('VideoFeedScreen')}
+                onPress={() => navigate('Explore')}
                 hapticStyle="impactLight"
                 style={[
                   globalStyles.buttonPrimary,
@@ -1840,7 +1849,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     globalStyles.buttonPrimaryText,
                     {textTransform: 'uppercase', fontWeight: '700'},
                   ]}>
-                  Community Share
+                  Fashion News
                 </Text>
               </AppleTouchFeedback>
             </Animatable.View>
@@ -2290,7 +2299,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     borderRadius: 14,
                     marginBottom: 12,
                   }}>
-                  <Icon name="groups" size={24} color={theme.colors.buttonText1} />
+                  <Icon
+                    name="groups"
+                    size={24}
+                    color={theme.colors.buttonText1}
+                  />
                   <Text
                     style={{
                       color: theme.colors.buttonText1,
@@ -2315,7 +2328,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     borderRadius: 14,
                     marginBottom: 12,
                   }}>
-                  <Icon name="ios-share" size={24} color={theme.colors.foreground} />
+                  <Icon
+                    name="ios-share"
+                    size={24}
+                    color={theme.colors.foreground}
+                  />
                   <Text
                     style={{
                       color: theme.colors.foreground,
@@ -2444,7 +2461,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   />
 
                   {/* Action Buttons */}
-                  <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+                  <View
+                    style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
                     <AppleTouchFeedback
                       hapticStyle="selection"
                       onPress={() => {
