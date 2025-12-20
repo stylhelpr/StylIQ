@@ -13,6 +13,7 @@ CREATE TABLE users (
   last_name TEXT,
   email TEXT,
   profile_picture TEXT,
+  country TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

@@ -1,5 +1,5 @@
 // // screens/OnboardingScreen.tsx
-import React, {useRef, useState, useEffect} from 'react';
+import React, {useRef, useState, useEffect, useMemo} from 'react';
 import {
   View,
   Text,
@@ -823,6 +823,11 @@ export default function OnboardingScreen({navigate}: Props) {
   // New onboarding state
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState('United States');
+  const selectedCountryRef = React.useRef(selectedCountry);
+  React.useEffect(() => {
+    selectedCountryRef.current = selectedCountry;
+  }, [selectedCountry]);
+  const handleSaveRef = React.useRef<() => void>(() => {});
   const [selectedLifestyle, setSelectedLifestyle] = useState<string | null>(
     null,
   );
@@ -896,20 +901,6 @@ export default function OnboardingScreen({navigate}: Props) {
 
   const normalizeGender = s => s.trim().toLowerCase().replace(/\s+/g, '_');
 
-  const buildPayload = () => {
-    const payload = {onboarding_complete: true};
-    for (const [k, v] of Object.entries(form)) {
-      const trimmed = typeof v === 'string' ? v.trim() : v;
-      if (trimmed) payload[k] = trimmed;
-    }
-    if (payload.gender_presentation) {
-      payload.gender_presentation = normalizeGender(
-        payload.gender_presentation,
-      );
-    }
-    return payload;
-  };
-
   const resolveUserId = async token => {
     let id = userId;
     if (!id && token) {
@@ -931,7 +922,18 @@ export default function OnboardingScreen({navigate}: Props) {
     try {
       const token = await getAccessToken();
       const id = await resolveUserId(token);
-      const payload = buildPayload();
+
+      // Build user payload directly here to avoid stale closure issues
+      const userPayload: Record<string, any> = {onboarding_complete: true};
+      for (const [k, v] of Object.entries(form)) {
+        const trimmed = typeof v === 'string' ? v.trim() : v;
+        if (trimmed) userPayload[k] = trimmed;
+      }
+      if (userPayload.gender_presentation) {
+        userPayload.gender_presentation = normalizeGender(userPayload.gender_presentation);
+      }
+      userPayload.country = selectedCountryRef.current || 'United States';
+      console.log('🚨 COUNTRY VALUE:', selectedCountryRef.current, 'PAYLOAD:', JSON.stringify(userPayload));
 
       if (id && token) {
         await fetch(`${API_BASE_URL}/users/${id}`, {
@@ -940,7 +942,7 @@ export default function OnboardingScreen({navigate}: Props) {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(payload),
+          body: JSON.stringify(userPayload),
         });
 
         // Convert and save style profile
@@ -959,11 +961,7 @@ export default function OnboardingScreen({navigate}: Props) {
           : null;
 
         const budgetLevel = selectedPriceRange
-          ? selectedPriceRange.includes('Under $50') ? 1
-            : selectedPriceRange.includes('$50-$150') ? 2
-            : selectedPriceRange.includes('$150-$300') ? 3
-            : selectedPriceRange.includes('$300+') ? 4
-            : null
+          ? parseInt(selectedPriceRange) || null
           : null;
 
         const styleProfilePayload: Record<string, any> = {
@@ -973,13 +971,12 @@ export default function OnboardingScreen({navigate}: Props) {
         if (selectedHairColor) styleProfilePayload.hair_color = selectedHairColor;
         if (selectedEyeColor) styleProfilePayload.eye_color = selectedEyeColor;
         if (selectedBodyType) styleProfilePayload.body_type = selectedBodyType;
-        if (selectedCountry) styleProfilePayload.home_city = selectedCountry;
         if (selectedLifestyle) styleProfilePayload.lifestyle_notes = selectedLifestyle;
         if (heightCmVal) styleProfilePayload.height = heightCmVal;
         if (weightKgVal) styleProfilePayload.weight = weightKgVal;
         if (selectedStyles.length > 0) styleProfilePayload.style_preferences = selectedStyles;
         if (budgetLevel) styleProfilePayload.budget_level = budgetLevel;
-        if (selectedShoppingPriorities.length > 0) styleProfilePayload.shopping_habits = selectedShoppingPriorities;
+        if (selectedShoppingPriorities.length > 0) styleProfilePayload.fit_preferences = selectedShoppingPriorities;
 
         const prefsJsonb: Record<string, any> = {};
         if (selectedClothingTypes.length > 0) prefsJsonb.clothing_types = selectedClothingTypes;
@@ -1003,7 +1000,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // 👇 NEW: go to the LAST CARD (index 20)
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 20,
+          index: 15,
           animated: true,
         });
       });
@@ -1013,7 +1010,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // still go to last card even if the request fails
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 20,
+          index: 15,
           animated: true,
         });
       });
@@ -1021,6 +1018,9 @@ export default function OnboardingScreen({navigate}: Props) {
       setSaving(false);
     }
   };
+
+  // Keep handleSaveRef updated
+  handleSaveRef.current = handleSave;
 
   // ------------------------
   // OLD FORM SLIDE
@@ -1100,7 +1100,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity
             style={[styles.button, {backgroundColor: theme.colors.button1}]}
             activeOpacity={0.85}
-            onPress={handleSave}
+            onPress={() => handleSaveRef.current()}
             disabled={saving}>
             {saving ? (
               <ActivityIndicator />
@@ -1342,46 +1342,6 @@ export default function OnboardingScreen({navigate}: Props) {
     </View>
   );
 
-  // Feature Slide 4: Stats - "No.1 digital closet"
-  const StatsFeatureSlide = () => (
-    <View style={styles.featureSlideContainer}>
-      <View style={styles.statsContainer}>
-        <View style={styles.statRow}>
-          <View style={styles.laurelContainer}>
-            <Text style={styles.laurelLeft}>🌿</Text>
-            <View style={{alignItems: 'center'}}>
-              <Text style={styles.statNumber}>1 million</Text>
-              <Text style={styles.statLabel}>Users</Text>
-            </View>
-            <Text style={styles.laurelRight}>🌿</Text>
-          </View>
-        </View>
-        <View style={styles.statRow}>
-          <View style={styles.laurelContainer}>
-            <Text style={styles.laurelLeft}>🌿</Text>
-            <View style={{alignItems: 'center'}}>
-              <Text style={styles.statNumber}>4.8</Text>
-              <Text style={styles.statLabel}>Store rate</Text>
-            </View>
-            <Text style={styles.laurelRight}>🌿</Text>
-          </View>
-        </View>
-        <Text style={styles.featureTitle}>
-          No.1 digital closet{'\n'}StylHelpr
-        </Text>
-        <View style={styles.featureDotsContainer}>
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotActive]} />
-        </View>
-      </View>
-      <TouchableOpacity style={styles.featureButton} onPress={goToNextSlide}>
-        <Text style={styles.featureButtonText}>Next</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   // ------------------------
   // NEW ONBOARDING SLIDES
   // ------------------------
@@ -1395,7 +1355,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1434,7 +1394,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1492,7 +1452,7 @@ export default function OnboardingScreen({navigate}: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => goToSlide(20)}>
+            onPress={() => goToSlide(15)}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -1572,7 +1532,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1629,7 +1589,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1692,7 +1652,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1738,14 +1698,15 @@ export default function OnboardingScreen({navigate}: Props) {
     </View>
   );
 
-  // Slide 12: Body Type selection
+  // Slide 12: Body Type selection (matches BodyTypesScreen options)
   const bodyTypes = [
-    {name: 'Slim', emoji: '🧍'},
-    {name: 'Athletic', emoji: '💪'},
-    {name: 'Average', emoji: '🧑'},
-    {name: 'Curvy', emoji: '👗'},
-    {name: 'Plus Size', emoji: '🌟'},
-    {name: 'Other', emoji: '✨'},
+    {name: 'Ectomorph', emoji: '🧍'},
+    {name: 'Mesomorph', emoji: '💪'},
+    {name: 'Endomorph', emoji: '🧑'},
+    {name: 'Inverted Triangle', emoji: '🔺'},
+    {name: 'Rectangle', emoji: '▬'},
+    {name: 'Oval', emoji: '⬭'},
+    {name: 'Triangle', emoji: '🔻'},
   ];
   const BodyTypeSlide = () => (
     <View style={styles.onboardingContainer}>
@@ -1755,7 +1716,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1791,7 +1752,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1940,14 +1901,18 @@ export default function OnboardingScreen({navigate}: Props) {
     </View>
   );
 
-  // Slide 14: Go-to Styles
+  // Slide 14: Go-to Styles (matches PreferencesScreen options)
   const styleOptions = [
-    {name: 'Casual', image: require('../assets/images/free1.jpg')},
-    {name: 'Business', image: require('../assets/images/headshot-1.webp')},
+    {name: 'Minimalist', image: require('../assets/images/free1.jpg')},
     {name: 'Streetwear', image: require('../assets/images/headshot-3.jpg')},
-    {name: 'Minimalist', image: require('../assets/images/headshot-2.webp')},
+    {name: 'Formal', image: require('../assets/images/headshot-1.webp')},
+    {name: 'Luxury', image: require('../assets/images/headshot-2.webp')},
     {name: 'Bohemian', image: require('../assets/images/headshot-5.jpg')},
-    {name: 'Athleisure', image: require('../assets/images/free1.jpg')},
+    {name: 'Preppy', image: require('../assets/images/free1.jpg')},
+    {name: 'Sporty', image: require('../assets/images/free1.jpg')},
+    {name: 'Vintage', image: require('../assets/images/free1.jpg')},
+    {name: 'Trendy', image: require('../assets/images/free1.jpg')},
+    {name: 'Business Casual', image: require('../assets/images/headshot-1.webp')},
   ];
   const StylesSlide = () => {
     const toggleStyle = (styleName: string) => {
@@ -1966,7 +1931,7 @@ export default function OnboardingScreen({navigate}: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => goToSlide(20)}>
+            onPress={() => goToSlide(15)}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2024,13 +1989,14 @@ export default function OnboardingScreen({navigate}: Props) {
     );
   };
 
-  // Slide 15: Price Range / Brands
-  const priceRanges = [
-    {name: 'Budget-Friendly', brands: ['H&M', 'Zara', 'Uniqlo']},
-    {name: 'Mid-Range', brands: ['J.Crew', 'Nordstrom', 'Madewell']},
-    {name: 'Premium', brands: ['Theory', 'Vince', 'All Saints']},
-    {name: 'Luxury', brands: ['Gucci', 'Prada', 'Burberry']},
-  ];
+  // Slide 15: Budget (matches BudgetAndBrandsScreen)
+  const [budgetInput, setBudgetInput] = useState('');
+  const handleBudgetInputChange = (value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    const numeric = parseInt(cleaned || '0');
+    setBudgetInput(cleaned ? `$${numeric.toLocaleString()}` : '');
+    setSelectedPriceRange(cleaned ? numeric.toString() : null);
+  };
   const PriceRangeSlide = () => (
     <View style={styles.onboardingContainer}>
       <View style={styles.onboardingHeader}>
@@ -2039,50 +2005,56 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.onboardingContent}>
         <Text style={styles.onboardingTitle}>
-          What's your typical price range?
+          Your Monthly Style Budget
         </Text>
         <Text style={[styles.inputNote, {marginBottom: 20}]}>
           This helps us suggest brands that match your budget
         </Text>
-        {priceRanges.map(item => (
-          <TouchableOpacity
-            key={item.name}
-            style={[
-              styles.brandCard,
-              selectedPriceRange === item.name && styles.brandCardSelected,
-            ]}
-            onPress={() => {
-              setSelectedPriceRange(item.name);
-              setTimeout(goToNextSlide, 300);
-            }}>
-            <Text style={styles.brandLabel}>{item.name}</Text>
-            <View style={styles.brandLogos}>
-              {item.brands.map(brand => (
-                <View key={brand} style={styles.brandLogo}>
-                  <Text style={styles.brandLogoText}>
-                    {brand.substring(0, 2).toUpperCase()}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </TouchableOpacity>
-        ))}
+        <TextInput
+          placeholder="$ Amount"
+          placeholderTextColor={theme.colors.muted}
+          style={{
+            borderWidth: 1,
+            borderColor: theme.colors.inputBorder,
+            borderRadius: 12,
+            padding: 16,
+            fontSize: 18,
+            backgroundColor: theme.colors.surface3,
+            color: theme.colors.foreground,
+            marginBottom: 20,
+          }}
+          keyboardType="numeric"
+          value={budgetInput}
+          onChangeText={handleBudgetInputChange}
+        />
+      </View>
+      <View style={styles.bottomButtonContainer}>
+        <TouchableOpacity
+          style={budgetInput ? styles.primaryButton : styles.primaryButtonDisabled}
+          onPress={goToNextSlide}>
+          <Text
+            style={budgetInput ? styles.primaryButtonText : styles.primaryButtonTextDisabled}>
+            Next
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 
-  // Shopping Priorities slide
+  // Shopping Priorities slide (matches FitPreferencesScreen options)
   const shoppingPriorityOptions = [
-    'A good fit',
-    'Saving time',
-    'Updating my wardrobe',
-    'Improving my style',
+    'Slim Fit',
+    'Relaxed Fit',
+    'Tailored',
+    'Boxy',
+    'Skinny',
+    'Oversized',
   ];
   const ShoppingPrioritiesSlide = () => {
     const togglePriority = (priority: string) => {
@@ -2101,13 +2073,13 @@ export default function OnboardingScreen({navigate}: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => goToSlide(20)}>
+            onPress={() => goToSlide(15)}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.onboardingContent}>
           <Text style={styles.onboardingTitle}>
-            When shopping for clothes, what's important to you?
+            What type of fit do you mostly prefer?
           </Text>
           <Text style={[styles.inputNote, {marginBottom: 16}]}>
             Select all that apply
@@ -2180,7 +2152,7 @@ export default function OnboardingScreen({navigate}: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => goToSlide(20)}>
+            onPress={() => goToSlide(15)}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2243,7 +2215,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => goToSlide(20)}>
+          onPress={() => goToSlide(15)}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -2352,7 +2324,7 @@ export default function OnboardingScreen({navigate}: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.skipButton}
-            onPress={() => goToSlide(20)}>
+            onPress={() => goToSlide(15)}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2500,12 +2472,7 @@ export default function OnboardingScreen({navigate}: Props) {
       key: '4',
       element: <AICleanupFeatureSlide />,
     },
-    // Screen 5 - Feature: Stats
-    {
-      key: '5',
-      element: <StatsFeatureSlide />,
-    },
-    // Screen 6 - Get to know you intro
+    // Screen 5 - Get to know you intro
     {
       key: '6',
       element: <GetToKnowYouSlide />,
@@ -2515,37 +2482,17 @@ export default function OnboardingScreen({navigate}: Props) {
       key: '7',
       element: <ShoppingPrioritiesSlide />,
     },
-    // Screen 8 - Clothing Types (NEW)
-    {
-      key: '8',
-      element: <ClothingTypesSlide />,
-    },
-    // Screen 9 - Simple Height (NEW)
-    {
-      key: '9',
-      element: <SimpleHeightSlide />,
-    },
-    // Screen 10 - Sizes (NEW)
+    // Screen 8 - Sizes (NEW)
     {
       key: '10',
       element: <SizesSlide />,
     },
-    // Screen 11 - Gender selection
-    {
-      key: '11',
-      element: <GenderSlide />,
-    },
-    // Screen 12 - Location selection
+    // Screen 11 - Location selection
     {
       key: '12',
       element: <LocationSlide />,
     },
-    // Screen 13 - Lifestyle selection
-    {
-      key: '13',
-      element: <LifestyleSlide />,
-    },
-    // Screen 14 - Hair Color
+    // Screen 12 - Hair Color
     {
       key: '14',
       element: <HairColorSlide />,
@@ -2575,10 +2522,11 @@ export default function OnboardingScreen({navigate}: Props) {
       key: '19',
       element: <PriceRangeSlide />,
     },
-
-    // Screen 20 - Profile Form (KEEP - second-to-last)
-    {key: '20', element: OldFormSlide},
-
+    // Screen 20 - Profile Form
+    {
+      key: '20',
+      element: OldFormSlide,
+    },
     // Screen 21 - Get Started (KEEP - last)
     {key: '21', element: <GetStarted />},
   ];
@@ -2612,6 +2560,10 @@ export default function OnboardingScreen({navigate}: Props) {
           [{nativeEvent: {contentOffset: {x: scrollX}}}],
           {useNativeDriver: false},
         )}
+        onMomentumScrollEnd={(e) => {
+          const index = Math.round(e.nativeEvent.contentOffset.x / width);
+          setCurrentIndex(index);
+        }}
         scrollEventThrottle={16}
       />
     </View>

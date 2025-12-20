@@ -7,8 +7,7 @@ export class UpdateStyleProfileDto {
   eye_color?: string;
   proportions?: string;
 
-  // Location & Climate
-  home_city?: string;
+  // Climate
   climate?: string;
 
   // Measurements

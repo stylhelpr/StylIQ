@@ -7,6 +7,7 @@ export class UpdateUserDto {
   fashion_level?: string;
   gender_presentation?: string;
   onboarding_complete?: boolean;
+  country?: string;
 }
 
 /////////////////

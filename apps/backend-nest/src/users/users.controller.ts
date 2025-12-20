@@ -112,7 +112,8 @@ export class UsersController {
       'fashion_level',
       'gender_presentation',
       'onboarding_complete',
-      'theme_mode', // ✅ include here too
+      'theme_mode',
+      'country',
     ]);
 
     const dto: any = {};
