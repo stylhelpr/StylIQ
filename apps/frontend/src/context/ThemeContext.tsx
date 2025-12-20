@@ -17,8 +17,8 @@ interface ThemeContextType {
 const STORAGE_KEY = 'app_theme_mode';
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: 'fashion1',
-  theme: allThemes['fashion1'] as Theme,
+  mode: 'modernDark',
+  theme: allThemes['modernDark'] as Theme,
   toggleTheme: () => {},
   setSkin: () => {},
 });
@@ -28,16 +28,23 @@ export const useAppTheme = () => useContext(ThemeContext);
 export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({
   children,
 }) => {
-  const [mode, setMode] = useState<ThemeType>('fashion1');
+  const [mode, setMode] = useState<ThemeType>('modernDark');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 🪄 Load saved theme on mount
+  // 🪄 Load saved theme on mount (with one-time migration to modernDark)
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored && stored in allThemes) {
-          setMode(stored as ThemeType);
+        const migrated = await AsyncStorage.getItem('theme_migrated_to_modernDark');
+        if (!migrated) {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          await AsyncStorage.setItem('theme_migrated_to_modernDark', 'true');
+          setMode('modernDark');
+        } else {
+          const stored = await AsyncStorage.getItem(STORAGE_KEY);
+          if (stored && stored in allThemes) {
+            setMode(stored as ThemeType);
+          }
         }
       } catch (e) {
         console.warn('Failed to load theme from storage:', e);

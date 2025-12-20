@@ -27,6 +27,7 @@ import {API_BASE_URL} from '../config/api';
 import {getAccessToken} from '../utils/auth';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
+import {getData} from 'country-list';
 
 type Props = {navigate: (screen: string, params?: any) => void};
 
@@ -822,11 +823,11 @@ export default function OnboardingScreen({navigate}: Props) {
 
   // New onboarding state
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState('United States');
-  const selectedCountryRef = React.useRef(selectedCountry);
+  const [selectedCountryCode, setSelectedCountryCode] = useState('US');
+  const selectedCountryCodeRef = React.useRef(selectedCountryCode);
   React.useEffect(() => {
-    selectedCountryRef.current = selectedCountry;
-  }, [selectedCountry]);
+    selectedCountryCodeRef.current = selectedCountryCode;
+  }, [selectedCountryCode]);
   const handleSaveRef = React.useRef<() => void>(() => {});
   const [selectedLifestyle, setSelectedLifestyle] = useState<string | null>(
     null,
@@ -849,6 +850,7 @@ export default function OnboardingScreen({navigate}: Props) {
   const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(
     null,
   );
+  const [selectedPersonalityTraits, setSelectedPersonalityTraits] = useState<string[]>([]);
 
   // New state for shopping priorities, clothing types, and sizes
   const [selectedShoppingPriorities, setSelectedShoppingPriorities] = useState<
@@ -932,8 +934,8 @@ export default function OnboardingScreen({navigate}: Props) {
       if (userPayload.gender_presentation) {
         userPayload.gender_presentation = normalizeGender(userPayload.gender_presentation);
       }
-      userPayload.country = selectedCountryRef.current || 'United States';
-      console.log('🚨 COUNTRY VALUE:', selectedCountryRef.current, 'PAYLOAD:', JSON.stringify(userPayload));
+      userPayload.country = selectedCountryCodeRef.current || 'US';
+      console.log('🚨 COUNTRY VALUE:', selectedCountryCodeRef.current, 'PAYLOAD:', JSON.stringify(userPayload));
 
       if (id && token) {
         await fetch(`${API_BASE_URL}/users/${id}`, {
@@ -977,6 +979,7 @@ export default function OnboardingScreen({navigate}: Props) {
         if (selectedStyles.length > 0) styleProfilePayload.style_preferences = selectedStyles;
         if (budgetLevel) styleProfilePayload.budget_level = budgetLevel;
         if (selectedShoppingPriorities.length > 0) styleProfilePayload.fit_preferences = selectedShoppingPriorities;
+        if (selectedPersonalityTraits.length > 0) styleProfilePayload.personality_traits = selectedPersonalityTraits;
 
         const prefsJsonb: Record<string, any> = {};
         if (selectedClothingTypes.length > 0) prefsJsonb.clothing_types = selectedClothingTypes;
@@ -997,10 +1000,10 @@ export default function OnboardingScreen({navigate}: Props) {
       // Mark onboarding complete
       await AsyncStorage.setItem('onboarding_complete', 'true');
 
-      // 👇 NEW: go to the LAST CARD (index 20)
+      // 👇 NEW: go to the LAST CARD (GetStarted)
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 15,
+          index: 16,
           animated: true,
         });
       });
@@ -1010,7 +1013,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // still go to last card even if the request fails
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 15,
+          index: 16,
           animated: true,
         });
       });
@@ -1430,20 +1433,14 @@ export default function OnboardingScreen({navigate}: Props) {
     </View>
   );
 
-  // Slide 8: Location selection
-  const countries = [
-    {name: 'United States', flag: '🇺🇸'},
-    {name: 'United Kingdom', flag: '🇬🇧'},
-    {name: 'Canada', flag: '🇨🇦'},
-    {name: 'Australia', flag: '🇦🇺'},
-    {name: 'Germany', flag: '🇩🇪'},
-    {name: 'France', flag: '🇫🇷'},
-    {name: 'Japan', flag: '🇯🇵'},
-    {name: 'Other', flag: '🌍'},
-  ];
+  // Slide 8: Location selection - using ISO country list
+  const allCountries = useMemo(() => getData(), []);
+  const getCountryName = (code: string) => {
+    const country = allCountries.find(c => c.code === code);
+    return country ? country.name : code;
+  };
+
   const LocationSlide = () => {
-    const selectedCountryData =
-      countries.find(c => c.name === selectedCountry) || countries[0];
     return (
       <View style={styles.onboardingContainer}>
         <View style={styles.onboardingHeader}>
@@ -1461,8 +1458,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity
             style={styles.countrySelector}
             onPress={() => setShowCountryPicker(true)}>
-            <Text style={styles.countryFlag}>{selectedCountryData.flag}</Text>
-            <Text style={styles.countryText}>{selectedCountry}</Text>
+            <Text style={styles.countryText}>{getCountryName(selectedCountryCode)}</Text>
             <Text style={styles.countryChevron}>⌄</Text>
           </TouchableOpacity>
         </View>
@@ -1492,18 +1488,18 @@ export default function OnboardingScreen({navigate}: Props) {
                 </TouchableOpacity>
               </View>
               <Picker
-                selectedValue={selectedCountry}
-                onValueChange={val => setSelectedCountry(val)}
+                selectedValue={selectedCountryCode}
+                onValueChange={val => setSelectedCountryCode(val)}
                 itemStyle={{
                   color: theme.colors.foreground,
                   fontSize: 18,
                   fontWeight: '500',
                 }}>
-                {countries.map(c => (
+                {allCountries.map(c => (
                   <Picker.Item
-                    key={c.name}
-                    label={`${c.flag} ${c.name}`}
-                    value={c.name}
+                    key={c.code}
+                    label={c.name}
+                    value={c.code}
                   />
                 ))}
               </Picker>
@@ -1739,6 +1735,67 @@ export default function OnboardingScreen({navigate}: Props) {
             </TouchableOpacity>
           ))}
         </View>
+      </View>
+    </View>
+  );
+
+  // Slide: Personality Traits
+  const personalityTraits = [
+    'Confident',
+    'Adventurous',
+    'Laid-back',
+    'Creative',
+    'Bold',
+    'Minimalist',
+    'Playful',
+    'Elegant',
+    'Edgy',
+    'Chill',
+  ];
+  const PersonalityTraitsSlide = () => (
+    <View style={styles.onboardingContainer}>
+      <View style={styles.onboardingHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => goToSlide(15)}>
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.onboardingContent}>
+        <Text style={styles.onboardingTitle}>What are your Personality Traits?</Text>
+        <View style={styles.chipContainer}>
+          {personalityTraits.map(trait => (
+            <TouchableOpacity
+              key={trait}
+              style={[
+                styles.chip,
+                selectedPersonalityTraits.includes(trait) && styles.chipSelected,
+              ]}
+              onPress={() => {
+                setSelectedPersonalityTraits(prev =>
+                  prev.includes(trait)
+                    ? prev.filter(t => t !== trait)
+                    : [...prev, trait]
+                );
+              }}>
+              <Text
+                style={[
+                  styles.chipText,
+                  selectedPersonalityTraits.includes(trait) && styles.chipTextSelected,
+                ]}>
+                {trait}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      <View style={styles.bottomButtonContainer}>
+        <TouchableOpacity style={styles.primaryButton} onPress={goToNextSlide}>
+          <Text style={styles.primaryButtonText}>Next</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -2506,6 +2563,11 @@ export default function OnboardingScreen({navigate}: Props) {
     {
       key: '16',
       element: <BodyTypeSlide />,
+    },
+    // Screen 16.5 - Personality Traits
+    {
+      key: '16.5',
+      element: <PersonalityTraitsSlide />,
     },
     // Screen 17 - Height & Weight
     {
