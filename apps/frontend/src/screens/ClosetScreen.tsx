@@ -474,8 +474,8 @@ export default function ClosetScreen({navigate}: Props) {
             </Text>
             <View style={{alignSelf: 'flex-start'}}>
               <TooltipBubble
-                message="You haven’t uploaded any wardrobe items yet. Tap the “Add Clothes”
-             button below to start adding your personal wardrobe inventory."
+                message="You haven’t uploaded any wardrobe items yet. Tap the + button”
+             button at the bottom to start adding your personal wardrobe inventory."
                 position="top"
               />
             </View>

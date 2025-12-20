@@ -30,6 +30,7 @@ import {fontScale, moderateScale} from '../../utils/scale';
 import LinearGradient from 'react-native-linear-gradient';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import SaveLookModal from '../SavedLookModal/SavedLookModal';
+import {TooltipBubble} from '../ToolTip/ToolTip1';
 
 const {height} = Dimensions.get('window');
 const {width} = Dimensions.get('window');
@@ -563,6 +564,25 @@ export default function AllSavedLooksModal({
                   justifyContent: width <= 360 ? 'center' : 'space-between',
                   paddingBottom: insets.bottom + 120,
                 }}>
+                {/* Empty state when no saved looks */}
+                {savedLooks.length === 0 && (
+                  <View
+                    style={{
+                      width: '100%',
+                      alignItems: 'center',
+                      paddingTop: tokens.spacing.xl,
+                    }}>
+                    <Text style={globalStyles.missingDataMessage1}>
+                      No Saved Images
+                    </Text>
+                    <View style={{marginTop: tokens.spacing.sm}}>
+                      <TooltipBubble
+                        message="Tap the Add Image button above to save your favorite looks."
+                        position="bottom"
+                      />
+                    </View>
+                  </View>
+                )}
                 {/* 🔹 Adaptive Grid Cards */}
                 {savedLooks.map((look, index) => {
                   const numColumns = width <= 360 ? 1 : width <= 768 ? 2 : 3;

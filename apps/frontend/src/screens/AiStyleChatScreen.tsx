@@ -163,7 +163,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
               msg.id === 'seed-1'
                 ? {
                     ...msg,
-                    text: `Hey ${data.first_name} — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.`,
+                    text: `Hi ${data.first_name} — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.`,
                   }
                 : msg,
             ),
@@ -181,7 +181,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
     {
       id: 'seed-1',
       role: 'assistant',
-      text: "Hey — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.",
+      text: "Hi — I'm Styla, your AI Stylist. Ask me anything fashion related that you want to know.",
       createdAt: Date.now(),
     },
   ]);

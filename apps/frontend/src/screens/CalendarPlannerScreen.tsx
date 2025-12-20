@@ -25,6 +25,7 @@ import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {syncNativeCalendarToBackend} from '../utils/calendarSync';
 import * as Animatable from 'react-native-animatable';
 import {useCalendarEventPromptStore} from '../../../../store/calendarEventPromptStore';
+import {useCalendarEventsStore} from '../../../../store/calendarEventsStore';
 import {globalNavigate} from '../MainApp';
 
 // ───────── helpers ─────────
@@ -61,7 +62,7 @@ export default function OutfitPlannerScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
 
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const {events: calendarEvents, setEvents: setCalendarEvents} = useCalendarEventsStore();
   const [scheduledOutfits, setScheduledOutfits] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -100,18 +101,18 @@ export default function OutfitPlannerScreen() {
     ]).start();
   }, []);
 
-  // ───────── sync native iOS calendar ─────────
-  useEffect(() => {
-    if (userId) {
-      syncNativeCalendarToBackend(userId);
-      console.log('⚠️ Calendar sync skipped (API disabled)');
-    }
-  }, [userId]);
-
-  // ───────── fetch calendar + outfits ─────────
+  // ───────── sync native iOS calendar, then fetch events ─────────
   useEffect(() => {
     if (!userId) return;
+
+    // If we already have events, don't refetch (they persist in the store)
+    if (calendarEvents.length > 0) return;
+
     (async () => {
+      // First sync native calendar (this also requests permission if needed)
+      await syncNativeCalendarToBackend(userId);
+
+      // Then fetch calendar events from backend
       try {
         const res = await fetch(`${API_BASE_URL}/calendar/user/${userId}`);
         const json = await res.json();
@@ -120,7 +121,7 @@ export default function OutfitPlannerScreen() {
         console.warn('❌ Failed to load calendar events:', err);
       }
     })();
-  }, [userId]);
+  }, [userId, calendarEvents.length, setCalendarEvents]);
 
   useEffect(() => {
     if (!userId) return;

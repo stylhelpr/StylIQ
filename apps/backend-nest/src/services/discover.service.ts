@@ -202,90 +202,12 @@ export class DiscoverService {
 
   // -------------------- Personalized recommendations --------------------
 
-  async getRecommended(userId: string) {
-    const wardrobe = await pool
-      .query('SELECT main_category FROM wardrobe_items WHERE user_id=$1', [
-        userId,
-      ])
-      .catch(() => ({ rowCount: 0, rows: [] as { main_category: string }[] }));
-    const ownedCategories: string[] = wardrobe.rowCount
-      ? wardrobe.rows.map((w) => String(w.main_category)).filter(Boolean)
-      : [];
-
-    const sp = await pool
-      .query<{
-        doc: JsonObj;
-      }>(
-        'SELECT to_jsonb(sp) AS doc FROM style_profiles sp WHERE user_id=$1 LIMIT 1',
-        [userId],
-      )
-      .catch(() => ({ rowCount: 0, rows: [] as { doc: JsonObj }[] }));
-    const doc: JsonObj = sp.rowCount ? sp.rows[0].doc : {};
-
-    const preferredBrands = this.ensureArray(doc.preferred_brands);
-    const styleKeywords = this.ensureArray(doc.style_keywords);
-    const colorPrefs =
-      this.ensureArray(doc.color_preferences) ||
-      this.ensureArray(doc.favorite_colors);
-    const dislike = this.ensureArray(doc.disliked_styles);
-
-    const kwLike = this.likePatterns(styleKeywords);
-    const colorLike = this.likePatterns(colorPrefs);
-    const dislikeLike = this.likePatterns(dislike);
-
-    const where: string[] = [];
-    const params: any[] = [];
-    let i = 1;
-
-    // NOTE: since demo sources have generic brands, brand filter may remove too much.
-    // We keep it, but the fallback below ensures the UI still shows items if empty.
-    if (preferredBrands.length > 0) {
-      where.push(`brand = ANY($${i}::text[])`);
-      params.push(preferredBrands);
-      i++;
-    }
-    if (kwLike.length > 0) {
-      where.push(
-        `(title ILIKE ANY($${i}::text[]) OR brand ILIKE ANY($${i}::text[]) OR category ILIKE ANY($${i}::text[]))`,
-      );
-      params.push(kwLike);
-      i++;
-    }
-    if (colorLike.length > 0) {
-      where.push(`(title ILIKE ANY($${i}::text[]))`);
-      params.push(colorLike);
-      i++;
-    }
-    if (ownedCategories.length > 0) {
-      where.push(`NOT (category = ANY($${i}::text[]))`);
-      params.push(ownedCategories);
-      i++;
-    }
-    if (dislikeLike.length > 0) {
-      where.push(
-        `NOT (title ILIKE ANY($${i}::text[]) OR category ILIKE ANY($${i}::text[]))`,
-      );
-      params.push(dislikeLike);
-      i++;
-    }
-
-    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const sql = `
-      SELECT *
-      FROM discover_products
-      ${whereSql}
-      ORDER BY created_at DESC
-      LIMIT 20
-    `;
-
-    const { rows } = await pool.query(sql, params);
-    if (rows.length === 0) {
-      // brand keywords likely filtered out generic-source brands — show latest instead
-      const fb = await pool.query(
-        'SELECT * FROM discover_products ORDER BY created_at DESC LIMIT 20',
-      );
-      return fb.rows;
-    }
+  async getRecommended(_userId: string) {
+    // Demo data doesn't match real user preferences, so just return latest products
+    // TODO: Replace with real product API that supports filtering by style/color/brand
+    const { rows } = await pool.query(
+      'SELECT * FROM discover_products ORDER BY created_at DESC LIMIT 20',
+    );
     return rows;
   }
 

@@ -48,7 +48,7 @@ export default function OnboardingScreen({navigate}: Props) {
       width,
       padding: 24,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
     },
 
     stepImage: {
@@ -73,12 +73,13 @@ export default function OnboardingScreen({navigate}: Props) {
 
     formContainer: {
       width,
-      paddingTop: 10,
+      paddingTop: 60,
     },
     card: {
       padding: 20,
       borderRadius: 20,
       margin: 6,
+      marginTop: 120,
     },
     title: {
       fontSize: 36,
@@ -162,7 +163,7 @@ export default function OnboardingScreen({navigate}: Props) {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingTop: 60,
+      paddingTop: 120,
       paddingBottom: 10,
     },
     backButton: {
@@ -213,7 +214,15 @@ export default function OnboardingScreen({navigate}: Props) {
       height: 180,
       alignSelf: 'center',
       marginTop: 40,
-      marginBottom: 40,
+      marginBottom: 20,
+      backgroundColor: 'transparent',
+    },
+    mascotIntroText: {
+      fontSize: 16,
+      color: '#FFFFFF',
+      textAlign: 'center',
+      paddingHorizontal: 20,
+      lineHeight: 24,
     },
     optionRow: {
       flexDirection: 'row',
@@ -266,7 +275,7 @@ export default function OnboardingScreen({navigate}: Props) {
       paddingTop: 20,
     },
     primaryButton: {
-      backgroundColor: theme.colors.foreground,
+      backgroundColor: theme.colors.button1,
       borderRadius: 12,
       paddingVertical: 18,
       alignItems: 'center',
@@ -274,7 +283,7 @@ export default function OnboardingScreen({navigate}: Props) {
     primaryButtonText: {
       fontSize: 17,
       fontWeight: '600',
-      color: theme.colors.surface,
+      color: '#FFFFFF',
     },
     primaryButtonDisabled: {
       backgroundColor: theme.colors.surface3,
@@ -609,15 +618,16 @@ export default function OnboardingScreen({navigate}: Props) {
       width,
       flex: 1,
       backgroundColor: theme.colors.surface,
+      paddingTop: 180,
     },
     featureContent: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       alignItems: 'center',
       paddingHorizontal: 24,
     },
     phoneMockup: {
-      width: width * 0.7,
+      width: width * 0.8,
       height: width * 0.9,
       backgroundColor: theme.colors.surface3,
       borderRadius: 24,
@@ -666,6 +676,14 @@ export default function OnboardingScreen({navigate}: Props) {
       alignItems: 'center',
       marginHorizontal: 24,
       marginBottom: 40,
+    },
+    fixedBottomContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: theme.colors.surface,
+      paddingTop: 20,
     },
     featureButtonText: {
       fontSize: 17,
@@ -806,6 +824,11 @@ export default function OnboardingScreen({navigate}: Props) {
     requestAnimationFrame(() => setReady(true));
   }, []);
 
+  // Disable swiping on the "Get to know you" slide (index 4) and after
+  useEffect(() => {
+    setScrollEnabled(currentIndex < 4);
+  }, [currentIndex]);
+
   // ------------------------
   // OLD FORM STATE
   // ------------------------
@@ -850,7 +873,9 @@ export default function OnboardingScreen({navigate}: Props) {
   const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(
     null,
   );
-  const [selectedPersonalityTraits, setSelectedPersonalityTraits] = useState<string[]>([]);
+  const [selectedPersonalityTraits, setSelectedPersonalityTraits] = useState<
+    string[]
+  >([]);
 
   // New state for shopping priorities, clothing types, and sizes
   const [selectedShoppingPriorities, setSelectedShoppingPriorities] = useState<
@@ -932,10 +957,17 @@ export default function OnboardingScreen({navigate}: Props) {
         if (trimmed) userPayload[k] = trimmed;
       }
       if (userPayload.gender_presentation) {
-        userPayload.gender_presentation = normalizeGender(userPayload.gender_presentation);
+        userPayload.gender_presentation = normalizeGender(
+          userPayload.gender_presentation,
+        );
       }
       userPayload.country = selectedCountryCodeRef.current || 'US';
-      console.log('🚨 COUNTRY VALUE:', selectedCountryCodeRef.current, 'PAYLOAD:', JSON.stringify(userPayload));
+      console.log(
+        '🚨 COUNTRY VALUE:',
+        selectedCountryCodeRef.current,
+        'PAYLOAD:',
+        JSON.stringify(userPayload),
+      );
 
       if (id && token) {
         await fetch(`${API_BASE_URL}/users/${id}`, {
@@ -948,13 +980,22 @@ export default function OnboardingScreen({navigate}: Props) {
         });
 
         // Convert and save style profile
-        const heightCmVal = simpleHeightFeet || simpleHeightInches
-          ? Math.round(((parseFloat(simpleHeightFeet) || 0) * 12 + (parseFloat(simpleHeightInches) || 0)) * 2.54)
-          : heightFeet || heightInches
-            ? Math.round(((parseFloat(heightFeet) || 0) * 12 + (parseFloat(heightInches) || 0)) * 2.54)
+        const heightCmVal =
+          simpleHeightFeet || simpleHeightInches
+            ? Math.round(
+                ((parseFloat(simpleHeightFeet) || 0) * 12 +
+                  (parseFloat(simpleHeightInches) || 0)) *
+                  2.54,
+              )
+            : heightFeet || heightInches
+            ? Math.round(
+                ((parseFloat(heightFeet) || 0) * 12 +
+                  (parseFloat(heightInches) || 0)) *
+                  2.54,
+              )
             : heightCm
-              ? parseFloat(heightCm)
-              : null;
+            ? parseFloat(heightCm)
+            : null;
 
         const weightKgVal = weight
           ? weightUnit === 'kg'
@@ -970,22 +1011,29 @@ export default function OnboardingScreen({navigate}: Props) {
           is_style_profile_complete: true,
         };
 
-        if (selectedHairColor) styleProfilePayload.hair_color = selectedHairColor;
+        if (selectedHairColor)
+          styleProfilePayload.hair_color = selectedHairColor;
         if (selectedEyeColor) styleProfilePayload.eye_color = selectedEyeColor;
         if (selectedBodyType) styleProfilePayload.body_type = selectedBodyType;
-        if (selectedLifestyle) styleProfilePayload.lifestyle_notes = selectedLifestyle;
+        if (selectedLifestyle)
+          styleProfilePayload.lifestyle_notes = selectedLifestyle;
         if (heightCmVal) styleProfilePayload.height = heightCmVal;
         if (weightKgVal) styleProfilePayload.weight = weightKgVal;
-        if (selectedStyles.length > 0) styleProfilePayload.style_preferences = selectedStyles;
+        if (selectedStyles.length > 0)
+          styleProfilePayload.style_preferences = selectedStyles;
         if (budgetLevel) styleProfilePayload.budget_level = budgetLevel;
-        if (selectedShoppingPriorities.length > 0) styleProfilePayload.fit_preferences = selectedShoppingPriorities;
-        if (selectedPersonalityTraits.length > 0) styleProfilePayload.personality_traits = selectedPersonalityTraits;
+        if (selectedShoppingPriorities.length > 0)
+          styleProfilePayload.fit_preferences = selectedShoppingPriorities;
+        if (selectedPersonalityTraits.length > 0)
+          styleProfilePayload.personality_traits = selectedPersonalityTraits;
 
         const prefsJsonb: Record<string, any> = {};
-        if (selectedClothingTypes.length > 0) prefsJsonb.clothing_types = selectedClothingTypes;
+        if (selectedClothingTypes.length > 0)
+          prefsJsonb.clothing_types = selectedClothingTypes;
         const hasAnySizes = Object.values(sizes).some(s => s.size || s.fit);
         if (hasAnySizes) prefsJsonb.sizes = sizes;
-        if (Object.keys(prefsJsonb).length > 0) styleProfilePayload.prefs_jsonb = prefsJsonb;
+        if (Object.keys(prefsJsonb).length > 0)
+          styleProfilePayload.prefs_jsonb = prefsJsonb;
 
         await fetch(`${API_BASE_URL}/style-profile/${user?.sub}`, {
           method: 'PUT',
@@ -1189,14 +1237,18 @@ export default function OnboardingScreen({navigate}: Props) {
   // CARDS
   // ------------------------
   const Step = ({title, description, image}) => (
-    <View style={[styles.panel, {backgroundColor: theme.colors.surface}]}>
-      <Image source={image} style={styles.stepImage} />
-      <Text style={[styles.stepTitle, {color: theme.colors.foreground}]}>
-        {title}
-      </Text>
-      <Text style={[styles.stepDescription, {color: theme.colors.foreground}]}>
-        {description}
-      </Text>
+    <View style={styles.featureSlideContainer}>
+      <View style={styles.featureContent}>
+        <View style={styles.phoneMockup}>
+          <Image
+            source={image}
+            style={styles.phoneMockupImage}
+            resizeMode="cover"
+          />
+        </View>
+        <Text style={styles.featureTitle}>{title}</Text>
+        <Text style={styles.stepDescription}>{description}</Text>
+      </View>
     </View>
   );
 
@@ -1248,16 +1300,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <Text style={styles.featureTitle}>
           All your clothes,{'\n'}one glance
         </Text>
-        <View style={styles.featureDotsContainer}>
-          <View style={[styles.featureDot, styles.featureDotActive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-        </View>
       </View>
-      <TouchableOpacity style={styles.featureButton} onPress={goToNextSlide}>
-        <Text style={styles.featureButtonText}>Next</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -1294,16 +1337,7 @@ export default function OnboardingScreen({navigate}: Props) {
           </View>
         </View>
         <Text style={styles.featureTitle}>Meet your personal AI stylist</Text>
-        <View style={styles.featureDotsContainer}>
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotActive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-        </View>
       </View>
-      <TouchableOpacity style={styles.featureButton} onPress={goToNextSlide}>
-        <Text style={styles.featureButtonText}>Next</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -1332,16 +1366,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <Text style={styles.featureTitle}>
           Snap a worn look, AI cleans it up
         </Text>
-        <View style={styles.featureDotsContainer}>
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-          <View style={[styles.featureDot, styles.featureDotActive]} />
-          <View style={[styles.featureDot, styles.featureDotInactive]} />
-        </View>
       </View>
-      <TouchableOpacity style={styles.featureButton} onPress={goToNextSlide}>
-        <Text style={styles.featureButtonText}>Next</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -1352,26 +1377,16 @@ export default function OnboardingScreen({navigate}: Props) {
   // Slide 6: Get to know you intro
   const GetToKnowYouSlide = () => (
     <View style={styles.onboardingContainer}>
-      <View style={styles.onboardingHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
-          <Text style={styles.backButtonText}>‹</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, {width: '8%'}]} />
-      </View>
       <View
-        style={[
-          styles.onboardingContent,
-          {justifyContent: 'center', alignItems: 'center'},
-        ]}>
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+        }}>
         <Text style={styles.onboardingTitleCentered}>
-          Before you start,{'\n'}let me get to know you!
+          Hi I'm Styla, your personalized fashion assistant! I can't wait to
+          work with you!
         </Text>
         <Image
           source={require('../assets/images/Styla1.png')}
@@ -1395,9 +1410,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1447,9 +1460,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
             <Text style={styles.backButtonText}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => goToSlide(15)}>
+          <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -1458,7 +1469,9 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity
             style={styles.countrySelector}
             onPress={() => setShowCountryPicker(true)}>
-            <Text style={styles.countryText}>{getCountryName(selectedCountryCode)}</Text>
+            <Text style={styles.countryText}>
+              {getCountryName(selectedCountryCode)}
+            </Text>
             <Text style={styles.countryChevron}>⌄</Text>
           </TouchableOpacity>
         </View>
@@ -1496,11 +1509,7 @@ export default function OnboardingScreen({navigate}: Props) {
                   fontWeight: '500',
                 }}>
                 {allCountries.map(c => (
-                  <Picker.Item
-                    key={c.code}
-                    label={c.name}
-                    value={c.code}
-                  />
+                  <Picker.Item key={c.code} label={c.name} value={c.code} />
                 ))}
               </Picker>
             </View>
@@ -1526,9 +1535,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1583,9 +1590,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1646,9 +1651,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1710,9 +1713,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1758,33 +1759,35 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.onboardingContent}>
-        <Text style={styles.onboardingTitle}>What are your Personality Traits?</Text>
+        <Text style={styles.onboardingTitle}>
+          What are your Personality Traits?
+        </Text>
         <View style={styles.chipContainer}>
           {personalityTraits.map(trait => (
             <TouchableOpacity
               key={trait}
               style={[
                 styles.chip,
-                selectedPersonalityTraits.includes(trait) && styles.chipSelected,
+                selectedPersonalityTraits.includes(trait) &&
+                  styles.chipSelected,
               ]}
               onPress={() => {
                 setSelectedPersonalityTraits(prev =>
                   prev.includes(trait)
                     ? prev.filter(t => t !== trait)
-                    : [...prev, trait]
+                    : [...prev, trait],
                 );
               }}>
               <Text
                 style={[
                   styles.chipText,
-                  selectedPersonalityTraits.includes(trait) && styles.chipTextSelected,
+                  selectedPersonalityTraits.includes(trait) &&
+                    styles.chipTextSelected,
                 ]}>
                 {trait}
               </Text>
@@ -1807,9 +1810,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -1969,7 +1970,10 @@ export default function OnboardingScreen({navigate}: Props) {
     {name: 'Sporty', image: require('../assets/images/free1.jpg')},
     {name: 'Vintage', image: require('../assets/images/free1.jpg')},
     {name: 'Trendy', image: require('../assets/images/free1.jpg')},
-    {name: 'Business Casual', image: require('../assets/images/headshot-1.webp')},
+    {
+      name: 'Business Casual',
+      image: require('../assets/images/headshot-1.webp'),
+    },
   ];
   const StylesSlide = () => {
     const toggleStyle = (styleName: string) => {
@@ -1986,9 +1990,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
             <Text style={styles.backButtonText}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => goToSlide(15)}>
+          <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2060,16 +2062,12 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.onboardingContent}>
-        <Text style={styles.onboardingTitle}>
-          Your Monthly Style Budget
-        </Text>
+        <Text style={styles.onboardingTitle}>Your Monthly Style Budget</Text>
         <Text style={[styles.inputNote, {marginBottom: 20}]}>
           This helps us suggest brands that match your budget
         </Text>
@@ -2093,10 +2091,16 @@ export default function OnboardingScreen({navigate}: Props) {
       </View>
       <View style={styles.bottomButtonContainer}>
         <TouchableOpacity
-          style={budgetInput ? styles.primaryButton : styles.primaryButtonDisabled}
+          style={
+            budgetInput ? styles.primaryButton : styles.primaryButtonDisabled
+          }
           onPress={goToNextSlide}>
           <Text
-            style={budgetInput ? styles.primaryButtonText : styles.primaryButtonTextDisabled}>
+            style={
+              budgetInput
+                ? styles.primaryButtonText
+                : styles.primaryButtonTextDisabled
+            }>
             Next
           </Text>
         </TouchableOpacity>
@@ -2128,9 +2132,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
             <Text style={styles.backButtonText}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => goToSlide(15)}>
+          <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2207,9 +2209,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
             <Text style={styles.backButtonText}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => goToSlide(15)}>
+          <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2270,9 +2270,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
           <Text style={styles.backButtonText}>‹</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={() => goToSlide(15)}>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
       </View>
@@ -2379,9 +2377,7 @@ export default function OnboardingScreen({navigate}: Props) {
           <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
             <Text style={styles.backButtonText}>‹</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={() => goToSlide(15)}>
+          <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -2484,20 +2480,55 @@ export default function OnboardingScreen({navigate}: Props) {
 
   const GetStarted = () => (
     <View style={[styles.panel, {backgroundColor: theme.colors.surface}]}>
-      <Text style={[styles.stepTitle, {color: theme.colors.foreground}]}>
-        You're all set!
-      </Text>
+      <View
+        style={{
+          backgroundColor: theme.colors.surface3,
+          borderRadius: 16,
+          padding: 24,
+          marginTop: 340,
+          marginBottom: 40,
+          marginHorizontal: 24,
+        }}>
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 22,
+            fontWeight: '700',
+            textAlign: 'center',
+            marginBottom: 16,
+          }}>
+          Don't Wait! 😊
+        </Text>
+        <Text
+          style={{
+            color: theme.colors.foreground,
+            fontSize: 16,
+            textAlign: 'center',
+            lineHeight: 24,
+          }}>
+          Go to <Text style={{fontWeight: '700'}}>Profile</Text> {'>'}{' '}
+          <Text style={{fontWeight: '700'}}>"Edit Style Profile"</Text> to
+          finish filling out your personalized Style Profile to get the best
+          recommendations and results from StylHelpr!
+        </Text>
+      </View>
 
-      <TouchableOpacity onPress={() => navigate('Home')}>
-        <View
-          style={[
-            styles.button,
-            {backgroundColor: theme.colors.button1, width: 200},
-          ]}>
-          <Text style={{color: theme.colors.buttonText1, fontSize: 18}}>
-            Let's Get Started
-          </Text>
-        </View>
+      <TouchableOpacity
+        onPress={() => navigate('Home')}
+        style={{
+          backgroundColor: theme.colors.button1,
+          paddingVertical: 16,
+          paddingHorizontal: 48,
+          borderRadius: 14,
+        }}>
+        <Text
+          style={{
+            color: theme.colors.buttonText1,
+            fontSize: 18,
+            fontWeight: '600',
+          }}>
+          Enter StylHelpr
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -2509,7 +2540,7 @@ export default function OnboardingScreen({navigate}: Props) {
       element: (
         <Step
           title="Welcome to StylHelpr"
-          description="StylHelpr analyzes your wardrobe."
+          description=""
           image={require('../assets/images/free1.jpg')}
         />
       ),
@@ -2627,12 +2658,35 @@ export default function OnboardingScreen({navigate}: Props) {
           [{nativeEvent: {contentOffset: {x: scrollX}}}],
           {useNativeDriver: false},
         )}
-        onMomentumScrollEnd={(e) => {
+        onMomentumScrollEnd={e => {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setCurrentIndex(index);
         }}
         scrollEventThrottle={16}
       />
+      {/* Fixed dots and Next button for first 4 slides */}
+      {currentIndex < 4 && (
+        <View style={styles.fixedBottomContainer}>
+          <View style={styles.featureDotsContainer}>
+            {[0, 1, 2, 3].map(i => (
+              <View
+                key={i}
+                style={[
+                  styles.featureDot,
+                  currentIndex === i
+                    ? styles.featureDotActive
+                    : styles.featureDotInactive,
+                ]}
+              />
+            ))}
+          </View>
+          <TouchableOpacity
+            style={styles.featureButton}
+            onPress={goToNextSlide}>
+            <Text style={styles.featureButtonText}>Next</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

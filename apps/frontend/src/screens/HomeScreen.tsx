@@ -1802,24 +1802,22 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   marginRight: moderateScale(tokens.spacing.md2),
                 }}>
                 <Text style={globalStyles.sectionTitle}>Inspired Looks</Text>
-                {savedLooks.length > 0 && (
-                  <Pressable
-                    onPress={() => {
-                      ReactNativeHapticFeedback.trigger('impactLight');
-                      setImageModalVisible(true);
+                <Pressable
+                  onPress={() => {
+                    ReactNativeHapticFeedback.trigger('impactLight');
+                    setImageModalVisible(true);
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: fontScale(tokens.fontSize.sm),
+                      color: theme.colors.foreground,
+                      fontWeight: tokens.fontWeight.bold,
+                      display: 'flex',
+                      marginTop: 2,
                     }}>
-                    <Text
-                      style={{
-                        fontSize: fontScale(tokens.fontSize.sm),
-                        color: theme.colors.foreground,
-                        fontWeight: tokens.fontWeight.bold,
-                        display: 'flex',
-                        marginTop: 2,
-                      }}>
-                      See All Saved Looks
-                    </Text>
-                  </Pressable>
-                )}
+                    See All Saved Looks
+                  </Text>
+                </Pressable>
               </View>
 
               {/* INSPIRED LOOKS SECTION */}
@@ -1919,7 +1917,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </Animatable.View>
               )}
 
-              {!loadingCreations && recentCreations.length > 0 && (
+              {!loadingCreations && (
                 <CollapsibleSection
                   title="Recreated Looks"
                   open={createdOpen}
@@ -1931,54 +1929,67 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     );
                   }}>
                   <View style={globalStyles.sectionScroll2}>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}>
-                      {recentCreations.map(c => (
-                        <View key={c.id} style={globalStyles.outfitCard}>
-                          <ScalePressable
-                            onPress={() => {
-                              navigate('RecreatedLook', {
-                                data: c.generated_outfit,
-                              });
-                            }}
-                            style={{alignItems: 'center'}}>
-                            <Image
-                              source={{uri: c.source_image_url}}
-                              style={[globalStyles.image8]}
-                              resizeMode="cover"
-                            />
-                            {/* 👇 ADD THIS just below the image */}
-                            <TouchableOpacity
-                              onPress={() => handleShareVibe(c)}
-                              style={{
-                                position: 'absolute',
-                                top: 6,
-                                right: 6,
-                                backgroundColor: 'rgba(0,0,0,0.4)',
-                                borderRadius: 20,
-                                padding: 6,
-                              }}>
-                              <Icon
-                                name="ios-share"
-                                size={20}
-                                color={theme.colors.buttonText1}
+                    {recentCreations.length === 0 ? (
+                      <View
+                        style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+                        <Text style={globalStyles.missingDataMessage1}>
+                          No saved looks.
+                        </Text>
+                        <TooltipBubble
+                          message="You haven't recreated any looks yet. Upload an outfit photo to recreate a look with shopping links."
+                          position="top"
+                        />
+                      </View>
+                    ) : (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}>
+                        {recentCreations.map(c => (
+                          <View key={c.id} style={globalStyles.outfitCard}>
+                            <ScalePressable
+                              onPress={() => {
+                                navigate('RecreatedLook', {
+                                  data: c.generated_outfit,
+                                });
+                              }}
+                              style={{alignItems: 'center'}}>
+                              <Image
+                                source={{uri: c.source_image_url}}
+                                style={[globalStyles.image8]}
+                                resizeMode="cover"
                               />
-                            </TouchableOpacity>
+                              {/* 👇 ADD THIS just below the image */}
+                              <TouchableOpacity
+                                onPress={() => handleShareVibe(c)}
+                                style={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  right: 6,
+                                  backgroundColor: 'rgba(0,0,0,0.4)',
+                                  borderRadius: 20,
+                                  padding: 6,
+                                }}>
+                                <Icon
+                                  name="ios-share"
+                                  size={20}
+                                  color={theme.colors.buttonText1}
+                                />
+                              </TouchableOpacity>
 
-                            <Text
-                              numberOfLines={1}
-                              style={[
-                                globalStyles.cardSubLabel,
-                                {marginTop: 4, textAlign: 'center'},
-                              ]}>
-                              {(c.tags && c.tags.slice(0, 3).join(' ')) ||
-                                'AI Look'}
-                            </Text>
-                          </ScalePressable>
-                        </View>
-                      ))}
-                    </ScrollView>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  globalStyles.cardSubLabel,
+                                  {marginTop: 4, textAlign: 'center'},
+                                ]}>
+                                {(c.tags && c.tags.slice(0, 3).join(' ')) ||
+                                  'AI Look'}
+                              </Text>
+                            </ScalePressable>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
                   </View>
                 </CollapsibleSection>
               )}
@@ -1999,7 +2010,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </Animatable.View>
               )}
 
-              {!loadingVibes && recentVibes.length > 0 && (
+              {!loadingVibes && (
                 <CollapsibleSection
                   title="Shopped Looks"
                   open={shoppedOpen}
@@ -2011,50 +2022,63 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     );
                   }}>
                   <View style={globalStyles.sectionScroll}>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}>
-                      {recentVibes.map((vibe, index) => (
-                        <View key={index} style={globalStyles.outfitCard}>
-                          <ScalePressable
-                            onPress={() => {
-                              handleShopModal([vibe.query_used]);
-                            }}
-                            style={{alignItems: 'center'}}>
-                            <Image
-                              source={{uri: vibe.image_url}}
-                              style={[globalStyles.image8]}
-                              resizeMode="cover"
-                            />
-                            {/* 👇 Add share button */}
-                            <TouchableOpacity
-                              onPress={() => handleShareVibe(vibe)}
-                              style={{
-                                position: 'absolute',
-                                top: 6,
-                                right: 6,
-                                backgroundColor: 'rgba(0,0,0,0.4)',
-                                borderRadius: 20,
-                                padding: moderateScale(tokens.spacing.xxs),
-                              }}>
-                              <Icon name="ios-share" size={20} color="#fff" />
-                            </TouchableOpacity>
+                    {recentVibes.length === 0 ? (
+                      <View
+                        style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+                        <Text style={globalStyles.missingDataMessage1}>
+                          No saved looks.
+                        </Text>
+                        <TooltipBubble
+                          message="You haven't shopped any looks yet. Use the shopping feature to find items that match your style."
+                          position="top"
+                        />
+                      </View>
+                    ) : (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}>
+                        {recentVibes.map((vibe, index) => (
+                          <View key={index} style={globalStyles.outfitCard}>
+                            <ScalePressable
+                              onPress={() => {
+                                handleShopModal([vibe.query_used]);
+                              }}
+                              style={{alignItems: 'center'}}>
+                              <Image
+                                source={{uri: vibe.image_url}}
+                                style={[globalStyles.image8]}
+                                resizeMode="cover"
+                              />
+                              {/* 👇 Add share button */}
+                              <TouchableOpacity
+                                onPress={() => handleShareVibe(vibe)}
+                                style={{
+                                  position: 'absolute',
+                                  top: 6,
+                                  right: 6,
+                                  backgroundColor: 'rgba(0,0,0,0.4)',
+                                  borderRadius: 20,
+                                  padding: moderateScale(tokens.spacing.xxs),
+                                }}>
+                                <Icon name="ios-share" size={20} color="#fff" />
+                              </TouchableOpacity>
 
-                            <Text
-                              numberOfLines={1}
-                              style={[
-                                globalStyles.cardSubLabel,
-                                {marginTop: 4, textAlign: 'center'},
-                              ]}>
-                              {vibe.query_used
-                                ?.split(' ')
-                                .slice(0, 3)
-                                .join(' ') || 'Recent'}
-                            </Text>
-                          </ScalePressable>
-                        </View>
-                      ))}
-                    </ScrollView>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  globalStyles.cardSubLabel,
+                                  {marginTop: 4, textAlign: 'center'},
+                                ]}>
+                                {vibe.query_used
+                                  ?.split(' ')
+                                  .slice(0, 3)
+                                  .join(' ') || 'Recent'}
+                              </Text>
+                            </ScalePressable>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
                   </View>
                 </CollapsibleSection>
               )}

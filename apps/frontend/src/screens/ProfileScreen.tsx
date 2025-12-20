@@ -691,6 +691,15 @@ export default function ProfileScreen({navigate}: Props) {
         delay={2400}
         style={globalStyles.sectionScroll}>
         <Text style={[globalStyles.sectionTitle]}>Shared Looks</Text>
+        {sharedLooks.length === 0 ? (
+          <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+            <Text style={globalStyles.missingDataMessage1}>No saved looks.</Text>
+            <TooltipBubble
+              message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
+              position="top"
+            />
+          </View>
+        ) : (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -780,6 +789,7 @@ export default function ProfileScreen({navigate}: Props) {
             </Animatable.View>
           ))}
         </ScrollView>
+        )}
       </Animatable.View>
 
       {/* Connected Accounts */}
