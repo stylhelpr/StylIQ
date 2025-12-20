@@ -35,6 +35,7 @@ import { ShareModule } from './share/share.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { ConnectedAccountsModule } from './connected-accounts/connected-accounts.module';
 import { PriceTrackingModule } from './price-tracking/price-tracking.module';
+import { CommunityModule } from './community/community.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -75,6 +76,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     StyleProfilesModule,
     ConnectedAccountsModule,
     PriceTrackingModule,
+    CommunityModule,
   ],
   controllers: [AppController],
   providers: [
