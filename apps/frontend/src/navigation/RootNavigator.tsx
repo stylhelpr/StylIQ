@@ -174,7 +174,7 @@ const RootNavigator = ({
   const [screenParams, setScreenParams] = useState<any>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>(mockClothingItems);
 
-  const screensWithNoHeader = ['Splash', 'Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen'];
+  const screensWithNoHeader = ['Splash', 'Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen', 'Onboarding'];
   const screensWithSettings = ['Profile'];
   const screensWithoutBottomNav = ['Splash', 'Login', 'VideoFeedScreen', 'ImageCarouselScreen'];
 

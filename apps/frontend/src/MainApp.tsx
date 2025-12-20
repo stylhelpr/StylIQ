@@ -133,7 +133,7 @@ const MainApp = () => {
       />
       <WeatherOverlay />
       <LocationOverlay />
-      {activeScreen !== 'Splash' && activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && activeScreen !== 'Login' && (
+      {activeScreen !== 'Splash' && activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && activeScreen !== 'Login' && activeScreen !== 'Onboarding' && (
         <FloatingMicButton navigate={globalNavigate} />
       )}
       <WeatherPromptOverlay

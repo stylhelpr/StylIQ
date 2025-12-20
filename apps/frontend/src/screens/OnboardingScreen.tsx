@@ -73,13 +73,12 @@ export default function OnboardingScreen({navigate}: Props) {
 
     formContainer: {
       width,
-      paddingTop: 60,
     },
     card: {
       padding: 20,
       borderRadius: 20,
       margin: 6,
-      marginTop: 120,
+      marginTop: 90,
     },
     title: {
       fontSize: 36,
@@ -163,7 +162,7 @@ export default function OnboardingScreen({navigate}: Props) {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingTop: 120,
+      paddingTop: 60,
       paddingBottom: 10,
     },
     backButton: {
@@ -657,15 +656,16 @@ export default function OnboardingScreen({navigate}: Props) {
       marginBottom: 20,
     },
     featureDot: {
-      width: 8,
       height: 8,
       borderRadius: 4,
       marginHorizontal: 4,
     },
     featureDotActive: {
+      width: 24,
       backgroundColor: theme.colors.button1,
     },
     featureDotInactive: {
+      width: 8,
       backgroundColor: theme.colors.muted,
     },
     featureButton: {
@@ -1537,7 +1537,7 @@ export default function OnboardingScreen({navigate}: Props) {
       <View style={styles.featureContent}>
         <View style={styles.phoneMockup}>
           <Image
-            source={require('../assets/images/free1.jpg')}
+            source={require('../assets/images/landing-page16.webp')}
             style={styles.phoneMockupImage}
             resizeMode="cover"
           />
@@ -1557,12 +1557,12 @@ export default function OnboardingScreen({navigate}: Props) {
           <View style={styles.chatContainer}>
             <View style={styles.clothingPreview}>
               <Image
-                source={require('../assets/images/headshot-1.webp')}
+                source={require('../assets/images/landing-page14.webp')}
                 style={styles.clothingItem}
                 resizeMode="cover"
               />
               <Image
-                source={require('../assets/images/headshot-2.webp')}
+                source={require('../assets/images/landing-page15.webp')}
                 style={styles.clothingItem}
                 resizeMode="cover"
               />
@@ -1594,7 +1594,7 @@ export default function OnboardingScreen({navigate}: Props) {
       <View style={styles.featureContent}>
         <View style={[styles.aiComparisonContainer, {marginBottom: 40}]}>
           <Image
-            source={require('../assets/images/headshot-3.jpg')}
+            source={require('../assets/images/landing-page16.webp')}
             style={styles.beforeImage}
             resizeMode="cover"
           />
@@ -1604,7 +1604,7 @@ export default function OnboardingScreen({navigate}: Props) {
               <Text style={{fontSize: 16}}>✨</Text>
             </View>
             <Image
-              source={require('../assets/images/headshot-5.jpg')}
+              source={require('../assets/images/landing-page17.webp')}
               style={styles.afterImage}
               resizeMode="cover"
             />
@@ -1821,7 +1821,7 @@ export default function OnboardingScreen({navigate}: Props) {
         }}>
         <Text style={styles.onboardingTitleCentered}>
           Hi I'm Styla, your personalized fashion assistant. I can't wait to
-          help you look your best!
+          help you look your best. Let's get started!
         </Text>
         <Image
           source={require('../assets/images/Styla1.png')}
@@ -2976,7 +2976,7 @@ export default function OnboardingScreen({navigate}: Props) {
         <Step
           title="Welcome to StylHelpr. You're going to love how you look!"
           description=""
-          image={require('../assets/images/free1.jpg')}
+          image={require('../assets/images/landing-page28.jpg')}
         />
       ),
     },
