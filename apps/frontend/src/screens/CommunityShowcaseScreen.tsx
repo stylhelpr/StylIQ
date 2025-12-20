@@ -855,9 +855,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
 
   // Actions modal state (Pinterest-style)
-  type ActionablePost =
-    | (typeof DEMO_OUTFIT_POSTS)[0]
-    | (typeof MOCK_POSTS)[0];
+  type ActionablePost = (typeof DEMO_OUTFIT_POSTS)[0] | (typeof MOCK_POSTS)[0];
   const [actionsModalVisible, setActionsModalVisible] = useState(false);
   const [activeActionsPost, setActiveActionsPost] =
     useState<ActionablePost | null>(null);
@@ -2144,7 +2142,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                           <Pressable
                             style={styles.commentActionButton}
                             onPress={() =>
-                              activePostId && deleteComment(activePostId, item.id)
+                              activePostId &&
+                              deleteComment(activePostId, item.id)
                             }>
                             <MaterialIcons
                               name="delete-outline"

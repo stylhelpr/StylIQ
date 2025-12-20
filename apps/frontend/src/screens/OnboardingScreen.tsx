@@ -810,6 +810,251 @@ export default function OnboardingScreen({navigate}: Props) {
       borderRadius: 12,
       backgroundColor: theme.colors.surface3,
     },
+    // Calendar Feature Slide styles
+    calendarPreview: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: theme.colors.surface2,
+      borderRadius: 16,
+      padding: 16,
+    },
+    calendarHeader: {
+      marginBottom: 16,
+    },
+    calendarMonthText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+      textAlign: 'center',
+    },
+    calendarGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    calendarDayLabel: {
+      width: '14%',
+      textAlign: 'center',
+      fontSize: 12,
+      color: theme.colors.muted,
+      marginBottom: 8,
+    },
+    calendarDay: {
+      width: '14%',
+      aspectRatio: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 8,
+    },
+    calendarDayHighlighted: {
+      backgroundColor: theme.colors.primary,
+    },
+    calendarDayText: {
+      fontSize: 14,
+      color: theme.colors.foreground,
+    },
+    calendarDayTextHighlighted: {
+      color: '#fff',
+      fontWeight: '600',
+    },
+    outfitDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: '#fff',
+      marginTop: 2,
+    },
+    eventCard: {
+      backgroundColor: theme.colors.surface3,
+      borderRadius: 12,
+      padding: 12,
+      marginTop: 8,
+    },
+    eventCardTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+    },
+    eventCardSubtitle: {
+      fontSize: 12,
+      color: theme.colors.muted,
+      marginTop: 2,
+    },
+    // Community Feature Slide styles
+    communityGrid: {
+      width: width * 0.8,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    communityImage: {
+      width: (width * 0.8 - 8) / 2,
+      height: (width * 0.8 - 8) / 2,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface3,
+    },
+    // Trends Feature Slide styles
+    trendsContainer: {
+      width: '100%',
+      height: '100%',
+      padding: 16,
+      justifyContent: 'center',
+      gap: 12,
+    },
+    trendCard: {
+      backgroundColor: theme.colors.surface2,
+      borderRadius: 16,
+      padding: 16,
+    },
+    trendLabel: {
+      fontSize: 12,
+      color: theme.colors.primary,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    trendTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+      marginBottom: 8,
+    },
+    trendTagRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    trendTag: {
+      backgroundColor: theme.colors.surface3,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    trendTagText: {
+      fontSize: 12,
+      color: theme.colors.foreground,
+    },
+    // Shopping Feature Slide styles
+    shoppingContainer: {
+      width: width * 0.85,
+      gap: 12,
+    },
+    shoppingCard: {
+      backgroundColor: theme.colors.surface2,
+      borderRadius: 16,
+      flexDirection: 'row',
+      overflow: 'hidden',
+    },
+    shoppingImage: {
+      width: 100,
+      height: 100,
+    },
+    shoppingInfo: {
+      flex: 1,
+      padding: 16,
+      justifyContent: 'center',
+    },
+    shoppingItemName: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+      marginBottom: 4,
+    },
+    shoppingMatch: {
+      fontSize: 14,
+      color: theme.colors.primary,
+      fontWeight: '600',
+    },
+    // Weather Feature Slide styles
+    weatherContainer: {
+      width: '100%',
+      height: '100%',
+      padding: 20,
+      justifyContent: 'center',
+    },
+    weatherHeader: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    weatherTemp: {
+      fontSize: 48,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+    },
+    weatherDesc: {
+      fontSize: 16,
+      color: theme.colors.muted,
+      marginTop: 4,
+    },
+    weatherOutfitCard: {
+      backgroundColor: theme.colors.surface2,
+      borderRadius: 16,
+      padding: 16,
+    },
+    weatherOutfitLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.primary,
+      marginBottom: 12,
+    },
+    weatherOutfitRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+    },
+    weatherOutfitItem: {
+      alignItems: 'center',
+    },
+    weatherItemIcon: {
+      fontSize: 32,
+      marginBottom: 8,
+    },
+    weatherItemText: {
+      fontSize: 12,
+      color: theme.colors.foreground,
+    },
+    // Analytics Feature Slide styles
+    analyticsContainer: {
+      width: '100%',
+      height: '100%',
+      padding: 20,
+      justifyContent: 'center',
+    },
+    analyticsTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    analyticsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 20,
+    },
+    analyticsStat: {
+      alignItems: 'center',
+    },
+    analyticsNumber: {
+      fontSize: 32,
+      fontWeight: '700',
+      color: theme.colors.primary,
+    },
+    analyticsLabel: {
+      fontSize: 12,
+      color: theme.colors.muted,
+      marginTop: 4,
+    },
+    analyticsInsight: {
+      backgroundColor: theme.colors.surface2,
+      borderRadius: 12,
+      padding: 16,
+    },
+    analyticsInsightText: {
+      fontSize: 14,
+      color: theme.colors.foreground,
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
   });
 
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -824,9 +1069,9 @@ export default function OnboardingScreen({navigate}: Props) {
     requestAnimationFrame(() => setReady(true));
   }, []);
 
-  // Disable swiping on the "Get to know you" slide (index 4) and after
+  // Disable swiping on the "Get to know you" slide (index 7) and after
   useEffect(() => {
-    setScrollEnabled(currentIndex < 4);
+    setScrollEnabled(currentIndex < 9);
   }, [currentIndex]);
 
   // ------------------------
@@ -1298,7 +1543,7 @@ export default function OnboardingScreen({navigate}: Props) {
           />
         </View>
         <Text style={styles.featureTitle}>
-          All your clothes,{'\n'}one glance
+          Outfits that work,{'\n'} built from your actual wardrobe
         </Text>
       </View>
     </View>
@@ -1336,7 +1581,9 @@ export default function OnboardingScreen({navigate}: Props) {
             </View>
           </View>
         </View>
-        <Text style={styles.featureTitle}>Meet your personal AI stylist</Text>
+        <Text style={styles.featureTitle}>
+          Ask Styla, your personal AI stylist for fashion guidance
+        </Text>
       </View>
     </View>
   );
@@ -1345,7 +1592,7 @@ export default function OnboardingScreen({navigate}: Props) {
   const AICleanupFeatureSlide = () => (
     <View style={styles.featureSlideContainer}>
       <View style={styles.featureContent}>
-        <View style={styles.aiComparisonContainer}>
+        <View style={[styles.aiComparisonContainer, {marginBottom: 40}]}>
           <Image
             source={require('../assets/images/headshot-3.jpg')}
             style={styles.beforeImage}
@@ -1364,7 +1611,195 @@ export default function OnboardingScreen({navigate}: Props) {
           </View>
         </View>
         <Text style={styles.featureTitle}>
-          Snap a worn look, AI cleans it up
+          Take a snap of looks that you like, and find or recreate all the
+          pieces
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Feature Slide 4: Wardrobe Calendar - Plan outfits for events
+  const CalendarFeatureSlide = () => (
+    <View style={styles.featureSlideContainer}>
+      <View style={styles.featureContent}>
+        <View style={styles.phoneMockup}>
+          <View style={styles.calendarPreview}>
+            <View style={styles.calendarHeader}>
+              <Text style={styles.calendarMonthText}>December 2025</Text>
+            </View>
+            <View style={styles.calendarGrid}>
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                <Text key={i} style={styles.calendarDayLabel}>
+                  {day}
+                </Text>
+              ))}
+              {[15, 16, 17, 18, 19, 20, 21].map(day => (
+                <View
+                  key={day}
+                  style={[
+                    styles.calendarDay,
+                    day === 18 && styles.calendarDayHighlighted,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.calendarDayText,
+                      day === 18 && styles.calendarDayTextHighlighted,
+                    ]}>
+                    {day}
+                  </Text>
+                  {day === 18 && <View style={styles.outfitDot} />}
+                </View>
+              ))}
+            </View>
+            <View style={styles.eventCard}>
+              <Text style={styles.eventCardTitle}>Holiday Party</Text>
+              <Text style={styles.eventCardSubtitle}>Outfit planned</Text>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.featureTitle}>
+          Plan your outfits ahead{'\n'}for any occasion synced to your phone's
+          calendar
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Feature Slide 5: Community & Sharing - Share and get inspired
+  const CommunityFeatureSlide = () => (
+    <View style={styles.featureSlideContainer}>
+      <View style={styles.featureContent}>
+        <View style={[styles.communityGrid, {marginBottom: 40}]}>
+          <Image
+            source={require('../assets/images/landing-page21.jpg')}
+            style={styles.communityImage}
+            resizeMode="cover"
+          />
+          <Image
+            source={require('../assets/images/landing-page22.jpg')}
+            style={styles.communityImage}
+            resizeMode="cover"
+          />
+          <Image
+            source={require('../assets/images/landing-page23.jpg')}
+            style={styles.communityImage}
+            resizeMode="cover"
+          />
+          <Image
+            source={require('../assets/images/landing-page24.jpg')}
+            style={styles.communityImage}
+            resizeMode="cover"
+          />
+        </View>
+        <Text style={styles.featureTitle}>
+          Share your looks and get{'\n'}inspired by the community
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Feature Slide 6: Style Trends - Personalized fashion trends
+  const TrendsFeatureSlide = () => (
+    <View style={styles.featureSlideContainer}>
+      <View style={styles.featureContent}>
+        <View style={styles.phoneMockup}>
+          <View style={styles.trendsContainer}>
+            <View style={styles.trendCard}>
+              <Text style={styles.trendLabel}>Trending Now</Text>
+              <Text style={styles.trendTitle}>Cozy Minimalism</Text>
+              <View style={styles.trendTagRow}>
+                <View style={styles.trendTag}>
+                  <Text style={styles.trendTagText}>Neutral Tones</Text>
+                </View>
+                <View style={styles.trendTag}>
+                  <Text style={styles.trendTagText}>Layering</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.trendCard}>
+              <Text style={styles.trendLabel}>For You</Text>
+              <Text style={styles.trendTitle}>Bold Accessories</Text>
+              <View style={styles.trendTagRow}>
+                <View style={styles.trendTag}>
+                  <Text style={styles.trendTagText}>Statement</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.featureTitle}>
+          Stay ahead with personalized{'\n'}style trends just for you
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Feature Slide 7: Shopping - Find items that match your style
+  const ShoppingFeatureSlide = () => (
+    <View style={styles.featureSlideContainer}>
+      <View style={styles.featureContent}>
+        <View style={[styles.shoppingContainer, {marginBottom: 40}]}>
+          <View style={styles.shoppingCard}>
+            <Image
+              source={require('../assets/images/landing-page25.jpg')}
+              style={styles.shoppingImage}
+              resizeMode="cover"
+            />
+            <View style={styles.shoppingInfo}>
+              <Text style={styles.shoppingItemName}>Classic Blazer</Text>
+              <Text style={styles.shoppingMatch}>98% match</Text>
+            </View>
+          </View>
+          <View style={styles.shoppingCard}>
+            <Image
+              source={require('../assets/images/landing-page26.jpg')}
+              style={styles.shoppingImage}
+              resizeMode="cover"
+            />
+            <View style={styles.shoppingInfo}>
+              <Text style={styles.shoppingItemName}>Silk Blouse</Text>
+              <Text style={styles.shoppingMatch}>95% match</Text>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.featureTitle}>
+          Shop pieces that perfectly{'\n'}match your style profile
+        </Text>
+      </View>
+    </View>
+  );
+
+  // Feature Slide 8: Weather Outfits - Dress for the weather
+  const WeatherFeatureSlide = () => (
+    <View style={styles.featureSlideContainer}>
+      <View style={styles.featureContent}>
+        <View style={styles.phoneMockup}>
+          <View style={styles.weatherContainer}>
+            <View style={styles.weatherHeader}>
+              <Text style={styles.weatherTemp}>72°F</Text>
+              <Text style={styles.weatherDesc}>Partly Cloudy</Text>
+            </View>
+            <View style={styles.weatherOutfitCard}>
+              <Text style={styles.weatherOutfitLabel}>Today's Pick</Text>
+              <View style={styles.weatherOutfitRow}>
+                <View style={styles.weatherOutfitItem}>
+                  <Text style={styles.weatherItemIcon}>👕</Text>
+                  <Text style={styles.weatherItemText}>Light Layer</Text>
+                </View>
+                <View style={styles.weatherOutfitItem}>
+                  <Text style={styles.weatherItemIcon}>👖</Text>
+                  <Text style={styles.weatherItemText}>Chinos</Text>
+                </View>
+                <View style={styles.weatherOutfitItem}>
+                  <Text style={styles.weatherItemIcon}>👟</Text>
+                  <Text style={styles.weatherItemText}>Sneakers</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.featureTitle}>
+          Get outfit suggestions{'\n'}based on the weather and location
         </Text>
       </View>
     </View>
@@ -1385,8 +1820,8 @@ export default function OnboardingScreen({navigate}: Props) {
           paddingHorizontal: 24,
         }}>
         <Text style={styles.onboardingTitleCentered}>
-          Hi I'm Styla, your personalized fashion assistant! I can't wait to
-          work with you!
+          Hi I'm Styla, your personalized fashion assistant. I can't wait to
+          help you look your best!
         </Text>
         <Image
           source={require('../assets/images/Styla1.png')}
@@ -2539,7 +2974,7 @@ export default function OnboardingScreen({navigate}: Props) {
       key: '1',
       element: (
         <Step
-          title="Welcome to StylHelpr"
+          title="Welcome to StylHelpr. You're going to love how you look!"
           description=""
           image={require('../assets/images/free1.jpg')}
         />
@@ -2560,7 +2995,32 @@ export default function OnboardingScreen({navigate}: Props) {
       key: '4',
       element: <AICleanupFeatureSlide />,
     },
-    // Screen 5 - Get to know you intro
+    // Screen 5 - Feature: Calendar
+    {
+      key: '5',
+      element: <CalendarFeatureSlide />,
+    },
+    // Screen 6 - Feature: Community
+    {
+      key: '5b',
+      element: <CommunityFeatureSlide />,
+    },
+    // Screen 7 - Feature: Trends
+    {
+      key: '5c',
+      element: <TrendsFeatureSlide />,
+    },
+    // Screen 8 - Feature: Shopping
+    {
+      key: '5d',
+      element: <ShoppingFeatureSlide />,
+    },
+    // Screen 9 - Feature: Weather
+    {
+      key: '5e',
+      element: <WeatherFeatureSlide />,
+    },
+    // Screen 10 - Get to know you intro
     {
       key: '6',
       element: <GetToKnowYouSlide />,
@@ -2664,11 +3124,11 @@ export default function OnboardingScreen({navigate}: Props) {
         }}
         scrollEventThrottle={16}
       />
-      {/* Fixed dots and Next button for first 4 slides */}
-      {currentIndex < 4 && (
+      {/* Fixed dots and Next button for first 9 slides */}
+      {currentIndex < 9 && (
         <View style={styles.fixedBottomContainer}>
           <View style={styles.featureDotsContainer}>
-            {[0, 1, 2, 3].map(i => (
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => (
               <View
                 key={i}
                 style={[
