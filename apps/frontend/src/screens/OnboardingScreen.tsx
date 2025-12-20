@@ -1801,7 +1801,7 @@ export default function OnboardingScreen({navigate}: Props) {
   );
 
   // Slide 13: Height & Weight
-  const HeightWeightSlide = () => (
+  const HeightWeightSlideElement = (
     <View style={styles.onboardingContainer}>
       <View style={styles.onboardingHeader}>
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
@@ -2054,7 +2054,7 @@ export default function OnboardingScreen({navigate}: Props) {
     setBudgetInput(cleaned ? `$${numeric.toLocaleString()}` : '');
     setSelectedPriceRange(cleaned ? numeric.toString() : null);
   };
-  const PriceRangeSlide = () => (
+  const PriceRangeSlideElement = (
     <View style={styles.onboardingContainer}>
       <View style={styles.onboardingHeader}>
         <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
@@ -2572,7 +2572,7 @@ export default function OnboardingScreen({navigate}: Props) {
     // Screen 17 - Height & Weight
     {
       key: '17',
-      element: <HeightWeightSlide />,
+      element: HeightWeightSlideElement,
     },
     // Screen 18 - Go-to Styles
     {
@@ -2582,7 +2582,7 @@ export default function OnboardingScreen({navigate}: Props) {
     // Screen 19 - Price Range / Brands
     {
       key: '19',
-      element: <PriceRangeSlide />,
+      element: PriceRangeSlideElement,
     },
     // Screen 20 - Profile Form
     {
@@ -2613,6 +2613,11 @@ export default function OnboardingScreen({navigate}: Props) {
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={0}
         scrollEnabled={scrollEnabled}
+        keyboardShouldPersistTaps="handled"
+        removeClippedSubviews={false}
+        windowSize={21}
+        initialNumToRender={17}
+        maxToRenderPerBatch={17}
         getItemLayout={(data, index) => ({
           length: width,
           offset: width * index,
