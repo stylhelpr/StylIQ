@@ -11,6 +11,29 @@ const BASE = '/community';
 
 // ==================== POSTS ====================
 
+export function useCreatePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      userId: string;
+      imageUrl?: string;
+      topImage?: string;
+      bottomImage?: string;
+      shoesImage?: string;
+      accessoryImage?: string;
+      description?: string;
+      tags?: string[];
+    }) => {
+      const res = await apiClient.post(`${BASE}/posts`, data);
+      return res.data as CommunityPost;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['community-posts']});
+    },
+  });
+}
+
 export function useCommunityPosts(
   userId?: string,
   filter: PostFilter = 'all',

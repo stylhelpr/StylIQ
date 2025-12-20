@@ -16,6 +16,30 @@ export class CommunityController {
 
   // ==================== POSTS ====================
 
+  @Post('posts')
+  async createPost(
+    @Body() body: {
+      userId: string;
+      imageUrl?: string;
+      topImage?: string;
+      bottomImage?: string;
+      shoesImage?: string;
+      accessoryImage?: string;
+      description?: string;
+      tags?: string[];
+    },
+  ) {
+    return this.service.createPost(body.userId, {
+      imageUrl: body.imageUrl,
+      topImage: body.topImage,
+      bottomImage: body.bottomImage,
+      shoesImage: body.shoesImage,
+      accessoryImage: body.accessoryImage,
+      description: body.description,
+      tags: body.tags,
+    });
+  }
+
   @Get('posts')
   async getPosts(
     @Query('filter') filter: string = 'all',

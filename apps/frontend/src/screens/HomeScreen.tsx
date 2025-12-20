@@ -46,8 +46,10 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {Linking} from 'react-native';
 import type {ProductResult} from '../services/productSearchClient';
 import ShopModal from '../components/ShopModal/ShopModal';
-import {Share} from 'react-native';
+import {Share, TextInput, Alert, KeyboardAvoidingView, Platform} from 'react-native';
 import ViewShot from 'react-native-view-shot';
+import {useCreatePost} from '../hooks/useCommunityApi';
+import {BlurView} from '@react-native-community/blur';
 import PersonalizedShopModal from '../components/PersonalizedShopModal/PersonalizedShopModal';
 import RecreatedLookScreen from './RecreatedLookScreen';
 import {Camera} from 'react-native-vision-camera';
@@ -512,6 +514,16 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [shareVibe, setShareVibe] = useState<any | null>(null);
   const SHARE_SIZE = 400;
 
+  // Share options state (community vs external)
+  const [shareOptionsVisible, setShareOptionsVisible] = useState(false);
+  const [pendingShareVibe, setPendingShareVibe] = useState<any | null>(null);
+  const [communityShareModalVisible, setCommunityShareModalVisible] = useState(false);
+  const [communityDescription, setCommunityDescription] = useState('');
+  const [communityTags, setCommunityTags] = useState('');
+
+  // Community post mutation
+  const createPostMutation = useCreatePost();
+
   const {width, isXS, isSM, isMD} = useResponsive();
 
   // Dynamically compute button width so layout adapts to device width
@@ -943,10 +955,81 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     }
   };
 
-  const handleShareVibe = async vibe => {
-    try {
-      ReactNativeHapticFeedback.trigger('impactLight');
+  // Show share options when user taps share button
+  const handleShareVibe = (vibe: any) => {
+    ReactNativeHapticFeedback.trigger('impactLight');
+    setPendingShareVibe(vibe);
+    setShareOptionsVisible(true);
+  };
 
+  // Share to Community
+  const handleShareToCommunity = () => {
+    if (!pendingShareVibe || !userId) return;
+    setShareOptionsVisible(false);
+    setCommunityDescription('');
+    setCommunityTags('');
+    setCommunityShareModalVisible(true);
+  };
+
+  const handleConfirmCommunityShare = async () => {
+    if (!pendingShareVibe || !userId) return;
+
+    try {
+      ReactNativeHapticFeedback.trigger('impactMedium');
+
+      const tagsArray = communityTags
+        .split(',')
+        .map(t => t.trim().toLowerCase())
+        .filter(t => t.length > 0);
+
+      // Get outfit items for the post
+      const outfitItems =
+        pendingShareVibe.generated_outfit?.outfit ||
+        pendingShareVibe.generated_outfit?.owned ||
+        [];
+
+      // If we have outfit items, use them; otherwise use single image
+      const postData: any = {
+        userId,
+        description:
+          communityDescription ||
+          (pendingShareVibe.tags && pendingShareVibe.tags.slice(0, 3).join(', ')) ||
+          pendingShareVibe.query_used ||
+          'My look',
+        tags: tagsArray.length > 0 ? tagsArray : ['look'],
+      };
+
+      if (outfitItems.length >= 3) {
+        // Use outfit grid images
+        postData.topImage = outfitItems[0]?.image;
+        postData.bottomImage = outfitItems[1]?.image;
+        postData.shoesImage = outfitItems[2]?.image;
+        if (outfitItems[3]) postData.accessoryImage = outfitItems[3]?.image;
+      } else {
+        // Use single image
+        postData.imageUrl =
+          pendingShareVibe.source_image_url || pendingShareVibe.image_url;
+      }
+
+      await createPostMutation.mutateAsync(postData);
+
+      setCommunityShareModalVisible(false);
+      setPendingShareVibe(null);
+      Alert.alert('Success', 'Your look has been shared to the community!');
+    } catch (error) {
+      console.error('Failed to share to community:', error);
+      Alert.alert('Error', 'Failed to share to community. Please try again.');
+    }
+  };
+
+  // Share externally via native share sheet
+  const handleShareExternal = async () => {
+    setShareOptionsVisible(false);
+    if (!pendingShareVibe) return;
+
+    const vibe = pendingShareVibe;
+
+    try {
       // Check if this is a 4-grid outfit or single image
       const outfitItems =
         vibe.generated_outfit?.outfit || vibe.generated_outfit?.owned || [];
@@ -955,14 +1038,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       if (isGridLayout) {
         // Prefetch all grid images
         const prefetchPromises = outfitItems
-          .filter(item => item?.image)
-          .map(item => Image.prefetch(item.image));
+          .filter((item: any) => item?.image)
+          .map((item: any) => Image.prefetch(item.image));
         await Promise.all(prefetchPromises);
       } else {
         // Single image
         const imageUri = vibe.source_image_url || vibe.image_url;
         if (!imageUri) {
           console.warn('No image URL found for vibe:', vibe);
+          setPendingShareVibe(null);
           return;
         }
         await Image.prefetch(imageUri);
@@ -992,11 +1076,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         title: 'Share Your Look',
       });
 
-      // Clear the share vibe
+      // Clear states
       setShareVibe(null);
+      setPendingShareVibe(null);
     } catch (err) {
       console.error('Error sharing vibe:', err);
       setShareVibe(null);
+      setPendingShareVibe(null);
     }
   };
 
@@ -2150,6 +2236,251 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               />
             </Modal>
           )}
+
+          {/* Share Options Modal */}
+          <Modal
+            visible={shareOptionsVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShareOptionsVisible(false)}>
+            <Pressable
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={() => setShareOptionsVisible(false)}>
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="dark"
+                blurAmount={20}
+                reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+              />
+              <Animatable.View
+                animation="slideInUp"
+                duration={300}
+                style={{
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 20,
+                  padding: 20,
+                  width: '85%',
+                  maxWidth: 340,
+                }}>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: theme.colors.foreground,
+                    marginBottom: 20,
+                    textAlign: 'center',
+                  }}>
+                  Share Look
+                </Text>
+
+                {/* Share to Community */}
+                <AppleTouchFeedback
+                  hapticStyle="impactMedium"
+                  onPress={handleShareToCommunity}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.button1,
+                    paddingVertical: 14,
+                    paddingHorizontal: 20,
+                    borderRadius: 14,
+                    marginBottom: 12,
+                  }}>
+                  <Icon name="groups" size={24} color={theme.colors.buttonText1} />
+                  <Text
+                    style={{
+                      color: theme.colors.buttonText1,
+                      fontSize: 16,
+                      fontWeight: '600',
+                      marginLeft: 12,
+                    }}>
+                    Share to Community
+                  </Text>
+                </AppleTouchFeedback>
+
+                {/* Share Externally */}
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={handleShareExternal}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.surface2,
+                    paddingVertical: 14,
+                    paddingHorizontal: 20,
+                    borderRadius: 14,
+                    marginBottom: 12,
+                  }}>
+                  <Icon name="ios-share" size={24} color={theme.colors.foreground} />
+                  <Text
+                    style={{
+                      color: theme.colors.foreground,
+                      fontSize: 16,
+                      fontWeight: '600',
+                      marginLeft: 12,
+                    }}>
+                    Share via...
+                  </Text>
+                </AppleTouchFeedback>
+
+                {/* Cancel */}
+                <AppleTouchFeedback
+                  hapticStyle="selection"
+                  onPress={() => {
+                    setShareOptionsVisible(false);
+                    setPendingShareVibe(null);
+                  }}
+                  style={{
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                  }}>
+                  <Text
+                    style={{
+                      color: theme.colors.muted,
+                      fontSize: 16,
+                    }}>
+                    Cancel
+                  </Text>
+                </AppleTouchFeedback>
+              </Animatable.View>
+            </Pressable>
+          </Modal>
+
+          {/* Community Share Modal */}
+          <Modal
+            visible={communityShareModalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setCommunityShareModalVisible(false)}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{flex: 1}}>
+              <Pressable
+                style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                onPress={() => setCommunityShareModalVisible(false)}>
+                <BlurView
+                  style={StyleSheet.absoluteFill}
+                  blurType="dark"
+                  blurAmount={20}
+                  reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+                />
+                <Pressable
+                  onPress={e => e.stopPropagation()}
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 20,
+                    padding: 24,
+                    width: '90%',
+                    maxWidth: 360,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '700',
+                      color: theme.colors.foreground,
+                      marginBottom: 20,
+                      textAlign: 'center',
+                    }}>
+                    Share to Community
+                  </Text>
+
+                  {/* Description Input */}
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.foreground2,
+                      marginBottom: 8,
+                    }}>
+                    Description
+                  </Text>
+                  <TextInput
+                    value={communityDescription}
+                    onChangeText={setCommunityDescription}
+                    placeholder="Describe your look..."
+                    placeholderTextColor={theme.colors.muted}
+                    multiline
+                    style={{
+                      backgroundColor: theme.colors.surface2,
+                      borderRadius: 12,
+                      padding: 14,
+                      color: theme.colors.foreground,
+                      fontSize: 15,
+                      minHeight: 80,
+                      marginBottom: 16,
+                      textAlignVertical: 'top',
+                    }}
+                  />
+
+                  {/* Tags Input */}
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.foreground2,
+                      marginBottom: 8,
+                    }}>
+                    Tags (comma-separated)
+                  </Text>
+                  <TextInput
+                    value={communityTags}
+                    onChangeText={setCommunityTags}
+                    placeholder="casual, summer, streetwear..."
+                    placeholderTextColor={theme.colors.muted}
+                    style={{
+                      backgroundColor: theme.colors.surface2,
+                      borderRadius: 12,
+                      padding: 14,
+                      color: theme.colors.foreground,
+                      fontSize: 15,
+                      marginBottom: 24,
+                    }}
+                  />
+
+                  {/* Action Buttons */}
+                  <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+                    <AppleTouchFeedback
+                      hapticStyle="selection"
+                      onPress={() => {
+                        setCommunityShareModalVisible(false);
+                        setPendingShareVibe(null);
+                      }}
+                      style={{paddingHorizontal: 20, paddingVertical: 12}}>
+                      <Text style={{color: theme.colors.muted, fontSize: 16}}>
+                        Cancel
+                      </Text>
+                    </AppleTouchFeedback>
+
+                    <AppleTouchFeedback
+                      hapticStyle="impactMedium"
+                      onPress={handleConfirmCommunityShare}
+                      style={{
+                        backgroundColor: theme.colors.button1,
+                        paddingHorizontal: 24,
+                        paddingVertical: 12,
+                        borderRadius: 12,
+                        marginLeft: 12,
+                      }}>
+                      <Text
+                        style={{
+                          color: theme.colors.buttonText1,
+                          fontSize: 16,
+                          fontWeight: '600',
+                        }}>
+                        {createPostMutation.isPending ? 'Sharing...' : 'Share'}
+                      </Text>
+                    </AppleTouchFeedback>
+                  </View>
+                </Pressable>
+              </Pressable>
+            </KeyboardAvoidingView>
+          </Modal>
         </Animated.ScrollView>
       </View>
     </LinearGradientWrapper>

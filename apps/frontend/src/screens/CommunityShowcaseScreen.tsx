@@ -3040,11 +3040,15 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         transparent
         animationType="slide"
         onRequestClose={() => setEditModalVisible(false)}>
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setEditModalVisible(false)}>
-          <View style={styles.editModal}>
-            <Pressable onPress={() => {}} style={{width: '100%'}}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{flex: 1}}>
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setEditModalVisible(false)}>
+            <Pressable
+              style={styles.editModal}
+              onPress={e => e.stopPropagation()}>
               <View style={styles.modalHandle} />
               <Text
                 style={[
@@ -3127,8 +3131,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 </Pressable>
               </View>
             </Pressable>
-          </View>
-        </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </Animated.View>
   );

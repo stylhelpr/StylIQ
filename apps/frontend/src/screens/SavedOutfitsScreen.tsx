@@ -42,6 +42,7 @@ import SwipeableCard from '../components/SwipeableCard/SwipeableCard';
 import {Share} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+import {useCreatePost} from '../hooks/useCommunityApi';
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -508,6 +509,75 @@ export default function SavedOutfitsScreen() {
   // Ref for the share composite ViewShot
   const shareCompositeRef = useRef<ViewShot>(null);
   const [shareOutfit, setShareOutfit] = useState<SavedOutfit | null>(null);
+  const [shareOptionsVisible, setShareOptionsVisible] = useState(false);
+  const [pendingShareOutfit, setPendingShareOutfit] = useState<SavedOutfit | null>(null);
+  const [communityShareModalVisible, setCommunityShareModalVisible] = useState(false);
+  const [communityDescription, setCommunityDescription] = useState('');
+  const [communityTags, setCommunityTags] = useState('');
+
+  // Community post mutation
+  const createPostMutation = useCreatePost();
+
+  // Show share options when user taps share button
+  const handleSharePress = (outfit: SavedOutfit) => {
+    ReactNativeHapticFeedback.trigger('impactLight', {
+      enableVibrateFallback: true,
+      ignoreAndroidSystemSettings: false,
+    });
+    setPendingShareOutfit(outfit);
+    setShareOptionsVisible(true);
+  };
+
+  // Share to Community
+  const handleShareToCommunity = async () => {
+    if (!pendingShareOutfit || !userId) return;
+
+    setShareOptionsVisible(false);
+    setCommunityDescription('');
+    setCommunityTags('');
+    setCommunityShareModalVisible(true);
+  };
+
+  const handleConfirmCommunityShare = async () => {
+    if (!pendingShareOutfit || !userId) return;
+
+    try {
+      ReactNativeHapticFeedback.trigger('impactMedium', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+
+      const tagsArray = communityTags
+        .split(',')
+        .map(t => t.trim().toLowerCase())
+        .filter(t => t.length > 0);
+
+      await createPostMutation.mutateAsync({
+        userId,
+        topImage: pendingShareOutfit.top?.image || pendingShareOutfit.top?.image_url,
+        bottomImage: pendingShareOutfit.bottom?.image || pendingShareOutfit.bottom?.image_url,
+        shoesImage: pendingShareOutfit.shoes?.image || pendingShareOutfit.shoes?.image_url,
+        description: communityDescription || pendingShareOutfit.name || 'My outfit',
+        tags: tagsArray.length > 0 ? tagsArray : ['outfit'],
+      });
+
+      setCommunityShareModalVisible(false);
+      setPendingShareOutfit(null);
+      Alert.alert('Success', 'Your outfit has been shared to the community!');
+    } catch (error) {
+      console.error('Failed to share to community:', error);
+      Alert.alert('Error', 'Failed to share to community. Please try again.');
+    }
+  };
+
+  // Share externally via native share sheet
+  const handleShareExternal = async () => {
+    setShareOptionsVisible(false);
+    if (pendingShareOutfit) {
+      await handleShareOutfit(pendingShareOutfit);
+      setPendingShareOutfit(null);
+    }
+  };
 
   const handleShareOutfit = async (outfit: SavedOutfit) => {
     try {
@@ -1410,7 +1480,7 @@ export default function SavedOutfitsScreen() {
                             </Pressable>
                             {/* 📤 Share */}
                             <Pressable
-                              onPress={() => handleShareOutfit(outfit)}
+                              onPress={() => handleSharePress(outfit)}
                               style={{
                                 padding: 8,
                                 borderRadius: 14,
@@ -1833,6 +1903,240 @@ export default function SavedOutfitsScreen() {
             </View>
           </Animatable.View>
         </BlurView>
+      </Modal>
+
+      {/* 📤 Share Options Modal */}
+      <Modal
+        visible={shareOptionsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareOptionsVisible(false)}>
+        <Pressable
+          style={styles.modalContainer}
+          onPress={() => setShareOptionsVisible(false)}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+          />
+          <Animatable.View
+            animation="slideInUp"
+            duration={300}
+            style={[
+              styles.modalContent,
+              {
+                width: '90%',
+                maxWidth: 340,
+                paddingVertical: 20,
+              },
+            ]}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: theme.colors.foreground,
+                marginBottom: 20,
+                textAlign: 'center',
+              }}>
+              Share Outfit
+            </Text>
+
+            {/* Share to Community */}
+            <AppleTouchFeedback
+              hapticStyle="impactMedium"
+              onPress={handleShareToCommunity}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.colors.button1,
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                borderRadius: 14,
+                marginBottom: 12,
+              }}>
+              <MaterialIcons name="groups" size={24} color={theme.colors.buttonText1} />
+              <Text
+                style={{
+                  color: theme.colors.buttonText1,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginLeft: 12,
+                }}>
+                Share to Community
+              </Text>
+            </AppleTouchFeedback>
+
+            {/* Share Externally */}
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              onPress={handleShareExternal}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.colors.surface2,
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                borderRadius: 14,
+                marginBottom: 12,
+              }}>
+              <MaterialIcons
+                name="ios-share"
+                size={24}
+                color={theme.colors.foreground}
+              />
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginLeft: 12,
+                }}>
+                Share via...
+              </Text>
+            </AppleTouchFeedback>
+
+            {/* Cancel */}
+            <AppleTouchFeedback
+              hapticStyle="selection"
+              onPress={() => {
+                setShareOptionsVisible(false);
+                setPendingShareOutfit(null);
+              }}
+              style={{
+                paddingVertical: 12,
+                alignItems: 'center',
+              }}>
+              <Text
+                style={{
+                  color: theme.colors.muted,
+                  fontSize: 16,
+                }}>
+                Cancel
+              </Text>
+            </AppleTouchFeedback>
+          </Animatable.View>
+        </Pressable>
+      </Modal>
+
+      {/* 🌐 Community Share Modal */}
+      <Modal
+        visible={communityShareModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCommunityShareModalVisible(false)}>
+        <Pressable
+          style={styles.modalContainer}
+          onPress={() => setCommunityShareModalVisible(false)}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType="dark"
+            blurAmount={20}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+          />
+          <Pressable
+            onPress={e => e.stopPropagation()}
+            style={[
+              styles.modalContent,
+              {
+                width: '90%',
+                maxWidth: 360,
+                paddingVertical: 24,
+              },
+            ]}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '700',
+                color: theme.colors.foreground,
+                marginBottom: 20,
+                textAlign: 'center',
+              }}>
+              Share to Community
+            </Text>
+
+            {/* Description Input */}
+            <Text
+              style={{
+                fontSize: 14,
+                color: theme.colors.foreground2,
+                marginBottom: 8,
+              }}>
+              Description
+            </Text>
+            <TextInput
+              value={communityDescription}
+              onChangeText={setCommunityDescription}
+              placeholder={pendingShareOutfit?.name || 'Describe your outfit...'}
+              placeholderTextColor={theme.colors.muted}
+              multiline
+              style={{
+                backgroundColor: theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                borderRadius: 12,
+                padding: 14,
+                color: theme.colors.foreground,
+                fontSize: 15,
+                minHeight: 80,
+                marginBottom: 16,
+                textAlignVertical: 'top',
+              }}
+            />
+
+            {/* Tags Input */}
+            <Text
+              style={{
+                fontSize: 14,
+                color: theme.colors.foreground2,
+                marginBottom: 8,
+              }}>
+              Tags (comma-separated)
+            </Text>
+            <TextInput
+              value={communityTags}
+              onChangeText={setCommunityTags}
+              placeholder="casual, summer, streetwear..."
+              placeholderTextColor={theme.colors.muted}
+              style={{
+                backgroundColor: theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                borderRadius: 12,
+                padding: 14,
+                color: theme.colors.foreground,
+                fontSize: 15,
+                marginBottom: 24,
+              }}
+            />
+
+            {/* Action Buttons */}
+            <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+              <AppleTouchFeedback
+                hapticStyle="selection"
+                onPress={() => {
+                  setCommunityShareModalVisible(false);
+                  setPendingShareOutfit(null);
+                }}
+                style={{paddingHorizontal: 20, paddingVertical: 12}}>
+                <Text style={{color: theme.colors.muted, fontSize: 16}}>
+                  Cancel
+                </Text>
+              </AppleTouchFeedback>
+
+              <AppleTouchFeedback
+                hapticStyle="impactMedium"
+                onPress={handleConfirmCommunityShare}
+                style={{
+                  backgroundColor: theme.colors.button1,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  marginLeft: 12,
+                }}>
+                <Text style={{color: theme.colors.buttonText1, fontSize: 16, fontWeight: '600'}}>
+                  {createPostMutation.isPending ? 'Sharing...' : 'Share'}
+                </Text>
+              </AppleTouchFeedback>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* 🖼 Full-Screen Outfit Modal — IMMERSIVE VERSION */}

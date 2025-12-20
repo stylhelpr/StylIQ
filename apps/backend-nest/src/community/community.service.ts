@@ -227,6 +227,36 @@ export class CommunityService {
 
   // ==================== POSTS ====================
 
+  async createPost(
+    userId: string,
+    data: {
+      imageUrl?: string;
+      topImage?: string;
+      bottomImage?: string;
+      shoesImage?: string;
+      accessoryImage?: string;
+      description?: string;
+      tags?: string[];
+    },
+  ) {
+    const res = await pool.query(
+      `INSERT INTO community_posts (user_id, image_url, top_image, bottom_image, shoes_image, accessory_image, description, tags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        userId,
+        data.imageUrl || null,
+        data.topImage || null,
+        data.bottomImage || null,
+        data.shoesImage || null,
+        data.accessoryImage || null,
+        data.description || null,
+        data.tags || [],
+      ],
+    );
+    return res.rows[0];
+  }
+
   async getPosts(
     filter: string = 'all',
     currentUserId?: string,
