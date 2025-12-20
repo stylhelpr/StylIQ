@@ -355,6 +355,43 @@ export class CommunityService {
     return { message: 'Post deleted' };
   }
 
+  async updatePost(postId: string, userId: string, description?: string, tags?: string[]) {
+    const post = await pool.query('SELECT user_id FROM community_posts WHERE id = $1', [postId]);
+    if (post.rows.length === 0) {
+      throw new NotFoundException('Post not found');
+    }
+    if (post.rows[0].user_id !== userId) {
+      throw new ForbiddenException('You can only edit your own posts');
+    }
+
+    const updates: string[] = [];
+    const params: any[] = [postId];
+    let paramIndex = 2;
+
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex}`);
+      params.push(description);
+      paramIndex++;
+    }
+
+    if (tags !== undefined) {
+      updates.push(`tags = $${paramIndex}`);
+      params.push(tags);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return { message: 'Nothing to update' };
+    }
+
+    await pool.query(
+      `UPDATE community_posts SET ${updates.join(', ')} WHERE id = $1`,
+      params,
+    );
+
+    return { message: 'Post updated' };
+  }
+
   // ==================== LIKES ====================
 
   async likePost(postId: string, userId: string) {

@@ -315,6 +315,45 @@ export function useReportPost() {
   });
 }
 
+// ==================== DELETE/EDIT OWN POSTS ====================
+
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({postId, userId}: {postId: string; userId: string}) => {
+      await apiClient.delete(`${BASE}/posts/${postId}?userId=${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['community-posts']});
+      queryClient.invalidateQueries({queryKey: ['community-saved']});
+    },
+  });
+}
+
+export function useUpdatePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      postId,
+      userId,
+      description,
+      tags,
+    }: {
+      postId: string;
+      userId: string;
+      description?: string;
+      tags?: string[];
+    }) => {
+      await apiClient.patch(`${BASE}/posts/${postId}`, {userId, description, tags});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['community-posts']});
+    },
+  });
+}
+
 // ==================== USER PROFILE ====================
 
 export function useUserProfile(userId: string, currentUserId?: string) {

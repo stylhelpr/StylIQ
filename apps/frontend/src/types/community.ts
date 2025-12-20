@@ -45,4 +45,4 @@ export interface UserProfile {
   is_muted?: boolean;
 }
 
-export type PostFilter = 'all' | 'trending' | 'new' | 'following';
+export type PostFilter = 'all' | 'trending' | 'new' | 'following' | 'saved';

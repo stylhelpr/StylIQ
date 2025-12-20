@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Delete,
+  Patch,
   Param,
   Body,
   Query,
@@ -56,6 +57,14 @@ export class CommunityController {
   @Delete('posts/:id')
   async deletePost(@Param('id') postId: string, @Query('userId') userId: string) {
     return this.service.deletePost(postId, userId);
+  }
+
+  @Patch('posts/:id')
+  async updatePost(
+    @Param('id') postId: string,
+    @Body() body: { userId: string; description?: string; tags?: string[] },
+  ) {
+    return this.service.updatePost(postId, body.userId, body.description, body.tags);
   }
 
   // ==================== LIKES ====================

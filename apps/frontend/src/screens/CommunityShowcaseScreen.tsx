@@ -33,6 +33,7 @@ import {useUUID} from '../context/UUIDContext';
 import {
   useCommunityPosts,
   useSearchPosts,
+  useSavedPosts,
   useLikePost,
   usePostComments,
   useAddComment,
@@ -44,6 +45,8 @@ import {
   useUnblockUser,
   useMuteUser,
   useReportPost,
+  useDeletePost,
+  useUpdatePost,
 } from '../hooks/useCommunityApi';
 import type {CommunityPost, PostComment, PostFilter} from '../types/community';
 
@@ -812,10 +815,17 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   // API hooks
   const {
     data: posts = [],
-    isLoading,
-    refetch,
-    isRefetching,
+    isLoading: isLoadingPosts,
+    refetch: refetchPosts,
+    isRefetching: isRefetchingPosts,
   } = useCommunityPosts(userId, activeFilter);
+
+  const {
+    data: savedPosts = [],
+    isLoading: isLoadingSaved,
+    refetch: refetchSaved,
+    isRefetching: isRefetchingSaved,
+  } = useSavedPosts(userId);
 
   const {data: searchResults = []} = useSearchPosts(searchQuery, userId);
 
@@ -826,13 +836,22 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const unblockMutation = useUnblockUser();
   const muteMutation = useMuteUser();
   const reportMutation = useReportPost();
+  const deletePostMutation = useDeletePost();
+  const updatePostMutation = useUpdatePost();
   const addCommentMutation = useAddComment();
   const deleteCommentMutation = useDeleteComment();
   const likeCommentMutation = useLikeComment();
 
+  // Combine loading and refetching states
+  const isLoading = activeFilter === 'saved' ? isLoadingSaved : isLoadingPosts;
+  const isRefetching =
+    activeFilter === 'saved' ? isRefetchingSaved : isRefetchingPosts;
+  const refetch = activeFilter === 'saved' ? refetchSaved : refetchPosts;
+
   // Derive displayed posts from API data
+  const activePosts = activeFilter === 'saved' ? savedPosts : posts;
   const displayedPosts: CommunityPost[] =
-    searchQuery.length > 0 ? searchResults : posts;
+    searchQuery.length > 0 ? searchResults : activePosts;
 
   // Local UI state for blocks and mutes
   const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
@@ -1118,9 +1137,15 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 
       // Fire API call in background
       if (isBlocked) {
-        unblockMutation.mutate({targetUserId: post.user_id, currentUserId: userId});
+        unblockMutation.mutate({
+          targetUserId: post.user_id,
+          currentUserId: userId,
+        });
       } else {
-        blockMutation.mutate({targetUserId: post.user_id, currentUserId: userId});
+        blockMutation.mutate({
+          targetUserId: post.user_id,
+          currentUserId: userId,
+        });
       }
     },
     [blockMutation, unblockMutation, blockedUsers, userId],
@@ -1166,6 +1191,69 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     [reportMutation, userId],
   );
+
+  // Delete own post
+  const handleDeletePost = useCallback(
+    (post: CommunityPost) => {
+      if (!userId || post.user_id !== userId) return;
+      h('impactMedium');
+      deletePostMutation.mutate(
+        {postId: post.id, userId},
+        {
+          onSuccess: () => {
+            setActionsModalVisible(false);
+            refetch();
+          },
+        },
+      );
+    },
+    [deletePostMutation, userId, refetch],
+  );
+
+  // Edit own post state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingPost, setEditingPost] = useState<CommunityPost | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState('');
+
+  const handleOpenEditModal = useCallback((post: CommunityPost) => {
+    setEditingPost(post);
+    setEditDescription(post.description || '');
+    setEditTags((post.tags || []).join(', '));
+    setEditModalVisible(true);
+    setActionsModalVisible(false);
+  }, []);
+
+  const handleSaveEdit = useCallback(() => {
+    if (!userId || !editingPost) return;
+    h('impactLight');
+    const tagsArray = editTags
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0);
+    updatePostMutation.mutate(
+      {
+        postId: editingPost.id,
+        userId,
+        description: editDescription,
+        tags: tagsArray,
+      },
+      {
+        onSuccess: () => {
+          setEditModalVisible(false);
+          setEditingPost(null);
+          refetch();
+        },
+      },
+    );
+  }, [
+    updatePostMutation,
+    userId,
+    editingPost,
+    editDescription,
+    editTags,
+    refetch,
+  ]);
 
   // Like a comment
   const handleToggleLikeComment = useCallback(
@@ -1291,7 +1379,13 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     await refetch();
   };
 
-  const filters: PostFilter[] = ['all', 'trending', 'new', 'following'];
+  const filters: PostFilter[] = [
+    'all',
+    'trending',
+    'new',
+    'following',
+    'saved',
+  ];
 
   const styles = StyleSheet.create({
     container: {
@@ -1344,7 +1438,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       color: theme.colors.buttonText1,
     },
     filtersContainer: {
-      paddingHorizontal: moderateScale(tokens.spacing.md1),
+      paddingHorizontal: moderateScale(tokens.spacing.md),
       marginBottom: moderateScale(tokens.spacing.md),
     },
     filtersScroll: {
@@ -1770,6 +1864,48 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     actionChevron: {
       opacity: 0.4,
+    },
+    editModal: {
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: moderateScale(tokens.spacing.lg),
+      paddingBottom: moderateScale(tokens.spacing.xl),
+      width: '100%',
+    },
+    editModalTitle: {
+      fontSize: fontScale(tokens.fontSize.lg),
+      fontWeight: tokens.fontWeight.bold,
+      textAlign: 'center',
+      marginBottom: moderateScale(tokens.spacing.lg),
+    },
+    editLabel: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      marginBottom: moderateScale(tokens.spacing.xs),
+      marginTop: moderateScale(tokens.spacing.sm),
+    },
+    editInput: {
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: moderateScale(tokens.spacing.sm),
+      fontSize: fontScale(tokens.fontSize.base),
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    editButtonRow: {
+      flexDirection: 'row',
+      gap: moderateScale(tokens.spacing.sm),
+      marginTop: moderateScale(tokens.spacing.lg),
+    },
+    editButton: {
+      flex: 1,
+      paddingVertical: moderateScale(tokens.spacing.sm),
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    editButtonText: {
+      fontSize: fontScale(tokens.fontSize.base),
+      fontWeight: tokens.fontWeight.semiBold,
     },
   });
 
@@ -2420,99 +2556,95 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               bounces
               scrollEnabled
               contentContainerStyle={styles.commentsList}
-                ListEmptyComponent={
-                  <View style={styles.noComments}>
-                    <MaterialIcons
-                      name="chat-bubble-outline"
-                      size={40}
-                      color={theme.colors.muted}
-                    />
-                    <Text style={styles.noCommentsText}>
-                      No comments yet. Be the first!
-                    </Text>
-                  </View>
-                }
-                renderItem={({item}) => (
-                  <View style={styles.commentItem}>
-                    <Image
-                      source={{uri: item.user_avatar}}
-                      style={styles.commentAvatar}
-                    />
-                    <View style={styles.commentContent}>
-                      <View style={styles.commentHeader}>
-                        <Text style={styles.commentUser}>{item.user_name}</Text>
-                        {item.reply_to_user && (
-                          <Text style={styles.commentReplyIndicator}>
-                            replied to @{item.reply_to_user}
+              ListEmptyComponent={
+                <View style={styles.noComments}>
+                  <MaterialIcons
+                    name="chat-bubble-outline"
+                    size={40}
+                    color={theme.colors.muted}
+                  />
+                  <Text style={styles.noCommentsText}>
+                    No comments yet. Be the first!
+                  </Text>
+                </View>
+              }
+              renderItem={({item}) => (
+                <View style={styles.commentItem}>
+                  <Image
+                    source={{uri: item.user_avatar}}
+                    style={styles.commentAvatar}
+                  />
+                  <View style={styles.commentContent}>
+                    <View style={styles.commentHeader}>
+                      <Text style={styles.commentUser}>{item.user_name}</Text>
+                      {item.reply_to_user && (
+                        <Text style={styles.commentReplyIndicator}>
+                          replied to @{item.reply_to_user}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={styles.commentText}>{item.content}</Text>
+                    <View style={styles.commentActions}>
+                      <Text style={styles.commentTime}>
+                        {new Date(item.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                      <Pressable
+                        style={styles.commentActionButton}
+                        onPress={() =>
+                          activePostId &&
+                          handleToggleLikeComment(activePostId, item)
+                        }>
+                        <MaterialIcons
+                          name={
+                            item.is_liked_by_me ? 'favorite' : 'favorite-border'
+                          }
+                          size={20}
+                          color={
+                            item.is_liked_by_me ? '#FF4D6D' : theme.colors.muted
+                          }
+                        />
+                        {item.likes_count > 0 && (
+                          <Text
+                            style={[
+                              styles.commentActionText,
+                              item.is_liked_by_me && {color: '#FF4D6D'},
+                            ]}>
+                            {item.likes_count}
                           </Text>
                         )}
-                      </View>
-                      <Text style={styles.commentText}>{item.content}</Text>
-                      <View style={styles.commentActions}>
-                        <Text style={styles.commentTime}>
-                          {new Date(item.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.commentActionButton}
+                        onPress={() => startReply(item.id, item.user_name)}>
+                        <MaterialIcons
+                          name="reply"
+                          size={20}
+                          color={theme.colors.muted}
+                        />
+                        <Text style={styles.commentActionText}>Reply</Text>
+                      </Pressable>
+                      {item.user_id === userId && (
                         <Pressable
                           style={styles.commentActionButton}
                           onPress={() =>
                             activePostId &&
-                            handleToggleLikeComment(activePostId, item)
+                            handleDeleteComment(activePostId, item.id)
                           }>
                           <MaterialIcons
-                            name={
-                              item.is_liked_by_me
-                                ? 'favorite'
-                                : 'favorite-border'
-                            }
-                            size={14}
-                            color={
-                              item.is_liked_by_me
-                                ? '#FF4D6D'
-                                : theme.colors.muted
-                            }
-                          />
-                          {item.likes_count > 0 && (
-                            <Text
-                              style={[
-                                styles.commentActionText,
-                                item.is_liked_by_me && {color: '#FF4D6D'},
-                              ]}>
-                              {item.likes_count}
-                            </Text>
-                          )}
-                        </Pressable>
-                        <Pressable
-                          style={styles.commentActionButton}
-                          onPress={() => startReply(item.id, item.user_name)}>
-                          <MaterialIcons
-                            name="reply"
-                            size={14}
+                            name="delete-outline"
+                            size={20}
                             color={theme.colors.muted}
                           />
-                          <Text style={styles.commentActionText}>Reply</Text>
                         </Pressable>
-                        {item.user_id === userId && (
-                          <Pressable
-                            style={styles.commentActionButton}
-                            onPress={() =>
-                              activePostId &&
-                              handleDeleteComment(activePostId, item.id)
-                            }>
-                            <MaterialIcons
-                              name="delete-outline"
-                              size={14}
-                              color={theme.colors.muted}
-                            />
-                          </Pressable>
-                        )}
-                      </View>
+                      )}
                     </View>
                   </View>
-                )}
-              />
+                </View>
+              )}
+            />
             {/* Reply indicator */}
             {replyingTo && (
               <View style={styles.replyingToContainer}>
@@ -2725,6 +2857,62 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       />
                     </Pressable>
 
+                    {/* Edit Own Post - only show if it's user's post */}
+                    {activeActionsPost.user_id === userId && (
+                      <Pressable
+                        style={styles.actionItem}
+                        onPress={() => handleOpenEditModal(activeActionsPost)}>
+                        <View
+                          style={[
+                            styles.actionIcon,
+                            {backgroundColor: 'rgba(100,150,255,0.1)'},
+                          ]}>
+                          <MaterialIcons
+                            name="edit"
+                            size={20}
+                            color="#6496FF"
+                          />
+                        </View>
+                        <Text style={[styles.actionText, {color: '#6496FF'}]}>
+                          Edit Post
+                        </Text>
+                        <MaterialIcons
+                          name="chevron-right"
+                          size={20}
+                          color="#6496FF"
+                          style={[styles.actionChevron, {opacity: 0.6}]}
+                        />
+                      </Pressable>
+                    )}
+
+                    {/* Delete Own Post - only show if it's user's post */}
+                    {activeActionsPost.user_id === userId && (
+                      <Pressable
+                        style={styles.actionItem}
+                        onPress={() => handleDeletePost(activeActionsPost)}>
+                        <View
+                          style={[
+                            styles.actionIcon,
+                            {backgroundColor: 'rgba(255,77,109,0.1)'},
+                          ]}>
+                          <MaterialIcons
+                            name="delete"
+                            size={20}
+                            color="#FF4D6D"
+                          />
+                        </View>
+                        <Text style={[styles.actionText, {color: '#FF4D6D'}]}>
+                          Delete Post
+                        </Text>
+                        <MaterialIcons
+                          name="chevron-right"
+                          size={20}
+                          color="#FF4D6D"
+                          style={[styles.actionChevron, {opacity: 0.6}]}
+                        />
+                      </Pressable>
+                    )}
+
                     {/* Mute User */}
                     <Pressable
                       style={styles.actionItem}
@@ -2767,21 +2955,50 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       <View
                         style={[
                           styles.actionIcon,
-                          {backgroundColor: blockedUsers.has(activeActionsPost.user_id) ? 'rgba(100,200,100,0.1)' : 'rgba(255,77,109,0.1)'},
+                          {
+                            backgroundColor: blockedUsers.has(
+                              activeActionsPost.user_id,
+                            )
+                              ? 'rgba(100,200,100,0.1)'
+                              : 'rgba(255,77,109,0.1)',
+                          },
                         ]}>
                         <MaterialIcons
-                          name={blockedUsers.has(activeActionsPost.user_id) ? 'check-circle' : 'block'}
+                          name={
+                            blockedUsers.has(activeActionsPost.user_id)
+                              ? 'check-circle'
+                              : 'block'
+                          }
                           size={20}
-                          color={blockedUsers.has(activeActionsPost.user_id) ? '#4CAF50' : '#FF4D6D'}
+                          color={
+                            blockedUsers.has(activeActionsPost.user_id)
+                              ? '#4CAF50'
+                              : '#FF4D6D'
+                          }
                         />
                       </View>
-                      <Text style={[styles.actionText, {color: blockedUsers.has(activeActionsPost.user_id) ? '#4CAF50' : '#FF4D6D'}]}>
-                        {blockedUsers.has(activeActionsPost.user_id) ? 'Unblock' : 'Block'} @{activeActionsPost.user_name}
+                      <Text
+                        style={[
+                          styles.actionText,
+                          {
+                            color: blockedUsers.has(activeActionsPost.user_id)
+                              ? '#4CAF50'
+                              : '#FF4D6D',
+                          },
+                        ]}>
+                        {blockedUsers.has(activeActionsPost.user_id)
+                          ? 'Unblock'
+                          : 'Block'}{' '}
+                        @{activeActionsPost.user_name}
                       </Text>
                       <MaterialIcons
                         name="chevron-right"
                         size={20}
-                        color={blockedUsers.has(activeActionsPost.user_id) ? '#4CAF50' : '#FF4D6D'}
+                        color={
+                          blockedUsers.has(activeActionsPost.user_id)
+                            ? '#4CAF50'
+                            : '#FF4D6D'
+                        }
                         style={[styles.actionChevron, {opacity: 0.6}]}
                       />
                     </Pressable>
@@ -2812,6 +3029,103 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   </View>
                 </>
               )}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Edit Post Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setEditModalVisible(false)}>
+          <View style={styles.editModal}>
+            <Pressable onPress={() => {}} style={{width: '100%'}}>
+              <View style={styles.modalHandle} />
+              <Text
+                style={[
+                  styles.editModalTitle,
+                  {color: theme.colors.foreground},
+                ]}>
+                Edit Post
+              </Text>
+
+              <Text
+                style={[styles.editLabel, {color: theme.colors.foreground3}]}>
+                Description
+              </Text>
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.foreground,
+                    borderColor: theme.colors.surface2,
+                  },
+                ]}
+                value={editDescription}
+                onChangeText={setEditDescription}
+                placeholder="What's this outfit about?"
+                placeholderTextColor={theme.colors.foreground3}
+                multiline
+                maxLength={500}
+              />
+
+              <Text
+                style={[styles.editLabel, {color: theme.colors.foreground3}]}>
+                Tags (comma separated)
+              </Text>
+              <TextInput
+                style={[
+                  styles.editInput,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.foreground,
+                    borderColor: theme.colors.surface2,
+                    minHeight: 44,
+                  },
+                ]}
+                value={editTags}
+                onChangeText={setEditTags}
+                placeholder="casual, summer, streetwear"
+                placeholderTextColor={theme.colors.foreground3}
+                maxLength={200}
+              />
+
+              <View style={styles.editButtonRow}>
+                <Pressable
+                  style={[
+                    styles.editButton,
+                    {backgroundColor: theme.colors.surface2},
+                  ]}
+                  onPress={() => setEditModalVisible(false)}>
+                  <Text
+                    style={[
+                      styles.editButtonText,
+                      {color: theme.colors.foreground},
+                    ]}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.editButton,
+                    {backgroundColor: theme.colors.button1},
+                  ]}
+                  onPress={handleSaveEdit}>
+                  <Text
+                    style={[
+                      styles.editButtonText,
+                      {color: theme.colors.buttonText1},
+                    ]}>
+                    Save
+                  </Text>
+                </Pressable>
+              </View>
             </Pressable>
           </View>
         </Pressable>
