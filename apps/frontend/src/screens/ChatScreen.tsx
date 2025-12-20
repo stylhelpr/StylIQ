@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -10,16 +10,22 @@ import {
   Image,
   Pressable,
   Animated,
-  Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {BlurView} from '@react-native-community/blur';
 
 import {useAppTheme} from '../context/ThemeContext';
 import {tokens} from '../styles/tokens/tokens';
 import {fontScale, moderateScale} from '../utils/scale';
+import {useUUID} from '../context/UUIDContext';
+import {
+  useMessages,
+  useSendMessage,
+  useMessagePolling,
+  Message as ApiMessage,
+} from '../hooks/useMessaging';
 
 type Message = {
   id: string;
@@ -44,47 +50,14 @@ const h = (type: 'selection' | 'impactLight' | 'impactMedium') =>
     ignoreAndroidSystemSettings: false,
   });
 
-// Mock current user
-const CURRENT_USER_ID = 'me';
-
-// Mock messages
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: '1',
-    text: 'Love your outfit! Where did you get that jacket?',
-    senderId: 'other',
-    timestamp: new Date(Date.now() - 3600000),
-    status: 'read',
-  },
-  {
-    id: '2',
-    text: "Thanks! It's from Zara, got it last season",
-    senderId: CURRENT_USER_ID,
-    timestamp: new Date(Date.now() - 3500000),
-    status: 'read',
-  },
-  {
-    id: '3',
-    text: 'The fit is perfect on you',
-    senderId: 'other',
-    timestamp: new Date(Date.now() - 3400000),
-    status: 'read',
-  },
-  {
-    id: '4',
-    text: 'I styled it with some vintage pieces I found',
-    senderId: CURRENT_USER_ID,
-    timestamp: new Date(Date.now() - 3300000),
-    status: 'read',
-  },
-  {
-    id: '5',
-    text: 'Your style is so unique! Following you now',
-    senderId: 'other',
-    timestamp: new Date(Date.now() - 60000),
-    status: 'read',
-  },
-];
+// Transform API message to local message format
+const transformMessage = (msg: ApiMessage, currentUserId: string): Message => ({
+  id: msg.id,
+  text: msg.content,
+  senderId: msg.sender_id === currentUserId ? currentUserId : msg.sender_id,
+  timestamp: new Date(msg.created_at),
+  status: msg.read_at ? 'read' : 'delivered',
+});
 
 export default function ChatScreen({navigate, route}: Props) {
   const {theme} = useAppTheme();
@@ -92,30 +65,76 @@ export default function ChatScreen({navigate, route}: Props) {
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
 
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
-  const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-
+  const currentUserId = useUUID();
+  const recipientId = route?.recipientId || '';
   const recipientName = route?.recipientName || 'StyleQueen';
   const recipientAvatar =
     route?.recipientAvatar || 'https://i.pravatar.cc/100?img=1';
 
-  // Simulate typing indicator
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsTyping(prev => !prev);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
 
-  const sendMessage = () => {
-    if (!inputText.trim()) return;
+  // Fetch initial messages
+  const {data: apiMessages, isLoading} = useMessages(
+    currentUserId || '',
+    recipientId,
+  );
+
+  // Send message mutation
+  const sendMutation = useSendMessage();
+
+  // Handle new messages from polling
+  const handleNewMessages = useCallback(
+    (newMsgs: ApiMessage[]) => {
+      if (!currentUserId) return;
+      const transformed = newMsgs.map(m => transformMessage(m, currentUserId));
+      setMessages(prev => {
+        // Filter out duplicates
+        const existingIds = new Set(prev.map(p => p.id));
+        const uniqueNew = transformed.filter(m => !existingIds.has(m.id));
+        return [...prev, ...uniqueNew];
+      });
+      // Scroll to bottom when new messages arrive
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({animated: true});
+      }, 100);
+    },
+    [currentUserId],
+  );
+
+  // Start polling for new messages
+  const {updateLastTimestamp} = useMessagePolling(
+    currentUserId || '',
+    recipientId,
+    handleNewMessages,
+  );
+
+  // Transform API messages when they load
+  useEffect(() => {
+    if (apiMessages && currentUserId) {
+      const transformed = apiMessages.map(m =>
+        transformMessage(m, currentUserId),
+      );
+      setMessages(transformed);
+      // Update polling timestamp to the latest message
+      if (apiMessages.length > 0) {
+        updateLastTimestamp(apiMessages[apiMessages.length - 1].created_at);
+      }
+    }
+  }, [apiMessages, currentUserId, updateLastTimestamp]);
+
+  const sendMessage = async () => {
+    if (!inputText.trim() || !currentUserId || !recipientId) return;
 
     h('impactLight');
+    const tempId = Date.now().toString();
+    const text = inputText.trim();
+
+    // Optimistic update
     const newMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText.trim(),
-      senderId: CURRENT_USER_ID,
+      id: tempId,
+      text,
+      senderId: currentUserId,
       timestamp: new Date(),
       status: 'sending',
     };
@@ -123,25 +142,36 @@ export default function ChatScreen({navigate, route}: Props) {
     setMessages(prev => [...prev, newMessage]);
     setInputText('');
 
-    // Simulate send
-    setTimeout(() => {
-      setMessages(prev =>
-        prev.map(m => (m.id === newMessage.id ? {...m, status: 'sent'} : m)),
-      );
-    }, 500);
-
-    setTimeout(() => {
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === newMessage.id ? {...m, status: 'delivered'} : m,
-        ),
-      );
-    }, 1000);
-
     // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({animated: true});
     }, 100);
+
+    try {
+      const sent = await sendMutation.mutateAsync({
+        senderId: currentUserId,
+        recipientId,
+        content: text,
+      });
+
+      // Update the message with the real ID and status
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === tempId
+            ? {...m, id: sent.id, status: 'sent' as const}
+            : m,
+        ),
+      );
+
+      // Update polling timestamp
+      updateLastTimestamp(sent.created_at);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Mark as failed (could add a failed status)
+      setMessages(prev =>
+        prev.map(m => (m.id === tempId ? {...m, status: 'sent' as const} : m)),
+      );
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -149,10 +179,10 @@ export default function ChatScreen({navigate, route}: Props) {
   };
 
   const renderMessage = ({item, index}: {item: Message; index: number}) => {
-    const isMe = item.senderId === CURRENT_USER_ID;
+    const isMe = item.senderId === currentUserId;
     const showAvatar =
       !isMe &&
-      (index === 0 || messages[index - 1]?.senderId === CURRENT_USER_ID);
+      (index === 0 || messages[index - 1]?.senderId === currentUserId);
 
     return (
       <Animated.View
@@ -454,9 +484,7 @@ export default function ChatScreen({navigate, route}: Props) {
           <Image source={{uri: recipientAvatar}} style={styles.headerAvatar} />
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerName}>{recipientName}</Text>
-            <Text style={styles.headerStatus}>
-              {isTyping ? 'typing...' : 'online'}
-            </Text>
+            <Text style={styles.headerStatus}>online</Text>
           </View>
         </Pressable>
 
@@ -488,17 +516,6 @@ export default function ChatScreen({navigate, route}: Props) {
             flatListRef.current?.scrollToEnd({animated: false})
           }
         />
-
-        {/* Typing indicator */}
-        {isTyping && (
-          <View style={styles.typingIndicator}>
-            <Image
-              source={{uri: recipientAvatar}}
-              style={styles.typingAvatar}
-            />
-            <Text style={styles.typingText}>{recipientName} is typing...</Text>
-          </View>
-        )}
 
         {/* Input */}
         <View style={styles.inputContainer}>
