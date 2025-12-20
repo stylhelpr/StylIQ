@@ -358,6 +358,118 @@ export class AiService {
     }
   }
 
+  /**
+   * 👗 Analyze outfit image and identify each individual clothing piece
+   * Returns an array of pieces with category, item, color, material, style
+   */
+  async analyzeOutfitPieces(
+    imageUrl: string,
+    gender?: string,
+  ): Promise<
+    Array<{
+      category: string;
+      item: string;
+      color: string;
+      material?: string;
+      style?: string;
+    }>
+  > {
+    console.log('👗 [AI] analyzeOutfitPieces() called with', imageUrl);
+    if (!imageUrl) throw new Error('Missing imageUrl');
+
+    const genderContext = gender ? `The person appears to be ${gender}.` : '';
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a professional fashion analyst. Analyze the outfit in the image and identify EVERY SINGLE clothing piece and accessory visible. You MUST identify multiple pieces - look carefully at the entire outfit from head to toe.
+
+For EACH piece, extract:
+- category: The type of item (Top, Bottom, Outerwear, Shoes, Accessories, Hat, Bag, Jewelry)
+- item: Specific item name (e.g., "crewneck sweatshirt", "straight-leg jeans", "sneakers")
+- color: Primary color (e.g., "crimson red", "navy blue", "cream white")
+- material: Fabric/material if identifiable (e.g., "cotton", "denim", "leather", "wool")
+- style: Style descriptors (e.g., "oversized", "vintage", "athletic", "distressed")
+
+IMPORTANT: You MUST return a JSON object with a "pieces" key containing an ARRAY of ALL visible items. Look for:
+- Tops (shirts, sweaters, t-shirts, blouses)
+- Bottoms (pants, jeans, shorts, skirts)
+- Shoes (sneakers, boots, heels, sandals)
+- Outerwear (jackets, coats, blazers)
+- Accessories (watches, belts, bags, jewelry, hats, glasses)
+
+${genderContext}
+
+Return format:
+{
+  "pieces": [
+    {"category": "Top", "item": "graphic sweatshirt", "color": "blue", "material": "cotton fleece", "style": "collegiate"},
+    {"category": "Bottom", "item": "relaxed jeans", "color": "medium wash blue", "material": "denim", "style": "vintage"},
+    {"category": "Shoes", "item": "low-top sneakers", "color": "white", "material": "leather", "style": "classic"}
+  ]
+}`,
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Analyze this outfit image. List EVERY piece of clothing and accessory visible - from the top (hat, sunglasses) to bottom (shoes). Include the shirt/top, pants/bottoms, shoes, and any accessories. Return as a JSON object with a "pieces" array.',
+              },
+              { type: 'image_url', image_url: { url: imageUrl } },
+            ],
+          },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 1000,
+      });
+
+      const raw = completion.choices[0]?.message?.content;
+      console.log('👗 [AI] analyzeOutfitPieces() raw response:', raw);
+
+      if (!raw) throw new Error('Empty response from OpenAI');
+
+      const parsed = JSON.parse(raw);
+
+      // Handle multiple response formats:
+      // 1. Direct array: [{...}, {...}]
+      // 2. Object with array key: { pieces: [...] } or { items: [...] } or { outfit: [...] }
+      // 3. Single object with category: { category: "Top", ... } - wrap in array
+      let pieces: any[];
+
+      if (Array.isArray(parsed)) {
+        pieces = parsed;
+      } else if (parsed.pieces && Array.isArray(parsed.pieces)) {
+        pieces = parsed.pieces;
+      } else if (parsed.items && Array.isArray(parsed.items)) {
+        pieces = parsed.items;
+      } else if (parsed.outfit && Array.isArray(parsed.outfit)) {
+        pieces = parsed.outfit;
+      } else if (parsed.category && parsed.item) {
+        // Single object returned - wrap in array
+        pieces = [parsed];
+      } else {
+        // Try to extract any array value from the object
+        const arrayValue = Object.values(parsed).find((v) => Array.isArray(v));
+        pieces = arrayValue ? (arrayValue as any[]) : [];
+      }
+
+      console.log('👗 [AI] analyzeOutfitPieces() found', pieces.length, 'pieces');
+      return pieces;
+    } catch (err: any) {
+      console.error('❌ [AI] analyzeOutfitPieces() failed:', err.message);
+      // Return basic fallback pieces
+      return [
+        { category: 'Top', item: 'shirt', color: 'neutral' },
+        { category: 'Bottom', item: 'pants', color: 'neutral' },
+        { category: 'Shoes', item: 'shoes', color: 'neutral' },
+      ];
+    }
+  }
+
   /* ------------------------------------------------------------
      🧩 Weighted Tag Enrichment + Trend Injection
   -------------------------------------------------------------*/

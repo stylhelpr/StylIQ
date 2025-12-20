@@ -62,7 +62,8 @@ export default function AllSavedLooksModal({
     styleNote?: string;
   }) => void;
   openVisualRecreateModal?: (data: {
-    results: any[];
+    pieces?: any[];
+    results?: any[];
     source_image?: string;
   }) => void;
 }) {
@@ -240,11 +241,11 @@ export default function AllSavedLooksModal({
       }
 
       // -------------------------------
-      // 🔍 Visual Recreate (Match Image) path - uses Google Lens to find purchasable matches
+      // 👗 Outfit Recreate - AI analyzes each piece and searches Google Shopping for matches
       // -------------------------------
-      console.log('🔍 Google Lens Visual Search triggered');
-      console.log('🔍 Look object:', JSON.stringify(look, null, 2));
-      console.log('🔍 Image URL being sent:', look.image_url);
+      console.log('👗 Outfit Recreate triggered');
+      console.log('👗 Look object:', JSON.stringify(look, null, 2));
+      console.log('👗 Image URL being sent:', look.image_url);
       ReactNativeHapticFeedback.trigger('impactLight');
 
       if (!look.image_url) {
@@ -252,32 +253,32 @@ export default function AllSavedLooksModal({
         throw new Error('No image URL available for this saved look');
       }
 
-      // Call Google Lens API directly to get results synchronously
-      console.log('🔍 Calling API:', `${API_BASE_URL}/ai/similar-looks`);
-      const response = await fetch(`${API_BASE_URL}/ai/similar-looks`, {
+      // Call the new outfit recreate endpoint that identifies each piece
+      console.log('👗 Calling API:', `${API_BASE_URL}/ai/recreate-outfit`);
+      const response = await fetch(`${API_BASE_URL}/ai/recreate-outfit`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({imageUrl: look.image_url}),
       });
 
-      console.log('🔍 Response status:', response.status);
+      console.log('👗 Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error:', errorText);
-        throw new Error(`Google Lens search failed (${response.status}): ${errorText}`);
+        throw new Error(`Outfit recreate failed (${response.status}): ${errorText}`);
       }
 
-      const results = await response.json();
-      console.log('🔍 Google Lens results count:', results?.length);
-      console.log('🔍 Google Lens first result:', results?.[0]);
+      const data = await response.json();
+      console.log('👗 Outfit recreate result:', data);
+      console.log('👗 Found', data?.pieces?.length, 'outfit pieces');
 
       setSuccessState('recreate');
 
-      // Open visual recreate modal with results from Google Lens
+      // Open visual recreate modal with categorized results
       if (openVisualRecreateModal) {
         openVisualRecreateModal({
-          results: results || [],
+          pieces: data.pieces || [],
           source_image: look.image_url,
         });
       } else {

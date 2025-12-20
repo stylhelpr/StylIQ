@@ -190,6 +190,105 @@ export class AiController {
     }
   }
 
+  /**
+   * 👗 Recreate Full Outfit - Analyzes outfit image, identifies each piece,
+   * and searches Google Shopping for matching items for each piece
+   */
+  @Post('recreate-outfit')
+  async recreateOutfit(@Body() body: { imageUrl: string; gender?: string }) {
+    const { imageUrl, gender } = body;
+    console.log('👗 [recreate-outfit] Starting outfit recreation for:', imageUrl);
+
+    if (!imageUrl) throw new BadRequestException('Missing imageUrl');
+
+    try {
+      // Step 1: Use AI to analyze the image and identify each clothing piece
+      console.log('👗 [recreate-outfit] Step 1: Analyzing outfit with AI...');
+      const outfitPieces = await this.service.analyzeOutfitPieces(imageUrl, gender);
+      console.log('👗 [recreate-outfit] Identified pieces:', outfitPieces);
+
+      if (!outfitPieces || outfitPieces.length === 0) {
+        return { pieces: [], error: 'Could not identify outfit pieces' };
+      }
+
+      // Step 2: Search Google Shopping for each piece
+      console.log('👗 [recreate-outfit] Step 2: Searching for each piece...');
+      const results = await Promise.all(
+        outfitPieces.map(async (piece: any) => {
+          const searchQuery = `${piece.color || ''} ${piece.material || ''} ${piece.item} ${piece.style || ''}`.trim();
+          console.log(`👗 [recreate-outfit] Searching for: "${searchQuery}"`);
+
+          try {
+            const products = await this.searchGoogleShopping(searchQuery, gender);
+            return {
+              category: piece.category,
+              item: piece.item,
+              color: piece.color,
+              material: piece.material,
+              style: piece.style,
+              searchQuery,
+              products: products.slice(0, 6), // Top 6 matches per piece
+            };
+          } catch (err) {
+            console.error(`👗 [recreate-outfit] Search failed for ${piece.item}:`, err);
+            return {
+              category: piece.category,
+              item: piece.item,
+              color: piece.color,
+              products: [],
+            };
+          }
+        }),
+      );
+
+      console.log('👗 [recreate-outfit] Complete! Found products for', results.filter(r => r.products.length > 0).length, 'pieces');
+
+      return {
+        pieces: results,
+        totalPieces: outfitPieces.length,
+      };
+    } catch (err: any) {
+      console.error('❌ [recreate-outfit] Error:', err.message, err.stack);
+      throw new BadRequestException(`Outfit recreation failed: ${err.message}`);
+    }
+  }
+
+  /**
+   * Helper: Search Google Shopping via SerpAPI
+   */
+  private async searchGoogleShopping(query: string, gender?: string): Promise<any[]> {
+    const genderQuery = gender ? ` ${gender}'s` : '';
+    const fullQuery = `${query}${genderQuery}`;
+
+    const serpUrl = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(
+      fullQuery,
+    )}&hl=en&gl=us&api_key=${process.env.SERPAPI_KEY}`;
+
+    const res = await fetch(serpUrl);
+    if (!res.ok) throw new Error(`Google Shopping search failed (${res.status})`);
+
+    const json = await res.json();
+    const results = json?.shopping_results || [];
+
+    return results.map((item: any) => {
+      let price: string | null = null;
+      if (item.price) {
+        price = typeof item.price === 'string' ? item.price : `$${item.extracted_price || item.price}`;
+      }
+
+      return {
+        title: item.title || 'Product',
+        image: item.thumbnail || null,
+        link: item.link || item.product_link || '',
+        price,
+        brand: item.source || item.merchant?.name || 'Shop',
+        source: item.source || '',
+        rating: item.rating || null,
+        reviews: item.reviews || null,
+      };
+    });
+  }
+
   /* 🧾 Decode Barcode or Clothing Label */
   @Post('decode-barcode')
   async decodeBarcode(

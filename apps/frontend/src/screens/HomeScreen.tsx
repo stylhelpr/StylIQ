@@ -354,7 +354,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [personalizedPurchases, setPersonalizedPurchases] = useState<any[]>([]);
   const [visualRecreateVisible, setVisualRecreateVisible] = useState(false);
   const [visualRecreateData, setVisualRecreateData] = useState<{
-    results: any[];
+    pieces?: any[];
+    results?: any[];
     source_image?: string;
   } | null>(null);
   const [showSavedLooks, setShowSavedLooks] = useState(true);
@@ -728,11 +729,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   };
 
   const openVisualRecreateModal = (data: {
-    results: any[];
+    pieces?: any[];
+    results?: any[];
     source_image?: string;
   }) => {
     if (!data) return;
-    console.log('🔍 Opening Visual Recreate Modal with:', data);
+    console.log('👗 Opening Visual Recreate Modal with:', data);
+    console.log('👗 Pieces count:', data.pieces?.length);
     setVisualRecreateData(data);
     setTimeout(() => {
       setVisualRecreateVisible(true);
@@ -2244,7 +2247,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
           <VisualRecreateModal
             visible={visualRecreateVisible}
             onClose={() => setVisualRecreateVisible(false)}
-            results={visualRecreateData?.results ?? []}
+            pieces={visualRecreateData?.pieces}
+            results={visualRecreateData?.results}
             source_image={visualRecreateData?.source_image}
           />
           {showRecreatedModal && recreatedData && (

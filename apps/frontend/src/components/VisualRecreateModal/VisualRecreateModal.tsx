@@ -18,32 +18,63 @@ import IntegratedShopOverlay from '../ShopModal/IntegratedShopOverlay';
 
 const {width: screenWidth} = Dimensions.get('window');
 const CARD_WIDTH = (screenWidth - 60) / 2;
+const SMALL_CARD_WIDTH = (screenWidth - 70) / 3;
 
-interface GoogleLensResult {
+interface Product {
   title: string;
-  image: string;
+  image: string | null;
   link: string;
-  brand: string | null;
   price: string | null;
-  source: string | null;
+  brand: string;
+  source: string;
+  rating?: number | null;
+  reviews?: number | null;
+}
+
+interface OutfitPiece {
+  category: string;
+  item: string;
+  color: string;
+  material?: string;
+  style?: string;
+  searchQuery?: string;
+  products: Product[];
 }
 
 interface VisualRecreateModalProps {
   visible: boolean;
   onClose: () => void;
-  results: GoogleLensResult[];
+  pieces?: OutfitPiece[];
+  results?: any[]; // Legacy support
   source_image?: string;
 }
+
+// Category icons mapping
+const CATEGORY_ICONS: Record<string, string> = {
+  Top: 'checkroom',
+  Bottom: 'straighten',
+  Outerwear: 'ac-unit',
+  Shoes: 'directions-walk',
+  Accessories: 'watch',
+  Hat: 'face',
+  Bag: 'shopping-bag',
+  Jewelry: 'diamond',
+  default: 'style',
+};
 
 function ProductCard({
   item,
   theme,
   onPress,
+  small = false,
 }: {
-  item: GoogleLensResult;
+  item: Product;
   theme: any;
   onPress: (url: string) => void;
+  small?: boolean;
 }) {
+  const cardWidth = small ? SMALL_CARD_WIDTH : CARD_WIDTH;
+
   const handlePress = useCallback(() => {
     if (item.link) {
       ReactNativeHapticFeedback.trigger('impactMedium');
@@ -56,8 +87,9 @@ function ProductCard({
       onPress={handlePress}
       activeOpacity={0.85}
       style={{
-        width: CARD_WIDTH,
-        marginBottom: 16,
+        width: cardWidth,
+        marginBottom: 12,
+        marginRight: small ? 8 : 0,
         backgroundColor: theme.colors.surface2,
         borderRadius: tokens.borderRadius.lg,
         overflow: 'hidden',
@@ -65,33 +97,33 @@ function ProductCard({
       {item.image ? (
         <Image
           source={{uri: item.image}}
-          style={{width: CARD_WIDTH, height: CARD_WIDTH * 1.2}}
+          style={{width: cardWidth, height: cardWidth * (small ? 1 : 1.2)}}
           resizeMode="cover"
         />
       ) : (
         <View
           style={{
-            width: CARD_WIDTH,
-            height: CARD_WIDTH * 1.2,
+            width: cardWidth,
+            height: cardWidth * (small ? 1 : 1.2),
             backgroundColor: theme.colors.surface3,
             justifyContent: 'center',
             alignItems: 'center',
           }}>
           <MaterialIcons
             name="shopping-bag"
-            size={40}
+            size={small ? 24 : 40}
             color={theme.colors.muted}
           />
         </View>
       )}
-      <View style={{padding: 10}}>
+      <View style={{padding: small ? 8 : 10}}>
         <Text
           numberOfLines={2}
           style={{
             color: theme.colors.foreground,
-            fontSize: 12,
+            fontSize: small ? 10 : 12,
             fontWeight: '500',
-            lineHeight: 16,
+            lineHeight: small ? 14 : 16,
           }}>
           {item.title}
         </Text>
@@ -100,8 +132,8 @@ function ProductCard({
             numberOfLines={1}
             style={{
               color: theme.colors.muted,
-              fontSize: 11,
-              marginTop: 4,
+              fontSize: small ? 9 : 11,
+              marginTop: 2,
             }}>
             {item.brand}
           </Text>
@@ -110,9 +142,9 @@ function ProductCard({
           <Text
             style={{
               color: theme.colors.primary,
-              fontSize: 14,
+              fontSize: small ? 12 : 14,
               fontWeight: '700',
-              marginTop: 6,
+              marginTop: 4,
             }}>
             {item.price}
           </Text>
@@ -121,21 +153,21 @@ function ProductCard({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            marginTop: 8,
+            marginTop: 6,
           }}>
           <MaterialIcons
             name="shopping-cart"
-            size={14}
+            size={small ? 10 : 14}
             color={theme.colors.primary}
           />
           <Text
             style={{
               color: theme.colors.primary,
-              fontSize: 11,
+              fontSize: small ? 9 : 11,
               fontWeight: '600',
-              marginLeft: 4,
+              marginLeft: 3,
             }}>
-            Shop Now
+            Shop
           </Text>
         </View>
       </View>
@@ -143,9 +175,108 @@ function ProductCard({
   );
 }
 
+function PieceSection({
+  piece,
+  theme,
+  onShopPress,
+}: {
+  piece: OutfitPiece;
+  theme: any;
+  onShopPress: (url: string) => void;
+}) {
+  const iconName = CATEGORY_ICONS[piece.category] || CATEGORY_ICONS.default;
+
+  return (
+    <View style={{marginBottom: 24}}>
+      {/* Section Header */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 12,
+          paddingBottom: 8,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.surface2,
+        }}>
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: theme.colors.primary + '20',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+          }}>
+          <MaterialIcons name={iconName} size={20} color={theme.colors.primary} />
+        </View>
+        <View style={{flex: 1}}>
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontSize: 16,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}>
+            {piece.category}
+          </Text>
+          <Text
+            style={{
+              color: theme.colors.muted,
+              fontSize: 12,
+              marginTop: 2,
+            }}>
+            {piece.color} {piece.item}
+            {piece.material ? ` • ${piece.material}` : ''}
+          </Text>
+        </View>
+      </View>
+
+      {/* Products Grid */}
+      {piece.products && piece.products.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{paddingRight: 10}}>
+          {piece.products.map((product, idx) => (
+            <ProductCard
+              key={`${piece.category}-product-${idx}`}
+              item={product}
+              theme={theme}
+              onPress={onShopPress}
+              small
+            />
+          ))}
+        </ScrollView>
+      ) : (
+        <View
+          style={{
+            padding: 20,
+            backgroundColor: theme.colors.surface2,
+            borderRadius: tokens.borderRadius.md,
+            alignItems: 'center',
+          }}>
+          <MaterialIcons name="search-off" size={24} color={theme.colors.muted} />
+          <Text
+            style={{
+              color: theme.colors.muted,
+              fontSize: 12,
+              marginTop: 8,
+              textAlign: 'center',
+            }}>
+            No matches found for this piece
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function VisualRecreateModal({
   visible,
   onClose,
+  pieces,
   results,
   source_image,
 }: VisualRecreateModalProps) {
@@ -163,6 +294,12 @@ export default function VisualRecreateModal({
   }, [onClose]);
 
   if (!visible) return null;
+
+  // Calculate total products found
+  const totalProducts = pieces?.reduce((sum, p) => sum + (p.products?.length || 0), 0) || 0;
+
+  // Legacy mode: if we have results but no pieces, show flat grid
+  const isLegacyMode = !pieces && results && results.length > 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -193,9 +330,21 @@ export default function VisualRecreateModal({
               borderBottomWidth: 1,
               borderBottomColor: theme.colors.surface2,
             }}>
-            <Text style={[globalStyles.sectionTitle, {marginTop: 0}]}>
-              SHOP THE LOOK
-            </Text>
+            <View>
+              <Text style={[globalStyles.sectionTitle, {marginTop: 0}]}>
+                RECREATE THIS LOOK
+              </Text>
+              {pieces && pieces.length > 0 && (
+                <Text
+                  style={{
+                    color: theme.colors.muted,
+                    fontSize: 12,
+                    marginTop: 4,
+                  }}>
+                  {pieces.length} pieces identified • {totalProducts} products found
+                </Text>
+              )}
+            </View>
             <TouchableOpacity
               onPress={handleClose}
               style={{
@@ -221,12 +370,12 @@ export default function VisualRecreateModal({
             }}>
             {/* Source Image Preview */}
             {source_image && (
-              <View style={{marginBottom: 20, alignItems: 'center'}}>
+              <View style={{marginBottom: 24, alignItems: 'center'}}>
                 <Image
                   source={{uri: source_image}}
                   style={{
-                    width: screenWidth * 0.4,
-                    height: screenWidth * 0.5,
+                    width: screenWidth * 0.35,
+                    height: screenWidth * 0.45,
                     borderRadius: tokens.borderRadius.lg,
                   }}
                   resizeMode="cover"
@@ -238,13 +387,23 @@ export default function VisualRecreateModal({
                     marginTop: 8,
                     textAlign: 'center',
                   }}>
-                  Your saved look
+                  Your inspiration look
                 </Text>
               </View>
             )}
 
-            {/* Results Grid */}
-            {results && results.length > 0 ? (
+            {/* Pieces by Category */}
+            {pieces && pieces.length > 0 ? (
+              pieces.map((piece, idx) => (
+                <PieceSection
+                  key={`piece-${idx}`}
+                  piece={piece}
+                  theme={theme}
+                  onShopPress={handleShopPress}
+                />
+              ))
+            ) : isLegacyMode ? (
+              // Legacy flat grid for old results format
               <>
                 <Text
                   style={{
@@ -261,7 +420,7 @@ export default function VisualRecreateModal({
                     flexWrap: 'wrap',
                     justifyContent: 'space-between',
                   }}>
-                  {results.map((item, idx) => (
+                  {results.map((item: any, idx: number) => (
                     <ProductCard
                       key={`result-${idx}`}
                       item={item}
@@ -285,7 +444,7 @@ export default function VisualRecreateModal({
                     marginTop: 12,
                     textAlign: 'center',
                   }}>
-                  No matching products found.{'\n'}Try a different image.
+                  No outfit pieces identified.{'\n'}Try a different image.
                 </Text>
               </View>
             )}
