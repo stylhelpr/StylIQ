@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Pool } from 'pg';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -8,7 +9,7 @@ const pool = new Pool({
 
 @Injectable()
 export class CommunityService {
-  constructor() {
+  constructor(private readonly notifications: NotificationsService) {
     this.initTables();
   }
 
@@ -60,9 +61,20 @@ export class CommunityService {
         tags TEXT[] DEFAULT '{}',
         likes_count INT DEFAULT 0,
         comments_count INT DEFAULT 0,
+        views_count INT DEFAULT 0,
         is_demo BOOLEAN DEFAULT false,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
+    `);
+
+    // Add views_count column if it doesn't exist (migration)
+    await pool.query(`
+      ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS views_count INT DEFAULT 0
+    `);
+
+    // Add bio column to users if it doesn't exist
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT
     `);
 
     // Post likes table
@@ -425,6 +437,15 @@ export class CommunityService {
   // ==================== LIKES ====================
 
   async likePost(postId: string, userId: string) {
+    // Check if already liked to avoid duplicate notifications
+    const existing = await pool.query(
+      `SELECT 1 FROM post_likes WHERE user_id = $1 AND post_id = $2`,
+      [userId, postId],
+    );
+    if (existing.rows.length > 0) {
+      return { message: 'Already liked' };
+    }
+
     await pool.query(
       `INSERT INTO post_likes (user_id, post_id)
        VALUES ($1, $2)
@@ -438,6 +459,36 @@ export class CommunityService {
        WHERE id = $1`,
       [postId],
     );
+
+    // Send push notification to post owner (don't notify yourself)
+    try {
+      const postOwner = await pool.query(
+        `SELECT cp.user_id, COALESCE(u.first_name, 'Someone') as liker_name
+         FROM community_posts cp
+         LEFT JOIN users u ON u.id = $2
+         WHERE cp.id = $1`,
+        [postId, userId],
+      );
+      const ownerId = postOwner.rows[0]?.user_id;
+      const likerName = postOwner.rows[0]?.liker_name || 'Someone';
+      if (ownerId && ownerId !== userId) {
+        const title = 'New Like';
+        const message = `${likerName} liked your post`;
+        this.notifications.sendPushToUser(ownerId, title, message, { type: 'like', postId, category: 'message' });
+        // Save to inbox for Community Messages section
+        this.notifications.saveInboxItem({
+          id: `like-${postId}-${userId}-${Date.now()}`,
+          user_id: ownerId,
+          title,
+          message,
+          timestamp: new Date().toISOString(),
+          category: 'message',
+          data: { type: 'like', postId, likerId: userId },
+        });
+      }
+    } catch (e) {
+      console.error('Failed to send like notification:', e);
+    }
 
     return { message: 'Post liked' };
   }
@@ -502,10 +553,42 @@ export class CommunityService {
     const userRes = await pool.query(
       `SELECT
         COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
+        COALESCE(first_name, 'Someone') as commenter_first_name,
         COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1) as user_avatar
       FROM users WHERE id = $1::uuid`,
       [userId],
     );
+
+    // Send push notification to post owner
+    try {
+      const postOwner = await pool.query(
+        `SELECT user_id FROM community_posts WHERE id = $1`,
+        [postId],
+      );
+      const ownerId = postOwner.rows[0]?.user_id;
+      const commenterName = userRes.rows[0]?.commenter_first_name || 'Someone';
+      if (ownerId && ownerId !== userId) {
+        const title = `${commenterName} commented`;
+        const message = content;
+        this.notifications.sendPushToUser(ownerId, title, message, {
+          type: 'comment',
+          postId,
+          category: 'message',
+        });
+        // Save to inbox for Community Messages section
+        this.notifications.saveInboxItem({
+          id: `comment-${postId}-${userId}-${Date.now()}`,
+          user_id: ownerId,
+          title,
+          message,
+          timestamp: new Date().toISOString(),
+          category: 'message',
+          data: { type: 'comment', postId, commenterId: userId },
+        });
+      }
+    } catch (e) {
+      console.error('Failed to send comment notification:', e);
+    }
 
     return {
       ...res.rows[0],
@@ -587,6 +670,15 @@ export class CommunityService {
       throw new ForbiddenException('You cannot follow yourself');
     }
 
+    // Check if already following to avoid duplicate notifications
+    const existing = await pool.query(
+      `SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+      [followerId, followingId],
+    );
+    if (existing.rows.length > 0) {
+      return { message: 'Already following' };
+    }
+
     await pool.query(
       `INSERT INTO user_follows (follower_id, following_id)
        VALUES ($1, $2)
@@ -594,6 +686,30 @@ export class CommunityService {
       [followerId, followingId],
     );
     console.log('✅ Follow saved to database');
+
+    // Send push notification to the user being followed
+    try {
+      const followerInfo = await pool.query(
+        `SELECT COALESCE(first_name, 'Someone') as follower_name FROM users WHERE id = $1`,
+        [followerId],
+      );
+      const followerName = followerInfo.rows[0]?.follower_name || 'Someone';
+      const title = 'New Follower';
+      const message = `${followerName} started following you`;
+      this.notifications.sendPushToUser(followingId, title, message, { type: 'follow', followerId, category: 'message' });
+      // Save to inbox for Community Messages section
+      this.notifications.saveInboxItem({
+        id: `follow-${followerId}-${followingId}-${Date.now()}`,
+        user_id: followingId,
+        title,
+        message,
+        timestamp: new Date().toISOString(),
+        category: 'message',
+        data: { type: 'follow', followerId },
+      });
+    } catch (e) {
+      console.error('Failed to send follow notification:', e);
+    }
 
     return { message: 'User followed' };
   }
@@ -740,14 +856,48 @@ export class CommunityService {
     return { message: 'Post reported' };
   }
 
+  // ==================== VIEW TRACKING ====================
+
+  async trackView(postId: string, userId?: string) {
+    // Increment view count
+    await pool.query(
+      `UPDATE community_posts SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1`,
+      [postId],
+    );
+
+    return { message: 'View tracked' };
+  }
+
+  // ==================== USER BIO ====================
+
+  async updateBio(userId: string, bio: string) {
+    await pool.query(
+      `UPDATE users SET bio = $2 WHERE id = $1`,
+      [userId, bio],
+    );
+
+    return { message: 'Bio updated' };
+  }
+
+  async getBio(userId: string) {
+    const res = await pool.query(
+      `SELECT bio FROM users WHERE id = $1`,
+      [userId],
+    );
+    return { bio: res.rows[0]?.bio || null };
+  }
+
   // ==================== USER PROFILE HELPERS ====================
 
   async getUserProfile(userId: string, currentUserId?: string) {
     const userRes = await pool.query(
       `SELECT
         id,
+        first_name,
+        last_name,
         COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
-        COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || id) as user_avatar,
+        profile_picture as user_avatar,
+        bio,
         (SELECT COUNT(*) FROM user_follows WHERE following_id = $1) as followers_count,
         (SELECT COUNT(*) FROM user_follows WHERE follower_id = $1) as following_count,
         (SELECT COUNT(*) FROM community_posts WHERE user_id = $1) as posts_count

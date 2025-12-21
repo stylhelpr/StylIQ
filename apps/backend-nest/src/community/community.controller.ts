@@ -210,6 +210,31 @@ export class CommunityController {
     return this.service.reportPost(body.userId, postId, body.reason);
   }
 
+  // ==================== VIEW TRACKING ====================
+
+  @Post('posts/:id/view')
+  async trackView(
+    @Param('id') postId: string,
+    @Body('userId') userId?: string,
+  ) {
+    return this.service.trackView(postId, userId);
+  }
+
+  // ==================== USER BIO ====================
+
+  @Patch('users/:id/bio')
+  async updateBio(
+    @Param('id') userId: string,
+    @Body('bio') bio: string,
+  ) {
+    return this.service.updateBio(userId, bio);
+  }
+
+  @Get('users/:id/bio')
+  async getBio(@Param('id') userId: string) {
+    return this.service.getBio(userId);
+  }
+
   // ==================== USER PROFILE ====================
 
   @Get('users/:id/profile')

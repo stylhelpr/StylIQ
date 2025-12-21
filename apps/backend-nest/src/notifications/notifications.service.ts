@@ -474,6 +474,42 @@ export class NotificationsService {
     return { ok: true };
   }
 
+  async getInboxItems(user_id: string) {
+    const result = await pool.query(
+      `SELECT id, title, message, timestamp, category, deeplink, data, read
+       FROM user_notifications
+       WHERE user_id = $1
+       ORDER BY timestamp DESC
+       LIMIT 200`,
+      [user_id],
+    );
+    return result.rows;
+  }
+
+  async markRead(user_id: string, id: string) {
+    await pool.query(
+      `UPDATE user_notifications SET read = true WHERE user_id = $1 AND id = $2`,
+      [user_id, id],
+    );
+    return { ok: true };
+  }
+
+  async markAllRead(user_id: string) {
+    await pool.query(
+      `UPDATE user_notifications SET read = true WHERE user_id = $1`,
+      [user_id],
+    );
+    return { ok: true };
+  }
+
+  async clearAll(user_id: string) {
+    await pool.query(
+      `DELETE FROM user_notifications WHERE user_id = $1`,
+      [user_id],
+    );
+    return { ok: true };
+  }
+
   // ── Debug ────────────────────────────────────────────────
   async debug(user_id?: string) {
     const appOpts: any = (admin as any).app().options || {};

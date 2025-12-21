@@ -15,7 +15,7 @@ type InboxItem = {
   title?: string;
   message: string;
   timestamp: string;
-  category?: 'news' | 'outfit' | 'weather' | 'care' | 'other';
+  category?: 'news' | 'outfit' | 'weather' | 'care' | 'message' | 'other';
   deeplink?: string;
   data?: Record<string, string>;
 };
@@ -24,11 +24,20 @@ type InboxItem = {
 function mapMessage(msg: FirebaseMessagingTypes.RemoteMessage): InboxItem {
   const id =
     msg.messageId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const title = msg.notification?.title ?? msg.data?.title ?? undefined;
+  const data = msg.data as Record<string, string> | undefined;
+  const title = msg.notification?.title ?? data?.title ?? undefined;
   const message =
-    msg.notification?.body ?? msg.data?.body ?? msg.data?.message ?? '';
-  const deeplink = msg.data?.deeplink;
-  const category = (msg.data?.category as InboxItem['category']) ?? 'other';
+    msg.notification?.body ?? data?.body ?? data?.message ?? '';
+  const deeplink = data?.deeplink;
+
+  // Community notifications (like, comment, follow) should go to Community Messages
+  const notifType = data?.type;
+  let category: InboxItem['category'] = 'other';
+  if (notifType === 'like' || notifType === 'comment' || notifType === 'follow') {
+    category = 'message';
+  } else if (data?.category) {
+    category = data.category as InboxItem['category'];
+  }
 
   return {
     id,
@@ -37,7 +46,7 @@ function mapMessage(msg: FirebaseMessagingTypes.RemoteMessage): InboxItem {
     timestamp: new Date().toISOString(),
     category,
     deeplink,
-    data: msg.data ?? {},
+    data: data ?? {},
   };
 }
 

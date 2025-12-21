@@ -30,9 +30,36 @@ function notifySubscribers() {
   subscribers.forEach(fn => fn());
 }
 
-export async function loadInbox(): Promise<AppNotification[]> {
+export async function loadInbox(userId?: string): Promise<AppNotification[]> {
+  // First load from local storage
   const raw = await AsyncStorage.getItem(INBOX_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const local: AppNotification[] = raw ? JSON.parse(raw) : [];
+
+  // If we have a userId, also fetch from backend and merge
+  if (userId) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/notifications/inbox?user_id=${userId}`);
+      if (res.ok) {
+        const remote: AppNotification[] = await res.json();
+        // Merge: combine remote + local, dedupe by id
+        const merged = [...remote, ...local];
+        const seen = new Set<string>();
+        const deduped = merged.filter(n => {
+          const key = n.id || `${n.title}-${n.message}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        // Save merged list locally
+        await AsyncStorage.setItem(INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
+        return deduped;
+      }
+    } catch (err) {
+      console.warn('⚠️ Failed to fetch notifications from backend:', err);
+    }
+  }
+
+  return local;
 }
 
 export async function saveInbox(list: AppNotification[]) {
@@ -54,7 +81,15 @@ export async function saveInbox(list: AppNotification[]) {
  * ✅ And also mirrors it to your backend (optional best practice)
  */
 export async function addToInbox(n: AppNotification & {user_id?: string}) {
+  console.log('📥 addToInbox called with:', {
+    id: n.id,
+    title: n.title,
+    category: n.category,
+    dataType: n.data?.type,
+  });
+
   const list = await loadInbox();
+  console.log('📋 Current inbox count:', list.length);
 
   // ✅ Skip duplicates locally
   const duplicate = list.find(
@@ -67,6 +102,7 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
 
   const next = [n, ...list].slice(0, cap);
   await saveInbox(next);
+  console.log('✅ Notification saved! New inbox count:', next.length);
 
   // 🆕 Mirror notification to backend (non-breaking optional best practice)
   try {
@@ -84,21 +120,57 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
 }
 
 export async function markRead(userId: string, id: string) {
-  const list = await loadInbox();
+  // First mark as read in backend
+  try {
+    await fetch(`${API_BASE_URL}/notifications/mark-read`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: userId, id}),
+    });
+  } catch (err) {
+    console.warn('⚠️ Failed to mark read in backend:', err);
+  }
+
+  // Then update local storage
+  const list = await loadInbox(userId);
   const updated = list.map(n => (n.id === id ? {...n, read: true} : n));
   await saveInbox(updated);
-
-  // (optional) mark as read in backend later if needed
 }
 
 export async function markAllRead(userId: string) {
-  const list = await loadInbox();
+  // First mark all as read in backend (await it!)
+  try {
+    const res = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: userId}),
+    });
+    console.log('☁️ Backend mark-all-read response:', res.status);
+  } catch (err) {
+    console.warn('⚠️ Failed to mark all read in backend:', err);
+  }
+
+  // Then update local storage
+  const list = await loadInbox(userId);
   await saveInbox(list.map(n => ({...n, read: true})));
 }
 
 export async function clearAll(userId: string) {
+  // First clear from backend
+  try {
+    await fetch(`${API_BASE_URL}/notifications/clear-all`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_id: userId}),
+    });
+    console.log('☁️ Backend clear-all completed');
+  } catch (err) {
+    console.warn('⚠️ Failed to clear all in backend:', err);
+  }
+
+  // Then clear local storage
   await AsyncStorage.removeItem(INBOX_KEY);
-  notifySubscribers(); // ✅ Also notify listeners here
+  notifySubscribers();
 }
 
 ////////////////////

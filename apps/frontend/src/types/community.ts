@@ -12,6 +12,7 @@ export interface CommunityPost {
   tags: string[];
   likes_count: number;
   comments_count: number;
+  views_count: number;
   is_liked_by_me: boolean;
   is_saved_by_me: boolean;
   is_following_author: boolean;
@@ -37,6 +38,7 @@ export interface UserProfile {
   id: string;
   user_name: string;
   user_avatar: string;
+  bio?: string;
   followers_count: number;
   following_count: number;
   posts_count: number;

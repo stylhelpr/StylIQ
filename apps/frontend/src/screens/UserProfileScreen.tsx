@@ -34,6 +34,7 @@ type UserProfile = {
   last_name: string;
   email: string;
   profile_picture?: string;
+  bio?: string;
   fashion_level?: string;
   profession?: string;
 };
@@ -61,7 +62,27 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
   const [sharedLooks, setSharedLooks] = useState<SharedLook[]>([]);
   const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
 
-  // Fetch user profile
+  // Fetch user profile (includes bio from community endpoint)
+  const {data: communityProfile} = useQuery<{
+    user_name: string;
+    user_avatar: string;
+    bio?: string;
+    followers_count: number;
+    following_count: number;
+    posts_count: number;
+  }>({
+    enabled: !!userId,
+    queryKey: ['communityUserProfile', userId],
+    queryFn: async () => {
+      const res = await fetch(
+        `${API_BASE_URL}/community/users/${userId}/profile`,
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  // Fetch user profile (basic info)
   const {data: userProfile, isLoading: loadingProfile} = useQuery<UserProfile>({
     enabled: !!userId,
     queryKey: ['publicUserProfile', userId],
@@ -169,7 +190,15 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     initials = f + l || local.slice(0, 2).toUpperCase();
   }
 
-  const profileUri = userProfile?.profile_picture || passedAvatar || '';
+  // Filter out fake pravatar URLs - only use real profile pictures
+  const isRealAvatar = (url?: string) => url && !url.includes('pravatar.cc');
+  const profileUri = isRealAvatar(userProfile?.profile_picture)
+    ? userProfile?.profile_picture
+    : isRealAvatar(communityProfile?.user_avatar)
+    ? communityProfile?.user_avatar
+    : isRealAvatar(passedAvatar)
+    ? passedAvatar
+    : '';
   const displayName =
     userProfile?.first_name && userProfile?.last_name
       ? `${userProfile.first_name} ${userProfile.last_name}`
@@ -438,6 +467,11 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                 style={styles.bioContainer}>
                 <Text style={styles.nameText}>{displayName}</Text>
                 <Text style={styles.usernameText}>{username}</Text>
+                {(communityProfile?.bio || userProfile?.bio) && (
+                  <Text style={styles.bioText}>
+                    {communityProfile?.bio || userProfile?.bio}
+                  </Text>
+                )}
                 {userProfile?.fashion_level && (
                   <Text style={styles.bioText}>
                     {userProfile.fashion_level}

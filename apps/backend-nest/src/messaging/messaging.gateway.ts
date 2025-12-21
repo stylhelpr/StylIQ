@@ -129,4 +129,23 @@ export class MessagingGateway
     const sockets = this.userSockets.get(userId);
     return sockets ? sockets.size > 0 : false;
   }
+
+  // Emit community notification (like, comment, follow) - same pattern as DM messages
+  emitCommunityNotification(
+    recipientId: string,
+    notification: {
+      id: string;
+      type: 'like' | 'comment' | 'follow';
+      title: string;
+      message: string;
+      senderId: string;
+      senderName: string;
+      senderAvatar: string;
+      postId?: string;
+      created_at: string;
+    },
+  ) {
+    console.log(`📨 Emitting community notification to ${recipientId}:`, notification.type);
+    this.server.to(`user:${recipientId}`).emit('community_notification', notification);
+  }
 }

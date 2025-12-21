@@ -63,6 +63,26 @@ export class NotificationsController {
     return this.service.saveInboxItem(body);
   }
 
+  @Get('inbox')
+  async getInbox(@Query('user_id') user_id: string) {
+    return this.service.getInboxItems(user_id);
+  }
+
+  @Post('mark-read')
+  async markRead(@Body() body: { user_id: string; id: string }) {
+    return this.service.markRead(body.user_id, body.id);
+  }
+
+  @Post('mark-all-read')
+  async markAllRead(@Body() body: { user_id: string }) {
+    return this.service.markAllRead(body.user_id);
+  }
+
+  @Post('clear-all')
+  async clearAll(@Body() body: { user_id: string }) {
+    return this.service.clearAll(body.user_id);
+  }
+
   // Optional manual trigger to prove the full flow:
   @Post('notify/source-article')
   notifySource(

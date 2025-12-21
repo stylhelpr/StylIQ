@@ -53,8 +53,6 @@ import {
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {HeadPoseProvider} from '../src/context/HeadPoseProvider';
 import {HandPoseProvider} from '../src/context/HandPoseProvider'; // ✅ Added
-import messaging from '@react-native-firebase/messaging';
-import {addToInbox, AppNotification} from './utils/notificationInbox';
 // Initialize axios interceptors for 401 handling
 import './lib/apiClient';
 
@@ -63,25 +61,8 @@ function RootWithNotifications() {
 
   useEffect(() => {
     if (userId) {
+      // initializeNotifications handles FCM onMessage - no duplicate handler needed
       initializeNotifications(userId);
-
-      const unsubscribe = messaging().onMessage(async msg => {
-        await addToInbox({
-          user_id: userId,
-          id: msg.messageId || `${Date.now()}`,
-          title: msg.notification?.title || msg.data?.title,
-          message:
-            msg.notification?.body || msg.data?.body || msg.data?.message || '',
-          timestamp: new Date().toISOString(),
-          category:
-            (msg.data?.category as AppNotification['category']) ?? 'other',
-          deeplink: msg.data?.deeplink,
-          data: msg.data,
-          read: false,
-        });
-      });
-
-      return unsubscribe;
     }
   }, [userId]);
 

@@ -12,7 +12,6 @@ import {
   UIManager,
   Platform,
 } from 'react-native';
-import messaging from '@react-native-firebase/messaging';
 import {useUUID} from '../context/UUIDContext';
 import {useAppTheme} from '../context/ThemeContext';
 import {
@@ -21,7 +20,7 @@ import {
   markAllRead,
   clearAll,
   AppNotification,
-  addToInbox,
+  subscribeInboxChange,
 } from '../utils/notificationInbox';
 import NotificationCard from '../components/Notifications/NotificationCard';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -35,7 +34,6 @@ import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {tokens} from '../styles/tokens/tokens';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
-import {DynamicIsland} from '../native/dynamicIsland';
 
 if (
   Platform.OS === 'android' &&
@@ -49,37 +47,6 @@ const h = (type: string) =>
     // enableVibrateFallback: true,
     ignoreAndroidSystemSettings: false,
   });
-
-// Helper function to show notification in Dynamic Island
-const showInDynamicIsland = async (
-  title: string,
-  message: string,
-  durationMs: number = 5000,
-) => {
-  try {
-    // Check if Live Activities are enabled first
-    const enabled = await DynamicIsland.isEnabled();
-    console.log('🔔 Live Activities enabled?', enabled);
-
-    if (!enabled) {
-      console.log('⚠️ Live Activities not allowed on this device / settings.');
-      return;
-    }
-
-    // Start the Live Activity with the notification
-    const result = await DynamicIsland.start(title, message);
-    console.log('✅ Dynamic Island started:', result);
-    console.log('📬 Notification:', title, '-', message);
-
-    // Auto-dismiss after duration
-    setTimeout(async () => {
-      const endResult = await DynamicIsland.end();
-      console.log('🏁 Dynamic Island ended:', endResult);
-    }, durationMs);
-  } catch (error) {
-    console.log('❌ Dynamic Island error:', error);
-  }
-};
 
 export default function NotificationsScreen({
   navigate,
@@ -166,67 +133,15 @@ export default function NotificationsScreen({
 
   useEffect(() => {
     load();
+    // Subscribe to inbox changes so we reload when App.tsx adds a notification
+    const unsubscribe = subscribeInboxChange(() => {
+      load();
+    });
+    return unsubscribe;
   }, [load]);
 
-  useEffect(() => {
-    const unsubscribeFg = messaging().onMessage(async msg => {
-      const title = String(
-        msg.notification?.title || msg.data?.title || 'New Notification',
-      );
-      const message = String(
-        msg.notification?.body || msg.data?.body || msg.data?.message || '',
-      );
-
-      await addToInbox({
-        user_id: userId,
-        id: msg.messageId || `${Date.now()}`,
-        title,
-        message,
-        timestamp: new Date().toISOString(),
-        category:
-          (msg.data?.category as AppNotification['category']) ?? 'other',
-        deeplink: msg.data?.deeplink,
-        data: msg.data,
-        read: false,
-      });
-      await load();
-      h('impactLight');
-
-      // 🏝️ Show in Dynamic Island
-      await showInDynamicIsland(title, message, 5000);
-    });
-
-    const unsubscribeOpen = messaging().onNotificationOpenedApp(async msg => {
-      const title = String(
-        msg.notification?.title || msg.data?.title || 'New Notification',
-      );
-      const message = String(
-        msg.notification?.body || msg.data?.body || msg.data?.message || '',
-      );
-
-      await addToInbox({
-        user_id: userId,
-        id: msg.messageId || `${Date.now()}`,
-        title,
-        message,
-        timestamp: new Date().toISOString(),
-        category:
-          (msg.data?.category as AppNotification['category']) ?? 'other',
-        deeplink: msg.data?.deeplink,
-        data: msg.data,
-        read: false,
-      });
-      await load();
-
-      // 🏝️ Show in Dynamic Island
-      await showInDynamicIsland(title, message, 5000);
-    });
-
-    return () => {
-      unsubscribeFg();
-      unsubscribeOpen();
-    };
-  }, [load, userId]);
+  // FCM handlers are in notificationService.ts - no duplicate needed here
+  // The subscribeInboxChange above will reload when new notifications arrive
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -432,9 +347,24 @@ export default function NotificationsScreen({
                       const cat = (n.category || '').toLowerCase();
                       const title = (n.title || '').toLowerCase();
                       const message = (n.message || '').toLowerCase();
+                      const dataType = n.data?.type;
 
-                      // Community Messages section for chat messages
-                      if (cat === 'message') {
+                      // Debug: log each notification's category
+                      console.log('📋 Notification:', {
+                        id: n.id,
+                        title: n.title,
+                        category: n.category,
+                        dataType,
+                        willGoTo: cat === 'message' ? 'Community Messages' : 'other',
+                      });
+
+                      // Community Messages section - check both category AND data.type
+                      if (
+                        cat === 'message' ||
+                        dataType === 'like' ||
+                        dataType === 'comment' ||
+                        dataType === 'follow'
+                      ) {
                         sources['Community Messages'].push(n);
                       } else if (
                         cat === 'scheduled_outfit' ||
@@ -593,6 +523,13 @@ export default function NotificationsScreen({
 
                                   switch ((n.category || '').toLowerCase()) {
                                     case 'message':
+                                      // Check if it's a community notification (like, comment, follow)
+                                      const notifType = n.data?.type;
+                                      if (notifType === 'like' || notifType === 'comment' || notifType === 'follow') {
+                                        // Navigate to CommunityShowcaseScreen for community notifications
+                                        navigate('CommunityShowcaseScreen');
+                                        return;
+                                      }
                                       // Navigate to ChatScreen with sender info from notification data
                                       navigate('ChatScreen', {
                                         recipientId: n.data?.senderId || '',

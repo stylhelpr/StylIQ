@@ -7,6 +7,8 @@ import {
   ScrollView,
   Dimensions,
   Pressable,
+  TextInput,
+  Modal,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
@@ -66,6 +68,9 @@ export default function ProfileScreen({navigate}: Props) {
   const [profilePicture, setProfilePicture] = useState<string>(''); // keep as string only
   const [sharedLooks, setSharedLooks] = useState<any[]>([]);
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(new Set());
+  const [bio, setBio] = useState<string>('');
+  const [bioModalVisible, setBioModalVisible] = useState(false);
+  const [editingBio, setEditingBio] = useState('');
 
   const HEADER_HEIGHT = 70; // adjust to your actual header height
   const BOTTOM_NAV_HEIGHT = 90; // adjust to your nav height
@@ -136,6 +141,27 @@ export default function ProfileScreen({navigate}: Props) {
         setSharedLooks(data);
       } catch {
         setSharedLooks([]);
+      }
+    })();
+  }, [userId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Fetch bio from community profile
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/community/users/${userId}/profile`,
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.bio) {
+          setBio(data.bio);
+        }
+      } catch {
+        // ignore
       }
     })();
   }, [userId]);
@@ -350,6 +376,15 @@ export default function ProfileScreen({navigate}: Props) {
       marginTop: 4,
       lineHeight: 18,
     },
+    bioEditContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.colors.cardBackground,
+      borderRadius: 8,
+    },
     linkText: {
       color: theme.colors.button1,
       fontSize: 16,
@@ -500,6 +535,27 @@ export default function ProfileScreen({navigate}: Props) {
           {userProfile?.profession && (
             <Text style={styles.bioText}>{userProfile.profession}</Text>
           )}
+          {/* Actual Bio with Edit */}
+          <Pressable
+            onPress={() => {
+              setEditingBio(bio);
+              setBioModalVisible(true);
+            }}
+            style={styles.bioEditContainer}>
+            {bio ? (
+              <Text style={styles.bioText}>{bio}</Text>
+            ) : (
+              <Text style={[styles.bioText, {fontStyle: 'italic', opacity: 0.6}]}>
+                Tap to add a bio...
+              </Text>
+            )}
+            <Icon
+              name="edit"
+              size={16}
+              color={theme.colors.foreground3}
+              style={{marginLeft: 8}}
+            />
+          </Pressable>
         </Animatable.View>
       </Animatable.View>
 
@@ -796,6 +852,116 @@ export default function ProfileScreen({navigate}: Props) {
         look={selectedLook}
         onClose={() => setPreviewVisible(false)}
       />
+
+      {/* Bio Edit Modal */}
+      <Modal
+        visible={bioModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBioModalVisible(false)}>
+        <Pressable
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          onPress={() => setBioModalVisible(false)}>
+          <Pressable
+            style={{
+              width: '85%',
+              backgroundColor: theme.colors.cardBackground,
+              borderRadius: 16,
+              padding: 20,
+            }}
+            onPress={e => e.stopPropagation()}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: '600',
+                color: theme.colors.foreground,
+                marginBottom: 12,
+              }}>
+              Edit Bio
+            </Text>
+            <TextInput
+              value={editingBio}
+              onChangeText={setEditingBio}
+              placeholder="Tell us about yourself..."
+              placeholderTextColor={theme.colors.foreground3}
+              multiline
+              numberOfLines={4}
+              maxLength={150}
+              style={{
+                backgroundColor: theme.colors.input,
+                borderRadius: 8,
+                padding: 12,
+                color: theme.colors.foreground,
+                fontSize: 16,
+                minHeight: 100,
+                textAlignVertical: 'top',
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                color: theme.colors.foreground3,
+                textAlign: 'right',
+                marginTop: 4,
+              }}>
+              {editingBio.length}/150
+            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'flex-end',
+                marginTop: 16,
+                gap: 12,
+              }}>
+              <Pressable
+                onPress={() => setBioModalVisible(false)}
+                style={{
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 8,
+                }}>
+                <Text style={{color: theme.colors.foreground2, fontSize: 16}}>
+                  Cancel
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={async () => {
+                  try {
+                    const res = await fetch(
+                      `${API_BASE_URL}/community/users/${userId}/bio`,
+                      {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({bio: editingBio}),
+                      },
+                    );
+                    if (res.ok) {
+                      setBio(editingBio);
+                      setBioModalVisible(false);
+                    }
+                  } catch {
+                    // ignore
+                  }
+                }}
+                style={{
+                  backgroundColor: theme.colors.button1,
+                  paddingVertical: 10,
+                  paddingHorizontal: 20,
+                  borderRadius: 8,
+                }}>
+                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
+                  Save
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
     // </GradientBackground>
   );

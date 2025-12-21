@@ -21,12 +21,25 @@ export interface SocketMessage {
   sender_avatar: string;
 }
 
+export interface CommunityNotification {
+  id: string;
+  type: 'like' | 'comment' | 'follow';
+  title: string;
+  message: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string;
+  postId?: string;
+  created_at: string;
+}
+
 export function useMessagingSocket(
   userId: string | null,
   onNewMessage?: (message: SocketMessage) => void,
   onMessageSent?: (message: SocketMessage) => void,
   onUserTyping?: (data: {userId: string; isTyping: boolean}) => void,
   onMessagesRead?: (data: {readBy: string}) => void,
+  onCommunityNotification?: (notification: CommunityNotification) => void,
 ) {
   const socketRef = useRef<Socket | null>(null);
   const isConnectedRef = useRef(false);
@@ -36,6 +49,7 @@ export function useMessagingSocket(
   const onMessageSentRef = useRef(onMessageSent);
   const onUserTypingRef = useRef(onUserTyping);
   const onMessagesReadRef = useRef(onMessagesRead);
+  const onCommunityNotificationRef = useRef(onCommunityNotification);
 
   // Keep refs updated
   useEffect(() => {
@@ -43,7 +57,8 @@ export function useMessagingSocket(
     onMessageSentRef.current = onMessageSent;
     onUserTypingRef.current = onUserTyping;
     onMessagesReadRef.current = onMessagesRead;
-  }, [onNewMessage, onMessageSent, onUserTyping, onMessagesRead]);
+    onCommunityNotificationRef.current = onCommunityNotification;
+  }, [onNewMessage, onMessageSent, onUserTyping, onMessagesRead, onCommunityNotification]);
 
   useEffect(() => {
     if (!userId) return;
@@ -106,6 +121,12 @@ export function useMessagingSocket(
     // Listen for read receipts
     socket.on('messages_read', (data: {readBy: string}) => {
       onMessagesReadRef.current?.(data);
+    });
+
+    // Listen for community notifications (like, comment, follow)
+    socket.on('community_notification', (notification: CommunityNotification) => {
+      console.log('🔔 Received community notification:', notification);
+      onCommunityNotificationRef.current?.(notification);
     });
 
     return () => {

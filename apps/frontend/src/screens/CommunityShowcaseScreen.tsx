@@ -47,6 +47,7 @@ import {
   useReportPost,
   useDeletePost,
   useUpdatePost,
+  useTrackView,
 } from '../hooks/useCommunityApi';
 import type {CommunityPost, PostComment, PostFilter} from '../types/community';
 import {useUnreadCount} from '../hooks/useMessaging';
@@ -917,6 +918,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const updatePostMutation = useUpdatePost();
   const addCommentMutation = useAddComment();
   const deleteCommentMutation = useDeleteComment();
+  const trackViewMutation = useTrackView();
   const likeCommentMutation = useLikeComment();
 
   // Combine loading and refetching states
@@ -1103,6 +1105,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     h('selection');
     setActiveActionsPost(post);
     setActionsModalVisible(true);
+    // Track view when user opens post details
+    trackViewMutation.mutate({postId: post.id, userId: userId ?? undefined});
   };
 
   // Add comment via API
@@ -1556,8 +1560,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       height: CARD_HEIGHT,
       marginBottom: moderateScale(tokens.spacing.sm),
       borderRadius: tokens.borderRadius.md,
-      // borderColor: theme.colors.muted,
-      // borderWidth: tokens.borderWidth.hairline,
       overflow: 'hidden',
       backgroundColor: theme.colors.muted,
     },
@@ -1570,7 +1572,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       left: 0,
       right: 0,
       bottom: 0,
-      height: 78,
+      height: 88,
       borderBottomLeftRadius: tokens.borderRadius.md,
       borderBottomRightRadius: tokens.borderRadius.md,
       overflow: 'hidden',
@@ -1580,7 +1582,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       left: 0,
       right: 0,
       bottom: 0,
-      height: 78,
+      height: 150,
+      justifyContent: 'flex-end',
     },
     cardGradient: {
       position: 'absolute',
@@ -1599,7 +1602,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     cardUserRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 4,
     },
     cardAvatar: {
       width: 35,
@@ -1620,15 +1623,20 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       flexShrink: 1,
     },
     cardActions: {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: 4,
+    },
+    actionButtonsRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      width: '100%',
     },
     cardTags: {
       flexDirection: 'row',
       gap: 4,
       flexWrap: 'wrap',
-      flex: 1,
     },
     cardTag: {
       fontSize: fontScale(tokens.fontSize.xs),
@@ -1642,7 +1650,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     likeButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 6,
+      paddingHorizontal: 4,
     },
     bookmarkButton: {
       padding: 2,
@@ -2113,7 +2122,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               </View>
               <View style={styles.cardActions}>
                 <View style={styles.cardTags}>
-                  {post.tags.slice(0, 1).map(tag => (
+                  {post.tags.slice(0, 3).map(tag => (
                     <Pressable
                       key={tag}
                       onPress={() => handleTagTap(tag)}
@@ -2187,7 +2196,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               </View>
               <View style={styles.cardActions}>
                 <View style={styles.cardTags}>
-                  {post.tags.slice(0, 1).map(tag => (
+                  {post.tags.slice(0, 3).map(tag => (
                     <Pressable
                       key={tag}
                       onPress={() => handleTagTap(tag)}
@@ -2344,7 +2353,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               </View>
               <View style={styles.cardActions}>
                 <View style={styles.cardTags}>
-                  {post.tags.slice(0, 1).map(tag => (
+                  {post.tags.slice(0, 3).map(tag => (
                     <Pressable
                       key={tag}
                       onPress={() => handleTagTap(tag)}
@@ -2353,25 +2362,33 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     </Pressable>
                   ))}
                 </View>
-                <AppleTouchFeedback
-                  hapticStyle="none"
-                  onPress={() => toggleLike(post)}
-                  style={styles.likeButton}>
-                  <MaterialIcons
-                    name={liked ? 'favorite' : 'favorite-border'}
-                    size={HEART_ICON_SIZE}
-                    color={liked ? '#FF4D6D' : '#fff'}
-                  />
-                  <Text style={styles.likeCount}>
-                    {liked ? post.likes_count + 1 : post.likes_count}
-                  </Text>
-                </AppleTouchFeedback>
-                <AppleTouchFeedback
-                  hapticStyle="selection"
-                  onPress={() => openActionsModal(post)}
-                  style={styles.moreButton}>
-                  <MaterialIcons name="more-horiz" size={18} color="#fff" />
-                </AppleTouchFeedback>
+                <View style={styles.actionButtonsRow}>
+                  <AppleTouchFeedback
+                    hapticStyle="none"
+                    onPress={() => toggleLike(post)}
+                    style={styles.likeButton}>
+                    <MaterialIcons
+                      name={liked ? 'favorite' : 'favorite-border'}
+                      size={HEART_ICON_SIZE}
+                      color={liked ? '#FF4D6D' : '#fff'}
+                    />
+                    <Text style={styles.likeCount}>
+                      {liked ? post.likes_count + 1 : post.likes_count}
+                    </Text>
+                  </AppleTouchFeedback>
+                  <View style={styles.likeButton}>
+                    <MaterialIcons name="visibility" size={16} color="#fff" />
+                    <Text style={styles.likeCount}>
+                      {post.views_count ?? 0}
+                    </Text>
+                  </View>
+                  <AppleTouchFeedback
+                    hapticStyle="selection"
+                    onPress={() => openActionsModal(post)}
+                    style={styles.moreButton}>
+                    <MaterialIcons name="more-horiz" size={18} color="#fff" />
+                  </AppleTouchFeedback>
+                </View>
               </View>
             </View>
           </View>
@@ -2674,171 +2691,180 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         transparent
         animationType="slide"
         onRequestClose={() => setCommentsModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <Pressable
-            style={{flex: 1}}
-            onPress={() => setCommentsModalVisible(false)}
-          />
-          <View style={styles.commentsModal}>
-            <View style={styles.modalHandle} />
-            <View style={styles.commentsHeader}>
-              <Text style={styles.commentsTitle}>Comments</Text>
-              <Pressable onPress={() => setCommentsModalVisible(false)}>
-                <MaterialIcons
-                  name="close"
-                  size={24}
-                  color={theme.colors.foreground}
-                />
-              </Pressable>
-            </View>
-            <FlatList
-              data={commentsData}
-              keyExtractor={item => item.id}
+        <KeyboardAvoidingView
+          style={{flex: 1}}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}>
+          <View style={styles.modalOverlay}>
+            <Pressable
               style={{flex: 1}}
-              bounces
-              scrollEnabled
-              contentContainerStyle={styles.commentsList}
-              ListEmptyComponent={
-                <View style={styles.noComments}>
+              onPress={() => setCommentsModalVisible(false)}
+            />
+            <View style={styles.commentsModal}>
+              <View style={styles.modalHandle} />
+              <View style={styles.commentsHeader}>
+                <Text style={styles.commentsTitle}>Comments</Text>
+                <Pressable onPress={() => setCommentsModalVisible(false)}>
                   <MaterialIcons
-                    name="chat-bubble-outline"
-                    size={40}
-                    color={theme.colors.muted}
+                    name="close"
+                    size={24}
+                    color={theme.colors.foreground}
                   />
-                  <Text style={styles.noCommentsText}>
-                    No comments yet. Be the first!
-                  </Text>
-                </View>
-              }
-              renderItem={({item}) => (
-                <View style={styles.commentItem}>
-                  <UserAvatar
-                    avatarUrl={item.user_avatar}
-                    userName={item.user_name}
-                    size={32}
-                    style={styles.commentAvatar}
-                    onPress={() => {
-                      navigate('UserProfileScreen', {
-                        userId: item.user_id,
-                        userName: item.user_name,
-                        userAvatar: item.user_avatar,
-                      });
-                    }}
-                  />
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <Text style={styles.commentUser}>{item.user_name}</Text>
-                      {item.reply_to_user && (
-                        <Text style={styles.commentReplyIndicator}>
-                          replied to @{item.reply_to_user}
-                        </Text>
-                      )}
-                    </View>
-                    <Text style={styles.commentText}>{item.content}</Text>
-                    <View style={styles.commentActions}>
-                      <Text style={styles.commentTime}>
-                        {new Date(item.created_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </Text>
-                      <Pressable
-                        style={styles.commentActionButton}
-                        onPress={() =>
-                          activePostId &&
-                          handleToggleLikeComment(activePostId, item)
-                        }>
-                        <MaterialIcons
-                          name={
-                            item.is_liked_by_me ? 'favorite' : 'favorite-border'
-                          }
-                          size={20}
-                          color={
-                            item.is_liked_by_me ? '#FF4D6D' : theme.colors.muted
-                          }
-                        />
-                        {item.likes_count > 0 && (
-                          <Text
-                            style={[
-                              styles.commentActionText,
-                              item.is_liked_by_me && {color: '#FF4D6D'},
-                            ]}>
-                            {item.likes_count}
+                </Pressable>
+              </View>
+              <FlatList
+                data={commentsData}
+                keyExtractor={item => item.id}
+                style={{flex: 1}}
+                bounces
+                scrollEnabled
+                contentContainerStyle={styles.commentsList}
+                ListEmptyComponent={
+                  <View style={styles.noComments}>
+                    <MaterialIcons
+                      name="chat-bubble-outline"
+                      size={40}
+                      color={theme.colors.muted}
+                    />
+                    <Text style={styles.noCommentsText}>
+                      No comments yet. Be the first!
+                    </Text>
+                  </View>
+                }
+                renderItem={({item}) => (
+                  <View style={styles.commentItem}>
+                    <UserAvatar
+                      avatarUrl={item.user_avatar}
+                      userName={item.user_name}
+                      size={32}
+                      style={styles.commentAvatar}
+                      onPress={() => {
+                        navigate('UserProfileScreen', {
+                          userId: item.user_id,
+                          userName: item.user_name,
+                          userAvatar: item.user_avatar,
+                        });
+                      }}
+                    />
+                    <View style={styles.commentContent}>
+                      <View style={styles.commentHeader}>
+                        <Text style={styles.commentUser}>{item.user_name}</Text>
+                        {item.reply_to_user && (
+                          <Text style={styles.commentReplyIndicator}>
+                            replied to @{item.reply_to_user}
                           </Text>
                         )}
-                      </Pressable>
-                      <Pressable
-                        style={styles.commentActionButton}
-                        onPress={() => startReply(item.id, item.user_name)}>
-                        <MaterialIcons
-                          name="reply"
-                          size={20}
-                          color={theme.colors.muted}
-                        />
-                        <Text style={styles.commentActionText}>Reply</Text>
-                      </Pressable>
-                      {item.user_id === userId && (
+                      </View>
+                      <Text style={styles.commentText}>{item.content}</Text>
+                      <View style={styles.commentActions}>
+                        <Text style={styles.commentTime}>
+                          {new Date(item.created_at).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Text>
                         <Pressable
                           style={styles.commentActionButton}
                           onPress={() =>
                             activePostId &&
-                            handleDeleteComment(activePostId, item.id)
+                            handleToggleLikeComment(activePostId, item)
                           }>
                           <MaterialIcons
-                            name="delete-outline"
+                            name={
+                              item.is_liked_by_me
+                                ? 'favorite'
+                                : 'favorite-border'
+                            }
+                            size={20}
+                            color={
+                              item.is_liked_by_me
+                                ? '#FF4D6D'
+                                : theme.colors.muted
+                            }
+                          />
+                          {item.likes_count > 0 && (
+                            <Text
+                              style={[
+                                styles.commentActionText,
+                                item.is_liked_by_me && {color: '#FF4D6D'},
+                              ]}>
+                              {item.likes_count}
+                            </Text>
+                          )}
+                        </Pressable>
+                        <Pressable
+                          style={styles.commentActionButton}
+                          onPress={() => startReply(item.id, item.user_name)}>
+                          <MaterialIcons
+                            name="reply"
                             size={20}
                             color={theme.colors.muted}
                           />
+                          <Text style={styles.commentActionText}>Reply</Text>
                         </Pressable>
-                      )}
+                        {item.user_id === userId && (
+                          <Pressable
+                            style={styles.commentActionButton}
+                            onPress={() =>
+                              activePostId &&
+                              handleDeleteComment(activePostId, item.id)
+                            }>
+                            <MaterialIcons
+                              name="delete-outline"
+                              size={20}
+                              color={theme.colors.muted}
+                            />
+                          </Pressable>
+                        )}
+                      </View>
                     </View>
                   </View>
+                )}
+              />
+              {/* Reply indicator */}
+              {replyingTo && (
+                <View style={styles.replyingToContainer}>
+                  <Text style={styles.replyingToText}>
+                    Replying to @{replyingTo.user}
+                  </Text>
+                  <Pressable onPress={cancelReply}>
+                    <MaterialIcons
+                      name="close"
+                      size={16}
+                      color={theme.colors.muted}
+                    />
+                  </Pressable>
                 </View>
               )}
-            />
-            {/* Reply indicator */}
-            {replyingTo && (
-              <View style={styles.replyingToContainer}>
-                <Text style={styles.replyingToText}>
-                  Replying to @{replyingTo.user}
-                </Text>
-                <Pressable onPress={cancelReply}>
+              <View style={styles.commentInputContainer}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={
+                    replyingTo
+                      ? `Reply to @${replyingTo.user}...`
+                      : 'Add a comment...'
+                  }
+                  placeholderTextColor={theme.colors.muted}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                />
+                <Pressable
+                  style={[
+                    styles.sendCommentButton,
+                    !newComment.trim() && {opacity: 0.5},
+                  ]}
+                  onPress={handleAddComment}
+                  disabled={!newComment.trim()}>
                   <MaterialIcons
-                    name="close"
-                    size={16}
-                    color={theme.colors.muted}
+                    name="send"
+                    size={18}
+                    color={theme.colors.buttonText1}
                   />
                 </Pressable>
               </View>
-            )}
-            <View style={styles.commentInputContainer}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder={
-                  replyingTo
-                    ? `Reply to @${replyingTo.user}...`
-                    : 'Add a comment...'
-                }
-                placeholderTextColor={theme.colors.muted}
-                value={newComment}
-                onChangeText={setNewComment}
-              />
-              <Pressable
-                style={[
-                  styles.sendCommentButton,
-                  !newComment.trim() && {opacity: 0.5},
-                ]}
-                onPress={handleAddComment}
-                disabled={!newComment.trim()}>
-                <MaterialIcons
-                  name="send"
-                  size={18}
-                  color={theme.colors.buttonText1}
-                />
-              </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Actions Modal (Pinterest-style) */}
@@ -4987,7 +5013,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 //               </View>
 //               <View style={styles.cardActions}>
 //                 <View style={styles.cardTags}>
-//                   {post.tags.slice(0, 1).map(tag => (
+//                   {post.tags.slice(0, 3).map(tag => (
 //                     <Pressable
 //                       key={tag}
 //                       onPress={() => handleTagTap(tag)}
@@ -5056,7 +5082,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 //               </View>
 //               <View style={styles.cardActions}>
 //                 <View style={styles.cardTags}>
-//                   {post.tags.slice(0, 1).map(tag => (
+//                   {post.tags.slice(0, 3).map(tag => (
 //                     <Pressable
 //                       key={tag}
 //                       onPress={() => handleTagTap(tag)}

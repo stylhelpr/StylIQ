@@ -338,6 +338,31 @@ export function useReportPost() {
   });
 }
 
+// ==================== VIEW TRACKING ====================
+
+export function useTrackView() {
+  return useMutation({
+    mutationFn: async ({postId, userId}: {postId: string; userId?: string}) => {
+      await apiClient.post(`${BASE}/posts/${postId}/view`, {userId});
+    },
+  });
+}
+
+// ==================== USER BIO ====================
+
+export function useUpdateBio() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({userId, bio}: {userId: string; bio: string}) => {
+      await apiClient.patch(`${BASE}/users/${userId}/bio`, {bio});
+    },
+    onSuccess: (_, {userId}) => {
+      queryClient.invalidateQueries({queryKey: ['community-user-profile', userId]});
+    },
+  });
+}
+
 // ==================== DELETE/EDIT OWN POSTS ====================
 
 export function useDeletePost() {

@@ -70,8 +70,21 @@ export default function ChatScreen({navigate, route}: Props) {
   const currentUserId = useUUID();
   const recipientId = route?.recipientId || '';
   const recipientName = route?.recipientName || 'StyleQueen';
-  const recipientAvatar =
-    route?.recipientAvatar || 'https://i.pravatar.cc/100?img=1';
+  // Filter out fake pravatar URLs
+  const isRealAvatar = (url?: string) => url && !url.includes('pravatar.cc');
+  const recipientAvatar = isRealAvatar(route?.recipientAvatar)
+    ? route?.recipientAvatar
+    : '';
+
+  // Get initials from recipient name
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ').filter(Boolean);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    if (parts.length >= 2)
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return 'U';
+  };
+  const recipientInitials = getInitials(recipientName);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -251,7 +264,24 @@ export default function ChatScreen({navigate, route}: Props) {
         {!isMe && (
           <View style={styles.avatarContainer}>
             {showAvatar ? (
-              <Image source={{uri: recipientAvatar}} style={styles.avatar} />
+              recipientAvatar ? (
+                <Image source={{uri: recipientAvatar}} style={styles.avatar} />
+              ) : (
+                <View
+                  style={[
+                    styles.avatar,
+                    {
+                      backgroundColor: theme.colors.button1,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    },
+                  ]}>
+                  <Text
+                    style={{color: '#fff', fontWeight: '600', fontSize: 14}}>
+                    {recipientInitials}
+                  </Text>
+                </View>
+              )
             ) : (
               <View style={styles.avatarSpacer} />
             )}
@@ -468,19 +498,12 @@ export default function ChatScreen({navigate, route}: Props) {
     inputWrapper: {
       flex: 1,
       flexDirection: 'row',
-      alignItems: 'flex-end',
+      alignItems: 'center',
       backgroundColor: theme.colors.surface,
       borderRadius: 24,
       paddingHorizontal: moderateScale(tokens.spacing.sm),
-      paddingVertical: Platform.OS === 'ios' ? 8 : 4,
+      paddingVertical: Platform.OS === 'ios' ? 10 : 6,
       marginRight: moderateScale(tokens.spacing.xs),
-    },
-    attachButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     textInput: {
       flex: 1,
@@ -488,8 +511,8 @@ export default function ChatScreen({navigate, route}: Props) {
       color: theme.colors.foreground,
       maxHeight: 100,
       paddingHorizontal: moderateScale(tokens.spacing.xs),
-      paddingTop: Platform.OS === 'ios' ? 0 : 8,
-      paddingBottom: Platform.OS === 'ios' ? 0 : 8,
+      paddingVertical: 0,
+      textAlignVertical: 'center',
     },
     emojiButton: {
       width: 32,
@@ -553,7 +576,26 @@ export default function ChatScreen({navigate, route}: Props) {
               userAvatar: recipientAvatar,
             });
           }}>
-          <Image source={{uri: recipientAvatar}} style={styles.headerAvatar} />
+          {recipientAvatar ? (
+            <Image
+              source={{uri: recipientAvatar}}
+              style={styles.headerAvatar}
+            />
+          ) : (
+            <View
+              style={[
+                styles.headerAvatar,
+                {
+                  backgroundColor: theme.colors.button1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                },
+              ]}>
+              <Text style={{color: '#fff', fontWeight: '600', fontSize: 16}}>
+                {recipientInitials}
+              </Text>
+            </View>
+          )}
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerName}>{recipientName}</Text>
             <Text style={styles.headerStatus}>online</Text>
@@ -592,10 +634,26 @@ export default function ChatScreen({navigate, route}: Props) {
         {/* Typing indicator */}
         {isTyping && (
           <View style={styles.typingIndicator}>
-            <Image
-              source={{uri: recipientAvatar}}
-              style={styles.typingAvatar}
-            />
+            {recipientAvatar ? (
+              <Image
+                source={{uri: recipientAvatar}}
+                style={styles.typingAvatar}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.typingAvatar,
+                  {
+                    backgroundColor: theme.colors.button1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  },
+                ]}>
+                <Text style={{color: '#fff', fontWeight: '600', fontSize: 12}}>
+                  {recipientInitials}
+                </Text>
+              </View>
+            )}
             <Text style={[styles.typingText, {color: theme.colors.muted}]}>
               {recipientName} is typing...
             </Text>
@@ -636,7 +694,11 @@ export default function ChatScreen({navigate, route}: Props) {
               <MaterialIcons
                 name="emoji-emotions"
                 size={22}
-                color={showEmojiPicker ? theme.colors.button1 : theme.colors.foreground}
+                color={
+                  showEmojiPicker
+                    ? theme.colors.button1
+                    : theme.colors.foreground
+                }
               />
             </Pressable>
           </View>

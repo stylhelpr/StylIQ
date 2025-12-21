@@ -12,7 +12,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 import {useAppTheme} from '../../context/ThemeContext';
 import {useUUID} from '../../context/UUIDContext';
-import {useMessagingSocket, SocketMessage} from '../../hooks/useSocket';
+import {useMessagingSocket, SocketMessage, CommunityNotification} from '../../hooks/useSocket';
 import {addToInbox} from '../../utils/notificationInbox';
 import {queryClient} from '../../lib/queryClient';
 
@@ -129,8 +129,46 @@ export default function MessageNotificationBanner({onTapNotification}: Props) {
     [userId, showNotification],
   );
 
-  // Connect to global socket for message notifications
-  useMessagingSocket(userId, handleNewMessage);
+  // Handle community notifications (like, comment, follow) - SAME PATTERN as DM messages
+  const handleCommunityNotification = useCallback(
+    async (notification: CommunityNotification) => {
+      console.log('🔔 Community notification received:', notification);
+
+      // Add to notification inbox with category: 'message' (goes to Community Messages)
+      await addToInbox({
+        user_id: userId || undefined,
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        timestamp: notification.created_at,
+        category: 'message',
+        deeplink: notification.postId
+          ? `styliq://community/post/${notification.postId}`
+          : undefined,
+        data: {
+          type: notification.type,
+          senderId: notification.senderId,
+          senderName: notification.senderName,
+          senderAvatar: notification.senderAvatar,
+          postId: notification.postId || '',
+        },
+        read: false,
+      });
+
+      console.log('✅ Community notification added to inbox');
+    },
+    [userId],
+  );
+
+  // Connect to global socket for message AND community notifications
+  useMessagingSocket(
+    userId,
+    handleNewMessage,
+    undefined,
+    undefined,
+    undefined,
+    handleCommunityNotification,
+  );
 
   // Cleanup on unmount
   useEffect(() => {
