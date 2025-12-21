@@ -15,6 +15,7 @@ import {
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import * as Animatable from 'react-native-animatable';
 import {useAppTheme} from '../context/ThemeContext';
 import {tokens} from '../styles/tokens/tokens';
 import {fontScale, moderateScale} from '../utils/scale';
@@ -25,6 +26,8 @@ import {
   Message as ApiMessage,
 } from '../hooks/useMessaging';
 import {useMessagingSocket, SocketMessage} from '../hooks/useSocket';
+import {useVoiceControl} from '../hooks/useVoiceControl';
+import EmojiPicker from 'rn-emoji-keyboard';
 
 type Message = {
   id: string;
@@ -73,6 +76,11 @@ export default function ChatScreen({navigate, route}: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  // Voice input using the same hook as AiStyleChatScreen
+  const {speech, isRecording, startListening, stopListening} =
+    useVoiceControl();
 
   // Fetch initial messages
   const {data: apiMessages, isLoading} = useMessages(
@@ -148,6 +156,23 @@ export default function ChatScreen({navigate, route}: Props) {
       }
     }
   }, [apiMessages, currentUserId, recipientId, markRead]);
+
+  // Sync speech from voice hook to input text
+  useEffect(() => {
+    if (typeof speech === 'string' && speech) {
+      setInputText(speech);
+    }
+  }, [speech]);
+
+  // Toggle voice input
+  const handleVoicePress = () => {
+    h('impactMedium');
+    if (isRecording) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
 
   const sendMessage = async () => {
     console.log('📤 Sending message:', {
@@ -484,6 +509,9 @@ export default function ChatScreen({navigate, route}: Props) {
     sendButtonDisabled: {
       backgroundColor: theme.colors.surface2,
     },
+    sendButtonRecording: {
+      backgroundColor: theme.colors.error || '#FF3B30',
+    },
     dateSeparator: {
       alignSelf: 'center',
       paddingHorizontal: moderateScale(tokens.spacing.sm),
@@ -577,15 +605,6 @@ export default function ChatScreen({navigate, route}: Props) {
         {/* Input */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
-            <Pressable
-              style={styles.attachButton}
-              onPress={() => h('selection')}>
-              <MaterialIcons
-                name="add"
-                size={22}
-                color={theme.colors.foreground}
-              />
-            </Pressable>
             <TextInput
               ref={inputRef}
               style={styles.textInput}
@@ -610,34 +629,85 @@ export default function ChatScreen({navigate, route}: Props) {
             />
             <Pressable
               style={styles.emojiButton}
-              onPress={() => h('selection')}>
+              onPress={() => {
+                h('selection');
+                setShowEmojiPicker(true);
+              }}>
               <MaterialIcons
                 name="emoji-emotions"
                 size={22}
-                color={theme.colors.foreground}
+                color={showEmojiPicker ? theme.colors.button1 : theme.colors.foreground}
               />
             </Pressable>
           </View>
 
-          <Pressable
-            style={[
-              styles.sendButton,
-              !inputText.trim() && styles.sendButtonDisabled,
-            ]}
-            onPress={sendMessage}
-            disabled={!inputText.trim()}>
-            <MaterialIcons
-              name={inputText.trim() ? 'send' : 'mic'}
-              size={22}
-              color={
-                inputText.trim()
-                  ? theme.colors.buttonText1
-                  : theme.colors.foreground3
-              }
-            />
-          </Pressable>
+          {inputText.trim() ? (
+            <Pressable style={styles.sendButton} onPress={sendMessage}>
+              <MaterialIcons
+                name="send"
+                size={22}
+                color={theme.colors.buttonText1}
+              />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[
+                styles.sendButton,
+                isRecording && styles.sendButtonRecording,
+              ]}
+              onPress={handleVoicePress}>
+              {isRecording ? (
+                <Animatable.View
+                  animation="pulse"
+                  iterationCount="infinite"
+                  duration={1000}>
+                  <MaterialIcons
+                    name="mic"
+                    size={22}
+                    color={theme.colors.buttonText1}
+                  />
+                </Animatable.View>
+              ) : (
+                <MaterialIcons
+                  name="mic"
+                  size={22}
+                  color={theme.colors.foreground3}
+                />
+              )}
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
+
+      <EmojiPicker
+        onEmojiSelected={emoji => {
+          setInputText(prev => prev + emoji.emoji);
+        }}
+        open={showEmojiPicker}
+        onClose={() => setShowEmojiPicker(false)}
+        theme={{
+          backdrop: theme.colors.background + 'CC',
+          knob: theme.colors.foreground3,
+          container: theme.colors.surface,
+          header: theme.colors.foreground,
+          skinTonesContainer: theme.colors.surface2,
+          category: {
+            icon: theme.colors.foreground3,
+            iconActive: theme.colors.button1,
+            container: theme.colors.surface,
+            containerActive: theme.colors.surface2,
+          },
+          search: {
+            background: theme.colors.surface2,
+            placeholder: theme.colors.foreground3,
+            text: theme.colors.foreground,
+            icon: theme.colors.foreground3,
+          },
+          emoji: {
+            selected: theme.colors.surface2,
+          },
+        }}
+      />
     </SafeAreaView>
   );
 }
