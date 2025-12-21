@@ -1,5 +1,6 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { Pool } from 'pg';
+import { MessagingGateway } from './messaging.gateway';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -8,6 +9,11 @@ const pool = new Pool({
 
 @Injectable()
 export class MessagingService {
+  constructor(
+    @Inject(forwardRef(() => MessagingGateway))
+    private readonly gateway: MessagingGateway,
+  ) {}
+
   async onModuleInit() {
     await this.initTables();
   }
@@ -56,7 +62,27 @@ export class MessagingService {
       [senderId, recipientId, content]
     );
 
-    return res.rows[0];
+    const message = res.rows[0];
+
+    // Get sender info for the real-time message
+    const senderInfo = await pool.query(
+      `SELECT
+        COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as sender_name,
+        COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1::text) as sender_avatar
+       FROM users WHERE id = $1::uuid`,
+      [senderId]
+    );
+
+    const enrichedMessage = {
+      ...message,
+      sender_name: senderInfo.rows[0]?.sender_name || 'StylIQ User',
+      sender_avatar: senderInfo.rows[0]?.sender_avatar || `https://i.pravatar.cc/100?u=${senderId}`,
+    };
+
+    // Emit via WebSocket for real-time delivery
+    this.gateway.emitNewMessage(recipientId, senderId, enrichedMessage);
+
+    return enrichedMessage;
   }
 
   // Get messages between two users

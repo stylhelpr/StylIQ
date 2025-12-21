@@ -7,7 +7,7 @@ export type AppNotification = {
   title?: string;
   message: string;
   timestamp: string;
-  category?: 'news' | 'outfit' | 'weather' | 'care' | 'other';
+  category?: 'news' | 'outfit' | 'weather' | 'care' | 'message' | 'other';
   deeplink?: string;
   data?: Record<string, string>;
   read?: boolean;

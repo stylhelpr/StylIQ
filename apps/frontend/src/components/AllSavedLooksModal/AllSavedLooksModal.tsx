@@ -612,7 +612,8 @@ export default function AllSavedLooksModal({
               <AppleTouchFeedback
                 style={[
                   globalStyles.buttonPrimary4,
-                  {width: 100, marginLeft: tokens.spacing.xxs},
+                  {width: 100, backgroundColor: theme.colors.button1},
+                  //  {width: 100, marginLeft: tokens.spacing.xxs},
                 ]}
                 hapticStyle="impactLight"
                 onPress={() => setSaveModalVisible(true)}>

@@ -49,6 +49,7 @@ import {
   useUpdatePost,
 } from '../hooks/useCommunityApi';
 import type {CommunityPost, PostComment, PostFilter} from '../types/community';
+import {useUnreadCount} from '../hooks/useMessaging';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
@@ -63,6 +64,76 @@ const HEADER_HEIGHT = 80;
 const BOTTOM_NAV_HEIGHT = 90;
 const HEART_ICON_SIZE = 22;
 const LIKE_COUNT_SIZE = 12;
+
+// Helper to get initials from a name
+const getInitials = (name: string): string => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
+// Helper to check if avatar is a real one (not a pravatar fallback)
+const isRealAvatar = (avatarUrl: string | undefined | null): boolean => {
+  if (!avatarUrl) return false;
+  return !avatarUrl.includes('pravatar.cc');
+};
+
+// Avatar component that shows initials when no real profile picture
+const UserAvatar = ({
+  avatarUrl,
+  userName,
+  size,
+  style,
+}: {
+  avatarUrl: string | undefined | null;
+  userName: string;
+  size: number;
+  style?: any;
+}) => {
+  if (isRealAvatar(avatarUrl)) {
+    return (
+      <Image
+        source={{uri: avatarUrl!}}
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+          },
+          style,
+        ]}
+      />
+    );
+  }
+
+  // Show black circle with initials
+  return (
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: '#000',
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        style,
+      ]}>
+      <Text
+        style={{
+          color: '#fff',
+          fontSize: size * 0.4,
+          fontWeight: '600',
+        }}>
+        {getInitials(userName)}
+      </Text>
+    </View>
+  );
+};
 
 // Demo outfit posts with top/bottom/shoes/accessory images (2x2 grid)
 const DEMO_OUTFIT_POSTS = [
@@ -800,6 +871,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
   const userId = useUUID() || undefined;
+
+  // Unread messages count
+  const {data: unreadCount = 0} = useUnreadCount(userId || '');
 
   // Filter state
   const [activeFilter, setActiveFilter] = useState<PostFilter>('all');
@@ -1638,6 +1712,24 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     searchIcon: {
       padding: 4,
+      position: 'relative',
+    },
+    unreadBadge: {
+      position: 'absolute',
+      top: -2,
+      right: -2,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: '#FF4D6D',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    unreadBadgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '700',
     },
     // Follow button styles
     followButton: {
@@ -2006,8 +2098,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             />
             <View style={styles.cardContent}>
               <View style={styles.cardUserRow}>
-                <Image
-                  source={{uri: post.userAvatar}}
+                <UserAvatar
+                  avatarUrl={post.userAvatar}
+                  userName={post.userName}
+                  size={35}
                   style={styles.cardAvatar}
                 />
                 <Text style={styles.cardUserName} numberOfLines={1}>
@@ -2080,8 +2174,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             />
             <View style={styles.cardContent}>
               <View style={styles.cardUserRow}>
-                <Image
-                  source={{uri: post.userAvatar}}
+                <UserAvatar
+                  avatarUrl={post.userAvatar}
+                  userName={post.userName}
+                  size={35}
                   style={styles.cardAvatar}
                 />
                 <Text style={styles.cardUserName}>@{post.userName}</Text>
@@ -2226,8 +2322,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             />
             <View style={styles.cardContent}>
               <View style={styles.cardUserRow}>
-                <Image
-                  source={{uri: post.user_avatar}}
+                <UserAvatar
+                  avatarUrl={post.user_avatar}
+                  userName={post.user_name}
+                  size={35}
                   style={styles.cardAvatar}
                 />
                 <Text style={styles.cardUserName} numberOfLines={1}>
@@ -2268,6 +2366,21 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             </View>
           </View>
         </AppleTouchFeedback>
+        {/* Title below card */}
+        {post.description && (
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontSize: fontScale(13),
+              fontWeight: '600',
+              marginTop: -10,
+              marginBottom: 16,
+              paddingHorizontal: 2,
+            }}
+            numberOfLines={1}>
+            {post.description}
+          </Text>
+        )}
       </Animatable.View>
     );
   };
@@ -2287,6 +2400,25 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           <View style={{alignItems: 'flex-start', flex: 1}}>
             <Text style={globalStyles.sectionTitle}>Community Share</Text>
           </View>
+          <Pressable
+            onPress={() => {
+              h('selection');
+              navigate('MessagesScreen');
+            }}
+            style={styles.searchIcon}>
+            <MaterialIcons
+              name="chat-bubble-outline"
+              size={22}
+              color={theme.colors.foreground}
+            />
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </Pressable>
           <Pressable onPress={toggleSearch} style={styles.searchIcon}>
             <MaterialIcons
               name={showSearch ? 'close' : 'search'}
@@ -2570,8 +2702,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               }
               renderItem={({item}) => (
                 <View style={styles.commentItem}>
-                  <Image
-                    source={{uri: item.user_avatar}}
+                  <UserAvatar
+                    avatarUrl={item.user_avatar}
+                    userName={item.user_name}
+                    size={32}
                     style={styles.commentAvatar}
                   />
                   <View style={styles.commentContent}>
@@ -2707,8 +2841,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 <>
                   {/* User info row */}
                   <View style={styles.actionsUserRow}>
-                    <Image
-                      source={{uri: activeActionsPost.user_avatar}}
+                    <UserAvatar
+                      avatarUrl={activeActionsPost.user_avatar}
+                      userName={activeActionsPost.user_name}
+                      size={44}
                       style={styles.actionsAvatar}
                     />
                     <View style={styles.actionsUserInfo}>

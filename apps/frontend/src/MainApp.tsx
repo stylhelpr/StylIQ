@@ -14,6 +14,7 @@ import WeatherOverlay from './components/WeatherOverlay/WeatherOverlay';
 import LocationOverlay from './components/LocationOverlay/LocationOverlay';
 import {NativeModules, Platform} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import MessageNotificationBanner from './components/MessageNotificationBanner/MessageNotificationBanner';
 const {AudioSessionManager} = NativeModules;
 
 // 🔊 Export global WebView ref so other files can inject JS speech
@@ -124,6 +125,15 @@ const MainApp = () => {
     };
   };
 
+  // Handle tapping the message notification banner
+  const handleTapMessageNotification = (senderId: string, senderName: string, senderAvatar: string) => {
+    globalNavigate('ChatScreen', {
+      recipientId: senderId,
+      recipientName: senderName,
+      recipientAvatar: senderAvatar,
+    });
+  };
+
   return (
     <View style={styles.root}>
       <VoiceOverlay isListening={isRecording} partialText={speech} />
@@ -131,6 +141,7 @@ const MainApp = () => {
         registerNavigate={setGlobalNavigate}
         onScreenChange={setActiveScreen}
       />
+      <MessageNotificationBanner onTapNotification={handleTapMessageNotification} />
       <WeatherOverlay />
       <LocationOverlay />
       {activeScreen !== 'Splash' && activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && activeScreen !== 'Login' && activeScreen !== 'Onboarding' && (
