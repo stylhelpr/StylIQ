@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TextInput, Keyboard} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import BackHeader from '../components/Backheader/Backheader';
 import {Chip} from '../components/Chip/Chip';
@@ -10,7 +10,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const COLOR_KEY = 'style.colorPreferences';
 
@@ -40,12 +40,24 @@ export default function ColorPreferencesScreen({navigate}: Props) {
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string[]>([]);
+  const [customColors, setCustomColors] = useState<string[]>([]);
+  const [newColor, setNewColor] = useState('');
 
   const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
     subtitle: {fontSize: 16, marginBottom: 20},
+    input: {
+      borderWidth: tokens.borderWidth.hairline,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 16,
+      backgroundColor: theme.colors.input2,
+      color: colors.foreground,
+      marginTop: 12,
+      borderColor: theme.colors.inputBorder,
+    },
   });
 
   const {user} = useAuth0();
@@ -59,11 +71,14 @@ export default function ColorPreferencesScreen({navigate}: Props) {
   useEffect(() => {
     if (styleProfile?.color_preferences?.length) {
       setSelected(styleProfile.color_preferences);
+      const customOnly = styleProfile.color_preferences.filter(
+        (c: string) => !COLORS.map(x => x.toLowerCase()).includes(c.toLowerCase()),
+      );
+      setCustomColors(prev => Array.from(new Set([...prev, ...customOnly])));
     }
   }, [styleProfile]);
 
   const toggleColor = async (color: string) => {
-    // 🔔 haptic on chip press
     h('impactLight');
 
     const updated = selected.includes(color)
@@ -78,6 +93,37 @@ export default function ColorPreferencesScreen({navigate}: Props) {
       h('notificationError');
     }
   };
+
+  const handleAddColor = async () => {
+    const trimmed = newColor.trim();
+    if (!trimmed) return;
+
+    const allColors = [...COLORS, ...customColors];
+    const exists = allColors.some(c => c.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      setNewColor('');
+      Keyboard.dismiss();
+      return;
+    }
+
+    const updatedCustom = [...customColors, trimmed];
+    const updatedSelected = [...selected, trimmed];
+
+    setCustomColors(updatedCustom);
+    setSelected(updatedSelected);
+
+    try {
+      await AsyncStorage.setItem(COLOR_KEY, JSON.stringify(updatedSelected));
+      await updateProfile('color_preferences', updatedSelected);
+      setNewColor('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const combinedColors = [...COLORS, ...customColors];
 
   return (
     <View
@@ -118,11 +164,10 @@ export default function ColorPreferencesScreen({navigate}: Props) {
           <View
             style={[
               globalStyles.styleContainer1,
-
-              {borderWidth: tokens.borderWidth.md},
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
             ]}>
             <View style={globalStyles.pillContainer}>
-              {COLORS.map(color => (
+              {combinedColors.map(color => (
                 <Chip
                   key={color}
                   label={color}
@@ -131,6 +176,17 @@ export default function ColorPreferencesScreen({navigate}: Props) {
                 />
               ))}
             </View>
+
+            <TextInput
+              placeholder="Add a custom color"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newColor}
+              onChangeText={setNewColor}
+              onSubmitEditing={handleAddColor}
+              onBlur={handleAddColor}
+              returnKeyType="done"
+            />
           </View>
         </View>
       </ScrollView>

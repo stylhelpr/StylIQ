@@ -28,10 +28,7 @@ const traits = [
   'Laid-back',
   'Creative',
   'Bold',
-  'Minimalist',
   'Playful',
-  'Elegant',
-  'Edgy',
   'Chill',
 ];
 

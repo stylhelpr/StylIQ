@@ -2267,14 +2267,20 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               onPress={() => {
                                 // Could navigate to look detail or show preview
                               }}
-                              style={{alignItems: 'center'}}>
+                              style={{
+                                width: 130,
+                                height: 130,
+                                borderRadius: tokens.borderRadius.md,
+                                overflow: 'hidden',
+                                backgroundColor: '#000',
+                              }}>
                               {/* Card - single image or 2x2 grid */}
                               <View>
                                 {look.image_url ? (
                                   // Single image post
                                   <Image
                                     source={{uri: look.image_url}}
-                                    style={[globalStyles.image8]}
+                                    style={{width: 130, height: 130}}
                                     resizeMode="cover"
                                   />
                                 ) : (
@@ -2348,111 +2354,22 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   <Icon name="close" size={14} color="#fff" />
                                 </Pressable>
                               </View>
-                              {/* Look name and likes */}
-                              <Text
-                                style={[
-                                  globalStyles.cardSubLabel,
-                                  {textAlign: 'center', marginTop: 4},
-                                ]}
-                                numberOfLines={1}>
-                                {look.description || 'Shared Look'}
-                              </Text>
                             </Pressable>
+                            {/* Look description - outside of the image container */}
+                            <Text
+                              style={[
+                                globalStyles.cardSubLabel,
+                                {textAlign: 'center', marginTop: 4, width: 130},
+                              ]}
+                              numberOfLines={1}>
+                              {look.description || 'Shared Look'}
+                            </Text>
                           </View>
                         ))}
                     </ScrollView>
                   )}
                 </View>
               </CollapsibleSection>
-
-              {/* RECENTLY SHOPPED VIBES SECTION */}
-              {/* {loadingVibes && (
-                <Animatable.View
-                  animation="fadeIn"
-                  duration={400}
-                  useNativeDriver
-                  style={{
-                    padding: moderateScale(tokens.spacing.md),
-                    alignItems: 'center',
-                  }}>
-                  <Text style={{color: theme.colors.foreground2}}>
-                    Loading recent vibes...
-                  </Text>
-                </Animatable.View>
-              )} */}
-
-              {/* {!loadingVibes && (
-                <CollapsibleSection
-                  title="Shopped Looks"
-                  open={shoppedOpen}
-                  onToggle={async newState => {
-                    setShoppedOpen(newState);
-                    await AsyncStorage.setItem(
-                      'shoppedVibeOpen',
-                      JSON.stringify(newState),
-                    );
-                  }}>
-                  <View style={globalStyles.sectionScroll}>
-                    {recentVibes.length === 0 ? (
-                      <View
-                        style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                        <Text style={globalStyles.missingDataMessage1}>
-                          No saved looks.
-                        </Text>
-                        <TooltipBubble
-                          message="You haven't shopped any looks yet. Use the shopping feature to find items that match your style."
-                          position="top"
-                        />
-                      </View>
-                    ) : (
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}>
-                        {recentVibes.map((vibe, index) => (
-                          <View key={index} style={globalStyles.outfitCard}>
-                            <ScalePressable
-                              onPress={() => {
-                                handleShopModal([vibe.query_used]);
-                              }}
-                              style={{alignItems: 'center'}}>
-                              <Image
-                                source={{uri: vibe.image_url}}
-                                style={[globalStyles.image8]}
-                                resizeMode="cover"
-                              />
-                        
-                              <TouchableOpacity
-                                onPress={() => handleShareVibe(vibe)}
-                                style={{
-                                  position: 'absolute',
-                                  top: 6,
-                                  right: 6,
-                                  backgroundColor: 'rgba(0,0,0,0.4)',
-                                  borderRadius: 20,
-                                  padding: moderateScale(tokens.spacing.xxs),
-                                }}>
-                                <Icon name="ios-share" size={20} color="#fff" />
-                              </TouchableOpacity>
-
-                              <Text
-                                numberOfLines={1}
-                                style={[
-                                  globalStyles.cardSubLabel,
-                                  {marginTop: 4, textAlign: 'center'},
-                                ]}>
-                                {vibe.query_used
-                                  ?.split(' ')
-                                  .slice(0, 3)
-                                  .join(' ') || 'Recent'}
-                              </Text>
-                            </ScalePressable>
-                          </View>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </View>
-                </CollapsibleSection>
-              )} */}
             </>
           )}
           <SaveLookModal

@@ -2182,10 +2182,7 @@ export default function OnboardingScreen({navigate}: Props) {
     'Laid-back',
     'Creative',
     'Bold',
-    'Minimalist',
     'Playful',
-    'Elegant',
-    'Edgy',
     'Chill',
   ];
   const PersonalityTraitsSlide = () => (
@@ -2405,10 +2402,11 @@ export default function OnboardingScreen({navigate}: Props) {
     {name: 'Sporty', image: require('../assets/images/free1.jpg')},
     {name: 'Vintage', image: require('../assets/images/free1.jpg')},
     {name: 'Trendy', image: require('../assets/images/free1.jpg')},
-    {
-      name: 'Business Casual',
-      image: require('../assets/images/headshot-1.webp'),
-    },
+    {name: 'Business Casual', image: require('../assets/images/headshot-1.webp')},
+    {name: 'Classic', image: require('../assets/images/free1.jpg')},
+    {name: 'Edgy', image: require('../assets/images/free1.jpg')},
+    {name: 'Artsy', image: require('../assets/images/free1.jpg')},
+    {name: 'Elegant', image: require('../assets/images/free1.jpg')},
   ];
   const StylesSlide = () => {
     const toggleStyle = (styleName: string) => {

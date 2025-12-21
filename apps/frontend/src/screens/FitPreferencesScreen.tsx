@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TextInput, Keyboard} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackHeader from '../components/Backheader/Backheader';
@@ -10,7 +10,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -36,12 +36,24 @@ export default function FitPreferencesScreen({navigate}: Props) {
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string[]>([]);
+  const [customFits, setCustomFits] = useState<string[]>([]);
+  const [newFit, setNewFit] = useState('');
 
   const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
     subtitle: {fontSize: 17, marginBottom: 20},
+    input: {
+      borderWidth: tokens.borderWidth.hairline,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 16,
+      backgroundColor: theme.colors.input2,
+      color: colors.foreground,
+      marginTop: 12,
+      borderColor: theme.colors.inputBorder,
+    },
   });
 
   const {user} = useAuth0();
@@ -55,11 +67,14 @@ export default function FitPreferencesScreen({navigate}: Props) {
   useEffect(() => {
     if (Array.isArray(styleProfile?.fit_preferences)) {
       setSelected(styleProfile.fit_preferences);
+      const customOnly = styleProfile.fit_preferences.filter(
+        (f: string) => !options.map(x => x.toLowerCase()).includes(f.toLowerCase()),
+      );
+      setCustomFits(prev => Array.from(new Set([...prev, ...customOnly])));
     }
   }, [styleProfile]);
 
   const toggleSelection = async (label: string) => {
-    // 🔔 haptic on chip press
     h('impactLight');
 
     const updated = selected.includes(label)
@@ -74,6 +89,37 @@ export default function FitPreferencesScreen({navigate}: Props) {
       h('notificationError');
     }
   };
+
+  const handleAddFit = async () => {
+    const trimmed = newFit.trim();
+    if (!trimmed) return;
+
+    const allFits = [...options, ...customFits];
+    const exists = allFits.some(f => f.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      setNewFit('');
+      Keyboard.dismiss();
+      return;
+    }
+
+    const updatedCustom = [...customFits, trimmed];
+    const updatedSelected = [...selected, trimmed];
+
+    setCustomFits(updatedCustom);
+    setSelected(updatedSelected);
+
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSelected));
+      updateProfile('fit_preferences', updatedSelected);
+      setNewFit('');
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const combinedFits = [...options, ...customFits];
 
   return (
     <View
@@ -114,11 +160,10 @@ export default function FitPreferencesScreen({navigate}: Props) {
           <View
             style={[
               globalStyles.styleContainer1,
-              globalStyles.cardStyles3,
-              {borderWidth: tokens.borderWidth.md},
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
             ]}>
             <View style={globalStyles.pillContainer}>
-              {options.map(option => (
+              {combinedFits.map(option => (
                 <Chip
                   key={option}
                   label={option}
@@ -127,6 +172,17 @@ export default function FitPreferencesScreen({navigate}: Props) {
                 />
               ))}
             </View>
+
+            <TextInput
+              placeholder="Add a custom fit"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+              value={newFit}
+              onChangeText={setNewFit}
+              onSubmitEditing={handleAddFit}
+              onBlur={handleAddFit}
+              returnKeyType="done"
+            />
           </View>
         </View>
       </ScrollView>

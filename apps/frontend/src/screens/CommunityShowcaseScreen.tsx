@@ -54,7 +54,7 @@ import {useUnreadCount} from '../hooks/useMessaging';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
-const CARD_HEIGHT = CARD_WIDTH * 1.4;
+const CARD_HEIGHT = CARD_WIDTH * 1.3;
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -228,6 +228,7 @@ const MOCK_POSTS = [
     userName: 'StyleQueen',
     userAvatar: 'https://i.pravatar.cc/100?img=1',
     likes: 234,
+    views: 1247,
     tags: ['casual', 'summer'],
   },
   {
@@ -237,6 +238,7 @@ const MOCK_POSTS = [
     userName: 'FashionForward',
     userAvatar: 'https://i.pravatar.cc/100?img=2',
     likes: 189,
+    views: 892,
     tags: ['elegant', 'evening'],
   },
   {
@@ -246,6 +248,7 @@ const MOCK_POSTS = [
     userName: 'TrendSetter',
     userAvatar: 'https://i.pravatar.cc/100?img=3',
     likes: 421,
+    views: 2156,
     tags: ['streetwear', 'urban'],
   },
   {
@@ -255,6 +258,7 @@ const MOCK_POSTS = [
     userName: 'ChicVibes',
     userAvatar: 'https://i.pravatar.cc/100?img=4',
     likes: 156,
+    views: 734,
     tags: ['minimal', 'clean'],
   },
   {
@@ -264,6 +268,7 @@ const MOCK_POSTS = [
     userName: 'LookBook',
     userAvatar: 'https://i.pravatar.cc/100?img=5',
     likes: 312,
+    views: 1583,
     tags: ['professional', 'smart'],
   },
   {
@@ -273,6 +278,7 @@ const MOCK_POSTS = [
     userName: 'OutfitDaily',
     userAvatar: 'https://i.pravatar.cc/100?img=6',
     likes: 278,
+    views: 1342,
     tags: ['boho', 'relaxed'],
   },
   {
@@ -282,6 +288,7 @@ const MOCK_POSTS = [
     userName: 'RunwayReady',
     userAvatar: 'https://i.pravatar.cc/100?img=7',
     likes: 567,
+    views: 2891,
     tags: ['runway', 'haute'],
   },
   {
@@ -291,6 +298,7 @@ const MOCK_POSTS = [
     userName: 'VintageVibes',
     userAvatar: 'https://i.pravatar.cc/100?img=8',
     likes: 445,
+    views: 2134,
     tags: ['vintage', 'retro'],
   },
   {
@@ -299,6 +307,7 @@ const MOCK_POSTS = [
     userName: 'StreetStyle',
     userAvatar: 'https://i.pravatar.cc/100?img=9',
     likes: 623,
+    views: 3012,
     tags: ['street', 'edgy'],
   },
   {
@@ -307,6 +316,7 @@ const MOCK_POSTS = [
     userName: 'MinimalMood',
     userAvatar: 'https://i.pravatar.cc/100?img=10',
     likes: 389,
+    views: 1856,
     tags: ['minimal', 'neutral'],
   },
   {
@@ -316,6 +326,7 @@ const MOCK_POSTS = [
     userName: 'GlamGoals',
     userAvatar: 'https://i.pravatar.cc/100?img=11',
     likes: 712,
+    views: 3542,
     tags: ['glam', 'party'],
   },
   {
@@ -325,6 +336,7 @@ const MOCK_POSTS = [
     userName: 'CasualCool',
     userAvatar: 'https://i.pravatar.cc/100?img=12',
     likes: 298,
+    views: 1423,
     tags: ['casual', 'weekend'],
   },
   {
@@ -334,6 +346,7 @@ const MOCK_POSTS = [
     userName: 'WorkWear',
     userAvatar: 'https://i.pravatar.cc/100?img=13',
     likes: 534,
+    views: 2567,
     tags: ['office', 'professional'],
   },
   {
@@ -343,6 +356,7 @@ const MOCK_POSTS = [
     userName: 'DateNight',
     userAvatar: 'https://i.pravatar.cc/100?img=14',
     likes: 467,
+    views: 2234,
     tags: ['date', 'romantic'],
   },
   {
@@ -352,6 +366,7 @@ const MOCK_POSTS = [
     userName: 'ShopTillDrop',
     userAvatar: 'https://i.pravatar.cc/100?img=15',
     likes: 389,
+    views: 1876,
     tags: ['shopping', 'haul'],
   },
   {
@@ -361,6 +376,7 @@ const MOCK_POSTS = [
     userName: 'BohoBeauty',
     userAvatar: 'https://i.pravatar.cc/100?img=16',
     likes: 512,
+    views: 2456,
     tags: ['boho', 'festival'],
   },
   {
@@ -370,6 +386,7 @@ const MOCK_POSTS = [
     userName: 'ElegantEdge',
     userAvatar: 'https://i.pravatar.cc/100?img=17',
     likes: 678,
+    views: 3245,
     tags: ['elegant', 'classy'],
   },
   {
@@ -379,6 +396,7 @@ const MOCK_POSTS = [
     userName: 'SummerStyle',
     userAvatar: 'https://i.pravatar.cc/100?img=18',
     likes: 445,
+    views: 2134,
     tags: ['summer', 'beach'],
   },
   {
@@ -388,6 +406,7 @@ const MOCK_POSTS = [
     userName: 'UrbanChic',
     userAvatar: 'https://i.pravatar.cc/100?img=19',
     likes: 523,
+    views: 2512,
     tags: ['urban', 'city'],
   },
   {
@@ -397,6 +416,7 @@ const MOCK_POSTS = [
     userName: 'ClassicLook',
     userAvatar: 'https://i.pravatar.cc/100?img=20',
     likes: 612,
+    views: 2934,
     tags: ['classic', 'timeless'],
   },
   {
@@ -405,6 +425,7 @@ const MOCK_POSTS = [
     userName: 'NightOwl',
     userAvatar: 'https://i.pravatar.cc/100?img=21',
     likes: 398,
+    views: 1876,
     tags: ['night', 'club'],
   },
   {
@@ -413,6 +434,7 @@ const MOCK_POSTS = [
     userName: 'SportsLux',
     userAvatar: 'https://i.pravatar.cc/100?img=22',
     likes: 456,
+    views: 2187,
     tags: ['sporty', 'athleisure'],
   },
   {
@@ -422,6 +444,7 @@ const MOCK_POSTS = [
     userName: 'PastelDreams',
     userAvatar: 'https://i.pravatar.cc/100?img=23',
     likes: 567,
+    views: 2712,
     tags: ['pastel', 'soft'],
   },
   {
@@ -431,6 +454,7 @@ const MOCK_POSTS = [
     userName: 'BoldMoves',
     userAvatar: 'https://i.pravatar.cc/100?img=24',
     likes: 789,
+    views: 3823,
     tags: ['bold', 'statement'],
   },
   {
@@ -439,6 +463,7 @@ const MOCK_POSTS = [
     userName: 'CozyVibes',
     userAvatar: 'https://i.pravatar.cc/100?img=25',
     likes: 345,
+    views: 1654,
     tags: ['cozy', 'comfortable'],
   },
   {
@@ -448,6 +473,7 @@ const MOCK_POSTS = [
     userName: 'RetroWave',
     userAvatar: 'https://i.pravatar.cc/100?img=26',
     likes: 678,
+    views: 3267,
     tags: ['retro', '80s'],
   },
   {
@@ -456,6 +482,7 @@ const MOCK_POSTS = [
     userName: 'EcoFashion',
     userAvatar: 'https://i.pravatar.cc/100?img=27',
     likes: 423,
+    views: 2034,
     tags: ['sustainable', 'eco'],
   },
   {
@@ -465,6 +492,7 @@ const MOCK_POSTS = [
     userName: 'DenimDays',
     userAvatar: 'https://i.pravatar.cc/100?img=28',
     likes: 534,
+    views: 2567,
     tags: ['denim', 'jeans'],
   },
   {
@@ -474,6 +502,7 @@ const MOCK_POSTS = [
     userName: 'LayeredLooks',
     userAvatar: 'https://i.pravatar.cc/100?img=29',
     likes: 456,
+    views: 2189,
     tags: ['layers', 'fall'],
   },
   {
@@ -482,6 +511,7 @@ const MOCK_POSTS = [
     userName: 'MonoMagic',
     userAvatar: 'https://i.pravatar.cc/100?img=30',
     likes: 612,
+    views: 2945,
     tags: ['monochrome', 'black'],
   },
   {
@@ -490,6 +520,7 @@ const MOCK_POSTS = [
     userName: 'PrintPerfect',
     userAvatar: 'https://i.pravatar.cc/100?img=31',
     likes: 523,
+    views: 2512,
     tags: ['prints', 'patterns'],
   },
   {
@@ -1596,13 +1627,14 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
 
     cardContent: {
-      padding: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
     },
 
     cardUserRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 4,
+      marginBottom: 3,
     },
     cardAvatar: {
       width: 35,
@@ -1610,7 +1642,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       borderRadius: 50,
       marginRight: 8,
       borderWidth: 1.5,
-      borderColor: 'rgba(255,255,255,0.8)',
+      borderColor: theme.colors.button1,
     },
     cardUserName: {
       fontSize: fontScale(tokens.fontSize.sm),
@@ -1625,7 +1657,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     cardActions: {
       flexDirection: 'column',
       alignItems: 'flex-start',
-      gap: 4,
+      gap: 2,
     },
     actionButtonsRow: {
       flexDirection: 'row',
@@ -1641,7 +1673,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     cardTag: {
       fontSize: fontScale(tokens.fontSize.xs),
       color: 'rgba(255,255,255,0.85)',
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      backgroundColor: 'rgba(59, 59, 59, 0.7)',
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,
@@ -2572,10 +2604,30 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.15)',
+              backgroundColor: 'rgba(0, 0, 0, 0.25)',
               borderRadius: tokens.borderRadius.lg,
             }}
           />
+
+          {/* Title in upper left corner */}
+          <View
+            style={{
+              position: 'absolute',
+              top: moderateScale(tokens.spacing.md),
+              left: moderateScale(tokens.spacing.md),
+            }}>
+            <Text
+              style={{
+                fontSize: fontScale(tokens.fontSize.xl),
+                fontWeight: tokens.fontWeight.bold,
+                color: '#ffffff',
+                textShadowColor: 'rgba(0, 0, 0, 0.6)',
+                textShadowOffset: {width: 0, height: 1},
+                textShadowRadius: 3,
+              }}>
+              Featured Look
+            </Text>
+          </View>
 
           <Animatable.View
             key={`text-${currentImageIndex}`}
@@ -2588,34 +2640,77 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               bottom: 0,
               left: 0,
               right: 0,
-              paddingHorizontal: moderateScale(tokens.spacing.md),
-              paddingBottom: moderateScale(tokens.spacing.lg),
+              paddingHorizontal: moderateScale(tokens.spacing.sm),
+              paddingBottom: moderateScale(tokens.spacing.sm),
             }}>
-            <Text
+            <View
               style={{
-                fontSize: fontScale(tokens.fontSize['3xl']),
-                fontWeight: tokens.fontWeight.bold,
-                color: '#ffffff',
-                marginBottom: moderateScale(tokens.spacing.sm),
-                textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                textShadowOffset: {width: 0, height: 2},
-                textShadowRadius: 4,
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: moderateScale(tokens.spacing.xxs),
               }}>
-              @{MOCK_POSTS[currentImageIndex].userName}
-            </Text>
-            <Text
+              <UserAvatar
+                avatarUrl={MOCK_POSTS[currentImageIndex].userAvatar}
+                userName={MOCK_POSTS[currentImageIndex].userName}
+                size={40}
+                style={{
+                  marginRight: 10,
+                  borderWidth: 1.5,
+                  borderColor: theme.colors.button1,
+                }}
+              />
+              <Text
+                style={{
+                  fontSize: fontScale(tokens.fontSize['3xl']),
+                  fontWeight: tokens.fontWeight.bold,
+                  color: '#ffffff',
+                  textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                  textShadowOffset: {width: 0, height: 2},
+                  textShadowRadius: 4,
+                }}>
+                @{MOCK_POSTS[currentImageIndex].userName}
+              </Text>
+            </View>
+            <View
               style={{
-                fontSize: fontScale(tokens.fontSize.md),
-                fontWeight: tokens.fontWeight.medium,
-                color: 'rgba(255, 255, 255, 1)',
-                lineHeight: 18,
-                textShadowColor: 'rgba(0, 0, 0, 0.4)',
-                textShadowOffset: {width: 0, height: 1},
-                textShadowRadius: 3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 6,
               }}>
-              #{MOCK_POSTS[currentImageIndex].tags.join(' #')} •{' '}
-              {MOCK_POSTS[currentImageIndex].likes} likes
-            </Text>
+              {MOCK_POSTS[currentImageIndex].tags.slice(0, 3).map(tag => (
+                <Pressable
+                  key={tag}
+                  onPress={() => handleTagTap(tag)}
+                  hitSlop={8}>
+                  <Text
+                    style={{
+                      fontSize: fontScale(tokens.fontSize.sm),
+                      color: 'rgba(255,255,255,0.85)',
+                      backgroundColor: 'rgba(59, 59, 59, 0.7)',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                    }}>
+                    #{tag}
+                  </Text>
+                </Pressable>
+              ))}
+              <Text
+                style={{
+                  fontSize: fontScale(tokens.fontSize.sm),
+                  fontWeight: tokens.fontWeight.medium,
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  marginLeft: 4,
+                  textShadowColor: 'rgba(0, 0, 0, 0.4)',
+                  textShadowOffset: {width: 0, height: 1},
+                  textShadowRadius: 3,
+                }}>
+                • {MOCK_POSTS[currentImageIndex].likes} likes •{' '}
+                {MOCK_POSTS[currentImageIndex].views || 0} views
+              </Text>
+            </View>
           </Animatable.View>
         </View>
 
@@ -2821,6 +2916,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   </View>
                 )}
               />
+
               {/* Reply indicator */}
               {replyingTo && (
                 <View style={styles.replyingToContainer}>

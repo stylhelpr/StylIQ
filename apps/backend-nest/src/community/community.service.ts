@@ -932,4 +932,70 @@ export class CommunityService {
 
     return user;
   }
+
+  // ==================== FOLLOWERS / FOLLOWING LISTS ====================
+
+  async getFollowers(userId: string, currentUserId?: string) {
+    const res = await pool.query(
+      `SELECT
+        u.id,
+        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        u.profile_picture as user_avatar,
+        u.bio,
+        uf.created_at as followed_at
+      FROM user_follows uf
+      JOIN users u ON u.id = uf.follower_id
+      WHERE uf.following_id = $1
+      ORDER BY uf.created_at DESC`,
+      [userId],
+    );
+
+    // If currentUserId provided, add is_following status for each user
+    if (currentUserId) {
+      const followingRes = await pool.query(
+        `SELECT following_id FROM user_follows WHERE follower_id = $1`,
+        [currentUserId],
+      );
+      const followingSet = new Set(followingRes.rows.map((r) => r.following_id));
+
+      return res.rows.map((user) => ({
+        ...user,
+        is_following: followingSet.has(user.id),
+      }));
+    }
+
+    return res.rows;
+  }
+
+  async getFollowing(userId: string, currentUserId?: string) {
+    const res = await pool.query(
+      `SELECT
+        u.id,
+        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        u.profile_picture as user_avatar,
+        u.bio,
+        uf.created_at as followed_at
+      FROM user_follows uf
+      JOIN users u ON u.id = uf.following_id
+      WHERE uf.follower_id = $1
+      ORDER BY uf.created_at DESC`,
+      [userId],
+    );
+
+    // If currentUserId provided, add is_following status for each user
+    if (currentUserId) {
+      const followingRes = await pool.query(
+        `SELECT following_id FROM user_follows WHERE follower_id = $1`,
+        [currentUserId],
+      );
+      const followingSet = new Set(followingRes.rows.map((r) => r.following_id));
+
+      return res.rows.map((user) => ({
+        ...user,
+        is_following: followingSet.has(user.id),
+      }));
+    }
+
+    return res.rows;
+  }
 }

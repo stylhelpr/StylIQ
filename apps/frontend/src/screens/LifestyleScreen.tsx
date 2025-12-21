@@ -23,15 +23,6 @@ const h = (type: string) =>
 
 const categories: Record<string, string[]> = {
   daily_activities: ['Work', 'Gym', 'Outdoor', 'Travel', 'Relaxing', 'Events'],
-  favorite_colors: [
-    'Black',
-    'White',
-    'Gray',
-    'Navy',
-    'Beige',
-    'Brights',
-    'Earth Tones',
-  ],
 };
 
 export default function LifestyleScreen({navigate}: Props) {

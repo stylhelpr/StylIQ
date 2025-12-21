@@ -20,9 +20,13 @@ const h = (type: string) =>
   });
 
 const proportions = [
-  'Even Proportions',
+  'Balanced',
   'Long Legs, Short Torso',
   'Short Legs, Long Torso',
+  'Long Legs',
+  'Short Legs',
+  'Long Torso',
+  'Short Torso',
   'Broad Shoulders',
   'Narrow Shoulders',
   'Wide Hips',

@@ -48,3 +48,12 @@ export interface UserProfile {
 }
 
 export type PostFilter = 'all' | 'trending' | 'new' | 'following' | 'saved';
+
+export interface FollowUser {
+  id: string;
+  user_name: string;
+  user_avatar: string;
+  bio?: string;
+  followed_at: string;
+  is_following?: boolean;
+}

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TextInput, Keyboard} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackHeader from '../components/Backheader/Backheader';
@@ -10,7 +10,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -22,18 +22,31 @@ const h = (type: string) =>
 
 const STORAGE_KEY = 'eyeColor';
 
-const eyeColors = ['Brown', 'Hazel', 'Amber', 'Green', 'Blue', 'Gray', 'Other'];
+const defaultEyeColors = ['Brown', 'Hazel', 'Amber', 'Green', 'Blue', 'Gray', 'Other'];
 
 export default function EyeColorScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string | null>(null);
+  const [customColor, setCustomColor] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customColors, setCustomColors] = useState<string[]>([]);
 
   const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
+    input: {
+      borderWidth: tokens.borderWidth.hairline,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 16,
+      backgroundColor: theme.colors.input2,
+      color: colors.foreground,
+      marginTop: 12,
+      borderColor: theme.colors.inputBorder,
+    },
   });
 
   const {user} = useAuth0();
@@ -45,12 +58,24 @@ export default function EyeColorScreen({navigate}: Props) {
   }, [userId, refetch]);
 
   useEffect(() => {
-    if (styleProfile?.eye_color) setSelected(styleProfile.eye_color);
+    if (styleProfile?.eye_color) {
+      setSelected(styleProfile.eye_color);
+      if (!defaultEyeColors.includes(styleProfile.eye_color)) {
+        setCustomColors(prev =>
+          prev.includes(styleProfile.eye_color) ? prev : [...prev, styleProfile.eye_color],
+        );
+      }
+    }
   }, [styleProfile]);
 
   const handleSelect = async (label: string) => {
     h('impactLight');
+    if (label === 'Other') {
+      setShowCustomInput(true);
+      return;
+    }
     setSelected(label);
+    setShowCustomInput(false);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, label);
       updateProfile('eye_color', label);
@@ -58,6 +83,33 @@ export default function EyeColorScreen({navigate}: Props) {
       h('notificationError');
     }
   };
+
+  const handleCustomSubmit = async () => {
+    const trimmed = customColor.trim();
+    if (!trimmed) return;
+
+    // Add as a new pill if it doesn't exist
+    const allColors = [...defaultEyeColors, ...customColors];
+    const exists = allColors.some(c => c.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      setCustomColors(prev => [...prev, trimmed]);
+    }
+
+    setSelected(trimmed);
+    setCustomColor('');
+    setShowCustomInput(false);
+
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, trimmed);
+      updateProfile('eye_color', trimmed);
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const combinedColors = [...defaultEyeColors.filter(c => c !== 'Other'), ...customColors, 'Other'];
 
   return (
     <View
@@ -97,19 +149,32 @@ export default function EyeColorScreen({navigate}: Props) {
           <View
             style={[
               globalStyles.styleContainer1,
-
-              {borderWidth: tokens.borderWidth.md},
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
             ]}>
             <View style={globalStyles.pillContainer}>
-              {eyeColors.map(color => (
+              {combinedColors.map(color => (
                 <Chip
                   key={color}
                   label={color}
-                  selected={selected === color}
+                  selected={selected === color || (color === 'Other' && showCustomInput)}
                   onPress={() => handleSelect(color)}
                 />
               ))}
             </View>
+
+            {showCustomInput && (
+              <TextInput
+                placeholder="Specify your eye color"
+                placeholderTextColor={colors.muted}
+                style={styles.input}
+                value={customColor}
+                onChangeText={setCustomColor}
+                onSubmitEditing={handleCustomSubmit}
+                onBlur={handleCustomSubmit}
+                returnKeyType="done"
+                autoFocus
+              />
+            )}
           </View>
         </View>
       </ScrollView>

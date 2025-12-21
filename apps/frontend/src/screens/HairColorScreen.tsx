@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TextInput, Keyboard} from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackHeader from '../components/Backheader/Backheader';
@@ -10,7 +10,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -20,7 +20,7 @@ const h = (type: string) =>
     ignoreAndroidSystemSettings: false,
   });
 
-const hairColors = [
+const defaultHairColors = [
   'Black',
   'Brown',
   'Blonde',
@@ -29,6 +29,7 @@ const hairColors = [
   'White',
   'Dyed - Bold',
   'Dyed - Subtle',
+  'Other',
 ];
 
 export default function HairColorScreen({navigate}: Props) {
@@ -36,11 +37,24 @@ export default function HairColorScreen({navigate}: Props) {
   const colors = theme.colors;
   const globalStyles = useGlobalStyles();
   const [selected, setSelected] = useState<string | null>(null);
+  const [customColor, setCustomColor] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customColors, setCustomColors] = useState<string[]>([]);
 
   const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
     screen: {flex: 1, backgroundColor: theme.colors.background},
+    input: {
+      borderWidth: tokens.borderWidth.hairline,
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 16,
+      backgroundColor: theme.colors.input2,
+      color: colors.foreground,
+      marginTop: 12,
+      borderColor: theme.colors.inputBorder,
+    },
   });
 
   const {user} = useAuth0();
@@ -52,12 +66,24 @@ export default function HairColorScreen({navigate}: Props) {
   }, [userId, refetch]);
 
   useEffect(() => {
-    if (styleProfile?.hair_color) setSelected(styleProfile.hair_color);
+    if (styleProfile?.hair_color) {
+      setSelected(styleProfile.hair_color);
+      if (!defaultHairColors.includes(styleProfile.hair_color)) {
+        setCustomColors(prev =>
+          prev.includes(styleProfile.hair_color) ? prev : [...prev, styleProfile.hair_color],
+        );
+      }
+    }
   }, [styleProfile]);
 
   const handleSelect = async (label: string) => {
     h('impactLight');
+    if (label === 'Other') {
+      setShowCustomInput(true);
+      return;
+    }
     setSelected(label);
+    setShowCustomInput(false);
     try {
       await AsyncStorage.setItem('hairColor', label);
       updateProfile('hair_color', label);
@@ -65,6 +91,33 @@ export default function HairColorScreen({navigate}: Props) {
       h('notificationError');
     }
   };
+
+  const handleCustomSubmit = async () => {
+    const trimmed = customColor.trim();
+    if (!trimmed) return;
+
+    // Add as a new pill if it doesn't exist
+    const allColors = [...defaultHairColors, ...customColors];
+    const exists = allColors.some(c => c.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      setCustomColors(prev => [...prev, trimmed]);
+    }
+
+    setSelected(trimmed);
+    setCustomColor('');
+    setShowCustomInput(false);
+
+    try {
+      await AsyncStorage.setItem('hairColor', trimmed);
+      updateProfile('hair_color', trimmed);
+      Keyboard.dismiss();
+      h('impactLight');
+    } catch {
+      h('notificationError');
+    }
+  };
+
+  const combinedColors = [...defaultHairColors.filter(c => c !== 'Other'), ...customColors, 'Other'];
 
   return (
     <View
@@ -104,19 +157,32 @@ export default function HairColorScreen({navigate}: Props) {
           <View
             style={[
               globalStyles.styleContainer1,
-
-              {borderWidth: tokens.borderWidth.md},
+              {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
             ]}>
             <View style={globalStyles.pillContainer}>
-              {hairColors.map(color => (
+              {combinedColors.map(color => (
                 <Chip
                   key={color}
                   label={color}
-                  selected={selected === color}
+                  selected={selected === color || (color === 'Other' && showCustomInput)}
                   onPress={() => handleSelect(color)}
                 />
               ))}
             </View>
+
+            {showCustomInput && (
+              <TextInput
+                placeholder="Specify your hair color"
+                placeholderTextColor={colors.muted}
+                style={styles.input}
+                value={customColor}
+                onChangeText={setCustomColor}
+                onSubmitEditing={handleCustomSubmit}
+                onBlur={handleCustomSubmit}
+                returnKeyType="done"
+                autoFocus
+              />
+            )}
           </View>
         </View>
       </ScrollView>

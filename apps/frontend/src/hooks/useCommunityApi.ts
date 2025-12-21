@@ -5,6 +5,7 @@ import type {
   PostComment,
   PostFilter,
   UserProfile,
+  FollowUser,
 } from '../types/community';
 
 const BASE = '/community';
@@ -252,6 +253,8 @@ export function useFollowUser() {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
       queryClient.invalidateQueries({queryKey: ['community-user-profile']});
+      queryClient.invalidateQueries({queryKey: ['community-followers']});
+      queryClient.invalidateQueries({queryKey: ['community-following']});
     },
   });
 }
@@ -410,6 +413,32 @@ export function useUserProfile(userId: string, currentUserId?: string) {
     queryFn: async () => {
       const params = currentUserId ? `?currentUserId=${currentUserId}` : '';
       const res = await apiClient.get(`${BASE}/users/${userId}/profile${params}`);
+      return res.data;
+    },
+    enabled: !!userId,
+  });
+}
+
+// ==================== FOLLOWERS / FOLLOWING LISTS ====================
+
+export function useFollowers(userId: string, currentUserId?: string) {
+  return useQuery<FollowUser[], Error>({
+    queryKey: ['community-followers', userId, currentUserId],
+    queryFn: async () => {
+      const params = currentUserId ? `?currentUserId=${currentUserId}` : '';
+      const res = await apiClient.get(`${BASE}/users/${userId}/followers${params}`);
+      return res.data;
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useFollowing(userId: string, currentUserId?: string) {
+  return useQuery<FollowUser[], Error>({
+    queryKey: ['community-following', userId, currentUserId],
+    queryFn: async () => {
+      const params = currentUserId ? `?currentUserId=${currentUserId}` : '';
+      const res = await apiClient.get(`${BASE}/users/${userId}/following${params}`);
       return res.data;
     },
     enabled: !!userId,

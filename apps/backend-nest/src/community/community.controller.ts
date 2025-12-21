@@ -244,4 +244,22 @@ export class CommunityController {
   ) {
     return this.service.getUserProfile(userId, currentUserId);
   }
+
+  // ==================== FOLLOWERS / FOLLOWING LISTS ====================
+
+  @Get('users/:id/followers')
+  async getFollowers(
+    @Param('id') userId: string,
+    @Query('currentUserId') currentUserId?: string,
+  ) {
+    return this.service.getFollowers(userId, currentUserId);
+  }
+
+  @Get('users/:id/following')
+  async getFollowing(
+    @Param('id') userId: string,
+    @Query('currentUserId') currentUserId?: string,
+  ) {
+    return this.service.getFollowing(userId, currentUserId);
+  }
 }

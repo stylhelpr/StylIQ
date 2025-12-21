@@ -24,7 +24,6 @@ const skinTones = [
   'Fair',
   'Light',
   'Medium',
-  'Olive',
   'Tan',
   'Brown',
   'Dark Brown',

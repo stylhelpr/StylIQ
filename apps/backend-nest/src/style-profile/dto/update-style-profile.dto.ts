@@ -32,6 +32,8 @@ export class UpdateStyleProfileDto {
   daily_activities?: string[];
   shopping_habits?: string[];
   personality_traits?: string[];
+  fabric_preferences?: string[];
+  occasions?: string[];
 
   // Budget & Fashion
   budget_level?: number;

@@ -205,12 +205,14 @@ export default function StyleProfileScreen({navigate}: Props) {
     ['Preferences', '🧪', 'Style Preferences'],
     ['Measurements', '📏', 'Measurements'],
     ['SavedMeasurements', '📊', 'Saved Measurements'],
+    ['ClothingSizes', '👕', 'Clothing Sizes'],
     ['BudgetAndBrands', '💰', 'Budget & Brands'],
-    ['Appearance', '🧍', 'Appearance'],
     ['Lifestyle', '🌍', 'Lifestyle'],
+    ['Occasions', '📅', 'Occasions'],
     ['BodyTypes', '📐', 'Body Type'],
     ['Proportions', '📊', 'Body Proportions'],
     ['FitPreferences', '🧵', 'Fit Preferences'],
+    ['FabricPreferences', '🧶', 'Fabric Preferences'],
     ['FashionGoals', '🎯', 'Fashion Goals'],
     ['Climate', '🌤️', 'Climate'],
     ['HairColor', '🧑‍🦰', 'Hair Color'],
@@ -220,7 +222,6 @@ export default function StyleProfileScreen({navigate}: Props) {
     ['PersonalityTraits', '🧠', 'Personality Traits'],
     ['ColorPreferences', '🌈', 'Color Preferences'],
     ['Undertone', '🫧', 'Undertone'],
-    ['StyleKeywords', '🪞', 'Style Keywords'],
   ];
 
   return (

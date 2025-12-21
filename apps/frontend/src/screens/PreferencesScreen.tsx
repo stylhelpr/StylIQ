@@ -34,6 +34,10 @@ const preferences = [
   'Vintage',
   'Trendy',
   'Business Casual',
+  'Classic',
+  'Edgy',
+  'Artsy',
+  'Elegant',
 ];
 
 const h = (type: string) =>

@@ -24,6 +24,9 @@ import ColorPreferencesScreen from '../screens/ColorPreferencesScreen';
 import EyeColorScreen from '../screens/EyeColorScreen';
 import FashionGoalsScreen from '../screens/FashionGoalsScreen';
 import FitPreferencesScreen from '../screens/FitPreferencesScreen';
+import FabricPreferencesScreen from '../screens/FabricPreferencesScreen';
+import ClothingSizesScreen from '../screens/ClothingSizesScreen';
+import OccasionsScreen from '../screens/OccasionsScreen';
 import HairColorScreen from '../screens/HairColorScreen';
 import PersonalityTraitsScreen from '../screens/PersonalityTraitsScreen';
 import ProportionsScreen from '../screens/ProportionsScreen';
@@ -117,6 +120,9 @@ type Screen =
   | 'EyeColor'
   | 'FashionGoals'
   | 'FitPreferences'
+  | 'FabricPreferences'
+  | 'ClothingSizes'
+  | 'Occasions'
   | 'HairColor'
   | 'PersonalityTraits'
   | 'PreferenceStrength'
@@ -589,6 +595,12 @@ const RootNavigator = ({
         return <FashionGoalsScreen navigate={navigate} />;
       case 'FitPreferences':
         return <FitPreferencesScreen navigate={navigate} />;
+      case 'FabricPreferences':
+        return <FabricPreferencesScreen navigate={navigate} />;
+      case 'ClothingSizes':
+        return <ClothingSizesScreen navigate={navigate} />;
+      case 'Occasions':
+        return <OccasionsScreen navigate={navigate} />;
       case 'HairColor':
         return <HairColorScreen navigate={navigate} />;
       case 'PersonalityTraits':

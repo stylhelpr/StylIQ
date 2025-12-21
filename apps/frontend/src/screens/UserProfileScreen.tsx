@@ -7,6 +7,8 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
@@ -18,6 +20,14 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useStyleProfile} from '../hooks/useStyleProfile';
+import {
+  useFollowers,
+  useFollowing,
+  useFollowUser,
+} from '../hooks/useCommunityApi';
+import {useUUID} from '../context/UUIDContext';
+import type {FollowUser} from '../types/community';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -48,10 +58,31 @@ type SharedLook = {
   description?: string;
 };
 
+const h = (type: 'selection' | 'impactLight' | 'impactMedium') =>
+  ReactNativeHapticFeedback.trigger(type, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
+
+// Helper to get initials from name
+const getInitials = (name: string): string => {
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+// Check if avatar is real
+const isRealAvatarUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  return !url.includes('pravatar.cc');
+};
+
 export default function UserProfileScreen({navigate, route, goBack}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
+  const currentUserId = useUUID();
 
   const userId = route?.userId;
   const passedName = route?.userName;
@@ -61,6 +92,9 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
 
   const [sharedLooks, setSharedLooks] = useState<SharedLook[]>([]);
   const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
+  const [followListModal, setFollowListModal] = useState<
+    'followers' | 'following' | null
+  >(null);
 
   // Fetch user profile (includes bio from community endpoint)
   const {data: communityProfile} = useQuery<{
@@ -92,6 +126,17 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
       return res.json();
     },
   });
+
+  // Fetch followers/following lists
+  const {data: followers = [], isLoading: loadingFollowers} = useFollowers(
+    userId || '',
+    currentUserId || '',
+  );
+  const {data: following = [], isLoading: loadingFollowing} = useFollowing(
+    userId || '',
+    currentUserId || '',
+  );
+  const followMutation = useFollowUser();
 
   // Fetch style profile (for style tags)
   const {styleProfile} = useStyleProfile(userId || '');
@@ -438,24 +483,44 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                       </Animatable.Text>
                       <Text style={styles.statLabel}>Shared</Text>
                     </View>
-                    <View style={styles.statBox}>
+                    <Pressable
+                      style={styles.statBox}
+                      onPress={() => {
+                        h('selection');
+                        setFollowListModal('following');
+                      }}>
                       <Animatable.Text
                         animation="bounceIn"
                         delay={1200}
                         style={styles.statNumber}>
-                        0
+                        {communityProfile?.following_count || 0}
                       </Animatable.Text>
-                      <Text style={styles.statLabel}>Following</Text>
-                    </View>
-                    <View style={styles.statBox}>
+                      <Text
+                        style={
+                          (styles.statLabel, {color: theme.colors.button1})
+                        }>
+                        Following
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.statBox}
+                      onPress={() => {
+                        h('selection');
+                        setFollowListModal('followers');
+                      }}>
                       <Animatable.Text
                         animation="bounceIn"
                         delay={1300}
                         style={styles.statNumber}>
-                        0
+                        {communityProfile?.followers_count || 0}
                       </Animatable.Text>
-                      <Text style={styles.statLabel}>Followers</Text>
-                    </View>
+                      <Text
+                        style={
+                          (styles.statLabel, {color: theme.colors.button1})
+                        }>
+                        Followers
+                      </Text>
+                    </Pressable>
                   </Animatable.View>
                 </View>
               </View>
@@ -607,26 +672,23 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                     <Animatable.View
                       key={look.id}
                       animation="zoomInUp"
-                      delay={2300 + index * 120}
+                      delay={1700 + index * 120}
                       useNativeDriver
-                      style={[globalStyles.outfitCard]}>
-                      <Pressable
-                        onPress={() => {
-                          // Could navigate to look detail or show preview
-                        }}
-                        style={{alignItems: 'center'}}>
+                      style={[globalStyles.outfitCard, {width: 131}]}>
+                      <Pressable style={{alignItems: 'center'}}>
                         {/* Card - single image or 2x2 grid */}
                         <View
                           style={{
+                            width: 130,
+                            height: 130,
                             borderRadius: tokens.borderRadius.md,
                             overflow: 'hidden',
                             backgroundColor: '#000',
                           }}>
                           {look.image_url ? (
-                            // Single image post
                             <Image
                               source={{uri: look.image_url}}
-                              style={[globalStyles.image8]}
+                              style={{width: 130, height: 130}}
                               resizeMode="cover"
                             />
                           ) : (
@@ -694,6 +756,191 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
           </>
         )}
       </ScrollView>
+
+      {/* Followers/Following Modal */}
+      <Modal
+        visible={followListModal !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setFollowListModal(null)}>
+        <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+          {/* Modal Header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: insets.top + 16,
+              paddingHorizontal: 16,
+              paddingBottom: 16,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: theme.colors.surfaceBorder,
+            }}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: tokens.fontWeight.bold,
+                color: theme.colors.foreground,
+              }}>
+              {followListModal === 'followers' ? 'Followers' : 'Following'}
+            </Text>
+            <Pressable
+              onPress={() => {
+                h('selection');
+                setFollowListModal(null);
+              }}
+              hitSlop={12}>
+              <Icon name="close" size={24} color={theme.colors.foreground} />
+            </Pressable>
+          </View>
+
+          {/* List */}
+          {(
+            followListModal === 'followers'
+              ? loadingFollowers
+              : loadingFollowing
+          ) ? (
+            <View
+              style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+              <ActivityIndicator size="large" color={theme.colors.button1} />
+            </View>
+          ) : (
+            <FlatList
+              data={followListModal === 'followers' ? followers : following}
+              keyExtractor={item => item.id}
+              contentContainerStyle={{paddingBottom: insets.bottom + 20}}
+              ListEmptyComponent={
+                <View style={{padding: 40, alignItems: 'center'}}>
+                  <Text style={{color: theme.colors.foreground3, fontSize: 16}}>
+                    {followListModal === 'followers'
+                      ? 'No followers yet'
+                      : 'Not following anyone yet'}
+                  </Text>
+                </View>
+              }
+              renderItem={({item}: {item: FollowUser}) => {
+                const hasAvatar = isRealAvatarUrl(item.user_avatar);
+                const userInitials = getInitials(item.user_name);
+                const isMe = item.id === currentUserId;
+
+                return (
+                  <Pressable
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: theme.colors.surfaceBorder,
+                    }}
+                    onPress={() => {
+                      h('selection');
+                      setFollowListModal(null);
+                      if (!isMe) {
+                        navigate('UserProfileScreen', {
+                          userId: item.id,
+                          userName: item.user_name,
+                          userAvatar: item.user_avatar,
+                        });
+                      }
+                    }}>
+                    {/* Avatar */}
+                    {hasAvatar ? (
+                      <Image
+                        source={{uri: item.user_avatar}}
+                        style={{
+                          width: 50,
+                          height: 50,
+                          borderRadius: 25,
+                          marginRight: 12,
+                        }}
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 50,
+                          height: 50,
+                          borderRadius: 25,
+                          backgroundColor: theme.colors.surface,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 12,
+                        }}>
+                        <Text
+                          style={{
+                            color: theme.colors.foreground,
+                            fontSize: 18,
+                            fontWeight: '600',
+                          }}>
+                          {userInitials}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Name & Bio */}
+                    <View style={{flex: 1}}>
+                      <Text
+                        style={{
+                          color: theme.colors.foreground,
+                          fontSize: 16,
+                          fontWeight: '600',
+                        }}
+                        numberOfLines={1}>
+                        {item.user_name}
+                      </Text>
+                      {item.bio && (
+                        <Text
+                          style={{
+                            color: theme.colors.foreground3,
+                            fontSize: 14,
+                            marginTop: 2,
+                          }}
+                          numberOfLines={1}>
+                          {item.bio}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Follow Button (only if not me and I have currentUserId) */}
+                    {!isMe && currentUserId && (
+                      <Pressable
+                        onPress={() => {
+                          h('impactLight');
+                          followMutation.mutate({
+                            targetUserId: item.id,
+                            currentUserId: currentUserId,
+                            isFollowing: item.is_following || false,
+                          });
+                        }}
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          backgroundColor: item.is_following
+                            ? theme.colors.surface
+                            : theme.colors.button1,
+                          borderWidth: item.is_following ? 1 : 0,
+                          borderColor: theme.colors.surfaceBorder,
+                        }}>
+                        <Text
+                          style={{
+                            color: item.is_following
+                              ? theme.colors.foreground
+                              : theme.colors.buttonText1,
+                            fontSize: 14,
+                            fontWeight: '600',
+                          }}>
+                          {item.is_following ? 'Following' : 'Follow'}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </Pressable>
+                );
+              }}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
