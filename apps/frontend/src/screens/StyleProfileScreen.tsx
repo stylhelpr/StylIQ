@@ -214,6 +214,7 @@ export default function StyleProfileScreen({navigate}: Props) {
     ['FitPreferences', '🧵', 'Fit Preferences'],
     ['FabricPreferences', '🧶', 'Fabric Preferences'],
     ['FashionGoals', '🎯', 'Fashion Goals'],
+    ['StyleIcon', '⭐', 'Style Icons'],
     ['Climate', '🌤️', 'Climate'],
     ['HairColor', '🧑‍🦰', 'Hair Color'],
     ['SkinTone', '🎨', 'Skin Tone'],

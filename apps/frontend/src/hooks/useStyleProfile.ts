@@ -53,6 +53,7 @@ export function useStyleProfile(userId: string) {
       'daily_activities',
       'goals',
       'fit_preferences',
+      'style_icons',
     ];
 
     const filtered = Object.fromEntries(

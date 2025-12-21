@@ -34,6 +34,7 @@ export class UpdateStyleProfileDto {
   personality_traits?: string[];
   fabric_preferences?: string[];
   occasions?: string[];
+  style_icons?: string[];
 
   // Budget & Fashion
   budget_level?: number;
