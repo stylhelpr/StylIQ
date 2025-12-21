@@ -56,4 +56,25 @@ export class RecreatedLookService {
       client.release();
     }
   }
+
+  async deleteRecreatedLook(userId: string, lookId: string) {
+    const client = await this.pool.connect();
+    try {
+      const query = `
+        DELETE FROM recreated_looks
+        WHERE id = $1 AND user_id = $2
+        RETURNING id;
+      `;
+      const result = await client.query(query, [lookId, userId]);
+      if (result.rowCount === 0) {
+        return { success: false, error: 'Look not found or not owned by user' };
+      }
+      return { success: true, deletedId: lookId };
+    } catch (err) {
+      console.error('[RecreatedLookService] deleteRecreatedLook failed:', err);
+      return { success: false, error: err.message };
+    } finally {
+      client.release();
+    }
+  }
 }

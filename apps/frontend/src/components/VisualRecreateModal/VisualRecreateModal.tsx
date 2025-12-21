@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -15,6 +17,8 @@ import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import IntegratedShopOverlay from '../ShopModal/IntegratedShopOverlay';
+import {useUUID} from '../../context/UUIDContext';
+import {API_BASE_URL} from '../../config/api';
 
 const {width: screenWidth} = Dimensions.get('window');
 const CARD_WIDTH = (screenWidth - 60) / 2;
@@ -283,6 +287,14 @@ export default function VisualRecreateModal({
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const [shopUrl, setShopUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const uuidContext = useUUID();
+  const userId =
+    typeof uuidContext === 'string'
+      ? uuidContext
+      : (uuidContext as any)?.uuid || '';
 
   const handleShopPress = useCallback((url: string) => {
     setShopUrl(url);
@@ -290,8 +302,56 @@ export default function VisualRecreateModal({
 
   const handleClose = useCallback(() => {
     ReactNativeHapticFeedback.trigger('impactLight');
+    setSaved(false); // Reset saved state on close
     onClose();
   }, [onClose]);
+
+  const handleSave = useCallback(async () => {
+    if (!userId || !pieces || pieces.length === 0) {
+      Alert.alert('Cannot Save', 'No outfit data to save.');
+      return;
+    }
+
+    setSaving(true);
+    ReactNativeHapticFeedback.trigger('impactLight');
+
+    try {
+      // Extract tags from pieces for easier searching later
+      const tags = pieces.flatMap(p => [
+        p.category,
+        p.item,
+        p.color,
+        p.material,
+        p.style,
+      ]).filter(Boolean) as string[];
+
+      const response = await fetch(
+        `${API_BASE_URL}/users/${userId}/recreated-looks`,
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            source_image_url: source_image,
+            generated_outfit: {pieces},
+            tags,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to save recreated look');
+      }
+
+      setSaved(true);
+      ReactNativeHapticFeedback.trigger('notificationSuccess');
+    } catch (err: any) {
+      console.error('Failed to save recreated look:', err);
+      Alert.alert('Save Failed', 'Could not save this look. Please try again.');
+      ReactNativeHapticFeedback.trigger('notificationError');
+    } finally {
+      setSaving(false);
+    }
+  }, [userId, pieces, source_image]);
 
   if (!visible) return null;
 
@@ -300,6 +360,8 @@ export default function VisualRecreateModal({
 
   // Legacy mode: if we have results but no pieces, show flat grid
   const isLegacyMode = !pieces && results && results.length > 0;
+
+  const hasPieces = pieces && pieces.length > 0;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -330,11 +392,11 @@ export default function VisualRecreateModal({
               borderBottomWidth: 1,
               borderBottomColor: theme.colors.surface2,
             }}>
-            <View>
+            <View style={{flex: 1}}>
               <Text style={[globalStyles.sectionTitle, {marginTop: 0}]}>
                 RECREATE THIS LOOK
               </Text>
-              {pieces && pieces.length > 0 && (
+              {hasPieces && (
                 <Text
                   style={{
                     color: theme.colors.muted,
@@ -345,19 +407,60 @@ export default function VisualRecreateModal({
                 </Text>
               )}
             </View>
-            <TouchableOpacity
-              onPress={handleClose}
-              style={{
-                backgroundColor: theme.colors.foreground,
-                borderRadius: 20,
-                padding: 6,
-              }}>
-              <MaterialIcons
-                name="close"
-                size={20}
-                color={theme.colors.background}
-              />
-            </TouchableOpacity>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+              {/* Save Button */}
+              {hasPieces && (
+                <TouchableOpacity
+                  onPress={handleSave}
+                  disabled={saving || saved}
+                  style={{
+                    backgroundColor: saved
+                      ? theme.colors.primary
+                      : theme.colors.surface2,
+                    borderRadius: 20,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    opacity: saving ? 0.6 : 1,
+                  }}>
+                  {saving ? (
+                    <ActivityIndicator size="small" color={theme.colors.foreground} />
+                  ) : (
+                    <>
+                      <MaterialIcons
+                        name={saved ? 'check' : 'bookmark-outline'}
+                        size={18}
+                        color={saved ? theme.colors.background : theme.colors.foreground}
+                      />
+                      <Text
+                        style={{
+                          color: saved ? theme.colors.background : theme.colors.foreground,
+                          fontSize: 12,
+                          fontWeight: '600',
+                          marginLeft: 4,
+                        }}>
+                        {saved ? 'Saved' : 'Save'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              {/* Close Button */}
+              <TouchableOpacity
+                onPress={handleClose}
+                style={{
+                  backgroundColor: theme.colors.foreground,
+                  borderRadius: 20,
+                  padding: 6,
+                }}>
+                <MaterialIcons
+                  name="close"
+                  size={20}
+                  color={theme.colors.background}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Content */}
@@ -393,7 +496,7 @@ export default function VisualRecreateModal({
             )}
 
             {/* Pieces by Category */}
-            {pieces && pieces.length > 0 ? (
+            {hasPieces ? (
               pieces.map((piece, idx) => (
                 <PieceSection
                   key={`piece-${idx}`}

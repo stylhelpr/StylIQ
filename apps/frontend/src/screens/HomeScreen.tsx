@@ -46,7 +46,13 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {Linking} from 'react-native';
 import type {ProductResult} from '../services/productSearchClient';
 import ShopModal from '../components/ShopModal/ShopModal';
-import {Share, TextInput, Alert, KeyboardAvoidingView, Platform} from 'react-native';
+import {
+  Share,
+  TextInput,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import {useCreatePost} from '../hooks/useCommunityApi';
 import {BlurView} from '@react-native-community/blur';
@@ -524,7 +530,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   // Share options state (community vs external)
   const [shareOptionsVisible, setShareOptionsVisible] = useState(false);
   const [pendingShareVibe, setPendingShareVibe] = useState<any | null>(null);
-  const [communityShareModalVisible, setCommunityShareModalVisible] = useState(false);
+  const [communityShareModalVisible, setCommunityShareModalVisible] =
+    useState(false);
   const [communityDescription, setCommunityDescription] = useState('');
   const [communityTags, setCommunityTags] = useState('');
 
@@ -983,6 +990,40 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     setShareOptionsVisible(true);
   };
 
+  // Delete recreated look
+  const handleDeleteRecreatedLook = async (lookId: string) => {
+    ReactNativeHapticFeedback.trigger('impactMedium');
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/users/${userId}/recreated-looks/${lookId}`,
+        {method: 'DELETE'},
+      );
+      const result = await response.json();
+      if (result.success) {
+        setRecentCreations(prev => prev.filter(c => c.id !== lookId));
+        ReactNativeHapticFeedback.trigger('notificationSuccess');
+      }
+    } catch (err) {
+      console.error('Failed to delete recreated look:', err);
+    }
+  };
+
+  // Delete saved look (Inspired Looks)
+  const handleDeleteSavedLook = async (lookId: string) => {
+    ReactNativeHapticFeedback.trigger('impactMedium');
+    try {
+      const response = await fetch(`${API_BASE_URL}/saved-looks/${lookId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setSavedLooks(prev => prev.filter(l => l.id !== lookId));
+        ReactNativeHapticFeedback.trigger('notificationSuccess');
+      }
+    } catch (err) {
+      console.error('Failed to delete saved look:', err);
+    }
+  };
+
   // Share to Community
   const handleShareToCommunity = () => {
     if (!pendingShareVibe || !userId) return;
@@ -1014,7 +1055,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         userId,
         description:
           communityDescription ||
-          (pendingShareVibe.tags && pendingShareVibe.tags.slice(0, 3).join(', ')) ||
+          (pendingShareVibe.tags &&
+            pendingShareVibe.tags.slice(0, 3).join(', ')) ||
           pendingShareVibe.query_used ||
           'My look',
         tags: tagsArray.length > 0 ? tagsArray : ['look'],
@@ -1311,7 +1353,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         color: '#fff',
                       }}
                       numberOfLines={1}>
-                      @{firstName && lastName
+                      @
+                      {firstName && lastName
                         ? `${firstName.toLowerCase()}${lastName.toLowerCase()}`
                         : 'stylhelpr'}
                     </Text>
@@ -1841,7 +1884,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               useNativeDriver
               style={{width: '50%', margin: 'auto'}}>
               <AppleTouchFeedback
-                onPress={() => navigate('VideoFeedScreen')}
+                onPress={() => navigate('Explore')}
                 hapticStyle="impactLight"
                 style={[
                   globalStyles.buttonPrimary,
@@ -1861,7 +1904,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     globalStyles.buttonPrimaryText,
                     {textTransform: 'uppercase', fontWeight: '700'},
                   ]}>
-                  Community Share
+                  Fashion News
                 </Text>
               </AppleTouchFeedback>
             </Animatable.View>
@@ -1973,7 +2016,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   resizeMode="cover"
                                 />
                               </View>
-                              {/* Share button */}
+                              {/* Share button - top right */}
                               <TouchableOpacity
                                 onPress={() => handleShareVibe(look)}
                                 style={{
@@ -1989,6 +2032,20 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   size={20}
                                   color={theme.colors.buttonText1}
                                 />
+                              </TouchableOpacity>
+
+                              {/* Delete button - bottom right */}
+                              <TouchableOpacity
+                                onPress={() => handleDeleteSavedLook(look.id)}
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 22,
+                                  right: 4,
+                                  backgroundColor: 'rgba(220,38,38,0.85)',
+                                  borderRadius: 12,
+                                  padding: 4,
+                                }}>
+                                <Icon name="close" size={12} color="#fff" />
                               </TouchableOpacity>
                               <Text
                                 style={[
@@ -2034,7 +2091,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       JSON.stringify(newState),
                     );
                   }}>
-                  <View style={globalStyles.sectionScroll2}>
+                  <View style={globalStyles.sectionScroll}>
                     {recentCreations.length === 0 ? (
                       <View
                         style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
@@ -2049,22 +2106,43 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     ) : (
                       <ScrollView
                         horizontal
-                        showsHorizontalScrollIndicator={false}>
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{
+                          paddingRight: moderateScale(tokens.spacing.xs),
+                        }}>
                         {recentCreations.map(c => (
-                          <View key={c.id} style={globalStyles.outfitCard}>
+                          <View
+                            key={c.id}
+                            style={[
+                              globalStyles.outfitCard,
+                              globalStyles.image8,
+                              {height: 'auto', borderWidth: 0},
+                            ]}>
                             <ScalePressable
                               onPress={() => {
-                                navigate('RecreatedLook', {
-                                  data: c.generated_outfit,
-                                });
+                                // Check if it's new pieces format or old outfit format
+                                if (c.generated_outfit?.pieces) {
+                                  // New format - open VisualRecreateModal
+                                  openVisualRecreateModal({
+                                    pieces: c.generated_outfit.pieces,
+                                    source_image: c.source_image_url,
+                                  });
+                                } else {
+                                  // Legacy format - use RecreatedLookScreen
+                                  navigate('RecreatedLook', {
+                                    data: c.generated_outfit,
+                                  });
+                                }
                               }}
-                              style={{alignItems: 'center'}}>
-                              <Image
-                                source={{uri: c.source_image_url}}
-                                style={[globalStyles.image8]}
-                                resizeMode="cover"
-                              />
-                              {/* 👇 ADD THIS just below the image */}
+                              style={{alignItems: 'center', width: '100%'}}>
+                              <View>
+                                <Image
+                                  source={{uri: c.source_image_url}}
+                                  style={[globalStyles.image8]}
+                                  resizeMode="cover"
+                                />
+                              </View>
+                              {/* Share button - top right */}
                               <TouchableOpacity
                                 onPress={() => handleShareVibe(c)}
                                 style={{
@@ -2082,11 +2160,30 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 />
                               </TouchableOpacity>
 
+                              {/* Delete button - bottom right */}
+                              <TouchableOpacity
+                                onPress={() => handleDeleteRecreatedLook(c.id)}
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 22,
+                                  right: 4,
+                                  backgroundColor: 'rgba(220,38,38,0.85)',
+                                  borderRadius: 12,
+                                  padding: 4,
+                                }}>
+                                <Icon name="close" size={14} color="#fff" />
+                              </TouchableOpacity>
+
                               <Text
                                 numberOfLines={1}
+                                ellipsizeMode="tail"
                                 style={[
                                   globalStyles.cardSubLabel,
-                                  {marginTop: 4, textAlign: 'center'},
+                                  {
+                                    marginTop: 4,
+                                    textAlign: 'center',
+                                    width: '100%',
+                                  },
                                 ]}>
                                 {(c.tags && c.tags.slice(0, 3).join(' ')) ||
                                   'AI Look'}
@@ -2116,7 +2213,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </Animatable.View>
               )}
 
-              {!loadingVibes && (
+              {/* {!loadingVibes && (
                 <CollapsibleSection
                   title="Shopped Looks"
                   open={shoppedOpen}
@@ -2155,7 +2252,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 style={[globalStyles.image8]}
                                 resizeMode="cover"
                               />
-                              {/* 👇 Add share button */}
+                        
                               <TouchableOpacity
                                 onPress={() => handleShareVibe(vibe)}
                                 style={{
@@ -2187,7 +2284,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     )}
                   </View>
                 </CollapsibleSection>
-              )}
+              )} */}
             </>
           )}
           <SaveLookModal
@@ -2319,7 +2416,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     borderRadius: 14,
                     marginBottom: 12,
                   }}>
-                  <Icon name="groups" size={24} color={theme.colors.buttonText1} />
+                  <Icon
+                    name="groups"
+                    size={24}
+                    color={theme.colors.buttonText1}
+                  />
                   <Text
                     style={{
                       color: theme.colors.buttonText1,
@@ -2344,7 +2445,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     borderRadius: 14,
                     marginBottom: 12,
                   }}>
-                  <Icon name="ios-share" size={24} color={theme.colors.foreground} />
+                  <Icon
+                    name="ios-share"
+                    size={24}
+                    color={theme.colors.foreground}
+                  />
                   <Text
                     style={{
                       color: theme.colors.foreground,
@@ -2473,7 +2578,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   />
 
                   {/* Action Buttons */}
-                  <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+                  <View
+                    style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
                     <AppleTouchFeedback
                       hapticStyle="selection"
                       onPress={() => {
