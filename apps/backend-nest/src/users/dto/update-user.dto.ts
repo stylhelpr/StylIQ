@@ -4,6 +4,7 @@ export class UpdateUserDto {
   email?: string;
   profile_picture?: string | null; // ✅ allow null
   profession?: string;
+  bio?: string;
   fashion_level?: string;
   gender_presentation?: string;
   onboarding_complete?: boolean;

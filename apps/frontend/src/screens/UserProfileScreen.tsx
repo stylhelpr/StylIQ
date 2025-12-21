@@ -467,11 +467,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                 style={styles.bioContainer}>
                 <Text style={styles.nameText}>{displayName}</Text>
                 <Text style={styles.usernameText}>{username}</Text>
-                {(communityProfile?.bio || userProfile?.bio) && (
-                  <Text style={styles.bioText}>
-                    {communityProfile?.bio || userProfile?.bio}
-                  </Text>
-                )}
+
                 {userProfile?.fashion_level && (
                   <Text style={styles.bioText}>
                     {userProfile.fashion_level}
@@ -479,6 +475,11 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                 )}
                 {userProfile?.profession && (
                   <Text style={styles.bioText}>{userProfile.profession}</Text>
+                )}
+                {(communityProfile?.bio || userProfile?.bio) && (
+                  <Text style={styles.bioText}>
+                    {communityProfile?.bio || userProfile?.bio}
+                  </Text>
                 )}
               </Animatable.View>
             </Animatable.View>
@@ -606,23 +607,26 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                     <Animatable.View
                       key={look.id}
                       animation="zoomInUp"
-                      delay={1700 + index * 120}
+                      delay={2300 + index * 120}
                       useNativeDriver
-                      style={[globalStyles.outfitCard, {width: 131}]}>
-                      <Pressable style={{alignItems: 'center'}}>
+                      style={[globalStyles.outfitCard]}>
+                      <Pressable
+                        onPress={() => {
+                          // Could navigate to look detail or show preview
+                        }}
+                        style={{alignItems: 'center'}}>
                         {/* Card - single image or 2x2 grid */}
                         <View
                           style={{
-                            width: 130,
-                            height: 130,
                             borderRadius: tokens.borderRadius.md,
                             overflow: 'hidden',
                             backgroundColor: '#000',
                           }}>
                           {look.image_url ? (
+                            // Single image post
                             <Image
                               source={{uri: look.image_url}}
-                              style={{width: 130, height: 130}}
+                              style={[globalStyles.image8]}
                               resizeMode="cover"
                             />
                           ) : (

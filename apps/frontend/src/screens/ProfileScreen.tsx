@@ -7,8 +7,6 @@ import {
   ScrollView,
   Dimensions,
   Pressable,
-  TextInput,
-  Modal,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
@@ -49,6 +47,7 @@ type UserProfile = {
   profile_picture?: string;
   fashion_level?: string;
   profession?: string;
+  bio?: string;
 };
 
 export default function ProfileScreen({navigate}: Props) {
@@ -67,10 +66,10 @@ export default function ProfileScreen({navigate}: Props) {
   const [selectedLook, setSelectedLook] = useState<any | null>(null);
   const [profilePicture, setProfilePicture] = useState<string>(''); // keep as string only
   const [sharedLooks, setSharedLooks] = useState<any[]>([]);
-  const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(new Set());
+  const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
+    new Set(),
+  );
   const [bio, setBio] = useState<string>('');
-  const [bioModalVisible, setBioModalVisible] = useState(false);
-  const [editingBio, setEditingBio] = useState('');
 
   const HEADER_HEIGHT = 70; // adjust to your actual header height
   const BOTTOM_NAV_HEIGHT = 90; // adjust to your nav height
@@ -146,25 +145,8 @@ export default function ProfileScreen({navigate}: Props) {
   }, [userId]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Fetch bio from community profile
+  // Bio is fetched from userProfileRaw below and set via useEffect
   // ─────────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/community/users/${userId}/profile`,
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.bio) {
-          setBio(data.bio);
-        }
-      } catch {
-        // ignore
-      }
-    })();
-  }, [userId]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Queries: profile, wardrobe, counts
@@ -217,6 +199,13 @@ export default function ProfileScreen({navigate}: Props) {
       }
     }
   }, [userProfileRaw, userId]);
+
+  // Set bio from userProfileRaw
+  useEffect(() => {
+    if (userProfileRaw?.bio) {
+      setBio(userProfileRaw.bio);
+    }
+  }, [userProfileRaw]);
 
   // IMPORTANT: Don't construct a UserProfile when data is still undefined,
   // or TS will complain about missing required fields.
@@ -376,15 +365,6 @@ export default function ProfileScreen({navigate}: Props) {
       marginTop: 4,
       lineHeight: 18,
     },
-    bioEditContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginTop: 8,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      backgroundColor: theme.colors.cardBackground,
-      borderRadius: 8,
-    },
     linkText: {
       color: theme.colors.button1,
       fontSize: 16,
@@ -525,7 +505,8 @@ export default function ProfileScreen({navigate}: Props) {
               (userProfile?.last_name || '')}
           </Text>
           <Text style={styles.usernameText}>
-            @{userProfile?.first_name && userProfile?.last_name
+            @
+            {userProfile?.first_name && userProfile?.last_name
               ? `${userProfile.first_name.toLowerCase()}${userProfile.last_name.toLowerCase()}`
               : 'stylhelpr'}
           </Text>
@@ -535,27 +516,10 @@ export default function ProfileScreen({navigate}: Props) {
           {userProfile?.profession && (
             <Text style={styles.bioText}>{userProfile.profession}</Text>
           )}
-          {/* Actual Bio with Edit */}
-          <Pressable
-            onPress={() => {
-              setEditingBio(bio);
-              setBioModalVisible(true);
-            }}
-            style={styles.bioEditContainer}>
-            {bio ? (
-              <Text style={styles.bioText}>{bio}</Text>
-            ) : (
-              <Text style={[styles.bioText, {fontStyle: 'italic', opacity: 0.6}]}>
-                Tap to add a bio...
-              </Text>
-            )}
-            <Icon
-              name="edit"
-              size={16}
-              color={theme.colors.foreground3}
-              style={{marginLeft: 8}}
-            />
-          </Pressable>
+          {/* Bio Display (edit in Personal Information screen) */}
+          {bio ? (
+            <Text style={[styles.bioText, {marginTop: 8}]}>{bio}</Text>
+          ) : null}
         </Animatable.View>
       </Animatable.View>
 
@@ -684,123 +648,128 @@ export default function ProfileScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle]}>Shared Looks</Text>
         {sharedLooks.length === 0 ? (
           <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-            <Text style={globalStyles.missingDataMessage1}>No shared looks.</Text>
+            <Text style={globalStyles.missingDataMessage1}>
+              No shared looks.
+            </Text>
             <TooltipBubble
               message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
               position="top"
             />
           </View>
         ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingRight: 8}}>
-          {sharedLooks
-            .filter(look => !hiddenSharedLooks.has(look.id))
-            .map((look, index) => (
-            <Animatable.View
-              key={look.id}
-              animation="zoomInUp"
-              delay={2300 + index * 120}
-              useNativeDriver
-              style={[globalStyles.outfitCard, {width: 131}]}>
-              <Pressable
-                onPress={() => {
-                  // Could navigate to look detail or show preview
-                }}
-                style={{alignItems: 'center'}}>
-                {/* Card - single image or 2x2 grid */}
-                <View
-                  style={{
-                    width: 130,
-                    height: 130,
-                    borderRadius: tokens.borderRadius.md,
-                    overflow: 'hidden',
-                    backgroundColor: '#000',
-                  }}>
-                  {look.image_url ? (
-                    // Single image post
-                    <Image
-                      source={{uri: look.image_url}}
-                      style={{width: 130, height: 130}}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    // 2x2 Grid for multi-item posts
-                    <>
-                      <View style={{flexDirection: 'row', height: 65}}>
-                        <Image
-                          source={{uri: look.top_image}}
-                          style={{width: 65, height: 65}}
-                          resizeMode="cover"
-                        />
-                        <Image
-                          source={{uri: look.bottom_image}}
-                          style={{width: 65, height: 65}}
-                          resizeMode="cover"
-                        />
-                      </View>
-                      <View style={{flexDirection: 'row', height: 65}}>
-                        <Image
-                          source={{uri: look.shoes_image}}
-                          style={{width: 65, height: 65}}
-                          resizeMode="cover"
-                        />
-                        <View
-                          style={{
-                            width: 65,
-                            height: 65,
-                            backgroundColor: '#000',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                          }}>
-                          <Text
-                            style={{
-                              color: '#fff',
-                              fontSize: 8,
-                              fontWeight: '800',
-                              letterSpacing: 1,
-                            }}>
-                            StylHelpr
-                          </Text>
-                        </View>
-                      </View>
-                    </>
-                  )}
-                  {/* Hide button */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{paddingRight: 8}}>
+            {sharedLooks
+              .filter(look => !hiddenSharedLooks.has(look.id))
+              .map((look, index) => (
+                <Animatable.View
+                  key={look.id}
+                  animation="zoomInUp"
+                  delay={2300 + index * 120}
+                  useNativeDriver
+                  style={[globalStyles.outfitCard]}>
                   <Pressable
                     onPress={() => {
-                      setHiddenSharedLooks(prev => new Set(prev).add(look.id));
+                      // Could navigate to look detail or show preview
                     }}
-                    style={{
-                      position: 'absolute',
-                      bottom: 4,
-                      right: 4,
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      backgroundColor: 'rgba(220, 38, 38, 0.9)',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}>
-                    <Icon name="close" size={14} color="#fff" />
+                    style={{alignItems: 'center'}}>
+                    {/* Card - single image or 2x2 grid */}
+                    <View
+                      style={{
+                        borderRadius: tokens.borderRadius.md,
+                        overflow: 'hidden',
+                        backgroundColor: '#000',
+                      }}>
+                      {look.image_url ? (
+                        // Single image post
+                        <Image
+                          source={{uri: look.image_url}}
+                          style={[globalStyles.image8]}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        // 2x2 Grid for multi-item posts
+                        <>
+                          <View style={{flexDirection: 'row', height: 65}}>
+                            <Image
+                              source={{uri: look.top_image}}
+                              style={{width: 65, height: 65}}
+                              resizeMode="cover"
+                            />
+                            <Image
+                              source={{uri: look.bottom_image}}
+                              style={{width: 65, height: 65}}
+                              resizeMode="cover"
+                            />
+                          </View>
+                          <View style={{flexDirection: 'row', height: 65}}>
+                            <Image
+                              source={{uri: look.shoes_image}}
+                              style={{width: 65, height: 65}}
+                              resizeMode="cover"
+                            />
+                            <View
+                              style={{
+                                width: 65,
+                                height: 65,
+                                backgroundColor: '#000',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                              }}>
+                              <Text
+                                style={{
+                                  color: '#fff',
+                                  fontSize: 8,
+                                  fontWeight: '800',
+                                  letterSpacing: 1,
+                                }}>
+                                StylHelpr
+                              </Text>
+                            </View>
+                          </View>
+                        </>
+                      )}
+                      {/* Hide button */}
+                      <Pressable
+                        onPress={() => {
+                          setHiddenSharedLooks(prev =>
+                            new Set(prev).add(look.id),
+                          );
+                        }}
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 4,
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}>
+                        <Icon name="close" size={14} color="#fff" />
+                      </Pressable>
+                    </View>
+                    {/* Look name and likes */}
+                    <Animatable.View
+                      animation="fadeIn"
+                      delay={2500 + index * 100}
+                      style={{marginTop: 6, alignItems: 'center'}}>
+                      <Text
+                        style={[
+                          globalStyles.cardSubLabel,
+                          {textAlign: 'center'},
+                        ]}
+                        numberOfLines={1}>
+                        {look.description || 'Shared Look'}
+                      </Text>
+                    </Animatable.View>
                   </Pressable>
-                </View>
-                {/* Look name and likes */}
-                <Animatable.View
-                  animation="fadeIn"
-                  delay={2500 + index * 100}
-                  style={{marginTop: 6, alignItems: 'center'}}>
-                  <Text
-                    style={[globalStyles.cardSubLabel, {textAlign: 'center'}]}
-                    numberOfLines={1}>
-                    {look.description || 'Shared Look'}
-                  </Text>
                 </Animatable.View>
-              </Pressable>
-            </Animatable.View>
-          ))}
-        </ScrollView>
+              ))}
+          </ScrollView>
         )}
       </Animatable.View>
 
@@ -852,116 +821,6 @@ export default function ProfileScreen({navigate}: Props) {
         look={selectedLook}
         onClose={() => setPreviewVisible(false)}
       />
-
-      {/* Bio Edit Modal */}
-      <Modal
-        visible={bioModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setBioModalVisible(false)}>
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-          onPress={() => setBioModalVisible(false)}>
-          <Pressable
-            style={{
-              width: '85%',
-              backgroundColor: theme.colors.cardBackground,
-              borderRadius: 16,
-              padding: 20,
-            }}
-            onPress={e => e.stopPropagation()}>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '600',
-                color: theme.colors.foreground,
-                marginBottom: 12,
-              }}>
-              Edit Bio
-            </Text>
-            <TextInput
-              value={editingBio}
-              onChangeText={setEditingBio}
-              placeholder="Tell us about yourself..."
-              placeholderTextColor={theme.colors.foreground3}
-              multiline
-              numberOfLines={4}
-              maxLength={150}
-              style={{
-                backgroundColor: theme.colors.input,
-                borderRadius: 8,
-                padding: 12,
-                color: theme.colors.foreground,
-                fontSize: 16,
-                minHeight: 100,
-                textAlignVertical: 'top',
-              }}
-            />
-            <Text
-              style={{
-                fontSize: 12,
-                color: theme.colors.foreground3,
-                textAlign: 'right',
-                marginTop: 4,
-              }}>
-              {editingBio.length}/150
-            </Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'flex-end',
-                marginTop: 16,
-                gap: 12,
-              }}>
-              <Pressable
-                onPress={() => setBioModalVisible(false)}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  borderRadius: 8,
-                }}>
-                <Text style={{color: theme.colors.foreground2, fontSize: 16}}>
-                  Cancel
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={async () => {
-                  try {
-                    const res = await fetch(
-                      `${API_BASE_URL}/community/users/${userId}/bio`,
-                      {
-                        method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({bio: editingBio}),
-                      },
-                    );
-                    if (res.ok) {
-                      setBio(editingBio);
-                      setBioModalVisible(false);
-                    }
-                  } catch {
-                    // ignore
-                  }
-                }}
-                style={{
-                  backgroundColor: theme.colors.button1,
-                  paddingVertical: 10,
-                  paddingHorizontal: 20,
-                  borderRadius: 8,
-                }}>
-                <Text style={{color: '#fff', fontSize: 16, fontWeight: '600'}}>
-                  Save
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </ScrollView>
     // </GradientBackground>
   );

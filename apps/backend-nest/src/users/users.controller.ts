@@ -28,7 +28,7 @@ export class UsersController {
     const user = await this.service.findByAuth0Sub(sub);
     if (!user) return null;
 
-    // ✅ Return theme_mode too
+    // ✅ Return theme_mode and bio too
     return {
       id: user.id,
       email: user.email,
@@ -36,6 +36,7 @@ export class UsersController {
       first_name: user.first_name,
       last_name: user.last_name,
       profession: user.profession,
+      bio: user.bio,
       fashion_level: user.fashion_level,
       profile_picture: user.profile_picture,
       theme_mode: user.theme_mode,
@@ -80,6 +81,7 @@ export class UsersController {
       'email',
       'profile_picture',
       'profession',
+      'bio',
       'fashion_level',
       'gender_presentation',
       'theme_mode', // ✅ add theme support
@@ -109,6 +111,7 @@ export class UsersController {
       'email',
       'profile_picture',
       'profession',
+      'bio',
       'fashion_level',
       'gender_presentation',
       'onboarding_complete',

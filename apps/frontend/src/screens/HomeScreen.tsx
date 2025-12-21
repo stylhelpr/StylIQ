@@ -1110,6 +1110,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       setCommunityShareModalVisible(false);
       setPendingShareVibe(null);
       Alert.alert('Success', 'Your look has been shared to the community!');
+
+      // Refresh the shared looks section to show the new post
+      fetchSharedLooks();
     } catch (error) {
       console.error('Failed to share to community:', error);
       Alert.alert('Error', 'Failed to share to community. Please try again.');

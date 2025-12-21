@@ -76,10 +76,17 @@ export default function SaveLookModal({visible, onClose, onSave}: Props) {
       // Upload local file to GCS first to get a public URL
       let imageUrl = url;
 
-      if (url.startsWith('file://') || url.startsWith('ph://') || url.startsWith('assets-library://')) {
+      if (
+        url.startsWith('file://') ||
+        url.startsWith('ph://') ||
+        url.startsWith('assets-library://')
+      ) {
         console.log('📤 Uploading local image to GCS...');
         const filename = `saved-look-${Date.now()}.jpg`;
-        const userIdStr = typeof userId === 'string' ? userId : (userId as any)?.uuid || String(userId);
+        const userIdStr =
+          typeof userId === 'string'
+            ? userId
+            : (userId as any)?.uuid || String(userId);
         const uploadResult = await uploadImageToGCS({
           localUri: url,
           filename,
@@ -230,10 +237,7 @@ export default function SaveLookModal({visible, onClose, onSave}: Props) {
           <Text style={styles.title}>Save a Look</Text>
 
           <Text style={styles.description}>
-            Find any image online, press and hold it, and tap “Copy” — then
-            paste it into the Image Address below. You can also take a
-            screenshot, or press and hold the image and tap “Save to Photos”,
-            then tap “Upload from Camera Roll” to add it here.
+            Upload any images from your camera roll to add an inspired look.
           </Text>
 
           <TextInput
@@ -244,13 +248,13 @@ export default function SaveLookModal({visible, onClose, onSave}: Props) {
             onChangeText={setName}
           />
 
-          <TextInput
+          {/* <TextInput
             style={styles.input}
             placeholder="Image Address"
             placeholderTextColor={theme.colors.muted}
             value={url}
             onChangeText={setUrl}
-          />
+          /> */}
 
           {/* 🖼️ Preview if selected */}
           {preview && <Image source={{uri: preview}} style={styles.preview} />}
@@ -280,10 +284,17 @@ export default function SaveLookModal({visible, onClose, onSave}: Props) {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleSave}
-            style={[globalStyles.buttonPrimary, {marginBottom: 10}, (uploading || !url) && {opacity: 0.6}]}
+            style={[
+              globalStyles.buttonPrimary,
+              {marginBottom: 10},
+              (uploading || !url) && {opacity: 0.6},
+            ]}
             disabled={!url || uploading}>
             {uploading ? (
-              <ActivityIndicator size="small" color={theme.colors.buttonText1} />
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.buttonText1}
+              />
             ) : (
               <Text
                 style={{

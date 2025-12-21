@@ -57,7 +57,7 @@ export default function PersonalInformationScreen({navigate}: any) {
       fontSize: 28,
       fontWeight: '700',
       textAlign: 'center',
-      marginBottom: 28,
+      marginBottom: 38,
     },
     avatarContainer: {alignItems: 'center', marginBottom: 32},
     avatar: {width: 120, height: 120, borderRadius: 60, marginBottom: 14},
@@ -97,6 +97,7 @@ export default function PersonalInformationScreen({navigate}: any) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [profession, setProfession] = useState('');
+  const [bio, setBio] = useState('');
   const [fashionLevel, setFashionLevel] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,6 +183,7 @@ export default function PersonalInformationScreen({navigate}: any) {
         setFirstName(data?.first_name || '');
         setLastName(data?.last_name || '');
         setProfession(data?.profession || '');
+        setBio(data?.bio || '');
         setFashionLevel(data?.fashion_level || '');
 
         if (data?.profile_picture && data.profile_picture.trim() !== '') {
@@ -287,6 +289,7 @@ export default function PersonalInformationScreen({navigate}: any) {
     (firstName && firstName !== initialData.first_name) ||
       (lastName && lastName !== initialData.last_name) ||
       (profession && profession !== initialData.profession) ||
+      bio !== (initialData.bio || '') ||
       (fashionLevel && fashionLevel !== initialData.fashion_level) ||
       stripVersion(profilePicture) !==
         stripVersion(initialData.profile_picture),
@@ -307,6 +310,7 @@ export default function PersonalInformationScreen({navigate}: any) {
         dto.last_name = lastName;
       if (profession && profession !== initialData.profession)
         dto.profession = profession;
+      if (bio !== (initialData.bio || '')) dto.bio = bio;
       if (fashionLevel && fashionLevel !== initialData.fashion_level)
         dto.fashion_level = fashionLevel;
 
@@ -359,7 +363,7 @@ export default function PersonalInformationScreen({navigate}: any) {
         globalStyles.container,
         {backgroundColor: colors.background, opacity: fadeAnim},
       ]}
-      contentContainerStyle={[styles.content, {paddingBottom: 300}]}
+      contentContainerStyle={[styles.content, {paddingBottom: 350}]}
       showsVerticalScrollIndicator={false}>
       <View
         style={{
@@ -454,6 +458,31 @@ export default function PersonalInformationScreen({navigate}: any) {
           placeholderTextColor={colors.muted}
         />
 
+        <Text style={[styles.label, {color: colors.foreground}]}>Bio</Text>
+        <TextInput
+          value={bio}
+          onChangeText={setBio}
+          style={[
+            styles.input,
+            {color: colors.foreground, minHeight: 80, textAlignVertical: 'top'},
+          ]}
+          placeholder="Tell us about yourself..."
+          placeholderTextColor={colors.muted}
+          multiline
+          numberOfLines={3}
+          maxLength={150}
+        />
+        <Text
+          style={{
+            fontSize: 12,
+            color: colors.muted,
+            textAlign: 'right',
+            marginTop: -6,
+            marginBottom: 10,
+          }}>
+          {bio.length}/150
+        </Text>
+
         <Text style={[styles.label, {color: colors.foreground}]}>
           Fashion Expertise
         </Text>
@@ -480,9 +509,7 @@ export default function PersonalInformationScreen({navigate}: any) {
               <Text
                 style={{
                   color:
-                    fashionLevel === level
-                      ? '#fff'
-                      : theme.colors.foreground,
+                    fashionLevel === level ? '#fff' : theme.colors.foreground,
                   fontWeight: fashionLevel === level ? '600' : '400',
                 }}>
                 {level}
