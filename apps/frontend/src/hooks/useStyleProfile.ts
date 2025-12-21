@@ -49,6 +49,8 @@ export function useStyleProfile(userId: string) {
       'disliked_styles',
       'style_keywords',
       'budget_level',
+      'budget_min',
+      'budget_max',
       'preferred_brands',
       'daily_activities',
       'goals',

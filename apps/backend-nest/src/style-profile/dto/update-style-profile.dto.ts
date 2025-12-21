@@ -37,7 +37,9 @@ export class UpdateStyleProfileDto {
   style_icons?: string[];
 
   // Budget & Fashion
-  budget_level?: number;
+  budget_level?: number; // deprecated, kept for backward compatibility
+  budget_min?: number;
+  budget_max?: number;
   fashion_confidence?: string;
   fashion_boldness?: string;
   trend_appetite?: string;

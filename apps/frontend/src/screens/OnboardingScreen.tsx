@@ -1115,9 +1115,6 @@ export default function OnboardingScreen({navigate}: Props) {
   const [heightCm, setHeightCm] = useState('');
   const [weight, setWeight] = useState('');
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(
-    null,
-  );
   const [selectedPersonalityTraits, setSelectedPersonalityTraits] = useState<
     string[]
   >([]);
@@ -1248,9 +1245,6 @@ export default function OnboardingScreen({navigate}: Props) {
             : Math.round(parseFloat(weight) * 0.453592)
           : null;
 
-        const budgetLevel = selectedPriceRange
-          ? parseInt(selectedPriceRange) || null
-          : null;
 
         const styleProfilePayload: Record<string, any> = {
           is_style_profile_complete: true,
@@ -1266,7 +1260,8 @@ export default function OnboardingScreen({navigate}: Props) {
         if (weightKgVal) styleProfilePayload.weight = weightKgVal;
         if (selectedStyles.length > 0)
           styleProfilePayload.style_preferences = selectedStyles;
-        if (budgetLevel) styleProfilePayload.budget_level = budgetLevel;
+        if (budgetMin) styleProfilePayload.budget_min = budgetMin;
+        if (budgetMax) styleProfilePayload.budget_max = budgetMax;
         if (selectedShoppingPriorities.length > 0)
           styleProfilePayload.fit_preferences = selectedShoppingPriorities;
         if (selectedPersonalityTraits.length > 0)
@@ -2481,13 +2476,22 @@ export default function OnboardingScreen({navigate}: Props) {
     );
   };
 
-  // Slide 15: Budget (matches BudgetAndBrandsScreen)
-  const [budgetInput, setBudgetInput] = useState('');
-  const handleBudgetInputChange = (value: string) => {
+  // Slide 15: Budget Range (matches BudgetAndBrandsScreen)
+  const [budgetMinInput, setBudgetMinInput] = useState('');
+  const [budgetMaxInput, setBudgetMaxInput] = useState('');
+  const [budgetMin, setBudgetMin] = useState<number | null>(null);
+  const [budgetMax, setBudgetMax] = useState<number | null>(null);
+  const handleBudgetMinChange = (value: string) => {
     const cleaned = value.replace(/[^0-9]/g, '');
     const numeric = parseInt(cleaned || '0');
-    setBudgetInput(cleaned ? `$${numeric.toLocaleString()}` : '');
-    setSelectedPriceRange(cleaned ? numeric.toString() : null);
+    setBudgetMinInput(cleaned ? `$${numeric.toLocaleString()}` : '');
+    setBudgetMin(cleaned ? numeric : null);
+  };
+  const handleBudgetMaxChange = (value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    const numeric = parseInt(cleaned || '0');
+    setBudgetMaxInput(cleaned ? `$${numeric.toLocaleString()}` : '');
+    setBudgetMax(cleaned ? numeric : null);
   };
   const PriceRangeSlideElement = (
     <View style={styles.onboardingContainer}>
@@ -2504,33 +2508,80 @@ export default function OnboardingScreen({navigate}: Props) {
         <Text style={[styles.inputNote, {marginBottom: 20}]}>
           This helps us suggest brands that match your budget
         </Text>
-        <TextInput
-          placeholder="$ Amount"
-          placeholderTextColor={theme.colors.muted}
-          style={{
-            borderWidth: 1,
-            borderColor: theme.colors.inputBorder,
-            borderRadius: 12,
-            padding: 16,
-            fontSize: 18,
-            backgroundColor: theme.colors.surface3,
-            color: theme.colors.foreground,
-            marginBottom: 20,
-          }}
-          keyboardType="numeric"
-          value={budgetInput}
-          onChangeText={handleBudgetInputChange}
-        />
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+          <View style={{flex: 1}}>
+            <Text
+              style={{
+                color: theme.colors.muted,
+                fontSize: 13,
+                marginBottom: 6,
+              }}>
+              Min
+            </Text>
+            <TextInput
+              placeholder="$ Min"
+              placeholderTextColor={theme.colors.muted}
+              style={{
+                borderWidth: 1,
+                borderColor: theme.colors.inputBorder,
+                borderRadius: 12,
+                padding: 16,
+                fontSize: 18,
+                backgroundColor: theme.colors.surface3,
+                color: theme.colors.foreground,
+              }}
+              keyboardType="numeric"
+              value={budgetMinInput}
+              onChangeText={handleBudgetMinChange}
+            />
+          </View>
+          <Text
+            style={{
+              color: theme.colors.muted,
+              fontSize: 16,
+              marginTop: 20,
+            }}>
+            –
+          </Text>
+          <View style={{flex: 1}}>
+            <Text
+              style={{
+                color: theme.colors.muted,
+                fontSize: 13,
+                marginBottom: 6,
+              }}>
+              Max
+            </Text>
+            <TextInput
+              placeholder="$ Max"
+              placeholderTextColor={theme.colors.muted}
+              style={{
+                borderWidth: 1,
+                borderColor: theme.colors.inputBorder,
+                borderRadius: 12,
+                padding: 16,
+                fontSize: 18,
+                backgroundColor: theme.colors.surface3,
+                color: theme.colors.foreground,
+              }}
+              keyboardType="numeric"
+              value={budgetMaxInput}
+              onChangeText={handleBudgetMaxChange}
+            />
+          </View>
+        </View>
       </View>
       <View style={styles.bottomButtonContainer}>
         <TouchableOpacity
           style={
-            budgetInput ? styles.primaryButton : styles.primaryButtonDisabled
+            budgetMinInput || budgetMaxInput
+              ? styles.primaryButton
+              : styles.primaryButtonDisabled
           }
           onPress={goToNextSlide}>
           <Text
             style={
-              budgetInput
+              budgetMinInput || budgetMaxInput
                 ? styles.primaryButtonText
                 : styles.primaryButtonTextDisabled
             }>

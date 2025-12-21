@@ -59,8 +59,10 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
     },
   });
 
-  const [budgetInput, setBudgetInput] = useState('');
-  const [parsedBudget, setParsedBudget] = useState<number | null>(null);
+  const [budgetMinInput, setBudgetMinInput] = useState('');
+  const [budgetMaxInput, setBudgetMaxInput] = useState('');
+  const [parsedBudgetMin, setParsedBudgetMin] = useState<number | null>(null);
+  const [parsedBudgetMax, setParsedBudgetMax] = useState<number | null>(null);
 
   // All chips ever added (even if toggled off)
   const [allBrands, setAllBrands] = useState<string[]>([]);
@@ -102,12 +104,19 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
       // Save merged vocab back to cache
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
 
-      // Handle budget field
-      const budget = styleProfile?.budget_level || 0;
-      setParsedBudget(budget);
-      setBudgetInput(
-        budget > 0
-          ? currency(budget, {symbol: '$', precision: 0}).format()
+      // Handle budget range fields
+      const budgetMin = styleProfile?.budget_min || 0;
+      const budgetMax = styleProfile?.budget_max || 0;
+      setParsedBudgetMin(budgetMin);
+      setParsedBudgetMax(budgetMax);
+      setBudgetMinInput(
+        budgetMin > 0
+          ? currency(budgetMin, {symbol: '$', precision: 0}).format()
+          : '',
+      );
+      setBudgetMaxInput(
+        budgetMax > 0
+          ? currency(budgetMax, {symbol: '$', precision: 0}).format()
           : '',
       );
     })();
@@ -116,18 +125,34 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
   // ─────────────────────────────────────────────
   // Budget handling
   // ─────────────────────────────────────────────
-  const handleBudgetChange = (value: string) => {
+  const handleBudgetMinChange = (value: string) => {
     const cleaned = value.replace(/[^0-9]/g, '');
     const numeric = parseInt(cleaned || '0');
-    setParsedBudget(numeric);
-    setBudgetInput(
+    setParsedBudgetMin(numeric);
+    setBudgetMinInput(
       cleaned ? currency(numeric, {symbol: '$', precision: 0}).format() : '',
     );
   };
 
-  const commitBudget = async () => {
-    if (parsedBudget !== null && !isNaN(parsedBudget)) {
-      await updateProfile('budget_level', parsedBudget);
+  const handleBudgetMaxChange = (value: string) => {
+    const cleaned = value.replace(/[^0-9]/g, '');
+    const numeric = parseInt(cleaned || '0');
+    setParsedBudgetMax(numeric);
+    setBudgetMaxInput(
+      cleaned ? currency(numeric, {symbol: '$', precision: 0}).format() : '',
+    );
+  };
+
+  const commitBudgetMin = async () => {
+    if (parsedBudgetMin !== null && !isNaN(parsedBudgetMin)) {
+      await updateProfile('budget_min', parsedBudgetMin);
+      await refetch();
+    }
+  };
+
+  const commitBudgetMax = async () => {
+    if (parsedBudgetMax !== null && !isNaN(parsedBudgetMax)) {
+      await updateProfile('budget_max', parsedBudgetMax);
       await refetch();
     }
   };
@@ -229,26 +254,74 @@ export default function BudgetAndBrandsScreen({navigate}: Props) {
           {/* Budget Section */}
           <Text
             style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
-            Your Monthly Style Budget:
+            Your Monthly Style Budget Range:
           </Text>
           <View
             style={[globalStyles.styleContainer1, globalStyles.cardStyles3]}>
-            <TextInput
-              placeholder="$ Amount"
-              placeholderTextColor={colors.muted}
-              style={[
-                styles.input,
-                {
-                  borderColor: theme.colors.inputBorder,
-                  color: colors.foreground,
-                },
-              ]}
-              keyboardType="numeric"
-              value={budgetInput}
-              onChangeText={handleBudgetChange}
-              onBlur={commitBudget}
-              onSubmitEditing={commitBudget}
-            />
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+              <View style={{flex: 1}}>
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    fontSize: 13,
+                    marginBottom: 6,
+                  }}>
+                  Min
+                </Text>
+                <TextInput
+                  placeholder="$ Min"
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: theme.colors.inputBorder,
+                      color: colors.foreground,
+                      marginBottom: 0,
+                    },
+                  ]}
+                  keyboardType="numeric"
+                  value={budgetMinInput}
+                  onChangeText={handleBudgetMinChange}
+                  onBlur={commitBudgetMin}
+                  onSubmitEditing={commitBudgetMin}
+                />
+              </View>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontSize: 16,
+                  marginTop: 20,
+                }}>
+                –
+              </Text>
+              <View style={{flex: 1}}>
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    fontSize: 13,
+                    marginBottom: 6,
+                  }}>
+                  Max
+                </Text>
+                <TextInput
+                  placeholder="$ Max"
+                  placeholderTextColor={colors.muted}
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: theme.colors.inputBorder,
+                      color: colors.foreground,
+                      marginBottom: 0,
+                    },
+                  ]}
+                  keyboardType="numeric"
+                  value={budgetMaxInput}
+                  onChangeText={handleBudgetMaxChange}
+                  onBlur={commitBudgetMax}
+                  onSubmitEditing={commitBudgetMax}
+                />
+              </View>
+            </View>
           </View>
 
           {/* Brands Section */}
