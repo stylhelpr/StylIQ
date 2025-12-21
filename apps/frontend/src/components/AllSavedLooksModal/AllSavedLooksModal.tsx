@@ -46,6 +46,8 @@ export default function AllSavedLooksModal({
   shopResults, // ✅ add this
   openPersonalizedShopModal, // ← add this line
   openVisualRecreateModal, // 🔍 new prop for visual recreate results
+  onSaveLook, // 🔄 callback to refresh saved looks after adding
+  onRecreate, // 🔄 callback to refresh recreated looks after recreating
 }: {
   visible: boolean;
   onClose: () => void;
@@ -66,6 +68,8 @@ export default function AllSavedLooksModal({
     results?: any[];
     source_image?: string;
   }) => void;
+  onSaveLook?: () => void;
+  onRecreate?: () => void;
 }) {
   const uuidContext = useUUID();
 
@@ -218,6 +222,23 @@ export default function AllSavedLooksModal({
 
         console.log('💎 Personalized result:', data);
 
+        // Save recreated look to database
+        if (userId) {
+          try {
+            await fetch(`${API_BASE_URL}/users/${userId}/recreated-looks`, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                source_image_url: look.image_url,
+                generated_outfit: data,
+                tags: look.tags || [],
+              }),
+            });
+          } catch (saveErr) {
+            console.error('Failed to save recreated look:', saveErr);
+          }
+        }
+
         setSuccessState('recreate');
         ReactNativeHapticFeedback.trigger('impactLight');
 
@@ -231,6 +252,9 @@ export default function AllSavedLooksModal({
         } else {
           console.warn('⚠️ No personalized shop modal handler provided.');
         }
+
+        // Refresh recreated looks list
+        onRecreate?.();
 
         onClose(); // ✅ Close SavedLooksModal
         setTimeout(() => setSuccessState(null), 1200);
@@ -272,6 +296,23 @@ export default function AllSavedLooksModal({
       console.log('👗 Outfit recreate result:', data);
       console.log('👗 Found', data?.pieces?.length, 'outfit pieces');
 
+      // Save recreated look to database
+      if (userId) {
+        try {
+          await fetch(`${API_BASE_URL}/users/${userId}/recreated-looks`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              source_image_url: look.image_url,
+              generated_outfit: data,
+              tags: look.tags || [],
+            }),
+          });
+        } catch (saveErr) {
+          console.error('Failed to save recreated look:', saveErr);
+        }
+      }
+
       setSuccessState('recreate');
 
       // Open visual recreate modal with categorized results
@@ -283,6 +324,9 @@ export default function AllSavedLooksModal({
       } else {
         console.warn('⚠️ No visual recreate modal handler provided.');
       }
+
+      // Refresh recreated looks list
+      onRecreate?.();
 
       onClose();
       setTimeout(() => setSuccessState(null), 1200);
@@ -863,6 +907,7 @@ export default function AllSavedLooksModal({
       <SaveLookModal
         visible={saveModalVisible}
         onClose={() => setSaveModalVisible(false)}
+        onSave={onSaveLook}
       />
     </Modal>
   );

@@ -995,7 +995,7 @@ export const createGlobalStyles = (theme: Theme) =>
     image8: {
       // width: image4Size,
       // height: image4Size,
-      backgroundColor: theme.colors.surface,
+      // backgroundColor: theme.colors.surface,
       // borderRadius: tokens.borderRadius.lg,
       borderRadius: tokens.borderRadius.sm,
       borderWidth: tokens.borderWidth.hairline,

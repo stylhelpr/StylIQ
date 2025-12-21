@@ -22,6 +22,7 @@ import {uploadImageToGCS} from '../../api/uploadImageToGCS';
 type Props = {
   visible: boolean;
   onClose: () => void;
+  onSave?: () => void;
 };
 
 const h = (type: string) =>
@@ -30,7 +31,7 @@ const h = (type: string) =>
     ignoreAndroidSystemSettings: false,
   });
 
-export default function SaveLookModal({visible, onClose}: Props) {
+export default function SaveLookModal({visible, onClose, onSave}: Props) {
   const [url, setUrl] = useState('');
   const [name, setName] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
@@ -107,6 +108,7 @@ export default function SaveLookModal({visible, onClose}: Props) {
       setUrl('');
       setName('');
       setPreview(null);
+      onSave?.();
       onClose();
     } catch (err) {
       console.error('❌ Failed to save look:', err);

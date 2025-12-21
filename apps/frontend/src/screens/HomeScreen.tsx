@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useMemo, useRef} from 'react';
+import React, {useEffect, useState, useMemo, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -255,7 +255,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       <View
         style={{
           overflow: 'hidden',
-          marginBottom: open ? 20 : 20,
+          marginBottom: open ? 0 : 20,
         }}>
         {title && (
           <TouchableOpacity
@@ -377,6 +377,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [savedOpen, setSavedOpen] = useState(true);
   const [createdOpen, setCreatedOpen] = useState(true);
   const [shoppedOpen, setShoppedOpen] = useState(true);
+  const [sharedOpen, setSharedOpen] = useState(true);
 
   // Fashion hero carousel state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -521,6 +522,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [loadingVibes, setLoadingVibes] = useState(false);
   const [recentCreations, setRecentCreations] = useState<any[]>([]);
   const [loadingCreations, setLoadingCreations] = useState(false);
+  const [sharedLooks, setSharedLooks] = useState<any[]>([]);
+  const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Share composite state for Recent Created/Shopped Looks
   const shareVibeRef = useRef<ViewShot>(null);
@@ -629,29 +634,47 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     loadRecentVibes();
   }, [userId]);
 
-  useEffect(() => {
-    const loadRecentCreations = async () => {
-      if (!userId) return;
-      setLoadingCreations(true);
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/users/${userId}/recreated-looks`,
-        );
-        const json = await res.json();
+  const loadRecentCreations = useCallback(async () => {
+    if (!userId) return;
+    setLoadingCreations(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/users/${userId}/recreated-looks`,
+      );
+      const json = await res.json();
 
-        if (json?.data?.length) {
-          setRecentCreations(json.data);
-        } else if (Array.isArray(json)) {
-          setRecentCreations(json);
-        }
-      } catch (err) {
-        // RecentCreations load failed silently
-      } finally {
-        setLoadingCreations(false);
+      if (json?.data?.length) {
+        setRecentCreations(json.data);
+      } else if (Array.isArray(json)) {
+        setRecentCreations(json);
       }
-    };
-    loadRecentCreations();
+    } catch (err) {
+      // RecentCreations load failed silently
+    } finally {
+      setLoadingCreations(false);
+    }
   }, [userId]);
+  useEffect(() => {
+    loadRecentCreations();
+  }, [loadRecentCreations]);
+
+  // Fetch shared looks (user's community posts)
+  const fetchSharedLooks = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/community/posts/by-user/${userId}?limit=20`,
+      );
+      if (!res.ok) throw new Error('Failed to fetch shared looks');
+      const data = await res.json();
+      setSharedLooks(data);
+    } catch {
+      setSharedLooks([]);
+    }
+  }, [userId]);
+  useEffect(() => {
+    fetchSharedLooks();
+  }, [fetchSharedLooks]);
 
   useEffect(() => {
     const restoreMapState = async () => {
@@ -697,20 +720,20 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   }, []);
 
   const [savedLooks, setSavedLooks] = useState<any[]>([]);
-  useEffect(() => {
+  const fetchSavedLooks = useCallback(async () => {
     if (!userId) return;
-    const fetchSavedLooks = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/saved-looks/${userId}`);
-        if (!res.ok) throw new Error('Failed to fetch saved looks');
-        const data = await res.json();
-        setSavedLooks(data);
-      } catch (err) {
-        console.error('❌ Failed to fetch saved looks:', err);
-      }
-    };
-    fetchSavedLooks();
+    try {
+      const res = await fetch(`${API_BASE_URL}/saved-looks/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch saved looks');
+      const data = await res.json();
+      setSavedLooks(data);
+    } catch (err) {
+      console.error('❌ Failed to fetch saved looks:', err);
+    }
   }, [userId]);
+  useEffect(() => {
+    fetchSavedLooks();
+  }, [fetchSavedLooks]);
 
   const openPersonalizedShopModal = (data: PersonalizedResult) => {
     if (!data) return;
@@ -950,11 +973,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             tags,
           };
 
-          await fetch(`${API_BASE_URL}/users/${userId}/recreated-looks`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload),
-          });
+          const saveRes = await fetch(
+            `${API_BASE_URL}/users/${userId}/recreated-looks`,
+            {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(payload),
+            },
+          );
+
+          // Refresh the recreated looks list after save completes
+          if (saveRes.ok) {
+            await loadRecentCreations();
+          }
         } catch (err) {
           // RecreateSave failed silently
         }
@@ -1970,9 +2001,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               </View>
 
               {/* INSPIRED LOOKS SECTION */}
-              {(savedLooks.length > 0 || true) && ( // ✅ always show the section
+              {(savedLooks.length > 0 || true) && (
                 <CollapsibleSection
-                  // title="Your Saved Looks"
                   open={savedOpen}
                   onToggle={async newState => {
                     setSavedOpen(newState);
@@ -1981,7 +2011,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       JSON.stringify(newState),
                     );
                   }}>
-                  <View style={[globalStyles.sectionScroll2]}>
+                  <View
+                    style={[globalStyles.sectionScroll2, {marginBottom: 16}]}>
                     {savedLooks.length === 0 ? (
                       <View
                         style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
@@ -2064,7 +2095,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </CollapsibleSection>
               )}
 
-              {/* RECENTLY CREATED VIBE SECTION*/}
+              {/* RECREATED CREATED VIBE SECTION*/}
               {loadingCreations && (
                 <Animatable.View
                   animation="fadeIn"
@@ -2197,8 +2228,142 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </CollapsibleSection>
               )}
 
+              {/* SHARED LOOKS SECTION */}
+              <CollapsibleSection
+                title="Shared Looks"
+                open={sharedOpen}
+                onToggle={async newState => {
+                  setSharedOpen(newState);
+                  await AsyncStorage.setItem(
+                    'sharedLooksOpen',
+                    JSON.stringify(newState),
+                  );
+                }}>
+                <View style={globalStyles.sectionScroll}>
+                  {sharedLooks.length === 0 ? (
+                    <View
+                      style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
+                      <Text style={globalStyles.missingDataMessage1}>
+                        No shared looks.
+                      </Text>
+                      <TooltipBubble
+                        message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
+                        position="top"
+                      />
+                    </View>
+                  ) : (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{paddingRight: 8}}>
+                      {sharedLooks
+                        .filter(look => !hiddenSharedLooks.has(look.id))
+                        .map((look, index) => (
+                          <View key={look.id} style={[globalStyles.outfitCard]}>
+                            <Pressable
+                              onPress={() => {
+                                // Could navigate to look detail or show preview
+                              }}
+                              style={{alignItems: 'center'}}>
+                              {/* Card - single image or 2x2 grid */}
+                              <View>
+                                {look.image_url ? (
+                                  // Single image post
+                                  <Image
+                                    source={{uri: look.image_url}}
+                                    style={[globalStyles.image8]}
+                                    resizeMode="cover"
+                                  />
+                                ) : (
+                                  // 2x2 Grid for multi-item posts
+                                  <>
+                                    <View
+                                      style={{
+                                        flexDirection: 'row',
+                                        height: 65,
+                                      }}>
+                                      <Image
+                                        source={{uri: look.top_image}}
+                                        style={{width: 65, height: 65}}
+                                        resizeMode="cover"
+                                      />
+                                      <Image
+                                        source={{uri: look.bottom_image}}
+                                        style={{width: 65, height: 65}}
+                                        resizeMode="cover"
+                                      />
+                                    </View>
+                                    <View
+                                      style={{
+                                        flexDirection: 'row',
+                                        height: 65,
+                                      }}>
+                                      <Image
+                                        source={{uri: look.shoes_image}}
+                                        style={{width: 65, height: 65}}
+                                        resizeMode="cover"
+                                      />
+                                      <View
+                                        style={{
+                                          width: 65,
+                                          height: 65,
+                                          backgroundColor: '#000',
+                                          justifyContent: 'center',
+                                          alignItems: 'center',
+                                        }}>
+                                        <Text
+                                          style={{
+                                            color: '#fff',
+                                            fontSize: 8,
+                                            fontWeight: '800',
+                                            letterSpacing: 1,
+                                          }}>
+                                          StylHelpr
+                                        </Text>
+                                      </View>
+                                    </View>
+                                  </>
+                                )}
+                                {/* Hide button */}
+                                <Pressable
+                                  onPress={() => {
+                                    setHiddenSharedLooks(prev =>
+                                      new Set(prev).add(look.id),
+                                    );
+                                  }}
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: 4,
+                                    right: 4,
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                  }}>
+                                  <Icon name="close" size={14} color="#fff" />
+                                </Pressable>
+                              </View>
+                              {/* Look name and likes */}
+                              <Text
+                                style={[
+                                  globalStyles.cardSubLabel,
+                                  {textAlign: 'center', marginTop: 4},
+                                ]}
+                                numberOfLines={1}>
+                                {look.description || 'Shared Look'}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ))}
+                    </ScrollView>
+                  )}
+                </View>
+              </CollapsibleSection>
+
               {/* RECENTLY SHOPPED VIBES SECTION */}
-              {loadingVibes && (
+              {/* {loadingVibes && (
                 <Animatable.View
                   animation="fadeIn"
                   duration={400}
@@ -2211,7 +2376,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     Loading recent vibes...
                   </Text>
                 </Animatable.View>
-              )}
+              )} */}
 
               {/* {!loadingVibes && (
                 <CollapsibleSection
@@ -2311,6 +2476,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             shopResults={shopResults}
             openPersonalizedShopModal={openPersonalizedShopModal}
             openVisualRecreateModal={openVisualRecreateModal}
+            onSaveLook={fetchSavedLooks}
+            onRecreate={loadRecentCreations}
           />
           <ShopModal
             visible={shopVisible}
