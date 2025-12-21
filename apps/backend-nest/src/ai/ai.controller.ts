@@ -215,8 +215,10 @@ export class AiController {
       console.log('👗 [recreate-outfit] Step 2: Searching for each piece...');
       const results = await Promise.all(
         outfitPieces.map(async (piece: any) => {
-          const searchQuery = `${piece.color || ''} ${piece.material || ''} ${piece.item} ${piece.style || ''}`.trim();
-          console.log(`👗 [recreate-outfit] Searching for: "${searchQuery}"`);
+          // Build search query - prioritize brand/logo if available
+          const brandPart = piece.brand ? `${piece.brand} ` : '';
+          const searchQuery = `${brandPart}${piece.color || ''} ${piece.item} ${piece.style || ''}`.trim();
+          console.log(`👗 [recreate-outfit] Searching for: "${searchQuery}" (brand: ${piece.brand || 'none'})`);
 
           try {
             const products = await this.searchGoogleShopping(searchQuery, gender);
@@ -226,6 +228,7 @@ export class AiController {
               color: piece.color,
               material: piece.material,
               style: piece.style,
+              brand: piece.brand,
               searchQuery,
               products: products.slice(0, 6), // Top 6 matches per piece
             };
@@ -235,6 +238,7 @@ export class AiController {
               category: piece.category,
               item: piece.item,
               color: piece.color,
+              brand: piece.brand,
               products: [],
             };
           }

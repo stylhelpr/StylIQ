@@ -372,6 +372,7 @@ export class AiService {
       color: string;
       material?: string;
       style?: string;
+      brand?: string;
     }>
   > {
     console.log('👗 [AI] analyzeOutfitPieces() called with', imageUrl);
@@ -385,30 +386,41 @@ export class AiService {
         messages: [
           {
             role: 'system',
-            content: `You are a professional fashion analyst. Analyze the outfit in the image and identify EVERY SINGLE clothing piece and accessory visible. You MUST identify multiple pieces - look carefully at the entire outfit from head to toe.
+            content: `You are an expert fashion analyst. Analyze the outfit in the image and identify EVERY clothing piece and accessory visible. Look carefully from head to toe.
 
 For EACH piece, extract:
-- category: The type of item (Top, Bottom, Outerwear, Shoes, Accessories, Hat, Bag, Jewelry)
-- item: Specific item name (e.g., "crewneck sweatshirt", "straight-leg jeans", "sneakers")
-- color: Primary color (e.g., "crimson red", "navy blue", "cream white")
-- material: Fabric/material if identifiable (e.g., "cotton", "denim", "leather", "wool")
-- style: Style descriptors (e.g., "oversized", "vintage", "athletic", "distressed")
+- category: Item type (Top, Bottom, Outerwear, Shoes, Accessories, Hat, Bag, Jewelry, Eyewear)
+- item: Specific item name (e.g., "wrap dress", "cargo pants", "chelsea boots", "crossbody bag")
+- color: Primary color with descriptors (e.g., "forest green", "blush pink", "charcoal gray", "leopard print")
+- material: Fabric if identifiable (e.g., "silk", "denim", "suede", "cashmere", "tweed", "linen")
+- style: Style descriptors (e.g., "bohemian", "minimalist", "streetwear", "preppy", "Y2K", "cottagecore", "quiet luxury")
+- brand: Any identifiable brand, designer, logo, or distinguishing text/graphics. Look for:
+  * Fashion brands (Zara, H&M, Gucci, Prada, Lululemon, Aritzia, Free People)
+  * Designer labels (Chanel, Louis Vuitton, Dior, Balenciaga, Hermès)
+  * Athletic brands (Nike, Adidas, New Balance, Lululemon, Alo Yoga)
+  * Streetwear (Supreme, Stüssy, Off-White, Palace, BAPE)
+  * Workwear/outdoor (Carhartt, Patagonia, The North Face, Arc'teryx)
+  * Sports teams, universities, band tees, graphic prints
+  * Distinctive patterns (Burberry plaid, Louis Vuitton monogram, Gucci GG)
+  * If no brand visible, use null
 
-IMPORTANT: You MUST return a JSON object with a "pieces" key containing an ARRAY of ALL visible items. Look for:
-- Tops (shirts, sweaters, t-shirts, blouses)
-- Bottoms (pants, jeans, shorts, skirts)
-- Shoes (sneakers, boots, heels, sandals)
-- Outerwear (jackets, coats, blazers)
-- Accessories (watches, belts, bags, jewelry, hats, glasses)
+IMPORTANT: Return a JSON object with "pieces" array containing ALL visible items:
+- Tops (blouses, tees, tanks, sweaters, bodysuits, crop tops)
+- Bottoms (jeans, trousers, skirts, shorts, leggings)
+- Dresses/Jumpsuits (if applicable, categorize as "Top" or separate category)
+- Shoes (heels, flats, boots, sneakers, sandals, loafers)
+- Outerwear (blazers, jackets, coats, vests, cardigans)
+- Accessories (bags, belts, jewelry, scarves, hats, sunglasses, watches)
 
 ${genderContext}
 
 Return format:
 {
   "pieces": [
-    {"category": "Top", "item": "graphic sweatshirt", "color": "blue", "material": "cotton fleece", "style": "collegiate"},
-    {"category": "Bottom", "item": "relaxed jeans", "color": "medium wash blue", "material": "denim", "style": "vintage"},
-    {"category": "Shoes", "item": "low-top sneakers", "color": "white", "material": "leather", "style": "classic"}
+    {"category": "Top", "item": "silk blouse", "color": "ivory", "material": "silk", "style": "minimalist", "brand": null},
+    {"category": "Bottom", "item": "wide-leg trousers", "color": "black", "material": "wool blend", "style": "tailored", "brand": "Aritzia"},
+    {"category": "Shoes", "item": "pointed-toe mules", "color": "tan", "material": "leather", "style": "quiet luxury", "brand": null},
+    {"category": "Bag", "item": "structured tote", "color": "cognac", "material": "leather", "style": "classic", "brand": "Madewell"}
   ]
 }`,
           },
@@ -417,7 +429,7 @@ Return format:
             content: [
               {
                 type: 'text',
-                text: 'Analyze this outfit image. List EVERY piece of clothing and accessory visible - from the top (hat, sunglasses) to bottom (shoes). Include the shirt/top, pants/bottoms, shoes, and any accessories. Return as a JSON object with a "pieces" array.',
+                text: 'Analyze this outfit image completely. Identify EVERY piece from head to toe: tops, bottoms, shoes, outerwear, bags, jewelry, hats, sunglasses, belts. For each piece, note the specific item type, exact color, material/fabric, style aesthetic, and any visible brand/logo/designer/pattern. Be specific and detailed. Return as a JSON object with a "pieces" array.',
               },
               { type: 'image_url', image_url: { url: imageUrl } },
             ],

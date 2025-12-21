@@ -1296,7 +1296,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // 👇 NEW: go to the LAST CARD (GetStarted)
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 16,
+          index: 21,
           animated: true,
         });
       });
@@ -1306,7 +1306,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // still go to last card even if the request fails
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 16,
+          index: 21,
           animated: true,
         });
       });
