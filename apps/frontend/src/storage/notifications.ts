@@ -7,7 +7,7 @@ export type AppNotification = {
   message: string;
   timestamp: string; // ISO
   read?: boolean;
-  category?: 'news' | 'outfit' | 'weather' | 'care' | 'other';
+  category?: 'news' | 'outfit' | 'weather' | 'care' | 'message' | 'other';
   deeplink?: string; // e.g. myapp://news/123
   data?: Record<string, string>;
 };

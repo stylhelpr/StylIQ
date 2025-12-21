@@ -515,7 +515,16 @@ export default function ChatScreen({navigate, route}: Props) {
           />
         </Pressable>
 
-        <Pressable style={styles.headerInfo} onPress={() => h('selection')}>
+        <Pressable
+          style={styles.headerInfo}
+          onPress={() => {
+            h('selection');
+            navigate('UserProfileScreen', {
+              userId: recipientId,
+              userName: recipientName,
+              userAvatar: recipientAvatar,
+            });
+          }}>
           <Image source={{uri: recipientAvatar}} style={styles.headerAvatar} />
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerName}>{recipientName}</Text>

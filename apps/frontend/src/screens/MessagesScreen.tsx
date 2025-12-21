@@ -96,14 +96,23 @@ export default function MessagesScreen({navigate}: Props) {
           {backgroundColor: hasUnread ? theme.colors.surface : 'transparent'},
         ]}
         onPress={() => openChat(item)}>
-        {/* Avatar */}
-        {hasRealAvatar ? (
-          <Image source={{uri: item.other_user_avatar}} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.initialsAvatar]}>
-            <Text style={styles.initialsText}>{initials}</Text>
-          </View>
-        )}
+        {/* Avatar - tapping navigates to profile */}
+        <Pressable
+          onPress={() => {
+            navigate('UserProfileScreen', {
+              userId: item.other_user_id,
+              userName: item.other_user_name,
+              userAvatar: item.other_user_avatar,
+            });
+          }}>
+          {hasRealAvatar ? (
+            <Image source={{uri: item.other_user_avatar}} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.initialsAvatar]}>
+              <Text style={styles.initialsText}>{initials}</Text>
+            </View>
+          )}
+        </Pressable>
 
         {/* Content */}
         <View style={styles.conversationContent}>

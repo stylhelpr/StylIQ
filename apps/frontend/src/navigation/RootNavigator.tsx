@@ -59,6 +59,7 @@ import ImageCarouselScreen from '../screens/ImageCarousel';
 import CommunityShowcaseScreen from '../screens/CommunityShowcaseScreen';
 import ChatScreen from '../screens/ChatScreen';
 import MessagesScreen from '../screens/MessagesScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 import MeasurementAutoScreen from '../screens/MeasurementAutoScreen';
 import {MeasurementLiveScreen} from '../screens/MeasurementLiveScreen';
 import MeasurementFrontScreen from '../screens/MeasurementFrontScreen';
@@ -163,7 +164,8 @@ type Screen =
   | 'MeasurementAutoScreen'
   | 'GoldDataViewer'
   | 'ChatScreen'
-  | 'MessagesScreen';
+  | 'MessagesScreen'
+  | 'UserProfileScreen';
 
 const RootNavigator = ({
   registerNavigate,
@@ -613,6 +615,8 @@ const RootNavigator = ({
         return <ChatScreen navigate={navigate} route={screenParams} />;
       case 'MessagesScreen':
         return <MessagesScreen navigate={navigate as any} />;
+      case 'UserProfileScreen':
+        return <UserProfileScreen navigate={navigate as any} route={screenParams} goBack={goBack} />;
       case 'PersonalInformation':
         return <PersonalInformationScreen navigate={navigate} />;
       case 'ItemDetail':

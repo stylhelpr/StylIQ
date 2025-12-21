@@ -87,30 +87,27 @@ const UserAvatar = ({
   userName,
   size,
   style,
+  onPress,
 }: {
   avatarUrl: string | undefined | null;
   userName: string;
   size: number;
   style?: any;
+  onPress?: () => void;
 }) => {
-  if (isRealAvatar(avatarUrl)) {
-    return (
-      <Image
-        source={{uri: avatarUrl!}}
-        style={[
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-          },
-          style,
-        ]}
-      />
-    );
-  }
-
-  // Show black circle with initials
-  return (
+  const content = isRealAvatar(avatarUrl) ? (
+    <Image
+      source={{uri: avatarUrl!}}
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+        },
+        style,
+      ]}
+    />
+  ) : (
     <View
       style={[
         {
@@ -133,6 +130,12 @@ const UserAvatar = ({
       </Text>
     </View>
   );
+
+  if (onPress) {
+    return <Pressable onPress={onPress}>{content}</Pressable>;
+  }
+
+  return content;
 };
 
 // Demo outfit posts with top/bottom/shoes/accessory images (2x2 grid)
@@ -2327,6 +2330,13 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   userName={post.user_name}
                   size={35}
                   style={styles.cardAvatar}
+                  onPress={() => {
+                    navigate('UserProfileScreen', {
+                      userId: post.user_id,
+                      userName: post.user_name,
+                      userAvatar: post.user_avatar,
+                    });
+                  }}
                 />
                 <Text style={styles.cardUserName} numberOfLines={1}>
                   @{post.user_name}
@@ -2707,6 +2717,13 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     userName={item.user_name}
                     size={32}
                     style={styles.commentAvatar}
+                    onPress={() => {
+                      navigate('UserProfileScreen', {
+                        userId: item.user_id,
+                        userName: item.user_name,
+                        userAvatar: item.user_avatar,
+                      });
+                    }}
                   />
                   <View style={styles.commentContent}>
                     <View style={styles.commentHeader}>
@@ -2846,6 +2863,14 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       userName={activeActionsPost.user_name}
                       size={44}
                       style={styles.actionsAvatar}
+                      onPress={() => {
+                        setActionsModalVisible(false);
+                        navigate('UserProfileScreen', {
+                          userId: activeActionsPost.user_id,
+                          userName: activeActionsPost.user_name,
+                          userAvatar: activeActionsPost.user_avatar,
+                        });
+                      }}
                     />
                     <View style={styles.actionsUserInfo}>
                       <Text style={styles.actionsUserName}>

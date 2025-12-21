@@ -84,7 +84,7 @@ const showInDynamicIsland = async (
 export default function NotificationsScreen({
   navigate,
 }: {
-  navigate: (screen: string) => void;
+  navigate: (screen: string, params?: Record<string, unknown>) => void;
 }) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -423,10 +423,8 @@ export default function NotificationsScreen({
                 <>
                   {(() => {
                     const sources: {[key: string]: AppNotification[]} = {
+                      'Community Messages': [],
                       'Scheduled Outfits': [],
-                      'News Stories': [],
-                      'Weather Alerts': [],
-                      'Care Reminders': [],
                       'Fashion News Stories': [],
                     };
 
@@ -435,45 +433,27 @@ export default function NotificationsScreen({
                       const title = (n.title || '').toLowerCase();
                       const message = (n.message || '').toLowerCase();
 
-                      if (
+                      // Community Messages section for chat messages
+                      if (cat === 'message') {
+                        sources['Community Messages'].push(n);
+                      } else if (
                         cat === 'scheduled_outfit' ||
+                        cat === 'outfit' ||
                         title.includes('outfit') ||
                         message.includes('outfit') ||
                         message.includes('reminder') ||
                         message.includes('planned')
                       ) {
                         sources['Scheduled Outfits'].push(n);
-                      } else if (
-                        cat === 'news' ||
-                        title.includes('news') ||
-                        message.includes('headline') ||
-                        message.includes('story')
-                      ) {
-                        sources['News Stories'].push(n);
-                      } else if (
-                        cat === 'weather' ||
-                        title.includes('weather') ||
-                        message.includes('forecast') ||
-                        message.includes('temperature')
-                      ) {
-                        sources['Weather Alerts'].push(n);
-                      } else if (
-                        cat === 'care' ||
-                        title.includes('care') ||
-                        message.includes('wash') ||
-                        message.includes('laundry')
-                      ) {
-                        sources['Care Reminders'].push(n);
                       } else {
+                        // Everything else goes to Fashion News Stories
                         sources['Fashion News Stories'].push(n);
                       }
                     });
 
                     const order = [
+                      'Community Messages',
                       'Scheduled Outfits',
-                      'News Stories',
-                      'Weather Alerts',
-                      'Care Reminders',
                       'Fashion News Stories',
                     ];
 
@@ -612,6 +592,14 @@ export default function NotificationsScreen({
                                   }
 
                                   switch ((n.category || '').toLowerCase()) {
+                                    case 'message':
+                                      // Navigate to ChatScreen with sender info from notification data
+                                      navigate('ChatScreen', {
+                                        recipientId: n.data?.senderId || '',
+                                        recipientName: n.data?.senderName || 'User',
+                                        recipientAvatar: n.data?.senderAvatar || '',
+                                      });
+                                      return;
                                     case 'news':
                                       navigate('FashionFeedScreen');
                                       return;
