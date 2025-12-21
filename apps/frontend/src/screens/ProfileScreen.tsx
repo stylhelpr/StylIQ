@@ -64,101 +64,8 @@ export default function ProfileScreen({navigate}: Props) {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedLook, setSelectedLook] = useState<any | null>(null);
   const [profilePicture, setProfilePicture] = useState<string>(''); // keep as string only
-
-  // Mock shared looks data (2x2 grid format matching share card output)
-  const sharedLooks = [
-    {
-      id: '1',
-      name: 'Summer Casual',
-      top: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
-      bottom: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400',
-      shoes: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400',
-      likes: 234,
-    },
-    {
-      id: '2',
-      name: 'Office Ready',
-      top: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400',
-      bottom:
-        'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400',
-      shoes: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400',
-      likes: 187,
-    },
-    {
-      id: '3',
-      name: 'Weekend Vibes',
-      top: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400',
-      bottom:
-        'https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?w=400',
-      shoes:
-        'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400',
-      likes: 312,
-    },
-    {
-      id: '4',
-      name: 'Date Night',
-      top: 'https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=400',
-      bottom:
-        'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400',
-      shoes: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400',
-      likes: 456,
-    },
-    {
-      id: '5',
-      name: 'Street Style',
-      top: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400',
-      bottom:
-        'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400',
-      shoes:
-        'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=400',
-      likes: 289,
-    },
-    {
-      id: '6',
-      name: 'Minimalist',
-      top: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400',
-      bottom:
-        'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400',
-      shoes: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=400',
-      likes: 198,
-    },
-    {
-      id: '7',
-      name: 'Bold & Bright',
-      top: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=400',
-      bottom: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=400',
-      shoes:
-        'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400',
-      likes: 367,
-    },
-    {
-      id: '8',
-      name: 'Cozy Layers',
-      top: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400',
-      bottom: 'https://images.unsplash.com/photo-1548883354-94bcfe321cbb?w=400',
-      shoes: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
-      likes: 421,
-    },
-    {
-      id: '9',
-      name: 'Athleisure',
-      top: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400',
-      bottom: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=400',
-      shoes:
-        'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400',
-      likes: 276,
-    },
-    {
-      id: '10',
-      name: 'Classic Elegance',
-      top: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400',
-      bottom:
-        'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400',
-      shoes:
-        'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=400',
-      likes: 534,
-    },
-  ];
+  const [sharedLooks, setSharedLooks] = useState<any[]>([]);
+  const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(new Set());
 
   const HEADER_HEIGHT = 70; // adjust to your actual header height
   const BOTTOM_NAV_HEIGHT = 90; // adjust to your nav height
@@ -210,6 +117,25 @@ export default function ProfileScreen({navigate}: Props) {
       } catch {
       } finally {
         setLoadingSaved(false);
+      }
+    })();
+  }, [userId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Fetch shared looks (user's community posts)
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/community/posts/by-user/${userId}?limit=20`,
+        );
+        if (!res.ok) throw new Error('Failed to fetch shared looks');
+        const data = await res.json();
+        setSharedLooks(data);
+      } catch {
+        setSharedLooks([]);
       }
     })();
   }, [userId]);
@@ -702,7 +628,7 @@ export default function ProfileScreen({navigate}: Props) {
         <Text style={[globalStyles.sectionTitle]}>Shared Looks</Text>
         {sharedLooks.length === 0 ? (
           <View style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-            <Text style={globalStyles.missingDataMessage1}>No saved looks.</Text>
+            <Text style={globalStyles.missingDataMessage1}>No shared looks.</Text>
             <TooltipBubble
               message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
               position="top"
@@ -713,7 +639,9 @@ export default function ProfileScreen({navigate}: Props) {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{paddingRight: 8}}>
-          {sharedLooks.map((look, index) => (
+          {sharedLooks
+            .filter(look => !hiddenSharedLooks.has(look.id))
+            .map((look, index) => (
             <Animatable.View
               key={look.id}
               animation="zoomInUp"
@@ -725,7 +653,7 @@ export default function ProfileScreen({navigate}: Props) {
                   // Could navigate to look detail or show preview
                 }}
                 style={{alignItems: 'center'}}>
-                {/* 2x2 Grid Card matching share output */}
+                {/* Card - single image or 2x2 grid */}
                 <View
                   style={{
                     width: 130,
@@ -734,46 +662,73 @@ export default function ProfileScreen({navigate}: Props) {
                     overflow: 'hidden',
                     backgroundColor: '#000',
                   }}>
-                  {/* Row 1 */}
-                  <View style={{flexDirection: 'row', height: 65}}>
+                  {look.image_url ? (
+                    // Single image post
                     <Image
-                      source={{uri: look.top}}
-                      style={{width: 65, height: 65}}
+                      source={{uri: look.image_url}}
+                      style={{width: 130, height: 130}}
                       resizeMode="cover"
                     />
-                    <Image
-                      source={{uri: look.bottom}}
-                      style={{width: 65, height: 65}}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  {/* Row 2 */}
-                  <View style={{flexDirection: 'row', height: 65}}>
-                    <Image
-                      source={{uri: look.shoes}}
-                      style={{width: 65, height: 65}}
-                      resizeMode="cover"
-                    />
-                    {/* StylHelpr branding cell */}
-                    <View
-                      style={{
-                        width: 65,
-                        height: 65,
-                        backgroundColor: '#000',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}>
-                      <Text
-                        style={{
-                          color: '#fff',
-                          fontSize: 8,
-                          fontWeight: '800',
-                          letterSpacing: 1,
-                        }}>
-                        StylHelpr
-                      </Text>
-                    </View>
-                  </View>
+                  ) : (
+                    // 2x2 Grid for multi-item posts
+                    <>
+                      <View style={{flexDirection: 'row', height: 65}}>
+                        <Image
+                          source={{uri: look.top_image}}
+                          style={{width: 65, height: 65}}
+                          resizeMode="cover"
+                        />
+                        <Image
+                          source={{uri: look.bottom_image}}
+                          style={{width: 65, height: 65}}
+                          resizeMode="cover"
+                        />
+                      </View>
+                      <View style={{flexDirection: 'row', height: 65}}>
+                        <Image
+                          source={{uri: look.shoes_image}}
+                          style={{width: 65, height: 65}}
+                          resizeMode="cover"
+                        />
+                        <View
+                          style={{
+                            width: 65,
+                            height: 65,
+                            backgroundColor: '#000',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                          }}>
+                          <Text
+                            style={{
+                              color: '#fff',
+                              fontSize: 8,
+                              fontWeight: '800',
+                              letterSpacing: 1,
+                            }}>
+                            StylHelpr
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  )}
+                  {/* Hide button */}
+                  <Pressable
+                    onPress={() => {
+                      setHiddenSharedLooks(prev => new Set(prev).add(look.id));
+                    }}
+                    style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      right: 4,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <Icon name="close" size={14} color="#fff" />
+                  </Pressable>
                 </View>
                 {/* Look name and likes */}
                 <Animatable.View
@@ -783,16 +738,8 @@ export default function ProfileScreen({navigate}: Props) {
                   <Text
                     style={[globalStyles.cardSubLabel, {textAlign: 'center'}]}
                     numberOfLines={1}>
-                    {look.name}
+                    {look.description || 'Shared Look'}
                   </Text>
-                  {/* <Text
-                    style={{
-                      fontSize: 11,
-                      color: theme.colors.foreground3,
-                      marginTop: 2,
-                    }}>
-                    {look.likes} likes
-                  </Text> */}
                 </Animatable.View>
               </Pressable>
             </Animatable.View>

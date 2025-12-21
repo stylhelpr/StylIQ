@@ -656,6 +656,22 @@ export class CommunityService {
     return res.rows;
   }
 
+  async getPostsByUser(authorId: string, limit: number = 20, offset: number = 0) {
+    const res = await pool.query(
+      `SELECT
+        cp.*,
+        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar
+      FROM community_posts cp
+      LEFT JOIN users u ON cp.user_id = u.id
+      WHERE cp.user_id = $1
+      ORDER BY cp.created_at DESC
+      LIMIT $2 OFFSET $3`,
+      [authorId, limit, offset],
+    );
+    return res.rows;
+  }
+
   // ==================== BLOCK/MUTE ====================
 
   async blockUser(blockerId: string, blockedId: string) {

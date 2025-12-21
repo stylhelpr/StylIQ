@@ -73,6 +73,15 @@ export class CommunityController {
     return this.service.getSavedPosts(userId, parseInt(limit), parseInt(offset));
   }
 
+  @Get('posts/by-user/:authorId')
+  async getPostsByUser(
+    @Param('authorId') authorId: string,
+    @Query('limit') limit: string = '20',
+    @Query('offset') offset: string = '0',
+  ) {
+    return this.service.getPostsByUser(authorId, parseInt(limit), parseInt(offset));
+  }
+
   @Get('posts/:id')
   async getPost(@Param('id') postId: string, @Query('userId') userId?: string) {
     return this.service.getPostById(postId, userId);
