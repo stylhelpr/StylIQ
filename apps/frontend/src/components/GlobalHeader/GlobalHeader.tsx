@@ -233,7 +233,7 @@ export default function GlobalHeader({
             },
 
             {
-              name: 'shopping-bag',
+              name: 'language',
               action: () => navigate('ShoppingDashboard'),
             },
             {

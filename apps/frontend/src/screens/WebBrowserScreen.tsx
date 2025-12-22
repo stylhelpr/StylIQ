@@ -236,6 +236,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const previousUrlRef = useRef<string>('');
   const lastPageTextRef = useRef<string>('');
 
+  // Debounce navigation state changes to prevent rapid URL toggling
+  const navStateDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastNavUrlRef = useRef<string>('');
+
   // GOLD #7 & #10: Track sizes and colors clicked on current page
   const sizesClickedRef = useRef<{size: string; timestamp: number}[]>([]);
   const colorsClickedRef = useRef<{color: string; timestamp: number}[]>([]);
@@ -2107,25 +2111,40 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             overScrollMode="never" // keeps Android smooth too
             androidLayerType="hardware" // helps performance
             onNavigationStateChange={navState => {
-              // Only update if URL actually changed (ignore www/trailing slash differences)
-              if (
-                currentTab &&
-                navState.url &&
-                !isSameUrl(navState.url, currentTab.url)
-              ) {
-                updateTab(
-                  currentTab.id,
-                  navState.url,
-                  navState.title || currentTab.title,
-                );
-                setInputValue(navState.url);
-                // Track visit history
-                addToHistory(
-                  navState.url,
-                  navState.title || getDomain(navState.url),
-                  getDomain(navState.url),
-                );
+              // Debounce navigation state changes to prevent rapid URL toggling
+              if (!navState.url || !currentTab) return;
+
+              // Skip if same URL (ignore www/trailing slash differences)
+              if (isSameUrl(navState.url, currentTab.url) && isSameUrl(navState.url, lastNavUrlRef.current)) {
+                return;
               }
+
+              // Clear any pending debounce
+              if (navStateDebounceRef.current) {
+                clearTimeout(navStateDebounceRef.current);
+              }
+
+              // Store the latest URL
+              lastNavUrlRef.current = navState.url;
+
+              // Debounce the update - only apply after URL is stable for 300ms
+              navStateDebounceRef.current = setTimeout(() => {
+                // Double-check the URL is still the same after debounce
+                if (navState.url === lastNavUrlRef.current && !isSameUrl(navState.url, currentTab.url)) {
+                  updateTab(
+                    currentTab.id,
+                    navState.url,
+                    navState.title || currentTab.title,
+                  );
+                  setInputValue(navState.url);
+                  // Track visit history
+                  addToHistory(
+                    navState.url,
+                    navState.title || getDomain(navState.url),
+                    getDomain(navState.url),
+                  );
+                }
+              }, 300);
             }}
             onScroll={handleWebViewScroll}
             onLoadEnd={handleWebViewLoadEnd}
