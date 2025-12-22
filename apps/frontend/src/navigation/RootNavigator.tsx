@@ -557,6 +557,7 @@ const RootNavigator = ({
       case 'WebBrowser':
         return (
           <WebBrowserScreen
+            key="webbrowser-screen"
             route={{params: screenParams}}
             navigate={navigate}
           />

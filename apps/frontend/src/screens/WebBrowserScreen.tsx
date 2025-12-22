@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect, useCallback} from 'react';
+import React, {useRef, useState, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -48,15 +48,15 @@ const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
 const TAB_CARD_HEIGHT = TAB_CARD_WIDTH * 1.4;
 
 const SHOPPING_SITES = [
-  {name: 'Google', url: 'https://google.com'},
-  {name: 'Amazon', url: 'https://amazon.com'},
-  {name: 'ASOS', url: 'https://asos.com'},
-  {name: 'H&M', url: 'https://hm.com'},
-  {name: 'Zara', url: 'https://zara.com'},
-  {name: 'Shein', url: 'https://shein.com'},
-  {name: 'SSENSE', url: 'https://ssense.com'},
-  {name: 'Farfetch', url: 'https://farfetch.com'},
-  {name: 'Nordstrom', url: 'https://nordstrom.com'},
+  {name: 'Google', url: 'https://www.google.com'},
+  {name: 'Amazon', url: 'https://www.amazon.com'},
+  {name: 'ASOS', url: 'https://www.asos.com'},
+  {name: 'H&M', url: 'https://www.hm.com'},
+  {name: 'Zara', url: 'https://www.zara.com'},
+  {name: 'Shein', url: 'https://www.shein.com'},
+  {name: 'SSENSE', url: 'https://www.ssense.com'},
+  {name: 'Farfetch', url: 'https://www.farfetch.com'},
+  {name: 'Nordstrom', url: 'https://www.nordstrom.com'},
 ];
 
 type Props = {
@@ -73,7 +73,10 @@ export default function WebBrowserScreen({navigate, route}: Props) {
   const {theme} = useAppTheme();
   const insets = useSafeAreaInsets();
   const userId = useUUID();
-  console.log('WebBrowserScreen mounted, userId:', userId);
+  // Debug: Log only on actual mount, not every render
+  useEffect(() => {
+    console.log('WebBrowserScreen mounted, userId:', userId);
+  }, []);
   const initialUrl = route?.params?.url || '';
   const webRef = useRef<WebView>(null);
   const containerRef = useRef<View>(null);
@@ -199,7 +202,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     }
   }
 
-  const currentTab = tabs.find(t => t.id === currentTabId);
+  // Memoize currentTab to prevent unnecessary recalculations
+  const currentTab = useMemo(
+    () => tabs.find(t => t.id === currentTabId),
+    [tabs, currentTabId]
+  );
   const bookmarked = currentTab ? isBookmarked(currentTab.url) : false;
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
@@ -247,8 +254,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const [showDebugDetail, setShowDebugDetail] = useState(false);
 
   // Initialize with a tab if navigating with URL (wait for hydration)
+  const initialUrlProcessedRef = useRef(false);
   useEffect(() => {
-    if (_hasHydrated && initialUrl) {
+    if (_hasHydrated && initialUrl && !initialUrlProcessedRef.current) {
+      initialUrlProcessedRef.current = true;
       // Check if this URL is already open in a tab
       const existingTab = tabs.find(t => t.url === initialUrl);
       if (existingTab) {
@@ -261,12 +270,17 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     }
   }, [_hasHydrated, initialUrl]);
 
-  // Update input when tab changes
+  // Update input when tab changes (only when switching tabs, not during navigation)
+  const lastTabIdRef = useRef(currentTabId);
   useEffect(() => {
-    if (currentTab && currentTab.url !== inputValue) {
-      setInputValue(currentTab.url);
+    // Only update inputValue when we actually switch to a different tab
+    if (currentTabId !== lastTabIdRef.current) {
+      lastTabIdRef.current = currentTabId;
+      if (currentTab?.url) {
+        setInputValue(currentTab.url);
+      }
     }
-  }, [currentTabId, currentTab?.url]);
+  }, [currentTabId]);
 
   // GOLD #1, #3: Start session on first load (don't end it on unmount)
   useEffect(() => {
@@ -280,9 +294,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   }, []);
 
   // 🛍️ Fetch AI Shopping Suggestions once per app session (or if stale after 24h)
+  const fetchingRef = useRef(false);
   useEffect(() => {
-    if (userId && (!hasAiSuggestionsLoaded || isAiSuggestionsStale())) {
-      fetchShoppingAssistantSuggestions();
+    if (userId && (!hasAiSuggestionsLoaded || isAiSuggestionsStale()) && !fetchingRef.current) {
+      fetchingRef.current = true;
+      fetchShoppingAssistantSuggestions().finally(() => {
+        fetchingRef.current = false;
+      });
     }
   }, [userId, hasAiSuggestionsLoaded]);
 
@@ -302,38 +320,47 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 
   // GOLD #1, #9: Track dwell time and scroll depth when page loads
   useEffect(() => {
-    if (currentTab?.url) {
-      // If we had a previous page, save its metrics before moving to new page
-      if (
-        previousUrlRef.current &&
-        previousUrlRef.current !== currentTab.url &&
-        pageStartTimeRef.current > 0
-      ) {
-        const dwell = Math.round(
-          (Date.now() - pageStartTimeRef.current) / 1000,
-        );
-        useShoppingStore
-          .getState()
-          .updateHistoryMetadata(previousUrlRef.current, {
-            dwellTime: dwell,
-            scrollDepth: maxScrollDepthRef.current,
-          });
-      }
+    // Skip if no URL or if we've already tracked this URL (ignore www/trailing slash differences)
+    if (!currentTab?.url) return;
 
-      // Now start tracking the new page
-      pageStartTimeRef.current = Date.now();
-      maxScrollDepthRef.current = 0; // Reset scroll depth for new page
-      previousUrlRef.current = currentTab.url; // Store for next page transition
-      const source = getDomain(currentTab.url);
-      useShoppingStore
-        .getState()
-        .addToHistory(currentTab.title || 'New Tab', currentTab.url, source);
+    // Normalize for comparison to avoid www/trailing slash loops
+    const normalizeForCompare = (url: string) => {
+      try {
+        const u = new URL(url);
+        return u.origin.replace('://www.', '://') + u.pathname.replace(/\/$/, '') + u.search;
+      } catch { return url; }
+    };
 
-      // Record as a product view interaction
-      useShoppingStore
-        .getState()
-        .recordProductInteraction(currentTab.url, 'view');
+    if (previousUrlRef.current && normalizeForCompare(currentTab.url) === normalizeForCompare(previousUrlRef.current)) {
+      return;
     }
+
+    // If we had a previous page, save its metrics before moving to new page
+    if (previousUrlRef.current && pageStartTimeRef.current > 0) {
+      const dwell = Math.round(
+        (Date.now() - pageStartTimeRef.current) / 1000,
+      );
+      useShoppingStore
+        .getState()
+        .updateHistoryMetadata(previousUrlRef.current, {
+          dwellTime: dwell,
+          scrollDepth: maxScrollDepthRef.current,
+        });
+    }
+
+    // Now start tracking the new page
+    pageStartTimeRef.current = Date.now();
+    maxScrollDepthRef.current = 0; // Reset scroll depth for new page
+    previousUrlRef.current = currentTab.url; // Store for next page transition
+    const source = getDomain(currentTab.url);
+    useShoppingStore
+      .getState()
+      .addToHistory(currentTab.url, currentTab.title || 'New Tab', source);
+
+    // Record as a product view interaction
+    useShoppingStore
+      .getState()
+      .recordProductInteraction(currentTab.url, 'view');
   }, [currentTab?.url]);
 
   // 🔥 VOICE ADD — Update inputValue when speech updates
@@ -350,6 +377,22 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     } catch {
       return url || 'New Tab';
     }
+  };
+
+  // Normalize URLs for comparison (ignore www and trailing slash differences)
+  const normalizeUrlForComparison = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      // Remove www. and trailing slash for comparison
+      return urlObj.origin.replace('://www.', '://') + urlObj.pathname.replace(/\/$/, '') + urlObj.search;
+    } catch {
+      return url;
+    }
+  };
+
+  // Check if two URLs are effectively the same (ignoring www and trailing slash)
+  const isSameUrl = (url1: string, url2: string) => {
+    return normalizeUrlForComparison(url1) === normalizeUrlForComparison(url2);
   };
 
   const extractImageFromPage = (url: string): string => {
@@ -418,10 +461,16 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     Keyboard.dismiss();
   };
 
-  const handleQuickShop = (url: string) => {
-    addTab(url, getDomain(url));
-    setShowTabsView(false);
-  };
+  // Set URL and navigate - same flow as manual typing
+  const handleQuickShop = useCallback((url: string) => {
+    const newUrl = normalizeUrl(url);
+    setInputValue(newUrl);
+    if (currentTab) {
+      updateTab(currentTab.id, newUrl, getDomain(url));
+    } else {
+      addTab(newUrl, getDomain(url));
+    }
+  }, [currentTab, updateTab, addTab]);
 
   // Autocomplete suggestions from history
   const autocompleteSuggestions = React.useMemo(() => {
@@ -1914,20 +1963,18 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     shouldAutoSubmitVoice.current = true;
   };
 
-  // Auto-submit when recording stops after mic release
+  // Auto-submit when recording stops after mic release (voice input only)
   useEffect(() => {
     // Detect transition from recording to not recording
     if (wasRecording.current && !isRecording && shouldAutoSubmitVoice.current) {
       shouldAutoSubmitVoice.current = false;
-      // Delay to ensure inputValue is updated from speech
+      // Delay to ensure inputValue is updated from speech, then submit
       setTimeout(() => {
-        if (inputValue && inputValue.trim()) {
-          handleSubmit();
-        }
+        handleSubmit();
       }, 400);
     }
     wasRecording.current = isRecording;
-  }, [isRecording, inputValue]);
+  }, [isRecording]); // Only trigger on recording state change, not inputValue
 
   // Calculate address bar header height for content padding (like HomeScreen's HEADER_HEIGHT)
   const ADDRESS_BAR_HEIGHT = 52; // urlBar height (40) + paddingBottom (12)
@@ -2022,7 +2069,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             overScrollMode="never" // keeps Android smooth too
             androidLayerType="hardware" // helps performance
             onNavigationStateChange={navState => {
-              if (currentTab && navState.url) {
+              // Only update if URL actually changed (ignore www/trailing slash differences)
+              if (currentTab && navState.url && !isSameUrl(navState.url, currentTab.url)) {
                 updateTab(
                   currentTab.id,
                   navState.url,
