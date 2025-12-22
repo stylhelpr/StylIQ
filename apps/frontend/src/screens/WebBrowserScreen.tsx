@@ -205,12 +205,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   // Memoize currentTab to prevent unnecessary recalculations
   const currentTab = useMemo(
     () => tabs.find(t => t.id === currentTabId),
-    [tabs, currentTabId]
+    [tabs, currentTabId],
   );
   const bookmarked = currentTab ? isBookmarked(currentTab.url) : false;
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showCollectionPicker, setShowCollectionPicker] = useState(false);
   const [showBookmarksModal, setShowBookmarksModal] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [activeBookmarksTab, setActiveBookmarksTab] = useState<
     'bookmarks' | 'history'
   >('bookmarks');
@@ -296,7 +297,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   // 🛍️ Fetch AI Shopping Suggestions once per app session (or if stale after 24h)
   const fetchingRef = useRef(false);
   useEffect(() => {
-    if (userId && (!hasAiSuggestionsLoaded || isAiSuggestionsStale()) && !fetchingRef.current) {
+    if (
+      userId &&
+      (!hasAiSuggestionsLoaded || isAiSuggestionsStale()) &&
+      !fetchingRef.current
+    ) {
       fetchingRef.current = true;
       fetchShoppingAssistantSuggestions().finally(() => {
         fetchingRef.current = false;
@@ -327,19 +332,27 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     const normalizeForCompare = (url: string) => {
       try {
         const u = new URL(url);
-        return u.origin.replace('://www.', '://') + u.pathname.replace(/\/$/, '') + u.search;
-      } catch { return url; }
+        return (
+          u.origin.replace('://www.', '://') +
+          u.pathname.replace(/\/$/, '') +
+          u.search
+        );
+      } catch {
+        return url;
+      }
     };
 
-    if (previousUrlRef.current && normalizeForCompare(currentTab.url) === normalizeForCompare(previousUrlRef.current)) {
+    if (
+      previousUrlRef.current &&
+      normalizeForCompare(currentTab.url) ===
+        normalizeForCompare(previousUrlRef.current)
+    ) {
       return;
     }
 
     // If we had a previous page, save its metrics before moving to new page
     if (previousUrlRef.current && pageStartTimeRef.current > 0) {
-      const dwell = Math.round(
-        (Date.now() - pageStartTimeRef.current) / 1000,
-      );
+      const dwell = Math.round((Date.now() - pageStartTimeRef.current) / 1000);
       useShoppingStore
         .getState()
         .updateHistoryMetadata(previousUrlRef.current, {
@@ -384,7 +397,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     try {
       const urlObj = new URL(url);
       // Remove www. and trailing slash for comparison
-      return urlObj.origin.replace('://www.', '://') + urlObj.pathname.replace(/\/$/, '') + urlObj.search;
+      return (
+        urlObj.origin.replace('://www.', '://') +
+        urlObj.pathname.replace(/\/$/, '') +
+        urlObj.search
+      );
     } catch {
       return url;
     }
@@ -462,15 +479,18 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   };
 
   // Set URL and navigate - same flow as manual typing
-  const handleQuickShop = useCallback((url: string) => {
-    const newUrl = normalizeUrl(url);
-    setInputValue(newUrl);
-    if (currentTab) {
-      updateTab(currentTab.id, newUrl, getDomain(url));
-    } else {
-      addTab(newUrl, getDomain(url));
-    }
-  }, [currentTab, updateTab, addTab]);
+  const handleQuickShop = useCallback(
+    (url: string) => {
+      const newUrl = normalizeUrl(url);
+      setInputValue(newUrl);
+      if (currentTab) {
+        updateTab(currentTab.id, newUrl, getDomain(url));
+      } else {
+        addTab(newUrl, getDomain(url));
+      }
+    },
+    [currentTab, updateTab, addTab],
+  );
 
   // Autocomplete suggestions from history
   const autocompleteSuggestions = React.useMemo(() => {
@@ -682,9 +702,27 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         }`,
       });
       setShowSaveMenu(false);
+      setShowShareMenu(false);
     } catch (error) {
       console.error('Error sharing:', error);
     }
+  };
+
+  const handleShareToNotes = () => {
+    if (!currentTab || !currentTab.url) return;
+    triggerHaptic('impactLight');
+    setShowShareMenu(false);
+    navigate('SaveNote', {
+      url: currentTab.url,
+      title: currentTab.title || getDomain(currentTab.url),
+      content: '',
+    });
+  };
+
+  const handleShareButtonPress = () => {
+    if (!currentTab || !currentTab.url) return;
+    triggerHaptic('impactLight');
+    setShowShareMenu(true);
   };
 
   const handleOpenBookmarks = () => {
@@ -2070,7 +2108,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             androidLayerType="hardware" // helps performance
             onNavigationStateChange={navState => {
               // Only update if URL actually changed (ignore www/trailing slash differences)
-              if (currentTab && navState.url && !isSameUrl(navState.url, currentTab.url)) {
+              if (
+                currentTab &&
+                navState.url &&
+                !isSameUrl(navState.url, currentTab.url)
+              ) {
                 updateTab(
                   currentTab.id,
                   navState.url,
@@ -2218,7 +2260,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   padding: moderateScale(tokens.spacing.xxs),
                   marginLeft: moderateScale(tokens.spacing.xsm),
                 }}>
-                <Icon name="home" size={28} color={theme.colors.foreground} />
+                <Icon name="home" size={26} color={theme.colors.button1} />
               </AppleTouchFeedback>
               <TouchableOpacity
                 style={styles.bottomNavItem}
@@ -2238,6 +2280,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={theme.colors.buttonText1}
                 />
               </TouchableOpacity>
+              {/* Bookmark button - commented out
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={handleAddToBookmarks}>
@@ -2247,6 +2290,16 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={
                     bookmarked ? theme.colors.button1 : theme.colors.buttonText1
                   }
+                />
+              </TouchableOpacity>
+              */}
+              <TouchableOpacity
+                style={styles.bottomNavItem}
+                onPress={handleShareButtonPress}>
+                <MaterialIcons
+                  name="ios-share"
+                  size={24}
+                  color={theme.colors.buttonText1}
                 />
               </TouchableOpacity>
               <TouchableOpacity
@@ -2286,6 +2339,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={theme.colors.buttonText1}
                 />
               </TouchableOpacity>
+              {/* Bookmark button - commented out
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={handleAddToBookmarks}>
@@ -2295,6 +2349,16 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={
                     bookmarked ? theme.colors.button1 : theme.colors.buttonText1
                   }
+                />
+              </TouchableOpacity>
+              */}
+              <TouchableOpacity
+                style={styles.bottomNavItem}
+                onPress={handleShareButtonPress}>
+                <MaterialIcons
+                  name="ios-share"
+                  size={24}
+                  color={theme.colors.buttonText1}
                 />
               </TouchableOpacity>
               <TouchableOpacity
@@ -2489,6 +2553,54 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           </Animated.View>
         </TouchableOpacity>
       )}
+
+      {/* Share Menu Modal */}
+      <Modal
+        visible={showShareMenu}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowShareMenu(false)}>
+        <TouchableOpacity
+          style={styles.saveMenuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowShareMenu(false)}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+            style={styles.saveMenuContent}>
+            <View style={styles.saveMenuHandle} />
+            <Text style={styles.saveMenuTitle}>Share</Text>
+            {/* Save to My Notes */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={handleShareToNotes}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons name="note-add" size={22} color="#10b981" />
+              </View>
+              <Text style={styles.saveMenuItemText}>Save to My Notes</Text>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={16}
+                color={theme.colors.foreground3}
+                style={styles.saveMenuItemCheck}
+              />
+            </TouchableOpacity>
+            {/* Share via iOS */}
+            <TouchableOpacity style={styles.saveMenuItem} onPress={handleShare}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons name="ios-share" size={22} color="#3b82f6" />
+              </View>
+              <Text style={styles.saveMenuItemText}>Share via...</Text>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={16}
+                color={theme.colors.foreground3}
+                style={styles.saveMenuItemCheck}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Save Menu Modal */}
       <Modal

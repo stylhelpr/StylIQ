@@ -691,7 +691,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   delay={600 + idx * 100}>
                   <AppleTouchFeedback
                     onPress={() =>
-                      navigate?.('EnhancedWebBrowser', {url: visit.url})
+                      navigate?.('WebBrowser', {url: visit.url})
                     }
                     style={styles.recentItem}>
                     <View style={styles.recentText}>

@@ -136,9 +136,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
 
   const openUrl = () => {
     if (url) {
-      Linking.openURL(url).catch(() => {
-        Alert.alert('Error', 'Could not open URL');
-      });
+      navigate('WebBrowser', {url});
     }
   };
 
