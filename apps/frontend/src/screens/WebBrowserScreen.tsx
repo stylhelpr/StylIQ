@@ -1902,11 +1902,32 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     startListening();
   };
 
+  // Ref to track if we should auto-submit after voice input
+  const shouldAutoSubmitVoice = useRef(false);
+  const wasRecording = useRef(false);
+
   const handleMicPressOut = () => {
     setIsHoldingMic(false);
     stopListening();
     ReactNativeHapticFeedback.trigger('selection');
+    // Flag to auto-submit after voice input ends (WebBrowser address bar only)
+    shouldAutoSubmitVoice.current = true;
   };
+
+  // Auto-submit when recording stops after mic release
+  useEffect(() => {
+    // Detect transition from recording to not recording
+    if (wasRecording.current && !isRecording && shouldAutoSubmitVoice.current) {
+      shouldAutoSubmitVoice.current = false;
+      // Delay to ensure inputValue is updated from speech
+      setTimeout(() => {
+        if (inputValue && inputValue.trim()) {
+          handleSubmit();
+        }
+      }, 400);
+    }
+    wasRecording.current = isRecording;
+  }, [isRecording, inputValue]);
 
   // Calculate address bar header height for content padding (like HomeScreen's HEADER_HEIGHT)
   const ADDRESS_BAR_HEIGHT = 52; // urlBar height (40) + paddingBottom (12)
