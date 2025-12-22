@@ -1152,8 +1152,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       backgroundColor: theme.colors.background,
     },
     header: {
-      paddingTop: insets.top + 55,
-      backgroundColor: theme.colors.surface,
+      position: 'absolute',
+      top: insets.top + 55,
+      left: 0,
+      right: 0,
+      zIndex: 999,
       paddingHorizontal: 12,
       paddingBottom: 12,
     },
@@ -1221,10 +1224,6 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     autocompleteUrl: {
       fontSize: 12,
       color: theme.colors.foreground3,
-    },
-    landingContainer: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
     },
     landingTitle: {
       fontSize: 18,
@@ -1795,10 +1794,92 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     ReactNativeHapticFeedback.trigger('selection');
   };
 
+  // Calculate address bar header height for content padding (like HomeScreen's HEADER_HEIGHT)
+  const ADDRESS_BAR_HEIGHT = 52; // urlBar height (40) + paddingBottom (12)
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
+      {/* Full-screen scrollable content - exactly like HomeScreen */}
+      {showLanding ? (
+        <ScrollView
+          contentContainerStyle={{
+            paddingTop: insets.top + 55 + ADDRESS_BAR_HEIGHT, // space for global header + address bar
+            paddingBottom: insets.bottom + 90, // space for bottom nav
+            minHeight: '100%',
+          }}
+          scrollEventThrottle={16}
+          onScroll={(event) => {
+            // Update global navScrollY for bottom nav hide/show (same as HomeScreen)
+            if (global.__navScrollY) {
+              global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
+            }
+          }}
+          showsVerticalScrollIndicator={false}>
+          <Text style={styles.landingTitle}>Start Shopping</Text>
+          <View style={styles.shoppingGrid}>
+            {SHOPPING_SITES.map(site => (
+              <TouchableOpacity
+                key={site.name}
+                style={styles.shoppingButton}
+                onPress={() => handleQuickShop(site.url)}>
+                <MaterialIcons
+                  name="shopping-bag"
+                  size={28}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.shoppingButtonText}>{site.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      ) : (
+        <View ref={containerRef} style={StyleSheet.absoluteFill} collapsable={false}>
+          <WebView
+            ref={webRef}
+            source={{uri: currentTab?.url || ''}}
+            style={StyleSheet.absoluteFill}
+            originWhitelist={['*']}
+            javaScriptEnabled
+            domStorageEnabled
+            // 👇 Content inset to scroll under floating header (like HomeScreen)
+            contentInset={{top: insets.top + 55 + ADDRESS_BAR_HEIGHT, bottom: insets.bottom + 90}}
+            contentInsetAdjustmentBehavior="never"
+            automaticallyAdjustContentInsets={false}
+            // 👇 Inertia / momentum scrolling
+            decelerationRate="normal" // gives Safari-style glide
+            bounces={true} // iOS bounce effect
+            scrollEnabled={true} // ensure scroll isn't locked
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            overScrollMode="never" // keeps Android smooth too
+            androidLayerType="hardware" // helps performance
+            onNavigationStateChange={navState => {
+              if (currentTab && navState.url) {
+                updateTab(
+                  currentTab.id,
+                  navState.url,
+                  navState.title || currentTab.title,
+                );
+                setInputValue(navState.url);
+                // Track visit history
+                addToHistory(
+                  navState.url,
+                  navState.title || getDomain(navState.url),
+                  getDomain(navState.url),
+                );
+              }
+            }}
+            onScroll={handleWebViewScroll}
+            onLoadEnd={handleWebViewLoadEnd}
+            onMessage={handleWebViewMessage}
+            userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+          />
+        </View>
+      )}
+
+      {/* Floating Address Bar Header - renders after content to appear on top */}
       <View style={styles.header}>
         <View style={styles.urlBar}>
           <TextInput
@@ -1916,66 +1997,6 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           </View>
         )}
       </View>
-
-      {showLanding ? (
-        <ScrollView style={styles.landingContainer}>
-          <Text style={styles.landingTitle}>Start Shopping</Text>
-          <View style={styles.shoppingGrid}>
-            {SHOPPING_SITES.map(site => (
-              <TouchableOpacity
-                key={site.name}
-                style={styles.shoppingButton}
-                onPress={() => handleQuickShop(site.url)}>
-                <MaterialIcons
-                  name="shopping-bag"
-                  size={28}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.shoppingButtonText}>{site.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      ) : (
-        <View ref={containerRef} style={{flex: 1}} collapsable={false}>
-          <WebView
-            ref={webRef}
-            source={{uri: currentTab?.url || ''}}
-            style={{flex: 1}}
-            originWhitelist={['*']}
-            javaScriptEnabled
-            domStorageEnabled
-            // 👇 Inertia / momentum scrolling
-            decelerationRate="normal" // gives Safari-style glide
-            bounces={true} // iOS bounce effect
-            scrollEnabled={true} // ensure scroll isn't locked
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}
-            overScrollMode="never" // keeps Android smooth too
-            androidLayerType="hardware" // helps performance
-            onNavigationStateChange={navState => {
-              if (currentTab && navState.url) {
-                updateTab(
-                  currentTab.id,
-                  navState.url,
-                  navState.title || currentTab.title,
-                );
-                setInputValue(navState.url);
-                // Track visit history
-                addToHistory(
-                  navState.url,
-                  navState.title || getDomain(navState.url),
-                  getDomain(navState.url),
-                );
-              }
-            }}
-            onScroll={handleWebViewScroll}
-            onLoadEnd={handleWebViewLoadEnd}
-            onMessage={handleWebViewMessage}
-            userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-          />
-        </View>
-      )}
 
       {/* Shopping Assistant */}
       {!showTabsView && (
