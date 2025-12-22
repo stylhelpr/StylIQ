@@ -194,7 +194,7 @@ const RootNavigator = ({
 
   const screensWithNoHeader = ['Splash', 'Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen', 'Onboarding'];
   const screensWithSettings = ['Profile'];
-  const screensWithoutBottomNav = ['Splash', 'Login', 'VideoFeedScreen', 'ImageCarouselScreen'];
+  const screensWithoutBottomNav = ['Splash', 'Login', 'VideoFeedScreen', 'ImageCarouselScreen', 'WebBrowser'];
 
   const screenHistory = useRef<Screen[]>([]); // ✅ full navigation history stack
   const isGoingBackRef = useRef(false);
