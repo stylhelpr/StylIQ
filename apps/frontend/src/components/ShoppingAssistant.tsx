@@ -59,6 +59,7 @@ export default function ShoppingAssistant({
     aiSuggestions.length > 0 ? aiSuggestions[0] : FALLBACK_SUGGESTIONS[0],
   );
   const [isNavigating, setIsNavigating] = useState(false);
+  const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
   const aiSuggestionIndex = useRef(0);
 
   // Update current suggestion when parent provides AI suggestions
@@ -174,7 +175,11 @@ export default function ShoppingAssistant({
 
   // Show suggestion bubble periodically (respectful timing - not spammy)
   useEffect(() => {
+    // Don't show suggestions if disabled
+    if (suggestionsDisabled) return;
+
     const showSuggestion = () => {
+      if (suggestionsDisabled) return; // Double check in case state changed
       const nextSuggestion = getNextSuggestion();
       setCurrentSuggestion(nextSuggestion);
       setShowBubble(true);
@@ -197,9 +202,12 @@ export default function ShoppingAssistant({
       clearTimeout(initialTimeout);
       clearInterval(suggestionInterval);
     };
-  }, [aiSuggestions]);
+  }, [aiSuggestions, suggestionsDisabled]);
 
   const handlePress = () => {
+    // Don't show suggestions on tap if disabled
+    if (suggestionsDisabled) return;
+
     // Excited animation
     wiggle.value = withSequence(
       withTiming(-15, {duration: 50}),
@@ -223,6 +231,22 @@ export default function ShoppingAssistant({
       setShowBubble(true);
       bubbleScale.value = withSpring(1, {damping: 10, stiffness: 150});
     }
+  };
+
+  const handleLongPress = () => {
+    // Toggle suggestions on/off
+    setSuggestionsDisabled(prev => !prev);
+    // Hide any current bubble when disabling
+    if (!suggestionsDisabled) {
+      setShowBubble(false);
+      bubbleScale.value = withTiming(0, {duration: 200});
+    }
+    // Feedback wiggle
+    wiggle.value = withSequence(
+      withTiming(-5, {duration: 50}),
+      withTiming(5, {duration: 50}),
+      withTiming(0, {duration: 50}),
+    );
   };
 
   const handleBubblePress = () => {
@@ -410,8 +434,10 @@ export default function ShoppingAssistant({
       {/* Assistant Character — replaced face with avatar */}
       <Animated.View style={containerStyle}>
         <TouchableOpacity
-          style={styles.assistant}
+          style={[styles.assistant, suggestionsDisabled && {opacity: 0.4}]}
           onPress={handlePress}
+          onLongPress={handleLongPress}
+          delayLongPress={500}
           activeOpacity={0.9}>
           <View
             style={{
@@ -420,7 +446,7 @@ export default function ShoppingAssistant({
               borderRadius: 75 / 2, // ✅ half of width/height
               overflow: 'hidden',
               borderWidth: 5,
-              borderColor: theme.colors.surface,
+              borderColor: suggestionsDisabled ? 'rgba(150,150,150,0.5)' : theme.colors.surface,
             }}>
             <Image
               source={require('../assets/images/Styla1.png')}
