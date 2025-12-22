@@ -26,6 +26,7 @@ import {shoppingAnalytics} from '../../../../store/shoppingAnalytics';
 import {triggerHaptic} from '../utils/haptics';
 import ShoppingAssistant from '../components/ShoppingAssistant';
 import {useUUID} from '../context/UUIDContext';
+import {tokens} from '../styles/tokens/tokens';
 import AutofillSettings from '../components/BrowserSettings/AutofillSettings';
 import {
   generatePasswordAutofillScript,
@@ -1151,6 +1152,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    headerTint: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: insets.top + 55,
+      backgroundColor: 'rgba(0, 0, 0, 0.26)',
+      zIndex: 998,
+    },
     header: {
       position: 'absolute',
       top: insets.top + 55,
@@ -1163,10 +1173,12 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     urlBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.colors.background,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      height: 40,
+      backgroundColor: 'rgba(0, 0, 0, 0.73)',
+      borderRadius: 25,
+      borderWidth: tokens.borderWidth.md,
+      borderColor: theme.colors.foreground,
+      paddingHorizontal: 14,
+      height: 50,
     },
     urlInput: {
       flex: 1,
@@ -1810,7 +1822,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             minHeight: '100%',
           }}
           scrollEventThrottle={16}
-          onScroll={(event) => {
+          onScroll={event => {
             // Update global navScrollY for bottom nav hide/show (same as HomeScreen)
             if (global.__navScrollY) {
               global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
@@ -1835,7 +1847,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           </View>
         </ScrollView>
       ) : (
-        <View ref={containerRef} style={StyleSheet.absoluteFill} collapsable={false}>
+        <View
+          ref={containerRef}
+          style={StyleSheet.absoluteFill}
+          collapsable={false}>
           <WebView
             ref={webRef}
             source={{uri: currentTab?.url || ''}}
@@ -1844,7 +1859,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             javaScriptEnabled
             domStorageEnabled
             // 👇 Content inset to scroll under floating header (like HomeScreen)
-            contentInset={{top: insets.top + 55 + ADDRESS_BAR_HEIGHT, bottom: insets.bottom + 90}}
+            contentInset={{
+              top: insets.top + 55 + ADDRESS_BAR_HEIGHT,
+              bottom: insets.bottom + 90,
+            }}
             contentInsetAdjustmentBehavior="never"
             automaticallyAdjustContentInsets={false}
             // 👇 Inertia / momentum scrolling
@@ -1878,6 +1896,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           />
         </View>
       )}
+
+      {/* Light tint overlay for global header area */}
+      <View style={styles.headerTint} pointerEvents="none" />
 
       {/* Floating Address Bar Header - renders after content to appear on top */}
       <View style={styles.header}>
