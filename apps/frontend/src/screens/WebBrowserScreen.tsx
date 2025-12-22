@@ -30,6 +30,7 @@ import {useUUID} from '../context/UUIDContext';
 import {tokens} from '../styles/tokens/tokens';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
 import AutofillSettings from '../components/BrowserSettings/AutofillSettings';
+import {fontScale, moderateScale} from '../utils/scale';
 import {
   generatePasswordAutofillScript,
   getDomainFromUrl,
@@ -39,6 +40,8 @@ import {useVoiceControl} from '../hooks/useVoiceControl';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {PermissionsAndroid, Platform} from 'react-native';
 import {API_BASE_URL} from '../config/api';
+import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -58,9 +61,11 @@ const SHOPPING_SITES = [
 
 type Props = {
   route?: {params?: {url?: string; title?: string}};
+  navigate: (screen: string, params?: any) => void;
+  wardrobe: any[];
 };
 
-export default function WebBrowserScreen({route}: Props) {
+export default function WebBrowserScreen({navigate, route}: Props) {
   // 🔥 VOICE ADD
   const {speech, isRecording, startListening, stopListening} =
     useVoiceControl();
@@ -1253,7 +1258,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       width: '90%',
       alignSelf: 'center',
       borderRadius: 50,
-      height: 52,
+      height: 55,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.muted,
       overflow: 'hidden',
@@ -1271,7 +1276,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       width: '90%',
       alignSelf: 'center',
       borderRadius: 50,
-      height: 52,
+      height: 55,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.muted,
       overflow: 'hidden',
@@ -2064,6 +2069,19 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             </TouchableOpacity>
           )}
 
+          {/* Refresh button */}
+          {currentTab?.url && (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => webRef.current?.reload()}>
+              <MaterialIcons
+                name="refresh"
+                size={22}
+                color={theme.colors.foreground3}
+              />
+            </TouchableOpacity>
+          )}
+
           {/* 🔥 VOICE ADD – Mic button */}
           <TouchableOpacity
             onPressIn={handleMicPressIn}
@@ -2124,6 +2142,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               effect="clear"
               tintColor="rgba(0, 0, 0, 0.48)"
               colorScheme="system">
+              <AppleTouchFeedback
+                onPress={() => navigate('Home')}
+                hapticStyle="impactLight"
+                style={{
+                  padding: moderateScale(tokens.spacing.xxs),
+                  marginLeft: moderateScale(tokens.spacing.xsm),
+                }}>
+                <Icon name="home" size={28} color={theme.colors.foreground} />
+              </AppleTouchFeedback>
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={() => webRef.current?.goBack()}>
@@ -2280,103 +2307,105 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             <ScrollView
               contentContainerStyle={styles.tabsGrid}
               scrollEnabled={draggingIndex === null}>
-              {tabs.map((tab, index) => {
-                const isDragging = draggingIndex === index;
-                const isDropTarget =
-                  draggedOverIndex === index && draggingIndex !== index;
-                const panResponder = createPanResponder(index);
+              {tabs
+                .filter(tab => tab.url)
+                .map((tab, index) => {
+                  const isDragging = draggingIndex === index;
+                  const isDropTarget =
+                    draggedOverIndex === index && draggingIndex !== index;
+                  const panResponder = createPanResponder(index);
 
-                return (
-                  <Animated.View
-                    key={tab.id}
-                    onLayout={e => handleTabLayout(index, e)}
-                    style={[
-                      isDragging && {
-                        transform: [
-                          {translateX: dragAnimatedValue.x},
-                          {translateY: dragAnimatedValue.y},
-                          {scale: dragScale},
-                        ],
-                        zIndex: 1000,
-                        elevation: 10,
-                      },
-                      isDropTarget && {
-                        opacity: 0.5,
-                      },
-                    ]}
-                    {...panResponder.panHandlers}>
-                    <TouchableOpacity
+                  return (
+                    <Animated.View
+                      key={tab.id}
+                      onLayout={e => handleTabLayout(index, e)}
                       style={[
-                        styles.tabCard,
-                        tab.id === currentTabId && styles.tabCardActive,
-                        isDragging && styles.tabCardDragging,
+                        isDragging && {
+                          transform: [
+                            {translateX: dragAnimatedValue.x},
+                            {translateY: dragAnimatedValue.y},
+                            {scale: dragScale},
+                          ],
+                          zIndex: 1000,
+                          elevation: 10,
+                        },
+                        isDropTarget && {
+                          opacity: 0.5,
+                        },
                       ]}
-                      onPress={() => handleSelectTab(tab.id)}
-                      onLongPress={() => handleLongPress(index)}
-                      delayLongPress={300}
-                      activeOpacity={0.8}>
-                      {/* Tab Preview Background */}
-                      <View style={styles.tabCardPreviewContainer}>
-                        {tab.screenshot ? (
-                          <Image
-                            source={{uri: tab.screenshot}}
-                            style={styles.tabCardScreenshot}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <>
-                            {/* Gradient/colored background when no screenshot */}
-                            <View
-                              style={[
-                                styles.tabCardPlaceholder,
-                                {backgroundColor: theme.colors.surface},
-                              ]}
-                            />
+                      {...panResponder.panHandlers}>
+                      <TouchableOpacity
+                        style={[
+                          styles.tabCard,
+                          tab.id === currentTabId && styles.tabCardActive,
+                          isDragging && styles.tabCardDragging,
+                        ]}
+                        onPress={() => handleSelectTab(tab.id)}
+                        onLongPress={() => handleLongPress(index)}
+                        delayLongPress={300}
+                        activeOpacity={0.8}>
+                        {/* Tab Preview Background */}
+                        <View style={styles.tabCardPreviewContainer}>
+                          {tab.screenshot ? (
                             <Image
-                              source={{
-                                uri: `https://icons.duckduckgo.com/ip3/${getDomain(
-                                  tab.url,
-                                )}.ico`,
-                              }}
-                              style={styles.tabCardFavicon}
-                              defaultSource={require('../assets/images/desktop-2.jpg')}
+                              source={{uri: tab.screenshot}}
+                              style={styles.tabCardScreenshot}
+                              resizeMode="cover"
                             />
-                          </>
-                        )}
-                      </View>
+                          ) : (
+                            <>
+                              {/* Gradient/colored background when no screenshot */}
+                              <View
+                                style={[
+                                  styles.tabCardPlaceholder,
+                                  {backgroundColor: theme.colors.surface},
+                                ]}
+                              />
+                              <Image
+                                source={{
+                                  uri: `https://icons.duckduckgo.com/ip3/${getDomain(
+                                    tab.url,
+                                  )}.ico`,
+                                }}
+                                style={styles.tabCardFavicon}
+                                defaultSource={require('../assets/images/desktop-2.jpg')}
+                              />
+                            </>
+                          )}
+                        </View>
 
-                      {/* Overlay with text content */}
-                      <View style={styles.tabCardOverlay}>
-                        <View style={styles.tabCardHeader}>
-                          <Text style={styles.tabCardTitle} numberOfLines={2}>
-                            {tab.title || getDomain(tab.url)}
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.tabCardClose}
-                            onPress={() => handleCloseTab(tab.id)}
-                            hitSlop={{
-                              top: 10,
-                              bottom: 10,
-                              left: 10,
-                              right: 10,
-                            }}>
-                            <MaterialIcons
-                              name="close"
-                              size={16}
-                              color="#fff"
-                            />
-                          </TouchableOpacity>
+                        {/* Overlay with text content */}
+                        <View style={styles.tabCardOverlay}>
+                          <View style={styles.tabCardHeader}>
+                            <Text style={styles.tabCardTitle} numberOfLines={2}>
+                              {tab.title || getDomain(tab.url)}
+                            </Text>
+                            <TouchableOpacity
+                              style={styles.tabCardClose}
+                              onPress={() => handleCloseTab(tab.id)}
+                              hitSlop={{
+                                top: 10,
+                                bottom: 10,
+                                left: 10,
+                                right: 10,
+                              }}>
+                              <MaterialIcons
+                                name="close"
+                                size={16}
+                                color="#fff"
+                              />
+                            </TouchableOpacity>
+                          </View>
+                          <View style={styles.tabCardContent}>
+                            <Text style={styles.tabCardDomain}>
+                              {getDomain(tab.url)}
+                            </Text>
+                          </View>
                         </View>
-                        <View style={styles.tabCardContent}>
-                          <Text style={styles.tabCardDomain}>
-                            {getDomain(tab.url)}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </Animated.View>
-                );
-              })}
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                })}
               <TouchableOpacity
                 style={styles.newTabCard}
                 onPress={handleNewTab}>
