@@ -66,7 +66,10 @@ export type Screen =
   | 'MeshPreviewScreen'
   | 'EmotionTestScreen'
   | 'MeasurementAutoScreen'
-  | 'Closet';
+  | 'Closet'
+  | 'Notes'
+  | 'SaveNote'
+  | 'NoteDetail';
 
 export type NavigateFunction = (
   screen: Screen,

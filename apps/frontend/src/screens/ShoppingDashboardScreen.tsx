@@ -388,11 +388,11 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
             </AppleTouchFeedback>
             <Text style={styles.headerTitle}>Shop Dashboard</Text>
             <View style={styles.headerIcons}></View>
-            <AppleTouchFeedback
+            {/* <AppleTouchFeedback
               onPress={() => navigate?.('GoldDataViewer')}
               hapticStyle="impactLight">
               <MaterialIcons name="settings" size={22} color="#ffffffff" />
-            </AppleTouchFeedback>
+            </AppleTouchFeedback> */}
           </View>
 
           <View
@@ -417,7 +417,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   color: theme.colors.buttonText1,
                   fontWeight: tokens.fontWeight.semiBold,
                 }}>
-                Start Shopping
+                Start Browsing
               </Text>
             </AppleTouchFeedback>
           </View>

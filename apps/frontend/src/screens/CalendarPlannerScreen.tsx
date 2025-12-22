@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   Easing,
+  Modal,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  PanResponder,
+  AppState,
 } from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAuth0} from 'react-native-auth0';
 import {Calendar, DateObject} from 'react-native-calendars';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
@@ -22,15 +30,25 @@ import {moderateScale} from '../utils/scale';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
-import {syncNativeCalendarToBackend} from '../utils/calendarSync';
+import {
+  syncNativeCalendarToBackend,
+  saveEventToIOSCalendar,
+  deleteEventFromBackend,
+  deleteEventFromIOSCalendar,
+  getAllIOSCalendarEventIds,
+} from '../utils/calendarSync';
 import * as Animatable from 'react-native-animatable';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useCalendarEventPromptStore} from '../../../../store/calendarEventPromptStore';
 import {useCalendarEventsStore} from '../../../../store/calendarEventsStore';
 import {globalNavigate} from '../MainApp';
+import {removeCalendarEvent} from '../utils/calendar';
 
 // ───────── helpers ─────────
-const getLocalDateKey = (iso: string) => {
+const getLocalDateKey = (iso: string | Date | null | undefined) => {
+  if (!iso) return '';
   const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -46,11 +64,314 @@ const formatLocalTime = (iso?: string) => {
   });
 };
 
-const h = (type: string) =>
+const h = (
+  type:
+    | 'selection'
+    | 'impactLight'
+    | 'impactMedium'
+    | 'impactHeavy'
+    | 'notificationSuccess',
+) =>
   ReactNativeHapticFeedback.trigger(type, {
     enableVibrateFallback: true,
     ignoreAndroidSystemSettings: false,
   });
+
+// ───────── Swipe constants ─────────
+const DELETE_BUTTON_WIDTH = 88;
+const EDGE_GUARD = 24;
+
+// ───────── SwipeableEventCard ─────────
+type SwipeableEventCardProps = {
+  event: any;
+  formatLocalTime: (iso?: string) => string;
+  theme: any;
+  onDelete: (eventId: string) => void;
+};
+
+function SwipeableEventCard({
+  event,
+  formatLocalTime,
+  theme,
+  onDelete,
+}: SwipeableEventCardProps) {
+  const panX = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (e, g) =>
+        e.nativeEvent.pageX > EDGE_GUARD && Math.abs(g.dx) > 4,
+      onMoveShouldSetPanResponderCapture: (e, g) =>
+        e.nativeEvent.pageX > EDGE_GUARD && Math.abs(g.dx) > 4,
+      onPanResponderMove: (_e, g) => {
+        if (g.dx < 0) {
+          panX.setValue(Math.max(g.dx, -DELETE_BUTTON_WIDTH));
+        }
+      },
+      onPanResponderRelease: (_e, g) => {
+        const velocityTrigger = g.vx < -0.15;
+        const distanceTrigger = g.dx < -50;
+        if (velocityTrigger || distanceTrigger) {
+          Animated.timing(panX, {
+            toValue: -DELETE_BUTTON_WIDTH,
+            duration: 180,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          Animated.timing(panX, {
+            toValue: 0,
+            duration: 160,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(panX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    }),
+  ).current;
+
+  const handleDeletePress = useCallback(() => {
+    h('impactMedium');
+    onDelete(event.event_id || event.id);
+  }, [event, onDelete]);
+
+  const swipeStyles = StyleSheet.create({
+    container: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 16,
+      marginBottom: 6,
+    },
+    deleteButton: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: DELETE_BUTTON_WIDTH,
+      backgroundColor: '#FF3B30',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+    },
+    deleteText: {
+      color: '#fff',
+      fontSize: 17,
+      fontWeight: '600',
+    },
+    card: {
+      borderRadius: 16,
+      padding: 14,
+      backgroundColor: theme.colors.surface3,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    name: {
+      color: theme.colors.foreground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    time: {
+      color: theme.colors.foreground2,
+      marginTop: 4,
+      fontSize: 13,
+    },
+    notes: {
+      fontStyle: 'italic',
+      color: theme.colors.foreground2,
+      marginTop: 8,
+    },
+  });
+
+  return (
+    <View style={swipeStyles.container}>
+      <View style={swipeStyles.deleteButton}>
+        <TouchableOpacity
+          onPress={handleDeletePress}
+          style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text style={swipeStyles.deleteText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={{transform: [{translateX: panX}]}}>
+        <View style={swipeStyles.card}>
+          <Text style={swipeStyles.name}>{event.title}</Text>
+          <Text style={swipeStyles.time}>
+            {formatLocalTime(event.start_date)} →{' '}
+            {formatLocalTime(event.end_date)}
+          </Text>
+          {event.location ? (
+            <Text style={swipeStyles.notes}>📍 {event.location}</Text>
+          ) : null}
+          {event.notes ? (
+            <Text style={swipeStyles.notes}>{event.notes}</Text>
+          ) : null}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
+// ───────── SwipeableOutfitCard ─────────
+type SwipeableOutfitCardProps = {
+  outfit: any;
+  formatLocalTime: (iso?: string) => string;
+  theme: any;
+  onDelete: (outfitId: string) => void;
+};
+
+function SwipeableOutfitCard({
+  outfit,
+  formatLocalTime,
+  theme,
+  onDelete,
+}: SwipeableOutfitCardProps) {
+  const panX = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (e, g) =>
+        e.nativeEvent.pageX > EDGE_GUARD && Math.abs(g.dx) > 4,
+      onMoveShouldSetPanResponderCapture: (e, g) =>
+        e.nativeEvent.pageX > EDGE_GUARD && Math.abs(g.dx) > 4,
+      onPanResponderMove: (_e, g) => {
+        if (g.dx < 0) {
+          panX.setValue(Math.max(g.dx, -DELETE_BUTTON_WIDTH));
+        }
+      },
+      onPanResponderRelease: (_e, g) => {
+        const velocityTrigger = g.vx < -0.15;
+        const distanceTrigger = g.dx < -50;
+        if (velocityTrigger || distanceTrigger) {
+          Animated.timing(panX, {
+            toValue: -DELETE_BUTTON_WIDTH,
+            duration: 180,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          Animated.timing(panX, {
+            toValue: 0,
+            duration: 160,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(panX, {
+          toValue: 0,
+          useNativeDriver: true,
+        }).start();
+      },
+    }),
+  ).current;
+
+  const handleDeletePress = useCallback(() => {
+    h('impactMedium');
+    onDelete(outfit.id);
+  }, [outfit, onDelete]);
+
+  const swipeStyles = StyleSheet.create({
+    container: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 16,
+      marginBottom: 6,
+    },
+    deleteButton: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: DELETE_BUTTON_WIDTH,
+      backgroundColor: '#FF3B30',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+    },
+    deleteText: {
+      color: '#fff',
+      fontSize: 17,
+      fontWeight: '600',
+    },
+    card: {
+      borderRadius: 16,
+      padding: 14,
+      backgroundColor: theme.colors.surface3,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.surfaceBorder,
+    },
+    name: {
+      color: theme.colors.foreground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    time: {
+      color: theme.colors.foreground2,
+      marginTop: 4,
+      fontSize: 13,
+    },
+    notes: {
+      fontStyle: 'italic',
+      color: theme.colors.foreground2,
+      marginTop: 8,
+    },
+    row: {
+      flexDirection: 'row',
+      marginTop: 10,
+    },
+    thumb: {
+      width: 68,
+      height: 68,
+      borderRadius: 12,
+      marginRight: 8,
+      backgroundColor: theme.colors.surface,
+    },
+  });
+
+  return (
+    <View style={swipeStyles.container}>
+      <View style={swipeStyles.deleteButton}>
+        <TouchableOpacity
+          onPress={handleDeletePress}
+          style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text style={swipeStyles.deleteText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={{transform: [{translateX: panX}]}}>
+        <View style={swipeStyles.card}>
+          <Text style={swipeStyles.name}>{outfit.name || 'Unnamed Outfit'}</Text>
+          <Text style={swipeStyles.time}>
+            🕒 {formatLocalTime(outfit.plannedDate)}
+          </Text>
+          <View style={swipeStyles.row}>
+            {[outfit.top, outfit.bottom, outfit.shoes].map(
+              item =>
+                item?.image && (
+                  <Image
+                    key={item.id}
+                    source={{uri: item.image}}
+                    style={swipeStyles.thumb}
+                    resizeMode="cover"
+                  />
+                ),
+            )}
+          </View>
+          {outfit.notes ? (
+            <Text style={swipeStyles.notes}>{outfit.notes}</Text>
+          ) : null}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
 
 // ───────── main ─────────
 export default function OutfitPlannerScreen() {
@@ -62,7 +383,8 @@ export default function OutfitPlannerScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
 
-  const {events: calendarEvents, setEvents: setCalendarEvents} = useCalendarEventsStore();
+  const {events: calendarEvents, setEvents: setCalendarEvents, clearEvents: clearCalendarEvents} =
+    useCalendarEventsStore();
   const [scheduledOutfits, setScheduledOutfits] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -71,6 +393,17 @@ export default function OutfitPlannerScreen() {
   const [promptEvent, setPromptEvent] = useState<any>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
   const [aiOutfit, setAiOutfit] = useState<any>(null);
+
+  // Add Event Modal State
+  const [addEventModalVisible, setAddEventModalVisible] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventLocation, setNewEventLocation] = useState('');
+  const [newEventNotes, setNewEventNotes] = useState('');
+  const [newEventStartTime, setNewEventStartTime] = useState<Date>(new Date());
+  const [newEventEndTime, setNewEventEndTime] = useState<Date>(new Date());
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [savingEvent, setSavingEvent] = useState(false);
 
   // Load persisted event prompt responses on mount
   const {loadFromStorage, hasAnswered, clearResponses} =
@@ -102,82 +435,228 @@ export default function OutfitPlannerScreen() {
   }, []);
 
   // ───────── sync native iOS calendar, then fetch events ─────────
-  useEffect(() => {
+  const syncCalendarEvents = useCallback(async () => {
     if (!userId) return;
 
-    // If we already have events, don't refetch (they persist in the store)
-    if (calendarEvents.length > 0) return;
+    // Sync native calendar to backend (this detects deletions made in iOS Calendar)
+    await syncNativeCalendarToBackend(userId);
 
-    (async () => {
-      // First sync native calendar (this also requests permission if needed)
-      await syncNativeCalendarToBackend(userId);
+    // Then fetch updated calendar events from backend
+    try {
+      const res = await fetch(`${API_BASE_URL}/calendar/user/${userId}`);
+      const json = await res.json();
+      setCalendarEvents(json.events || []);
+    } catch (err) {
+      console.warn('❌ Failed to load calendar events:', err);
+    }
+  }, [userId, setCalendarEvents]);
 
-      // Then fetch calendar events from backend
-      try {
-        const res = await fetch(`${API_BASE_URL}/calendar/user/${userId}`);
-        const json = await res.json();
-        setCalendarEvents(json.events || []);
-      } catch (err) {
-        console.warn('❌ Failed to load calendar events:', err);
+  // ───────── fetch scheduled outfits ─────────
+  const fetchScheduledOutfits = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const [aiRes, customRes, scheduledRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
+        fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
+        fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
+      ]);
+      const [aiData, customData, scheduledData] = await Promise.all([
+        aiRes.json(),
+        customRes.json(),
+        scheduledRes.json(),
+      ]);
+
+      const scheduleMap: Record<string, string> = {};
+      for (const s of scheduledData) {
+        if (s.ai_outfit_id) scheduleMap[s.ai_outfit_id] = s.scheduled_for;
+        else if (s.custom_outfit_id)
+          scheduleMap[s.custom_outfit_id] = s.scheduled_for;
       }
-    })();
-  }, [userId, calendarEvents.length, setCalendarEvents]);
 
-  useEffect(() => {
-    if (!userId) return;
-    const fetchData = async () => {
-      try {
-        const [aiRes, customRes, scheduledRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
-          fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
-          fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
-        ]);
-        const [aiData, customData, scheduledData] = await Promise.all([
-          aiRes.json(),
-          customRes.json(),
-          scheduledRes.json(),
-        ]);
+      const normalizeImageUrl = (url?: string | null) =>
+        url?.startsWith('http') ? url : `${API_BASE_URL}${url || ''}`;
 
-        const scheduleMap: Record<string, string> = {};
-        for (const s of scheduledData) {
-          if (s.ai_outfit_id) scheduleMap[s.ai_outfit_id] = s.scheduled_for;
-          else if (s.custom_outfit_id)
-            scheduleMap[s.custom_outfit_id] = s.scheduled_for;
-        }
-
-        const normalizeImageUrl = (url?: string | null) =>
-          url?.startsWith('http') ? url : `${API_BASE_URL}${url || ''}`;
-
-        const normalize = (o: any, isCustom: boolean) => {
-          const plannedDate = scheduleMap[o.id];
-          if (!plannedDate) return null;
-          return {
-            ...o,
-            plannedDate,
-            type: isCustom ? 'custom' : 'ai',
-            top: o.top
-              ? {...o.top, image: normalizeImageUrl(o.top.image)}
-              : null,
-            bottom: o.bottom
-              ? {...o.bottom, image: normalizeImageUrl(o.bottom.image)}
-              : null,
-            shoes: o.shoes
-              ? {...o.shoes, image: normalizeImageUrl(o.shoes.image)}
-              : null,
-          };
+      const normalize = (o: any, isCustom: boolean) => {
+        const plannedDate = scheduleMap[o.id];
+        if (!plannedDate) return null;
+        return {
+          ...o,
+          plannedDate,
+          type: isCustom ? 'custom' : 'ai',
+          top: o.top
+            ? {...o.top, image: normalizeImageUrl(o.top.image)}
+            : null,
+          bottom: o.bottom
+            ? {...o.bottom, image: normalizeImageUrl(o.bottom.image)}
+            : null,
+          shoes: o.shoes
+            ? {...o.shoes, image: normalizeImageUrl(o.shoes.image)}
+            : null,
         };
+      };
 
-        const outfits = [
-          ...aiData.map(o => normalize(o, false)),
-          ...customData.map(o => normalize(o, true)),
-        ].filter(Boolean);
-        setScheduledOutfits(outfits);
-      } catch (err) {
-        console.error('❌ Failed to load outfits:', err);
-      }
-    };
-    fetchData();
+      const outfits = [
+        ...aiData.map((o: any) => normalize(o, false)),
+        ...customData.map((o: any) => normalize(o, true)),
+      ].filter(Boolean);
+      console.log(`📅 fetchScheduledOutfits: setting ${outfits.length} outfits`);
+      setScheduledOutfits(outfits);
+    } catch (err) {
+      console.error('❌ Failed to load outfits:', err);
+    }
   }, [userId]);
+
+  // Check for scheduled outfits whose iOS calendar events were deleted
+  const syncDeletedOutfitEvents = useCallback(async () => {
+    if (!userId) return;
+
+    console.log('🔄 Starting syncDeletedOutfitEvents...');
+
+    try {
+      // Get all current iOS calendar event IDs
+      const iosEventIds = await getAllIOSCalendarEventIds();
+      console.log(`📅 iOS calendar has ${iosEventIds.size} events`);
+
+      // Get all AsyncStorage keys for outfit calendar events
+      const allKeys = await AsyncStorage.getAllKeys();
+      const outfitCalendarKeys = allKeys.filter(k => k.startsWith('outfitCalendar:'));
+
+      console.log(`🔍 Found ${outfitCalendarKeys.length} outfit calendar mappings to check`);
+
+      for (const key of outfitCalendarKeys) {
+        const iosEventId = await AsyncStorage.getItem(key);
+        console.log(`  📋 Key: ${key}, iOS Event ID: ${iosEventId}`);
+
+        if (iosEventId) {
+          const exists = iosEventIds.has(iosEventId);
+          console.log(`  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`);
+
+          if (!exists) {
+            // This iOS event was deleted - remove the scheduled outfit
+            const outfitId = key.replace('outfitCalendar:', '');
+            console.log(`🗑️ iOS event ${iosEventId} was deleted, removing outfit schedule ${outfitId}`);
+
+            // Delete from backend
+            try {
+              const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_id: userId, outfit_id: outfitId}),
+              });
+              const data = await res.json();
+              console.log(`🗑️ Backend delete response:`, data);
+
+              // Remove the AsyncStorage mapping
+              await AsyncStorage.removeItem(key);
+
+              // Signal SavedOutfitsScreen to refresh
+              await AsyncStorage.setItem('schedulesChanged', Date.now().toString());
+
+              console.log(`✅ Removed scheduled outfit ${outfitId} (iOS event deleted)`);
+            } catch (err) {
+              console.error(`❌ Failed to remove outfit schedule:`, err);
+            }
+          }
+        }
+      }
+      console.log('🔄 syncDeletedOutfitEvents complete');
+    } catch (err) {
+      console.error('❌ Failed to sync deleted outfit events:', err);
+    }
+  }, [userId]);
+
+  // Check for app-created events whose iOS calendar events were deleted
+  const syncDeletedAppEvents = useCallback(async () => {
+    if (!userId) return;
+
+    console.log('🔄 Starting syncDeletedAppEvents...');
+
+    try {
+      // Get all current iOS calendar event IDs
+      const iosEventIds = await getAllIOSCalendarEventIds();
+      console.log(`📅 iOS calendar has ${iosEventIds.size} events`);
+
+      // Get all AsyncStorage keys for app-created calendar events
+      const allKeys = await AsyncStorage.getAllKeys();
+      const eventCalendarKeys = allKeys.filter(k => k.startsWith('eventCalendar:'));
+
+      console.log(`🔍 Found ${eventCalendarKeys.length} app event calendar mappings to check`);
+
+      for (const key of eventCalendarKeys) {
+        const iosEventId = await AsyncStorage.getItem(key);
+        console.log(`  📋 Key: ${key}, iOS Event ID: ${iosEventId}`);
+
+        if (iosEventId) {
+          const exists = iosEventIds.has(iosEventId);
+          console.log(`  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`);
+
+          if (!exists) {
+            // This iOS event was deleted - remove the app event from backend
+            const eventId = key.replace('eventCalendar:', '');
+            console.log(`🗑️ iOS event ${iosEventId} was deleted, removing app event ${eventId}`);
+
+            // Delete from backend
+            try {
+              const deleted = await deleteEventFromBackend(userId, eventId);
+              console.log(`🗑️ Backend delete result for ${eventId}:`, deleted);
+              // Clean up AsyncStorage
+              await AsyncStorage.removeItem(key);
+            } catch (err) {
+              console.error(`❌ Failed to remove app event:`, err);
+            }
+          }
+        }
+      }
+      console.log('🔄 syncDeletedAppEvents complete');
+    } catch (err) {
+      console.error('❌ Failed to sync deleted app events:', err);
+    }
+  }, [userId]);
+
+  // Initial sync on mount - check for iOS deletions then fetch
+  useEffect(() => {
+    if (!userId) return;
+
+    const initialSync = async () => {
+      console.log('📅 Initial mount sync starting...');
+      // Check for deleted events FIRST (before fetching from backend)
+      await syncDeletedOutfitEvents();
+      await syncDeletedAppEvents();
+      // Now sync and fetch fresh data from backend
+      await syncCalendarEvents();
+      await fetchScheduledOutfits();
+    };
+
+    initialSync();
+  }, [userId, syncDeletedOutfitEvents, syncDeletedAppEvents, syncCalendarEvents, fetchScheduledOutfits]);
+
+  // Re-sync when app returns to foreground (detects iOS Calendar deletions)
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleAppActive = async () => {
+      console.log('📅 App became active, re-syncing calendar and outfits...');
+      // Clear existing data to force UI refresh
+      clearCalendarEvents();
+      setScheduledOutfits([]);
+      // Check for deleted events FIRST (before fetching from backend)
+      // This ensures deletions made in iOS Calendar are reflected in the backend
+      await syncDeletedOutfitEvents();
+      await syncDeletedAppEvents();
+      // Now sync and fetch fresh data from backend
+      await syncCalendarEvents();
+      await fetchScheduledOutfits();
+      console.log('📅 Sync complete');
+    };
+
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        handleAppActive();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [userId, syncCalendarEvents, syncDeletedOutfitEvents, syncDeletedAppEvents, fetchScheduledOutfits, clearCalendarEvents]);
 
   // ───────── mark dots ─────────
   const allMarks: Record<string, any> = {};
@@ -188,11 +667,22 @@ export default function OutfitPlannerScreen() {
       color: outfit.type === 'ai' ? '#405de6' : '#00c6ae',
     });
   }
+  console.log(
+    '📅 Calendar events for dots:',
+    calendarEvents.length,
+    calendarEvents.map(e => ({
+      id: e.event_id,
+      title: e.title,
+      start: e.start_date,
+    })),
+  );
   for (const ev of calendarEvents) {
     const date = getLocalDateKey(ev.start_date);
+    console.log(`📅 Event "${ev.title}" -> date key: "${date}"`);
     if (!allMarks[date]) allMarks[date] = {dots: []};
     allMarks[date].dots.push({color: '#FFD700'});
   }
+  console.log('📅 All marks:', Object.keys(allMarks));
 
   // ───────── find upcoming events (for AI prompt) ─────────
   useEffect(() => {
@@ -240,7 +730,7 @@ export default function OutfitPlannerScreen() {
         promptEvent.location || 'a venue'
       } starting ${formatLocalTime(promptEvent.start_date)}.`;
 
-      h('success');
+      h('notificationSuccess');
       setLoadingSuggestion(false);
 
       // Close the prompt and navigate to OutfitSuggestionScreen with the event context
@@ -334,6 +824,252 @@ export default function OutfitPlannerScreen() {
     h('selection');
   };
 
+  const handleSaveEvent = async () => {
+    if (!newEventTitle.trim()) {
+      Alert.alert('Missing Title', 'Please enter an event title.');
+      return;
+    }
+    if (!selectedDate) {
+      Alert.alert(
+        'No Date Selected',
+        'Please select a date on the calendar first.',
+      );
+      return;
+    }
+
+    setSavingEvent(true);
+    h('impactMedium');
+
+    try {
+      // Parse the selected date and combine with selected times
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const startDate = new Date(
+        year,
+        month - 1,
+        day,
+        newEventStartTime.getHours(),
+        newEventStartTime.getMinutes(),
+        0,
+      );
+      const endDate = new Date(
+        year,
+        month - 1,
+        day,
+        newEventEndTime.getHours(),
+        newEventEndTime.getMinutes(),
+        0,
+      );
+
+      const res = await fetch(`${API_BASE_URL}/calendar/event`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: userId,
+          title: newEventTitle.trim(),
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          location: newEventLocation.trim() || undefined,
+          notes: newEventNotes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      console.log('📅 Create event response:', data);
+      if (data.ok && data.event) {
+        // Also save to iOS native calendar
+        const iosEventId = await saveEventToIOSCalendar({
+          title: newEventTitle.trim(),
+          startDate: startDate,
+          endDate: endDate,
+          location: newEventLocation.trim() || undefined,
+          notes: newEventNotes.trim() || undefined,
+        });
+        console.log('📅 iOS event created:', iosEventId);
+
+        // Store iOS event ID in AsyncStorage so we can delete from iOS calendar later
+        // (survives app refreshes unlike local state)
+        if (iosEventId && data.event.event_id) {
+          await AsyncStorage.setItem(
+            `eventCalendar:${data.event.event_id}`,
+            iosEventId,
+          );
+          console.log('📅 Stored iOS event ID mapping:', data.event.event_id, '->', iosEventId);
+        }
+
+        h('notificationSuccess');
+        // Normalize the event to match expected format (ensure start_date is ISO string)
+        // Store the iOS event ID so we can delete from iOS calendar later
+        const newEvent = {
+          ...data.event,
+          // Ensure we have event_id from backend (and also set id for compatibility)
+          event_id: data.event.event_id,
+          id: data.event.event_id,
+          // Store iOS calendar event ID for deletion
+          ios_event_id: iosEventId,
+          start_date: data.event.start_date
+            ? new Date(data.event.start_date).toISOString()
+            : startDate.toISOString(),
+          end_date: data.event.end_date
+            ? new Date(data.event.end_date).toISOString()
+            : endDate.toISOString(),
+        };
+        console.log('📅 Adding normalized event:', newEvent);
+        // Add the new event to the local state
+        setCalendarEvents([...calendarEvents, newEvent]);
+        // Reset form
+        setNewEventTitle('');
+        setNewEventLocation('');
+        setNewEventNotes('');
+        setNewEventStartTime(new Date());
+        setNewEventEndTime(new Date());
+        setAddEventModalVisible(false);
+      } else {
+        Alert.alert(
+          'Error',
+          data.error || 'Failed to create event. Please try again.',
+        );
+      }
+    } catch (err) {
+      console.error('Failed to create event:', err);
+      Alert.alert('Error', 'Failed to create event. Please try again.');
+    } finally {
+      setSavingEvent(false);
+    }
+  };
+
+  const openAddEventModal = () => {
+    h('impactLight');
+    // If no date is selected, default to today
+    if (!selectedDate) {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      const d = String(today.getDate()).padStart(2, '0');
+      setSelectedDate(`${y}-${m}-${d}`);
+    }
+    // Set default times: start at next full hour, end 1 hour later
+    const now = new Date();
+    const nextHour = new Date(now);
+    nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+    const endHour = new Date(nextHour);
+    endHour.setHours(nextHour.getHours() + 1);
+    setNewEventStartTime(nextHour);
+    setNewEventEndTime(endHour);
+    setAddEventModalVisible(true);
+  };
+
+  const handleDeleteEvent = useCallback(
+    async (eventId: string) => {
+      console.log('🗑️ handleDeleteEvent called with eventId:', eventId);
+      console.log('🗑️ userId:', userId);
+      Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Find the event to get the iOS event ID if it exists
+              const eventToDelete = calendarEvents.find(
+                e => (e.event_id || e.id) === eventId,
+              );
+              console.log('🗑️ Event to delete:', eventToDelete);
+
+              // Delete from backend
+              const deleted = await deleteEventFromBackend(userId, eventId);
+              console.log('🗑️ Backend delete result:', deleted);
+              if (deleted) {
+                // Update local state
+                setCalendarEvents(
+                  calendarEvents.filter(
+                    e => (e.event_id || e.id) !== eventId,
+                  ),
+                );
+                h('notificationSuccess');
+
+                // Delete from iOS calendar
+                // For synced iOS events, the eventId IS the iOS calendar ID
+                // For app-created events, check AsyncStorage for the iOS event ID
+                if (eventId.startsWith('styliq_')) {
+                  // App-created event - get iOS event ID from AsyncStorage
+                  const iosEventId = await AsyncStorage.getItem(`eventCalendar:${eventId}`);
+                  console.log('🗑️ Retrieved iOS event ID from AsyncStorage:', iosEventId);
+                  if (iosEventId) {
+                    const iosDeleted = await deleteEventFromIOSCalendar(iosEventId);
+                    console.log('🗑️ iOS calendar delete result:', iosDeleted);
+                    // Clean up AsyncStorage
+                    await AsyncStorage.removeItem(`eventCalendar:${eventId}`);
+                  }
+                } else {
+                  // Synced iOS event - the eventId is the iOS calendar ID
+                  await deleteEventFromIOSCalendar(eventId);
+                }
+              } else {
+                Alert.alert('Error', 'Failed to delete event.');
+              }
+            } catch (err) {
+              console.error('Failed to delete event:', err);
+              Alert.alert('Error', 'Failed to delete event.');
+            }
+          },
+        },
+      ]);
+    },
+    [userId, calendarEvents, setCalendarEvents],
+  );
+
+  const handleDeleteOutfit = useCallback(
+    async (outfitId: string) => {
+      Alert.alert(
+        'Remove Scheduled Outfit',
+        'Are you sure you want to remove this outfit from your calendar?',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                // Use the same endpoint as cancelPlannedOutfit in SavedOutfitsScreen
+                const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
+                  method: 'DELETE',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({user_id: userId, outfit_id: outfitId}),
+                });
+                if (!res.ok) throw new Error('Failed to cancel planned outfit');
+
+                // Update local state
+                setScheduledOutfits(
+                  scheduledOutfits.filter(o => o.id !== outfitId),
+                );
+                h('notificationSuccess');
+
+                // Also remove from iOS calendar if there's a stored event ID
+                const key = `outfitCalendar:${outfitId}`;
+                const iosEventId = await AsyncStorage.getItem(key);
+                if (iosEventId) {
+                  await removeCalendarEvent(iosEventId);
+                  await AsyncStorage.removeItem(key);
+                  console.log('✅ Removed outfit from iOS calendar:', iosEventId);
+                }
+
+                // Signal that schedules have changed so SavedOutfitsScreen can refresh
+                await AsyncStorage.setItem(
+                  'schedulesChanged',
+                  Date.now().toString(),
+                );
+              } catch (err) {
+                console.error('Failed to delete outfit:', err);
+                Alert.alert('Error', 'Failed to remove outfit.');
+              }
+            },
+          },
+        ],
+      );
+    },
+    [userId, scheduledOutfits],
+  );
+
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
       <Animated.View
@@ -352,9 +1088,31 @@ export default function OutfitPlannerScreen() {
           style={{flex: 1}}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={insets.top + 40}>
-          <Text style={[globalStyles.header, {marginBottom: 8}]}>
-            Planned Outfits
-          </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 8,
+            }}>
+            <Text style={[globalStyles.header, {marginBottom: 0}]}>
+              StylHelpr Calendar
+            </Text>
+            <TouchableOpacity
+              onPress={openAddEventModal}
+              style={{
+                padding: 8,
+                borderRadius: 20,
+                backgroundColor: theme.colors.surface,
+                marginRight: 16,
+              }}>
+              <MaterialIcons
+                name="add"
+                size={24}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
 
           <Animated.View style={{flex: 1}}>
             <Calendar
@@ -400,53 +1158,25 @@ export default function OutfitPlannerScreen() {
                 }}
                 contentContainerStyle={{paddingBottom: insets.bottom + 8}}>
                 {(outfitsByDate[selectedDate!] || []).map((o, index) => (
-                  <View key={index} style={styles.card}>
-                    <Text style={styles.name}>
-                      {o.name || 'Unnamed Outfit'}
-                    </Text>
-                    <Text style={styles.time}>
-                      🕒 {formatLocalTime(o.plannedDate)}
-                    </Text>
-                    <View style={styles.row}>
-                      {[o.top, o.bottom, o.shoes].map(
-                        item =>
-                          item?.image && (
-                            <Image
-                              key={item.id}
-                              source={{uri: item.image}}
-                              style={styles.thumb}
-                              resizeMode="cover"
-                            />
-                          ),
-                      )}
-                    </View>
-                    {o.notes ? (
-                      <Text style={styles.notes}>{o.notes}</Text>
-                    ) : null}
-                  </View>
+                  <SwipeableOutfitCard
+                    key={o.id || index}
+                    outfit={o}
+                    formatLocalTime={formatLocalTime}
+                    theme={theme}
+                    onDelete={handleDeleteOutfit}
+                  />
                 ))}
 
                 {calendarEvents
                   .filter(e => getLocalDateKey(e.start_date) === selectedDate)
                   .map(ev => (
-                    <AppleTouchFeedback
-                      key={ev.id}
-                      hapticStyle="none"
-                      onPress={() => {}}>
-                      <View style={styles.card}>
-                        <Text style={styles.name}>{ev.title}</Text>
-                        <Text style={styles.time}>
-                          {formatLocalTime(ev.start_date)} →{' '}
-                          {formatLocalTime(ev.end_date)}
-                        </Text>
-                        {ev.location ? (
-                          <Text style={styles.notes}>📍 {ev.location}</Text>
-                        ) : null}
-                        {ev.notes ? (
-                          <Text style={styles.notes}>{ev.notes}</Text>
-                        ) : null}
-                      </View>
-                    </AppleTouchFeedback>
+                    <SwipeableEventCard
+                      key={ev.event_id || ev.id}
+                      event={ev}
+                      formatLocalTime={formatLocalTime}
+                      theme={theme}
+                      onDelete={handleDeleteEvent}
+                    />
                   ))}
               </ScrollView>
             )}
@@ -577,6 +1307,269 @@ export default function OutfitPlannerScreen() {
           )}
         </KeyboardAvoidingView>
       </Animated.View>
+
+      {/* Add Event Modal */}
+      <Modal
+        visible={addEventModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setAddEventModalVisible(false)}>
+        <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+          <SafeAreaView style={{flex: 1}}>
+            <View style={{flex: 1, padding: 20}}>
+              {/* Modal Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 24,
+                }}>
+                <TouchableOpacity
+                  onPress={() => setAddEventModalVisible(false)}>
+                  <Text style={{fontSize: 17, color: theme.colors.primary}}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <Text
+                  style={{
+                    fontSize: 17,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                  }}>
+                  New Event
+                </Text>
+                <TouchableOpacity
+                  onPress={handleSaveEvent}
+                  disabled={savingEvent}>
+                  <Text
+                    style={{
+                      fontSize: 17,
+                      fontWeight: '600',
+                      color: theme.colors.primary,
+                      opacity: savingEvent ? 0.5 : 1,
+                    }}>
+                    {savingEvent ? 'Saving...' : 'Add'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Selected Date Display */}
+              {selectedDate && (
+                <View
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 20,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.muted,
+                      marginBottom: 4,
+                    }}>
+                    Date
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 17,
+                      color: theme.colors.foreground,
+                      fontWeight: '500',
+                    }}>
+                    {new Date(selectedDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+              )}
+
+              {!selectedDate && (
+                <View
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 20,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 15,
+                      color: theme.colors.muted,
+                      textAlign: 'center',
+                    }}>
+                    Select a date on the calendar first
+                  </Text>
+                </View>
+              )}
+
+              {/* Time Pickers */}
+              <View style={{flexDirection: 'row', marginBottom: 20, gap: 12}}>
+                {/* Start Time */}
+                <View style={{flex: 1}}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Starts
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                    }}>
+                    <DateTimePicker
+                      value={newEventStartTime}
+                      mode="time"
+                      display="default"
+                      onChange={(_, date) => {
+                        if (date) {
+                          setNewEventStartTime(date);
+                          // Auto-adjust end time to be 1 hour after start
+                          const newEnd = new Date(date);
+                          newEnd.setHours(date.getHours() + 1);
+                          if (newEnd > newEventEndTime) {
+                            setNewEventEndTime(newEnd);
+                          }
+                        }
+                      }}
+                      themeVariant={
+                        theme.colors.background === '#000000' ||
+                        theme.colors.background === '#000'
+                          ? 'dark'
+                          : 'light'
+                      }
+                      style={{height: 44}}
+                    />
+                  </View>
+                </View>
+
+                {/* End Time */}
+                <View style={{flex: 1}}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: theme.colors.foreground,
+                      marginBottom: 8,
+                    }}>
+                    Ends
+                  </Text>
+                  <View
+                    style={{
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                    }}>
+                    <DateTimePicker
+                      value={newEventEndTime}
+                      mode="time"
+                      display="default"
+                      onChange={(_, date) => date && setNewEventEndTime(date)}
+                      themeVariant={
+                        theme.colors.background === '#000000' ||
+                        theme.colors.background === '#000'
+                          ? 'dark'
+                          : 'light'
+                      }
+                      style={{height: 44}}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Title Input */}
+              <View style={{marginBottom: 16}}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                    marginBottom: 8,
+                  }}>
+                  Title
+                </Text>
+                <TextInput
+                  placeholder="Event title"
+                  placeholderTextColor={theme.colors.muted}
+                  value={newEventTitle}
+                  onChangeText={setNewEventTitle}
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 12,
+                    padding: 16,
+                    fontSize: 16,
+                    color: theme.colors.foreground,
+                  }}
+                />
+              </View>
+
+              {/* Location Input */}
+              <View style={{marginBottom: 16}}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                    marginBottom: 8,
+                  }}>
+                  Location
+                </Text>
+                <TextInput
+                  placeholder="Add location (optional)"
+                  placeholderTextColor={theme.colors.muted}
+                  value={newEventLocation}
+                  onChangeText={setNewEventLocation}
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 12,
+                    padding: 16,
+                    fontSize: 16,
+                    color: theme.colors.foreground,
+                  }}
+                />
+              </View>
+
+              {/* Notes Input */}
+              <View style={{marginBottom: 16}}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                    marginBottom: 8,
+                  }}>
+                  Notes
+                </Text>
+                <TextInput
+                  placeholder="Add notes (optional)"
+                  placeholderTextColor={theme.colors.muted}
+                  value={newEventNotes}
+                  onChangeText={setNewEventNotes}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 12,
+                    padding: 16,
+                    fontSize: 16,
+                    color: theme.colors.foreground,
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                  }}
+                />
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -75,6 +75,9 @@ import SavedMeasurementsScreen from '../screens/SavedMeasurementsScreen';
 import MeasurementsScreen from '../screens/MeasurementsScreen';
 import GoldDataViewer from '../screens/GoldDataViewer';
 import SplashScreen from '../screens/SplashScreen';
+import NotesScreen from '../screens/NotesScreen';
+import SaveNoteScreen from '../screens/SaveNoteScreen';
+import NoteDetailScreen from '../screens/NoteDetailScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -154,6 +157,7 @@ type Screen =
   | 'EnhancedWebBrowser'
   | 'ShoppingBookmarks'
   | 'ShoppingCollections'
+  | 'ShoppingInsights'
   | 'Planner'
   | 'BlurredCardScreen'
   | 'ImageCarouselScreen'
@@ -171,7 +175,11 @@ type Screen =
   | 'GoldDataViewer'
   | 'ChatScreen'
   | 'MessagesScreen'
-  | 'UserProfileScreen';
+  | 'UserProfileScreen'
+  | 'Notes'
+  | 'SaveNote'
+  | 'NoteDetail'
+  | 'Closet';
 
 const RootNavigator = ({
   registerNavigate,
@@ -500,6 +508,12 @@ const RootNavigator = ({
 
       case 'Notifications':
         return <NotificationsScreen navigate={navigate} />;
+      case 'Notes':
+        return <NotesScreen navigate={navigate} />;
+      case 'SaveNote':
+        return <SaveNoteScreen navigate={navigate} params={screenParams} />;
+      case 'NoteDetail':
+        return <NoteDetailScreen navigate={navigate} params={screenParams} />;
       case 'Preferences':
         return <PreferencesScreen navigate={navigate} />;
       case 'SavedMeasurements':

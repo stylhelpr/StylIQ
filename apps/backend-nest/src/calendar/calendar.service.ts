@@ -49,15 +49,18 @@ export class CalendarService {
     const incomingIds = events.map((e) => e.id);
 
     // 2️⃣ Detect which events were deleted in iOS
-    const deletedIds = existingIds.filter((id) => !incomingIds.includes(id));
+    // IMPORTANT: Don't delete app-created events (styliq_ prefix) - they have their own lifecycle
+    const deletedIds = existingIds.filter(
+      (id) => !incomingIds.includes(id) && !id.startsWith('styliq_'),
+    );
 
-    // 3️⃣ Delete them from DB
+    // 3️⃣ Delete them from DB (only iOS-synced events, not app-created ones)
     if (deletedIds.length > 0) {
       await pool.query(
         `DELETE FROM user_calendar_events WHERE user_id = $1 AND event_id = ANY($2::text[]);`,
         [user_id, deletedIds],
       );
-      console.log(`🗑️ Removed ${deletedIds.length} deleted events`);
+      console.log(`🗑️ Removed ${deletedIds.length} deleted iOS events`);
     }
 
     // 4️⃣ Upsert all remaining events (insert or update)
@@ -127,6 +130,62 @@ export class CalendarService {
       `DELETE FROM user_calendar_events WHERE start_date < now() - interval '${days} days';`,
     );
     console.log(`🧹 Removed ${rowCount} expired calendar events`);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ➕ Create a single calendar event
+  async createEvent(dto: {
+    user_id: string;
+    title: string;
+    start_date: string;
+    end_date?: string;
+    location?: string;
+    notes?: string;
+  }) {
+    console.log('📅 CalendarService.createEvent called with:', dto);
+    await this.ensureTable();
+
+    // Generate a unique event_id for app-created events
+    const event_id = `styliq_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log('📅 Generated event_id:', event_id);
+
+    const params = [
+      dto.user_id,
+      event_id,
+      dto.title,
+      new Date(dto.start_date),
+      dto.end_date ? new Date(dto.end_date) : new Date(dto.start_date),
+      dto.location || '',
+      dto.notes || '',
+    ];
+    console.log('📅 Insert params:', params);
+
+    const { rows } = await pool.query(
+      `
+      INSERT INTO user_calendar_events
+        (user_id, event_id, title, start_date, end_date, location, notes, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+      RETURNING *;
+      `,
+      params,
+    );
+
+    console.log('📅 Insert result:', rows[0]);
+    return rows[0];
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 🗑️ Delete a single calendar event
+  async deleteEvent(dto: { user_id: string; event_id: string }) {
+    await this.ensureTable();
+
+    const { rowCount } = await pool.query(
+      `DELETE FROM user_calendar_events WHERE user_id = $1 AND event_id = $2;`,
+      [dto.user_id, dto.event_id],
+    );
+
+    console.log(`🗑️ Deleted event ${dto.event_id} for user ${dto.user_id}`);
+    return { ok: true, deleted: rowCount === 1 };
   }
 }
 

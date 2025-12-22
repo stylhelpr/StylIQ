@@ -922,6 +922,29 @@ export default function SavedOutfitsScreen() {
   useEffect(() => {
     if (userId && !favoritesLoading) loadOutfits();
   }, [userId, favoritesLoading]);
+
+  // Check for schedule changes when component mounts or userId changes
+  // This handles updates made from CalendarPlannerScreen
+  const [lastScheduleCheck, setLastScheduleCheck] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    const checkScheduleChanges = async () => {
+      const changed = await AsyncStorage.getItem('schedulesChanged');
+      if (changed && changed !== lastScheduleCheck) {
+        setLastScheduleCheck(changed);
+        // Reload outfits to get updated schedule state
+        if (userId && !favoritesLoading) {
+          loadOutfits();
+        }
+      }
+    };
+    checkScheduleChanges();
+    // Also check periodically when screen is visible
+    const interval = setInterval(checkScheduleChanges, 1000);
+    return () => clearInterval(interval);
+  }, [userId, favoritesLoading, lastScheduleCheck]);
+
   // ✨ Sort state and computed outfits
   const [sortType, setSortType] = useState<
     'newest' | 'favorites' | 'planned' | 'stars'

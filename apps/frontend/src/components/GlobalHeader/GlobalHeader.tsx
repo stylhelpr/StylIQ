@@ -223,16 +223,19 @@ export default function GlobalHeader({
         <View style={styles.iconRow}>
           {[
             {
+              name: 'notifications-none',
+              action: () => navigate('Notifications'),
+            },
+            {
               name: 'styla-avatar',
               action: () => navigate('AiStylistChatScreen'),
               isStyla: true,
             },
-            {
-              name: 'notifications-none',
-              action: () => navigate('Notifications'),
-            },
 
-            {name: 'event-note', action: () => navigate('Planner')},
+            {
+              name: 'shopping-bag',
+              action: () => navigate('ShoppingDashboard'),
+            },
             {
               name: 'menu',
               action: () => setMenuOpen(prev => !prev),
@@ -325,6 +328,36 @@ export default function GlobalHeader({
                     zIndex: 999,
                   },
                 ]}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    navigate('Planner');
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="event-note"
+                    size={19}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Calendar</Text>
+                </AppleTouchFeedback>
+
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    navigate('Notes');
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="sticky-note-2"
+                    size={19}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Notes</Text>
+                </AppleTouchFeedback>
+
                 <AppleTouchFeedback
                   hapticStyle="impactLight"
                   onPress={() => {
