@@ -396,6 +396,8 @@ export default function OutfitPlannerScreen() {
 
   // Add Event Modal State
   const [addEventModalVisible, setAddEventModalVisible] = useState(false);
+  // Upcoming Modal State
+  const [upcomingModalVisible, setUpcomingModalVisible] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventLocation, setNewEventLocation] = useState('');
   const [newEventNotes, setNewEventNotes] = useState('');
@@ -1098,20 +1100,38 @@ export default function OutfitPlannerScreen() {
             <Text style={[globalStyles.header, {marginBottom: 0}]}>
               StylHelpr Calendar
             </Text>
-            <TouchableOpacity
-              onPress={openAddEventModal}
-              style={{
-                padding: 8,
-                borderRadius: 20,
-                backgroundColor: theme.colors.surface,
-                marginRight: 16,
-              }}>
-              <MaterialIcons
-                name="add"
-                size={24}
-                color={theme.colors.primary}
-              />
-            </TouchableOpacity>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+              <TouchableOpacity
+                onPress={() => {
+                  h('impactLight');
+                  setUpcomingModalVisible(true);
+                }}
+                style={{
+                  padding: 8,
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.surface,
+                }}>
+                <MaterialIcons
+                  name="event-note"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={openAddEventModal}
+                style={{
+                  padding: 8,
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.surface,
+                  marginRight: 16,
+                }}>
+                <MaterialIcons
+                  name="add"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <Animated.View style={{flex: 1}}>
@@ -1566,6 +1586,312 @@ export default function OutfitPlannerScreen() {
                   }}
                 />
               </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
+
+      {/* Upcoming Modal */}
+      <Modal
+        visible={upcomingModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setUpcomingModalVisible(false)}>
+        <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+          <SafeAreaView style={{flex: 1}}>
+            <View style={{flex: 1}}>
+              {/* Modal Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: theme.colors.inputBorder,
+                }}>
+                <View style={{width: 60}} />
+                <Text
+                  style={{
+                    fontSize: 17,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                  }}>
+                  Upcoming
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setUpcomingModalVisible(false)}
+                  style={{width: 60, alignItems: 'flex-end'}}>
+                  <Text style={{fontSize: 17, color: theme.colors.primary}}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 7-Day Outlook Header */}
+              <View
+                style={{
+                  paddingHorizontal: 20,
+                  paddingTop: 20,
+                  paddingBottom: 8,
+                }}>
+                <Text
+                  style={{
+                    fontSize: 28,
+                    fontWeight: '700',
+                    color: theme.colors.foreground,
+                  }}>
+                  7-Day Outlook
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: theme.colors.muted,
+                    marginTop: 4,
+                  }}>
+                  Your upcoming events and scheduled outfits
+                </Text>
+              </View>
+
+              {/* Upcoming Days List */}
+              <ScrollView
+                style={{flex: 1}}
+                contentContainerStyle={{paddingBottom: 40}}>
+                {(() => {
+                  // Get next 7 days
+                  const days: {date: Date; dateKey: string; label: string}[] = [];
+                  const today = new Date();
+                  for (let i = 0; i < 7; i++) {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() + i);
+                    const dateKey = getLocalDateKey(d.toISOString());
+                    let label = '';
+                    if (i === 0) label = 'Today';
+                    else if (i === 1) label = 'Tomorrow';
+                    else label = d.toLocaleDateString('en-US', {weekday: 'long'});
+                    days.push({date: d, dateKey, label});
+                  }
+
+                  // Filter to days that have events or outfits
+                  const daysWithContent = days.map(day => {
+                    const dayEvents = calendarEvents.filter(
+                      e => getLocalDateKey(e.start_date) === day.dateKey,
+                    );
+                    const dayOutfits = scheduledOutfits.filter(
+                      o => getLocalDateKey(o.plannedDate) === day.dateKey,
+                    );
+                    return {...day, events: dayEvents, outfits: dayOutfits};
+                  });
+
+                  const hasAnyContent = daysWithContent.some(
+                    d => d.events.length > 0 || d.outfits.length > 0,
+                  );
+
+                  if (!hasAnyContent) {
+                    return (
+                      <View
+                        style={{
+                          flex: 1,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingTop: 100,
+                        }}>
+                        <MaterialIcons
+                          name="event-available"
+                          size={64}
+                          color={theme.colors.muted}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 17,
+                            color: theme.colors.muted,
+                            marginTop: 16,
+                            textAlign: 'center',
+                          }}>
+                          Nothing scheduled for the next 7 days
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  return daysWithContent.map((day, idx) => {
+                    if (day.events.length === 0 && day.outfits.length === 0) {
+                      return null;
+                    }
+
+                    return (
+                      <View key={day.dateKey}>
+                        {/* Day Header */}
+                        <View
+                          style={{
+                            paddingHorizontal: 20,
+                            paddingTop: idx === 0 ? 20 : 24,
+                            paddingBottom: 12,
+                          }}>
+                          <Text
+                            style={{
+                              fontSize: 22,
+                              fontWeight: '700',
+                              color: theme.colors.foreground,
+                            }}>
+                            {day.label}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 15,
+                              color: theme.colors.muted,
+                              marginTop: 2,
+                            }}>
+                            {day.date.toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </Text>
+                        </View>
+
+                        {/* Events for this day */}
+                        {day.events.map((event, eIdx) => (
+                          <TouchableOpacity
+                            key={event.event_id || event.id || eIdx}
+                            onPress={() => {
+                              h('impactLight');
+                              // Close modal and navigate to this day
+                              setUpcomingModalVisible(false);
+                              setSelectedDate(day.dateKey);
+                            }}
+                            activeOpacity={0.7}
+                            style={{
+                              marginHorizontal: 20,
+                              marginBottom: 12,
+                              backgroundColor: theme.colors.surface,
+                              borderRadius: 12,
+                              padding: 16,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}>
+                            <View
+                              style={{
+                                width: 4,
+                                height: '100%',
+                                backgroundColor: '#FFD700',
+                                borderRadius: 2,
+                                marginRight: 12,
+                                minHeight: 40,
+                              }}
+                            />
+                            <View style={{flex: 1}}>
+                              <Text
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: theme.colors.foreground,
+                                }}>
+                                {event.title}
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  color: theme.colors.muted,
+                                  marginTop: 4,
+                                }}>
+                                {formatLocalTime(event.start_date)}
+                                {event.end_date &&
+                                  ` - ${formatLocalTime(event.end_date)}`}
+                              </Text>
+                              {event.location ? (
+                                <Text
+                                  style={{
+                                    fontSize: 14,
+                                    color: theme.colors.muted,
+                                    marginTop: 2,
+                                  }}>
+                                  {event.location}
+                                </Text>
+                              ) : null}
+                            </View>
+                            <MaterialIcons
+                              name="chevron-right"
+                              size={24}
+                              color={theme.colors.muted}
+                            />
+                          </TouchableOpacity>
+                        ))}
+
+                        {/* Outfits for this day */}
+                        {day.outfits.map((outfit, oIdx) => (
+                          <TouchableOpacity
+                            key={outfit.id || oIdx}
+                            onPress={() => {
+                              h('impactLight');
+                              // Close modal and navigate to this day
+                              setUpcomingModalVisible(false);
+                              setSelectedDate(day.dateKey);
+                            }}
+                            activeOpacity={0.7}
+                            style={{
+                              marginHorizontal: 20,
+                              marginBottom: 12,
+                              backgroundColor: theme.colors.surface,
+                              borderRadius: 12,
+                              padding: 16,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                            }}>
+                            <View
+                              style={{
+                                width: 4,
+                                height: '100%',
+                                backgroundColor:
+                                  outfit.type === 'ai' ? '#405de6' : '#00c6ae',
+                                borderRadius: 2,
+                                marginRight: 12,
+                                minHeight: 40,
+                              }}
+                            />
+                            {outfit.image ? (
+                              <Image
+                                source={{uri: outfit.image}}
+                                style={{
+                                  width: 50,
+                                  height: 50,
+                                  borderRadius: 8,
+                                  marginRight: 12,
+                                }}
+                              />
+                            ) : null}
+                            <View style={{flex: 1}}>
+                              <Text
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: '600',
+                                  color: theme.colors.foreground,
+                                }}>
+                                {outfit.name || 'Scheduled Outfit'}
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 14,
+                                  color: theme.colors.muted,
+                                  marginTop: 4,
+                                }}>
+                                {outfit.type === 'ai'
+                                  ? 'AI Suggestion'
+                                  : 'Custom Outfit'}
+                              </Text>
+                            </View>
+                            <MaterialIcons
+                              name="chevron-right"
+                              size={24}
+                              color={theme.colors.muted}
+                            />
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    );
+                  });
+                })()}
+              </ScrollView>
             </View>
           </SafeAreaView>
         </View>
