@@ -39,6 +39,8 @@ import {
 } from '../utils/calendarSync';
 import * as Animatable from 'react-native-animatable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
+import {BlurView} from '@react-native-community/blur';
 import {useCalendarEventPromptStore} from '../../../../store/calendarEventPromptStore';
 import {useCalendarEventsStore} from '../../../../store/calendarEventsStore';
 import {globalNavigate} from '../MainApp';
@@ -347,7 +349,9 @@ function SwipeableOutfitCard({
         {...panResponder.panHandlers}
         style={{transform: [{translateX: panX}]}}>
         <View style={swipeStyles.card}>
-          <Text style={swipeStyles.name}>{outfit.name || 'Unnamed Outfit'}</Text>
+          <Text style={swipeStyles.name}>
+            {outfit.name || 'Unnamed Outfit'}
+          </Text>
           <Text style={swipeStyles.time}>
             🕒 {formatLocalTime(outfit.plannedDate)}
           </Text>
@@ -383,8 +387,11 @@ export default function OutfitPlannerScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
 
-  const {events: calendarEvents, setEvents: setCalendarEvents, clearEvents: clearCalendarEvents} =
-    useCalendarEventsStore();
+  const {
+    events: calendarEvents,
+    setEvents: setCalendarEvents,
+    clearEvents: clearCalendarEvents,
+  } = useCalendarEventsStore();
   const [scheduledOutfits, setScheduledOutfits] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -485,9 +492,7 @@ export default function OutfitPlannerScreen() {
           ...o,
           plannedDate,
           type: isCustom ? 'custom' : 'ai',
-          top: o.top
-            ? {...o.top, image: normalizeImageUrl(o.top.image)}
-            : null,
+          top: o.top ? {...o.top, image: normalizeImageUrl(o.top.image)} : null,
           bottom: o.bottom
             ? {...o.bottom, image: normalizeImageUrl(o.bottom.image)}
             : null,
@@ -501,7 +506,9 @@ export default function OutfitPlannerScreen() {
         ...aiData.map((o: any) => normalize(o, false)),
         ...customData.map((o: any) => normalize(o, true)),
       ].filter(Boolean);
-      console.log(`📅 fetchScheduledOutfits: setting ${outfits.length} outfits`);
+      console.log(
+        `📅 fetchScheduledOutfits: setting ${outfits.length} outfits`,
+      );
       setScheduledOutfits(outfits);
     } catch (err) {
       console.error('❌ Failed to load outfits:', err);
@@ -521,9 +528,13 @@ export default function OutfitPlannerScreen() {
 
       // Get all AsyncStorage keys for outfit calendar events
       const allKeys = await AsyncStorage.getAllKeys();
-      const outfitCalendarKeys = allKeys.filter(k => k.startsWith('outfitCalendar:'));
+      const outfitCalendarKeys = allKeys.filter(k =>
+        k.startsWith('outfitCalendar:'),
+      );
 
-      console.log(`🔍 Found ${outfitCalendarKeys.length} outfit calendar mappings to check`);
+      console.log(
+        `🔍 Found ${outfitCalendarKeys.length} outfit calendar mappings to check`,
+      );
 
       for (const key of outfitCalendarKeys) {
         const iosEventId = await AsyncStorage.getItem(key);
@@ -531,12 +542,16 @@ export default function OutfitPlannerScreen() {
 
         if (iosEventId) {
           const exists = iosEventIds.has(iosEventId);
-          console.log(`  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`);
+          console.log(
+            `  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`,
+          );
 
           if (!exists) {
             // This iOS event was deleted - remove the scheduled outfit
             const outfitId = key.replace('outfitCalendar:', '');
-            console.log(`🗑️ iOS event ${iosEventId} was deleted, removing outfit schedule ${outfitId}`);
+            console.log(
+              `🗑️ iOS event ${iosEventId} was deleted, removing outfit schedule ${outfitId}`,
+            );
 
             // Delete from backend
             try {
@@ -552,9 +567,14 @@ export default function OutfitPlannerScreen() {
               await AsyncStorage.removeItem(key);
 
               // Signal SavedOutfitsScreen to refresh
-              await AsyncStorage.setItem('schedulesChanged', Date.now().toString());
+              await AsyncStorage.setItem(
+                'schedulesChanged',
+                Date.now().toString(),
+              );
 
-              console.log(`✅ Removed scheduled outfit ${outfitId} (iOS event deleted)`);
+              console.log(
+                `✅ Removed scheduled outfit ${outfitId} (iOS event deleted)`,
+              );
             } catch (err) {
               console.error(`❌ Failed to remove outfit schedule:`, err);
             }
@@ -580,9 +600,13 @@ export default function OutfitPlannerScreen() {
 
       // Get all AsyncStorage keys for app-created calendar events
       const allKeys = await AsyncStorage.getAllKeys();
-      const eventCalendarKeys = allKeys.filter(k => k.startsWith('eventCalendar:'));
+      const eventCalendarKeys = allKeys.filter(k =>
+        k.startsWith('eventCalendar:'),
+      );
 
-      console.log(`🔍 Found ${eventCalendarKeys.length} app event calendar mappings to check`);
+      console.log(
+        `🔍 Found ${eventCalendarKeys.length} app event calendar mappings to check`,
+      );
 
       for (const key of eventCalendarKeys) {
         const iosEventId = await AsyncStorage.getItem(key);
@@ -590,12 +614,16 @@ export default function OutfitPlannerScreen() {
 
         if (iosEventId) {
           const exists = iosEventIds.has(iosEventId);
-          console.log(`  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`);
+          console.log(
+            `  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`,
+          );
 
           if (!exists) {
             // This iOS event was deleted - remove the app event from backend
             const eventId = key.replace('eventCalendar:', '');
-            console.log(`🗑️ iOS event ${iosEventId} was deleted, removing app event ${eventId}`);
+            console.log(
+              `🗑️ iOS event ${iosEventId} was deleted, removing app event ${eventId}`,
+            );
 
             // Delete from backend
             try {
@@ -630,7 +658,13 @@ export default function OutfitPlannerScreen() {
     };
 
     initialSync();
-  }, [userId, syncDeletedOutfitEvents, syncDeletedAppEvents, syncCalendarEvents, fetchScheduledOutfits]);
+  }, [
+    userId,
+    syncDeletedOutfitEvents,
+    syncDeletedAppEvents,
+    syncCalendarEvents,
+    fetchScheduledOutfits,
+  ]);
 
   // Re-sync when app returns to foreground (detects iOS Calendar deletions)
   useEffect(() => {
@@ -658,7 +692,14 @@ export default function OutfitPlannerScreen() {
     });
 
     return () => subscription.remove();
-  }, [userId, syncCalendarEvents, syncDeletedOutfitEvents, syncDeletedAppEvents, fetchScheduledOutfits, clearCalendarEvents]);
+  }, [
+    userId,
+    syncCalendarEvents,
+    syncDeletedOutfitEvents,
+    syncDeletedAppEvents,
+    fetchScheduledOutfits,
+    clearCalendarEvents,
+  ]);
 
   // ───────── mark dots ─────────
   const allMarks: Record<string, any> = {};
@@ -895,7 +936,12 @@ export default function OutfitPlannerScreen() {
             `eventCalendar:${data.event.event_id}`,
             iosEventId,
           );
-          console.log('📅 Stored iOS event ID mapping:', data.event.event_id, '->', iosEventId);
+          console.log(
+            '📅 Stored iOS event ID mapping:',
+            data.event.event_id,
+            '->',
+            iosEventId,
+          );
         }
 
         h('notificationSuccess');
@@ -964,58 +1010,69 @@ export default function OutfitPlannerScreen() {
     async (eventId: string) => {
       console.log('🗑️ handleDeleteEvent called with eventId:', eventId);
       console.log('🗑️ userId:', userId);
-      Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Find the event to get the iOS event ID if it exists
-              const eventToDelete = calendarEvents.find(
-                e => (e.event_id || e.id) === eventId,
-              );
-              console.log('🗑️ Event to delete:', eventToDelete);
-
-              // Delete from backend
-              const deleted = await deleteEventFromBackend(userId, eventId);
-              console.log('🗑️ Backend delete result:', deleted);
-              if (deleted) {
-                // Update local state
-                setCalendarEvents(
-                  calendarEvents.filter(
-                    e => (e.event_id || e.id) !== eventId,
-                  ),
+      Alert.alert(
+        'Delete Event',
+        'Are you sure you want to delete this event?',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                // Find the event to get the iOS event ID if it exists
+                const eventToDelete = calendarEvents.find(
+                  e => (e.event_id || e.id) === eventId,
                 );
-                h('notificationSuccess');
+                console.log('🗑️ Event to delete:', eventToDelete);
 
-                // Delete from iOS calendar
-                // For synced iOS events, the eventId IS the iOS calendar ID
-                // For app-created events, check AsyncStorage for the iOS event ID
-                if (eventId.startsWith('styliq_')) {
-                  // App-created event - get iOS event ID from AsyncStorage
-                  const iosEventId = await AsyncStorage.getItem(`eventCalendar:${eventId}`);
-                  console.log('🗑️ Retrieved iOS event ID from AsyncStorage:', iosEventId);
-                  if (iosEventId) {
-                    const iosDeleted = await deleteEventFromIOSCalendar(iosEventId);
-                    console.log('🗑️ iOS calendar delete result:', iosDeleted);
-                    // Clean up AsyncStorage
-                    await AsyncStorage.removeItem(`eventCalendar:${eventId}`);
+                // Delete from backend
+                const deleted = await deleteEventFromBackend(userId, eventId);
+                console.log('🗑️ Backend delete result:', deleted);
+                if (deleted) {
+                  // Update local state
+                  setCalendarEvents(
+                    calendarEvents.filter(
+                      e => (e.event_id || e.id) !== eventId,
+                    ),
+                  );
+                  h('notificationSuccess');
+
+                  // Delete from iOS calendar
+                  // For synced iOS events, the eventId IS the iOS calendar ID
+                  // For app-created events, check AsyncStorage for the iOS event ID
+                  if (eventId.startsWith('styliq_')) {
+                    // App-created event - get iOS event ID from AsyncStorage
+                    const iosEventId = await AsyncStorage.getItem(
+                      `eventCalendar:${eventId}`,
+                    );
+                    console.log(
+                      '🗑️ Retrieved iOS event ID from AsyncStorage:',
+                      iosEventId,
+                    );
+                    if (iosEventId) {
+                      const iosDeleted = await deleteEventFromIOSCalendar(
+                        iosEventId,
+                      );
+                      console.log('🗑️ iOS calendar delete result:', iosDeleted);
+                      // Clean up AsyncStorage
+                      await AsyncStorage.removeItem(`eventCalendar:${eventId}`);
+                    }
+                  } else {
+                    // Synced iOS event - the eventId is the iOS calendar ID
+                    await deleteEventFromIOSCalendar(eventId);
                   }
                 } else {
-                  // Synced iOS event - the eventId is the iOS calendar ID
-                  await deleteEventFromIOSCalendar(eventId);
+                  Alert.alert('Error', 'Failed to delete event.');
                 }
-              } else {
+              } catch (err) {
+                console.error('Failed to delete event:', err);
                 Alert.alert('Error', 'Failed to delete event.');
               }
-            } catch (err) {
-              console.error('Failed to delete event:', err);
-              Alert.alert('Error', 'Failed to delete event.');
-            }
+            },
           },
-        },
-      ]);
+        ],
+      );
     },
     [userId, calendarEvents, setCalendarEvents],
   );
@@ -1052,7 +1109,10 @@ export default function OutfitPlannerScreen() {
                 if (iosEventId) {
                   await removeCalendarEvent(iosEventId);
                   await AsyncStorage.removeItem(key);
-                  console.log('✅ Removed outfit from iOS calendar:', iosEventId);
+                  console.log(
+                    '✅ Removed outfit from iOS calendar:',
+                    iosEventId,
+                  );
                 }
 
                 // Signal that schedules have changed so SavedOutfitsScreen can refresh
@@ -1597,70 +1657,131 @@ export default function OutfitPlannerScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setUpcomingModalVisible(false)}>
-        <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+        <LinearGradient
+          colors={[
+            theme.colors.background,
+            theme.colors.background === '#000000' ||
+            theme.colors.background === '#000'
+              ? '#0a0a1a'
+              : theme.colors.background,
+            theme.colors.background === '#000000' ||
+            theme.colors.background === '#000'
+              ? '#0f0f2a'
+              : theme.colors.background,
+          ]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={{flex: 1}}>
           <SafeAreaView style={{flex: 1}}>
             <View style={{flex: 1}}>
-              {/* Modal Header */}
-              <View
+              {/* Glossy Modal Header */}
+              <BlurView
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingHorizontal: 20,
-                  paddingVertical: 16,
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: theme.colors.inputBorder,
-                }}>
-                <View style={{width: 60}} />
-                <Text
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 10,
+                }}
+                blurType={
+                  theme.colors.background === '#000000' ||
+                  theme.colors.background === '#000'
+                    ? 'dark'
+                    : 'light'
+                }
+                blurAmount={20}
+                reducedTransparencyFallbackColor="transparent">
+                <View
                   style={{
-                    fontSize: 17,
-                    fontWeight: '600',
-                    color: theme.colors.foreground,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 20,
+                    paddingVertical: 16,
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: 'rgba(255,255,255,0.1)',
                   }}>
-                  Upcoming
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setUpcomingModalVisible(false)}
-                  style={{width: 60, alignItems: 'flex-end'}}>
-                  <Text style={{fontSize: 17, color: theme.colors.primary}}>
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  <View style={{width: 60}} />
+                  <View style={{alignItems: 'center'}}>
+                    <Text
+                      style={{
+                        fontSize: 17,
+                        fontWeight: '600',
+                        color: theme.colors.foreground,
+                        letterSpacing: 0.5,
+                      }}>
+                      Upcoming
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      h('impactLight');
+                      setUpcomingModalVisible(false);
+                    }}
+                    style={{
+                      width: 60,
+                      alignItems: 'flex-end',
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 17,
+                        fontWeight: '600',
+                        color: theme.colors.primary,
+                      }}>
+                      Done
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </BlurView>
 
-              {/* 7-Day Outlook Header */}
+              {/* 7-Day Outlook Hero Header */}
               <View
                 style={{
                   paddingHorizontal: 20,
-                  paddingTop: 20,
-                  paddingBottom: 8,
+                  paddingTop: 70,
+                  paddingBottom: 16,
                 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                  }}></View>
                 <Text
                   style={{
-                    fontSize: 28,
-                    fontWeight: '700',
-                    color: theme.colors.foreground,
+                    fontSize: 32,
+                    fontWeight: '800',
+                    color: '#fff',
+                    letterSpacing: -0.5,
                   }}>
                   7-Day Outlook
                 </Text>
                 <Text
                   style={{
                     fontSize: 15,
-                    color: theme.colors.muted,
-                    marginTop: 4,
+                    color: 'rgba(255,255,255,0.75)',
+                    marginTop: 6,
+                    lineHeight: 20,
+                    fontWeight: '600',
                   }}>
-                  Your upcoming events and scheduled outfits
+                  Your Week Ahead
                 </Text>
               </View>
 
               {/* Upcoming Days List */}
               <ScrollView
                 style={{flex: 1}}
-                contentContainerStyle={{paddingBottom: 40}}>
+                contentContainerStyle={{
+                  paddingBottom: 40,
+                  paddingHorizontal: 20,
+                }}
+                showsVerticalScrollIndicator={false}>
                 {(() => {
                   // Get next 7 days
-                  const days: {date: Date; dateKey: string; label: string}[] = [];
+                  const days: {date: Date; dateKey: string; label: string}[] =
+                    [];
                   const today = new Date();
                   for (let i = 0; i < 7; i++) {
                     const d = new Date(today);
@@ -1669,7 +1790,8 @@ export default function OutfitPlannerScreen() {
                     let label = '';
                     if (i === 0) label = 'Today';
                     else if (i === 1) label = 'Tomorrow';
-                    else label = d.toLocaleDateString('en-US', {weekday: 'long'});
+                    else
+                      label = d.toLocaleDateString('en-US', {weekday: 'long'});
                     days.push({date: d, dateKey, label});
                   }
 
@@ -1695,19 +1817,40 @@ export default function OutfitPlannerScreen() {
                           flex: 1,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          paddingTop: 100,
+                          paddingTop: 60,
+                          paddingHorizontal: 20,
                         }}>
-                        <MaterialIcons
-                          name="event-available"
-                          size={64}
-                          color={theme.colors.muted}
-                        />
+                        <View
+                          style={{
+                            width: 100,
+                            height: 100,
+                            borderRadius: 50,
+                            backgroundColor: 'rgba(102, 126, 234, 0.15)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: 20,
+                          }}>
+                          <MaterialIcons
+                            name="event-available"
+                            size={48}
+                            color="#667eea"
+                          />
+                        </View>
                         <Text
                           style={{
-                            fontSize: 17,
+                            fontSize: 20,
+                            fontWeight: '700',
+                            color: theme.colors.foreground,
+                            marginBottom: 8,
+                          }}>
+                          All Clear!
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 15,
                             color: theme.colors.muted,
-                            marginTop: 16,
                             textAlign: 'center',
+                            lineHeight: 22,
                           }}>
                           Nothing scheduled for the next 7 days
                         </Text>
@@ -1721,36 +1864,47 @@ export default function OutfitPlannerScreen() {
                     }
 
                     return (
-                      <View key={day.dateKey}>
-                        {/* Day Header */}
+                      <Animatable.View
+                        key={day.dateKey}
+                        animation="fadeInUp"
+                        delay={idx * 100}
+                        duration={400}>
+                        {/* Glossy Day Header */}
                         <View
                           style={{
-                            paddingHorizontal: 20,
-                            paddingTop: idx === 0 ? 20 : 24,
-                            paddingBottom: 12,
+                            paddingTop: idx === 0 ? 8 : 16,
+                            paddingBottom: 8,
                           }}>
-                          <Text
+                          <View
                             style={{
-                              fontSize: 22,
-                              fontWeight: '700',
-                              color: theme.colors.foreground,
+                              flexDirection: 'row',
+                              alignItems: 'baseline',
                             }}>
-                            {day.label}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 15,
-                              color: theme.colors.muted,
-                              marginTop: 2,
-                            }}>
-                            {day.date.toLocaleDateString('en-US', {
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </Text>
+                            <Text
+                              style={{
+                                fontSize: 24,
+                                fontWeight: '800',
+                                color: theme.colors.foreground,
+                                letterSpacing: -0.5,
+                              }}>
+                              {day.label}
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                color: theme.colors.muted,
+                                marginLeft: 10,
+                                fontWeight: '500',
+                              }}>
+                              {day.date.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </Text>
+                          </View>
                         </View>
 
-                        {/* Events for this day */}
+                        {/* Events for this day - Glassmorphic Cards */}
                         {day.events.map((event, eIdx) => (
                           <TouchableOpacity
                             key={event.event_id || event.id || eIdx}
@@ -1760,65 +1914,104 @@ export default function OutfitPlannerScreen() {
                               setUpcomingModalVisible(false);
                               setSelectedDate(day.dateKey);
                             }}
-                            activeOpacity={0.7}
+                            activeOpacity={0.8}
                             style={{
-                              marginHorizontal: 20,
-                              marginBottom: 12,
-                              backgroundColor: theme.colors.surface,
-                              borderRadius: 12,
-                              padding: 16,
-                              flexDirection: 'row',
-                              alignItems: 'center',
+                              borderRadius: 16,
+                              overflow: 'hidden',
+                              shadowColor: '#FFD700',
+                              shadowOffset: {width: 0, height: 4},
+                              shadowOpacity: 0.15,
+                              shadowRadius: 12,
+                              elevation: 6,
                             }}>
-                            <View
+                            <LinearGradient
+                              colors={[
+                                'rgba(255, 215, 0, 0.15)',
+                                'rgba(255, 193, 7, 0.08)',
+                                'rgba(255, 215, 0, 0.03)',
+                              ]}
+                              start={{x: 0, y: 0}}
+                              end={{x: 1, y: 1}}
                               style={{
-                                width: 4,
-                                height: '100%',
-                                backgroundColor: '#FFD700',
-                                borderRadius: 2,
-                                marginRight: 12,
-                                minHeight: 40,
-                              }}
-                            />
-                            <View style={{flex: 1}}>
-                              <Text
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                borderWidth: 1,
+                                borderColor: 'rgba(255, 215, 0, 0.2)',
+                                borderRadius: 16,
+                                height: 70,
+                                marginBottom: 8,
+                              }}>
+                              <View
                                 style={{
-                                  fontSize: 16,
-                                  fontWeight: '600',
-                                  color: theme.colors.foreground,
+                                  width: 44,
+                                  height: 44,
+                                  borderRadius: 12,
+                                  backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  marginLeft: 14,
+                                  marginRight: 12,
                                 }}>
-                                {event.title}
-                              </Text>
-                              <Text
-                                style={{
-                                  fontSize: 14,
-                                  color: theme.colors.muted,
-                                  marginTop: 4,
-                                }}>
-                                {formatLocalTime(event.start_date)}
-                                {event.end_date &&
-                                  ` - ${formatLocalTime(event.end_date)}`}
-                              </Text>
-                              {event.location ? (
+                                <MaterialIcons
+                                  name="event"
+                                  size={22}
+                                  color="#FFD700"
+                                />
+                              </View>
+                              <View style={{flex: 1}}>
                                 <Text
                                   style={{
-                                    fontSize: 14,
-                                    color: theme.colors.muted,
-                                    marginTop: 2,
+                                    fontSize: 16,
+                                    fontWeight: '700',
+                                    color: theme.colors.foreground,
+                                    letterSpacing: -0.3,
                                   }}>
-                                  {event.location}
+                                  {event.title}
                                 </Text>
-                              ) : null}
-                            </View>
-                            <MaterialIcons
-                              name="chevron-right"
-                              size={24}
-                              color={theme.colors.muted}
-                            />
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: theme.colors.muted,
+                                    marginTop: 3,
+                                    fontWeight: '500',
+                                  }}>
+                                  {formatLocalTime(event.start_date)}
+                                  {event.end_date &&
+                                    ` → ${formatLocalTime(event.end_date)}`}
+                                </Text>
+                                {event.location ? (
+                                  <View
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      marginTop: 4,
+                                    }}>
+                                    <MaterialIcons
+                                      name="place"
+                                      size={12}
+                                      color={theme.colors.muted}
+                                    />
+                                    <Text
+                                      style={{
+                                        fontSize: 12,
+                                        color: theme.colors.muted,
+                                        marginLeft: 4,
+                                      }}>
+                                      {event.location}
+                                    </Text>
+                                  </View>
+                                ) : null}
+                              </View>
+                              <MaterialIcons
+                                name="chevron-right"
+                                size={22}
+                                color="rgba(255, 215, 0, 0.6)"
+                              />
+                            </LinearGradient>
                           </TouchableOpacity>
                         ))}
 
-                        {/* Outfits for this day */}
+                        {/* Outfits for this day - Glassmorphic Cards */}
                         {day.outfits.map((outfit, oIdx) => (
                           <TouchableOpacity
                             key={outfit.id || oIdx}
@@ -1828,73 +2021,127 @@ export default function OutfitPlannerScreen() {
                               setUpcomingModalVisible(false);
                               setSelectedDate(day.dateKey);
                             }}
-                            activeOpacity={0.7}
+                            activeOpacity={0.8}
                             style={{
-                              marginHorizontal: 20,
                               marginBottom: 12,
-                              backgroundColor: theme.colors.surface,
-                              borderRadius: 12,
-                              padding: 16,
-                              flexDirection: 'row',
-                              alignItems: 'center',
+                              borderRadius: 16,
+                              overflow: 'hidden',
+                              shadowColor:
+                                outfit.type === 'ai' ? '#405de6' : '#00c6ae',
+                              shadowOffset: {width: 0, height: 4},
+                              shadowOpacity: 0.15,
+                              shadowRadius: 12,
+                              elevation: 6,
                             }}>
-                            <View
+                            <LinearGradient
+                              colors={
+                                outfit.type === 'ai'
+                                  ? [
+                                      'rgba(64, 93, 230, 0.15)',
+                                      'rgba(64, 93, 230, 0.08)',
+                                      'rgba(64, 93, 230, 0.03)',
+                                    ]
+                                  : [
+                                      'rgba(0, 198, 174, 0.15)',
+                                      'rgba(0, 198, 174, 0.08)',
+                                      'rgba(0, 198, 174, 0.03)',
+                                    ]
+                              }
+                              start={{x: 0, y: 0}}
+                              end={{x: 1, y: 1}}
                               style={{
-                                width: 4,
-                                height: '100%',
-                                backgroundColor:
-                                  outfit.type === 'ai' ? '#405de6' : '#00c6ae',
-                                borderRadius: 2,
-                                marginRight: 12,
-                                minHeight: 40,
-                              }}
-                            />
-                            {outfit.image ? (
-                              <Image
-                                source={{uri: outfit.image}}
-                                style={{
-                                  width: 50,
-                                  height: 50,
-                                  borderRadius: 8,
-                                  marginRight: 12,
-                                }}
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                borderWidth: 1,
+                                borderColor:
+                                  outfit.type === 'ai'
+                                    ? 'rgba(64, 93, 230, 0.2)'
+                                    : 'rgba(0, 198, 174, 0.2)',
+                                borderRadius: 16,
+                                height: 70,
+                              }}>
+                              {outfit.image ? (
+                                <Image
+                                  source={{uri: outfit.image}}
+                                  style={{
+                                    width: 52,
+                                    height: 52,
+                                    borderRadius: 12,
+                                    marginRight: 14,
+                                  }}
+                                />
+                              ) : (
+                                <View
+                                  style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 12,
+                                    backgroundColor:
+                                      outfit.type === 'ai'
+                                        ? 'rgba(64, 93, 230, 0.2)'
+                                        : 'rgba(0, 198, 174, 0.2)',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginLeft: 14,
+                                    marginRight: 14,
+                                  }}>
+                                  <MaterialIcons
+                                    name={
+                                      outfit.type === 'ai'
+                                        ? 'auto-awesome'
+                                        : 'checkroom'
+                                    }
+                                    size={22}
+                                    color={
+                                      outfit.type === 'ai'
+                                        ? '#405de6'
+                                        : '#00c6ae'
+                                    }
+                                  />
+                                </View>
+                              )}
+                              <View style={{flex: 1}}>
+                                <Text
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: '700',
+                                    color: theme.colors.foreground,
+                                    letterSpacing: -0.3,
+                                  }}>
+                                  {outfit.name || 'Scheduled Outfit'}
+                                </Text>
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: theme.colors.muted,
+                                    marginTop: 3,
+                                    fontWeight: '500',
+                                  }}>
+                                  {outfit.type === 'ai'
+                                    ? 'AI Suggestion'
+                                    : 'Custom Outfit'}
+                                </Text>
+                              </View>
+                              <MaterialIcons
+                                name="chevron-right"
+                                size={22}
+                                color={
+                                  outfit.type === 'ai'
+                                    ? 'rgba(64, 93, 230, 0.6)'
+                                    : 'rgba(0, 198, 174, 0.6)'
+                                }
                               />
-                            ) : null}
-                            <View style={{flex: 1}}>
-                              <Text
-                                style={{
-                                  fontSize: 16,
-                                  fontWeight: '600',
-                                  color: theme.colors.foreground,
-                                }}>
-                                {outfit.name || 'Scheduled Outfit'}
-                              </Text>
-                              <Text
-                                style={{
-                                  fontSize: 14,
-                                  color: theme.colors.muted,
-                                  marginTop: 4,
-                                }}>
-                                {outfit.type === 'ai'
-                                  ? 'AI Suggestion'
-                                  : 'Custom Outfit'}
-                              </Text>
-                            </View>
-                            <MaterialIcons
-                              name="chevron-right"
-                              size={24}
-                              color={theme.colors.muted}
-                            />
+                            </LinearGradient>
                           </TouchableOpacity>
                         ))}
-                      </View>
+                      </Animatable.View>
                     );
                   });
                 })()}
               </ScrollView>
             </View>
           </SafeAreaView>
-        </View>
+        </LinearGradient>
       </Modal>
     </SafeAreaView>
   );
