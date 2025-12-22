@@ -1457,12 +1457,19 @@ export default function OutfitPlannerScreen() {
                       color: theme.colors.foreground,
                       fontWeight: '500',
                     }}>
-                    {new Date(selectedDate).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    {(() => {
+                      // Parse date manually to avoid timezone issues
+                      const [year, month, day] = selectedDate
+                        .split('-')
+                        .map(Number);
+                      const date = new Date(year, month - 1, day);
+                      return date.toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      });
+                    })()}
                   </Text>
                 </View>
               )}
@@ -1520,12 +1527,7 @@ export default function OutfitPlannerScreen() {
                           }
                         }
                       }}
-                      themeVariant={
-                        theme.colors.background === '#000000' ||
-                        theme.colors.background === '#000'
-                          ? 'dark'
-                          : 'light'
-                      }
+                      themeVariant="dark"
                       style={{height: 44}}
                     />
                   </View>
@@ -1553,12 +1555,7 @@ export default function OutfitPlannerScreen() {
                       mode="time"
                       display="default"
                       onChange={(_, date) => date && setNewEventEndTime(date)}
-                      themeVariant={
-                        theme.colors.background === '#000000' ||
-                        theme.colors.background === '#000'
-                          ? 'dark'
-                          : 'light'
-                      }
+                      themeVariant="dark"
                       style={{height: 44}}
                     />
                   </View>

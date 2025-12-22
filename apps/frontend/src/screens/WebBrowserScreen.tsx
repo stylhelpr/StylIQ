@@ -1303,12 +1303,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     urlBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.73)',
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
       borderRadius: 25,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.foreground,
       paddingHorizontal: 14,
       height: 50,
+      // marginTop: 5,
     },
     urlInput: {
       flex: 1,
@@ -2115,7 +2116,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               if (!navState.url || !currentTab) return;
 
               // Skip if same URL (ignore www/trailing slash differences)
-              if (isSameUrl(navState.url, currentTab.url) && isSameUrl(navState.url, lastNavUrlRef.current)) {
+              if (
+                isSameUrl(navState.url, currentTab.url) &&
+                isSameUrl(navState.url, lastNavUrlRef.current)
+              ) {
                 return;
               }
 
@@ -2130,7 +2134,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               // Debounce the update - only apply after URL is stable for 300ms
               navStateDebounceRef.current = setTimeout(() => {
                 // Double-check the URL is still the same after debounce
-                if (navState.url === lastNavUrlRef.current && !isSameUrl(navState.url, currentTab.url)) {
+                if (
+                  navState.url === lastNavUrlRef.current &&
+                  !isSameUrl(navState.url, currentTab.url)
+                ) {
                   updateTab(
                     currentTab.id,
                     navState.url,

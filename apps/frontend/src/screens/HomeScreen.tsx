@@ -363,6 +363,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     pieces?: any[];
     results?: any[];
     source_image?: string;
+    lookId?: string;
   } | null>(null);
   const [showSavedLooks, setShowSavedLooks] = useState(true);
 
@@ -762,6 +763,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     pieces?: any[];
     results?: any[];
     source_image?: string;
+    lookId?: string;
   }) => {
     if (!data) return;
     console.log('👗 Opening Visual Recreate Modal with:', data);
@@ -2068,19 +2070,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 />
                               </TouchableOpacity>
 
-                              {/* Delete button - bottom right */}
-                              <TouchableOpacity
-                                onPress={() => handleDeleteSavedLook(look.id)}
-                                style={{
-                                  position: 'absolute',
-                                  bottom: 22,
-                                  right: 4,
-                                  backgroundColor: 'rgba(220,38,38,0.85)',
-                                  borderRadius: 12,
-                                  padding: 4,
-                                }}>
-                                <Icon name="close" size={12} color="#fff" />
-                              </TouchableOpacity>
                               <Text
                                 style={[
                                   globalStyles.cardSubLabel,
@@ -2160,6 +2149,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   openVisualRecreateModal({
                                     pieces: c.generated_outfit.pieces,
                                     source_image: c.source_image_url,
+                                    lookId: c.id,
                                   });
                                 } else {
                                   // Legacy format - use RecreatedLookScreen
@@ -2192,20 +2182,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   size={20}
                                   color={theme.colors.buttonText1}
                                 />
-                              </TouchableOpacity>
-
-                              {/* Delete button - bottom right */}
-                              <TouchableOpacity
-                                onPress={() => handleDeleteRecreatedLook(c.id)}
-                                style={{
-                                  position: 'absolute',
-                                  bottom: 22,
-                                  right: 4,
-                                  backgroundColor: 'rgba(220,38,38,0.85)',
-                                  borderRadius: 12,
-                                  padding: 4,
-                                }}>
-                                <Icon name="close" size={14} color="#fff" />
                               </TouchableOpacity>
 
                               <Text
@@ -2336,8 +2312,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 {/* Hide button */}
                                 <Pressable
                                   onPress={() => {
-                                    setHiddenSharedLooks(prev =>
-                                      new Set(prev).add(look.id),
+                                    Alert.alert(
+                                      'Remove Look',
+                                      'Are you sure you want to remove this shared look from your feed?',
+                                      [
+                                        {text: 'Cancel', style: 'cancel'},
+                                        {
+                                          text: 'Remove',
+                                          style: 'destructive',
+                                          onPress: () => {
+                                            setHiddenSharedLooks(prev =>
+                                              new Set(prev).add(look.id),
+                                            );
+                                          },
+                                        },
+                                      ],
                                     );
                                   }}
                                   style={{
@@ -2434,6 +2423,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             pieces={visualRecreateData?.pieces}
             results={visualRecreateData?.results}
             source_image={visualRecreateData?.source_image}
+            lookId={visualRecreateData?.lookId}
+            onDelete={handleDeleteRecreatedLook}
           />
           {showRecreatedModal && recreatedData && (
             <Modal

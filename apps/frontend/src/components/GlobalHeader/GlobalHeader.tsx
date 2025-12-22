@@ -223,10 +223,6 @@ export default function GlobalHeader({
         <View style={styles.iconRow}>
           {[
             {
-              name: 'notifications-none',
-              action: () => navigate('Notifications'),
-            },
-            {
               name: 'styla-avatar',
               action: () => navigate('AiStylistChatScreen'),
               isStyla: true,
@@ -235,6 +231,10 @@ export default function GlobalHeader({
             {
               name: 'language',
               action: () => navigate('ShoppingDashboard'),
+            },
+            {
+              name: 'notifications-none',
+              action: () => navigate('Notifications'),
             },
             {
               name: 'menu',

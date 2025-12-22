@@ -7,6 +7,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -61,6 +62,23 @@ export default function ShoppingAssistant({
   const [isNavigating, setIsNavigating] = useState(false);
   const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
   const aiSuggestionIndex = useRef(0);
+
+  const STORAGE_KEY = '@shopping_assistant_suggestions_disabled';
+
+  // Load persisted suggestionsDisabled state on mount
+  useEffect(() => {
+    const loadPersistedState = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored !== null) {
+          setSuggestionsDisabled(stored === 'true');
+        }
+      } catch (e) {
+        console.log('Failed to load suggestions disabled state:', e);
+      }
+    };
+    loadPersistedState();
+  }, []);
 
   // Update current suggestion when parent provides AI suggestions
   useEffect(() => {
@@ -233,11 +251,18 @@ export default function ShoppingAssistant({
     }
   };
 
-  const handleLongPress = () => {
+  const handleLongPress = async () => {
     // Toggle suggestions on/off
-    setSuggestionsDisabled(prev => !prev);
+    const newValue = !suggestionsDisabled;
+    setSuggestionsDisabled(newValue);
+    // Save to storage
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, String(newValue));
+    } catch (e) {
+      console.log('Failed to save suggestions disabled state:', e);
+    }
     // Hide any current bubble when disabling
-    if (!suggestionsDisabled) {
+    if (newValue) {
       setShowBubble(false);
       bubbleScale.value = withTiming(0, {duration: 200});
     }
