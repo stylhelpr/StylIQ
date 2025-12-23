@@ -39,6 +39,7 @@ import {
 import {useVoiceControl} from '../hooks/useVoiceControl';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {PermissionsAndroid, Platform} from 'react-native';
+import ImageSaverModule from '../native/ImageSaverModule';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -2698,6 +2699,34 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             style={styles.saveMenuContent}>
             <View style={styles.saveMenuHandle} />
             <Text style={styles.saveMenuTitle}>Save Image</Text>
+            {/* Save to Photos */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={async () => {
+                if (longPressedImageUrl) {
+                  setShowImageSaveModal(false);
+                  try {
+                    await ImageSaverModule.saveImageFromUrl(longPressedImageUrl);
+                    triggerHaptic('notificationSuccess');
+                  } catch (error) {
+                    console.log('Image save error:', error);
+                    triggerHaptic('notificationError');
+                  }
+                } else {
+                  setShowImageSaveModal(false);
+                }
+              }}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons name="photo-library" size={22} color="#10b981" />
+              </View>
+              <Text style={styles.saveMenuItemText}>Save to Photos</Text>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={16}
+                color={theme.colors.foreground3}
+                style={styles.saveMenuItemCheck}
+              />
+            </TouchableOpacity>
             {/* Add to Wardrobe */}
             <TouchableOpacity
               style={styles.saveMenuItem}
