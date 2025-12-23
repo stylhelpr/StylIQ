@@ -74,5 +74,5 @@ export type Screen =
 
 export type NavigateFunction = (
   screen: Screen,
-  params?: {userId?: string},
+  params?: {userId?: string; imageUrl?: string},
 ) => void;

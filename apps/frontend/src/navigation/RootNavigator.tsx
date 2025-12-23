@@ -657,7 +657,7 @@ const RootNavigator = ({
           />
         );
       case 'AddItem':
-        return <AddItemScreen navigate={navigate} goBack={goBack} addItem={addToWardrobe} />;
+        return <AddItemScreen navigate={navigate} goBack={goBack} addItem={addToWardrobe} initialImageUrl={screenParams?.imageUrl} />;
       case 'Outfit':
         return <OutfitSuggestionScreen navigate={navigate} />;
       case 'Search':

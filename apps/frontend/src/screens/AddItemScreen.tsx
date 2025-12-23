@@ -1,5 +1,5 @@
 // apps/frontend/screens/AddItemScreen.tsx
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -179,9 +179,11 @@ async function mapWithConcurrency<T, R>(
 export default function AddItemScreen({
   navigate,
   goBack,
+  initialImageUrl,
 }: {
   navigate: (screen: string) => void;
   goBack?: () => void;
+  initialImageUrl?: string;
 }) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -220,6 +222,13 @@ export default function AddItemScreen({
   // single + multi
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageUris, setImageUris] = useState<string[]>([]);
+
+  // Pre-populate image from web browser if provided
+  useEffect(() => {
+    if (initialImageUrl) {
+      setImageUri(initialImageUrl);
+    }
+  }, [initialImageUrl]);
 
   // optional fields (applied to all in batch if provided)
   const [name, setName] = useState('');

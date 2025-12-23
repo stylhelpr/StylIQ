@@ -220,6 +220,12 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const [showAutofillSettings, setShowAutofillSettings] = useState(false);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
 
+  // Image long-press save state
+  const [longPressedImageUrl, setLongPressedImageUrl] = useState<string | null>(
+    null,
+  );
+  const [showImageSaveModal, setShowImageSaveModal] = useState(false);
+
   // Drag and drop state for tabs
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [draggedOverIndex, setDraggedOverIndex] = useState<number | null>(null);
@@ -979,10 +985,52 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       true;
     `;
 
+    // Image long-press detection script
+    const imageLongPressScript = `
+      (function() {
+        if (window.__styliqImageLongPressAdded) return;
+        window.__styliqImageLongPressAdded = true;
+
+        let longPressTimer = null;
+        let touchedImage = null;
+
+        document.addEventListener('touchstart', function(e) {
+          const target = e.target;
+          if (target.tagName === 'IMG' && target.src) {
+            touchedImage = target;
+            longPressTimer = setTimeout(function() {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'imageLongPress',
+                imageUrl: touchedImage.src,
+                alt: touchedImage.alt || ''
+              }));
+            }, 500);
+          }
+        }, {passive: true});
+
+        document.addEventListener('touchend', function() {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+          touchedImage = null;
+        });
+
+        document.addEventListener('touchmove', function() {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+        });
+      })();
+      true;
+    `;
+
     webRef.current.injectJavaScript(extractPageTextScript);
     webRef.current.injectJavaScript(sizeColorClickScript);
     webRef.current.injectJavaScript(cartDetectionScript);
     webRef.current.injectJavaScript(purchaseDetectionScript);
+    webRef.current.injectJavaScript(imageLongPressScript);
   }, []);
 
   // Handle messages from WebView
@@ -1046,6 +1094,12 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           itemCount: data.itemCount,
           cartValue: data.totalAmount,
         });
+      } else if (data.type === 'imageLongPress') {
+        // Handle image long-press - show save options
+        console.log('[MSG] Image long-pressed:', data.imageUrl);
+        setLongPressedImageUrl(data.imageUrl);
+        setShowImageSaveModal(true);
+        triggerHaptic('impactMedium');
       }
     } catch (e) {
       console.log('[MSG] Error parsing message:', e);
@@ -2286,7 +2340,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   padding: moderateScale(tokens.spacing.xxs),
                   marginLeft: moderateScale(tokens.spacing.xsm),
                 }}>
-                <Icon name="home" size={26} color={theme.colors.button1} />
+                <Icon name="home" size={26} color={theme.colors.foreground} />
               </AppleTouchFeedback>
               <TouchableOpacity
                 style={styles.bottomNavItem}
@@ -2617,6 +2671,46 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 <MaterialIcons name="ios-share" size={22} color="#3b82f6" />
               </View>
               <Text style={styles.saveMenuItemText}>Share via...</Text>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={16}
+                color={theme.colors.foreground3}
+                style={styles.saveMenuItemCheck}
+              />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Image Save Modal */}
+      <Modal
+        visible={showImageSaveModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowImageSaveModal(false)}>
+        <TouchableOpacity
+          style={styles.saveMenuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowImageSaveModal(false)}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={e => e.stopPropagation()}
+            style={styles.saveMenuContent}>
+            <View style={styles.saveMenuHandle} />
+            <Text style={styles.saveMenuTitle}>Save Image</Text>
+            {/* Add to Wardrobe */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={() => {
+                if (longPressedImageUrl) {
+                  navigate('AddItem', {imageUrl: longPressedImageUrl});
+                }
+                setShowImageSaveModal(false);
+              }}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons name="checkroom" size={22} color="#8b5cf6" />
+              </View>
+              <Text style={styles.saveMenuItemText}>Add to Wardrobe</Text>
               <MaterialIcons
                 name="arrow-forward-ios"
                 size={16}
