@@ -69,4 +69,13 @@ export class OutfitController {
   ) {
     return this.outfitService.updateOutfitName(table, id, body.name);
   }
+
+  @Post('mark-worn/:outfitId/:outfitType/:userId')
+  markAsWorn(
+    @Param('outfitId') outfitId: string,
+    @Param('outfitType') outfitType: 'custom' | 'ai',
+    @Param('userId') userId: string,
+  ) {
+    return this.outfitService.markAsWorn(outfitId, outfitType, userId);
+  }
 }

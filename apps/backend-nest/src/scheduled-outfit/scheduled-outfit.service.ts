@@ -21,15 +21,8 @@ export class ScheduledOutfitService {
       const res = await pool.query(
         `
         INSERT INTO scheduled_outfits (
-          user_id, custom_outfit_id, scheduled_for, location, notes
-        ) VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (user_id, custom_outfit_id)
-        DO UPDATE SET
-          scheduled_for = EXCLUDED.scheduled_for,
-          location      = EXCLUDED.location,
-          notes         = EXCLUDED.notes,
-          notified_at   = NULL,           -- re-arm notification on change
-          updated_at    = NOW()
+          user_id, custom_outfit_id, scheduled_for, location, notes, worn_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW())
         RETURNING *;
         `,
         [user_id, outfit_id, scheduled_for, safeLocation, safeNotes],
@@ -39,15 +32,8 @@ export class ScheduledOutfitService {
       const res = await pool.query(
         `
         INSERT INTO scheduled_outfits (
-          user_id, ai_outfit_id, scheduled_for, location, notes
-        ) VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (user_id, ai_outfit_id)
-        DO UPDATE SET
-          scheduled_for = EXCLUDED.scheduled_for,
-          location      = EXCLUDED.location,
-          notes         = EXCLUDED.notes,
-          notified_at   = NULL,           -- re-arm notification on change
-          updated_at    = NOW()
+          user_id, ai_outfit_id, scheduled_for, location, notes, worn_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW())
         RETURNING *;
         `,
         [user_id, outfit_id, scheduled_for, safeLocation, safeNotes],
@@ -121,15 +107,22 @@ export class ScheduledOutfitService {
   }
 
   async delete(id: string) {
-    await pool.query(`DELETE FROM scheduled_outfits WHERE id = $1`, [id]);
+    // Only delete if it's not a worn-tracking entry (epoch date entries are for worn counts)
+    await pool.query(
+      `DELETE FROM scheduled_outfits WHERE id = $1 AND scheduled_for > '1980-01-01'::timestamptz`,
+      [id],
+    );
     return { message: 'Deleted' };
   }
 
   async deleteByUserAndOutfit(userId: string, outfitId: string) {
+    // Only delete calendar entries, not worn-tracking entries (epoch date = worn count only)
     const res = await pool.query(
       `
       DELETE FROM scheduled_outfits
-      WHERE user_id = $1 AND (custom_outfit_id = $2 OR ai_outfit_id = $2)
+      WHERE user_id = $1
+        AND (custom_outfit_id = $2 OR ai_outfit_id = $2)
+        AND scheduled_for > '1980-01-01'::timestamptz
       RETURNING *;
       `,
       [userId, outfitId],
@@ -179,6 +172,69 @@ export class ScheduledOutfitService {
       [ids],
     );
     return { updated: rowCount };
+  }
+
+  /** Get outfit history - past scheduled outfits (excludes manual worn entries with epoch date) */
+  async getHistory(userId: string) {
+    const { rows } = await pool.query(
+      `
+      SELECT
+        os.id,
+        os.scheduled_for,
+        os.worn_at,
+        COALESCE(co.name, ai.name, 'Unnamed Outfit') AS outfit_name
+      FROM scheduled_outfits os
+      LEFT JOIN custom_outfits    co ON os.custom_outfit_id = co.id
+      LEFT JOIN outfit_suggestions ai ON os.ai_outfit_id    = ai.id
+      WHERE os.user_id = $1
+        AND os.scheduled_for < NOW()
+        AND os.scheduled_for > '1980-01-01'::timestamptz
+      ORDER BY os.scheduled_for DESC;
+      `,
+      [userId],
+    );
+    return rows;
+  }
+
+  /** Mark a scheduled outfit as worn */
+  async markAsWorn(id: string) {
+    const { rows } = await pool.query(
+      `UPDATE scheduled_outfits SET worn_at = NOW() WHERE id = $1 RETURNING *`,
+      [id],
+    );
+    return rows[0];
+  }
+
+  /** Unmark a scheduled outfit as worn */
+  async unmarkAsWorn(id: string) {
+    const { rows } = await pool.query(
+      `UPDATE scheduled_outfits SET worn_at = NULL WHERE id = $1 RETURNING *`,
+      [id],
+    );
+    return rows[0];
+  }
+
+  /** Get worn counts for all outfits for a user */
+  async getWornCounts(userId: string) {
+    const { rows } = await pool.query(
+      `
+      SELECT
+        COALESCE(custom_outfit_id, ai_outfit_id) AS outfit_id,
+        COUNT(*) FILTER (WHERE worn_at IS NOT NULL) AS times_worn
+      FROM scheduled_outfits
+      WHERE user_id = $1
+      GROUP BY COALESCE(custom_outfit_id, ai_outfit_id)
+      `,
+      [userId],
+    );
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      if (row.outfit_id) {
+        counts[row.outfit_id] = parseInt(row.times_worn, 10);
+      }
+    }
+    console.log('📊 getWornCounts for', userId, ':', counts);
+    return counts;
   }
 }
 

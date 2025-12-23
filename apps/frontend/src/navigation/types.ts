@@ -69,7 +69,8 @@ export type Screen =
   | 'Closet'
   | 'Notes'
   | 'SaveNote'
-  | 'NoteDetail';
+  | 'NoteDetail'
+  | 'OutfitHistory';
 
 export type NavigateFunction = (
   screen: Screen,

@@ -2728,7 +2728,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             )}
 
             {/* Share Link */}
-            <TouchableOpacity style={styles.saveMenuItem} onPress={handleShare}>
+            {/* <TouchableOpacity style={styles.saveMenuItem} onPress={handleShare}>
               <View style={styles.saveMenuItemIcon}>
                 <MaterialIcons name="share" size={22} color="#3b82f6" />
               </View>
@@ -2738,7 +2738,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 size={20}
                 color={theme.colors.foreground3}
               />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* View Bookmarks */}
             <TouchableOpacity

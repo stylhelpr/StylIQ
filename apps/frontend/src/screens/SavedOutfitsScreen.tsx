@@ -43,6 +43,7 @@ import {Share} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
 import {useCreatePost} from '../hooks/useCommunityApi';
+import {globalNavigate} from '../MainApp';
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -99,6 +100,7 @@ type SavedOutfit = {
   favorited?: boolean;
   plannedDate?: string;
   type: 'custom' | 'ai';
+  timesWorn?: number;
 };
 
 const CLOSET_KEY = 'savedOutfits';
@@ -510,8 +512,10 @@ export default function SavedOutfitsScreen() {
   const shareCompositeRef = useRef<ViewShot>(null);
   const [shareOutfit, setShareOutfit] = useState<SavedOutfit | null>(null);
   const [shareOptionsVisible, setShareOptionsVisible] = useState(false);
-  const [pendingShareOutfit, setPendingShareOutfit] = useState<SavedOutfit | null>(null);
-  const [communityShareModalVisible, setCommunityShareModalVisible] = useState(false);
+  const [pendingShareOutfit, setPendingShareOutfit] =
+    useState<SavedOutfit | null>(null);
+  const [communityShareModalVisible, setCommunityShareModalVisible] =
+    useState(false);
   const [communityDescription, setCommunityDescription] = useState('');
   const [communityTags, setCommunityTags] = useState('');
 
@@ -554,10 +558,16 @@ export default function SavedOutfitsScreen() {
 
       await createPostMutation.mutateAsync({
         userId,
-        topImage: pendingShareOutfit.top?.image || pendingShareOutfit.top?.image_url,
-        bottomImage: pendingShareOutfit.bottom?.image || pendingShareOutfit.bottom?.image_url,
-        shoesImage: pendingShareOutfit.shoes?.image || pendingShareOutfit.shoes?.image_url,
-        description: communityDescription || pendingShareOutfit.name || 'My outfit',
+        topImage:
+          pendingShareOutfit.top?.image || pendingShareOutfit.top?.image_url,
+        bottomImage:
+          pendingShareOutfit.bottom?.image ||
+          pendingShareOutfit.bottom?.image_url,
+        shoesImage:
+          pendingShareOutfit.shoes?.image ||
+          pendingShareOutfit.shoes?.image_url,
+        description:
+          communityDescription || pendingShareOutfit.name || 'My outfit',
         tags: tagsArray.length > 0 ? tagsArray : ['outfit'],
       });
 
@@ -767,11 +777,15 @@ export default function SavedOutfitsScreen() {
         }),
       });
 
-      // reflect in UI
+      // reflect in UI - update planned date and increment worn count
       setCombinedOutfits(prev =>
         prev.map(o =>
           o.id === planningOutfitId
-            ? {...o, plannedDate: combined.toISOString()}
+            ? {
+                ...o,
+                plannedDate: combined.toISOString(),
+                timesWorn: (o.timesWorn ?? 0) + 1,
+              }
             : o,
         ),
       );
@@ -845,11 +859,14 @@ export default function SavedOutfitsScreen() {
   // 🧠 Fetch outfits and merge AI + custom
   const loadOutfits = async () => {
     try {
-      const [aiRes, customRes, scheduledRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
-        fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
-        fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
-      ]);
+      const [aiRes, customRes, scheduledRes, wornCountsRes] = await Promise.all(
+        [
+          fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
+          fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
+          fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
+          fetch(`${API_BASE_URL}/scheduled-outfits/worn-counts/${userId}`),
+        ],
+      );
 
       if (!aiRes.ok || !customRes.ok || !scheduledRes.ok)
         throw new Error('Failed to fetch outfits');
@@ -859,6 +876,18 @@ export default function SavedOutfitsScreen() {
         customRes.json(),
         scheduledRes.json(),
       ]);
+
+      let wornCountsData: Record<string, number> = {};
+      if (wornCountsRes.ok) {
+        try {
+          wornCountsData = await wornCountsRes.json();
+          console.log('📊 Worn counts loaded:', wornCountsData);
+        } catch (e) {
+          console.error('Failed to parse worn counts:', e);
+        }
+      } else {
+        console.error('Failed to fetch worn counts:', wornCountsRes.status);
+      }
 
       const scheduleMap: Record<string, string> = {};
       for (const s of scheduledData) {
@@ -906,6 +935,7 @@ export default function SavedOutfitsScreen() {
           ),
           plannedDate: scheduleMap[outfitId] ?? undefined,
           type: isCustom ? 'custom' : 'ai',
+          timesWorn: wornCountsData[outfitId] ?? 0,
         };
       };
 
@@ -1183,14 +1213,34 @@ export default function SavedOutfitsScreen() {
           backgroundColor: theme.colors.background,
         }}
       />
-      <Text
-        style={[
-          globalStyles.header,
-          globalStyles.section,
-          {color: theme.colors.primary},
-        ]}>
-        Saved Outfits
-      </Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+        <Text
+          style={[
+            globalStyles.header,
+            {color: theme.colors.primary, marginBottom: 0},
+          ]}>
+          Saved Outfits
+        </Text>
+        <TouchableOpacity
+          onPress={() => globalNavigate('OutfitHistory')}
+          style={{
+            padding: 8,
+            marginRight: 16,
+            borderRadius: 20,
+            backgroundColor: theme.colors.surface,
+          }}>
+          <MaterialIcons
+            name="history"
+            size={24}
+            color={theme.colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
 
       <Animatable.View
         animation="fadeInDown"
@@ -1370,284 +1420,351 @@ export default function SavedOutfitsScreen() {
                       duration={800}
                       easing="ease-out-cubic">
                       <ViewShot
-                      ref={ref => (viewRefs.current[outfit.id] = ref)}
-                      options={{format: 'png', quality: 0.9}}>
-                      <ScalePressable
-                        onPress={() => setFullScreenOutfit(outfit)}
-                        style={[globalStyles.cardStyles1, {marginBottom: 12}]}>
-                        {/* 🧵 Outfit Header Row */}
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}>
-                          <View style={{flex: 1, marginRight: 12}}>
-                            <Text
-                              style={[
-                                globalStyles.titleBold,
-                                {
-                                  fontSize: 20,
-                                  color: theme.colors.foreground,
-                                },
-                              ]}>
-                              {outfit.name?.trim() || 'Unnamed Outfit'}
-                            </Text>
+                        ref={ref => (viewRefs.current[outfit.id] = ref)}
+                        options={{format: 'png', quality: 0.9}}>
+                        <ScalePressable
+                          onPress={() => setFullScreenOutfit(outfit)}
+                          style={[
+                            globalStyles.cardStyles1,
+                            {marginBottom: 12},
+                          ]}>
+                          {/* 🧵 Outfit Header Row */}
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}>
+                            <View style={{flex: 1, marginRight: 12}}>
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                }}>
+                                <Text
+                                  style={[
+                                    globalStyles.titleBold,
+                                    {
+                                      fontSize: 20,
+                                      color: theme.colors.foreground,
+                                      flex: 1,
+                                    },
+                                  ]}>
+                                  {outfit.name?.trim() || 'Unnamed Outfit'}
+                                </Text>
+                              </View>
 
-                            {/* 🗓️ Date & Time Info */}
-                            {(outfit.createdAt || outfit.plannedDate) && (
-                              <View style={{marginTop: 6}}>
-                                {outfit.plannedDate && (
-                                  <Text
-                                    style={[
-                                      styles.timestamp,
-                                      {
-                                        fontSize: 13,
-                                        fontWeight: '600',
-                                        color: theme.colors.foreground2,
-                                      },
-                                    ]}>
-                                    {`Planned for ${new Date(
-                                      outfit.plannedDate,
-                                    ).toLocaleString([], {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                    })}`}
-                                  </Text>
-                                )}
-                                {outfit.createdAt && (
-                                  <Text
-                                    style={[
-                                      styles.timestamp,
-                                      {
-                                        fontSize: 12,
-                                        color: theme.colors.muted,
-                                      },
-                                    ]}>
-                                    {`Saved ${new Date(
-                                      outfit.createdAt,
-                                    ).toLocaleDateString([], {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}`}
-                                  </Text>
-                                )}
+                              {/* 🗓️ Date & Time Info */}
+                              {(outfit.createdAt || outfit.plannedDate) && (
+                                <View style={{marginTop: 6}}>
+                                  {outfit.plannedDate && (
+                                    <Text
+                                      style={[
+                                        styles.timestamp,
+                                        {
+                                          fontSize: 13,
+                                          fontWeight: '600',
+                                          color: theme.colors.foreground2,
+                                        },
+                                      ]}>
+                                      {`Planned for ${new Date(
+                                        outfit.plannedDate,
+                                      ).toLocaleString([], {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                      })}`}
+                                    </Text>
+                                  )}
+                                  {outfit.createdAt && (
+                                    <Text
+                                      style={[
+                                        styles.timestamp,
+                                        {
+                                          fontSize: 12,
+                                          color: theme.colors.muted,
+                                        },
+                                      ]}>
+                                      {`Saved ${new Date(
+                                        outfit.createdAt,
+                                      ).toLocaleDateString([], {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      })}`}
+                                    </Text>
+                                  )}
+                                </View>
+                              )}
+                            </View>
+
+                            {/* ❤️ & ✏️ & 👕 Buttons */}
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}>
+                              {/* ✏️ Edit */}
+                              <Pressable
+                                onPress={e => {
+                                  hSelect();
+                                  setEditingOutfitId(outfit.id);
+                                  setEditedName(outfit.name || '');
+                                }}
+                                style={{
+                                  padding: 8,
+                                  borderRadius: 14,
+                                  backgroundColor:
+                                    theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                                  marginRight: 6,
+                                }}>
+                                <MaterialIcons
+                                  name="edit"
+                                  size={20}
+                                  color={theme.colors.foreground}
+                                />
+                              </Pressable>
+
+                              {/* ❤️ Favorite */}
+                              <Pressable
+                                onPress={e => {
+                                  hSelect();
+                                  toggleFavorite(
+                                    outfit.id,
+                                    outfit.type === 'custom'
+                                      ? 'custom'
+                                      : 'suggestion',
+                                    setCombinedOutfits,
+                                  );
+                                }}
+                                style={{
+                                  padding: 8,
+                                  borderRadius: 14,
+                                  backgroundColor:
+                                    theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                                }}>
+                                <MaterialIcons
+                                  name="favorite"
+                                  size={20}
+                                  color={
+                                    favorites.some(
+                                      f =>
+                                        f.id === outfit.id &&
+                                        f.source ===
+                                          (outfit.type === 'custom'
+                                            ? 'custom'
+                                            : 'suggestion'),
+                                    )
+                                      ? 'red'
+                                      : theme.colors.foreground
+                                  }
+                                />
+                              </Pressable>
+                              {/* 📤 Share */}
+                              <Pressable
+                                onPress={() => handleSharePress(outfit)}
+                                style={{
+                                  padding: 8,
+                                  borderRadius: 14,
+                                  backgroundColor:
+                                    theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                                  marginLeft: 6,
+                                }}>
+                                <MaterialIcons
+                                  name="ios-share"
+                                  size={20}
+                                  color={theme.colors.primary}
+                                />
+                              </Pressable>
+                            </View>
+                          </View>
+
+                          {/* 👕 Outfit Images */}
+                          <View style={styles.imageRow}>
+                            {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                              i?.image ? (
+                                <Image
+                                  key={i.id}
+                                  source={{uri: i.image}}
+                                  style={[
+                                    globalStyles.image1,
+                                    {
+                                      marginRight: 2,
+                                      borderRadius: 8,
+                                      marginBottom: 8,
+                                      marginTop: -6,
+                                    },
+                                  ]}
+                                />
+                              ) : null,
+                            )}
+                          </View>
+
+                          {/* 📝 Notes */}
+                          {outfit.notes?.trim() && (
+                            <Text style={styles.notes}>
+                              “{outfit.notes.trim()}”
+                            </Text>
+                          )}
+
+                          <View style={{display: 'flex', flexDirection: 'row'}}>
+                            {/* 👕 Mark as worn */}
+                            <Pressable
+                              onPress={async () => {
+                                hSelect();
+                                try {
+                                  await fetch(
+                                    `${API_BASE_URL}/outfit/mark-worn/${outfit.id}/${outfit.type}/${userId}`,
+                                    {method: 'POST'},
+                                  );
+                                  setCombinedOutfits(prev =>
+                                    prev.map(o =>
+                                      o.id === outfit.id
+                                        ? {
+                                            ...o,
+                                            timesWorn: (o.timesWorn ?? 0) + 1,
+                                          }
+                                        : o,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  console.error('Failed to mark as worn', e);
+                                }
+                              }}
+                              style={{
+                                paddingVertical: 8,
+                                borderRadius: 14,
+                                paddingHorizontal: 12,
+                                backgroundColor:
+                                  theme.colors.button1 ?? 'rgba(43,43,43,1)',
+                                marginTop: 6,
+                              }}>
+                              <MaterialIcons
+                                name="checkroom"
+                                size={22}
+                                color={theme.colors.primary}
+                              />
+                            </Pressable>
+
+                            {(outfit.timesWorn ?? 0) > 0 && (
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  backgroundColor: theme.colors.surface,
+                                  paddingHorizontal: 8,
+                                  borderRadius: 12,
+                                  marginTop: 6,
+                                }}>
+                                <Text
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: '800',
+                                    color: theme.colors.primary,
+                                  }}>
+                                  Worn:
+                                  {outfit.timesWorn} times{' '}
+                                </Text>
                               </View>
                             )}
                           </View>
 
-                          {/* ❤️ & ✏️ Buttons */}
+                          {/* 📅 Schedule & Cancel Buttons – keep them working */}
                           <View
                             style={{
                               flexDirection: 'row',
-                              alignItems: 'center',
+                              justifyContent: 'flex-start',
+                              flexWrap: 'wrap',
+                              marginTop: 10,
                             }}>
-                            {/* ✏️ Edit */}
-                            <Pressable
-                              onPress={e => {
-                                hSelect();
-                                setEditingOutfitId(outfit.id);
-                                setEditedName(outfit.name || '');
-                              }}
-                              style={{
-                                padding: 8,
-                                borderRadius: 14,
-                                backgroundColor:
-                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
-                                marginRight: 6,
-                              }}>
-                              <MaterialIcons
-                                name="edit"
-                                size={20}
-                                color={theme.colors.foreground}
-                              />
-                            </Pressable>
-
-                            {/* ❤️ Favorite */}
-                            <Pressable
-                              onPress={e => {
-                                hSelect();
-                                toggleFavorite(
-                                  outfit.id,
-                                  outfit.type === 'custom'
-                                    ? 'custom'
-                                    : 'suggestion',
-                                  setCombinedOutfits,
-                                );
-                              }}
-                              style={{
-                                padding: 8,
-                                borderRadius: 14,
-                                backgroundColor:
-                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
-                              }}>
-                              <MaterialIcons
-                                name="favorite"
-                                size={20}
-                                color={
-                                  favorites.some(
-                                    f =>
-                                      f.id === outfit.id &&
-                                      f.source ===
-                                        (outfit.type === 'custom'
-                                          ? 'custom'
-                                          : 'suggestion'),
-                                  )
-                                    ? 'red'
-                                    : theme.colors.foreground
-                                }
-                              />
-                            </Pressable>
-                            {/* 📤 Share */}
-                            <Pressable
-                              onPress={() => handleSharePress(outfit)}
-                              style={{
-                                padding: 8,
-                                borderRadius: 14,
-                                backgroundColor:
-                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
-                                marginLeft: 6,
-                              }}>
-                              <MaterialIcons
-                                name="ios-share"
-                                size={20}
-                                color={theme.colors.primary}
-                              />
-                            </Pressable>
-                          </View>
-                        </View>
-
-                        {/* 👕 Outfit Images */}
-                        <View style={styles.imageRow}>
-                          {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
-                            i?.image ? (
-                              <Image
-                                key={i.id}
-                                source={{uri: i.image}}
-                                style={[
-                                  globalStyles.image1,
-                                  {
-                                    marginRight: 2,
-                                    borderRadius: 8,
-                                    marginBottom: 8,
-                                    marginTop: -6,
-                                  },
-                                ]}
-                              />
-                            ) : null,
-                          )}
-                        </View>
-
-                        {/* 📝 Notes */}
-                        {outfit.notes?.trim() && (
-                          <Text style={styles.notes}>
-                            “{outfit.notes.trim()}”
-                          </Text>
-                        )}
-
-                        {/* 📅 Schedule & Cancel Buttons – keep them working */}
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            justifyContent: 'flex-start',
-                            flexWrap: 'wrap',
-                            marginTop: 10,
-                          }}>
-                          <AppleTouchFeedback
-                            hapticStyle="impactLight"
-                            onPress={() => {
-                              setPlanningOutfitId(outfit.id);
-                              const now = new Date();
-                              setSelectedTempDate(now);
-                              setSelectedTempTime(now);
-                              setShowDatePicker(true);
-                            }}
-                            style={{
-                              backgroundColor: theme.colors.button1,
-                              borderRadius: 8,
-                              paddingVertical: 8,
-                              paddingHorizontal: 14,
-                              marginRight: 10,
-                            }}>
-                            <Text
-                              style={{
-                                color: theme.colors.buttonText1,
-                                fontWeight: '600',
-                                fontSize: 13,
-                              }}>
-                              Schedule This Outfit
-                            </Text>
-                          </AppleTouchFeedback>
-
-                          {outfit.plannedDate && (
                             <AppleTouchFeedback
                               hapticStyle="impactLight"
-                              onPress={e => {
-                                cancelPlannedOutfit(outfit.id);
+                              onPress={() => {
+                                setPlanningOutfitId(outfit.id);
+                                const now = new Date();
+                                setSelectedTempDate(now);
+                                setSelectedTempTime(now);
+                                setShowDatePicker(true);
                               }}
                               style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                paddingVertical: 8.5,
-                                paddingHorizontal: 14,
+                                backgroundColor: theme.colors.button1,
                                 borderRadius: 8,
-                                backgroundColor:
-                                  theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                                paddingVertical: 8,
+                                paddingHorizontal: 14,
+                                marginRight: 10,
                               }}>
-                              {/* <MaterialIcons
-                                name="close"
-                                size={19}
-                                color="red"
-                                style={{marginRight: 6}}
-                              /> */}
                               <Text
                                 style={{
-                                  color: theme.colors.foreground,
+                                  color: theme.colors.buttonText1,
                                   fontWeight: '600',
                                   fontSize: 13,
                                 }}>
-                                Cancel Schedule
+                                Schedule This Outfit
                               </Text>
                             </AppleTouchFeedback>
-                          )}
-                        </View>
 
-                        {/* 🏷️ Tags */}
-                        {(outfit.tags || []).length > 0 && (
-                          <View
-                            style={{
-                              flexDirection: 'row',
-                              flexWrap: 'wrap',
-                              marginTop: 8,
-                            }}>
-                            {outfit.tags?.map(tag => (
-                              <View
-                                key={tag}
+                            {outfit.plannedDate && (
+                              <AppleTouchFeedback
+                                hapticStyle="impactLight"
+                                onPress={e => {
+                                  cancelPlannedOutfit(outfit.id);
+                                }}
                                 style={{
-                                  paddingHorizontal: 10,
-                                  paddingVertical: 6,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 8.5,
+                                  paddingHorizontal: 14,
+                                  borderRadius: 8,
                                   backgroundColor:
-                                    theme.colors.input2 ?? 'rgba(43,43,43,1)',
-                                  borderRadius: 16,
-                                  marginRight: 6,
-                                  marginBottom: 6,
+                                    theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                                 }}>
                                 <Text
                                   style={{
-                                    fontSize: 12,
                                     color: theme.colors.foreground,
+                                    fontWeight: '600',
+                                    fontSize: 13,
                                   }}>
-                                  #{tag}
+                                  Cancel Schedule
                                 </Text>
-                              </View>
-                            ))}
+                              </AppleTouchFeedback>
+                            )}
                           </View>
-                        )}
-                      </ScalePressable>
-                    </ViewShot>
+
+                          {/* 🏷️ Tags */}
+                          {(outfit.tags || []).length > 0 && (
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                flexWrap: 'wrap',
+                                marginTop: 8,
+                              }}>
+                              {outfit.tags?.map(tag => (
+                                <View
+                                  key={tag}
+                                  style={{
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 6,
+                                    backgroundColor:
+                                      theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                                    borderRadius: 16,
+                                    marginRight: 6,
+                                    marginBottom: 6,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      fontSize: 12,
+                                      color: theme.colors.foreground,
+                                    }}>
+                                    #{tag}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </ScalePressable>
+                      </ViewShot>
                     </Animatable.View>
                   </Animated.View>
                 </SwipeableCard>
@@ -1978,7 +2095,11 @@ export default function SavedOutfitsScreen() {
                 borderRadius: 14,
                 marginBottom: 12,
               }}>
-              <MaterialIcons name="groups" size={24} color={theme.colors.buttonText1} />
+              <MaterialIcons
+                name="groups"
+                size={24}
+                color={theme.colors.buttonText1}
+              />
               <Text
                 style={{
                   color: theme.colors.buttonText1,
@@ -2090,7 +2211,9 @@ export default function SavedOutfitsScreen() {
             <TextInput
               value={communityDescription}
               onChangeText={setCommunityDescription}
-              placeholder={pendingShareOutfit?.name || 'Describe your outfit...'}
+              placeholder={
+                pendingShareOutfit?.name || 'Describe your outfit...'
+              }
               placeholderTextColor={theme.colors.muted}
               multiline
               style={{
@@ -2153,7 +2276,12 @@ export default function SavedOutfitsScreen() {
                   borderRadius: 12,
                   marginLeft: 12,
                 }}>
-                <Text style={{color: theme.colors.buttonText1, fontSize: 16, fontWeight: '600'}}>
+                <Text
+                  style={{
+                    color: theme.colors.buttonText1,
+                    fontSize: 16,
+                    fontWeight: '600',
+                  }}>
                   {createPostMutation.isPending ? 'Sharing...' : 'Share'}
                 </Text>
               </AppleTouchFeedback>

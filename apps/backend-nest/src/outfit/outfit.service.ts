@@ -262,4 +262,21 @@ export class OutfitService {
 
     return { message: 'Outfit name updated' };
   }
+
+  async markAsWorn(outfitId: string, outfitType: 'custom' | 'ai', userId: string) {
+    const columnName = outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
+
+    // Insert a worn record with scheduled_for set to epoch (1970-01-01) so it doesn't appear on calendar
+    // Only worn_at matters for the count
+    const { rows } = await pool.query(
+      `
+      INSERT INTO scheduled_outfits (user_id, ${columnName}, scheduled_for, worn_at)
+      VALUES ($1, $2, '1970-01-01'::timestamptz, NOW())
+      RETURNING *
+      `,
+      [userId, outfitId],
+    );
+
+    return rows[0];
+  }
 }

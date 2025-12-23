@@ -1164,6 +1164,22 @@ export default function OutfitPlannerScreen() {
               <TouchableOpacity
                 onPress={() => {
                   h('impactLight');
+                  globalNavigate('OutfitHistory');
+                }}
+                style={{
+                  padding: 8,
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.surface,
+                }}>
+                <MaterialIcons
+                  name="history"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  h('impactLight');
                   setUpcomingModalVisible(true);
                 }}
                 style={{

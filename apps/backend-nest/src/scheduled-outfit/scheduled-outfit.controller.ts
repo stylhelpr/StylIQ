@@ -20,6 +20,16 @@ export class ScheduledOutfitController {
     return this.service.create(dto);
   }
 
+  @Get('history/:userId')
+  getHistory(@Param('userId') userId: string) {
+    return this.service.getHistory(userId);
+  }
+
+  @Get('worn-counts/:userId')
+  getWornCounts(@Param('userId') userId: string) {
+    return this.service.getWornCounts(userId);
+  }
+
   @Get(':userId')
   getUserSchedule(@Param('userId') userId: string) {
     return this.service.getByUser(userId);
@@ -40,5 +50,15 @@ export class ScheduledOutfitController {
     @Body() body: { user_id: string; outfit_id: string },
   ) {
     return this.service.deleteByUserAndOutfit(body.user_id, body.outfit_id);
+  }
+
+  @Post(':id/worn')
+  markAsWorn(@Param('id') id: string) {
+    return this.service.markAsWorn(id);
+  }
+
+  @Delete(':id/worn')
+  unmarkAsWorn(@Param('id') id: string) {
+    return this.service.unmarkAsWorn(id);
   }
 }

@@ -78,6 +78,7 @@ import SplashScreen from '../screens/SplashScreen';
 import NotesScreen from '../screens/NotesScreen';
 import SaveNoteScreen from '../screens/SaveNoteScreen';
 import NoteDetailScreen from '../screens/NoteDetailScreen';
+import OutfitHistoryScreen from '../screens/OutfitHistoryScreen';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -514,6 +515,8 @@ const RootNavigator = ({
         return <SaveNoteScreen navigate={navigate} params={screenParams} />;
       case 'NoteDetail':
         return <NoteDetailScreen navigate={navigate} params={screenParams} />;
+      case 'OutfitHistory':
+        return <OutfitHistoryScreen navigate={navigate} />;
       case 'Preferences':
         return <PreferencesScreen navigate={navigate} />;
       case 'SavedMeasurements':
