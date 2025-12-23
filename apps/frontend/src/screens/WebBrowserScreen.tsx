@@ -2321,7 +2321,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         )}
       </View>
 
-      {/* Browser Bottom Navbar - Pill shaped with hide on scroll */}
+      {/* Browsers Bottom Navbar - Pill shaped with hide on scroll */}
       {!showTabsView && (
         <Animated.View
           style={[
@@ -2706,7 +2706,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 if (longPressedImageUrl) {
                   setShowImageSaveModal(false);
                   try {
-                    await ImageSaverModule.saveImageFromUrl(longPressedImageUrl);
+                    await ImageSaverModule.saveImageFromUrl(
+                      longPressedImageUrl,
+                    );
                     triggerHaptic('notificationSuccess');
                   } catch (error) {
                     console.log('Image save error:', error);
