@@ -68,6 +68,20 @@ export class StyleProfileService {
     return result.rows[0];
   }
 
+  // ✅ Get profile by internal userId (for viewing other users' profiles)
+  async getProfileByUserId(userId: string) {
+    const profileRes = await pool.query(
+      'SELECT * FROM style_profiles WHERE user_id = $1',
+      [userId],
+    );
+
+    if (profileRes.rowCount === 0) {
+      return null;
+    }
+
+    return profileRes.rows[0];
+  }
+
   // ✅ NEW: Pull preferred brands column directly
   async getPreferredBrands(userId: string): Promise<string[]> {
     // 🚀 Directly query with userId (skip Auth0 lookup for this route)

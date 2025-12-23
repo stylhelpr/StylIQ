@@ -1758,6 +1758,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     searchIcon: {
       padding: 4,
       position: 'relative',
+      marginLeft: 20,
     },
     unreadBadge: {
       position: 'absolute',

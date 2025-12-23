@@ -374,6 +374,21 @@ export default function GlobalHeader({
                 </AppleTouchFeedback>
 
                 <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    navigate('Settings');
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="settings"
+                    size={19}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Settings</Text>
+                </AppleTouchFeedback>
+
+                <AppleTouchFeedback
                   hapticStyle="notificationWarning"
                   onPress={() => {
                     setMenuOpen(false);

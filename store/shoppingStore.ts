@@ -219,6 +219,11 @@ type ShoppingState = {
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
 
+  // Tracking Consent (GDPR/Privacy)
+  trackingConsent: 'pending' | 'accepted' | 'declined';
+  setTrackingConsent: (consent: 'accepted' | 'declined') => void;
+  isTrackingEnabled: () => boolean;
+
   // Reset all user data on logout
   resetForLogout: () => void;
 };
@@ -654,6 +659,15 @@ export const useShoppingStore = create<ShoppingState>()(
         set({_hasHydrated: hasHydrated});
       },
 
+      // Tracking Consent (GDPR/Privacy)
+      trackingConsent: 'pending' as 'pending' | 'accepted' | 'declined',
+      setTrackingConsent: (consent: 'accepted' | 'declined') => {
+        set({trackingConsent: consent});
+      },
+      isTrackingEnabled: () => {
+        return get().trackingConsent === 'accepted';
+      },
+
       // Reset all user data on logout
       resetForLogout: () => {
         set({
@@ -694,6 +708,7 @@ export const useShoppingStore = create<ShoppingState>()(
         aiShoppingAssistantSuggestions: state.aiShoppingAssistantSuggestions,
         hasAiSuggestionsLoaded: state.hasAiSuggestionsLoaded,
         aiSuggestionsCachedAt: state.aiSuggestionsCachedAt,
+        trackingConsent: state.trackingConsent,
       }),
       onRehydrateStorage: () => state => {
         if (state) {

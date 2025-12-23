@@ -16,6 +16,7 @@ import {
   Image,
   PanResponder,
   LayoutChangeEvent,
+  Alert,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -109,6 +110,8 @@ export default function WebBrowserScreen({navigate, route}: Props) {
     hasAiSuggestionsLoaded,
     setHasAiSuggestionsLoaded,
     isAiSuggestionsStale,
+    trackingConsent,
+    setTrackingConsent,
   } = useShoppingStore();
 
   // 🔥 VOICE ADD
@@ -293,6 +296,32 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       }
     }
   }, [currentTabId]);
+
+  // Tracking Consent Prompt - show once when user first opens browser
+  useEffect(() => {
+    if (_hasHydrated && trackingConsent === 'pending') {
+      // Small delay to let screen render first
+      const timer = setTimeout(() => {
+        Alert.alert(
+          'Improve Your Experience',
+          'Allow StylIQ to collect browsing analytics to personalize your shopping recommendations? This includes tracking pages visited, items saved, and shopping patterns.\n\nYou can change this anytime in settings.',
+          [
+            {
+              text: 'No Thanks',
+              style: 'cancel',
+              onPress: () => setTrackingConsent('declined'),
+            },
+            {
+              text: 'Allow',
+              onPress: () => setTrackingConsent('accepted'),
+            },
+          ],
+          {cancelable: false},
+        );
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [_hasHydrated, trackingConsent, setTrackingConsent]);
 
   // GOLD #1, #3: Start session on first load (don't end it on unmount)
   useEffect(() => {

@@ -7,6 +7,14 @@ import { UpdateStyleProfileDto } from './dto/update-style-profile.dto';
 export class StyleProfileController {
   constructor(private readonly service: StyleProfileService) {}
 
+  // ✅ Get profile by internal userId (for viewing other users' public profiles)
+  // IMPORTANT: Static routes must come BEFORE dynamic :param routes
+  @Get('by-user-id/:userId')
+  async getProfileByUserId(@Param('userId') userId: string) {
+    const profile = await this.service.getProfileByUserId(userId);
+    return profile || {};
+  }
+
   @Get(':userId')
   async getProfile(@Param('userId') userId: string) {
     const profile = await this.service.getProfile(userId);

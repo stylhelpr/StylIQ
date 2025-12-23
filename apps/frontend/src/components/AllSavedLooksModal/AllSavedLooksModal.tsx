@@ -798,7 +798,7 @@ export default function AllSavedLooksModal({
                                 fontWeight: '500',
                                 fontSize: 12,
                               }}>
-                              Recreate
+                              Recreate Look
                             </Text>
                           </TouchableOpacity>
 

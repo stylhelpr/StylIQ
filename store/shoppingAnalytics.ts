@@ -5,8 +5,14 @@ import {useShoppingStore} from './shoppingStore';
  */
 
 export const shoppingAnalytics = {
+  // Kill switch - check if tracking is enabled before any data capture
+  isTrackingEnabled: (): boolean => {
+    return useShoppingStore.getState().trackingConsent === 'accepted';
+  },
+
   // GOLD #1: Start tracking dwell time
   startPageTimer: () => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return 0;
     return Date.now();
   },
 
@@ -16,10 +22,12 @@ export const shoppingAnalytics = {
 
   // GOLD #3: Auto-generate session ID
   newSession: () => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     useShoppingStore.getState().startSession();
   },
 
   endSession: () => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     useShoppingStore.getState().endSession();
   },
 
@@ -36,6 +44,7 @@ export const shoppingAnalytics = {
     dwellTime?: number,
     scrollDepth?: number,
   ) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     const store = useShoppingStore.getState();
     store.addToHistory(url, title, source);
     if (dwellTime !== undefined || scrollDepth !== undefined) {
@@ -228,6 +237,7 @@ export const shoppingAnalytics = {
 
   // GOLD #4: Track price changes
   updatePriceHistory: (bookmarkId: string, newPrice: number) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     const store = useShoppingStore.getState();
     const bookmark = store.bookmarks.find(b => b.id === bookmarkId);
     if (bookmark) {
@@ -244,6 +254,7 @@ export const shoppingAnalytics = {
 
   // GOLD #5: Record emotion when saving
   saveWithEmotion: (bookmarkId: string, emotion: string) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     useShoppingStore.getState().updateBookmarkMetadata(bookmarkId, {
       emotionAtSave: emotion,
     });
@@ -251,6 +262,7 @@ export const shoppingAnalytics = {
 
   // GOLD #6: Track when they revisit
   incrementViewCount: (bookmarkId: string) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     const store = useShoppingStore.getState();
     const bookmark = store.bookmarks.find(b => b.id === bookmarkId);
     if (bookmark) {
@@ -263,6 +275,7 @@ export const shoppingAnalytics = {
 
   // GOLD #7: Record sizes they viewed
   recordSizeView: (bookmarkId: string, size: string) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     const store = useShoppingStore.getState();
     const bookmark = store.bookmarks.find(b => b.id === bookmarkId);
     if (bookmark) {
@@ -276,6 +289,7 @@ export const shoppingAnalytics = {
 
   // GOLD #8: Link body measurements to bookmark
   saveWithBodyContext: (bookmarkId: string, bodyMeasurements: any) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     useShoppingStore
       .getState()
       .recordProductInteraction(
@@ -288,6 +302,7 @@ export const shoppingAnalytics = {
 
   // GOLD #10: Record colors they clicked
   recordColorView: (bookmarkId: string, color: string) => {
+    if (!shoppingAnalytics.isTrackingEnabled()) return;
     const store = useShoppingStore.getState();
     const bookmark = store.bookmarks.find(b => b.id === bookmarkId);
     if (bookmark) {
@@ -326,9 +341,11 @@ export const shoppingAnalytics = {
         b => b.priceHistory?.length || 0 > 0,
       ).length,
       bookmarksWithEmotion: store.bookmarks.filter(b => b.emotionAtSave).length,
-      mostRevisitedItem: store.bookmarks.reduce((max, b) =>
-        (b.viewCount || 0) > (max.viewCount || 0) ? b : max,
-      ),
+      mostRevisitedItem: store.bookmarks.length > 0
+        ? store.bookmarks.reduce((max, b) =>
+            (b.viewCount || 0) > (max.viewCount || 0) ? b : max,
+          )
+        : null,
       ...cartStats,
     };
   },

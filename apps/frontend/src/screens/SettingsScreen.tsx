@@ -28,6 +28,7 @@ import {useHomePrefs} from '../hooks/useHomePrefs';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useUUID} from '../context/UUIDContext'; // 👈 to get userId
 import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
+import {useShoppingStore} from '../../../../store/shoppingStore';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useWindowDimensions} from 'react-native';
 import {fontScale, moderateScale} from '../utils/scale';
@@ -73,6 +74,9 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const {height} = useWindowDimensions();
 
   const {prefs, setVisible} = useHomePrefs();
+
+  // Shopping Analytics Tracking Consent
+  const {trackingConsent, setTrackingConsent} = useShoppingStore();
 
   const safeGoBack = () => {
     if (global.goingBack) {
@@ -598,6 +602,63 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                     ios_backgroundColor={colors.muted}
                   />
                 </View>
+              </View>
+
+              <Text
+                style={[
+                  globalStyles.sectionTitle2,
+                  {color: colors.foreground},
+                ]}>
+                Shopping Analytics
+              </Text>
+              <View
+                style={[
+                  globalStyles.menuContainer1,
+                  {
+                    borderWidth: tokens.borderWidth.md,
+                    marginTop: 10,
+                    marginBottom: 20,
+                  },
+                ]}>
+                <View
+                  style={[
+                    globalStyles.menuSection1,
+                    {
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    },
+                  ]}>
+                  <Text
+                    style={[
+                      globalStyles.menuLabel,
+                      {color: theme.colors.foreground},
+                    ]}>
+                    Allow Tracking
+                  </Text>
+                  <Switch
+                    value={trackingConsent === 'accepted'}
+                    onValueChange={v =>
+                      setTrackingConsent(v ? 'accepted' : 'declined')
+                    }
+                    trackColor={{
+                      false: colors.muted,
+                      true: theme.colors.button1,
+                    }}
+                    ios_backgroundColor={colors.muted}
+                  />
+                </View>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: theme.colors.foreground3,
+                    paddingHorizontal: 16,
+                    paddingBottom: 12,
+                    marginTop: -4,
+                  }}>
+                  Personalize shopping recommendations by tracking browsing
+                  patterns
+                </Text>
               </View>
 
               <View>

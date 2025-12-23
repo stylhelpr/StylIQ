@@ -448,8 +448,8 @@ export default function ProfileScreen({navigate}: Props) {
       ]}>
       <Text style={globalStyles.header}>Profile</Text>
 
-      {/* Settings Icon */}
-      <AppleTouchFeedback
+      {/* Settings Icon - moved to GlobalHeader dropdown menu */}
+      {/* <AppleTouchFeedback
         style={styles.settingsButton}
         onPress={() => {
           if (global.goingBack) return;
@@ -462,7 +462,7 @@ export default function ProfileScreen({navigate}: Props) {
           duration={16000}>
           <Icon name="settings" size={26} color={theme.colors.button1} />
         </Animatable.View>
-      </AppleTouchFeedback>
+      </AppleTouchFeedback> */}
 
       {/* Header Row */}
       <Animatable.View

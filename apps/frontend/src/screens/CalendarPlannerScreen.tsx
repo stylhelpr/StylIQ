@@ -1161,7 +1161,7 @@ export default function OutfitPlannerScreen() {
               StylHelpr Calendar
             </Text>
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 onPress={() => {
                   h('impactLight');
                   globalNavigate('OutfitHistory');
@@ -1176,7 +1176,7 @@ export default function OutfitPlannerScreen() {
                   size={24}
                   color={theme.colors.primary}
                 />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity
                 onPress={() => {
                   h('impactLight');

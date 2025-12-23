@@ -19,7 +19,6 @@ import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useStyleProfile} from '../hooks/useStyleProfile';
 import {
   useFollowers,
   useFollowing,
@@ -138,8 +137,18 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
   );
   const followMutation = useFollowUser();
 
-  // Fetch style profile (for style tags)
-  const {styleProfile} = useStyleProfile(userId || '');
+  // Fetch style profile by userId (for style tags)
+  const {data: styleProfile} = useQuery({
+    queryKey: ['publicStyleProfile', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const res = await fetch(
+        `${API_BASE_URL}/style-profile/by-user-id/${userId}`,
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
   const styleTags = styleProfile?.style_preferences || [];
 
   // Fetch wardrobe count

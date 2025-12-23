@@ -329,8 +329,26 @@ export default function ImageCarouselScreen({
         </AppleTouchFeedback>
       </View>
 
-      {/* Close button */}
-      <View style={styles.closeButtonContainer}>
+      {/* Video Feed Button */}
+      <View style={styles.videoFeedButton}>
+        <AppleTouchFeedback onPress={() => navigate('VideoFeedScreen')}>
+          <View style={styles.fabButton}>
+            <BlurView
+              style={styles.closeButtonBlur}
+              blurType="light"
+              blurAmount={0}
+              reducedTransparencyFallbackColor="rgba(255, 0, 0, 0.5)"
+            />
+            <View style={styles.closeButtonTint} />
+            <View style={styles.fabButtonInner}>
+              <MaterialIcons name="play-circle-outline" size={22} color="black" />
+            </View>
+          </View>
+        </AppleTouchFeedback>
+      </View>
+
+      {/* Close button - removed, using Home button in lower left instead */}
+      {/* <View style={styles.closeButtonContainer}>
         <View style={styles.closeButton}>
           <BlurView
             style={styles.closeButtonBlur}
@@ -340,10 +358,27 @@ export default function ImageCarouselScreen({
           />
           <View style={styles.closeButtonTint} />
           <Pressable onPress={handleClose} style={styles.closeButtonInner}>
-            {/* <Feather name="x-circle" color="black" size={22} /> */}
             <MaterialIcons name="close" size={18} color="black" />
           </Pressable>
         </View>
+      </View> */}
+
+      {/* Home Button - lower left */}
+      <View style={styles.homeButtonContainer}>
+        <AppleTouchFeedback onPress={handleClose}>
+          <View style={styles.fabButton}>
+            <BlurView
+              style={styles.closeButtonBlur}
+              blurType="light"
+              blurAmount={0}
+              reducedTransparencyFallbackColor="rgba(255, 0, 0, 0.5)"
+            />
+            <View style={styles.closeButtonTint} />
+            <View style={styles.fabButtonInner}>
+              <MaterialIcons name="home" size={22} color="black" />
+            </View>
+          </View>
+        </AppleTouchFeedback>
       </View>
     </Animated.View>
   );
@@ -432,6 +467,12 @@ const styles = StyleSheet.create({
     right: 15,
     zIndex: 999,
   },
+  videoFeedButton: {
+    position: 'absolute',
+    top: 108,
+    right: 15,
+    zIndex: 999,
+  },
   fabButton: {
     width: 38,
     height: 38,
@@ -476,6 +517,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  homeButtonContainer: {
+    position: 'absolute',
+    bottom: 35,
+    left: 40,
+    zIndex: 999,
   },
 });
 

@@ -300,6 +300,12 @@ export default function VideoFeedScreen({
       borderRadius: 20,
       padding: 6,
     },
+    homeButtonContainer: {
+      position: 'absolute',
+      bottom: insets.bottom + 5,
+      left: 40,
+      zIndex: 10,
+    },
     progressBarContainer: {
       position: 'absolute',
       bottom: 80,
@@ -422,6 +428,24 @@ export default function VideoFeedScreen({
             <View style={styles.fabButtonInner}>
               {/* <Feather name="image" color="black" size={22} /> */}
               <MaterialIcons name="photo-library" size={22} color="black" />
+            </View>
+          </View>
+        </AppleTouchFeedback>
+      </View>
+
+      {/* Home Button - lower left */}
+      <View style={styles.homeButtonContainer}>
+        <AppleTouchFeedback onPress={handleClose}>
+          <View style={styles.fabButton}>
+            <BlurView
+              style={styles.fabButtonBlur}
+              blurType="light"
+              blurAmount={0}
+              reducedTransparencyFallbackColor="rgba(255, 0, 0, 0.5)"
+            />
+            <View style={styles.fabButtonTint} />
+            <View style={styles.fabButtonInner}>
+              <MaterialIcons name="home" size={22} color="black" />
             </View>
           </View>
         </AppleTouchFeedback>
