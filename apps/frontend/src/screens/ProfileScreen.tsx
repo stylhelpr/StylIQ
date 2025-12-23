@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
@@ -812,8 +813,21 @@ export default function ProfileScreen({navigate}: Props) {
                       {/* Hide button */}
                       <Pressable
                         onPress={() => {
-                          setHiddenSharedLooks(prev =>
-                            new Set(prev).add(look.id),
+                          Alert.alert(
+                            'Remove Look',
+                            'Are you sure you want to remove this shared look from your feed?',
+                            [
+                              {text: 'Cancel', style: 'cancel'},
+                              {
+                                text: 'Remove',
+                                style: 'destructive',
+                                onPress: () => {
+                                  setHiddenSharedLooks(prev =>
+                                    new Set(prev).add(look.id),
+                                  );
+                                },
+                              },
+                            ],
                           );
                         }}
                         style={{
