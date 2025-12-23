@@ -1,6 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Pool } from 'pg';
 import { NotificationsService } from '../notifications/notifications.service';
+import { VertexService } from '../vertex/vertex.service';
+import {
+  upsertPostEmbedding,
+  querySimilarPosts,
+  deletePostEmbedding,
+  fetchPostEmbeddings,
+} from './community-vectors';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -9,7 +16,10 @@ const pool = new Pool({
 
 @Injectable()
 export class CommunityService {
-  constructor(private readonly notifications: NotificationsService) {
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly vertex: VertexService,
+  ) {
     this.initTables();
   }
 
@@ -162,6 +172,16 @@ export class CommunityService {
       )
     `);
 
+    // User preference vectors for recommendations
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_preference_vectors (
+        user_id UUID PRIMARY KEY,
+        vector FLOAT8[] NOT NULL,
+        interaction_count INT DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
     // Seed demo posts if table is empty
     await this.seedDemoPosts();
   }
@@ -266,7 +286,120 @@ export class CommunityService {
         data.tags || [],
       ],
     );
-    return res.rows[0];
+
+    const post = res.rows[0];
+
+    // Generate embedding asynchronously (non-blocking)
+    this.embedPostAsync(post).catch((err) => {
+      console.error(`⚠️ Failed to embed post ${post.id}:`, err.message);
+    });
+
+    return post;
+  }
+
+  /**
+   * Generate and store embedding for a community post.
+   * Uses the primary image or combines text from description + tags.
+   */
+  private async embedPostAsync(post: any) {
+    try {
+      const imageUrl = post.image_url || post.top_image;
+
+      let vector: number[];
+
+      if (imageUrl && imageUrl.startsWith('gs://')) {
+        // If image is in GCS, use image embedding
+        vector = await this.vertex.embedImage(imageUrl);
+      } else if (post.description || (post.tags && post.tags.length > 0)) {
+        // Fall back to text embedding from description + tags
+        const textContent = [
+          post.description || '',
+          ...(post.tags || []),
+        ].join(' ').trim();
+
+        if (!textContent) {
+          console.log(`ℹ️ Post ${post.id} has no embeddable content, skipping`);
+          return;
+        }
+
+        vector = await this.vertex.embedText(textContent);
+      } else {
+        console.log(`ℹ️ Post ${post.id} has no image or text to embed, skipping`);
+        return;
+      }
+
+      await upsertPostEmbedding({
+        postId: post.id,
+        vector,
+        metadata: {
+          userId: post.user_id,
+          tags: post.tags || [],
+          description: post.description || '',
+          createdAt: post.created_at,
+        },
+      });
+    } catch (err: any) {
+      console.error(`⚠️ embedPostAsync error for ${post.id}:`, err.message);
+    }
+  }
+
+  /**
+   * Update user's preference vector based on a post they liked/saved.
+   * Uses exponential moving average to blend new preferences with existing ones.
+   */
+  private async updateUserPreference(userId: string, postId: string) {
+    try {
+      // Fetch the post's embedding from Pinecone
+      const embeddings = await fetchPostEmbeddings([postId]);
+      const postEmbedding = embeddings[postId];
+
+      if (!postEmbedding?.values || postEmbedding.values.length === 0) {
+        console.log(`ℹ️ Post ${postId} has no embedding yet, skipping preference update`);
+        return;
+      }
+
+      const postVector = postEmbedding.values as number[];
+
+      // Get user's current preference vector
+      const existing = await pool.query(
+        `SELECT vector, interaction_count FROM user_preference_vectors WHERE user_id = $1`,
+        [userId],
+      );
+
+      let newVector: number[];
+      let newCount: number;
+
+      if (existing.rows.length === 0) {
+        // First interaction - use post vector directly
+        newVector = postVector;
+        newCount = 1;
+      } else {
+        // Blend with existing preference using exponential moving average
+        const currentVector = existing.rows[0].vector as number[];
+        const count = existing.rows[0].interaction_count || 1;
+
+        // Weight new interactions more heavily for fresh users, less for established
+        const alpha = Math.max(0.1, 1 / (count + 1));
+
+        newVector = currentVector.map((v, i) => v * (1 - alpha) + postVector[i] * alpha);
+        newCount = count + 1;
+      }
+
+      // Upsert the preference vector
+      await pool.query(
+        `INSERT INTO user_preference_vectors (user_id, vector, interaction_count, updated_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET
+           vector = $2,
+           interaction_count = $3,
+           updated_at = NOW()`,
+        [userId, newVector, newCount],
+      );
+
+      console.log(`✅ Updated preference vector for user ${userId} (${newCount} interactions)`);
+    } catch (err: any) {
+      console.error(`⚠️ updateUserPreference error:`, err.message);
+    }
   }
 
   async getPosts(
@@ -276,11 +409,20 @@ export class CommunityService {
     offset: number = 0,
   ) {
     console.log('📥 getPosts called:', { filter, currentUserId, limit, offset });
+
+    // Handle 'foryou' filter separately - uses Pinecone vector search
+    if (filter === 'foryou' && currentUserId) {
+      return this.getForYouPosts(currentUserId, limit, offset);
+    }
+
     let orderBy = 'ORDER BY cp.created_at DESC';
     let whereClause = 'WHERE 1=1';
 
     if (filter === 'trending') {
-      orderBy = 'ORDER BY cp.likes_count DESC, cp.created_at DESC';
+      // Trending: engagement weighted by recency (time decay)
+      orderBy = `ORDER BY
+        (cp.likes_count + cp.comments_count * 2 + COALESCE(cp.views_count, 0) * 0.1) /
+        POWER(EXTRACT(EPOCH FROM (NOW() - cp.created_at)) / 3600 + 2, 1.5) DESC`;
     } else if (filter === 'new') {
       orderBy = 'ORDER BY cp.created_at DESC';
     } else if (filter === 'following' && currentUserId) {
@@ -317,6 +459,95 @@ export class CommunityService {
     const params = currentUserId ? [limit, offset, currentUserId] : [limit, offset];
     const res = await pool.query(query, params);
     return res.rows;
+  }
+
+  /**
+   * Get personalized "For You" posts using vector similarity.
+   * Falls back to trending if user has no preference vector yet.
+   */
+  private async getForYouPosts(userId: string, limit: number, offset: number) {
+    // Get user's preference vector
+    const prefResult = await pool.query(
+      `SELECT vector FROM user_preference_vectors WHERE user_id = $1`,
+      [userId],
+    );
+
+    // If no preference vector, fall back to trending
+    if (prefResult.rows.length === 0 || !prefResult.rows[0].vector) {
+      console.log(`ℹ️ User ${userId} has no preference vector, falling back to trending`);
+      return this.getPosts('trending', userId, limit, offset);
+    }
+
+    const userVector = prefResult.rows[0].vector as number[];
+
+    // Get posts user has already liked/saved (to exclude)
+    const interactedResult = await pool.query(
+      `SELECT post_id FROM post_likes WHERE user_id = $1
+       UNION
+       SELECT post_id FROM saved_posts WHERE user_id = $1`,
+      [userId],
+    );
+    const excludePostIds = interactedResult.rows.map((r: any) => r.post_id);
+
+    // Get users the current user follows (to exclude - those go in Following feed)
+    const followingResult = await pool.query(
+      `SELECT following_id FROM user_follows WHERE follower_id = $1`,
+      [userId],
+    );
+    const followingUserIds = followingResult.rows.map((r: any) => r.following_id);
+
+    // Get blocked/muted users
+    const blockedResult = await pool.query(
+      `SELECT blocked_id FROM blocked_users WHERE blocker_id = $1
+       UNION
+       SELECT muted_id FROM muted_users WHERE muter_id = $1`,
+      [userId],
+    );
+    const excludeUserIds = [
+      ...followingUserIds,
+      ...blockedResult.rows.map((r: any) => r.blocked_id || r.muted_id),
+      userId, // Exclude own posts
+    ];
+
+    // Query Pinecone for similar posts
+    const similarPosts = await querySimilarPosts({
+      vector: userVector,
+      topK: limit + offset,
+      excludePostIds,
+      excludeUserIds,
+    });
+
+    if (similarPosts.length === 0) {
+      console.log(`ℹ️ No similar posts found for user ${userId}, falling back to trending`);
+      return this.getPosts('trending', userId, limit, offset);
+    }
+
+    // Get post IDs from Pinecone results (apply offset)
+    const postIds = similarPosts.slice(offset, offset + limit).map((p) => p.id);
+
+    if (postIds.length === 0) {
+      return [];
+    }
+
+    // Fetch full post data from PostgreSQL
+    const query = `
+      SELECT
+        cp.*,
+        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
+        EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $2) as is_liked_by_me,
+        EXISTS(SELECT 1 FROM saved_posts WHERE post_id = cp.id AND user_id = $2) as is_saved_by_me,
+        EXISTS(SELECT 1 FROM user_follows WHERE follower_id = $2 AND following_id = cp.user_id) as is_following_author
+      FROM community_posts cp
+      LEFT JOIN users u ON cp.user_id = u.id
+      WHERE cp.id = ANY($1)
+    `;
+
+    const res = await pool.query(query, [postIds, userId]);
+
+    // Sort results to match Pinecone ranking order
+    const postMap = new Map(res.rows.map((p: any) => [p.id, p]));
+    return postIds.map((id) => postMap.get(id)).filter(Boolean);
   }
 
   async searchPosts(query: string, currentUserId?: string, limit: number = 20) {
@@ -393,6 +624,11 @@ export class CommunityService {
     await pool.query('DELETE FROM post_comments WHERE post_id = $1', [postId]);
     await pool.query('DELETE FROM saved_posts WHERE post_id = $1', [postId]);
     await pool.query('DELETE FROM community_posts WHERE id = $1', [postId]);
+
+    // Delete embedding from Pinecone asynchronously
+    deletePostEmbedding(postId).catch((err: any) => {
+      console.error(`⚠️ Failed to delete embedding for post ${postId}:`, err.message);
+    });
 
     return { message: 'Post deleted' };
   }
@@ -489,6 +725,11 @@ export class CommunityService {
     } catch (e) {
       console.error('Failed to send like notification:', e);
     }
+
+    // Update user preference vector asynchronously
+    this.updateUserPreference(userId, postId).catch((err: any) => {
+      console.error(`⚠️ Failed to update preference for user ${userId}:`, err.message);
+    });
 
     return { message: 'Post liked' };
   }
@@ -740,6 +981,11 @@ export class CommunityService {
        ON CONFLICT (user_id, post_id) DO NOTHING`,
       [userId, postId],
     );
+
+    // Update user preference vector asynchronously (saves indicate strong interest)
+    this.updateUserPreference(userId, postId).catch((err: any) => {
+      console.error(`⚠️ Failed to update preference for user ${userId}:`, err.message);
+    });
 
     return { message: 'Post saved' };
   }
@@ -997,5 +1243,68 @@ export class CommunityService {
     }
 
     return res.rows;
+  }
+
+  // ==================== USER SUGGESTIONS ====================
+
+  /**
+   * Get suggested users to follow based on:
+   * 1. Mutual connections (people followed by people you follow)
+   * 2. Fallback: Popular users with most followers
+   */
+  async getSuggestedUsers(userId: string, limit: number = 10) {
+    // First try: mutual connections
+    const mutualRes = await pool.query(
+      `SELECT
+        u.id,
+        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        u.profile_picture as user_avatar,
+        u.bio,
+        COUNT(DISTINCT f2.follower_id) as mutual_count,
+        (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) as followers_count
+      FROM user_follows f1
+      JOIN user_follows f2 ON f1.following_id = f2.follower_id
+      JOIN users u ON f2.following_id = u.id
+      WHERE f1.follower_id = $1
+        AND f2.following_id != $1
+        AND f2.following_id NOT IN (SELECT following_id FROM user_follows WHERE follower_id = $1)
+        AND f2.following_id NOT IN (SELECT blocked_id FROM blocked_users WHERE blocker_id = $1)
+        AND f2.following_id NOT IN (SELECT muted_id FROM muted_users WHERE muter_id = $1)
+      GROUP BY u.id, u.first_name, u.last_name, u.profile_picture, u.bio
+      ORDER BY mutual_count DESC, followers_count DESC
+      LIMIT $2`,
+      [userId, limit],
+    );
+
+    const suggestions = mutualRes.rows;
+
+    // If not enough suggestions, fill with popular users
+    if (suggestions.length < limit) {
+      const remaining = limit - suggestions.length;
+      const existingIds = suggestions.map((s: any) => s.id);
+
+      const popularRes = await pool.query(
+        `SELECT
+          u.id,
+          COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+          u.profile_picture as user_avatar,
+          u.bio,
+          0 as mutual_count,
+          (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) as followers_count
+        FROM users u
+        WHERE u.id != $1
+          AND u.id NOT IN (SELECT following_id FROM user_follows WHERE follower_id = $1)
+          AND u.id NOT IN (SELECT blocked_id FROM blocked_users WHERE blocker_id = $1)
+          AND u.id NOT IN (SELECT muted_id FROM muted_users WHERE muter_id = $1)
+          ${existingIds.length > 0 ? `AND u.id NOT IN (${existingIds.map((_, i) => `$${i + 3}`).join(',')})` : ''}
+        ORDER BY (SELECT COUNT(*) FROM user_follows WHERE following_id = u.id) DESC
+        LIMIT $2`,
+        [userId, remaining, ...existingIds],
+      );
+
+      suggestions.push(...popularRes.rows);
+    }
+
+    return suggestions;
   }
 }

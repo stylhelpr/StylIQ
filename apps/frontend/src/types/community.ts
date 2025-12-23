@@ -47,7 +47,7 @@ export interface UserProfile {
   is_muted?: boolean;
 }
 
-export type PostFilter = 'all' | 'trending' | 'new' | 'following' | 'saved';
+export type PostFilter = 'all' | 'foryou' | 'trending' | 'new' | 'following' | 'saved';
 
 export interface FollowUser {
   id: string;

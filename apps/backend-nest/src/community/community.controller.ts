@@ -262,4 +262,14 @@ export class CommunityController {
   ) {
     return this.service.getFollowing(userId, currentUserId);
   }
+
+  // ==================== USER SUGGESTIONS ====================
+
+  @Get('users/suggestions')
+  async getSuggestedUsers(
+    @Query('userId') userId: string,
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.service.getSuggestedUsers(userId, parseInt(limit));
+  }
 }

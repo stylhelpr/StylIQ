@@ -1493,6 +1493,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 
   const filters: PostFilter[] = [
     'all',
+    'foryou',
     'trending',
     'new',
     'following',
