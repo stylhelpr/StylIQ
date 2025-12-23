@@ -62,12 +62,12 @@ export class OutfitController {
   }
 
   @Put(':table/:id')
-  updateOutfitName(
+  updateOutfit(
     @Param('table') table: 'custom' | 'suggestions',
     @Param('id') id: string,
-    @Body() body: { name: string },
+    @Body() body: { name?: string; occasion?: string },
   ) {
-    return this.outfitService.updateOutfitName(table, id, body.name);
+    return this.outfitService.updateOutfit(table, id, body.name, body.occasion);
   }
 
   @Post('mark-worn/:outfitId/:outfitType/:userId')
@@ -77,5 +77,14 @@ export class OutfitController {
     @Param('userId') userId: string,
   ) {
     return this.outfitService.markAsWorn(outfitId, outfitType, userId);
+  }
+
+  @Delete('unmark-worn/:outfitId/:outfitType/:userId')
+  unmarkWorn(
+    @Param('outfitId') outfitId: string,
+    @Param('outfitType') outfitType: 'custom' | 'ai',
+    @Param('userId') userId: string,
+  ) {
+    return this.outfitService.unmarkWorn(outfitId, outfitType, userId);
   }
 }

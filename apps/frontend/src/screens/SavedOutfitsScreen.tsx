@@ -87,6 +87,36 @@ const ScalePressable = ({
   );
 };
 
+// Occasion types with color coding
+type OutfitOccasion =
+  | 'Work'
+  | 'DateNight'
+  | 'Casual'
+  | 'Formal'
+  | 'Travel'
+  | 'Gym'
+  | 'Weekend'
+  | 'Party'
+  | 'Interview'
+  | 'Brunch';
+
+// Occasion → Color & Icon mapping
+const OCCASION_CONFIG: Record<
+  OutfitOccasion,
+  {color: string; icon: string; label: string}
+> = {
+  Work: {color: '#3B82F6', icon: 'work', label: 'Work'},
+  DateNight: {color: '#EC4899', icon: 'favorite', label: 'Date Night'},
+  Casual: {color: '#22C55E', icon: 'weekend', label: 'Casual'},
+  Formal: {color: '#F59E0B', icon: 'star', label: 'Formal'},
+  Travel: {color: '#14B8A6', icon: 'flight', label: 'Travel'},
+  Gym: {color: '#F97316', icon: 'fitness-center', label: 'Gym'},
+  Weekend: {color: '#8B5CF6', icon: 'wb-sunny', label: 'Weekend'},
+  Party: {color: '#EF4444', icon: 'celebration', label: 'Party'},
+  Interview: {color: '#6366F1', icon: 'business-center', label: 'Interview'},
+  Brunch: {color: '#F472B6', icon: 'brunch-dining', label: 'Brunch'},
+};
+
 type SavedOutfit = {
   id: string;
   name?: string;
@@ -101,6 +131,7 @@ type SavedOutfit = {
   plannedDate?: string;
   type: 'custom' | 'ai';
   timesWorn?: number;
+  occasion?: OutfitOccasion;
 };
 
 const CLOSET_KEY = 'savedOutfits';
@@ -359,6 +390,14 @@ export default function SavedOutfitsScreen() {
   const [combinedOutfits, setCombinedOutfits] = useState<SavedOutfit[]>([]);
   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
+  const [editedOccasion, setEditedOccasion] = useState<
+    OutfitOccasion | undefined
+  >(undefined);
+
+  // Occasion filter state (null = "All")
+  const [occasionFilter, setOccasionFilter] = useState<OutfitOccasion | null>(
+    null,
+  );
 
   const [planningOutfitId, setPlanningOutfitId] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -631,7 +670,7 @@ export default function SavedOutfitsScreen() {
   };
 
   const handleNameSave = async () => {
-    if (!editingOutfitId || editedName.trim() === '') return;
+    if (!editingOutfitId) return;
 
     const outfit = combinedOutfits.find(o => o.id === editingOutfitId);
     if (!outfit) return;
@@ -644,24 +683,30 @@ export default function SavedOutfitsScreen() {
         {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({name: editedName.trim()}),
+          body: JSON.stringify({
+            name: editedName.trim() || outfit.name,
+            occasion: editedOccasion ?? null,
+          }),
         },
       );
 
-      if (!res.ok) throw new Error('Failed to update outfit name');
+      if (!res.ok) throw new Error('Failed to update outfit');
 
       // ✅ update state so UI reflects the change immediately
       const updated = combinedOutfits.map(o =>
-        o.id === editingOutfitId ? {...o, name: editedName.trim()} : o,
+        o.id === editingOutfitId
+          ? {...o, name: editedName.trim() || o.name, occasion: editedOccasion}
+          : o,
       );
       setCombinedOutfits(updated);
 
       // ✅ reset modal state
       setEditingOutfitId(null);
       setEditedName('');
+      setEditedOccasion(undefined);
     } catch (err) {
-      console.error('❌ Error updating outfit name:', err);
-      Alert.alert('Error', 'Failed to update outfit name in the database.');
+      console.error('❌ Error updating outfit:', err);
+      Alert.alert('Error', 'Failed to update outfit in the database.');
     }
   };
 
@@ -922,9 +967,10 @@ export default function SavedOutfitsScreen() {
                 image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
               } as any)
             : ({} as any),
-          createdAt: o.created_at
-            ? new Date(o.created_at).toISOString()
-            : new Date().toISOString(),
+          createdAt:
+            o.created_at || o.createdAt
+              ? new Date(o.created_at || o.createdAt).toISOString()
+              : new Date().toISOString(),
           tags: o.tags || [],
           notes: o.notes || '',
           rating: o.rating ?? undefined,
@@ -936,6 +982,7 @@ export default function SavedOutfitsScreen() {
           plannedDate: scheduleMap[outfitId] ?? undefined,
           type: isCustom ? 'custom' : 'ai',
           timesWorn: wornCountsData[outfitId] ?? 0,
+          occasion: o.occasion ?? undefined,
         };
       };
 
@@ -980,7 +1027,12 @@ export default function SavedOutfitsScreen() {
     'newest' | 'favorites' | 'planned' | 'stars'
   >('newest');
 
-  const sortedOutfits = [...combinedOutfits].sort((a, b) => {
+  // Filter by occasion first, then sort
+  const filteredOutfits = occasionFilter
+    ? combinedOutfits.filter(o => o.occasion === occasionFilter)
+    : combinedOutfits;
+
+  const sortedOutfits = [...filteredOutfits].sort((a, b) => {
     switch (sortType) {
       case 'favorites':
         return Number(b.favorited) - Number(a.favorited);
@@ -1226,20 +1278,35 @@ export default function SavedOutfitsScreen() {
           ]}>
           Saved Outfits
         </Text>
-        <TouchableOpacity
-          onPress={() => globalNavigate('OutfitHistory')}
-          style={{
-            padding: 8,
-            marginRight: 16,
-            borderRadius: 20,
-            backgroundColor: theme.colors.surface,
-          }}>
-          <MaterialIcons
-            name="history"
-            size={24}
-            color={theme.colors.primary}
-          />
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', gap: 8}}>
+          <TouchableOpacity
+            onPress={() => globalNavigate('OutfitsByOccasion')}
+            style={{
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: theme.colors.surface,
+            }}>
+            <MaterialIcons
+              name="category"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => globalNavigate('OutfitHistory')}
+            style={{
+              padding: 8,
+              marginRight: 16,
+              borderRadius: 20,
+              backgroundColor: theme.colors.surface,
+            }}>
+            <MaterialIcons
+              name="history"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Animatable.View
@@ -1320,6 +1387,90 @@ export default function SavedOutfitsScreen() {
             );
           })}
         </View>
+
+        {/* Occasion filter chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            // paddingHorizontal: 16,
+            paddingVertical: 12,
+            gap: 8,
+          }}
+          style={{flexGrow: 0}}>
+          {/* "All" chip */}
+          <TouchableOpacity
+            onPress={() => setOccasionFilter(null)}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 16,
+              backgroundColor:
+                occasionFilter === null
+                  ? theme.colors.primary
+                  : theme.colors.surface,
+              borderWidth: 1,
+              borderColor:
+                occasionFilter === null
+                  ? theme.colors.primary
+                  : theme.colors.surfaceBorder,
+            }}>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color:
+                  occasionFilter === null ? 'black' : theme.colors.foreground,
+              }}>
+              All ({combinedOutfits.length})
+            </Text>
+          </TouchableOpacity>
+
+          {/* Occasion chips */}
+          {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(occasion => {
+            const config = OCCASION_CONFIG[occasion];
+            const count = combinedOutfits.filter(
+              o => o.occasion === occasion,
+            ).length;
+            if (count === 0) return null;
+            const isSelected = occasionFilter === occasion;
+
+            return (
+              <TouchableOpacity
+                key={occasion}
+                onPress={() => setOccasionFilter(isSelected ? null : occasion)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 16,
+                  backgroundColor: isSelected
+                    ? config.color
+                    : theme.colors.surface,
+                  borderWidth: 1,
+                  borderColor: isSelected
+                    ? config.color
+                    : theme.colors.surfaceBorder,
+                  gap: 6,
+                }}>
+                <MaterialIcons
+                  name={config.icon as any}
+                  size={16}
+                  color={isSelected ? '#fff' : config.color}
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isSelected ? '#fff' : theme.colors.foreground,
+                  }}>
+                  {config.label} ({count})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </Animatable.View>
 
       {/* 🪩 Dramatic Parallax ScrollView */}
@@ -1512,6 +1663,7 @@ export default function SavedOutfitsScreen() {
                                   hSelect();
                                   setEditingOutfitId(outfit.id);
                                   setEditedName(outfit.name || '');
+                                  setEditedOccasion(outfit.occasion);
                                 }}
                                 style={{
                                   padding: 8,
@@ -1609,66 +1761,153 @@ export default function SavedOutfitsScreen() {
                             </Text>
                           )}
 
-                          <View style={{display: 'flex', flexDirection: 'row'}}>
-                            {/* 👕 Mark as worn */}
-                            <Pressable
-                              onPress={async () => {
-                                hSelect();
-                                try {
-                                  await fetch(
-                                    `${API_BASE_URL}/outfit/mark-worn/${outfit.id}/${outfit.type}/${userId}`,
-                                    {method: 'POST'},
-                                  );
-                                  setCombinedOutfits(prev =>
-                                    prev.map(o =>
-                                      o.id === outfit.id
-                                        ? {
-                                            ...o,
-                                            timesWorn: (o.timesWorn ?? 0) + 1,
-                                          }
-                                        : o,
-                                    ),
-                                  );
-                                } catch (e) {
-                                  console.error('Failed to mark as worn', e);
-                                }
-                              }}
+                          {/* WORN COLOR */}
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              paddingVertical: 1,
+                              alignItems: 'center',
+                            }}>
+                            {/* Left 50% */}
+                            <View
                               style={{
-                                paddingVertical: 8,
-                                borderRadius: 14,
-                                paddingHorizontal: 12,
-                                backgroundColor:
-                                  theme.colors.button1 ?? 'rgba(43,43,43,1)',
-                                marginTop: 6,
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'center',
                               }}>
-                              <MaterialIcons
-                                name="checkroom"
-                                size={22}
-                                color={theme.colors.primary}
-                              />
-                            </Pressable>
-
-                            {(outfit.timesWorn ?? 0) > 0 && (
-                              <View
+                              {/* 👕 Mark as worn (tap to increment, long press to decrement) */}
+                              <Pressable
+                                onPress={async () => {
+                                  hSelect();
+                                  try {
+                                    await fetch(
+                                      `${API_BASE_URL}/outfit/mark-worn/${outfit.id}/${outfit.type}/${userId}`,
+                                      {method: 'POST'},
+                                    );
+                                    setCombinedOutfits(prev =>
+                                      prev.map(o =>
+                                        o.id === outfit.id
+                                          ? {
+                                              ...o,
+                                              timesWorn: (o.timesWorn ?? 0) + 1,
+                                            }
+                                          : o,
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    console.error('Failed to mark as worn', e);
+                                  }
+                                }}
+                                onLongPress={async () => {
+                                  if ((outfit.timesWorn ?? 0) <= 0) return;
+                                  hSelect();
+                                  try {
+                                    await fetch(
+                                      `${API_BASE_URL}/outfit/unmark-worn/${outfit.id}/${outfit.type}/${userId}`,
+                                      {method: 'DELETE'},
+                                    );
+                                    setCombinedOutfits(prev =>
+                                      prev.map(o =>
+                                        o.id === outfit.id
+                                          ? {
+                                              ...o,
+                                              timesWorn: Math.max(
+                                                0,
+                                                (o.timesWorn ?? 0) - 1,
+                                              ),
+                                            }
+                                          : o,
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    console.error('Failed to unmark worn', e);
+                                  }
+                                }}
+                                delayLongPress={500}
                                 style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  backgroundColor: theme.colors.surface,
-                                  paddingHorizontal: 8,
-                                  borderRadius: 12,
-                                  marginTop: 6,
+                                  paddingVertical: 7,
+                                  borderRadius: 50,
+                                  paddingHorizontal: 12,
+                                  backgroundColor:
+                                    theme.colors.button1 ?? 'rgba(43,43,43,1)',
                                 }}>
-                                <Text
+                                <MaterialIcons
+                                  name="checkroom"
+                                  size={22}
+                                  color={theme.colors.primary}
+                                />
+                              </Pressable>
+
+                              {(outfit.timesWorn ?? 0) > 0 && (
+                                <View
                                   style={{
-                                    fontSize: 16,
-                                    fontWeight: '800',
-                                    color: theme.colors.primary,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    backgroundColor: theme.colors.surface,
+                                    paddingHorizontal: 8,
+                                    borderRadius: 12,
                                   }}>
-                                  Worn:
-                                  {outfit.timesWorn} times{' '}
-                                </Text>
-                              </View>
-                            )}
+                                  <Text
+                                    style={{
+                                      fontSize: 16,
+                                      fontWeight: '800',
+                                      color: theme.colors.primary,
+                                    }}>
+                                    Worn:
+                                    {outfit.timesWorn} x{' '}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+
+                            {/* Right 50% - Occasion Chip */}
+                            <View
+                              style={{
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'flex-start',
+                              }}>
+                              {outfit.occasion &&
+                                OCCASION_CONFIG[outfit.occasion] && (
+                                  <Pressable
+                                    onPress={() => {
+                                      hSelect();
+                                      setEditingOutfitId(outfit.id);
+                                      setEditedName(outfit.name || '');
+                                      setEditedOccasion(outfit.occasion);
+                                    }}
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      backgroundColor: `${
+                                        OCCASION_CONFIG[outfit.occasion].color
+                                      }`,
+                                      paddingHorizontal: 14,
+                                      paddingVertical: 10,
+                                      borderRadius: 50,
+                                      borderWidth: 1,
+                                    }}>
+                                    <MaterialIcons
+                                      name={
+                                        OCCASION_CONFIG[outfit.occasion]
+                                          .icon as any
+                                      }
+                                      size={14}
+                                      color={theme.colors.foreground}
+                                      style={{marginRight: 5}}
+                                    />
+                                    <Text
+                                      style={{
+                                        fontSize: 12,
+                                        fontWeight: '600',
+                                        color: theme.colors.foreground,
+                                      }}>
+                                      {OCCASION_CONFIG[outfit.occasion].label}
+                                    </Text>
+                                  </Pressable>
+                                )}
+                            </View>
                           </View>
 
                           {/* 📅 Schedule & Cancel Buttons – keep them working */}
@@ -1677,7 +1916,7 @@ export default function SavedOutfitsScreen() {
                               flexDirection: 'row',
                               justifyContent: 'flex-start',
                               flexWrap: 'wrap',
-                              marginTop: 10,
+                              marginTop: 8,
                             }}>
                             <AppleTouchFeedback
                               hapticStyle="impactLight"
@@ -1773,7 +2012,8 @@ export default function SavedOutfitsScreen() {
           )}
         </View>
       </Animated.ScrollView>
-      {/* 📝 Edit Name Modal */}
+
+      {/* 📝 Edit Outfit Modal */}
       {editingOutfitId && (
         <BlurView
           style={styles.modalContainer}
@@ -1783,28 +2023,135 @@ export default function SavedOutfitsScreen() {
           <Animatable.View
             animation="zoomIn"
             duration={600}
-            style={styles.modalContent}>
+            style={[styles.modalContent, {maxHeight: '80%'}]}>
             <Text
               style={{
                 color: theme.colors.foreground,
                 fontWeight: '700',
-                fontSize: 16,
+                fontSize: 18,
+                marginBottom: 4,
               }}>
-              Edit Outfit Name
+              Edit Outfit
+            </Text>
+
+            {/* Outfit Name Input */}
+            <Text
+              style={{
+                color: theme.colors.foreground3,
+                fontSize: 12,
+                fontWeight: '600',
+                marginTop: 12,
+                marginBottom: 6,
+              }}>
+              NAME
             </Text>
             <TextInput
               value={editedName}
               onChangeText={setEditedName}
-              placeholder="Enter new name"
+              placeholder="Enter outfit name"
               placeholderTextColor={theme.colors.foreground3}
               style={styles.input}
             />
-            <View style={styles.modalActions}>
+
+            {/* Occasion Selector */}
+            <Text
+              style={{
+                color: theme.colors.foreground3,
+                fontSize: 12,
+                fontWeight: '600',
+                marginTop: 16,
+                marginBottom: 8,
+              }}>
+              OCCASION
+            </Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{marginBottom: 8}}>
+              <View style={{flexDirection: 'row', gap: 8, paddingRight: 16}}>
+                {/* Clear occasion option */}
+                <Pressable
+                  onPress={() => setEditedOccasion(undefined)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 16,
+                    backgroundColor: !editedOccasion
+                      ? theme.colors.primary
+                      : theme.colors.surface3,
+                    borderWidth: 1,
+                    borderColor: !editedOccasion
+                      ? theme.colors.primary
+                      : theme.colors.surfaceBorder,
+                  }}>
+                  <MaterialIcons
+                    name="close"
+                    size={14}
+                    color={!editedOccasion ? '#fff' : theme.colors.foreground3}
+                    style={{marginRight: 4}}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: '600',
+                      color: !editedOccasion
+                        ? '#fff'
+                        : theme.colors.foreground3,
+                    }}>
+                    None
+                  </Text>
+                </Pressable>
+
+                {/* Occasion options */}
+                {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(key => {
+                  const config = OCCASION_CONFIG[key];
+                  const isSelected = editedOccasion === key;
+                  return (
+                    <Pressable
+                      key={key}
+                      onPress={() => setEditedOccasion(key)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 12,
+                        paddingVertical: 10,
+                        borderRadius: 16,
+                        backgroundColor: isSelected
+                          ? `${config.color}`
+                          : theme.colors.surface3,
+                        borderWidth: 1,
+                        borderColor: isSelected,
+                      }}>
+                      <MaterialIcons
+                        name={config.icon as any}
+                        size={14}
+                        color={theme.colors.foreground3}
+                        style={{marginRight: 4}}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: theme.colors.foreground3,
+                        }}>
+                        {config.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            <View style={[styles.modalActions, {marginTop: 16}]}>
               <AppleTouchFeedback
                 hapticStyle="impactLight"
                 onPress={() => {
                   setEditingOutfitId(null);
                   setEditedName('');
+                  setEditedOccasion(undefined);
                 }}>
                 <Text style={{color: theme.colors.foreground, marginRight: 24}}>
                   Cancel

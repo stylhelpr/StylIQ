@@ -64,9 +64,14 @@ export class OutfitService {
   }
 
   async getSuggestions(userId: string) {
+    // Ensure occasion column exists
+    await pool.query(`
+      ALTER TABLE outfit_suggestions ADD COLUMN IF NOT EXISTS occasion TEXT
+    `);
+
     const res = await pool.query(
       `
-      SELECT 
+      SELECT
         o.*,
         so.scheduled_for,
         t.id AS top_id, t.name AS top_name, t.image_url AS top_image_url,
@@ -98,6 +103,7 @@ export class OutfitService {
       rating: row.rating ?? null,
       thumbnailUrl: row.thumbnail_url ?? '',
       prompt: row.prompt ?? '',
+      occasion: row.occasion ?? null,
       top: {
         id: row.top_id,
         name: row.top_name,
@@ -168,15 +174,20 @@ export class OutfitService {
   }
 
   async getCustomOutfits(userId: string) {
+    // Ensure occasion column exists
+    await pool.query(`
+      ALTER TABLE custom_outfits ADD COLUMN IF NOT EXISTS occasion TEXT
+    `);
+
     const res = await pool.query(
       `
-    SELECT 
+    SELECT
       co.id,
       co.name,
       co.created_at,
       co.notes,
       co.rating,
-
+      co.occasion,
 
       t.id AS top_id,
       t.name AS top_name,
@@ -209,6 +220,7 @@ export class OutfitService {
       notes: row.notes ?? '',
       rating: row.rating ?? null,
       thumbnailUrl: row.thumbnail_url ?? '',
+      occasion: row.occasion ?? null,
       top: row.top_id
         ? {
             id: row.top_id,
@@ -263,20 +275,86 @@ export class OutfitService {
     return { message: 'Outfit name updated' };
   }
 
+  async updateOutfit(
+    table: 'custom' | 'suggestions',
+    id: string,
+    name?: string,
+    occasion?: string,
+  ) {
+    const tableName =
+      table === 'custom' ? 'custom_outfits' : 'outfit_suggestions';
+
+    // Ensure occasion column exists (migration)
+    await pool.query(`
+      ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS occasion TEXT
+    `);
+
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex}`);
+      values.push(name);
+      paramIndex++;
+    }
+
+    if (occasion !== undefined) {
+      updates.push(`occasion = $${paramIndex}`);
+      values.push(occasion || null);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return { message: 'Nothing to update' };
+    }
+
+    values.push(id);
+    await pool.query(
+      `UPDATE ${tableName} SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+      values,
+    );
+
+    return { message: 'Outfit updated' };
+  }
+
   async markAsWorn(outfitId: string, outfitType: 'custom' | 'ai', userId: string) {
     const columnName = outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
 
     // Insert a worn record with scheduled_for set to epoch (1970-01-01) so it doesn't appear on calendar
     // Only worn_at matters for the count
+    // Also set notified_at to NOW() so the notification cron job skips this manual entry
     const { rows } = await pool.query(
       `
-      INSERT INTO scheduled_outfits (user_id, ${columnName}, scheduled_for, worn_at)
-      VALUES ($1, $2, '1970-01-01'::timestamptz, NOW())
+      INSERT INTO scheduled_outfits (user_id, ${columnName}, scheduled_for, worn_at, notified_at)
+      VALUES ($1, $2, '1970-01-01'::timestamptz, NOW(), NOW())
       RETURNING *
       `,
       [userId, outfitId],
     );
 
     return rows[0];
+  }
+
+  async unmarkWorn(outfitId: string, outfitType: 'custom' | 'ai', userId: string) {
+    const columnName = outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
+
+    // Delete the most recent worn record for this outfit
+    const { rows } = await pool.query(
+      `
+      DELETE FROM scheduled_outfits
+      WHERE id = (
+        SELECT id FROM scheduled_outfits
+        WHERE user_id = $1 AND ${columnName} = $2 AND worn_at IS NOT NULL
+        ORDER BY worn_at DESC
+        LIMIT 1
+      )
+      RETURNING *
+      `,
+      [userId, outfitId],
+    );
+
+    return rows[0] ?? { message: 'No worn record to remove' };
   }
 }
