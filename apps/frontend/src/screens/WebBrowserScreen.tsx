@@ -2778,6 +2778,49 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 style={styles.saveMenuItemCheck}
               />
             </TouchableOpacity>
+            {/* Save to Inspired Looks */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={async () => {
+                if (longPressedImageUrl && userId) {
+                  setShowImageSaveModal(false);
+                  try {
+                    const response = await fetch(
+                      `${API_BASE_URL}/saved-looks`,
+                      {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                          user_id: userId,
+                          image_url: longPressedImageUrl,
+                          name: 'Web Inspiration',
+                        }),
+                      },
+                    );
+                    if (response.ok) {
+                      triggerHaptic('notificationSuccess');
+                    } else {
+                      triggerHaptic('notificationError');
+                    }
+                  } catch (error) {
+                    console.log('Save to Inspired Looks error:', error);
+                    triggerHaptic('notificationError');
+                  }
+                } else {
+                  setShowImageSaveModal(false);
+                }
+              }}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons name="auto-awesome" size={22} color="#f59e0b" />
+              </View>
+              <Text style={styles.saveMenuItemText}>Save to Inspired Looks</Text>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={16}
+                color={theme.colors.foreground3}
+                style={styles.saveMenuItemCheck}
+              />
+            </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
