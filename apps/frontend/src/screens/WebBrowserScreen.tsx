@@ -2241,6 +2241,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             onLoadEnd={handleWebViewLoadEnd}
             onMessage={handleWebViewMessage}
             userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            pullToRefreshEnabled={true}
+            allowsBackForwardNavigationGestures={true}
           />
         </View>
       )}
