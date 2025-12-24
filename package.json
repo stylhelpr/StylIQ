@@ -57,6 +57,7 @@
     "react-native-linear-gradient": "^2.8.3",
     "react-native-maps": "^0.30.2",
     "react-native-mime-types": "^2.5.0",
+    "react-native-mmkv": "^2.12.2",
     "react-native-orientation-locker": "^1.7.0",
     "react-native-permissions": "^3.7.0",
     "react-native-popable": "^0.4.3",

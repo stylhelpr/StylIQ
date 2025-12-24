@@ -46,6 +46,7 @@ import MainApp from './MainApp';
 import {Auth0Provider} from 'react-native-auth0';
 import {UUIDProvider, useUUID} from './context/UUIDContext';
 import {initializeNotifications} from './utils/notificationService';
+import {useBrowserSync} from './hooks/useBrowserSync';
 import {
   SafeAreaProvider,
   initialWindowMetrics,
@@ -58,6 +59,9 @@ import './lib/apiClient';
 
 function RootWithNotifications() {
   const userId = useUUID();
+
+  // Initialize browser sync (handles app open, foreground, background)
+  useBrowserSync();
 
   useEffect(() => {
     if (userId) {

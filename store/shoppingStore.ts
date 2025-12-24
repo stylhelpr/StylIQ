@@ -224,6 +224,38 @@ type ShoppingState = {
   setTrackingConsent: (consent: 'accepted' | 'declined') => void;
   isTrackingEnabled: () => boolean;
 
+  // Server Sync
+  lastSyncTimestamp: number | null;
+  isSyncing: boolean;
+  syncError: string | null;
+  pendingChanges: {
+    bookmarks: ShoppingItem[];
+    deletedBookmarkUrls: string[];
+    history: BrowsingHistory[];
+    collections: Collection[];
+    deletedCollectionIds: string[];
+  };
+  markBookmarkForSync: (bookmark: ShoppingItem) => void;
+  markBookmarkDeleted: (url: string) => void;
+  markHistoryForSync: (entry: BrowsingHistory) => void;
+  markCollectionForSync: (collection: Collection) => void;
+  markCollectionDeleted: (id: string) => void;
+  setSyncState: (syncing: boolean, error?: string | null) => void;
+  applyServerSync: (data: {
+    bookmarks: ShoppingItem[];
+    history: BrowsingHistory[];
+    collections: Collection[];
+    serverTimestamp: number;
+  }) => void;
+  clearPendingChanges: () => void;
+  getPendingChangesForSync: () => {
+    bookmarks: ShoppingItem[];
+    deletedBookmarkUrls: string[];
+    history: BrowsingHistory[];
+    collections: Collection[];
+    deletedCollectionIds: string[];
+  };
+
   // Reset all user data on logout
   resetForLogout: () => void;
 };
@@ -237,15 +269,42 @@ export const useShoppingStore = create<ShoppingState>()(
         set(state => {
           const exists = state.bookmarks.some(b => b.url === item.url);
           if (exists) return state;
+          const newBookmark = {...item, addedAt: Date.now()};
           return {
-            bookmarks: [{...item, addedAt: Date.now()}, ...state.bookmarks],
+            bookmarks: [newBookmark, ...state.bookmarks],
+            // Mark for sync
+            pendingChanges: {
+              ...state.pendingChanges,
+              bookmarks: [...state.pendingChanges.bookmarks, newBookmark],
+            },
           };
         });
       },
       removeBookmark: (id: string) => {
-        set(state => ({
-          bookmarks: state.bookmarks.filter(b => b.id !== id),
-        }));
+        set(state => {
+          const bookmark = state.bookmarks.find(b => b.id === id);
+          return {
+            bookmarks: state.bookmarks.filter(b => b.id !== id),
+            // Mark for sync deletion
+            pendingChanges: bookmark
+              ? {
+                  ...state.pendingChanges,
+                  bookmarks: state.pendingChanges.bookmarks.filter(
+                    b => b.url !== bookmark.url,
+                  ),
+                  deletedBookmarkUrls:
+                    state.pendingChanges.deletedBookmarkUrls.includes(
+                      bookmark.url,
+                    )
+                      ? state.pendingChanges.deletedBookmarkUrls
+                      : [
+                          ...state.pendingChanges.deletedBookmarkUrls,
+                          bookmark.url,
+                        ],
+                }
+              : state.pendingChanges,
+          };
+        });
       },
       isBookmarked: (url: string) => {
         return get().bookmarks.some(b => b.url === url);
@@ -257,22 +316,40 @@ export const useShoppingStore = create<ShoppingState>()(
         set(state => {
           const existing = state.history.find(h => h.url === url);
           if (existing) {
+            const updatedEntry = {
+              ...existing,
+              visitedAt: Date.now(),
+              visitCount: existing.visitCount + 1,
+            };
             return {
               history: [
-                {
-                  ...existing,
-                  visitedAt: Date.now(),
-                  visitCount: existing.visitCount + 1,
-                },
+                updatedEntry,
                 ...state.history.filter(h => h.url !== url),
               ].slice(0, 100), // Keep last 100 visits
+              // Mark for sync
+              pendingChanges: {
+                ...state.pendingChanges,
+                history: [
+                  ...state.pendingChanges.history.filter(h => h.url !== url),
+                  updatedEntry,
+                ],
+              },
             };
           }
+          const newEntry: BrowsingHistory = {
+            url,
+            title,
+            source,
+            visitedAt: Date.now(),
+            visitCount: 1,
+          };
           return {
-            history: [
-              {url, title, source, visitedAt: Date.now(), visitCount: 1},
-              ...state.history,
-            ].slice(0, 100),
+            history: [newEntry, ...state.history].slice(0, 100),
+            // Mark for sync
+            pendingChanges: {
+              ...state.pendingChanges,
+              history: [...state.pendingChanges.history, newEntry],
+            },
           };
         });
       },
@@ -393,16 +470,32 @@ export const useShoppingStore = create<ShoppingState>()(
         };
         set(state => ({
           collections: [collection, ...state.collections],
+          // Mark for sync
+          pendingChanges: {
+            ...state.pendingChanges,
+            collections: [...state.pendingChanges.collections, collection],
+          },
         }));
       },
       deleteCollection: (id: string) => {
         set(state => ({
           collections: state.collections.filter(c => c.id !== id),
+          // Mark for sync deletion
+          pendingChanges: {
+            ...state.pendingChanges,
+            collections: state.pendingChanges.collections.filter(
+              c => c.id !== id,
+            ),
+            deletedCollectionIds:
+              state.pendingChanges.deletedCollectionIds.includes(id)
+                ? state.pendingChanges.deletedCollectionIds
+                : [...state.pendingChanges.deletedCollectionIds, id],
+          },
         }));
       },
       addItemToCollection: (collectionId: string, item: ShoppingItem) => {
-        set(state => ({
-          collections: state.collections.map(c => {
+        set(state => {
+          const updatedCollections = state.collections.map(c => {
             if (c.id === collectionId) {
               const exists = c.items.some(i => i.id === item.id);
               return {
@@ -414,12 +507,30 @@ export const useShoppingStore = create<ShoppingState>()(
               };
             }
             return c;
-          }),
-        }));
+          });
+          const updatedCollection = updatedCollections.find(
+            c => c.id === collectionId,
+          );
+          return {
+            collections: updatedCollections,
+            // Mark collection for sync
+            pendingChanges: updatedCollection
+              ? {
+                  ...state.pendingChanges,
+                  collections: [
+                    ...state.pendingChanges.collections.filter(
+                      c => c.id !== collectionId,
+                    ),
+                    updatedCollection,
+                  ],
+                }
+              : state.pendingChanges,
+          };
+        });
       },
       removeItemFromCollection: (collectionId: string, itemId: string) => {
-        set(state => ({
-          collections: state.collections.map(c => {
+        set(state => {
+          const updatedCollections = state.collections.map(c => {
             if (c.id === collectionId) {
               return {
                 ...c,
@@ -428,8 +539,26 @@ export const useShoppingStore = create<ShoppingState>()(
               };
             }
             return c;
-          }),
-        }));
+          });
+          const updatedCollection = updatedCollections.find(
+            c => c.id === collectionId,
+          );
+          return {
+            collections: updatedCollections,
+            // Mark collection for sync
+            pendingChanges: updatedCollection
+              ? {
+                  ...state.pendingChanges,
+                  collections: [
+                    ...state.pendingChanges.collections.filter(
+                      c => c.id !== collectionId,
+                    ),
+                    updatedCollection,
+                  ],
+                }
+              : state.pendingChanges,
+          };
+        });
       },
 
       // Browser Tabs
@@ -668,6 +797,160 @@ export const useShoppingStore = create<ShoppingState>()(
         return get().trackingConsent === 'accepted';
       },
 
+      // Server Sync State & Methods
+      lastSyncTimestamp: null,
+      isSyncing: false,
+      syncError: null,
+      pendingChanges: {
+        bookmarks: [],
+        deletedBookmarkUrls: [],
+        history: [],
+        collections: [],
+        deletedCollectionIds: [],
+      },
+
+      markBookmarkForSync: (bookmark: ShoppingItem) => {
+        set(state => {
+          const existing = state.pendingChanges.bookmarks.find(
+            b => b.url === bookmark.url,
+          );
+          if (existing) {
+            return {
+              pendingChanges: {
+                ...state.pendingChanges,
+                bookmarks: state.pendingChanges.bookmarks.map(b =>
+                  b.url === bookmark.url ? bookmark : b,
+                ),
+              },
+            };
+          }
+          return {
+            pendingChanges: {
+              ...state.pendingChanges,
+              bookmarks: [...state.pendingChanges.bookmarks, bookmark],
+            },
+          };
+        });
+      },
+
+      markBookmarkDeleted: (url: string) => {
+        set(state => ({
+          pendingChanges: {
+            ...state.pendingChanges,
+            // Remove from pending bookmarks if it was there
+            bookmarks: state.pendingChanges.bookmarks.filter(b => b.url !== url),
+            // Add to deleted list if not already there
+            deletedBookmarkUrls: state.pendingChanges.deletedBookmarkUrls.includes(
+              url,
+            )
+              ? state.pendingChanges.deletedBookmarkUrls
+              : [...state.pendingChanges.deletedBookmarkUrls, url],
+          },
+        }));
+      },
+
+      markHistoryForSync: (entry: BrowsingHistory) => {
+        set(state => {
+          const existing = state.pendingChanges.history.find(
+            h => h.url === entry.url,
+          );
+          if (existing) {
+            return {
+              pendingChanges: {
+                ...state.pendingChanges,
+                history: state.pendingChanges.history.map(h =>
+                  h.url === entry.url ? entry : h,
+                ),
+              },
+            };
+          }
+          return {
+            pendingChanges: {
+              ...state.pendingChanges,
+              history: [...state.pendingChanges.history, entry],
+            },
+          };
+        });
+      },
+
+      markCollectionForSync: (collection: Collection) => {
+        set(state => {
+          const existing = state.pendingChanges.collections.find(
+            c => c.id === collection.id,
+          );
+          if (existing) {
+            return {
+              pendingChanges: {
+                ...state.pendingChanges,
+                collections: state.pendingChanges.collections.map(c =>
+                  c.id === collection.id ? collection : c,
+                ),
+              },
+            };
+          }
+          return {
+            pendingChanges: {
+              ...state.pendingChanges,
+              collections: [...state.pendingChanges.collections, collection],
+            },
+          };
+        });
+      },
+
+      markCollectionDeleted: (id: string) => {
+        set(state => ({
+          pendingChanges: {
+            ...state.pendingChanges,
+            // Remove from pending collections if it was there
+            collections: state.pendingChanges.collections.filter(c => c.id !== id),
+            // Add to deleted list if not already there
+            deletedCollectionIds: state.pendingChanges.deletedCollectionIds.includes(
+              id,
+            )
+              ? state.pendingChanges.deletedCollectionIds
+              : [...state.pendingChanges.deletedCollectionIds, id],
+          },
+        }));
+      },
+
+      setSyncState: (syncing: boolean, error?: string | null) => {
+        set({
+          isSyncing: syncing,
+          syncError: error ?? null,
+        });
+      },
+
+      applyServerSync: (data: {
+        bookmarks: ShoppingItem[];
+        history: BrowsingHistory[];
+        collections: Collection[];
+        serverTimestamp: number;
+      }) => {
+        set({
+          bookmarks: data.bookmarks,
+          history: data.history,
+          collections: data.collections,
+          lastSyncTimestamp: data.serverTimestamp,
+          syncError: null,
+        });
+      },
+
+      clearPendingChanges: () => {
+        set({
+          pendingChanges: {
+            bookmarks: [],
+            deletedBookmarkUrls: [],
+            history: [],
+            collections: [],
+            deletedCollectionIds: [],
+          },
+        });
+      },
+
+      getPendingChangesForSync: () => {
+        return get().pendingChanges;
+      },
+
       // Reset all user data on logout
       resetForLogout: () => {
         set({
@@ -688,6 +971,17 @@ export const useShoppingStore = create<ShoppingState>()(
           savedPasswords: [],
           savedAddresses: [],
           savedCards: [],
+          // Clear sync state
+          lastSyncTimestamp: null,
+          isSyncing: false,
+          syncError: null,
+          pendingChanges: {
+            bookmarks: [],
+            deletedBookmarkUrls: [],
+            history: [],
+            collections: [],
+            deletedCollectionIds: [],
+          },
         });
       },
     }),
@@ -709,6 +1003,9 @@ export const useShoppingStore = create<ShoppingState>()(
         hasAiSuggestionsLoaded: state.hasAiSuggestionsLoaded,
         aiSuggestionsCachedAt: state.aiSuggestionsCachedAt,
         trackingConsent: state.trackingConsent,
+        // Sync state (persisted for offline support)
+        lastSyncTimestamp: state.lastSyncTimestamp,
+        pendingChanges: state.pendingChanges,
       }),
       onRehydrateStorage: () => state => {
         if (state) {

@@ -1,0 +1,88 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { BrowserSyncService } from './browser-sync.service';
+import {
+  SyncRequestDto,
+  SyncResponseDto,
+  DeleteBookmarkDto,
+} from './dto/sync.dto';
+
+@Controller('browser-sync')
+@UseGuards(AuthGuard('jwt'))
+export class BrowserSyncController {
+  constructor(private readonly browserSyncService: BrowserSyncService) {}
+
+  /**
+   * GET /browser-sync
+   * Full sync - returns all bookmarks, history, collections for the user
+   * Use on first app open or when local data is missing
+   */
+  @Get()
+  async getFullSync(@Request() req): Promise<SyncResponseDto> {
+    const userId = req.user.sub;
+    return this.browserSyncService.getFullSync(userId);
+  }
+
+  /**
+   * GET /browser-sync/delta?since=<timestamp>
+   * Delta sync - returns only changes since the given timestamp
+   * Use for subsequent syncs to minimize data transfer
+   */
+  @Get('delta')
+  async getDeltaSync(
+    @Request() req,
+    @Query('since') since: string,
+  ): Promise<SyncResponseDto> {
+    const userId = req.user.sub;
+    const timestamp = parseInt(since, 10);
+
+    if (isNaN(timestamp) || timestamp < 0) {
+      // Fall back to full sync if invalid timestamp
+      return this.browserSyncService.getFullSync(userId);
+    }
+
+    return this.browserSyncService.getDeltaSync(userId, timestamp);
+  }
+
+  /**
+   * POST /browser-sync
+   * Push local changes to server
+   * Accepts bookmarks, history, collections, and deletion lists
+   * Returns full updated state after processing
+   */
+  @Post()
+  @HttpCode(HttpStatus.OK)
+  async pushSync(
+    @Request() req,
+    @Body() data: SyncRequestDto,
+  ): Promise<SyncResponseDto> {
+    const userId = req.user.sub;
+    return this.browserSyncService.pushSync(userId, data);
+  }
+
+  /**
+   * DELETE /browser-sync/bookmark
+   * Delete a single bookmark by URL
+   * More reliable than ID-based deletion for client sync
+   */
+  @Delete('bookmark')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteBookmark(
+    @Request() req,
+    @Body() data: DeleteBookmarkDto,
+  ): Promise<void> {
+    const userId = req.user.sub;
+    await this.browserSyncService.deleteBookmarkByUrl(userId, data.url);
+  }
+}
