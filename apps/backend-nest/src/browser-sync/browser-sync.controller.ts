@@ -85,4 +85,15 @@ export class BrowserSyncController {
     const userId = req.user.sub;
     await this.browserSyncService.deleteBookmarkByUrl(userId, data.url);
   }
+
+  /**
+   * DELETE /browser-sync/history
+   * Clear all browsing history for the user
+   */
+  @Delete('history')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async clearHistory(@Request() req): Promise<void> {
+    const userId = req.user.sub;
+    await this.browserSyncService.clearHistory(userId);
+  }
 }

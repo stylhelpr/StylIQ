@@ -51,9 +51,9 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     setTimeout(() => setRefreshing(false), 1000);
   }, []);
 
-  // Calculate budget status
+  // Calculate budget status (use budget_max as the monthly spending limit)
   const budgetStatus = useMemo(() => {
-    const monthlyBudget = styleProfile?.budget_level || 0;
+    const monthlyBudget = styleProfile?.budget_max || 0;
     if (monthlyBudget === 0) return null;
 
     const now = new Date();
@@ -84,7 +84,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
       remaining: Math.max(0, remaining),
       percentage,
     };
-  }, [styleProfile?.budget_level, cartHistory]);
+  }, [styleProfile?.budget_max, cartHistory]);
 
   const recentVisits = history.slice(0, 5);
   const topCollections = collections.slice(0, 3);

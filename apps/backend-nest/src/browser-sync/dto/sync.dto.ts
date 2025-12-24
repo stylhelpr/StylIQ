@@ -140,6 +140,11 @@ export class HistoryEntryDto {
   @IsOptional()
   @IsNumber()
   visitedAt?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  brand?: string;
 }
 
 // Cart Event DTOs

@@ -31,6 +31,7 @@ export type BrowsingHistory = {
   dwellTime?: number; // GOLD #1: seconds on page
   scrollDepth?: number; // GOLD #9: 0-100%
   isCartPage?: boolean; // GOLD #3b: detect /cart URLs
+  brand?: string; // Brand extracted from URL/title
 };
 
 export type Collection = {
@@ -116,7 +117,7 @@ type ShoppingState = {
 
   // History
   history: BrowsingHistory[];
-  addToHistory: (url: string, title: string, source: string) => void;
+  addToHistory: (url: string, title: string, source: string, brand?: string) => void;
   clearHistory: () => void;
   getRecentHistory: (limit?: number) => BrowsingHistory[];
   getMostVisitedSites: (limit?: number) => BrowsingHistory[];
@@ -219,6 +220,9 @@ type ShoppingState = {
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
 
+  // History clear tracking (to prevent server from restoring cleared history)
+  _historyClearedAt: number | null;
+
   // Tracking Consent (GDPR/Privacy)
   trackingConsent: 'pending' | 'accepted' | 'declined';
   setTrackingConsent: (consent: 'accepted' | 'declined') => void;
@@ -277,6 +281,9 @@ type ShoppingState = {
 
   // Reset all user data on logout
   resetForLogout: () => void;
+
+  // Clear just the spending/cart history data
+  clearCartHistory: () => void;
 };
 
 export const useShoppingStore = create<ShoppingState>()(
@@ -331,7 +338,7 @@ export const useShoppingStore = create<ShoppingState>()(
 
       // History
       history: [],
-      addToHistory: (url: string, title: string, source: string) => {
+      addToHistory: (url: string, title: string, source: string, brand?: string) => {
         set(state => {
           const existing = state.history.find(h => h.url === url);
           if (existing) {
@@ -339,6 +346,8 @@ export const useShoppingStore = create<ShoppingState>()(
               ...existing,
               visitedAt: Date.now(),
               visitCount: existing.visitCount + 1,
+              // Update brand if provided and not already set
+              brand: existing.brand || brand,
             };
             return {
               history: [
@@ -361,6 +370,7 @@ export const useShoppingStore = create<ShoppingState>()(
             source,
             visitedAt: Date.now(),
             visitCount: 1,
+            brand,
           };
           return {
             history: [newEntry, ...state.history].slice(0, 100),
@@ -372,7 +382,7 @@ export const useShoppingStore = create<ShoppingState>()(
           };
         });
       },
-      clearHistory: () => set({history: []}),
+      clearHistory: () => set({history: [], _historyClearedAt: Date.now()}),
       getRecentHistory: (limit = 10) => {
         return get()
           .history.sort((a, b) => b.visitedAt - a.visitedAt)
@@ -709,6 +719,20 @@ export const useShoppingStore = create<ShoppingState>()(
             updatedHistory.push(cartSession);
           }
 
+          // Deduplicate: check if a similar event was already recorded recently
+          // Skip if same event type with same cartValue within 30 seconds
+          const isDuplicate = cartSession.events.some(
+            e =>
+              e.type === event.type &&
+              e.cartValue === event.cartValue &&
+              Math.abs(e.timestamp - event.timestamp) < 30000,
+          );
+
+          if (isDuplicate) {
+            console.log('[Store] Skipping duplicate cart event:', event.type);
+            return state; // Return unchanged state
+          }
+
           // Add event to timeline
           cartSession.events.push(event);
 
@@ -809,6 +833,9 @@ export const useShoppingStore = create<ShoppingState>()(
       setHasHydrated: (hasHydrated: boolean) => {
         set({_hasHydrated: hasHydrated});
       },
+
+      // History clear tracking
+      _historyClearedAt: null,
 
       // Tracking Consent (GDPR/Privacy)
       trackingConsent: 'pending' as 'pending' | 'accepted' | 'declined',
@@ -978,12 +1005,55 @@ export const useShoppingStore = create<ShoppingState>()(
         collections: Collection[];
         serverTimestamp: number;
       }) => {
-        set({
-          bookmarks: data.bookmarks,
-          history: data.history,
-          collections: data.collections,
-          lastSyncTimestamp: data.serverTimestamp,
-          syncError: null,
+        set(state => {
+          // Merge server data with local data, preferring local for conflicts
+          // This prevents wiping local data when server is empty
+
+          // Merge bookmarks - use URL as key, prefer server version if exists
+          const serverBookmarkUrls = new Set(data.bookmarks.map(b => b.url));
+          const mergedBookmarks = [
+            ...data.bookmarks,
+            ...state.bookmarks.filter(b => !serverBookmarkUrls.has(b.url)),
+          ];
+
+          // Merge history - use URL as key, prefer local visitCount (it's more up-to-date)
+          // If history was recently cleared, don't restore from server
+          const historyClearedRecently = state._historyClearedAt &&
+            state._historyClearedAt > (data.serverTimestamp || 0);
+
+          const mergedHistory = historyClearedRecently
+            ? state.history // Keep empty if cleared
+            : [
+                ...state.history.map(localH => {
+                  const serverH = data.history.find(h => h.url === localH.url);
+                  if (serverH) {
+                    // Merge: keep higher visitCount, more recent visitedAt
+                    return {
+                      ...serverH,
+                      ...localH,
+                      visitCount: Math.max(localH.visitCount, serverH.visitCount || 0),
+                      visitedAt: Math.max(localH.visitedAt, serverH.visitedAt || 0),
+                    };
+                  }
+                  return localH;
+                }),
+                ...data.history.filter(h => !state.history.some(lh => lh.url === h.url)),
+              ].slice(0, 100);
+
+          // Merge collections - use ID as key, prefer server version if exists
+          const serverCollectionIds = new Set(data.collections.map(c => c.id));
+          const mergedCollections = [
+            ...data.collections,
+            ...state.collections.filter(c => !serverCollectionIds.has(c.id)),
+          ];
+
+          return {
+            bookmarks: mergedBookmarks,
+            history: mergedHistory,
+            collections: mergedCollections,
+            lastSyncTimestamp: data.serverTimestamp,
+            syncError: null,
+          };
         });
       },
 
@@ -1038,6 +1108,16 @@ export const useShoppingStore = create<ShoppingState>()(
           },
         });
       },
+
+      clearCartHistory: () => {
+        set(state => ({
+          cartHistory: [],
+          pendingChanges: {
+            ...state.pendingChanges,
+            cartHistory: [],
+          },
+        }));
+      },
     }),
     {
       name: 'shopping-store',
@@ -1060,6 +1140,8 @@ export const useShoppingStore = create<ShoppingState>()(
         // Sync state (persisted for offline support)
         lastSyncTimestamp: state.lastSyncTimestamp,
         pendingChanges: state.pendingChanges,
+        // Track when history was cleared to prevent server restore
+        _historyClearedAt: state._historyClearedAt,
       }),
       onRehydrateStorage: () => state => {
         if (state) {

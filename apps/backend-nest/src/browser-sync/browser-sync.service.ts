@@ -87,7 +87,7 @@ export class BrowserSyncService {
         ),
         this.db.query(
           `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
-                visit_count, visited_at
+                visit_count, visited_at, brand
          FROM browser_history
          WHERE user_id = $1 AND visited_at > now() - INTERVAL '${limits.maxHistoryDays} days'
          ORDER BY visited_at DESC
@@ -156,7 +156,7 @@ export class BrowserSyncService {
         ),
         this.db.query(
           `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
-                visit_count, visited_at
+                visit_count, visited_at, brand
          FROM browser_history
          WHERE user_id = $1 AND visited_at > $2
          ORDER BY visited_at DESC
@@ -300,8 +300,8 @@ export class BrowserSyncService {
     for (const entry of history) {
       await this.db.query(
         `INSERT INTO browser_history
-         (user_id, url, title, source, dwell_time_seconds, scroll_depth_percent, visit_count, visited_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         (user_id, url, title, source, dwell_time_seconds, scroll_depth_percent, visit_count, visited_at, brand)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT DO NOTHING`,
         [
           userId,
@@ -312,6 +312,7 @@ export class BrowserSyncService {
           entry.scrollDepthPercent || 0,
           entry.visitCount || 1,
           entry.visitedAt ? new Date(entry.visitedAt) : new Date(),
+          entry.brand || null,
         ],
       );
     }
@@ -396,6 +397,13 @@ export class BrowserSyncService {
       'DELETE FROM browser_collections WHERE user_id = $1 AND id = ANY($2::uuid[])',
       [userId, collectionIds],
     );
+  }
+
+  // Clear all browsing history for a user
+  async clearHistory(userId: string): Promise<void> {
+    await this.db.query('DELETE FROM browser_history WHERE user_id = $1', [
+      userId,
+    ]);
   }
 
   // Map database row to DTO

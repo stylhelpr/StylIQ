@@ -44,6 +44,7 @@ type ServerHistory = {
   scrollDepthPercent?: number;
   visitCount: number;
   visitedAt: number;
+  brand?: string;
 };
 
 type ServerCollection = {
@@ -130,6 +131,7 @@ function mapServerHistoryToLocal(history: ServerHistory): BrowsingHistory {
     scrollDepth: history.scrollDepthPercent,
     visitCount: history.visitCount,
     visitedAt: history.visitedAt,
+    brand: history.brand,
   };
 }
 
@@ -424,6 +426,24 @@ class BrowserSyncService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({url}),
+      });
+
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Clear all browsing history on the server
+   */
+  async clearHistory(accessToken: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/browser-sync/history`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
       return response.ok;

@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React, {useMemo, useCallback} from 'react';
 import {View, Text, StyleSheet, ScrollView, Dimensions} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -10,6 +10,7 @@ import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useAuth0} from 'react-native-auth0';
+import {browserSyncService} from '../services/browserSyncService';
 
 const {width: screenWidth} = Dimensions.get('window');
 
@@ -19,12 +20,28 @@ type Props = {
 
 export default function ShoppingInsightsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
-  const {user} = useAuth0();
+  const {user, getCredentials} = useAuth0();
   const userId = user?.sub || '';
+
+  // Clear history from both local store and server
+  const handleClearHistory = useCallback(async () => {
+    // Clear local first
+    useShoppingStore.getState().clearHistory();
+
+    // Then clear on server
+    try {
+      const credentials = await getCredentials();
+      if (credentials?.accessToken) {
+        await browserSyncService.clearHistory(credentials.accessToken);
+      }
+    } catch (error) {
+      console.error('[ShoppingInsights] Failed to clear history on server:', error);
+    }
+  }, [getCredentials]);
   const {styleProfile} = useStyleProfile(userId);
 
-  // Get budget from style profile
-  const monthlyBudget = styleProfile?.budget_level || 0;
+  // Get budget from style profile (use budget_max as the monthly spending limit)
+  const monthlyBudget = styleProfile?.budget_max || 0;
 
   const {
     bookmarks,
@@ -34,6 +51,8 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     getTopShops,
     getMostVisitedSites,
     cartHistory,
+    clearCartHistory,
+    _hasHydrated,
   } = useShoppingStore();
 
   // Calculate insights
@@ -52,18 +71,19 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
 
-    // Brand distribution
+    // Brand distribution from browsing history (weighted by visit count)
     const brandCounts: Record<string, number> = {};
-    bookmarks.forEach(b => {
-      if (b.brand) {
-        brandCounts[b.brand] = (brandCounts[b.brand] || 0) + 1;
+    history.forEach(h => {
+      if (h.brand) {
+        // Weight by visit count - brands you visit more often rank higher
+        brandCounts[h.brand] = (brandCounts[h.brand] || 0) + h.visitCount;
       }
     });
     const topBrands = Object.entries(brandCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    // Shopping activity by day (last 7 days)
+    // Shopping activity by day (last 7 days) - count by visitCount
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const recentActivity = history.filter(h => h.visitedAt > weekAgo);
@@ -72,8 +92,10 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       const day = new Date(h.visitedAt).toLocaleDateString('en-US', {
         weekday: 'short',
       });
-      activityByDay[day] = (activityByDay[day] || 0) + 1;
+      activityByDay[day] = (activityByDay[day] || 0) + h.visitCount;
     });
+    // Count actual days with activity for daily average
+    const activeDays = Object.keys(activityByDay).length || 1;
 
     // Total items in collections
     const totalCollectionItems = collections.reduce(
@@ -88,6 +110,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       minPrice,
       topBrands,
       activityByDay,
+      activeDays,
       totalBookmarks: bookmarks.length,
       totalCollections: collections.length,
       totalCollectionItems,
@@ -704,6 +727,37 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     1,
   );
 
+  // Wait for store to hydrate before showing data
+  if (!_hasHydrated) {
+    return (
+      <SafeAreaView
+        style={[styles.container, {marginTop: 70}]}
+        edges={['bottom']}>
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <AppleTouchFeedback
+              style={[styles.backButton, {padding: 8}]}
+              onPress={() => navigate?.('ShoppingDashboard')}
+              hapticStyle="impactLight">
+              <MaterialIcons
+                name="arrow-back-ios"
+                size={24}
+                color={theme.colors.foreground}
+              />
+            </AppleTouchFeedback>
+            <Text style={[styles.headerTitle, {color: theme.colors.foreground}]}>
+              Shopping Insights
+            </Text>
+            <View style={{width: 40}} />
+          </View>
+        </View>
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <Text style={{color: theme.colors.muted}}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView
       style={[styles.container, {marginTop: 70}]}
@@ -725,6 +779,13 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
             />
           </AppleTouchFeedback>
           <Text style={styles.headerTitle}>Shopping Insights</Text>
+          {/* TEMP: Clear history button */}
+          <AppleTouchFeedback
+            style={{padding: 8}}
+            onPress={handleClearHistory}
+            hapticStyle="impactMedium">
+            <MaterialIcons name="delete" size={24} color="#ef4444" />
+          </AppleTouchFeedback>
         </Animatable.View>
       </View>
 
@@ -980,6 +1041,36 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                 <Text style={styles.spendingStatLabel}>Wishlisted</Text>
               </View>
             </View>
+
+            {/* Reset Spending Data */}
+            {(spendingInsights.spentThisMonth > 0 || spendingInsights.totalAllTime > 0) && (
+              <AppleTouchFeedback
+                onPress={() => clearCartHistory()}
+                hapticStyle="impactLight"
+                style={{marginTop: 12}}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 8,
+                  }}>
+                  <MaterialIcons
+                    name="refresh"
+                    size={16}
+                    color={theme.colors.foreground + '80'}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: theme.colors.foreground + '80',
+                      marginLeft: 4,
+                    }}>
+                    Reset Spending Data
+                  </Text>
+                </View>
+              </AppleTouchFeedback>
+            )}
           </View>
         </Animatable.View>
 
@@ -1045,7 +1136,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                 </View>
                 <View style={styles.activityStat}>
                   <Text style={styles.activityStatValue}>
-                    {Math.ceil(insights.totalVisits / 7)}
+                    {Math.ceil(insights.totalVisits / insights.activeDays)}
                   </Text>
                   <Text style={styles.activityStatLabel}>Daily Avg</Text>
                 </View>

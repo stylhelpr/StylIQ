@@ -42,6 +42,7 @@ CREATE TABLE browser_history (
     url TEXT NOT NULL,
     title TEXT,
     source TEXT,
+    brand TEXT,
     dwell_time_seconds INTEGER DEFAULT 0,
     scroll_depth_percent SMALLINT DEFAULT 0,
     visit_count INTEGER DEFAULT 1,

@@ -287,6 +287,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 
   // Update input when tab changes (only when switching tabs, not during navigation)
   const lastTabIdRef = useRef(currentTabId);
+
+  // Track last cart detection to prevent duplicates
+  const lastCartDetectionRef = useRef<{url: string; timestamp: number} | null>(null);
+  // Track last purchase detection to prevent duplicates
+  const lastPurchaseDetectionRef = useRef<{url: string; timestamp: number} | null>(null);
   useEffect(() => {
     // Only update inputValue when we actually switch to a different tab
     if (currentTabId !== lastTabIdRef.current) {
@@ -406,9 +411,14 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     maxScrollDepthRef.current = 0; // Reset scroll depth for new page
     previousUrlRef.current = currentTab.url; // Store for next page transition
     const source = getDomain(currentTab.url);
+    // Extract brand from URL/title for history tracking
+    const brand = shoppingAnalytics.extractBrand(
+      currentTab.title || '',
+      currentTab.url,
+    );
     useShoppingStore
       .getState()
-      .addToHistory(currentTab.url, currentTab.title || 'New Tab', source);
+      .addToHistory(currentTab.url, currentTab.title || 'New Tab', source, brand);
 
     // Record as a product view interaction
     useShoppingStore
@@ -1001,23 +1011,32 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     `;
 
     // GOLD: Purchase completion detection - detects order confirmation pages
+    // IMPORTANT: Must be strict to avoid false positives on cart pages
     const purchaseDetectionScript = `
       (function() {
         try {
           const pageUrl = window.location.href.toLowerCase();
           const pageText = document.body.innerText.toLowerCase();
+          const pageTitle = document.title.toLowerCase();
 
-          // Purchase completion indicators
-          const confirmationIndicators = [
-            // URL patterns
-            /order\\s*(confirmation|complete)|(thank\\s*you|purchase\\s*complete|order\\s*placed)/.test(pageUrl),
-            // Text patterns
-            /(order.*confirmation|thank you for your (purchase|order)|order (placed|confirmed)|purchase (complete|successful))/.test(pageText),
-            // Page title
-            /order|confirmation|thank you|purchase complete/.test(document.title.toLowerCase()),
-          ];
+          // First, explicitly exclude cart/checkout pages that are NOT confirmations
+          const isCartPage = /(cart|bag|basket|checkout|payment|shipping|billing)\\b/.test(pageUrl);
+          const isCheckoutInProgress = /(enter.*address|payment.*method|select.*shipping|review.*order|place.*order|continue.*checkout|proceed.*checkout)/.test(pageText);
 
-          const isPurchaseConfirmation = confirmationIndicators.some(indicator => indicator);
+          if (isCartPage && isCheckoutInProgress) {
+            // This is a checkout page in progress, not a confirmation
+            return;
+          }
+
+          // Purchase completion indicators - must be VERY specific
+          // Require order/confirmation number or specific completion language
+          const hasOrderNumber = /(?:order|confirmation)\\s*(?:number|id|#)?[:\\s]+[A-Z0-9-]{4,}/i.test(pageText);
+          const hasExplicitConfirmation = /(your order has been (placed|confirmed|received)|order successfully placed|purchase complete|thank you for your order|order confirmation|we've received your order)/.test(pageText);
+          const isConfirmationUrl = /(order-confirmation|order-complete|order-success|checkout-success|thank-you.*order|confirmation.*complete)/.test(pageUrl);
+
+          // Require at least 2 strong signals to confirm a purchase
+          const signals = [hasOrderNumber, hasExplicitConfirmation, isConfirmationUrl].filter(Boolean).length;
+          const isPurchaseConfirmation = signals >= 2 || (hasExplicitConfirmation && hasOrderNumber);
 
           if (isPurchaseConfirmation) {
             // Extract purchase details if available
@@ -1140,10 +1159,24 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           itemCount: data.itemCount,
           estimatedTotal: data.estimatedTotal,
         });
+
+        // Deduplicate: skip if same cart detected within 10 seconds
+        const now = Date.now();
+        const lastDetection = lastCartDetectionRef.current;
+        if (
+          lastDetection &&
+          lastDetection.url === data.cartUrl &&
+          now - lastDetection.timestamp < 10000
+        ) {
+          console.log('[MSG] Skipping duplicate cart detection');
+          return;
+        }
+        lastCartDetectionRef.current = {url: data.cartUrl, timestamp: now};
+
         // Record cart view event
         useShoppingStore.getState().recordCartEvent({
           type: 'cart_view',
-          timestamp: Date.now(),
+          timestamp: now,
           cartUrl: data.cartUrl,
           itemCount: data.itemCount,
           cartValue: data.estimatedTotal,
@@ -1155,6 +1188,21 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           totalAmount: data.totalAmount,
           itemCount: data.itemCount,
         });
+
+        // Deduplicate: skip if same purchase URL detected within 60 seconds
+        // (purchase confirmation pages often reload/re-render)
+        const now = Date.now();
+        const lastPurchase = lastPurchaseDetectionRef.current;
+        if (
+          lastPurchase &&
+          lastPurchase.url === data.purchaseUrl &&
+          now - lastPurchase.timestamp < 60000
+        ) {
+          console.log('[MSG] Skipping duplicate purchase detection');
+          return;
+        }
+        lastPurchaseDetectionRef.current = {url: data.purchaseUrl, timestamp: now};
+
         // Record purchase completion event
         useShoppingStore.getState().recordCartEvent({
           type: 'checkout_complete',
@@ -2267,11 +2315,16 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                     navState.title || currentTab.title,
                   );
                   setInputValue(navState.url);
-                  // Track visit history
+                  // Track visit history with brand
+                  const navBrand = shoppingAnalytics.extractBrand(
+                    navState.title || '',
+                    navState.url,
+                  );
                   addToHistory(
                     navState.url,
                     navState.title || getDomain(navState.url),
                     getDomain(navState.url),
+                    navBrand,
                   );
                 }
               }, 300);
