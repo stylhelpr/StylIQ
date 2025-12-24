@@ -100,6 +100,45 @@ CREATE TRIGGER update_browser_collections_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Cart history table (for spending tracking)
+CREATE TABLE IF NOT EXISTS browser_cart_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    cart_url TEXT NOT NULL,
+    abandoned BOOLEAN DEFAULT false,
+    time_to_checkout INTEGER, -- seconds from first event to checkout_complete
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now(),
+
+    CONSTRAINT unique_user_cart UNIQUE (user_id, cart_url)
+);
+
+CREATE INDEX IF NOT EXISTS idx_browser_cart_history_user_id ON browser_cart_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_browser_cart_history_user_updated ON browser_cart_history(user_id, updated_at DESC);
+
+-- Cart events table (individual events within a cart session)
+CREATE TABLE IF NOT EXISTS browser_cart_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cart_history_id UUID NOT NULL REFERENCES browser_cart_history(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL, -- 'add', 'remove', 'checkout_start', 'checkout_complete', 'cart_view'
+    timestamp BIGINT NOT NULL, -- JS timestamp (milliseconds)
+    cart_url TEXT NOT NULL,
+    item_count INTEGER,
+    cart_value DECIMAL(10,2),
+    items JSONB DEFAULT '[]', -- [{title, price, quantity}]
+
+    CONSTRAINT valid_event_type CHECK (event_type IN ('add', 'remove', 'checkout_start', 'checkout_complete', 'cart_view'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_browser_cart_events_cart_history ON browser_cart_events(cart_history_id);
+
+-- Trigger for cart history updated_at
+DROP TRIGGER IF EXISTS update_browser_cart_history_updated_at ON browser_cart_history;
+CREATE TRIGGER update_browser_cart_history_updated_at
+    BEFORE UPDATE ON browser_cart_history
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Cleanup function for old history (run via cron)
 CREATE OR REPLACE FUNCTION cleanup_old_browser_history()
 RETURNS INTEGER AS $$
@@ -109,6 +148,22 @@ BEGIN
     WITH deleted AS (
         DELETE FROM browser_history
         WHERE visited_at < now() - INTERVAL '90 days'
+        RETURNING id
+    )
+    SELECT COUNT(*) INTO deleted_count FROM deleted;
+    RETURN deleted_count;
+END;
+$$ language 'plpgsql';
+
+-- Cleanup function for old cart history (keep 1 year)
+CREATE OR REPLACE FUNCTION cleanup_old_cart_history()
+RETURNS INTEGER AS $$
+DECLARE
+    deleted_count INTEGER;
+BEGIN
+    WITH deleted AS (
+        DELETE FROM browser_cart_history
+        WHERE updated_at < now() - INTERVAL '365 days'
         RETURNING id
     )
     SELECT COUNT(*) INTO deleted_count FROM deleted;

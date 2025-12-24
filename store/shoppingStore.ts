@@ -234,17 +234,30 @@ type ShoppingState = {
     history: BrowsingHistory[];
     collections: Collection[];
     deletedCollectionIds: string[];
+    cartHistory: {
+      cartUrl: string;
+      events: CartEvent[];
+      abandoned: boolean;
+      timeToCheckout?: number;
+    }[];
   };
   markBookmarkForSync: (bookmark: ShoppingItem) => void;
   markBookmarkDeleted: (url: string) => void;
   markHistoryForSync: (entry: BrowsingHistory) => void;
   markCollectionForSync: (collection: Collection) => void;
   markCollectionDeleted: (id: string) => void;
+  markCartHistoryForSync: (cartUrl: string) => void;
   setSyncState: (syncing: boolean, error?: string | null) => void;
   applyServerSync: (data: {
     bookmarks: ShoppingItem[];
     history: BrowsingHistory[];
     collections: Collection[];
+    cartHistory?: {
+      cartUrl: string;
+      events: CartEvent[];
+      abandoned: boolean;
+      timeToCheckout?: number;
+    }[];
     serverTimestamp: number;
   }) => void;
   clearPendingChanges: () => void;
@@ -254,6 +267,12 @@ type ShoppingState = {
     history: BrowsingHistory[];
     collections: Collection[];
     deletedCollectionIds: string[];
+    cartHistory: {
+      cartUrl: string;
+      events: CartEvent[];
+      abandoned: boolean;
+      timeToCheckout?: number;
+    }[];
   };
 
   // Reset all user data on logout
@@ -710,6 +729,9 @@ export const useShoppingStore = create<ShoppingState>()(
             cartHistory: updatedHistory.slice(0, 100), // Keep last 100 carts
           };
         });
+
+        // Mark cart session for sync
+        get().markCartHistoryForSync(event.cartUrl);
       },
 
       getCartAbandonmentStats: () => {
@@ -807,6 +829,7 @@ export const useShoppingStore = create<ShoppingState>()(
         history: [],
         collections: [],
         deletedCollectionIds: [],
+        cartHistory: [],
       },
 
       markBookmarkForSync: (bookmark: ShoppingItem) => {
@@ -913,6 +936,35 @@ export const useShoppingStore = create<ShoppingState>()(
         }));
       },
 
+      markCartHistoryForSync: (cartUrl: string) => {
+        const cart = get().cartHistory.find(c => c.cartUrl === cartUrl);
+        if (!cart) return;
+
+        set(state => {
+          // Ensure cartHistory exists (migration from older store versions)
+          const pendingCartHistory = state.pendingChanges.cartHistory || [];
+          const existing = pendingCartHistory.find(
+            c => c.cartUrl === cartUrl,
+          );
+          if (existing) {
+            return {
+              pendingChanges: {
+                ...state.pendingChanges,
+                cartHistory: pendingCartHistory.map(c =>
+                  c.cartUrl === cartUrl ? cart : c,
+                ),
+              },
+            };
+          }
+          return {
+            pendingChanges: {
+              ...state.pendingChanges,
+              cartHistory: [...pendingCartHistory, cart],
+            },
+          };
+        });
+      },
+
       setSyncState: (syncing: boolean, error?: string | null) => {
         set({
           isSyncing: syncing,
@@ -943,6 +995,7 @@ export const useShoppingStore = create<ShoppingState>()(
             history: [],
             collections: [],
             deletedCollectionIds: [],
+            cartHistory: [],
           },
         });
       },
@@ -981,6 +1034,7 @@ export const useShoppingStore = create<ShoppingState>()(
             history: [],
             collections: [],
             deletedCollectionIds: [],
+            cartHistory: [],
           },
         });
       },

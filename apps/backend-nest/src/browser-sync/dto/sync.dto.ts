@@ -6,6 +6,8 @@ import {
   IsDateString,
   IsUUID,
   ValidateNested,
+  IsBoolean,
+  IsIn,
   Min,
   Max,
   MaxLength,
@@ -140,6 +142,85 @@ export class HistoryEntryDto {
   visitedAt?: number;
 }
 
+// Cart Event DTOs
+export class CartItemDto {
+  @IsString()
+  @MaxLength(500)
+  title: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  quantity?: number;
+}
+
+export class CartEventDto {
+  @IsString()
+  @IsIn(['add', 'remove', 'checkout_start', 'checkout_complete', 'cart_view'])
+  type: 'add' | 'remove' | 'checkout_start' | 'checkout_complete' | 'cart_view';
+
+  @IsNumber()
+  timestamp: number;
+
+  @IsString()
+  @MaxLength(2048)
+  cartUrl: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  itemCount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cartValue?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => CartItemDto)
+  items?: CartItemDto[];
+}
+
+export class CartHistoryDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
+  @IsString()
+  @MaxLength(2048)
+  cartUrl: string;
+
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => CartEventDto)
+  events: CartEventDto[];
+
+  @IsBoolean()
+  abandoned: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  timeToCheckout?: number;
+
+  @IsOptional()
+  @IsNumber()
+  createdAt?: number;
+
+  @IsOptional()
+  @IsNumber()
+  updatedAt?: number;
+}
+
 // Collection DTOs
 export class CollectionDto {
   @IsOptional()
@@ -204,6 +285,13 @@ export class SyncRequestDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => CartHistoryDto)
+  cartHistory?: CartHistoryDto[];
+
+  @IsOptional()
+  @IsArray()
   @ArrayMaxSize(200)
   @IsString({ each: true })
   deletedBookmarkUrls?: string[];
@@ -219,6 +307,7 @@ export class SyncResponseDto {
   bookmarks: BookmarkDto[];
   history: HistoryEntryDto[];
   collections: CollectionDto[];
+  cartHistory: CartHistoryDto[];
   serverTimestamp: number;
   limits: {
     maxBookmarks: number;

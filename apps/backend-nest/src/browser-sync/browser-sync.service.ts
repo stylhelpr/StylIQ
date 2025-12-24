@@ -4,6 +4,8 @@ import {
   BookmarkDto,
   HistoryEntryDto,
   CollectionDto,
+  CartHistoryDto,
+  CartEventDto,
   SyncRequestDto,
   SyncResponseDto,
 } from './dto/sync.dto';
@@ -71,7 +73,7 @@ export class BrowserSyncService {
     const limits = await this.getUserLimits(userId);
     const counts = await this.getCurrentCounts(userId);
 
-    const [bookmarksResult, historyResult, collectionsResult] =
+    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
       await Promise.all([
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
@@ -103,12 +105,24 @@ export class BrowserSyncService {
          LIMIT $2`,
           [userId, limits.maxCollections],
         ),
+        this.db.query(
+          `SELECT id, cart_url, abandoned, time_to_checkout, created_at, updated_at
+         FROM browser_cart_history
+         WHERE user_id = $1
+         ORDER BY updated_at DESC
+         LIMIT 100`,
+          [userId],
+        ),
       ]);
+
+    // Fetch cart events for each cart history entry
+    const cartHistory = await this.mapCartHistoryFromDb(cartHistoryResult.rows);
 
     return {
       bookmarks: bookmarksResult.rows.map(this.mapBookmarkFromDb),
       history: historyResult.rows.map(this.mapHistoryFromDb),
       collections: collectionsResult.rows.map(this.mapCollectionFromDb),
+      cartHistory,
       serverTimestamp: Date.now(),
       limits: {
         maxBookmarks: limits.maxBookmarks,
@@ -129,7 +143,7 @@ export class BrowserSyncService {
     const counts = await this.getCurrentCounts(userId);
     const sinceDate = new Date(lastSyncTimestamp);
 
-    const [bookmarksResult, historyResult, collectionsResult] =
+    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
       await Promise.all([
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
@@ -159,12 +173,23 @@ export class BrowserSyncService {
          ORDER BY c.updated_at DESC`,
           [userId, sinceDate],
         ),
+        this.db.query(
+          `SELECT id, cart_url, abandoned, time_to_checkout, created_at, updated_at
+         FROM browser_cart_history
+         WHERE user_id = $1 AND updated_at > $2
+         ORDER BY updated_at DESC`,
+          [userId, sinceDate],
+        ),
       ]);
+
+    // Fetch cart events for each cart history entry
+    const cartHistory = await this.mapCartHistoryFromDb(cartHistoryResult.rows);
 
     return {
       bookmarks: bookmarksResult.rows.map(this.mapBookmarkFromDb),
       history: historyResult.rows.map(this.mapHistoryFromDb),
       collections: collectionsResult.rows.map(this.mapCollectionFromDb),
+      cartHistory,
       serverTimestamp: Date.now(),
       limits: {
         maxBookmarks: limits.maxBookmarks,
@@ -213,6 +238,10 @@ export class BrowserSyncService {
         );
       }
       await this.upsertCollections(userId, data.collections);
+    }
+
+    if (data.cartHistory?.length) {
+      await this.upsertCartHistory(userId, data.cartHistory);
     }
 
     // Return updated state
@@ -415,5 +444,101 @@ export class BrowserSyncService {
       createdAt: new Date(row.created_at).getTime(),
       updatedAt: new Date(row.updated_at).getTime(),
     };
+  }
+
+  // Upsert cart history with events
+  private async upsertCartHistory(
+    userId: string,
+    cartHistoryItems: CartHistoryDto[],
+  ): Promise<void> {
+    for (const cart of cartHistoryItems) {
+      // Upsert the cart history entry
+      const result = await this.db.query(
+        `INSERT INTO browser_cart_history
+         (user_id, cart_url, abandoned, time_to_checkout)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (user_id, cart_url)
+         DO UPDATE SET
+           abandoned = EXCLUDED.abandoned,
+           time_to_checkout = COALESCE(EXCLUDED.time_to_checkout, browser_cart_history.time_to_checkout),
+           updated_at = now()
+         RETURNING id`,
+        [
+          userId,
+          cart.cartUrl,
+          cart.abandoned,
+          cart.timeToCheckout || null,
+        ],
+      );
+
+      const cartHistoryId = result.rows[0].id;
+
+      // Delete existing events and insert new ones (full replacement for simplicity)
+      await this.db.query(
+        'DELETE FROM browser_cart_events WHERE cart_history_id = $1',
+        [cartHistoryId],
+      );
+
+      // Insert all events
+      for (const event of cart.events) {
+        await this.db.query(
+          `INSERT INTO browser_cart_events
+           (cart_history_id, event_type, timestamp, cart_url, item_count, cart_value, items)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            cartHistoryId,
+            event.type,
+            event.timestamp,
+            event.cartUrl,
+            event.itemCount || null,
+            event.cartValue || null,
+            JSON.stringify(event.items || []),
+          ],
+        );
+      }
+    }
+  }
+
+  // Map cart history from database (fetches events for each cart)
+  private async mapCartHistoryFromDb(rows: any[]): Promise<CartHistoryDto[]> {
+    if (rows.length === 0) return [];
+
+    const cartIds = rows.map((r) => r.id);
+
+    // Fetch all events for these carts in one query
+    const eventsResult = await this.db.query(
+      `SELECT cart_history_id, event_type, timestamp, cart_url, item_count, cart_value, items
+       FROM browser_cart_events
+       WHERE cart_history_id = ANY($1::uuid[])
+       ORDER BY timestamp ASC`,
+      [cartIds],
+    );
+
+    // Group events by cart_history_id
+    const eventsByCartId: Record<string, CartEventDto[]> = {};
+    for (const event of eventsResult.rows) {
+      const cartId = event.cart_history_id;
+      if (!eventsByCartId[cartId]) {
+        eventsByCartId[cartId] = [];
+      }
+      eventsByCartId[cartId].push({
+        type: event.event_type,
+        timestamp: parseInt(event.timestamp, 10),
+        cartUrl: event.cart_url,
+        itemCount: event.item_count,
+        cartValue: event.cart_value ? parseFloat(event.cart_value) : undefined,
+        items: event.items || [],
+      });
+    }
+
+    return rows.map((row) => ({
+      id: row.id,
+      cartUrl: row.cart_url,
+      events: eventsByCartId[row.id] || [],
+      abandoned: row.abandoned,
+      timeToCheckout: row.time_to_checkout,
+      createdAt: new Date(row.created_at).getTime(),
+      updatedAt: new Date(row.updated_at).getTime(),
+    }));
   }
 }

@@ -5,7 +5,16 @@ import {
   ShoppingItem,
   BrowsingHistory,
   Collection,
+  CartEvent,
 } from '../../../../store/shoppingStore';
+
+// Local cart history type (matches store structure)
+type LocalCartHistory = {
+  cartUrl: string;
+  events: CartEvent[];
+  abandoned: boolean;
+  timeToCheckout?: number;
+};
 
 // Server response types (different from local store types)
 type ServerBookmark = {
@@ -47,10 +56,30 @@ type ServerCollection = {
   updatedAt: number;
 };
 
+type ServerCartEvent = {
+  type: 'add' | 'remove' | 'checkout_start' | 'checkout_complete' | 'cart_view';
+  timestamp: number;
+  cartUrl: string;
+  itemCount?: number;
+  cartValue?: number;
+  items?: {title: string; price?: number; quantity?: number}[];
+};
+
+type ServerCartHistory = {
+  id: string;
+  cartUrl: string;
+  events: ServerCartEvent[];
+  abandoned: boolean;
+  timeToCheckout?: number;
+  createdAt: number;
+  updatedAt: number;
+};
+
 type ServerSyncResponse = {
   bookmarks: ServerBookmark[];
   history: ServerHistory[];
   collections: ServerCollection[];
+  cartHistory: ServerCartHistory[];
   serverTimestamp: number;
 };
 
@@ -58,6 +87,7 @@ type SyncResponse = {
   bookmarks: ShoppingItem[];
   history: BrowsingHistory[];
   collections: Collection[];
+  cartHistory: LocalCartHistory[];
   serverTimestamp: number;
 };
 
@@ -67,6 +97,7 @@ type SyncRequest = {
   history: BrowsingHistory[];
   collections: Collection[];
   deletedCollectionIds: string[];
+  cartHistory: LocalCartHistory[];
 };
 
 // Map server bookmark to local ShoppingItem format
@@ -123,6 +154,25 @@ function mapServerCollectionToLocal(
   };
 }
 
+// Map server cart history to local format
+function mapServerCartHistoryToLocal(
+  cart: ServerCartHistory,
+): LocalCartHistory {
+  return {
+    cartUrl: cart.cartUrl,
+    events: cart.events.map(e => ({
+      type: e.type,
+      timestamp: e.timestamp,
+      cartUrl: e.cartUrl,
+      itemCount: e.itemCount,
+      cartValue: e.cartValue,
+      items: e.items,
+    })),
+    abandoned: cart.abandoned,
+    timeToCheckout: cart.timeToCheckout,
+  };
+}
+
 // Transform full server response to local format
 function mapServerResponseToLocal(response: ServerSyncResponse): SyncResponse {
   const bookmarks = response.bookmarks.map(mapServerBookmarkToLocal);
@@ -130,11 +180,15 @@ function mapServerResponseToLocal(response: ServerSyncResponse): SyncResponse {
   const collections = response.collections.map(c =>
     mapServerCollectionToLocal(c, bookmarks),
   );
+  const cartHistory = (response.cartHistory || []).map(
+    mapServerCartHistoryToLocal,
+  );
 
   return {
     bookmarks,
     history,
     collections,
+    cartHistory,
     serverTimestamp: response.serverTimestamp,
   };
 }
@@ -239,13 +293,17 @@ class BrowserSyncService {
     const store = useShoppingStore.getState();
     const pendingChanges = store.getPendingChangesForSync();
 
+    // Get cart history from pending changes (may not exist in older store versions)
+    const pendingCartHistory = (pendingChanges as any).cartHistory || [];
+
     // Check if there are any changes to push
     const hasChanges =
       pendingChanges.bookmarks.length > 0 ||
       pendingChanges.deletedBookmarkUrls.length > 0 ||
       pendingChanges.history.length > 0 ||
       pendingChanges.collections.length > 0 ||
-      pendingChanges.deletedCollectionIds.length > 0;
+      pendingChanges.deletedCollectionIds.length > 0 ||
+      pendingCartHistory.length > 0;
 
     if (!hasChanges) {
       return null;
@@ -284,6 +342,12 @@ class BrowserSyncService {
           updatedAt: c.updatedAt,
         })),
         deletedCollectionIds: pendingChanges.deletedCollectionIds,
+        cartHistory: pendingCartHistory.map((ch: LocalCartHistory) => ({
+          cartUrl: ch.cartUrl,
+          events: ch.events,
+          abandoned: ch.abandoned,
+          timeToCheckout: ch.timeToCheckout,
+        })),
       };
 
       const response = await fetch(`${this.baseUrl}/browser-sync`, {

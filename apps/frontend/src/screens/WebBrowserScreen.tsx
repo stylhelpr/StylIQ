@@ -915,48 +915,87 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     // GOLD: Cart detection script - extracts item count and estimated total
     const cartDetectionScript = `
       (function() {
-        try {
-          // Look for common cart indicators
-          const pageUrl = window.location.href;
-          const isCartPage = /(cart|bag|checkout)/.test(pageUrl.toLowerCase());
+        function detectCart() {
+          try {
+            // Look for common cart indicators
+            const pageUrl = window.location.href;
+            const isCartPage = /(cart|bag|basket|checkout|gp\\/cart)/.test(pageUrl.toLowerCase());
 
-          if (!isCartPage) return;
+            if (!isCartPage) return false;
 
-          // Extract item count from common patterns
-          let itemCount = 0;
+            // Extract item count from common patterns
+            let itemCount = 0;
 
-          // Pattern 1: "Items in cart: X" or "Cart (X)"
-          const countMatch = document.body.innerText.match(/(?:cart|bag)\\s*\\(?(\\d+)\\)?/i);
-          if (countMatch) itemCount = parseInt(countMatch[1]);
+            // Pattern 1: Amazon-specific - look for cart count in various places
+            const amazonCartCount = document.querySelector('#nav-cart-count, .nav-cart-count, [data-csa-c-type="widget"][data-csa-c-slot-id="nav-cart-count"]');
+            if (amazonCartCount) {
+              const count = parseInt(amazonCartCount.textContent.trim());
+              if (!isNaN(count)) itemCount = count;
+            }
 
-          // Pattern 2: Look for cart badge/counter elements
-          if (itemCount === 0) {
-            const badges = document.querySelectorAll('[class*="cart"], [class*="badge"], [class*="count"]');
-            for (const badge of badges) {
-              const text = badge.textContent.trim();
-              const match = text.match(/^\\d+$/);
-              if (match) {
-                itemCount = parseInt(match[0]);
-                break;
+            // Pattern 2: "Items in cart: X" or "Cart (X)"
+            if (itemCount === 0) {
+              const countMatch = document.body.innerText.match(/(?:cart|bag|basket)\\s*\\(?(\\d+)\\)?/i);
+              if (countMatch) itemCount = parseInt(countMatch[1]);
+            }
+
+            // Pattern 3: Look for cart badge/counter elements
+            if (itemCount === 0) {
+              const badges = document.querySelectorAll('[class*="cart"], [class*="badge"], [class*="count"], [class*="qty"]');
+              for (const badge of badges) {
+                const text = badge.textContent.trim();
+                const match = text.match(/^\\d+$/);
+                if (match) {
+                  itemCount = parseInt(match[0]);
+                  break;
+                }
               }
             }
-          }
 
-          // Extract estimated total
-          let estimatedTotal = 0;
-          const totalMatch = document.body.innerText.match(/(?:total|subtotal|cart total)[:\\s]+[$£€¥]\\s*(\\d+(?:[.,]\\d{2})?)/i);
-          if (totalMatch) {
-            const totalStr = totalMatch[1].replace(',', '.');
-            estimatedTotal = parseFloat(totalStr);
-          }
+            // Extract estimated total - Amazon specific patterns first
+            let estimatedTotal = 0;
 
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'cartDetected',
-            itemCount: itemCount,
-            estimatedTotal: estimatedTotal,
-            cartUrl: pageUrl
-          }));
-        } catch (e) {}
+            // Amazon subtotal patterns
+            const amazonSubtotal = document.querySelector('#sc-subtotal-amount-activecart, .sc-subtotal-amount, [data-name="Subtotal"]');
+            if (amazonSubtotal) {
+              const priceMatch = amazonSubtotal.textContent.match(/[$£€¥]\\s*([\\d,]+\\.?\\d*)/);
+              if (priceMatch) {
+                estimatedTotal = parseFloat(priceMatch[1].replace(/,/g, ''));
+              }
+            }
+
+            // Generic total patterns
+            if (estimatedTotal === 0) {
+              const totalMatch = document.body.innerText.match(/(?:subtotal|total|cart total)[:\\s]*[$£€¥]\\s*([\\d,]+\\.?\\d*)/i);
+              if (totalMatch) {
+                estimatedTotal = parseFloat(totalMatch[1].replace(/,/g, ''));
+              }
+            }
+
+            // Only send if we found something meaningful
+            if (itemCount > 0 || estimatedTotal > 0) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'cartDetected',
+                itemCount: itemCount,
+                estimatedTotal: estimatedTotal,
+                cartUrl: pageUrl
+              }));
+              return true;
+            }
+            return false;
+          } catch (e) {
+            console.log('Cart detection error:', e);
+            return false;
+          }
+        }
+
+        // Try immediately
+        if (!detectCart()) {
+          // Retry after delays for dynamically loaded content
+          setTimeout(detectCart, 500);
+          setTimeout(detectCart, 1500);
+          setTimeout(detectCart, 3000);
+        }
       })();
       true;
     `;
