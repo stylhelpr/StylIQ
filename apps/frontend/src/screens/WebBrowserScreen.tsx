@@ -3002,7 +3002,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={theme.colors.secondary || '#f59e0b'}
                 />
               </View>
-              <Text style={styles.saveMenuItemText}>Add to Favorites</Text>
+              <Text style={styles.saveMenuItemText}>Add to Collections</Text>
               <MaterialIcons
                 name={showCollectionPicker ? 'expand-less' : 'expand-more'}
                 size={24}

@@ -389,15 +389,17 @@ export function useUpdatePost() {
     mutationFn: async ({
       postId,
       userId,
+      title,
       description,
       tags,
     }: {
       postId: string;
       userId: string;
+      title?: string;
       description?: string;
       tags?: string[];
     }) => {
-      await apiClient.patch(`${BASE}/posts/${postId}`, {userId, description, tags});
+      await apiClient.patch(`${BASE}/posts/${postId}`, {userId, title, description, tags});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});

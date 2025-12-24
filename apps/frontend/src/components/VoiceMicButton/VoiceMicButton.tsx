@@ -7,11 +7,12 @@ import {
   Text,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {useVoiceControl} from '../../hooks/useVoiceCommands';
+import {useVoiceControl} from '../../hooks/useVoiceControl';
 import {useAppTheme} from '../../context/ThemeContext';
-import {handleVoiceNavigation} from '../../utils/voiceNavigationCommands';
+import {routeVoiceCommand} from '../../utils/VoiceUtils/voiceCommandRouter';
 import Voice from '@react-native-voice/voice';
 import * as Animatable from 'react-native-animatable';
+import {globalNavigate} from '../../MainApp';
 
 type Props = {
   navigate: (screen: string) => void;

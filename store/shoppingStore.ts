@@ -1130,6 +1130,8 @@ export const useShoppingStore = create<ShoppingState>()(
           cartHistory: [],
           recentSearches: [],
           productInteractions: [],
+          tabs: [],
+          currentTabId: null,
           _historyClearedAt: Date.now(),
           pendingChanges: {
             bookmarks: [],

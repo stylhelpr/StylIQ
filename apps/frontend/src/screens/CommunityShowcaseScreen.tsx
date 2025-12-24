@@ -17,6 +17,8 @@ import {
   Pressable,
   ActivityIndicator,
   Share,
+  PermissionsAndroid,
+  TouchableOpacity,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -51,6 +53,7 @@ import {
 } from '../hooks/useCommunityApi';
 import type {CommunityPost, PostComment, PostFilter} from '../types/community';
 import {useUnreadCount} from '../hooks/useMessaging';
+import {useVoiceControl} from '../hooks/useVoiceControl';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 // const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
@@ -908,6 +911,32 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const insets = useSafeAreaInsets();
   const userId = useUUID() || undefined;
 
+  // Voice control for story input - exactly like AIStyleChatScreen
+  const {speech, isRecording, startListening, stopListening} =
+    useVoiceControl();
+  const [isHolding, setIsHolding] = useState(false);
+
+  /** 🎙️ Mic logic - copied from AIStyleChatScreen */
+  async function prepareAudio() {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) return false;
+    }
+    return true;
+  }
+  const handleMicPressIn = useCallback(async () => {
+    if (!(await prepareAudio())) return;
+    setIsHolding(true);
+    startListening();
+  }, [startListening]);
+  const handleMicPressOut = useCallback(() => {
+    setIsHolding(false);
+    stopListening();
+    ReactNativeHapticFeedback.trigger('selection');
+  }, [stopListening]);
+
   // Unread messages count
   const {data: unreadCount = 0} = useUnreadCount(userId || '');
 
@@ -1381,11 +1410,18 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   // Edit own post state
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingPost, setEditingPost] = useState<CommunityPost | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
 
+  // Voice input - exactly like AIStyleChatScreen
+  useEffect(() => {
+    if (typeof speech === 'string') setEditDescription(speech);
+  }, [speech]);
+
   const handleOpenEditModal = useCallback((post: CommunityPost) => {
     setEditingPost(post);
+    setEditTitle(post.title || '');
     setEditDescription(post.description || '');
     setEditTags((post.tags || []).join(', '));
     setEditModalVisible(true);
@@ -1403,6 +1439,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       {
         postId: editingPost.id,
         userId,
+        title: editTitle,
         description: editDescription,
         tags: tagsArray,
       },
@@ -1418,6 +1455,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     updatePostMutation,
     userId,
     editingPost,
+    editTitle,
     editDescription,
     editTags,
     refetch,
@@ -2252,6 +2290,18 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       fontSize: fontScale(tokens.fontSize.xs),
       color: 'rgba(255,255,255,0.5)',
     },
+    postDetailTitle: {
+      fontSize: fontScale(tokens.fontSize.lg),
+      fontWeight: tokens.fontWeight.bold,
+      color: '#fff',
+      marginBottom: 8,
+    },
+    postDetailStory: {
+      fontSize: fontScale(tokens.fontSize.base),
+      color: 'rgba(255,255,255,0.85)',
+      lineHeight: 22,
+      marginTop: 12,
+    },
   });
 
   // Render outfit composite card (2x2 grid: top/bottom/shoes/accessory)
@@ -2633,7 +2683,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           </View>
         </AppleTouchFeedback>
         {/* Title below card */}
-        {post.description && (
+        {post.title && (
           <Text
             style={{
               color: theme.colors.foreground,
@@ -2644,7 +2694,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               paddingHorizontal: 2,
             }}
             numberOfLines={1}>
-            {post.description}
+            {post.title}
           </Text>
         )}
       </Animatable.View>
@@ -3527,101 +3577,195 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       {/* Edit Post Modal */}
       <Modal
         visible={editModalVisible}
-        transparent
+        transparent={false}
         animationType="slide"
         onRequestClose={() => setEditModalVisible(false)}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{flex: 1}}>
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setEditModalVisible(false)}>
-            <Pressable
-              style={styles.editModal}
-              onPress={e => e.stopPropagation()}>
-              <View style={styles.modalHandle} />
+          style={{flex: 1, backgroundColor: theme.colors.background}}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: moderateScale(tokens.spacing.lg),
+              paddingTop: insets.top + moderateScale(tokens.spacing.sm),
+              paddingBottom: moderateScale(tokens.spacing.sm),
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.surface2,
+            }}>
+            <Pressable onPress={() => setEditModalVisible(false)}>
               <Text
-                style={[
-                  styles.editModalTitle,
-                  {color: theme.colors.foreground},
-                ]}>
-                Edit Post
+                style={{
+                  color: theme.colors.foreground3,
+                  fontSize: fontScale(tokens.fontSize.base),
+                }}>
+                Cancel
               </Text>
+            </Pressable>
+            <Text
+              style={{
+                fontSize: fontScale(tokens.fontSize.lg),
+                fontWeight: tokens.fontWeight.bold,
+                color: theme.colors.foreground,
+              }}>
+              Edit Post
+            </Text>
+            <Pressable onPress={handleSaveEdit}>
+              <Text
+                style={{
+                  color: theme.colors.primary,
+                  fontSize: fontScale(tokens.fontSize.base),
+                  fontWeight: tokens.fontWeight.semiBold,
+                }}>
+                Save
+              </Text>
+            </Pressable>
+          </View>
 
+          <ScrollView
+            style={{flex: 1}}
+            contentContainerStyle={{
+              padding: moderateScale(tokens.spacing.sm),
+              paddingBottom: insets.bottom + moderateScale(tokens.spacing.xl),
+            }}
+            keyboardShouldPersistTaps="handled">
+            <Text style={[styles.editLabel, {color: theme.colors.foreground3}]}>
+              Title
+            </Text>
+            <TextInput
+              style={[
+                styles.editInput,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.foreground,
+                  borderColor: theme.colors.surface2,
+                  minHeight: 44,
+                },
+              ]}
+              value={editTitle}
+              onChangeText={setEditTitle}
+              placeholder="Give your post a title"
+              placeholderTextColor={theme.colors.foreground3}
+              maxLength={100}
+            />
+
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: 8,
+              }}>
               <Text
                 style={[styles.editLabel, {color: theme.colors.foreground3}]}>
-                Description
+                Story
               </Text>
+              <TouchableOpacity
+                onPressIn={handleMicPressIn}
+                onPressOut={handleMicPressOut}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 6,
+                  paddingHorizontal: 12,
+                  borderRadius: 20,
+                  backgroundColor: isRecording
+                    ? theme.colors.error
+                    : theme.colors.primary,
+                  transform: [{scale: isHolding ? 1.1 : 1}],
+                }}>
+                <MaterialIcons
+                  name={isRecording ? 'mic' : 'mic-none'}
+                  size={18}
+                  color="black"
+                />
+                <Text
+                  style={{
+                    color: 'black',
+                    marginLeft: 6,
+                    fontSize: fontScale(tokens.fontSize.sm),
+                    fontWeight: tokens.fontWeight.medium,
+                  }}>
+                  {isRecording ? 'Listening...' : 'Hold to Speak'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{position: 'relative'}}>
               <TextInput
                 style={[
                   styles.editInput,
                   {
                     backgroundColor: theme.colors.surface,
                     color: theme.colors.foreground,
-                    borderColor: theme.colors.surface2,
+                    borderColor: isRecording
+                      ? theme.colors.primary
+                      : theme.colors.surface2,
+                    borderWidth: isRecording ? 2 : 1,
+                    minHeight: 550,
                   },
                 ]}
                 value={editDescription}
                 onChangeText={setEditDescription}
-                placeholder="What's this outfit about?"
+                placeholder="Tell the story behind this look... What inspired you? Where would you wear it? Share the details!"
                 placeholderTextColor={theme.colors.foreground3}
                 multiline
-                maxLength={500}
+                maxLength={2000}
               />
-
-              <Text
-                style={[styles.editLabel, {color: theme.colors.foreground3}]}>
-                Tags (comma separated)
-              </Text>
-              <TextInput
-                style={[
-                  styles.editInput,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    color: theme.colors.foreground,
-                    borderColor: theme.colors.surface2,
-                    minHeight: 44,
-                  },
-                ]}
-                value={editTags}
-                onChangeText={setEditTags}
-                placeholder="casual, summer, streetwear"
-                placeholderTextColor={theme.colors.foreground3}
-                maxLength={200}
-              />
-
-              <View style={styles.editButtonRow}>
-                <Pressable
-                  style={[
-                    styles.editButton,
-                    {backgroundColor: theme.colors.surface2},
-                  ]}
-                  onPress={() => setEditModalVisible(false)}>
+              {isRecording && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: 12,
+                    right: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: theme.colors.error,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 16,
+                  }}>
+                  <View
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#fff',
+                      marginRight: 6,
+                    }}
+                  />
                   <Text
-                    style={[
-                      styles.editButtonText,
-                      {color: theme.colors.foreground},
-                    ]}>
-                    Cancel
+                    style={{
+                      color: '#fff',
+                      fontSize: fontScale(tokens.fontSize.xs),
+                    }}>
+                    Listening...
                   </Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.editButton,
-                    {backgroundColor: theme.colors.button1},
-                  ]}
-                  onPress={handleSaveEdit}>
-                  <Text
-                    style={[
-                      styles.editButtonText,
-                      {color: theme.colors.buttonText1},
-                    ]}>
-                    Save
-                  </Text>
-                </Pressable>
-              </View>
-            </Pressable>
-          </Pressable>
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.editLabel, {color: theme.colors.foreground3}]}>
+              Tags (comma separated)
+            </Text>
+            <TextInput
+              style={[
+                styles.editInput,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.foreground,
+                  borderColor: theme.colors.surface2,
+                  minHeight: 44,
+                },
+              ]}
+              value={editTags}
+              onChangeText={setEditTags}
+              placeholder="casual, summer, streetwear"
+              placeholderTextColor={theme.colors.foreground3}
+              maxLength={200}
+            />
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -3660,7 +3804,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               },
             ]}>
             {detailPost && (
-              <>
+              <ScrollView
+                style={{flex: 1}}
+                showsVerticalScrollIndicator={false}
+                bounces={true}>
                 {/* Header */}
                 <View style={styles.postDetailHeader}>
                   <View style={styles.postDetailUserInfo}>
@@ -3838,12 +3985,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     </View>
                   </View>
 
-                  {/* Description */}
-                  {detailPost.description && (
-                    <Text
-                      style={styles.postDetailDescription}
-                      numberOfLines={3}>
-                      {detailPost.description}
+                  {/* Title */}
+                  {detailPost.title && (
+                    <Text style={styles.postDetailTitle}>
+                      {detailPost.title}
                     </Text>
                   )}
 
@@ -3869,8 +4014,15 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       {detailPost.views_count ?? 0} views
                     </Text>
                   </View>
+
+                  {/* Story/Description */}
+                  {detailPost.description && (
+                    <Text style={styles.postDetailStory}>
+                      {detailPost.description}
+                    </Text>
+                  )}
                 </View>
-              </>
+              </ScrollView>
             )}
           </Animated.View>
         </Animated.View>

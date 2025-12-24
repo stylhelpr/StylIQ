@@ -177,9 +177,9 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     },
     quickActionButton: {
       flex: 1,
-      aspectRatio: 1,
+      width: '100%',
       borderRadius: 16,
-      padding: 16,
+      padding: 18,
       justifyContent: 'center',
       alignItems: 'center',
       // borderWidth: 1,
@@ -391,7 +391,11 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
               <AppleTouchFeedback
                 onPress={() => navigate?.('GoldDataViewer')}
                 hapticStyle="impactLight">
-                <MaterialIcons name="insights" size={22} color={theme.colors.primary} />
+                <MaterialIcons
+                  name="insights"
+                  size={22}
+                  color={theme.colors.primary}
+                />
               </AppleTouchFeedback>
             </View>
           </View>
@@ -443,7 +447,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                 // {backgroundColor: 'rgba(4, 255, 0, 1)'},
               ]}>
               <Text style={styles.statNumber}>{collections.length}</Text>
-              <Text style={styles.statLabel}>Wishlists</Text>
+              <Text style={styles.statLabel}>Collections</Text>
             </Animatable.View>
             <Animatable.View
               animation="bounceIn"
@@ -497,7 +501,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                 color={theme.colors.primary}
                 style={styles.quickActionIcon}
               />
-              <Text style={styles.quickActionLabel}>Wishlists</Text>
+              <Text style={styles.quickActionLabel}>Collections</Text>
             </AppleTouchFeedback>
 
             <AppleTouchFeedback
@@ -562,7 +566,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   alignItems: 'center',
                   marginBottom: 12,
                 }}>
-                <Text style={styles.sectionTitle}>Trending Now</Text>
+                <Text style={styles.sectionTitle}>Recent Bookmarks</Text>
                 <AppleTouchFeedback
                   onPress={() => navigate?.('ShoppingBookmarks')}>
                   <Text
@@ -691,9 +695,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   animation="slideInLeft"
                   delay={600 + idx * 100}>
                   <AppleTouchFeedback
-                    onPress={() =>
-                      navigate?.('WebBrowser', {url: visit.url})
-                    }
+                    onPress={() => navigate?.('WebBrowser', {url: visit.url})}
                     style={styles.recentItem}>
                     <View style={styles.recentText}>
                       <Text style={styles.recentTitle} numberOfLines={1}>

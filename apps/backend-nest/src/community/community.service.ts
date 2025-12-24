@@ -82,6 +82,11 @@ export class CommunityService {
       ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS views_count INT DEFAULT 0
     `);
 
+    // Add title column if it doesn't exist (migration)
+    await pool.query(`
+      ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS title TEXT
+    `);
+
     // Add bio column to users if it doesn't exist
     await pool.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT
@@ -633,7 +638,7 @@ export class CommunityService {
     return { message: 'Post deleted' };
   }
 
-  async updatePost(postId: string, userId: string, description?: string, tags?: string[]) {
+  async updatePost(postId: string, userId: string, title?: string, description?: string, tags?: string[]) {
     const post = await pool.query('SELECT user_id FROM community_posts WHERE id = $1', [postId]);
     if (post.rows.length === 0) {
       throw new NotFoundException('Post not found');
@@ -645,6 +650,12 @@ export class CommunityService {
     const updates: string[] = [];
     const params: any[] = [postId];
     let paramIndex = 2;
+
+    if (title !== undefined) {
+      updates.push(`title = $${paramIndex}`);
+      params.push(title);
+      paramIndex++;
+    }
 
     if (description !== undefined) {
       updates.push(`description = $${paramIndex}`);

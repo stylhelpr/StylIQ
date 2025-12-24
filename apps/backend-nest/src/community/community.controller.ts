@@ -95,9 +95,9 @@ export class CommunityController {
   @Patch('posts/:id')
   async updatePost(
     @Param('id') postId: string,
-    @Body() body: { userId: string; description?: string; tags?: string[] },
+    @Body() body: { userId: string; title?: string; description?: string; tags?: string[] },
   ) {
-    return this.service.updatePost(postId, body.userId, body.description, body.tags);
+    return this.service.updatePost(postId, body.userId, body.title, body.description, body.tags);
   }
 
   // ==================== LIKES ====================

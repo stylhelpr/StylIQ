@@ -12,6 +12,7 @@ import {
   Modal,
   Share,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -90,7 +91,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
     }
 
     // Build message
-    let shareMessage = `✨ Check out my wishlist: ${collection.name}\n\n`;
+    let shareMessage = `✨ Check out my collections: ${collection.name}\n\n`;
     if (collection.description) {
       shareMessage += `${collection.description}\n\n`;
     }
@@ -109,13 +110,13 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
     try {
       if (Platform.OS === 'ios') {
         await Share.share({
-          title: `My Wishlist: ${collection.name}`,
+          title: `My Collection: ${collection.name}`,
           message: shareMessage,
           url: firstItemUrl,
         });
       } else {
         await Share.share({
-          title: `My Wishlist: ${collection.name}`,
+          title: `My Collection: ${collection.name}`,
           message: `${shareMessage}\nSee more: ${firstItemUrl}`,
         });
       }
@@ -401,7 +402,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
             color={theme.colors.primary}
           />
         </AppleTouchFeedback>
-        <Text style={styles.headerTitle}>Wishlists</Text>
+        <Text style={styles.headerTitle}>Collections</Text>
         <View style={{width: 38}} />
       </View>
 
@@ -510,101 +511,112 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
         transparent
         animationType="slide"
         onRequestClose={() => setShowNewCollection(false)}>
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setShowNewCollection(false)}
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            justifyContent: 'flex-end',
-          }}>
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>New Collection</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{flex: 1}}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowNewCollection(false)}
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'flex-end',
+            }}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>New Collection</Text>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Collection name"
-                placeholderTextColor={theme.colors.foreground3}
-                value={newName}
-                onChangeText={setNewName}
-              />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Collection name"
+                  placeholderTextColor={theme.colors.foreground3}
+                  value={newName}
+                  onChangeText={setNewName}
+                />
 
-              <TextInput
-                style={[styles.input, {height: 80, textAlignVertical: 'top'}]}
-                placeholder="Description (optional)"
-                placeholderTextColor={theme.colors.foreground3}
-                value={newDescription}
-                onChangeText={setNewDescription}
-                multiline
-              />
+                <TextInput
+                  style={[styles.input, {height: 80, textAlignVertical: 'top'}]}
+                  placeholder="Description (optional)"
+                  placeholderTextColor={theme.colors.foreground3}
+                  value={newDescription}
+                  onChangeText={setNewDescription}
+                  multiline
+                />
 
-              <Text
-                style={{...styles.modalTitle, fontSize: 14, marginBottom: 10}}>
-                Color
-              </Text>
-              <View style={styles.colorPicker}>
-                {COLORS.map(color => (
-                  <TouchableOpacity
-                    key={color}
+                <Text
+                  style={{
+                    ...styles.modalTitle,
+                    fontSize: 14,
+                    marginBottom: 10,
+                  }}>
+                  Color
+                </Text>
+                <View style={styles.colorPicker}>
+                  {COLORS.map(color => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[
+                        styles.colorOption,
+                        {
+                          backgroundColor: color,
+                          borderColor:
+                            selectedColor === color
+                              ? theme.colors.primary
+                              : 'transparent',
+                        },
+                      ]}
+                      onPress={() => setSelectedColor(color)}>
+                      {selectedColor === color && (
+                        <MaterialIcons name="check" size={20} color="#fff" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    gap: 16,
+                    justifyContent: 'center',
+                  }}>
+                  <AppleTouchFeedback
+                    onPress={() => setShowNewCollection(false)}
+                    hapticStyle="impactLight"
                     style={[
-                      styles.colorOption,
+                      globalStyles.buttonPrimary,
                       {
-                        backgroundColor: color,
-                        borderColor:
-                          selectedColor === color
-                            ? theme.colors.primary
-                            : 'transparent',
+                        paddingHorizontal: 20,
+                        backgroundColor: theme.colors.surface3,
                       },
-                    ]}
-                    onPress={() => setSelectedColor(color)}>
-                    {selectedColor === color && (
-                      <MaterialIcons name="check" size={20} color="#fff" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                    ]}>
+                    <Text
+                      style={{
+                        color: theme.colors.foreground,
+                        fontWeight: tokens.fontWeight.semiBold,
+                      }}>
+                      Cancel
+                    </Text>
+                  </AppleTouchFeedback>
+                  <AppleTouchFeedback
+                    onPress={handleCreateCollection}
+                    hapticStyle="impactLight"
+                    style={[
+                      globalStyles.buttonPrimary,
+                      {paddingHorizontal: 20},
+                    ]}>
+                    <Text
+                      style={{
+                        color: 'white',
+                        fontWeight: tokens.fontWeight.semiBold,
+                      }}>
+                      Create
+                    </Text>
+                  </AppleTouchFeedback>
+                </View>
               </View>
-
-              <View
-                style={{
-                  flexDirection: 'row',
-                  gap: 16,
-                  justifyContent: 'center',
-                }}>
-                <AppleTouchFeedback
-                  onPress={() => setShowNewCollection(false)}
-                  hapticStyle="impactLight"
-                  style={[
-                    globalStyles.buttonPrimary,
-                    {
-                      paddingHorizontal: 20,
-                      backgroundColor: theme.colors.surface3,
-                    },
-                  ]}>
-                  <Text
-                    style={{
-                      color: theme.colors.foreground,
-                      fontWeight: tokens.fontWeight.semiBold,
-                    }}>
-                    Cancel
-                  </Text>
-                </AppleTouchFeedback>
-                <AppleTouchFeedback
-                  onPress={handleCreateCollection}
-                  hapticStyle="impactLight"
-                  style={[globalStyles.buttonPrimary, {paddingHorizontal: 20}]}>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontWeight: tokens.fontWeight.semiBold,
-                    }}>
-                    Create
-                  </Text>
-                </AppleTouchFeedback>
-              </View>
-            </View>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
