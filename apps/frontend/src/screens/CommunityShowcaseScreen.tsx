@@ -54,7 +54,7 @@ import {useUnreadCount} from '../hooks/useMessaging';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 // const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
-const CARD_WIDTH = (SCREEN_WIDTH - 19) / 2;
+const CARD_WIDTH = (SCREEN_WIDTH - 13) / 2;
 const CARD_HEIGHT = CARD_WIDTH * 1.3;
 
 type Props = {
@@ -1581,7 +1581,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     gridContainer: {
       // paddingHorizontal: moderateScale(tokens.spacing.quark),
-      paddingHorizontal: moderateScale(tokens.spacing.xxs),
+      paddingHorizontal: moderateScale(tokens.spacing.nano),
       paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT + 20,
     },
     grid: {
@@ -1593,7 +1593,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       width: CARD_WIDTH,
       height: CARD_HEIGHT,
       marginBottom: moderateScale(tokens.spacing.sm),
-      borderRadius: tokens.borderRadius.md,
+      borderRadius: tokens.borderRadius.xl,
       // borderWidth: tokens.borderWidth.hairline,
       // borderColor: theme.colors.surfaceBorder,
       overflow: 'hidden',
