@@ -9,13 +9,18 @@ export class RecreatedLookService {
 
   async saveRecreatedLook(
     userId: string,
-    data: { source_image_url: string; generated_outfit: any; tags?: string[] },
+    data: {
+      source_image_url: string;
+      generated_outfit: any;
+      tags?: string[];
+      name?: string;
+    },
   ) {
     const client = await this.pool.connect();
     try {
       const query = `
-        INSERT INTO recreated_looks (user_id, source_image_url, generated_outfit, tags, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
+        INSERT INTO recreated_looks (user_id, source_image_url, generated_outfit, tags, name, created_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
         RETURNING id;
       `;
       const values = [
@@ -23,6 +28,7 @@ export class RecreatedLookService {
         data.source_image_url,
         data.generated_outfit,
         data.tags || [],
+        data.name || null,
       ];
       const result = await client.query(query, values);
       return { success: true, id: result.rows[0].id };
@@ -38,7 +44,7 @@ export class RecreatedLookService {
     const client = await this.pool.connect();
     try {
       const query = `
-      SELECT id, source_image_url, generated_outfit, tags, created_at
+      SELECT id, source_image_url, generated_outfit, tags, name, created_at
       FROM recreated_looks
       WHERE user_id = $1
       ORDER BY created_at DESC

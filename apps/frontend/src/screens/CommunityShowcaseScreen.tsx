@@ -1384,7 +1384,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   // Edit own post state
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingPost, setEditingPost] = useState<CommunityPost | null>(null);
-  const [editTitle, setEditTitle] = useState('');
+  const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -1439,7 +1439,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 
   const handleOpenEditModal = useCallback((post: CommunityPost) => {
     setEditingPost(post);
-    setEditTitle(post.title || '');
+    setEditName(post.name || '');
     setEditDescription(post.description || '');
     setEditTags((post.tags || []).join(', '));
     setEditModalVisible(true);
@@ -1457,7 +1457,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       {
         postId: editingPost.id,
         userId,
-        title: editTitle,
+        name: editName,
         description: editDescription,
         tags: tagsArray,
       },
@@ -1473,7 +1473,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     updatePostMutation,
     userId,
     editingPost,
-    editTitle,
+    editName,
     editDescription,
     editTags,
     refetch,
@@ -2301,12 +2301,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     postDetailStats: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 12,
       gap: 16,
     },
     postDetailStat: {
-      fontSize: fontScale(tokens.fontSize.xs),
-      color: 'rgba(255,255,255,0.5)',
+      fontSize: fontScale(tokens.fontSize.md),
+      color: 'white',
+      fontWeight: '500',
     },
     postDetailTitle: {
       fontSize: fontScale(tokens.fontSize.lg),
@@ -2700,8 +2700,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             </View>
           </View>
         </AppleTouchFeedback>
-        {/* Title below card */}
-        {post.title && (
+        {/* Name below card */}
+        {post.name && (
           <Text
             style={{
               color: theme.colors.foreground,
@@ -2712,7 +2712,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               paddingHorizontal: 2,
             }}
             numberOfLines={1}>
-            {post.title}
+            {post.name}
           </Text>
         )}
       </Animatable.View>
@@ -3650,7 +3650,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             }}
             keyboardShouldPersistTaps="handled">
             <Text style={[styles.editLabel, {color: theme.colors.foreground3}]}>
-              Title
+              Name
             </Text>
             <TextInput
               style={[
@@ -3662,9 +3662,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   minHeight: 44,
                 },
               ]}
-              value={editTitle}
-              onChangeText={setEditTitle}
-              placeholder="Give your post a title"
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Give your post a name"
               placeholderTextColor={theme.colors.foreground3}
               maxLength={100}
             />
@@ -3694,19 +3694,13 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 <MaterialIcons
                   name={isVoiceRecording ? 'mic-off' : 'mic'}
                   size={fontScale(16)}
-                  color={
-                    isVoiceRecording
-                      ? '#fff'
-                      : theme.colors.foreground3
-                  }
+                  color={isVoiceRecording ? '#fff' : theme.colors.foreground3}
                 />
                 <Text
                   style={{
                     marginLeft: moderateScale(4),
                     fontSize: fontScale(tokens.fontSize.sm),
-                    color: isVoiceRecording
-                      ? '#fff'
-                      : theme.colors.foreground3,
+                    color: isVoiceRecording ? '#fff' : theme.colors.foreground3,
                   }}>
                   {isVoiceRecording ? 'Stop' : 'Voice'}
                 </Text>
@@ -3939,6 +3933,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                           {detailPost.comments_count || 0}
                         </Text>
                       </Pressable>
+                      {/* Stats */}
+                      <View style={styles.postDetailStats}>
+                        <Text style={styles.postDetailStat}>
+                          {detailPost.views_count ?? 0} views
+                        </Text>
+                      </View>
                     </View>
                     <View style={styles.postDetailRightActions}>
                       <Pressable
@@ -3969,10 +3969,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     </View>
                   </View>
 
-                  {/* Title */}
-                  {detailPost.title && (
+                  {/* Name */}
+                  {detailPost.name && (
                     <Text style={styles.postDetailTitle}>
-                      {detailPost.title}
+                      {detailPost.name}
                     </Text>
                   )}
 
@@ -3991,13 +3991,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       ))}
                     </View>
                   )}
-
-                  {/* Stats */}
-                  <View style={styles.postDetailStats}>
-                    <Text style={styles.postDetailStat}>
-                      {detailPost.views_count ?? 0} views
-                    </Text>
-                  </View>
 
                   {/* Story/Description */}
                   {detailPost.description && (

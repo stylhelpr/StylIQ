@@ -25,6 +25,7 @@ export class CommunityController {
       bottomImage?: string;
       shoesImage?: string;
       accessoryImage?: string;
+      name?: string;
       description?: string;
       tags?: string[];
     },
@@ -35,6 +36,7 @@ export class CommunityController {
       bottomImage: body.bottomImage,
       shoesImage: body.shoesImage,
       accessoryImage: body.accessoryImage,
+      name: body.name,
       description: body.description,
       tags: body.tags,
     });
@@ -95,9 +97,9 @@ export class CommunityController {
   @Patch('posts/:id')
   async updatePost(
     @Param('id') postId: string,
-    @Body() body: { userId: string; title?: string; description?: string; tags?: string[] },
+    @Body() body: { userId: string; name?: string; description?: string; tags?: string[] },
   ) {
-    return this.service.updatePost(postId, body.userId, body.title, body.description, body.tags);
+    return this.service.updatePost(postId, body.userId, body.name, body.description, body.tags);
   }
 
   // ==================== LIKES ====================

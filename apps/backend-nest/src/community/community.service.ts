@@ -82,9 +82,9 @@ export class CommunityService {
       ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS views_count INT DEFAULT 0
     `);
 
-    // Add title column if it doesn't exist (migration)
+    // Add name column if it doesn't exist (migration)
     await pool.query(`
-      ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS title TEXT
+      ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS name TEXT
     `);
 
     // Add bio column to users if it doesn't exist
@@ -272,13 +272,14 @@ export class CommunityService {
       bottomImage?: string;
       shoesImage?: string;
       accessoryImage?: string;
+      name?: string;
       description?: string;
       tags?: string[];
     },
   ) {
     const res = await pool.query(
-      `INSERT INTO community_posts (user_id, image_url, top_image, bottom_image, shoes_image, accessory_image, description, tags)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO community_posts (user_id, image_url, top_image, bottom_image, shoes_image, accessory_image, name, description, tags)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         userId,
@@ -287,6 +288,7 @@ export class CommunityService {
         data.bottomImage || null,
         data.shoesImage || null,
         data.accessoryImage || null,
+        data.name || null,
         data.description || null,
         data.tags || [],
       ],
@@ -638,7 +640,7 @@ export class CommunityService {
     return { message: 'Post deleted' };
   }
 
-  async updatePost(postId: string, userId: string, title?: string, description?: string, tags?: string[]) {
+  async updatePost(postId: string, userId: string, name?: string, description?: string, tags?: string[]) {
     const post = await pool.query('SELECT user_id FROM community_posts WHERE id = $1', [postId]);
     if (post.rows.length === 0) {
       throw new NotFoundException('Post not found');
@@ -651,9 +653,9 @@ export class CommunityService {
     const params: any[] = [postId];
     let paramIndex = 2;
 
-    if (title !== undefined) {
-      updates.push(`title = $${paramIndex}`);
-      params.push(title);
+    if (name !== undefined) {
+      updates.push(`name = $${paramIndex}`);
+      params.push(name);
       paramIndex++;
     }
 

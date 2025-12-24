@@ -538,6 +538,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [pendingShareVibe, setPendingShareVibe] = useState<any | null>(null);
   const [communityShareModalVisible, setCommunityShareModalVisible] =
     useState(false);
+  const [communityName, setCommunityName] = useState('');
   const [communityDescription, setCommunityDescription] = useState('');
   const [communityTags, setCommunityTags] = useState('');
 
@@ -1061,6 +1062,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const handleShareToCommunity = () => {
     if (!pendingShareVibe || !userId) return;
     setShareOptionsVisible(false);
+    setCommunityName('');
     setCommunityDescription('');
     setCommunityTags('');
     setCommunityShareModalVisible(true);
@@ -1086,12 +1088,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       // If we have outfit items, use them; otherwise use single image
       const postData: any = {
         userId,
-        description:
-          communityDescription ||
+        name:
+          communityName ||
+          pendingShareVibe.name ||
           (pendingShareVibe.tags &&
             pendingShareVibe.tags.slice(0, 3).join(', ')) ||
           pendingShareVibe.query_used ||
           'My look',
+        description: communityDescription || '',
         tags: tagsArray.length > 0 ? tagsArray : ['look'],
       };
 
@@ -2195,7 +2199,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     width: '100%',
                                   },
                                 ]}>
-                                {(c.tags && c.tags.slice(0, 3).join(' ')) ||
+                                {c.name ||
+                                  (c.tags && c.tags.slice(0, 3).join(' ')) ||
                                   'AI Look'}
                               </Text>
                             </ScalePressable>
@@ -2344,14 +2349,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 </Pressable>
                               </View>
                             </Pressable>
-                            {/* Look description - outside of the image container */}
+                            {/* Look name - outside of the image container */}
                             <Text
                               style={[
                                 globalStyles.cardSubLabel,
                                 {textAlign: 'center', marginTop: 4, width: 130},
                               ]}
                               numberOfLines={1}>
-                              {look.description || 'Shared Look'}
+                              {look.name || 'Shared Look'}
                             </Text>
                           </View>
                         ))}
@@ -2604,19 +2609,43 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     Share to Community
                   </Text>
 
-                  {/* Description Input */}
+                  {/* Name Input */}
                   <Text
                     style={{
                       fontSize: 14,
                       color: theme.colors.foreground2,
                       marginBottom: 8,
                     }}>
-                    Description
+                    Name
+                  </Text>
+                  <TextInput
+                    value={communityName}
+                    onChangeText={setCommunityName}
+                    placeholder="Give your look a name..."
+                    placeholderTextColor={theme.colors.muted}
+                    style={{
+                      backgroundColor: theme.colors.surface2,
+                      borderRadius: 12,
+                      padding: 14,
+                      color: theme.colors.foreground,
+                      fontSize: 15,
+                      marginBottom: 16,
+                    }}
+                  />
+
+                  {/* Story Input */}
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: theme.colors.foreground2,
+                      marginBottom: 8,
+                    }}>
+                    Story
                   </Text>
                   <TextInput
                     value={communityDescription}
                     onChangeText={setCommunityDescription}
-                    placeholder="Describe your look..."
+                    placeholder="Tell the story behind this look..."
                     placeholderTextColor={theme.colors.muted}
                     multiline
                     style={{

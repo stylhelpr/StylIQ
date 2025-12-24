@@ -54,6 +54,7 @@ type SharedLook = {
   top_image?: string;
   bottom_image?: string;
   shoes_image?: string;
+  name?: string;
   description?: string;
 };
 
@@ -753,7 +754,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                               {textAlign: 'center'},
                             ]}
                             numberOfLines={1}>
-                            {look.description || 'Shared Look'}
+                            {look.name || 'Shared Look'}
                           </Text>
                         </Animatable.View>
                       </Pressable>

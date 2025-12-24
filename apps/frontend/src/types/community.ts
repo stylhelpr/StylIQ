@@ -8,7 +8,7 @@ export interface CommunityPost {
   bottom_image?: string;
   shoes_image?: string;
   accessory_image?: string;
-  title?: string;
+  name?: string;
   description?: string;
   tags: string[];
   likes_count: number;

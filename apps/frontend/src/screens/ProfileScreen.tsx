@@ -855,7 +855,7 @@ export default function ProfileScreen({navigate}: Props) {
                           {textAlign: 'center'},
                         ]}
                         numberOfLines={1}>
-                        {look.description || 'Shared Look'}
+                        {look.name || 'Shared Look'}
                       </Text>
                     </Animatable.View>
                   </Pressable>

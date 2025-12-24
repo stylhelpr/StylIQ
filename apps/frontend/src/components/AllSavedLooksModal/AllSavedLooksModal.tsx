@@ -232,6 +232,7 @@ export default function AllSavedLooksModal({
                 source_image_url: look.image_url,
                 generated_outfit: data,
                 tags: look.tags || [],
+                name: look.name || null,
               }),
             });
           } catch (saveErr) {
@@ -306,6 +307,7 @@ export default function AllSavedLooksModal({
               source_image_url: look.image_url,
               generated_outfit: data,
               tags: look.tags || [],
+              name: look.name || null,
             }),
           });
         } catch (saveErr) {

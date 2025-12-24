@@ -23,6 +23,7 @@ export function useCreatePost() {
       bottomImage?: string;
       shoesImage?: string;
       accessoryImage?: string;
+      name?: string;
       description?: string;
       tags?: string[];
     }) => {
@@ -389,17 +390,17 @@ export function useUpdatePost() {
     mutationFn: async ({
       postId,
       userId,
-      title,
+      name,
       description,
       tags,
     }: {
       postId: string;
       userId: string;
-      title?: string;
+      name?: string;
       description?: string;
       tags?: string[];
     }) => {
-      await apiClient.patch(`${BASE}/posts/${postId}`, {userId, title, description, tags});
+      await apiClient.patch(`${BASE}/posts/${postId}`, {userId, name, description, tags});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
