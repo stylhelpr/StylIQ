@@ -53,7 +53,8 @@ import type {CommunityPost, PostComment, PostFilter} from '../types/community';
 import {useUnreadCount} from '../hooks/useMessaging';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
+// const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
+const CARD_WIDTH = (SCREEN_WIDTH - 19) / 2;
 const CARD_HEIGHT = CARD_WIDTH * 1.3;
 
 type Props = {
@@ -1579,7 +1580,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       fontWeight: tokens.fontWeight.semiBold,
     },
     gridContainer: {
-      paddingHorizontal: moderateScale(tokens.spacing.md1),
+      // paddingHorizontal: moderateScale(tokens.spacing.quark),
+      paddingHorizontal: moderateScale(tokens.spacing.xxs),
       paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT + 20,
     },
     grid: {
@@ -1592,6 +1594,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       height: CARD_HEIGHT,
       marginBottom: moderateScale(tokens.spacing.sm),
       borderRadius: tokens.borderRadius.md,
+      // borderWidth: tokens.borderWidth.hairline,
+      // borderColor: theme.colors.surfaceBorder,
       overflow: 'hidden',
       backgroundColor: theme.colors.muted,
     },

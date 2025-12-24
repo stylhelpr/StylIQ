@@ -76,7 +76,8 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const {prefs, setVisible} = useHomePrefs();
 
   // Shopping Analytics Tracking Consent
-  const {trackingConsent, setTrackingConsent, clearAllShoppingData} = useShoppingStore();
+  const {trackingConsent, setTrackingConsent, clearAllShoppingData} =
+    useShoppingStore();
 
   const safeGoBack = () => {
     if (global.goingBack) {
@@ -630,6 +631,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 ]}>
                 Shopping Analytics
               </Text>
+
               <View
                 style={[
                   globalStyles.menuContainer1,
@@ -642,6 +644,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 <View
                   style={[
                     globalStyles.menuSection1,
+
                     {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
@@ -667,23 +670,27 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                     ios_backgroundColor={colors.muted}
                   />
                 </View>
+
                 <Text
-                  style={{
-                    fontSize: 12,
-                    color: theme.colors.foreground3,
-                    paddingHorizontal: 16,
-                    paddingBottom: 12,
-                    marginTop: -4,
-                  }}>
+                  style={[
+                    globalStyles.hrLine,
+                    {
+                      fontSize: 12,
+                      color: theme.colors.foreground3,
+                      paddingHorizontal: 16,
+                      paddingBottom: 12,
+                      marginTop: -8,
+                    },
+                  ]}>
                   Personalize shopping recommendations by tracking browsing
                   patterns
                 </Text>
+
                 <AppleTouchFeedback
                   onPress={handleClearShoppingData}
                   hapticStyle="impactLight"
                   style={[globalStyles.menuSection1]}>
-                  <Text
-                    style={[globalStyles.menuLabel, {color: colors.error}]}>
+                  <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
                     Clear Shopping Data
                   </Text>
                 </AppleTouchFeedback>
