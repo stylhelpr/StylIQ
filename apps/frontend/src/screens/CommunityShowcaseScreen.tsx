@@ -996,6 +996,61 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [activeActionsPost, setActiveActionsPost] =
     useState<CommunityPost | null>(null);
 
+  // Post detail modal state (social media exploded view)
+  const [postDetailModalVisible, setPostDetailModalVisible] = useState(false);
+  const [detailPost, setDetailPost] = useState<CommunityPost | null>(null);
+  const postDetailSlideAnim = useRef(new Animated.Value(0)).current;
+  const postDetailOpacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Open post detail modal with animation
+  const openPostDetailModal = useCallback(
+    (post: CommunityPost) => {
+      h('impactLight');
+      setDetailPost(post);
+      setPostDetailModalVisible(true);
+      // Track view
+      trackViewMutation.mutate({postId: post.id, userId: userId ?? undefined});
+      // Animate in
+      Animated.parallel([
+        Animated.spring(postDetailSlideAnim, {
+          toValue: 1,
+          damping: 20,
+          stiffness: 300,
+          mass: 0.8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(postDetailOpacityAnim, {
+          toValue: 1,
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    },
+    [postDetailSlideAnim, postDetailOpacityAnim, trackViewMutation, userId],
+  );
+
+  // Close post detail modal with animation
+  const closePostDetailModal = useCallback(() => {
+    h('selection');
+    Animated.parallel([
+      Animated.timing(postDetailSlideAnim, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(postDetailOpacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setPostDetailModalVisible(false);
+      setDetailPost(null);
+    });
+  }, [postDetailSlideAnim, postDetailOpacityAnim]);
+
   // Animated search toggle
   const toggleSearch = () => {
     if (showSearch) {
@@ -2049,6 +2104,154 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       fontSize: fontScale(tokens.fontSize.base),
       fontWeight: tokens.fontWeight.semiBold,
     },
+
+    // Post detail modal styles (social media exploded view)
+    postDetailOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.95)',
+    },
+    postDetailContainer: {
+      flex: 1,
+    },
+    postDetailHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      // paddingHorizontal: 16,
+      paddingTop: insets.top + 8,
+      paddingBottom: 12,
+      // backgroundColor: 'red',
+    },
+    postDetailCloseButton: {
+      width: 35,
+      height: 35,
+      borderRadius: 20,
+      backgroundColor: 'white',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 16,
+      marginLeft: 20,
+    },
+    postDetailUserInfo: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: 12,
+    },
+    postDetailAvatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      marginRight: 10,
+      borderWidth: 2,
+      borderColor: theme.colors.button1,
+    },
+    postDetailUserName: {
+      fontSize: fontScale(tokens.fontSize.base),
+      fontWeight: tokens.fontWeight.semiBold,
+      color: '#fff',
+    },
+    postDetailHandle: {
+      fontSize: fontScale(tokens.fontSize.xs),
+      color: 'rgba(255,255,255,0.6)',
+      marginTop: 1,
+    },
+    postDetailFollowButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: theme.colors.button1,
+    },
+    postDetailFollowButtonFollowing: {
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.4)',
+    },
+    postDetailFollowText: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.buttonText1,
+    },
+    postDetailImageContainer: {
+      // flex: 1,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      // paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    postDetailImage: {
+      width: SCREEN_WIDTH - 4,
+      height: SCREEN_WIDTH - 4,
+      borderRadius: 16,
+    },
+    postDetailCompositeContainer: {
+      width: SCREEN_WIDTH - 16,
+      height: SCREEN_WIDTH - 16,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    postDetailCompositeCell: {
+      backgroundColor: theme.colors.background,
+    },
+    postDetailFooter: {
+      // backgroundColor: 'blue',
+      paddingHorizontal: 16,
+      paddingBottom: insets.bottom + 20,
+      paddingTop: 4,
+    },
+    postDetailActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    postDetailActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+    },
+    postDetailActionText: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: '#fff',
+      marginLeft: 6,
+      fontWeight: tokens.fontWeight.medium,
+    },
+    postDetailRightActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+    },
+    postDetailDescription: {
+      fontSize: fontScale(tokens.fontSize.base),
+      color: '#fff',
+      lineHeight: 22,
+      marginBottom: 12,
+    },
+    postDetailTagsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    postDetailTag: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: 'rgba(255,255,255,0.8)',
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      overflow: 'hidden',
+    },
+    postDetailStats: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 12,
+      gap: 16,
+    },
+    postDetailStat: {
+      fontSize: fontScale(tokens.fontSize.xs),
+      color: 'rgba(255,255,255,0.5)',
+    },
   });
 
   // Render outfit composite card (2x2 grid: top/bottom/shoes/accessory)
@@ -2288,9 +2491,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         useNativeDriver>
         <AppleTouchFeedback
           hapticStyle="none"
-          onPress={() => {
-            // TODO: Navigate to post detail
-          }}
+          onPress={() => openPostDetailModal(post)}
           style={styles.card}>
           {hasCompositeImages ? (
             // 2x2 Grid Composite
@@ -3422,6 +3623,257 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Post Detail Modal (Social Media Exploded View) */}
+      <Modal
+        visible={postDetailModalVisible}
+        transparent
+        statusBarTranslucent
+        animationType="none"
+        onRequestClose={closePostDetailModal}>
+        <Animated.View
+          style={[
+            styles.postDetailOverlay,
+            {
+              opacity: postDetailOpacityAnim,
+            },
+          ]}>
+          <Animated.View
+            style={[
+              styles.postDetailContainer,
+              {
+                transform: [
+                  {
+                    translateY: postDetailSlideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [100, 0],
+                    }),
+                  },
+                  {
+                    scale: postDetailSlideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.95, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            {detailPost && (
+              <>
+                {/* Header */}
+                <View style={styles.postDetailHeader}>
+                  <View style={styles.postDetailUserInfo}>
+                    <UserAvatar
+                      avatarUrl={detailPost.user_avatar}
+                      userName={detailPost.user_name}
+                      size={36}
+                      style={styles.postDetailAvatar}
+                      onPress={() => {
+                        closePostDetailModal();
+                        setTimeout(() => {
+                          navigate('UserProfileScreen', {
+                            userId: detailPost.user_id,
+                            userName: detailPost.user_name,
+                            userAvatar: detailPost.user_avatar,
+                          });
+                        }, 300);
+                      }}
+                    />
+                    <View>
+                      <Text style={styles.postDetailUserName}>
+                        {detailPost.user_name}
+                      </Text>
+                      <Text style={styles.postDetailHandle}>
+                        @
+                        {detailPost.user_name.toLowerCase().replace(/\s+/g, '')}
+                      </Text>
+                    </View>
+                  </View>
+                  <Pressable
+                    onPress={() => toggleFollow(detailPost)}
+                    style={[
+                      styles.postDetailFollowButton,
+                      isFollowingAuthor(detailPost) &&
+                        styles.postDetailFollowButtonFollowing,
+                    ]}>
+                    <Text style={styles.postDetailFollowText}>
+                      {isFollowingAuthor(detailPost) ? 'Following' : 'Follow'}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={closePostDetailModal}
+                    style={styles.postDetailCloseButton}>
+                    <MaterialIcons name="close" size={24} color="black" />
+                  </Pressable>
+                </View>
+
+                {/* Image */}
+                <View style={styles.postDetailImageContainer}>
+                  {detailPost.top_image && detailPost.bottom_image ? (
+                    // Composite 2x2 grid
+                    <View style={styles.postDetailCompositeContainer}>
+                      <View style={{flexDirection: 'row', flex: 1}}>
+                        <View
+                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
+                          {detailPost.top_image && (
+                            <Image
+                              source={{uri: detailPost.top_image}}
+                              style={{width: '100%', height: '100%'}}
+                              resizeMode="cover"
+                            />
+                          )}
+                        </View>
+                        <View
+                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
+                          {detailPost.bottom_image && (
+                            <Image
+                              source={{uri: detailPost.bottom_image}}
+                              style={{width: '100%', height: '100%'}}
+                              resizeMode="cover"
+                            />
+                          )}
+                        </View>
+                      </View>
+                      <View style={{flexDirection: 'row', flex: 1}}>
+                        <View
+                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
+                          {detailPost.shoes_image && (
+                            <Image
+                              source={{uri: detailPost.shoes_image}}
+                              style={{width: '100%', height: '100%'}}
+                              resizeMode="cover"
+                            />
+                          )}
+                        </View>
+                        <View
+                          style={[styles.postDetailCompositeCell, {flex: 1}]}>
+                          {detailPost.accessory_image && (
+                            <Image
+                              source={{uri: detailPost.accessory_image}}
+                              style={{width: '100%', height: '100%'}}
+                              resizeMode="cover"
+                            />
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  ) : (
+                    // Single image
+                    <Image
+                      source={{uri: detailPost.image_url || ''}}
+                      style={styles.postDetailImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                </View>
+
+                {/* Footer */}
+                <View style={styles.postDetailFooter}>
+                  {/* Action buttons */}
+                  <View style={styles.postDetailActionsRow}>
+                    <View style={{flexDirection: 'row', gap: 20}}>
+                      <Pressable
+                        onPress={() => toggleLike(detailPost)}
+                        style={styles.postDetailActionButton}>
+                        <MaterialIcons
+                          name={
+                            isPostLiked(detailPost)
+                              ? 'favorite'
+                              : 'favorite-border'
+                          }
+                          size={28}
+                          color={isPostLiked(detailPost) ? '#FF4D6D' : '#fff'}
+                        />
+                        <Text style={styles.postDetailActionText}>
+                          {isPostLiked(detailPost)
+                            ? detailPost.likes_count + 1
+                            : detailPost.likes_count}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          const postId = detailPost.id;
+                          closePostDetailModal();
+                          setTimeout(() => openComments(postId), 350);
+                        }}
+                        style={styles.postDetailActionButton}>
+                        <MaterialIcons
+                          name="chat-bubble-outline"
+                          size={26}
+                          color="#fff"
+                        />
+                        <Text style={styles.postDetailActionText}>
+                          {detailPost.comments_count || 0}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    <View style={styles.postDetailRightActions}>
+                      <Pressable
+                        onPress={() => toggleSavePost(detailPost)}
+                        style={styles.postDetailActionButton}>
+                        <MaterialIcons
+                          name={
+                            isPostSaved(detailPost)
+                              ? 'bookmark'
+                              : 'bookmark-border'
+                          }
+                          size={28}
+                          color={isPostSaved(detailPost) ? '#FFD700' : '#fff'}
+                        />
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          closePostDetailModal();
+                          setTimeout(() => openActionsModal(detailPost), 350);
+                        }}
+                        style={styles.postDetailActionButton}>
+                        <MaterialIcons
+                          name="more-horiz"
+                          size={28}
+                          color="#fff"
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  {/* Description */}
+                  {detailPost.description && (
+                    <Text
+                      style={styles.postDetailDescription}
+                      numberOfLines={3}>
+                      {detailPost.description}
+                    </Text>
+                  )}
+
+                  {/* Tags */}
+                  {detailPost.tags && detailPost.tags.length > 0 && (
+                    <View style={styles.postDetailTagsRow}>
+                      {detailPost.tags.map(tag => (
+                        <Pressable
+                          key={tag}
+                          onPress={() => {
+                            handleTagTap(tag);
+                            closePostDetailModal();
+                          }}>
+                          <Text style={styles.postDetailTag}>#{tag}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Stats */}
+                  <View style={styles.postDetailStats}>
+                    <Text style={styles.postDetailStat}>
+                      {detailPost.views_count ?? 0} views
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </Animated.View>
   );
