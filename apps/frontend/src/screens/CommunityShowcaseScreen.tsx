@@ -17,7 +17,6 @@ import {
   Pressable,
   ActivityIndicator,
   Share,
-  PermissionsAndroid,
   TouchableOpacity,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -53,7 +52,8 @@ import {
 } from '../hooks/useCommunityApi';
 import type {CommunityPost, PostComment, PostFilter} from '../types/community';
 import {useUnreadCount} from '../hooks/useMessaging';
-import {useVoiceControl} from '../hooks/useVoiceControl';
+import Voice from '@react-native-voice/voice';
+import {VoiceBus} from '../utils/VoiceUtils/VoiceBus';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 // const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
@@ -911,32 +911,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const insets = useSafeAreaInsets();
   const userId = useUUID() || undefined;
 
-  // Voice control for story input - exactly like AIStyleChatScreen
-  const {speech, isRecording, startListening, stopListening} =
-    useVoiceControl();
-  const [isHolding, setIsHolding] = useState(false);
-
-  /** 🎙️ Mic logic - copied from AIStyleChatScreen */
-  async function prepareAudio() {
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-      );
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) return false;
-    }
-    return true;
-  }
-  const handleMicPressIn = useCallback(async () => {
-    if (!(await prepareAudio())) return;
-    setIsHolding(true);
-    startListening();
-  }, [startListening]);
-  const handleMicPressOut = useCallback(() => {
-    setIsHolding(false);
-    stopListening();
-    ReactNativeHapticFeedback.trigger('selection');
-  }, [stopListening]);
-
   // Unread messages count
   const {data: unreadCount = 0} = useUnreadCount(userId || '');
 
@@ -1413,11 +1387,55 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editTags, setEditTags] = useState('');
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const descriptionBeforeVoiceRef = useRef('');
 
-  // Voice input - exactly like AIStyleChatScreen
-  useEffect(() => {
-    if (typeof speech === 'string') setEditDescription(speech);
-  }, [speech]);
+  // Voice input handlers for Story field
+  const startVoiceInput = useCallback(async () => {
+    try {
+      descriptionBeforeVoiceRef.current = editDescription;
+      setIsVoiceRecording(true);
+
+      Voice.onSpeechPartialResults = (e: {value?: string[]}) => {
+        if (e.value && e.value[0]) {
+          const base = descriptionBeforeVoiceRef.current;
+          setEditDescription(base ? `${base} ${e.value[0]}` : e.value[0]);
+        }
+      };
+      Voice.onSpeechResults = (e: {value?: string[]}) => {
+        if (e.value && e.value[0]) {
+          const base = descriptionBeforeVoiceRef.current;
+          setEditDescription(base ? `${base} ${e.value[0]}` : e.value[0]);
+        }
+      };
+      Voice.onSpeechEnd = () => {
+        setIsVoiceRecording(false);
+        VoiceBus.reset();
+      };
+      Voice.onSpeechError = () => {
+        setIsVoiceRecording(false);
+        VoiceBus.reset();
+      };
+      await Voice.start('en-US');
+      // Immediately suppress the global voice overlay
+      VoiceBus.reset();
+    } catch (err) {
+      console.warn('Voice start error:', err);
+      setIsVoiceRecording(false);
+    }
+  }, [editDescription]);
+
+  const stopVoiceInput = useCallback(async () => {
+    try {
+      await Voice.stop();
+      setIsVoiceRecording(false);
+      VoiceBus.reset();
+    } catch (err) {
+      console.warn('Voice stop error:', err);
+      setIsVoiceRecording(false);
+      VoiceBus.reset();
+    }
+  }, []);
 
   const handleOpenEditModal = useCallback((post: CommunityPost) => {
     setEditingPost(post);
@@ -3656,95 +3674,61 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingVertical: 8,
               }}>
               <Text
                 style={[styles.editLabel, {color: theme.colors.foreground3}]}>
                 Story
               </Text>
-              <TouchableOpacity
-                onPressIn={handleMicPressIn}
-                onPressOut={handleMicPressOut}
+              <Pressable
+                onPress={isVoiceRecording ? stopVoiceInput : startVoiceInput}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  borderRadius: 20,
-                  backgroundColor: isRecording
+                  paddingVertical: moderateScale(4),
+                  paddingHorizontal: moderateScale(8),
+                  borderRadius: moderateScale(16),
+                  backgroundColor: isVoiceRecording
                     ? theme.colors.error
-                    : theme.colors.primary,
-                  transform: [{scale: isHolding ? 1.1 : 1}],
+                    : theme.colors.surface2,
                 }}>
                 <MaterialIcons
-                  name={isRecording ? 'mic' : 'mic-none'}
-                  size={18}
-                  color="black"
+                  name={isVoiceRecording ? 'mic-off' : 'mic'}
+                  size={fontScale(16)}
+                  color={
+                    isVoiceRecording
+                      ? '#fff'
+                      : theme.colors.foreground3
+                  }
                 />
                 <Text
                   style={{
-                    color: 'black',
-                    marginLeft: 6,
+                    marginLeft: moderateScale(4),
                     fontSize: fontScale(tokens.fontSize.sm),
-                    fontWeight: tokens.fontWeight.medium,
+                    color: isVoiceRecording
+                      ? '#fff'
+                      : theme.colors.foreground3,
                   }}>
-                  {isRecording ? 'Listening...' : 'Hold to Speak'}
+                  {isVoiceRecording ? 'Stop' : 'Voice'}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
-            <View style={{position: 'relative'}}>
-              <TextInput
-                style={[
-                  styles.editInput,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    color: theme.colors.foreground,
-                    borderColor: isRecording
-                      ? theme.colors.primary
-                      : theme.colors.surface2,
-                    borderWidth: isRecording ? 2 : 1,
-                    minHeight: 550,
-                  },
-                ]}
-                value={editDescription}
-                onChangeText={setEditDescription}
-                placeholder="Tell the story behind this look... What inspired you? Where would you wear it? Share the details!"
-                placeholderTextColor={theme.colors.foreground3}
-                multiline
-                maxLength={2000}
-              />
-              {isRecording && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    bottom: 12,
-                    right: 12,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.colors.error,
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                    borderRadius: 16,
-                  }}>
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      backgroundColor: '#fff',
-                      marginRight: 6,
-                    }}
-                  />
-                  <Text
-                    style={{
-                      color: '#fff',
-                      fontSize: fontScale(tokens.fontSize.xs),
-                    }}>
-                    Listening...
-                  </Text>
-                </View>
-              )}
-            </View>
+            <TextInput
+              style={[
+                styles.editInput,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.foreground,
+                  borderColor: theme.colors.surface2,
+                  minHeight: 550,
+                },
+              ]}
+              value={editDescription}
+              onChangeText={setEditDescription}
+              placeholder="Tell the story behind this look... What inspired you? Where would you wear it? Share the details!"
+              placeholderTextColor={theme.colors.foreground3}
+              multiline
+              maxLength={2000}
+            />
 
             <Text style={[styles.editLabel, {color: theme.colors.foreground3}]}>
               Tags (comma separated)
