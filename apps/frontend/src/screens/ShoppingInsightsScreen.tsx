@@ -1,4 +1,4 @@
-import React, {useMemo, useCallback} from 'react';
+import React, {useMemo} from 'react';
 import {View, Text, StyleSheet, ScrollView, Dimensions} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -10,7 +10,6 @@ import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useAuth0} from 'react-native-auth0';
-import {browserSyncService} from '../services/browserSyncService';
 
 const {width: screenWidth} = Dimensions.get('window');
 
@@ -20,24 +19,8 @@ type Props = {
 
 export default function ShoppingInsightsScreen({navigate}: Props) {
   const {theme} = useAppTheme();
-  const {user, getCredentials} = useAuth0();
+  const {user} = useAuth0();
   const userId = user?.sub || '';
-
-  // Clear history from both local store and server
-  const handleClearHistory = useCallback(async () => {
-    // Clear local first
-    useShoppingStore.getState().clearHistory();
-
-    // Then clear on server
-    try {
-      const credentials = await getCredentials();
-      if (credentials?.accessToken) {
-        await browserSyncService.clearHistory(credentials.accessToken);
-      }
-    } catch (error) {
-      console.error('[ShoppingInsights] Failed to clear history on server:', error);
-    }
-  }, [getCredentials]);
   const {styleProfile} = useStyleProfile(userId);
 
   // Get budget from style profile (use budget_max as the monthly spending limit)
@@ -779,13 +762,6 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
             />
           </AppleTouchFeedback>
           <Text style={styles.headerTitle}>Shopping Insights</Text>
-          {/* TEMP: Clear history button */}
-          <AppleTouchFeedback
-            style={{padding: 8}}
-            onPress={handleClearHistory}
-            hapticStyle="impactMedium">
-            <MaterialIcons name="delete" size={24} color="#ef4444" />
-          </AppleTouchFeedback>
         </Animatable.View>
       </View>
 
@@ -844,7 +820,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
             duration={500}
             delay={400}
             style={styles.section}>
-            <Text style={styles.sectionTitle}>Price Range of Viewed Items</Text>
+            <Text style={styles.sectionTitle}>Price Range of Bookmarked Items</Text>
             <View style={styles.priceCard}>
               <View style={styles.priceRow}>
                 <View style={styles.priceItem}>

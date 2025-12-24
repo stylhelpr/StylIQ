@@ -284,6 +284,9 @@ type ShoppingState = {
 
   // Clear just the spending/cart history data
   clearCartHistory: () => void;
+
+  // Clear all shopping data (history, bookmarks, collections, cart history, searches)
+  clearAllShoppingData: () => void;
 };
 
 export const useShoppingStore = create<ShoppingState>()(
@@ -1117,6 +1120,26 @@ export const useShoppingStore = create<ShoppingState>()(
             cartHistory: [],
           },
         }));
+      },
+
+      clearAllShoppingData: () => {
+        set({
+          bookmarks: [],
+          history: [],
+          collections: [],
+          cartHistory: [],
+          recentSearches: [],
+          productInteractions: [],
+          _historyClearedAt: Date.now(),
+          pendingChanges: {
+            bookmarks: [],
+            deletedBookmarkUrls: [],
+            history: [],
+            collections: [],
+            deletedCollectionIds: [],
+            cartHistory: [],
+          },
+        });
       },
     }),
     {

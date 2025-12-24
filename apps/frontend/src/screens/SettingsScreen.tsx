@@ -76,7 +76,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const {prefs, setVisible} = useHomePrefs();
 
   // Shopping Analytics Tracking Consent
-  const {trackingConsent, setTrackingConsent} = useShoppingStore();
+  const {trackingConsent, setTrackingConsent, clearAllShoppingData} = useShoppingStore();
 
   const safeGoBack = () => {
     if (global.goingBack) {
@@ -315,6 +315,25 @@ export default function SettingsScreen({navigate, goBack}: Props) {
               console.error('❌ Failed to clear chat:', err);
               Alert.alert('Error', 'Could not clear chat history.');
             }
+          },
+        },
+      ],
+    );
+  };
+
+  // Clear all shopping/browser data
+  const handleClearShoppingData = () => {
+    Alert.alert(
+      'Clear Shopping Data?',
+      'This will permanently delete all your browsing history, bookmarks, collections, spending tracker data, and recent searches. This cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: () => {
+            clearAllShoppingData();
+            Alert.alert('Shopping data cleared successfully.');
           },
         },
       ],
@@ -659,6 +678,15 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   Personalize shopping recommendations by tracking browsing
                   patterns
                 </Text>
+                <AppleTouchFeedback
+                  onPress={handleClearShoppingData}
+                  hapticStyle="impactLight"
+                  style={[globalStyles.menuSection1]}>
+                  <Text
+                    style={[globalStyles.menuLabel, {color: colors.error}]}>
+                    Clear Shopping Data
+                  </Text>
+                </AppleTouchFeedback>
               </View>
 
               <View>
