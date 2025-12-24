@@ -698,7 +698,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     {
       icon: 'bookmark',
       value: insights.totalBookmarks,
-      label: 'Saved Items',
+      label: 'Bookmarks',
       gradient: ['#6366f1', '#8b5cf6'],
     },
     {

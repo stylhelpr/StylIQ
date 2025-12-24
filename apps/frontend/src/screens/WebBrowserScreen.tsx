@@ -599,10 +599,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       // Try to extract page text right now via JavaScript injection
       // This provides fresh data at bookmark time
       if (webRef.current) {
+        // Clear previous text to ensure we get fresh content
+        lastPageTextRef.current = '';
+
         const extractScript = `
           (function() {
             try {
-              const text = document.body.innerText.substring(0, 5000);
+              const text = document.body.innerText.substring(0, 10000);
               window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'pageText',
                 content: text,
@@ -614,8 +617,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           true;
         `;
         webRef.current.injectJavaScript(extractScript);
-        // Small delay to let the message come through
-        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Wait for message with timeout - poll until we get text or timeout
+        const startTime = Date.now();
+        while (!lastPageTextRef.current && Date.now() - startTime < 500) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        console.log('[Bookmark] Page text received:', lastPageTextRef.current?.length || 0, 'chars');
       }
 
       // GOLD: Enrich bookmark with gold data

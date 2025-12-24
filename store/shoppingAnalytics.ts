@@ -167,7 +167,7 @@ export const shoppingAnalytics = {
       const wholePart = match[1].replace(/,/g, '');
       const decimalPart = match[2];
       const price = parseFloat(`${wholePart}.${decimalPart}`);
-      if (!isNaN(price) && price >= 1 && price <= 50000) {
+      if (!isNaN(price) && price >= 1 && price <= 500000) {
         priceMatches.push({price, index: match.index, hasDecimal: true});
         console.log(
           '[PRICE] Found decimal price:',
@@ -183,7 +183,7 @@ export const shoppingAnalytics = {
     while ((match = wholeRegex.exec(pageText)) !== null) {
       const numStr = match[1].replace(/,/g, '');
       const price = parseFloat(numStr);
-      if (!isNaN(price) && price >= 5 && price <= 50000) {
+      if (!isNaN(price) && price >= 5 && price <= 500000) {
         // Avoid duplicates (same position as decimal match)
         const isDupe = priceMatches.some(
           p => Math.abs(p.index - match!.index) < 5,
@@ -225,7 +225,7 @@ export const shoppingAnalytics = {
       const decimalPart = match[2] || '00';
       const price = parseFloat(`${wholePart}.${decimalPart}`);
       console.log('[PRICE] Fallback keyword match:', price);
-      if (!isNaN(price) && price >= 1 && price <= 50000) {
+      if (!isNaN(price) && price >= 1 && price <= 500000) {
         console.log('[PRICE] ✅ Found via keyword:', price);
         return price;
       }
