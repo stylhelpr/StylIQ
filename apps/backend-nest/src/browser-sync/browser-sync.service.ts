@@ -8,6 +8,8 @@ import {
   CartEventDto,
   SyncRequestDto,
   SyncResponseDto,
+  TimeToActionDto,
+  ProductInteractionDto,
 } from './dto/sync.dto';
 
 // Default limits
@@ -78,6 +80,7 @@ export class BrowserSyncService {
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
                 source, sizes_viewed, colors_viewed, view_count, last_viewed_at,
+                emotion_at_save, body_measurements_at_time,
                 created_at, updated_at
          FROM browser_bookmarks
          WHERE user_id = $1
@@ -87,7 +90,8 @@ export class BrowserSyncService {
         ),
         this.db.query(
           `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
-                visit_count, visited_at, brand
+                visit_count, visited_at, brand, session_id, is_cart_page,
+                body_measurements_at_time
          FROM browser_history
          WHERE user_id = $1 AND visited_at > now() - INTERVAL '${limits.maxHistoryDays} days'
          ORDER BY visited_at DESC
@@ -148,6 +152,7 @@ export class BrowserSyncService {
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
                 source, sizes_viewed, colors_viewed, view_count, last_viewed_at,
+                emotion_at_save, body_measurements_at_time,
                 created_at, updated_at
          FROM browser_bookmarks
          WHERE user_id = $1 AND updated_at > $2
@@ -156,7 +161,8 @@ export class BrowserSyncService {
         ),
         this.db.query(
           `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
-                visit_count, visited_at, brand
+                visit_count, visited_at, brand, session_id, is_cart_page,
+                body_measurements_at_time
          FROM browser_history
          WHERE user_id = $1 AND visited_at > $2
          ORDER BY visited_at DESC
@@ -244,6 +250,16 @@ export class BrowserSyncService {
       await this.upsertCartHistory(userId, data.cartHistory);
     }
 
+    // GOLD: Insert time-to-action events
+    if (data.timeToActionEvents?.length) {
+      await this.insertTimeToActionEvents(userId, data.timeToActionEvents);
+    }
+
+    // GOLD: Insert product interactions
+    if (data.productInteractions?.length) {
+      await this.insertProductInteractions(userId, data.productInteractions);
+    }
+
     // Return updated state
     return this.getFullSync(userId);
   }
@@ -257,8 +273,9 @@ export class BrowserSyncService {
       await this.db.query(
         `INSERT INTO browser_bookmarks
          (user_id, url, title, favicon_url, price, price_history, brand, category,
-          source, sizes_viewed, colors_viewed, view_count, last_viewed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          source, sizes_viewed, colors_viewed, view_count, last_viewed_at,
+          emotion_at_save, body_measurements_at_time)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          ON CONFLICT (user_id, url)
          DO UPDATE SET
            title = COALESCE(EXCLUDED.title, browser_bookmarks.title),
@@ -272,6 +289,8 @@ export class BrowserSyncService {
            colors_viewed = COALESCE(EXCLUDED.colors_viewed, browser_bookmarks.colors_viewed),
            view_count = COALESCE(EXCLUDED.view_count, browser_bookmarks.view_count),
            last_viewed_at = COALESCE(EXCLUDED.last_viewed_at, browser_bookmarks.last_viewed_at),
+           emotion_at_save = COALESCE(EXCLUDED.emotion_at_save, browser_bookmarks.emotion_at_save),
+           body_measurements_at_time = COALESCE(EXCLUDED.body_measurements_at_time, browser_bookmarks.body_measurements_at_time),
            updated_at = now()`,
         [
           userId,
@@ -287,6 +306,8 @@ export class BrowserSyncService {
           bookmark.colorsViewed || [],
           bookmark.viewCount || 1,
           bookmark.lastViewedAt ? new Date(bookmark.lastViewedAt) : null,
+          bookmark.emotionAtSave || null, // GOLD #5
+          bookmark.bodyMeasurementsAtTime ? JSON.stringify(bookmark.bodyMeasurementsAtTime) : null, // GOLD #8
         ],
       );
     }
@@ -300,8 +321,9 @@ export class BrowserSyncService {
     for (const entry of history) {
       await this.db.query(
         `INSERT INTO browser_history
-         (user_id, url, title, source, dwell_time_seconds, scroll_depth_percent, visit_count, visited_at, brand)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         (user_id, url, title, source, dwell_time_seconds, scroll_depth_percent, visit_count, visited_at, brand,
+          session_id, is_cart_page, body_measurements_at_time)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT DO NOTHING`,
         [
           userId,
@@ -313,6 +335,9 @@ export class BrowserSyncService {
           entry.visitCount || 1,
           entry.visitedAt ? new Date(entry.visitedAt) : new Date(),
           entry.brand || null,
+          entry.sessionId || null, // GOLD #3
+          entry.isCartPage || false, // GOLD #3b
+          entry.bodyMeasurementsAtTime ? JSON.stringify(entry.bodyMeasurementsAtTime) : null, // GOLD #8
         ],
       );
     }
@@ -424,6 +449,8 @@ export class BrowserSyncService {
       lastViewedAt: row.last_viewed_at
         ? new Date(row.last_viewed_at).getTime()
         : undefined,
+      emotionAtSave: row.emotion_at_save, // GOLD #5
+      bodyMeasurementsAtTime: row.body_measurements_at_time, // GOLD #8
       createdAt: new Date(row.created_at).getTime(),
       updatedAt: new Date(row.updated_at).getTime(),
     };
@@ -439,6 +466,10 @@ export class BrowserSyncService {
       scrollDepthPercent: row.scroll_depth_percent,
       visitCount: row.visit_count,
       visitedAt: new Date(row.visited_at).getTime(),
+      brand: row.brand,
+      sessionId: row.session_id, // GOLD #3
+      isCartPage: row.is_cart_page, // GOLD #3b
+      bodyMeasurementsAtTime: row.body_measurements_at_time, // GOLD #8
     };
   }
 
@@ -548,5 +579,54 @@ export class BrowserSyncService {
       createdAt: new Date(row.created_at).getTime(),
       updatedAt: new Date(row.updated_at).getTime(),
     }));
+  }
+
+  // GOLD: Insert time-to-action events
+  private async insertTimeToActionEvents(
+    userId: string,
+    events: TimeToActionDto[],
+  ): Promise<void> {
+    for (const event of events) {
+      await this.db.query(
+        `INSERT INTO browser_time_to_action
+         (user_id, session_id, product_url, action_type, time_to_action_seconds, occurred_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT DO NOTHING`,
+        [
+          userId,
+          event.sessionId || null,
+          event.productUrl,
+          event.actionType,
+          event.seconds,
+          new Date(event.timestamp),
+        ],
+      );
+    }
+  }
+
+  // GOLD: Insert product interactions
+  private async insertProductInteractions(
+    userId: string,
+    interactions: ProductInteractionDto[],
+  ): Promise<void> {
+    for (const interaction of interactions) {
+      await this.db.query(
+        `INSERT INTO browser_product_interactions
+         (user_id, session_id, product_url, interaction_type, metadata, body_measurements_at_time, occurred_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT DO NOTHING`,
+        [
+          userId,
+          interaction.sessionId || null,
+          interaction.productUrl,
+          interaction.interactionType,
+          JSON.stringify(interaction.metadata || {}),
+          interaction.bodyMeasurementsAtTime
+            ? JSON.stringify(interaction.bodyMeasurementsAtTime)
+            : null,
+          new Date(interaction.timestamp),
+        ],
+      );
+    }
   }
 }

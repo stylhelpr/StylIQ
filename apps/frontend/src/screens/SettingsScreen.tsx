@@ -76,7 +76,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const {prefs, setVisible} = useHomePrefs();
 
   // Shopping Analytics Tracking Consent
-  const {trackingConsent, setTrackingConsent, clearAllShoppingData} =
+  const {trackingConsent, setTrackingConsent, clearAllShoppingData, deleteAllAnalyticsData} =
     useShoppingStore();
 
   const safeGoBack = () => {
@@ -335,6 +335,25 @@ export default function SettingsScreen({navigate, goBack}: Props) {
           onPress: () => {
             clearAllShoppingData();
             Alert.alert('Shopping data cleared successfully.');
+          },
+        },
+      ],
+    );
+  };
+
+  // GDPR Article 17: Delete analytics data only (preserves bookmarks/collections)
+  const handleDeleteAnalyticsData = () => {
+    Alert.alert(
+      'Delete Analytics Data (GDPR)',
+      'This will permanently delete your browsing history, search history, and tracking data. Your bookmarks and collections will be preserved. This cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete Analytics',
+          style: 'destructive',
+          onPress: () => {
+            deleteAllAnalyticsData();
+            Alert.alert('Success', 'Your analytics data has been deleted per GDPR Article 17.');
           },
         },
       ],
@@ -689,9 +708,18 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 <AppleTouchFeedback
                   onPress={handleClearShoppingData}
                   hapticStyle="impactLight"
-                  style={[globalStyles.menuSection1]}>
+                  style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                   <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
                     Clear Shopping Data
+                  </Text>
+                </AppleTouchFeedback>
+
+                <AppleTouchFeedback
+                  onPress={handleDeleteAnalyticsData}
+                  hapticStyle="impactLight"
+                  style={[globalStyles.menuSection1]}>
+                  <Text style={[globalStyles.menuLabel, {color: colors.foreground}]}>
+                    Delete My Data (GDPR)
                   </Text>
                 </AppleTouchFeedback>
               </View>

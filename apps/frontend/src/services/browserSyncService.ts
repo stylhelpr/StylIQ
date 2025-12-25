@@ -6,6 +6,7 @@ import {
   BrowsingHistory,
   Collection,
   CartEvent,
+  ProductInteraction,
 } from '../../../../store/shoppingStore';
 
 // Local cart history type (matches store structure)
@@ -31,6 +32,8 @@ type ServerBookmark = {
   colorsViewed?: string[];
   viewCount?: number;
   lastViewedAt?: number;
+  emotionAtSave?: string; // GOLD #5
+  bodyMeasurementsAtTime?: any; // GOLD #8
   createdAt: number;
   updatedAt: number;
 };
@@ -45,6 +48,9 @@ type ServerHistory = {
   visitCount: number;
   visitedAt: number;
   brand?: string;
+  sessionId?: string; // GOLD #3
+  isCartPage?: boolean; // GOLD #3b
+  bodyMeasurementsAtTime?: any; // GOLD #8
 };
 
 type ServerCollection = {
@@ -92,6 +98,25 @@ type SyncResponse = {
   serverTimestamp: number;
 };
 
+// GOLD: Time-to-action event for sync
+type TimeToActionEvent = {
+  sessionId?: string;
+  productUrl: string;
+  actionType: 'bookmark' | 'cart';
+  seconds: number;
+  timestamp: number;
+};
+
+// GOLD: Product interaction for sync
+type ProductInteractionEvent = {
+  sessionId?: string;
+  productUrl: string;
+  interactionType: string;
+  metadata?: Record<string, any>;
+  bodyMeasurementsAtTime?: any;
+  timestamp: number;
+};
+
 type SyncRequest = {
   bookmarks: ShoppingItem[];
   deletedBookmarkUrls: string[];
@@ -99,6 +124,8 @@ type SyncRequest = {
   collections: Collection[];
   deletedCollectionIds: string[];
   cartHistory: LocalCartHistory[];
+  timeToActionEvents?: TimeToActionEvent[];
+  productInteractions?: ProductInteractionEvent[];
 };
 
 // Map server bookmark to local ShoppingItem format
@@ -117,6 +144,7 @@ function mapServerBookmarkToLocal(bookmark: ServerBookmark): ShoppingItem {
     colorsViewed: bookmark.colorsViewed,
     viewCount: bookmark.viewCount,
     lastViewed: bookmark.lastViewedAt,
+    emotionAtSave: bookmark.emotionAtSave, // GOLD #5
     addedAt: bookmark.createdAt,
   };
 }
@@ -132,6 +160,8 @@ function mapServerHistoryToLocal(history: ServerHistory): BrowsingHistory {
     visitCount: history.visitCount,
     visitedAt: history.visitedAt,
     brand: history.brand,
+    sessionId: history.sessionId, // GOLD #3
+    isCartPage: history.isCartPage, // GOLD #3b
   };
 }
 
@@ -298,6 +328,10 @@ class BrowserSyncService {
     // Get cart history from pending changes (may not exist in older store versions)
     const pendingCartHistory = (pendingChanges as any).cartHistory || [];
 
+    // GOLD: Get time-to-action and product interactions for sync
+    const timeToActionLog = store.timeToActionLog || [];
+    const productInteractions = store.productInteractions || [];
+
     // Check if there are any changes to push
     const hasChanges =
       pendingChanges.bookmarks.length > 0 ||
@@ -305,7 +339,9 @@ class BrowserSyncService {
       pendingChanges.history.length > 0 ||
       pendingChanges.collections.length > 0 ||
       pendingChanges.deletedCollectionIds.length > 0 ||
-      pendingCartHistory.length > 0;
+      pendingCartHistory.length > 0 ||
+      timeToActionLog.length > 0 ||
+      productInteractions.length > 0;
 
     if (!hasChanges) {
       return null;
@@ -350,6 +386,25 @@ class BrowserSyncService {
           abandoned: ch.abandoned,
           timeToCheckout: ch.timeToCheckout,
         })),
+        // GOLD: Time-to-action events
+        timeToActionEvents: timeToActionLog.map(e => ({
+          sessionId: store.currentSessionId || undefined,
+          productUrl: e.productUrl,
+          actionType: e.actionType as 'bookmark' | 'cart',
+          seconds: e.seconds,
+          timestamp: e.timestamp,
+        })),
+        // GOLD: Product interactions
+        productInteractions: productInteractions.map(
+          (p: ProductInteraction) => ({
+            sessionId: p.sessionId,
+            productUrl: p.productUrl,
+            interactionType: p.type,
+            metadata: {},
+            bodyMeasurementsAtTime: p.bodyMeasurementsAtTime,
+            timestamp: p.timestamp,
+          }),
+        ),
       };
 
       const response = await fetch(`${this.baseUrl}/browser-sync`, {
@@ -371,6 +426,10 @@ class BrowserSyncService {
       // Apply server response and clear pending changes
       store.applyServerSync(data);
       store.clearPendingChanges();
+
+      // GOLD: Clear synced time-to-action and product interaction buffers
+      store.clearSyncedGoldMetrics();
+
       store.setSyncState(false);
 
       return data;

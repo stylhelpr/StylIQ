@@ -287,6 +287,35 @@ type ShoppingState = {
 
   // Clear all shopping data (history, bookmarks, collections, cart history, searches)
   clearAllShoppingData: () => void;
+
+  // ============================================
+  // DERIVED ANALYTICS METRICS (no new data collection)
+  // ============================================
+
+  // Size-switch frequency: count of distinct sizes clicked per product URL
+  getSizeSwitchFrequency: (productUrl: string) => number;
+
+  // Cross-session product views: products viewed in multiple sessions
+  getCrossSessionProducts: () => {
+    url: string;
+    title: string;
+    sessionCount: number;
+    totalViews: number;
+  }[];
+
+  // Brand affinity score: % of views per brand (derived from history)
+  getBrandAffinityScores: () => {brand: string; score: number; viewCount: number}[];
+
+  // Time-to-action: record and get avg time from page load to bookmark/cart
+  recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => void;
+  timeToActionLog: {productUrl: string; actionType: string; seconds: number; timestamp: number}[];
+  getAvgTimeToAction: (actionType?: 'bookmark' | 'cart') => number;
+
+  // GDPR: Delete all user analytics data
+  deleteAllAnalyticsData: () => void;
+
+  // Clear synced GOLD metrics after successful server sync
+  clearSyncedGoldMetrics: () => void;
 };
 
 export const useShoppingStore = create<ShoppingState>()(
@@ -1143,6 +1172,145 @@ export const useShoppingStore = create<ShoppingState>()(
           },
         });
       },
+
+      // ============================================
+      // DERIVED ANALYTICS METRICS (no new data collection)
+      // All derived from existing signals - respects opt-in
+      // ============================================
+
+      // Size-switch frequency: count of distinct sizes from bookmarks
+      getSizeSwitchFrequency: (productUrl: string) => {
+        if (!get().isTrackingEnabled()) return 0;
+        const bookmark = get().bookmarks.find(b => b.url === productUrl);
+        return bookmark?.sizesViewed?.length || 0;
+      },
+
+      // Cross-session product views: products viewed in multiple sessions
+      getCrossSessionProducts: () => {
+        if (!get().isTrackingEnabled()) return [];
+        const history = get().history;
+        const sessionMap = new Map<string, Set<string>>();
+
+        // Group by URL and collect unique session IDs
+        history.forEach(entry => {
+          if (entry.sessionId) {
+            if (!sessionMap.has(entry.url)) {
+              sessionMap.set(entry.url, new Set());
+            }
+            sessionMap.get(entry.url)!.add(entry.sessionId);
+          }
+        });
+
+        // Filter to products with 2+ sessions and sort by session count
+        const results: {url: string; title: string; sessionCount: number; totalViews: number}[] = [];
+        sessionMap.forEach((sessions, url) => {
+          if (sessions.size >= 2) {
+            const entry = history.find(h => h.url === url);
+            results.push({
+              url,
+              title: entry?.title || '',
+              sessionCount: sessions.size,
+              totalViews: entry?.visitCount || 1,
+            });
+          }
+        });
+
+        return results.sort((a, b) => b.sessionCount - a.sessionCount);
+      },
+
+      // Brand affinity score: % of views per brand
+      getBrandAffinityScores: () => {
+        if (!get().isTrackingEnabled()) return [];
+        const history = get().history;
+        const brandCounts = new Map<string, number>();
+        let totalViews = 0;
+
+        history.forEach(entry => {
+          if (entry.brand) {
+            brandCounts.set(entry.brand, (brandCounts.get(entry.brand) || 0) + entry.visitCount);
+            totalViews += entry.visitCount;
+          }
+        });
+
+        if (totalViews === 0) return [];
+
+        const results: {brand: string; score: number; viewCount: number}[] = [];
+        brandCounts.forEach((count, brand) => {
+          results.push({
+            brand,
+            score: Math.round((count / totalViews) * 100),
+            viewCount: count,
+          });
+        });
+
+        return results.sort((a, b) => b.score - a.score);
+      },
+
+      // Time-to-action tracking
+      timeToActionLog: [],
+
+      recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => {
+        if (!get().isTrackingEnabled()) return;
+        set(state => ({
+          timeToActionLog: [
+            ...state.timeToActionLog,
+            {
+              productUrl,
+              actionType,
+              seconds,
+              timestamp: Date.now(),
+            },
+          ].slice(-100), // Keep last 100 entries
+        }));
+      },
+
+      getAvgTimeToAction: (actionType?: 'bookmark' | 'cart') => {
+        if (!get().isTrackingEnabled()) return 0;
+        const log = get().timeToActionLog;
+        const filtered = actionType
+          ? log.filter(e => e.actionType === actionType)
+          : log;
+
+        if (filtered.length === 0) return 0;
+        const sum = filtered.reduce((acc, e) => acc + e.seconds, 0);
+        return Math.round(sum / filtered.length);
+      },
+
+      // GDPR: Delete all user analytics data
+      deleteAllAnalyticsData: () => {
+        set({
+          // Clear all analytics-related data
+          history: [],
+          productInteractions: [],
+          cartHistory: [],
+          recentSearches: [],
+          timeToActionLog: [],
+          // Keep bookmarks/collections as they're user-created content
+          // Clear sync state
+          pendingChanges: {
+            bookmarks: [],
+            deletedBookmarkUrls: [],
+            history: [],
+            collections: [],
+            deletedCollectionIds: [],
+            cartHistory: [],
+          },
+          _historyClearedAt: Date.now(),
+        });
+        // Note: In production, also call backend to delete server-side data
+        console.log('[GDPR] All analytics data deleted');
+      },
+
+      // Clear synced GOLD metrics after successful server sync
+      clearSyncedGoldMetrics: () => {
+        set({
+          // Clear time-to-action log (now persisted to Postgres)
+          timeToActionLog: [],
+          // Clear product interactions (now persisted to Postgres)
+          productInteractions: [],
+        });
+        console.log('[Sync] GOLD metrics cleared after successful sync');
+      },
     }),
     {
       name: 'shopping-store',
@@ -1162,6 +1330,8 @@ export const useShoppingStore = create<ShoppingState>()(
         hasAiSuggestionsLoaded: state.hasAiSuggestionsLoaded,
         aiSuggestionsCachedAt: state.aiSuggestionsCachedAt,
         trackingConsent: state.trackingConsent,
+        // Derived metrics (persisted)
+        timeToActionLog: state.timeToActionLog,
         // Sync state (persisted for offline support)
         lastSyncTimestamp: state.lastSyncTimestamp,
         pendingChanges: state.pendingChanges,

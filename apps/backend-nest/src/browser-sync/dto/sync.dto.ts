@@ -3,7 +3,6 @@ import {
   IsOptional,
   IsNumber,
   IsArray,
-  IsDateString,
   IsUUID,
   ValidateNested,
   IsBoolean,
@@ -12,6 +11,7 @@ import {
   Max,
   MaxLength,
   ArrayMaxSize,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -93,6 +93,15 @@ export class BookmarkDto {
   lastViewedAt?: number;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  emotionAtSave?: string; // GOLD #5: mood when saved
+
+  @IsOptional()
+  @IsObject()
+  bodyMeasurementsAtTime?: Record<string, any>; // GOLD #8: body measurements when viewing
+
+  @IsOptional()
   @IsNumber()
   createdAt?: number;
 
@@ -145,6 +154,19 @@ export class HistoryEntryDto {
   @IsString()
   @MaxLength(100)
   brand?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sessionId?: string; // GOLD #3: cross-session tracking
+
+  @IsOptional()
+  @IsBoolean()
+  isCartPage?: boolean; // GOLD #3b: cart page flag
+
+  @IsOptional()
+  @IsObject()
+  bodyMeasurementsAtTime?: Record<string, any>; // GOLD #8: body measurements when viewing
 }
 
 // Cart Event DTOs
@@ -306,6 +328,20 @@ export class SyncRequestDto {
   @ArrayMaxSize(10)
   @IsString({ each: true })
   deletedCollectionIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(500)
+  @ValidateNested({ each: true })
+  @Type(() => TimeToActionDto)
+  timeToActionEvents?: TimeToActionDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(500)
+  @ValidateNested({ each: true })
+  @Type(() => ProductInteractionDto)
+  productInteractions?: ProductInteractionDto[];
 }
 
 export class SyncResponseDto {
@@ -327,4 +363,73 @@ export class DeleteBookmarkDto {
   @IsString()
   @MaxLength(2048)
   url: string;
+}
+
+// Time-to-Action DTO (GOLD metric persistence)
+export class TimeToActionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sessionId?: string;
+
+  @IsString()
+  @MaxLength(2048)
+  productUrl: string;
+
+  @IsString()
+  @IsIn(['bookmark', 'cart'])
+  actionType: 'bookmark' | 'cart';
+
+  @IsNumber()
+  @Min(0)
+  seconds: number;
+
+  @IsNumber()
+  timestamp: number;
+}
+
+// Product Interaction DTO (GOLD metric persistence)
+export class ProductInteractionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sessionId?: string;
+
+  @IsString()
+  @MaxLength(2048)
+  productUrl: string;
+
+  @IsString()
+  @IsIn([
+    'view',
+    'add_to_cart',
+    'bookmark',
+    'size_click',
+    'color_click',
+    'image_long_press',
+    'price_check',
+    'scroll',
+    'share',
+  ])
+  interactionType:
+    | 'view'
+    | 'add_to_cart'
+    | 'bookmark'
+    | 'size_click'
+    | 'color_click'
+    | 'image_long_press'
+    | 'price_check'
+    | 'scroll'
+    | 'share';
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
+  bodyMeasurementsAtTime?: Record<string, any>;
+
+  @IsNumber()
+  timestamp: number;
 }

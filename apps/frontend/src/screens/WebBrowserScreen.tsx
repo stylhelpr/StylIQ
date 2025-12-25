@@ -40,6 +40,7 @@ import ImageSaverModule from '../native/ImageSaverModule';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import TrackingConsentModal from '../components/TrackingConsentModal/TrackingConsentModal';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -228,6 +229,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     null,
   );
   const [showImageSaveModal, setShowImageSaveModal] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
   // Drag and drop state for tabs
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -306,31 +308,26 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     }
   }, [currentTabId]);
 
-  // Tracking Consent Prompt - show once when user first opens browser
+  // Tracking Consent Prompt - show styled modal when user first opens browser
   useEffect(() => {
     if (_hasHydrated && trackingConsent === 'pending') {
       // Small delay to let screen render first
       const timer = setTimeout(() => {
-        Alert.alert(
-          'Improve Your Experience',
-          'Allow StylIQ to collect browsing analytics to personalize your shopping recommendations? This includes tracking pages visited, items saved, and shopping patterns.\n\nYou can change this anytime in settings.',
-          [
-            {
-              text: 'No Thanks',
-              style: 'cancel',
-              onPress: () => setTrackingConsent('declined'),
-            },
-            {
-              text: 'Allow',
-              onPress: () => setTrackingConsent('accepted'),
-            },
-          ],
-          {cancelable: false},
-        );
+        setShowConsentModal(true);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [_hasHydrated, trackingConsent, setTrackingConsent]);
+  }, [_hasHydrated, trackingConsent]);
+
+  const handleConsentAccept = useCallback(() => {
+    setTrackingConsent('accepted');
+    setShowConsentModal(false);
+  }, [setTrackingConsent]);
+
+  const handleConsentDecline = useCallback(() => {
+    setTrackingConsent('declined');
+    setShowConsentModal(false);
+  }, [setTrackingConsent]);
 
   // GOLD #1, #3: Start session on first load (don't end it on unmount)
   useEffect(() => {
@@ -710,6 +707,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       useShoppingStore
         .getState()
         .recordProductInteraction(currentTab.url, 'bookmark');
+
+      // DERIVED METRIC: Record time-to-action for bookmark
+      useShoppingStore
+        .getState()
+        .recordTimeToAction(currentTab.url, 'bookmark', dwell);
 
       // GOLD #1, #9: Update history with dwell time and scroll depth
       useShoppingStore.getState().updateHistoryMetadata(currentTab.url, {
@@ -1267,6 +1269,14 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             itemCount: data.itemCount,
             cartValue: data.estimatedTotal,
           });
+
+          // DERIVED METRIC: Record time-to-action for cart
+          const cartDwell = Math.round(
+            (Date.now() - pageStartTimeRef.current) / 1000,
+          );
+          useShoppingStore
+            .getState()
+            .recordTimeToAction(data.cartUrl, 'cart', cartDwell);
         } else if (data.type === 'purchaseComplete') {
           // GOLD: Purchase completion detected on order confirmation page
           console.log('[MSG] Purchase complete detected:', {
@@ -3538,6 +3548,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       <AutofillSettings
         visible={showAutofillSettings}
         onClose={() => setShowAutofillSettings(false)}
+      />
+
+      {/* Tracking Consent Modal */}
+      <TrackingConsentModal
+        visible={showConsentModal}
+        onAccept={handleConsentAccept}
+        onDecline={handleConsentDecline}
       />
     </View>
   );
