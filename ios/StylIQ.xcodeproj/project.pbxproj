@@ -41,8 +41,6 @@
 		C2D0CF702ED798BE0033133C /* EmotionModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D0CF6D2ED798BE0033133C /* EmotionModule.swift */; };
 		C2DCB8E42EDA11470048328C /* HandTrackingModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2DCB8E32EDA11470048328C /* HandTrackingModule.swift */; };
 		C2DCB8E52EDA11470048328C /* HandTrackingModule.m in Sources */ = {isa = PBXBuildFile; fileRef = C2DCB8E22EDA11470048328C /* HandTrackingModule.m */; };
-		C2F459392EFCDC69005D3194 /* KeychainModuleBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = C2F459372EFCDC69005D3194 /* KeychainModuleBridge.m */; };
-		C2F4593A2EFCDC69005D3194 /* KeychainModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F459362EFCDC69005D3194 /* KeychainModule.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -120,8 +118,6 @@
 		C2D0CF6E2ED798BE0033133C /* EmotionModuleBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EmotionModuleBridge.m; sourceTree = "<group>"; };
 		C2DCB8E22EDA11470048328C /* HandTrackingModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HandTrackingModule.m; sourceTree = "<group>"; };
 		C2DCB8E32EDA11470048328C /* HandTrackingModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandTrackingModule.swift; sourceTree = "<group>"; };
-		C2F459362EFCDC69005D3194 /* KeychainModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainModule.swift; sourceTree = "<group>"; };
-		C2F459372EFCDC69005D3194 /* KeychainModuleBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KeychainModuleBridge.m; sourceTree = "<group>"; };
 		DD50ECA303AFE13BDE439D58 /* Pods-StylIQ.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.release.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.release.xcconfig"; sourceTree = "<group>"; };
 		E4C7EBD29344171E2BC84D57 /* Pods-StylIQ.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-StylIQ.debug.xcconfig"; path = "Target Support Files/Pods-StylIQ/Pods-StylIQ.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -253,7 +249,6 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				C2F459382EFCDC69005D3194 /* KeychainModule */,
 				C2C9A6542EFA5F2600542433 /* ImageSaverModule.swift */,
 				C2C9A6552EFA5F2600542433 /* ImageSaverModuleBridge.m */,
 				C2DCB8E22EDA11470048328C /* HandTrackingModule.m */,
@@ -356,16 +351,6 @@
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 			);
 			name = "Recovered References";
-			sourceTree = "<group>";
-		};
-		C2F459382EFCDC69005D3194 /* KeychainModule */ = {
-			isa = PBXGroup;
-			children = (
-				C2F459362EFCDC69005D3194 /* KeychainModule.swift */,
-				C2F459372EFCDC69005D3194 /* KeychainModuleBridge.m */,
-			);
-			name = KeychainModule;
-			path = StylIQ/KeychainModule;
 			sourceTree = "<group>";
 		};
 		C4DE665754E206B15B3A6298 /* Resources */ = {
@@ -637,8 +622,6 @@
 			files = (
 				C23D82982ECC017800AEB5BC /* MeasurementModuleBridge.m in Sources */,
 				C23D82992ECC017800AEB5BC /* MeasurementModule.swift in Sources */,
-				C2F459392EFCDC69005D3194 /* KeychainModuleBridge.m in Sources */,
-				C2F4593A2EFCDC69005D3194 /* KeychainModule.swift in Sources */,
 				C23D829A2ECC017800AEB5BC /* MeasurementMath.swift in Sources */,
 				C23D829B2ECC017800AEB5BC /* VisionBodyPose.swift in Sources */,
 				C2C53F932ED91F2800108BF6 /* HeadPoseModule.swift in Sources */,
@@ -797,7 +780,7 @@
 					"$(SDKROOT)/System/Library/Frameworks",
 				);
 				HEADER_SEARCH_PATHS = "$(inherited)";
-				INFOPLIST_FILE = StylIQ/Info.plist;
+				INFOPLIST_FILE = StylIQ/Info-Release.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

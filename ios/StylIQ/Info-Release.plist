@@ -74,20 +74,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<!-- DEBUG ONLY: Local dev server exception - use Info-Release.plist for production -->
 	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>192.168.1.152</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-		</dict>
-	</dict>
+	<dict/><!-- ATS fully enabled - no exceptions in production -->
 	<key>NSMotionUsageDescription</key>
 <string>Motion data is required for AR body tracking.</string>
 

@@ -33,12 +33,11 @@ import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
 import AutofillSettings from '../components/BrowserSettings/AutofillSettings';
 import {fontScale, moderateScale} from '../utils/scale';
 import {
-  generatePasswordAutofillScript,
-  getDomainFromUrl,
+  generateAddressAutofillScript,
+  generateCardAutofillScript,
 } from '../utils/autofill';
 // 🔥 VOICE ADD/
 import {useVoiceControl} from '../hooks/useVoiceControl';
-import {useSecurePasswords} from '../hooks/useSecurePasswords';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {PermissionsAndroid, Platform} from 'react-native';
 import ImageSaverModule from '../native/ImageSaverModule';
@@ -115,17 +114,8 @@ export default function WebBrowserScreen({navigate, route}: Props) {
     setTrackingConsent,
   } = useShoppingStore();
 
-  // Secure password management via iOS Keychain
-  const {getPasswordForDomain, addPassword: savePasswordToKeychain} =
-    useSecurePasswords();
-
-  // Password save prompt state
-  const [showPasswordSavePrompt, setShowPasswordSavePrompt] = useState(false);
-  const [pendingPasswordData, setPendingPasswordData] = useState<{
-    domain: string;
-    username: string;
-    password: string;
-  } | null>(null);
+  // iOS Password AutoFill - passwords are managed by iOS/iCloud Keychain
+  // No app-level password storage needed - iOS handles everything securely
 
   // 🔥 VOICE ADD
   async function prepareAudio() {
@@ -372,42 +362,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     }
   }, [userId, hasAiSuggestionsLoaded]);
 
-  // Auto-fill: Inject saved password on page load using secure Keychain storage
-  // Store the injection function so it can be called from handleWebViewLoadEnd
-  const injectAutofillRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    if (!currentTab?.url) {
-      injectAutofillRef.current = null;
-      return;
-    }
-
-    const domain = getDomainFromUrl(currentTab.url);
-    if (!domain) {
-      injectAutofillRef.current = null;
-      return;
-    }
-
-    // Create injection function
-    const injectSavedPassword = async () => {
-      try {
-        const savedPassword = await getPasswordForDomain(domain);
-        if (savedPassword && webRef.current) {
-          console.log('[Autofill] Injecting password for domain:', domain);
-          const script = generatePasswordAutofillScript(savedPassword);
-          webRef.current.injectJavaScript(script);
-        }
-      } catch (err) {
-        console.log('Failed to get password for autofill:', err);
-      }
-    };
-
-    // Store for later use
-    injectAutofillRef.current = injectSavedPassword;
-
-    // Also try immediately (might work for some navigations)
-    injectSavedPassword();
-  }, [currentTab?.url, getPasswordForDomain]);
+  // iOS Password AutoFill handles password injection automatically via iCloud Keychain
+  // No JavaScript injection needed - iOS fills passwords directly into WebView forms
 
   // GOLD #1, #9: Track dwell time and scroll depth when page loads
   useEffect(() => {
@@ -849,37 +805,38 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     setShowBookmarksModal(false);
   };
 
-  // Handle saving password to Keychain
-  const handleSavePassword = async () => {
-    if (!pendingPasswordData) return;
-
-    triggerHaptic('impactLight');
-    try {
-      await savePasswordToKeychain(
-        pendingPasswordData.domain,
-        pendingPasswordData.username,
-        pendingPasswordData.password,
-      );
-      console.log('[Password] Saved to Keychain:', pendingPasswordData.domain);
-    } catch (err) {
-      console.error('[Password] Failed to save:', err);
-      Alert.alert('Error', 'Failed to save password securely');
-    } finally {
-      setShowPasswordSavePrompt(false);
-      setPendingPasswordData(null);
-    }
-  };
-
-  // Handle dismissing password save prompt
-  const handleDismissPasswordPrompt = () => {
-    triggerHaptic('impactLight');
-    setShowPasswordSavePrompt(false);
-    setPendingPasswordData(null);
-  };
+  // iOS Password AutoFill handles password saving automatically via iCloud Keychain
+  // When user submits a login form, iOS prompts to save password to iCloud Keychain
+  // No app-level password capture needed
 
   // Extract and cache page text when page loads, and inject size/color click listeners
   const handleWebViewLoadEnd = useCallback(() => {
     if (!webRef.current) return;
+
+    // Security: Only inject scripts on HTTPS pages
+    const currentUrl = currentTab?.url?.toLowerCase() || '';
+    if (!currentUrl.startsWith('https://')) {
+      console.log('[SECURITY] Skipping script injection on non-HTTPS page');
+      return;
+    }
+
+    // Security: Skip injection on login/auth pages to avoid interference
+    const authPatterns = [
+      '/login',
+      '/signin',
+      '/sign-in',
+      '/auth',
+      '/authenticate',
+      '/password',
+      '/account/login',
+      '/oauth',
+      '/sso',
+    ];
+    const isAuthPage = authPatterns.some(pattern => currentUrl.includes(pattern));
+    if (isAuthPage) {
+      console.log('[SECURITY] Skipping script injection on auth page');
+      return;
+    }
 
     // Reset size/color tracking for new page
     sizesClickedRef.current = [];
@@ -1200,160 +1157,51 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       true;
     `;
 
-    // Password form submission detection script
-    // Handles multi-step logins (Amazon, Google, etc.) and single-page logins
-    const passwordFormDetectionScript = `
-      (function() {
-        if (window.__styliqPasswordFormDetected) return;
-        window.__styliqPasswordFormDetected = true;
-
-        // Store username from step 1 for multi-step logins
-        if (!window.__styliqCapturedUsername) {
-          window.__styliqCapturedUsername = localStorage.getItem('__styliqLastUsername') || '';
-        }
-
-        function sendPasswordData(username, password) {
-          if (username && password && password.length >= 4) {
-            const domain = window.location.hostname.replace('www.', '');
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'passwordFormSubmit',
-              domain: domain,
-              username: username,
-              password: password
-            }));
-          }
-        }
-
-        function findUsernameOnPage() {
-          // Look for visible email/username fields anywhere on page
-          const selectors = [
-            'input[type="email"]',
-            'input[name*="email"]',
-            'input[name*="user"]',
-            'input[id*="email"]',
-            'input[id*="user"]',
-            'input[autocomplete="username"]',
-            'input[autocomplete="email"]'
-          ];
-          for (const sel of selectors) {
-            const field = document.querySelector(sel);
-            if (field && field.value && field.value.includes('@')) {
-              return field.value;
-            }
-            if (field && field.value && field.value.length > 3) {
-              return field.value;
-            }
-          }
-          return '';
-        }
-
-        function setupPasswordFormListeners() {
-          // Track username fields for multi-step login
-          const usernameFields = document.querySelectorAll(
-            'input[type="email"], input[name*="email"], input[name*="user"], ' +
-            'input[id*="email"], input[id*="user"], input[autocomplete="username"]'
-          );
-          usernameFields.forEach(function(field) {
-            if (field.__styliqTracked) return;
-            field.__styliqTracked = true;
-            field.addEventListener('blur', function() {
-              if (field.value && field.value.length > 3) {
-                window.__styliqCapturedUsername = field.value;
-                try { localStorage.setItem('__styliqLastUsername', field.value); } catch(e) {}
-              }
-            });
-          });
-
-          // Track password fields
-          const passwordFields = document.querySelectorAll('input[type="password"]');
-          passwordFields.forEach(function(pwdField) {
-            if (pwdField.__styliqPasswordTracked) return;
-            pwdField.__styliqPasswordTracked = true;
-
-            // Find the form or closest container
-            const form = pwdField.closest('form');
-
-            // Look for username in same form first
-            let usernameField = null;
-            if (form) {
-              usernameField = form.querySelector(
-                'input[type="email"], input[type="text"][name*="user"], input[type="text"][name*="email"], ' +
-                'input[id*="user"], input[id*="email"]'
-              );
-            }
-
-            function captureCredentials() {
-              const password = pwdField.value;
-              let username = usernameField ? usernameField.value : '';
-
-              // Fall back to stored username from step 1
-              if (!username) {
-                username = window.__styliqCapturedUsername || findUsernameOnPage();
-              }
-
-              sendPasswordData(username, password);
-            }
-
-            // Listen for form submit
-            if (form) {
-              form.addEventListener('submit', captureCredentials);
-            }
-
-            // Also listen for Enter key on password field
-            pwdField.addEventListener('keydown', function(e) {
-              if (e.key === 'Enter') {
-                setTimeout(captureCredentials, 100);
-              }
-            });
-
-            // Listen for clicks on submit buttons near the password field
-            const container = form || pwdField.parentElement?.parentElement?.parentElement;
-            if (container) {
-              const buttons = container.querySelectorAll('button, input[type="submit"], [role="button"]');
-              buttons.forEach(function(btn) {
-                if (btn.__styliqBtnTracked) return;
-                btn.__styliqBtnTracked = true;
-                btn.addEventListener('click', function() {
-                  setTimeout(captureCredentials, 100);
-                });
-              });
-            }
-          });
-        }
-
-        // Run immediately and after delays
-        setupPasswordFormListeners();
-        setTimeout(setupPasswordFormListeners, 500);
-        setTimeout(setupPasswordFormListeners, 1500);
-        setTimeout(setupPasswordFormListeners, 3000);
-
-        // Observe DOM changes
-        const observer = new MutationObserver(function() {
-          setupPasswordFormListeners();
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-      })();
-      true;
-    `;
+    // iOS Password AutoFill handles password detection and saving automatically
+    // No JavaScript injection needed - iOS manages passwords via iCloud Keychain
 
     webRef.current.injectJavaScript(extractPageTextScript);
     webRef.current.injectJavaScript(sizeColorClickScript);
     webRef.current.injectJavaScript(cartDetectionScript);
     webRef.current.injectJavaScript(purchaseDetectionScript);
     webRef.current.injectJavaScript(imageLongPressScript);
-    webRef.current.injectJavaScript(passwordFormDetectionScript);
+  }, [currentTab?.url]);
 
-    // Inject autofill after page loads
-    if (injectAutofillRef.current) {
-      injectAutofillRef.current();
-    }
-  }, []);
+  // Allowed message types from WebView (security allowlist)
+  const ALLOWED_MESSAGE_TYPES = [
+    'pageText',
+    'sizeClick',
+    'colorClick',
+    'cartDetected',
+    'purchaseComplete',
+    'imageLongPress',
+  ] as const;
+  const MAX_MESSAGE_SIZE = 200 * 1024; // 200KB limit
 
   // Handle messages from WebView
   const handleWebViewMessage = useCallback(
     (event: any) => {
       try {
-        const data = JSON.parse(event.nativeEvent.data);
+        // Security: Payload size limit
+        const rawData = event.nativeEvent.data;
+        if (typeof rawData !== 'string' || rawData.length > MAX_MESSAGE_SIZE) {
+          console.log('[SECURITY] Blocked oversized message:', rawData?.length);
+          return;
+        }
+
+        const data = JSON.parse(rawData);
+
+        // Security: Type allowlist check
+        if (
+          !data.type ||
+          !ALLOWED_MESSAGE_TYPES.includes(
+            data.type as (typeof ALLOWED_MESSAGE_TYPES)[number],
+          )
+        ) {
+          console.log('[SECURITY] Blocked unknown message type:', data.type);
+          return;
+        }
+
         if (data.type === 'pageText') {
           lastPageTextRef.current = data.content || '';
           console.log(
@@ -1449,41 +1297,14 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           setLongPressedImageUrl(data.imageUrl);
           setShowImageSaveModal(true);
           triggerHaptic('impactMedium');
-        } else if (data.type === 'passwordFormSubmit') {
-          // Handle password form submission - prompt to save
-          console.log(
-            '[MSG] Password form submitted:',
-            data.domain,
-            data.username,
-          );
-
-          // Check if we already have this password saved
-          getPasswordForDomain(data.domain).then(existingPassword => {
-            if (
-              existingPassword &&
-              existingPassword.username === data.username &&
-              existingPassword.password === data.password
-            ) {
-              // Already saved with same credentials, skip prompt
-              console.log('[MSG] Password already saved, skipping prompt');
-              return;
-            }
-
-            // Show save prompt
-            setPendingPasswordData({
-              domain: data.domain,
-              username: data.username,
-              password: data.password,
-            });
-            setShowPasswordSavePrompt(true);
-            triggerHaptic('impactLight');
-          });
         }
+        // iOS Password AutoFill handles password saving automatically via iCloud Keychain
+        // No app-level password handling needed
       } catch (e) {
         console.log('[MSG] Error parsing message:', e);
       }
     },
-    [getPasswordForDomain],
+    [],
   );
 
   // Track last scroll Y for nav bar hide/show
@@ -2530,9 +2351,23 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             ref={webRef}
             source={{uri: currentTab?.url || ''}}
             style={{flex: 1}}
-            originWhitelist={['*']}
+            originWhitelist={['https://*']}
             javaScriptEnabled
             domStorageEnabled
+            onShouldStartLoadWithRequest={request => {
+              // Security: Only allow HTTPS URLs
+              const url = request.url.toLowerCase();
+              if (
+                url.startsWith('https://') ||
+                url.startsWith('about:') ||
+                url === 'about:blank'
+              ) {
+                return true;
+              }
+              // Block http, file, data, blob, javascript schemes
+              console.log('[SECURITY] Blocked non-HTTPS URL:', url);
+              return false;
+            }}
             contentInset={{
               bottom: insets.bottom + 90,
             }}
@@ -3185,143 +3020,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         </TouchableOpacity>
       </Modal>
 
-      {/* Password Save Prompt Modal */}
-      <Modal
-        visible={showPasswordSavePrompt}
-        transparent
-        animationType="fade"
-        onRequestClose={handleDismissPasswordPrompt}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 20,
-          }}>
-          <View
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: 16,
-              padding: 20,
-              width: '100%',
-              maxWidth: 340,
-              shadowColor: '#000',
-              shadowOffset: {width: 0, height: 4},
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 8,
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: 16,
-              }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.colors.primary + '20',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginRight: 12,
-                }}>
-                <MaterialIcons
-                  name="lock"
-                  size={22}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <View style={{flex: 1}}>
-                <Text
-                  style={{
-                    fontSize: 17,
-                    fontWeight: '600',
-                    color: theme.colors.foreground,
-                  }}>
-                  Save Password?
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: theme.colors.foreground3,
-                    marginTop: 2,
-                  }}>
-                  Securely stored in iOS Keychain
-                </Text>
-              </View>
-            </View>
-
-            {pendingPasswordData && (
-              <View
-                style={{
-                  backgroundColor: theme.colors.background,
-                  borderRadius: 10,
-                  padding: 12,
-                  marginBottom: 16,
-                }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: theme.colors.foreground3,
-                    marginBottom: 4,
-                  }}>
-                  {pendingPasswordData.domain}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 15,
-                    color: theme.colors.foreground,
-                    fontWeight: '500',
-                  }}>
-                  {pendingPasswordData.username}
-                </Text>
-              </View>
-            )}
-
-            <View style={{flexDirection: 'row', gap: 12}}>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 10,
-                  backgroundColor: theme.colors.background,
-                  alignItems: 'center',
-                }}
-                onPress={handleDismissPasswordPrompt}>
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: '600',
-                    color: theme.colors.foreground,
-                  }}>
-                  Not Now
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 10,
-                  backgroundColor: theme.colors.primary,
-                  alignItems: 'center',
-                }}
-                onPress={handleSavePassword}>
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: '600',
-                    color: theme.colors.background,
-                  }}>
-                  Save
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* iOS Password AutoFill - passwords are managed by iOS/iCloud Keychain automatically */}
+      {/* No custom password save modal needed - iOS handles password saving via system prompts */}
 
       {/* Save Menu Modal */}
       <Modal
