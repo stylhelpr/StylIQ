@@ -263,8 +263,6 @@ export function useFollowUser() {
 // ==================== SAVES ====================
 
 export function useSavePost() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({
       postId,
@@ -281,11 +279,9 @@ export function useSavePost() {
         await apiClient.post(`${BASE}/posts/${postId}/save`, {userId});
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['community-posts']});
-      queryClient.invalidateQueries({queryKey: ['community-search']});
-      queryClient.invalidateQueries({queryKey: ['community-saved']});
-    },
+    // Note: No query invalidation here - local state (userSavedPosts Map)
+    // is the source of truth for UI. This prevents modal from closing
+    // due to query refetches.
   });
 }
 

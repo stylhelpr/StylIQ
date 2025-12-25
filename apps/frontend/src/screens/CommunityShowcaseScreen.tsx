@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   Share,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
@@ -1368,14 +1369,29 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     (post: CommunityPost) => {
       if (!userId || post.user_id !== userId) return;
       h('impactMedium');
-      deletePostMutation.mutate(
-        {postId: post.id, userId},
-        {
-          onSuccess: () => {
-            setActionsModalVisible(false);
-            refetch();
+      Alert.alert(
+        'Delete Post',
+        'Are you sure you want to delete this post? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
           },
-        },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              deletePostMutation.mutate(
+                {postId: post.id, userId},
+                {
+                  onSuccess: () => {
+                    refetch();
+                  },
+                },
+              );
+            },
+          },
+        ],
       );
     },
     [deletePostMutation, userId, refetch],
@@ -2693,7 +2709,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     hapticStyle="selection"
                     onPress={() => openActionsModal(post)}
                     style={styles.moreButton}>
-                    <MaterialIcons name="more-horiz" size={18} color="#fff" />
+                    <MaterialIcons name="more-horiz" size={22} color="#fff" />
                   </AppleTouchFeedback>
                 </View>
               </View>
@@ -3387,7 +3403,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       style={styles.actionItem}
                       onPress={() => {
                         toggleSavePost(activeActionsPost);
-                        setActionsModalVisible(false);
                       }}>
                       <View style={styles.actionIcon}>
                         <MaterialIcons
@@ -3476,7 +3491,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       style={styles.actionItem}
                       onPress={() => {
                         handleMuteUser(activeActionsPost);
-                        setActionsModalVisible(false);
                       }}>
                       <View style={styles.actionIcon}>
                         <MaterialIcons
@@ -3508,7 +3522,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       style={styles.actionItem}
                       onPress={() => {
                         handleBlockUser(activeActionsPost);
-                        setActionsModalVisible(false);
                       }}>
                       <View
                         style={[
@@ -3942,7 +3955,19 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     </View>
                     <View style={styles.postDetailRightActions}>
                       <Pressable
-                        onPress={() => toggleSavePost(detailPost)}
+                        onPress={() => {
+                          // Toggle save without affecting modal visibility
+                          h('impactLight');
+                          const currentlySaved = isPostSaved(detailPost);
+                          setUserSavedPosts(prev => {
+                            const next = new Map(prev);
+                            next.set(detailPost.id, !currentlySaved);
+                            return next;
+                          });
+                          if (userId) {
+                            saveMutation.mutate({postId: detailPost.id, userId, isSaved: currentlySaved});
+                          }
+                        }}
                         style={styles.postDetailActionButton}>
                         <MaterialIcons
                           name={
