@@ -55,6 +55,7 @@ import type {CommunityPost, PostComment, PostFilter} from '../types/community';
 import {useUnreadCount} from '../hooks/useMessaging';
 import Voice from '@react-native-voice/voice';
 import {VoiceBus} from '../utils/VoiceUtils/VoiceBus';
+import {useShoppingStore} from '../../../../store/shoppingStore';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 // const CARD_WIDTH = (SCREEN_WIDTH - 51) / 2;
@@ -976,6 +977,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const trackViewMutation = useTrackView();
   const likeCommentMutation = useLikeComment();
 
+  // Tracking consent from shopping store
+  const trackingConsent = useShoppingStore(state => state.trackingConsent);
+
   // Combine loading and refetching states
   const isLoading = activeFilter === 'saved' ? isLoadingSaved : isLoadingPosts;
   const isRefetching =
@@ -1031,8 +1035,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       h('impactLight');
       setDetailPost(post);
       setPostDetailModalVisible(true);
-      // Track view
-      trackViewMutation.mutate({postId: post.id, userId: userId ?? undefined});
+      // Track view only if user consented to tracking
+      if (trackingConsent === 'accepted') {
+        trackViewMutation.mutate({postId: post.id});
+      }
       // Animate in
       Animated.parallel([
         Animated.spring(postDetailSlideAnim, {
@@ -1050,7 +1056,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         }),
       ]).start();
     },
-    [postDetailSlideAnim, postDetailOpacityAnim, trackViewMutation, userId],
+    [postDetailSlideAnim, postDetailOpacityAnim, trackViewMutation, trackingConsent],
   );
 
   // Close post detail modal with animation
@@ -1148,7 +1154,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 
       // API call (fire and forget - local state is source of truth for UI)
       if (userId) {
-        likeMutation.mutate({postId: post.id, userId, isLiked: currentlyLiked});
+        likeMutation.mutate({postId: post.id, isLiked: currentlyLiked});
       }
     },
     [isPostLiked, likeMutation, userId],
@@ -1215,8 +1221,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     h('selection');
     setActiveActionsPost(post);
     setActionsModalVisible(true);
-    // Track view when user opens post details
-    trackViewMutation.mutate({postId: post.id, userId: userId ?? undefined});
+    // Track view when user opens post details (only if consented)
+    if (trackingConsent === 'accepted') {
+      trackViewMutation.mutate({postId: post.id});
+    }
   };
 
   // Add comment via API
@@ -1302,7 +1310,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 
       // API call (fire and forget - local state is source of truth for UI)
       if (userId) {
-        saveMutation.mutate({postId: post.id, userId, isSaved: currentlySaved});
+        saveMutation.mutate({postId: post.id, isSaved: currentlySaved});
       }
     },
     [isPostSaved, saveMutation, userId],
@@ -1568,9 +1576,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     h('selection');
     try {
       const imageUrl = post.image_url || post.top_image || '';
+      // Only allow https URLs to prevent javascript:/data:/etc injection
+      const safeUrl = imageUrl.toLowerCase().startsWith('https://') ? imageUrl : undefined;
       await Share.share({
         message: `Check out this outfit on StylIQ! ${post.description || ''}`,
-        url: imageUrl,
+        url: safeUrl,
       });
     } catch (error) {
       console.error('Error sharing:', error);

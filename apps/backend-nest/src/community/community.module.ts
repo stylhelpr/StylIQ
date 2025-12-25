@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { CommunityController } from './community.controller';
+import { CommunityPublicController } from './community.public.controller';
+import { CommunityPrivateController } from './community.private.controller';
 import { CommunityService } from './community.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { VertexModule } from '../vertex/vertex.module';
 
 @Module({
   imports: [NotificationsModule, VertexModule],
-  controllers: [CommunityController],
+  controllers: [CommunityPublicController, CommunityPrivateController],
   providers: [CommunityService],
 })
 export class CommunityModule {}

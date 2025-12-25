@@ -29,6 +29,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useUUID} from '../context/UUIDContext'; // 👈 to get userId
 import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
 import {useShoppingStore} from '../../../../store/shoppingStore';
+import {useDeleteUserData} from '../hooks/useCommunityApi';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useWindowDimensions} from 'react-native';
 import {fontScale, moderateScale} from '../utils/scale';
@@ -78,6 +79,9 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   // Shopping Analytics Tracking Consent
   const {trackingConsent, setTrackingConsent, deleteAllAnalyticsData} =
     useShoppingStore();
+
+  // GDPR server-side deletion mutation
+  const deleteUserDataMutation = useDeleteUserData();
 
   const safeGoBack = () => {
     if (global.goingBack) {
@@ -322,20 +326,34 @@ export default function SettingsScreen({navigate, goBack}: Props) {
     );
   };
 
-  // GDPR/CCPA: Delete analytics and tracking data ONLY (not account, identity, or user content)
-  const handleGDPRDeleteAnalyticsData = () => {
+  // LOCAL ONLY: Clear shopping analytics (non-destructive)
+  const handleClearShoppingAnalytics = () => {
+    deleteAllAnalyticsData();
+    Alert.alert('Done', 'Shopping analytics have been cleared from this device.');
+  };
+
+  // SERVER: Delete community activity (destructive, requires confirmation)
+  const handleDeleteCommunityActivity = () => {
     Alert.alert(
-      'Delete Tracking Data',
-      'This will delete your shopping analytics, browsing history, search history, and personalization data. Your account, saved items, and preferences are not affected.',
+      'Delete Community Activity',
+      'This will permanently delete your posts, comments, likes, follows, and view history from our servers. This action cannot be undone.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Delete Tracking Data',
+          text: 'Delete Forever',
           style: 'destructive',
-          onPress: () => {
-            // Delete analytics/tracking data only
-            deleteAllAnalyticsData();
-            Alert.alert('Done', 'Your tracking and analytics data has been deleted.');
+          onPress: async () => {
+            if (userId) {
+              try {
+                await deleteUserDataMutation.mutateAsync({userId});
+                Alert.alert('Done', 'Your community activity has been deleted.');
+              } catch (error) {
+                console.error('Failed to delete community data:', error);
+                Alert.alert('Error', 'Failed to delete community data. Please try again.');
+              }
+            } else {
+              Alert.alert('Error', 'You must be logged in to delete community data.');
+            }
           },
         },
       ],
@@ -688,13 +706,47 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 </Text>
 
                 <AppleTouchFeedback
-                  onPress={handleGDPRDeleteAnalyticsData}
+                  onPress={handleClearShoppingAnalytics}
                   hapticStyle="impactLight"
                   style={[globalStyles.menuSection1]}>
-                  <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
-                    Delete Tracking Data
+                  <Text style={[globalStyles.menuLabel, {color: colors.foreground}]}>
+                    Clear Shopping Analytics
                   </Text>
                 </AppleTouchFeedback>
+              </View>
+
+              <View style={{marginTop: 24}}>
+                <Text
+                  style={[
+                    globalStyles.sectionTitle2,
+                    {color: colors.foreground},
+                  ]}>
+                  Community Data
+                </Text>
+                <View
+                  style={[
+                    globalStyles.menuContainer1,
+                    {borderWidth: tokens.borderWidth.md},
+                  ]}>
+                  <AppleTouchFeedback
+                    onPress={handleDeleteCommunityActivity}
+                    hapticStyle="impactMedium"
+                    style={[globalStyles.menuSection1]}>
+                    <View>
+                      <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
+                        Delete Community Activity
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.foreground3,
+                          marginTop: 4,
+                        }}>
+                        Deletes your posts, comments, likes, follows, and view history. This cannot be undone.
+                      </Text>
+                    </View>
+                  </AppleTouchFeedback>
+                </View>
               </View>
 
               <View>

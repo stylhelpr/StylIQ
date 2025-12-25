@@ -17,7 +17,6 @@ export function useCreatePost() {
 
   return useMutation({
     mutationFn: async (data: {
-      userId: string;
       imageUrl?: string;
       topImage?: string;
       bottomImage?: string;
@@ -37,20 +36,20 @@ export function useCreatePost() {
 }
 
 export function useCommunityPosts(
-  userId?: string,
+  currentUserId?: string,
   filter: PostFilter = 'all',
   limit: number = 20,
   offset: number = 0,
 ) {
   return useQuery<CommunityPost[], Error>({
-    queryKey: ['community-posts', filter, userId, limit, offset],
+    queryKey: ['community-posts', filter, currentUserId, limit, offset],
     queryFn: async () => {
       const params = new URLSearchParams({
         filter,
         limit: String(limit),
         offset: String(offset),
       });
-      if (userId) params.set('userId', userId);
+      if (currentUserId) params.set('currentUserId', currentUserId);
       const res = await apiClient.get(`${BASE}/posts?${params.toString()}`);
       return res.data;
     },
@@ -60,14 +59,14 @@ export function useCommunityPosts(
 
 export function useSearchPosts(
   query: string,
-  userId?: string,
+  currentUserId?: string,
   limit: number = 20,
 ) {
   return useQuery<CommunityPost[], Error>({
-    queryKey: ['community-search', query, userId],
+    queryKey: ['community-search', query, currentUserId],
     queryFn: async () => {
       const params = new URLSearchParams({q: query, limit: String(limit)});
-      if (userId) params.set('userId', userId);
+      if (currentUserId) params.set('currentUserId', currentUserId);
       const res = await apiClient.get(
         `${BASE}/posts/search?${params.toString()}`,
       );
@@ -78,27 +77,25 @@ export function useSearchPosts(
   });
 }
 
-export function useSavedPosts(userId?: string, limit: number = 20, offset: number = 0) {
+export function useSavedPosts(limit: number = 20, offset: number = 0) {
   return useQuery<CommunityPost[], Error>({
-    queryKey: ['community-saved', userId, limit, offset],
+    queryKey: ['community-saved', limit, offset],
     queryFn: async () => {
       const params = new URLSearchParams({
         limit: String(limit),
         offset: String(offset),
       });
-      if (userId) params.set('userId', userId);
       const res = await apiClient.get(`${BASE}/posts/saved?${params.toString()}`);
       return res.data;
     },
-    enabled: !!userId,
   });
 }
 
-export function usePostById(postId: string, userId?: string) {
+export function usePostById(postId: string, currentUserId?: string) {
   return useQuery<CommunityPost, Error>({
-    queryKey: ['community-post', postId, userId],
+    queryKey: ['community-post', postId, currentUserId],
     queryFn: async () => {
-      const params = userId ? `?userId=${userId}` : '';
+      const params = currentUserId ? `?currentUserId=${currentUserId}` : '';
       const res = await apiClient.get(`${BASE}/posts/${postId}${params}`);
       return res.data;
     },
@@ -112,30 +109,27 @@ export function useLikePost() {
   return useMutation({
     mutationFn: async ({
       postId,
-      userId,
       isLiked,
     }: {
       postId: string;
-      userId: string;
       isLiked: boolean;
     }) => {
       if (isLiked) {
-        await apiClient.delete(`${BASE}/posts/${postId}/like?userId=${userId}`);
+        await apiClient.delete(`${BASE}/posts/${postId}/like`);
       } else {
-        await apiClient.post(`${BASE}/posts/${postId}/like`, {userId});
+        await apiClient.post(`${BASE}/posts/${postId}/like`, {});
       }
     },
-    // No cache invalidation - we use local state for optimistic UI
   });
 }
 
 // ==================== COMMENTS ====================
 
-export function usePostComments(postId: string, userId?: string) {
+export function usePostComments(postId: string, currentUserId?: string) {
   return useQuery<PostComment[], Error>({
-    queryKey: ['community-comments', postId, userId],
+    queryKey: ['community-comments', postId, currentUserId],
     queryFn: async () => {
-      const params = userId ? `?userId=${userId}` : '';
+      const params = currentUserId ? `?currentUserId=${currentUserId}` : '';
       const res = await apiClient.get(`${BASE}/posts/${postId}/comments${params}`);
       return res.data;
     },
@@ -149,19 +143,16 @@ export function useAddComment() {
   return useMutation({
     mutationFn: async ({
       postId,
-      userId,
       content,
       replyToId,
       replyToUser,
     }: {
       postId: string;
-      userId: string;
       content: string;
       replyToId?: string;
       replyToUser?: string;
     }) => {
       const res = await apiClient.post(`${BASE}/posts/${postId}/comments`, {
-        userId,
         content,
         replyToId,
         replyToUser,
@@ -184,13 +175,11 @@ export function useDeleteComment() {
     mutationFn: async ({
       postId,
       commentId,
-      userId,
     }: {
       postId: string;
       commentId: string;
-      userId: string;
     }) => {
-      await apiClient.delete(`${BASE}/posts/${postId}/comments/${commentId}?userId=${userId}`);
+      await apiClient.delete(`${BASE}/posts/${postId}/comments/${commentId}`);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -208,18 +197,16 @@ export function useLikeComment() {
     mutationFn: async ({
       commentId,
       postId,
-      userId,
       isLiked,
     }: {
       commentId: string;
       postId: string;
-      userId: string;
       isLiked: boolean;
     }) => {
       if (isLiked) {
-        await apiClient.delete(`${BASE}/comments/${commentId}/like?userId=${userId}`);
+        await apiClient.delete(`${BASE}/comments/${commentId}/like`);
       } else {
-        await apiClient.post(`${BASE}/comments/${commentId}/like`, {userId});
+        await apiClient.post(`${BASE}/comments/${commentId}/like`, {});
       }
     },
     onSuccess: (_, variables) => {
@@ -238,17 +225,15 @@ export function useFollowUser() {
   return useMutation({
     mutationFn: async ({
       targetUserId,
-      currentUserId,
       isFollowing,
     }: {
       targetUserId: string;
-      currentUserId: string;
       isFollowing: boolean;
     }) => {
       if (isFollowing) {
-        await apiClient.delete(`${BASE}/users/${targetUserId}/follow?userId=${currentUserId}`);
+        await apiClient.delete(`${BASE}/users/${targetUserId}/follow`);
       } else {
-        await apiClient.post(`${BASE}/users/${targetUserId}/follow`, {userId: currentUserId});
+        await apiClient.post(`${BASE}/users/${targetUserId}/follow`, {});
       }
     },
     onSuccess: () => {
@@ -266,22 +251,17 @@ export function useSavePost() {
   return useMutation({
     mutationFn: async ({
       postId,
-      userId,
       isSaved,
     }: {
       postId: string;
-      userId: string;
       isSaved: boolean;
     }) => {
       if (isSaved) {
-        await apiClient.delete(`${BASE}/posts/${postId}/save?userId=${userId}`);
+        await apiClient.delete(`${BASE}/posts/${postId}/save`);
       } else {
-        await apiClient.post(`${BASE}/posts/${postId}/save`, {userId});
+        await apiClient.post(`${BASE}/posts/${postId}/save`, {});
       }
     },
-    // Note: No query invalidation here - local state (userSavedPosts Map)
-    // is the source of truth for UI. This prevents modal from closing
-    // due to query refetches.
   });
 }
 
@@ -289,20 +269,17 @@ export function useSavePost() {
 
 export function useBlockUser() {
   return useMutation({
-    mutationFn: async ({targetUserId, currentUserId}: {targetUserId: string; currentUserId: string}) => {
-      await apiClient.post(`${BASE}/users/${targetUserId}/block`, {userId: currentUserId});
+    mutationFn: async ({targetUserId}: {targetUserId: string}) => {
+      await apiClient.post(`${BASE}/users/${targetUserId}/block`, {});
     },
-    // No cache invalidation - blocked posts stay visible until manual refresh
-    // This allows users to unblock from the same card
   });
 }
 
 export function useUnblockUser() {
   return useMutation({
-    mutationFn: async ({targetUserId, currentUserId}: {targetUserId: string; currentUserId: string}) => {
-      await apiClient.delete(`${BASE}/users/${targetUserId}/block?userId=${currentUserId}`);
+    mutationFn: async ({targetUserId}: {targetUserId: string}) => {
+      await apiClient.delete(`${BASE}/users/${targetUserId}/block`);
     },
-    // No cache invalidation - handled by local state
   });
 }
 
@@ -310,21 +287,17 @@ export function useMuteUser() {
   return useMutation({
     mutationFn: async ({
       targetUserId,
-      currentUserId,
       isMuted,
     }: {
       targetUserId: string;
-      currentUserId: string;
       isMuted: boolean;
     }) => {
       if (isMuted) {
-        await apiClient.delete(`${BASE}/users/${targetUserId}/mute?userId=${currentUserId}`);
+        await apiClient.delete(`${BASE}/users/${targetUserId}/mute`);
       } else {
-        await apiClient.post(`${BASE}/users/${targetUserId}/mute`, {userId: currentUserId});
+        await apiClient.post(`${BASE}/users/${targetUserId}/mute`, {});
       }
     },
-    // No cache invalidation - muted posts stay visible until manual refresh
-    // This allows users to unmute from the same card
   });
 }
 
@@ -332,8 +305,8 @@ export function useMuteUser() {
 
 export function useReportPost() {
   return useMutation({
-    mutationFn: async ({postId, userId, reason}: {postId: string; userId: string; reason: string}) => {
-      await apiClient.post(`${BASE}/posts/${postId}/report`, {userId, reason});
+    mutationFn: async ({postId, reason}: {postId: string; reason: string}) => {
+      await apiClient.post(`${BASE}/posts/${postId}/report`, {reason});
     },
   });
 }
@@ -342,8 +315,8 @@ export function useReportPost() {
 
 export function useTrackView() {
   return useMutation({
-    mutationFn: async ({postId, userId}: {postId: string; userId?: string}) => {
-      await apiClient.post(`${BASE}/posts/${postId}/view`, {userId});
+    mutationFn: async ({postId}: {postId: string}) => {
+      await apiClient.post(`${BASE}/posts/${postId}/view`, {});
     },
   });
 }
@@ -369,8 +342,8 @@ export function useDeletePost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({postId, userId}: {postId: string; userId: string}) => {
-      await apiClient.delete(`${BASE}/posts/${postId}?userId=${userId}`);
+    mutationFn: async ({postId}: {postId: string}) => {
+      await apiClient.delete(`${BASE}/posts/${postId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
@@ -385,18 +358,16 @@ export function useUpdatePost() {
   return useMutation({
     mutationFn: async ({
       postId,
-      userId,
       name,
       description,
       tags,
     }: {
       postId: string;
-      userId: string;
       name?: string;
       description?: string;
       tags?: string[];
     }) => {
-      await apiClient.patch(`${BASE}/posts/${postId}`, {userId, name, description, tags});
+      await apiClient.patch(`${BASE}/posts/${postId}`, {name, description, tags});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
@@ -441,5 +412,15 @@ export function useFollowing(userId: string, currentUserId?: string) {
       return res.data;
     },
     enabled: !!userId,
+  });
+}
+
+// ==================== GDPR DELETE ====================
+
+export function useDeleteUserData() {
+  return useMutation({
+    mutationFn: async ({userId}: {userId: string}) => {
+      await apiClient.delete(`${BASE}/users/${userId}/data`);
+    },
   });
 }

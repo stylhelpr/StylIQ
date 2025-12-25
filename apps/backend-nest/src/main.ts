@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 dotenv.config(); // Load env variables first
 
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import {
   FastifyAdapter,
   NestFastifyApplication,
@@ -38,6 +39,15 @@ async function bootstrap() {
       AppModule,
       adapter,
       { logger: ['error', 'warn'] },
+    );
+
+    // Global validation pipe
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
 
     // ✅ This must come *after* app creation but use adapter.getInstance()

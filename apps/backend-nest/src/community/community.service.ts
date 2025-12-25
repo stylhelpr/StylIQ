@@ -187,6 +187,20 @@ export class CommunityService {
       )
     `);
 
+    // Post views table for dedupe
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS post_views (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        post_id UUID NOT NULL,
+        user_id UUID,
+        viewed_at TIMESTAMPTZ DEFAULT NOW(),
+        CONSTRAINT unique_post_view UNIQUE (post_id, user_id)
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_post_views_post_id ON post_views(post_id)
+    `);
+
     // Seed demo posts if table is empty
     await this.seedDemoPosts();
   }
@@ -436,7 +450,7 @@ export class CommunityService {
       whereClause = `WHERE cp.user_id IN (SELECT following_id FROM user_follows WHERE follower_id = $3)`;
       // Debug: check what follows exist for this user
       const followsCheck = await pool.query(
-        'SELECT * FROM user_follows WHERE follower_id = $1',
+        'SELECT follower_id, following_id, created_at FROM user_follows WHERE follower_id = $1',
         [currentUserId]
       );
       console.log('📊 User follows:', followsCheck.rows);
@@ -450,7 +464,21 @@ export class CommunityService {
 
     const query = `
       SELECT
-        cp.*,
+        cp.id,
+        cp.user_id,
+        cp.image_url,
+        cp.top_image,
+        cp.bottom_image,
+        cp.shoes_image,
+        cp.accessory_image,
+        cp.name,
+        cp.description,
+        cp.tags,
+        cp.likes_count,
+        cp.comments_count,
+        cp.views_count,
+        cp.is_demo,
+        cp.created_at,
         COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         ${currentUserId ? `EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $3) as is_liked_by_me` : 'false as is_liked_by_me'},
@@ -539,7 +567,21 @@ export class CommunityService {
     // Fetch full post data from PostgreSQL
     const query = `
       SELECT
-        cp.*,
+        cp.id,
+        cp.user_id,
+        cp.image_url,
+        cp.top_image,
+        cp.bottom_image,
+        cp.shoes_image,
+        cp.accessory_image,
+        cp.name,
+        cp.description,
+        cp.tags,
+        cp.likes_count,
+        cp.comments_count,
+        cp.views_count,
+        cp.is_demo,
+        cp.created_at,
         COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $2) as is_liked_by_me,
@@ -560,9 +602,26 @@ export class CommunityService {
   async searchPosts(query: string, currentUserId?: string, limit: number = 20) {
     const searchPattern = `%${query.toLowerCase()}%`;
 
+    const postColumns = `
+      cp.id,
+      cp.user_id,
+      cp.image_url,
+      cp.top_image,
+      cp.bottom_image,
+      cp.shoes_image,
+      cp.accessory_image,
+      cp.name,
+      cp.description,
+      cp.tags,
+      cp.likes_count,
+      cp.comments_count,
+      cp.views_count,
+      cp.is_demo,
+      cp.created_at`;
+
     const sqlQuery = currentUserId
       ? `SELECT
-          cp.*,
+          ${postColumns},
           COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
           COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
           EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $3) as is_liked_by_me,
@@ -576,7 +635,7 @@ export class CommunityService {
         ORDER BY cp.created_at DESC
         LIMIT $4`
       : `SELECT
-          cp.*,
+          ${postColumns},
           COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
           COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
           false as is_liked_by_me,
@@ -601,7 +660,21 @@ export class CommunityService {
   async getPostById(postId: string, currentUserId?: string) {
     const res = await pool.query(
       `SELECT
-        cp.*,
+        cp.id,
+        cp.user_id,
+        cp.image_url,
+        cp.top_image,
+        cp.bottom_image,
+        cp.shoes_image,
+        cp.accessory_image,
+        cp.name,
+        cp.description,
+        cp.tags,
+        cp.likes_count,
+        cp.comments_count,
+        cp.views_count,
+        cp.is_demo,
+        cp.created_at,
         COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         ${currentUserId ? `EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $2) as is_liked_by_me` : 'false as is_liked_by_me'},
@@ -768,7 +841,14 @@ export class CommunityService {
   async getComments(postId: string, currentUserId?: string) {
     const res = await pool.query(
       `SELECT
-        pc.*,
+        pc.id,
+        pc.post_id,
+        pc.user_id,
+        pc.content,
+        pc.reply_to_id,
+        pc.reply_to_user,
+        pc.likes_count,
+        pc.created_at,
         COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || pc.user_id) as user_avatar,
         ${currentUserId ? `EXISTS(SELECT 1 FROM comment_likes WHERE comment_id = pc.id AND user_id = $2) as is_liked_by_me` : 'false as is_liked_by_me'}
@@ -1015,7 +1095,21 @@ export class CommunityService {
   async getSavedPosts(userId: string, limit: number = 20, offset: number = 0) {
     const res = await pool.query(
       `SELECT
-        cp.*,
+        cp.id,
+        cp.user_id,
+        cp.image_url,
+        cp.top_image,
+        cp.bottom_image,
+        cp.shoes_image,
+        cp.accessory_image,
+        cp.name,
+        cp.description,
+        cp.tags,
+        cp.likes_count,
+        cp.comments_count,
+        cp.views_count,
+        cp.is_demo,
+        cp.created_at,
         COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $1) as is_liked_by_me,
@@ -1034,7 +1128,21 @@ export class CommunityService {
   async getPostsByUser(authorId: string, limit: number = 20, offset: number = 0) {
     const res = await pool.query(
       `SELECT
-        cp.*,
+        cp.id,
+        cp.user_id,
+        cp.image_url,
+        cp.top_image,
+        cp.bottom_image,
+        cp.shoes_image,
+        cp.accessory_image,
+        cp.name,
+        cp.description,
+        cp.tags,
+        cp.likes_count,
+        cp.comments_count,
+        cp.views_count,
+        cp.is_demo,
+        cp.created_at,
         COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar
       FROM community_posts cp
@@ -1117,19 +1225,35 @@ export class CommunityService {
 
   // ==================== VIEW TRACKING ====================
 
-  async trackView(postId: string, userId?: string) {
-    // Increment view count
-    await pool.query(
-      `UPDATE community_posts SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1`,
-      [postId],
+  async trackView(postId: string, userId: string) {
+    // Insert only if not already viewed (dedupe by user)
+    const result = await pool.query(
+      `INSERT INTO post_views (post_id, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT (post_id, user_id) DO NOTHING
+       RETURNING id`,
+      [postId, userId],
     );
+
+    // Only increment views_count if this is a new view
+    if (result.rows.length > 0) {
+      await pool.query(
+        `UPDATE community_posts SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1`,
+        [postId],
+      );
+    }
 
     return { message: 'View tracked' };
   }
 
   // ==================== USER BIO ====================
 
-  async updateBio(userId: string, bio: string) {
+  async updateBio(userId: string, bio: string, actorId: string) {
+    // Ownership check
+    if (userId !== actorId) {
+      throw new ForbiddenException('You can only update your own bio');
+    }
+
     await pool.query(
       `UPDATE users SET bio = $2 WHERE id = $1`,
       [userId, bio],
@@ -1152,8 +1276,6 @@ export class CommunityService {
     const userRes = await pool.query(
       `SELECT
         id,
-        first_name,
-        last_name,
         COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
         profile_picture as user_avatar,
         bio,
@@ -1319,5 +1441,33 @@ export class CommunityService {
     }
 
     return suggestions;
+  }
+
+  // ==================== GDPR DELETE ====================
+
+  async deleteUserData(userId: string, actorId: string) {
+    // Ownership check
+    if (userId !== actorId) {
+      throw new ForbiddenException('You can only delete your own data');
+    }
+
+    // Delete all community tracking/analytics data for user
+    await pool.query('DELETE FROM post_views WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM post_likes WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM comment_likes WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM saved_posts WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM user_follows WHERE follower_id = $1 OR following_id = $1', [userId]);
+    await pool.query('DELETE FROM blocked_users WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
+    await pool.query('DELETE FROM muted_users WHERE muter_id = $1 OR muted_id = $1', [userId]);
+    await pool.query('DELETE FROM post_reports WHERE reporter_id = $1', [userId]);
+    await pool.query('DELETE FROM user_preference_vectors WHERE user_id = $1', [userId]);
+
+    // Anonymize comments (keep for thread integrity)
+    await pool.query(
+      `UPDATE post_comments SET content = '[deleted]' WHERE user_id = $1`,
+      [userId],
+    );
+
+    return { message: 'Community data deleted' };
   }
 }

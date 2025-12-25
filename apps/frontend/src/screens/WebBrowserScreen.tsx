@@ -419,7 +419,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     useShoppingStore
       .getState()
       .addToHistory(
-        sanitizeUrlForAnalytics(currentTab.url),
+        currentTab.url,
         currentTab.title || 'New Tab',
         source,
         brand,
@@ -1200,155 +1200,154 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const MAX_MESSAGE_SIZE = 200 * 1024; // 200KB limit
 
   // Handle messages from WebView
-  const handleWebViewMessage = useCallback(
-    (event: any) => {
-      try {
-        // SECURITY: Rate limiting - max 100 messages per second
-        const now = Date.now();
-        if (now - messageRateLimiter.current.lastReset > 1000) {
-          messageRateLimiter.current = {count: 0, lastReset: now};
-        }
-        messageRateLimiter.current.count++;
-        if (messageRateLimiter.current.count > 100) {
-          // Only log once per second to avoid log spam
-          if (messageRateLimiter.current.count === 101) {
-            console.warn('[SECURITY] Message rate limit exceeded - dropping messages');
-          }
-          return;
-        }
-
-        // Security: Payload size limit
-        const rawData = event.nativeEvent.data;
-        if (typeof rawData !== 'string' || rawData.length > MAX_MESSAGE_SIZE) {
-          console.log('[SECURITY] Blocked oversized message:', rawData?.length);
-          return;
-        }
-
-        const data = JSON.parse(rawData);
-
-        // Security: Type allowlist check
-        if (
-          !data.type ||
-          !ALLOWED_MESSAGE_TYPES.includes(
-            data.type as (typeof ALLOWED_MESSAGE_TYPES)[number],
-          )
-        ) {
-          console.log('[SECURITY] Blocked unknown message type:', data.type);
-          return;
-        }
-
-        if (data.type === 'pageText') {
-          lastPageTextRef.current = data.content || '';
-          console.log(
-            '[MSG] Page text received:',
-            data.length,
-            'chars, extracted:',
-            data.extracted,
-          );
-        } else if (data.type === 'sizeClick') {
-          // GOLD #7: Track size clicks with timestamp
-          const sizeEntry = {size: data.size, timestamp: Date.now()};
-          sizesClickedRef.current = [...sizesClickedRef.current, sizeEntry];
-          console.log(
-            '[MSG] Size clicked:',
-            data.size,
-            'Total:',
-            sizesClickedRef.current.length,
-          );
-        } else if (data.type === 'colorClick') {
-          // GOLD #10: Track color clicks with timestamp
-          const colorEntry = {color: data.color, timestamp: Date.now()};
-          colorsClickedRef.current = [...colorsClickedRef.current, colorEntry];
-          console.log(
-            '[MSG] Color clicked:',
-            data.color,
-            'Total:',
-            colorsClickedRef.current.length,
-          );
-        } else if (data.type === 'cartDetected') {
-          // GOLD: Cart detection with item count and total
-          console.log('[MSG] Cart detected:', {
-            itemCount: data.itemCount,
-            estimatedTotal: data.estimatedTotal,
-          });
-
-          // Deduplicate: skip if same cart detected within 10 seconds
-          const now = Date.now();
-          const lastDetection = lastCartDetectionRef.current;
-          if (
-            lastDetection &&
-            lastDetection.url === data.cartUrl &&
-            now - lastDetection.timestamp < 10000
-          ) {
-            console.log('[MSG] Skipping duplicate cart detection');
-            return;
-          }
-          lastCartDetectionRef.current = {url: data.cartUrl, timestamp: now};
-
-          // Record cart view event
-          useShoppingStore.getState().recordCartEvent({
-            type: 'cart_view',
-            timestamp: now,
-            cartUrl: data.cartUrl,
-            itemCount: data.itemCount,
-            cartValue: data.estimatedTotal,
-          });
-
-          // DERIVED METRIC: Record time-to-action for cart
-          const cartDwell = Math.round(
-            (Date.now() - pageStartTimeRef.current) / 1000,
-          );
-          useShoppingStore
-            .getState()
-            .recordTimeToAction(data.cartUrl, 'cart', cartDwell);
-        } else if (data.type === 'purchaseComplete') {
-          // GOLD: Purchase completion detected on order confirmation page
-          console.log('[MSG] Purchase complete detected:', {
-            orderNumber: data.orderNumber,
-            totalAmount: data.totalAmount,
-            itemCount: data.itemCount,
-          });
-
-          // Deduplicate: skip if same purchase URL detected within 60 seconds
-          // (purchase confirmation pages often reload/re-render)
-          const now = Date.now();
-          const lastPurchase = lastPurchaseDetectionRef.current;
-          if (
-            lastPurchase &&
-            lastPurchase.url === data.purchaseUrl &&
-            now - lastPurchase.timestamp < 60000
-          ) {
-            console.log('[MSG] Skipping duplicate purchase detection');
-            return;
-          }
-          lastPurchaseDetectionRef.current = {
-            url: data.purchaseUrl,
-            timestamp: now,
-          };
-
-          // Record purchase completion event
-          useShoppingStore.getState().recordCartEvent({
-            type: 'checkout_complete',
-            timestamp: data.timestamp || Date.now(),
-            cartUrl: data.purchaseUrl,
-            itemCount: data.itemCount,
-            cartValue: data.totalAmount,
-          });
-        } else if (data.type === 'imageLongPress') {
-          // Handle image long-press - show save options
-          console.log('[MSG] Image long-pressed:', data.imageUrl);
-          setLongPressedImageUrl(data.imageUrl);
-          setShowImageSaveModal(true);
-          triggerHaptic('impactMedium');
-        }
-        // iOS Password AutoFill handles password saving automatically via iCloud Keychain
-        // No app-level password handling needed
-      } catch (e) {
-        console.log('[MSG] Error parsing message:', e);
+  const handleWebViewMessage = useCallback((event: any) => {
+    try {
+      // SECURITY: Rate limiting - max 100 messages per second
+      const now = Date.now();
+      if (now - messageRateLimiter.current.lastReset > 1000) {
+        messageRateLimiter.current = {count: 0, lastReset: now};
       }
-    },
-    [],
-  );
+      messageRateLimiter.current.count++;
+      if (messageRateLimiter.current.count > 100) {
+        // Only log once per second to avoid log spam
+        if (messageRateLimiter.current.count === 101) {
+          console.warn(
+            '[SECURITY] Message rate limit exceeded - dropping messages',
+          );
+        }
+        return;
+      }
+
+      // Security: Payload size limit
+      const rawData = event.nativeEvent.data;
+      if (typeof rawData !== 'string' || rawData.length > MAX_MESSAGE_SIZE) {
+        console.log('[SECURITY] Blocked oversized message:', rawData?.length);
+        return;
+      }
+
+      const data = JSON.parse(rawData);
+
+      // Security: Type allowlist check
+      if (
+        !data.type ||
+        !ALLOWED_MESSAGE_TYPES.includes(
+          data.type as (typeof ALLOWED_MESSAGE_TYPES)[number],
+        )
+      ) {
+        console.log('[SECURITY] Blocked unknown message type:', data.type);
+        return;
+      }
+
+      if (data.type === 'pageText') {
+        lastPageTextRef.current = data.content || '';
+        console.log(
+          '[MSG] Page text received:',
+          data.length,
+          'chars, extracted:',
+          data.extracted,
+        );
+      } else if (data.type === 'sizeClick') {
+        // GOLD #7: Track size clicks with timestamp
+        const sizeEntry = {size: data.size, timestamp: Date.now()};
+        sizesClickedRef.current = [...sizesClickedRef.current, sizeEntry];
+        console.log(
+          '[MSG] Size clicked:',
+          data.size,
+          'Total:',
+          sizesClickedRef.current.length,
+        );
+      } else if (data.type === 'colorClick') {
+        // GOLD #10: Track color clicks with timestamp
+        const colorEntry = {color: data.color, timestamp: Date.now()};
+        colorsClickedRef.current = [...colorsClickedRef.current, colorEntry];
+        console.log(
+          '[MSG] Color clicked:',
+          data.color,
+          'Total:',
+          colorsClickedRef.current.length,
+        );
+      } else if (data.type === 'cartDetected') {
+        // GOLD: Cart detection with item count and total
+        console.log('[MSG] Cart detected:', {
+          itemCount: data.itemCount,
+          estimatedTotal: data.estimatedTotal,
+        });
+
+        // Deduplicate: skip if same cart detected within 10 seconds
+        const now = Date.now();
+        const lastDetection = lastCartDetectionRef.current;
+        if (
+          lastDetection &&
+          lastDetection.url === data.cartUrl &&
+          now - lastDetection.timestamp < 10000
+        ) {
+          console.log('[MSG] Skipping duplicate cart detection');
+          return;
+        }
+        lastCartDetectionRef.current = {url: data.cartUrl, timestamp: now};
+
+        // Record cart view event
+        useShoppingStore.getState().recordCartEvent({
+          type: 'cart_view',
+          timestamp: now,
+          cartUrl: data.cartUrl,
+          itemCount: data.itemCount,
+          cartValue: data.estimatedTotal,
+        });
+
+        // DERIVED METRIC: Record time-to-action for cart
+        const cartDwell = Math.round(
+          (Date.now() - pageStartTimeRef.current) / 1000,
+        );
+        useShoppingStore
+          .getState()
+          .recordTimeToAction(data.cartUrl, 'cart', cartDwell);
+      } else if (data.type === 'purchaseComplete') {
+        // GOLD: Purchase completion detected on order confirmation page
+        console.log('[MSG] Purchase complete detected:', {
+          orderNumber: data.orderNumber,
+          totalAmount: data.totalAmount,
+          itemCount: data.itemCount,
+        });
+
+        // Deduplicate: skip if same purchase URL detected within 60 seconds
+        // (purchase confirmation pages often reload/re-render)
+        const now = Date.now();
+        const lastPurchase = lastPurchaseDetectionRef.current;
+        if (
+          lastPurchase &&
+          lastPurchase.url === data.purchaseUrl &&
+          now - lastPurchase.timestamp < 60000
+        ) {
+          console.log('[MSG] Skipping duplicate purchase detection');
+          return;
+        }
+        lastPurchaseDetectionRef.current = {
+          url: data.purchaseUrl,
+          timestamp: now,
+        };
+
+        // Record purchase completion event
+        useShoppingStore.getState().recordCartEvent({
+          type: 'checkout_complete',
+          timestamp: data.timestamp || Date.now(),
+          cartUrl: data.purchaseUrl,
+          itemCount: data.itemCount,
+          cartValue: data.totalAmount,
+        });
+      } else if (data.type === 'imageLongPress') {
+        // Handle image long-press - show save options
+        console.log('[MSG] Image long-pressed:', data.imageUrl);
+        setLongPressedImageUrl(data.imageUrl);
+        setShowImageSaveModal(true);
+        triggerHaptic('impactMedium');
+      }
+      // iOS Password AutoFill handles password saving automatically via iCloud Keychain
+      // No app-level password handling needed
+    } catch (e) {
+      console.log('[MSG] Error parsing message:', e);
+    }
+  }, []);
 
   // Track last scroll Y for nav bar hide/show
   const lastNavScrollY = useRef(0);

@@ -1,0 +1,246 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
+import { CommunityService } from './community.service';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { UpdateBioDto } from './dto/update-bio.dto';
+import { ReportPostDto } from './dto/report-post.dto';
+
+@Controller('community')
+@UseGuards(AuthGuard('jwt'))
+export class CommunityPrivateController {
+  constructor(private readonly service: CommunityService) {}
+
+  // ==================== POSTS ====================
+
+  @Post('posts')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async createPost(@Request() req: any, @Body() dto: CreatePostDto) {
+    const actorId = req.user.sub;
+    return this.service.createPost(actorId, {
+      imageUrl: dto.imageUrl,
+      topImage: dto.topImage,
+      bottomImage: dto.bottomImage,
+      shoesImage: dto.shoesImage,
+      accessoryImage: dto.accessoryImage,
+      name: dto.name,
+      description: dto.description,
+      tags: dto.tags,
+    });
+  }
+
+  @Get('posts/saved')
+  async getSavedPosts(
+    @Request() req: any,
+    @Query('limit') limit: string = '20',
+    @Query('offset') offset: string = '0',
+  ) {
+    const actorId = req.user.sub;
+    return this.service.getSavedPosts(actorId, parseInt(limit), parseInt(offset));
+  }
+
+  @Delete('posts/:id')
+  async deletePost(@Request() req: any, @Param('id') postId: string) {
+    const actorId = req.user.sub;
+    return this.service.deletePost(postId, actorId);
+  }
+
+  @Patch('posts/:id')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  async updatePost(
+    @Request() req: any,
+    @Param('id') postId: string,
+    @Body() dto: UpdatePostDto,
+  ) {
+    const actorId = req.user.sub;
+    return this.service.updatePost(postId, actorId, dto.name, dto.description, dto.tags);
+  }
+
+  // ==================== LIKES ====================
+
+  @Post('posts/:id/like')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async likePost(@Request() req: any, @Param('id') postId: string) {
+    const actorId = req.user.sub;
+    return this.service.likePost(postId, actorId);
+  }
+
+  @Delete('posts/:id/like')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async unlikePost(@Request() req: any, @Param('id') postId: string) {
+    const actorId = req.user.sub;
+    return this.service.unlikePost(postId, actorId);
+  }
+
+  // ==================== COMMENTS ====================
+
+  @Post('posts/:id/comments')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async addComment(
+    @Request() req: any,
+    @Param('id') postId: string,
+    @Body() dto: CreateCommentDto,
+  ) {
+    const actorId = req.user.sub;
+    return this.service.addComment(
+      postId,
+      actorId,
+      dto.content,
+      dto.replyToId,
+      dto.replyToUser,
+    );
+  }
+
+  @Delete('posts/:postId/comments/:commentId')
+  async deleteComment(
+    @Request() req: any,
+    @Param('commentId') commentId: string,
+  ) {
+    const actorId = req.user.sub;
+    return this.service.deleteComment(commentId, actorId);
+  }
+
+  @Post('comments/:id/like')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async likeComment(@Request() req: any, @Param('id') commentId: string) {
+    const actorId = req.user.sub;
+    return this.service.likeComment(commentId, actorId);
+  }
+
+  @Delete('comments/:id/like')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async unlikeComment(@Request() req: any, @Param('id') commentId: string) {
+    const actorId = req.user.sub;
+    return this.service.unlikeComment(commentId, actorId);
+  }
+
+  // ==================== FOLLOWS ====================
+
+  @Post('users/:id/follow')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async followUser(@Request() req: any, @Param('id') followingId: string) {
+    const actorId = req.user.sub;
+    return this.service.followUser(actorId, followingId);
+  }
+
+  @Delete('users/:id/follow')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async unfollowUser(@Request() req: any, @Param('id') followingId: string) {
+    const actorId = req.user.sub;
+    return this.service.unfollowUser(actorId, followingId);
+  }
+
+  // ==================== SAVES ====================
+
+  @Post('posts/:id/save')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async savePost(@Request() req: any, @Param('id') postId: string) {
+    const actorId = req.user.sub;
+    return this.service.savePost(actorId, postId);
+  }
+
+  @Delete('posts/:id/save')
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
+  async unsavePost(@Request() req: any, @Param('id') postId: string) {
+    const actorId = req.user.sub;
+    return this.service.unsavePost(actorId, postId);
+  }
+
+  // ==================== BLOCK/MUTE ====================
+
+  @Post('users/:id/block')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  async blockUser(@Request() req: any, @Param('id') blockedId: string) {
+    const actorId = req.user.sub;
+    return this.service.blockUser(actorId, blockedId);
+  }
+
+  @Delete('users/:id/block')
+  async unblockUser(@Request() req: any, @Param('id') blockedId: string) {
+    const actorId = req.user.sub;
+    return this.service.unblockUser(actorId, blockedId);
+  }
+
+  @Post('users/:id/mute')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  async muteUser(@Request() req: any, @Param('id') mutedId: string) {
+    const actorId = req.user.sub;
+    return this.service.muteUser(actorId, mutedId);
+  }
+
+  @Delete('users/:id/mute')
+  async unmuteUser(@Request() req: any, @Param('id') mutedId: string) {
+    const actorId = req.user.sub;
+    return this.service.unmuteUser(actorId, mutedId);
+  }
+
+  // ==================== REPORTS ====================
+
+  @Post('posts/:id/report')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async reportPost(
+    @Request() req: any,
+    @Param('id') postId: string,
+    @Body() dto: ReportPostDto,
+  ) {
+    const actorId = req.user.sub;
+    return this.service.reportPost(actorId, postId, dto.reason);
+  }
+
+  // ==================== VIEW TRACKING ====================
+
+  @Post('posts/:id/view')
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
+  async trackView(
+    @Request() req: any,
+    @Param('id') postId: string,
+  ) {
+    const actorId = req.user.sub;
+    return this.service.trackView(postId, actorId);
+  }
+
+  // ==================== USER BIO ====================
+
+  @Patch('users/:id/bio')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async updateBio(
+    @Request() req: any,
+    @Param('id') userId: string,
+    @Body() dto: UpdateBioDto,
+  ) {
+    const actorId = req.user.sub;
+    return this.service.updateBio(userId, dto.bio, actorId);
+  }
+
+  // ==================== USER SUGGESTIONS ====================
+
+  @Get('users/suggestions')
+  async getSuggestedUsers(
+    @Request() req: any,
+    @Query('limit') limit: string = '10',
+  ) {
+    const actorId = req.user.sub;
+    return this.service.getSuggestedUsers(actorId, parseInt(limit));
+  }
+
+  // ==================== GDPR DELETE ====================
+
+  @Delete('users/:id/data')
+  async deleteUserData(@Request() req: any, @Param('id') userId: string) {
+    const actorId = req.user.sub;
+    return this.service.deleteUserData(userId, actorId);
+  }
+}

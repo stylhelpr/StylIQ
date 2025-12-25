@@ -1,6 +1,8 @@
 // apps/backend-nest/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { DatabaseService } from './db/database.service';
 
 import { AuthModule } from './auth/auth.module';
@@ -49,6 +51,23 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     AuthModule,
     UsersModule,
     WardrobeModule,
@@ -88,7 +107,11 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
   providers: [
     AppService,
     DatabaseService,
-    ScheduledOutfitNotifier, // ⬅️ add this
+    ScheduledOutfitNotifier,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
