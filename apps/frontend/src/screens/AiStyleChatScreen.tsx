@@ -38,6 +38,7 @@ import {Linking} from 'react-native';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import Tts from 'react-native-tts';
 import {WebView} from 'react-native-webview';
+import {TTS_WEBVIEW_DEFAULTS, createTtsUrlHandler} from '../config/webViewDefaults';
 import {ENABLE_REMOTE_TTS, API_BASE_URL} from '../config/api';
 import {globalTtsRef} from '../MainApp';
 import {isTtsEnabled} from '../utils/ttsToggle';
@@ -1352,12 +1353,11 @@ export default function AiStylistChatScreen({navigate}: Props) {
           )}
         </Animated.View>
       </SafeAreaView>
+      {/* SECURITY: TTS WebView with restricted URL schemes */}
       {ttsUrl && (
         <WebView
-          originWhitelist={['*']}
-          mediaPlaybackRequiresUserAction={false}
-          allowsInlineMediaPlayback
-          javaScriptEnabled
+          {...TTS_WEBVIEW_DEFAULTS}
+          onShouldStartLoadWithRequest={createTtsUrlHandler(API_BASE_URL)}
           onMessage={event => {
             const msg = event.nativeEvent.data;
             if (msg === 'playing') {

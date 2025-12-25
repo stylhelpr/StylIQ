@@ -15,6 +15,8 @@ import LocationOverlay from './components/LocationOverlay/LocationOverlay';
 import {NativeModules, Platform} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import MessageNotificationBanner from './components/MessageNotificationBanner/MessageNotificationBanner';
+import {TTS_WEBVIEW_DEFAULTS, createTtsUrlHandler} from './config/webViewDefaults';
+import {API_BASE_URL} from './config/api';
 const {AudioSessionManager} = NativeModules;
 
 // 🔊 Export global WebView ref so other files can inject JS speech
@@ -155,13 +157,12 @@ const MainApp = () => {
         onHide={() => setWeatherVisible(false)}
       />
       {/* Hidden WebView used for GPT-style TTS playback */}
+      {/* SECURITY: Uses TTS_WEBVIEW_DEFAULTS to restrict URL schemes */}
       <View pointerEvents="none" style={styles.ttsContainer}>
         <WebView
           ref={ref}
-          originWhitelist={['*']}
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          javaScriptEnabled
+          {...TTS_WEBVIEW_DEFAULTS}
+          onShouldStartLoadWithRequest={createTtsUrlHandler(API_BASE_URL)}
           source={{html: '<html><body></body></html>'}}
           style={styles.hiddenWebView}
         />

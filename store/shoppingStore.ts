@@ -73,14 +73,9 @@ export type ProductInteraction = {
   cartTimeline?: CartEvent[]; // GOLD: Cart abandonment tracking
 };
 
-// Password Manager
-export type SavedPassword = {
-  id: string;
-  domain: string; // e.g., 'amazon.com'
-  username: string;
-  password: string; // encrypted in production
-  savedAt: number;
-};
+// SECURITY: Password storage removed - use iOS Keychain via native module instead
+// DO NOT store passwords in AsyncStorage/Zustand - they are not encrypted at rest
+// See: ios/StylIQ/KeychainModule.swift for secure credential storage
 
 // Form Auto-fill
 export type SavedAddress = {
@@ -124,11 +119,8 @@ type ShoppingState = {
   getTopShops: (limit?: number) => {source: string; visits: number}[];
   searchHistory: (query: string) => BrowsingHistory[]; // Full-text search
 
-  // Password Manager
-  savedPasswords: SavedPassword[];
-  addPassword: (domain: string, username: string, password: string) => void;
-  getPasswordForDomain: (domain: string) => SavedPassword | undefined;
-  removePassword: (id: string) => void;
+  // SECURITY: Password Manager removed - use iOS Keychain instead
+  // See: ios/StylIQ/KeychainModule.swift for secure credential storage
 
   // Form Auto-fill - Addresses
   savedAddresses: SavedAddress[];
@@ -446,32 +438,9 @@ export const useShoppingStore = create<ShoppingState>()(
         );
       },
 
-      // Password Manager
-      savedPasswords: [],
-      addPassword: (domain: string, username: string, password: string) => {
-        set(state => ({
-          savedPasswords: [
-            {
-              id: `pwd_${Date.now()}`,
-              domain,
-              username,
-              password,
-              savedAt: Date.now(),
-            },
-            ...state.savedPasswords,
-          ],
-        }));
-      },
-      getPasswordForDomain: (domain: string) => {
-        return get().savedPasswords.find(
-          p => p.domain.includes(domain) || domain.includes(p.domain),
-        );
-      },
-      removePassword: (id: string) => {
-        set(state => ({
-          savedPasswords: state.savedPasswords.filter(p => p.id !== id),
-        }));
-      },
+      // SECURITY: Password Manager implementation removed
+      // Passwords must be stored in iOS Keychain, not AsyncStorage
+      // Use KeychainModule native module for secure credential storage
 
       // Form Auto-fill - Addresses
       savedAddresses: [],
@@ -1122,8 +1091,7 @@ export const useShoppingStore = create<ShoppingState>()(
           aiShoppingAssistantSuggestions: [],
           hasAiSuggestionsLoaded: false,
           aiSuggestionsCachedAt: null,
-          // CRITICAL: Clear sensitive data
-          savedPasswords: [],
+          // CRITICAL: Clear sensitive data (passwords now in iOS Keychain)
           savedAddresses: [],
           savedCards: [],
           // Clear sync state

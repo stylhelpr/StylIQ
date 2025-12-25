@@ -10,6 +10,11 @@ import {
 import {WebView} from 'react-native-webview';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../context/ThemeContext';
+import {
+  SECURE_WEBVIEW_DEFAULTS,
+  createOnShouldStartLoadWithRequest,
+  createCrashRecoveryHandler,
+} from '../config/webViewDefaults';
 
 type Props = {
   route?: {params?: {url?: string; title?: string}};
@@ -108,11 +113,17 @@ export default function WebPageScreen({route, navigate}: Props) {
         ref={webRef}
         source={{uri: url}}
         style={{flex: 1}}
+        // === SECURITY: Apply secure defaults ===
+        {...SECURE_WEBVIEW_DEFAULTS}
+        // Allow HTTP for compatibility with some sites
+        originWhitelist={['https://*', 'http://*']}
+        onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
+          allowHttp: true,
+        })}
+        onContentProcessDidTerminate={createCrashRecoveryHandler(webRef)}
+        // === END SECURITY ===
         onNavigationStateChange={onNavStateChange}
         startInLoadingState
-        originWhitelist={['*']}
-        javaScriptEnabled
-        domStorageEnabled
         renderLoading={() => (
           <ActivityIndicator
             size="large"

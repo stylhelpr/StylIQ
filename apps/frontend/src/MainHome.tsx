@@ -86,7 +86,9 @@ const MainHome = ({
         authStatus === AuthorizationStatus.PROVISIONAL;
       if (enabled) {
         const token = await getMessaging().getToken();
-        console.log('📱 FCM Token:', token);
+        if (__DEV__) {
+          console.log('📱 FCM Token:', token);
+        }
       }
     };
     setupPush();

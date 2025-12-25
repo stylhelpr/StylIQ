@@ -10,6 +10,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
+import {
+  SECURE_WEBVIEW_DEFAULTS,
+  createOnShouldStartLoadWithRequest,
+} from '../../config/webViewDefaults';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -197,12 +201,18 @@ export default function ReaderModal({
           </View>
 
           {/* 🌐 WebView */}
+          {/* SECURITY: Uses SECURE_WEBVIEW_DEFAULTS to block dangerous schemes */}
           <Animatable.View
             animation="fadeIn"
             delay={250}
             duration={800}
             style={{flex: 1, paddingHorizontal: 16}}>
             <WebView
+              {...SECURE_WEBVIEW_DEFAULTS}
+              originWhitelist={['https://*', 'http://*']}
+              onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
+                allowHttp: true,
+              })}
               source={{uri: url || ''}}
               style={{flex: 1}}
               decelerationRate="normal"

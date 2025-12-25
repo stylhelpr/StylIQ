@@ -41,6 +41,14 @@ import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TrackingConsentModal from '../components/TrackingConsentModal/TrackingConsentModal';
+// Security imports
+import {
+  SECURE_WEBVIEW_DEFAULTS,
+  createOnShouldStartLoadWithRequest,
+  createCrashRecoveryHandler,
+} from '../config/webViewDefaults';
+import {sanitizeTitle} from '../utils/sanitize';
+import {sanitizeUrlForAnalytics} from '../utils/urlSanitizer';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -79,6 +87,8 @@ export default function WebBrowserScreen({navigate, route}: Props) {
   const initialUrl = route?.params?.url || '';
   const webRef = useRef<WebView>(null);
   const containerRef = useRef<View>(null);
+  // SECURITY: Rate limiter for WebView messages to prevent DoS attacks
+  const messageRateLimiter = useRef({count: 0, lastReset: Date.now()});
   const [inputValue, setInputValue] = useState(initialUrl);
   const [showTabsView, setShowTabsView] = useState(false);
   const tabsViewScale = useRef(new Animated.Value(0)).current;
@@ -409,7 +419,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     useShoppingStore
       .getState()
       .addToHistory(
-        currentTab.url,
+        sanitizeUrlForAnalytics(currentTab.url),
         currentTab.title || 'New Tab',
         source,
         brand,
@@ -1193,6 +1203,20 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const handleWebViewMessage = useCallback(
     (event: any) => {
       try {
+        // SECURITY: Rate limiting - max 100 messages per second
+        const now = Date.now();
+        if (now - messageRateLimiter.current.lastReset > 1000) {
+          messageRateLimiter.current = {count: 0, lastReset: now};
+        }
+        messageRateLimiter.current.count++;
+        if (messageRateLimiter.current.count > 100) {
+          // Only log once per second to avoid log spam
+          if (messageRateLimiter.current.count === 101) {
+            console.warn('[SECURITY] Message rate limit exceeded - dropping messages');
+          }
+          return;
+        }
+
         // Security: Payload size limit
         const rawData = event.nativeEvent.data;
         if (typeof rawData !== 'string' || rawData.length > MAX_MESSAGE_SIZE) {
@@ -2370,23 +2394,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             ref={webRef}
             source={{uri: currentTab?.url || ''}}
             style={{flex: 1}}
-            originWhitelist={['https://*']}
-            javaScriptEnabled
-            domStorageEnabled
-            onShouldStartLoadWithRequest={request => {
-              // Security: Only allow HTTPS URLs
-              const url = request.url.toLowerCase();
-              if (
-                url.startsWith('https://') ||
-                url.startsWith('about:') ||
-                url === 'about:blank'
-              ) {
-                return true;
-              }
-              // Block http, file, data, blob, javascript schemes
-              console.log('[SECURITY] Blocked non-HTTPS URL:', url);
-              return false;
-            }}
+            // === SECURITY: Apply secure defaults ===
+            {...SECURE_WEBVIEW_DEFAULTS}
+            // Allow HTTP for compatibility with some fashion sites
+            originWhitelist={['https://*', 'http://*']}
+            onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
+              allowHttp: true,
+            })}
+            onContentProcessDidTerminate={createCrashRecoveryHandler(webRef)}
+            // === END SECURITY ===
             contentInset={{
               bottom: insets.bottom + 90,
             }}
@@ -2434,14 +2450,17 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   );
                   setInputValue(navState.url);
                   // Track visit history with brand
+                  // SECURITY: Sanitize URL to strip sensitive query params before analytics
+                  const sanitizedUrl = sanitizeUrlForAnalytics(navState.url);
+                  const safeTitle = sanitizeTitle(navState.title, 200);
                   const navBrand = shoppingAnalytics.extractBrand(
-                    navState.title || '',
-                    navState.url,
+                    safeTitle,
+                    sanitizedUrl,
                   );
                   addToHistory(
-                    navState.url,
-                    navState.title || getDomain(navState.url),
-                    getDomain(navState.url),
+                    sanitizedUrl,
+                    safeTitle || getDomain(sanitizedUrl),
+                    getDomain(sanitizedUrl),
                     navBrand,
                   );
                 }

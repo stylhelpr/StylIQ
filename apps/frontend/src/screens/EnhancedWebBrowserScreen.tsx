@@ -20,6 +20,13 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useShoppingStore, ShoppingItem} from '../../../../store/shoppingStore';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {
+  SECURE_WEBVIEW_DEFAULTS,
+  createOnShouldStartLoadWithRequest,
+  createCrashRecoveryHandler,
+} from '../config/webViewDefaults';
+import {sanitizeTitle} from '../utils/sanitize';
+import {sanitizeUrlForAnalytics} from '../utils/urlSanitizer';
 
 const {width: screenWidth} = Dimensions.get('window');
 
@@ -86,7 +93,8 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
     const normalized = normalizeUrl(inputValue);
     setCurrentUrl(normalized);
     updateTab(currentTabId!, normalized, inputValue);
-    addToHistory(normalized, inputValue, 'Browser');
+    // SECURITY: Sanitize URL before storing in analytics/history
+    addToHistory(sanitizeUrlForAnalytics(normalized), inputValue, 'Browser');
     addSearch(inputValue);
     setShowSuggestions(false);
   }, [
@@ -103,7 +111,8 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
       setCurrentUrl(shopUrl);
       setInputValue(shopUrl);
       updateTab(currentTabId!, shopUrl, shopUrl);
-      addToHistory(shopUrl, shopUrl, 'Quick Shop');
+      // SECURITY: Sanitize URL before storing in analytics/history
+      addToHistory(sanitizeUrlForAnalytics(shopUrl), shopUrl, 'Quick Shop');
       setShowSuggestions(false);
     },
     [currentTabId, updateTab, addToHistory],
@@ -114,16 +123,18 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
   }, [addTab]);
 
   const handleAddBookmark = useCallback(() => {
+    // SECURITY: Sanitize title to prevent XSS and layout issues
+    const safeTitle = sanitizeTitle(currentTab?.title, 200);
     const item: ShoppingItem = {
       id: `item_${Date.now()}`,
-      title: currentTab?.title || 'Saved Page',
+      title: safeTitle,
       url: currentUrl,
       source: currentUrl.split('/')[2] || 'Web',
       addedAt: Date.now(),
     };
     addBookmark(item);
     setBookmarked(true);
-    Alert.alert('✓ Added to Bookmarks', currentTab?.title);
+    Alert.alert('✓ Added to Bookmarks', safeTitle);
   }, [currentTab, currentUrl, addBookmark]);
 
   const handleShare = useCallback(() => {
@@ -600,19 +611,25 @@ export default function EnhancedWebBrowserScreen({route, navigate}: Props) {
           ref={webRef}
           source={{uri: currentUrl}}
           style={{flex: 1}}
+          // === SECURITY: Apply secure defaults ===
+          {...SECURE_WEBVIEW_DEFAULTS}
+          // Allow HTTP for compatibility with some fashion sites
+          originWhitelist={['https://*', 'http://*']}
+          onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
+            allowHttp: true,
+          })}
+          onContentProcessDidTerminate={createCrashRecoveryHandler(webRef)}
+          // === END SECURITY ===
           onNavigationStateChange={onNavStateChange}
           onLoadStart={() => setIsLoading(true)}
           onLoadEnd={() => setIsLoading(false)}
           startInLoadingState
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled
           renderLoading={() => (
             <View style={styles.loaderContainer}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           )}
-          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
+          userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1 StylIQ/1.0"
         />
       )}
     </SafeAreaView>

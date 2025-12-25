@@ -3,6 +3,10 @@ import React from 'react';
 import {Modal, View, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {WebView} from 'react-native-webview';
+import {
+  SECURE_WEBVIEW_DEFAULTS,
+  createOnShouldStartLoadWithRequest,
+} from '../../config/webViewDefaults';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../../context/ThemeContext';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -47,7 +51,17 @@ export default function IntegratedShopOverlay({
         </TouchableOpacity>
 
         {/* WebView */}
-        <WebView source={{uri: url}} startInLoadingState style={{flex: 1}} />
+        {/* SECURITY: Uses SECURE_WEBVIEW_DEFAULTS to block dangerous schemes */}
+        <WebView
+          {...SECURE_WEBVIEW_DEFAULTS}
+          originWhitelist={['https://*', 'http://*']}
+          onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
+            allowHttp: true,
+          })}
+          source={{uri: url}}
+          startInLoadingState
+          style={{flex: 1}}
+        />
       </SafeAreaView>
     </Modal>
   );

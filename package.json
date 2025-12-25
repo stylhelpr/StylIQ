@@ -152,6 +152,7 @@
     "backend": "cd apps/backend-nest && npm run start:dev",
     "dev": "concurrently \"npm run backend\" \"cd apps/frontend && npm run start\" \"cd apps/frontend && npm run ios\"",
     "ios-clean": "bash scripts/ios-clean.sh",
+    "security:webview-check": "node scripts/security/check-webviews.js",
     "postinstall": "npm dedupe && npx npm-force-resolutions && npx patch-package"
   }
 }

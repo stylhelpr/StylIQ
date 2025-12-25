@@ -13,6 +13,10 @@ import {
   PanResponder,
 } from 'react-native';
 import {WebView} from 'react-native-webview';
+import {
+  SECURE_WEBVIEW_DEFAULTS,
+  createOnShouldStartLoadWithRequest,
+} from '../config/webViewDefaults';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {tokens} from '../styles/tokens/tokens';
@@ -573,6 +577,11 @@ export default function RecreatedLookScreen({route, navigation}: Props) {
 
                   {shopUrl ? (
                     <WebView
+                      {...SECURE_WEBVIEW_DEFAULTS}
+                      originWhitelist={['https://*', 'http://*']}
+                      onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
+                        allowHttp: true,
+                      })}
                       source={{uri: shopUrl}}
                       startInLoadingState
                       style={{flex: 1, backgroundColor: theme.colors.surface}}
