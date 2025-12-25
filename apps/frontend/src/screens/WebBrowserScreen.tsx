@@ -32,10 +32,6 @@ import {tokens} from '../styles/tokens/tokens';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
 import AutofillSettings from '../components/BrowserSettings/AutofillSettings';
 import {fontScale, moderateScale} from '../utils/scale';
-import {
-  generateAddressAutofillScript,
-  generateCardAutofillScript,
-} from '../utils/autofill';
 // 🔥 VOICE ADD/
 import {useVoiceControl} from '../hooks/useVoiceControl';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -820,8 +816,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       return;
     }
 
-    // Security: Skip injection on login/auth pages to avoid interference
-    const authPatterns = [
+    // Security: Skip injection on login/auth AND payment/checkout pages
+    const sensitivePagePatterns = [
+      // Auth pages
       '/login',
       '/signin',
       '/sign-in',
@@ -831,10 +828,22 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       '/account/login',
       '/oauth',
       '/sso',
+      // Payment/checkout pages (PCI safety)
+      '/checkout',
+      '/payment',
+      '/billing',
+      '/pay/',
+      '/order',
+      '/confirm',
+      '/purchase',
+      '/cart/checkout',
+      '/secure/',
     ];
-    const isAuthPage = authPatterns.some(pattern => currentUrl.includes(pattern));
-    if (isAuthPage) {
-      console.log('[SECURITY] Skipping script injection on auth page');
+    const isSensitivePage = sensitivePagePatterns.some(pattern =>
+      currentUrl.includes(pattern),
+    );
+    if (isSensitivePage) {
+      console.log('[SECURITY] Skipping script injection on sensitive page');
       return;
     }
 
