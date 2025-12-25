@@ -87,6 +87,25 @@ const isRealAvatar = (avatarUrl: string | undefined | null): boolean => {
   return !avatarUrl.includes('pravatar.cc');
 };
 
+// Helper for Instagram-style relative time
+const getRelativeTime = (dateString: string): string => {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+
+  if (diffSecs < 60) return 'now';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  if (diffWeeks < 52) return `${diffWeeks}w`;
+  return `${Math.floor(diffWeeks / 52)}y`;
+};
+
 // Avatar component that shows initials when no real profile picture
 const UserAvatar = ({
   avatarUrl,
@@ -1949,41 +1968,39 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       marginBottom: 12,
     },
     commentsHeader: {
-      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingBottom: 12,
+      justifyContent: 'center',
+      paddingVertical: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.surface,
     },
     commentsTitle: {
-      fontSize: fontScale(tokens.fontSize.lg),
+      fontSize: fontScale(tokens.fontSize.md),
       fontWeight: tokens.fontWeight.bold,
       color: theme.colors.foreground,
     },
     commentsList: {
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 16,
+      paddingBottom: 8,
     },
     commentItem: {
       flexDirection: 'row',
-      marginBottom: 16,
+      marginBottom: 20,
+      alignItems: 'flex-start',
     },
     commentAvatar: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      marginRight: 10,
+      marginRight: 12,
     },
     commentContent: {
       flex: 1,
+      paddingRight: 8,
     },
     commentHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: 4,
+      gap: 6,
+      marginBottom: 2,
     },
     commentUser: {
       fontSize: fontScale(tokens.fontSize.sm),
@@ -1997,16 +2014,17 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     commentText: {
       fontSize: fontScale(tokens.fontSize.sm),
       color: theme.colors.foreground,
-      marginTop: 2,
+      lineHeight: fontScale(tokens.fontSize.sm) * 1.4,
+      marginBottom: 6,
     },
     commentActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 6,
-      gap: 16,
+      marginTop: 8,
+      gap: 12,
     },
     commentTime: {
-      fontSize: fontScale(tokens.fontSize.xs),
+      fontSize: fontScale(12),
       color: theme.colors.muted,
     },
     commentActionButton: {
@@ -2023,33 +2041,29 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingVertical: 10,
       backgroundColor: theme.colors.surface,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.colors.muted,
     },
     replyingToText: {
-      fontSize: fontScale(tokens.fontSize.xs),
-      color: theme.colors.foreground,
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.muted,
     },
     commentInputContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingVertical: 10,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.colors.surface,
-      paddingBottom: insets.bottom + 12,
+      paddingBottom: insets.bottom + 10,
+      backgroundColor: theme.colors.surface,
     },
     commentInput: {
       flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderRadius: 20,
-      paddingHorizontal: 16,
-      paddingVertical: 10,
       fontSize: fontScale(tokens.fontSize.sm),
       color: theme.colors.foreground,
-      marginRight: 10,
+      paddingVertical: 8,
+      maxHeight: 100,
     },
     sendCommentButton: {
       width: 36,
@@ -2066,7 +2080,44 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     noCommentsText: {
       fontSize: fontScale(tokens.fontSize.sm),
       color: theme.colors.muted,
-      marginTop: 8,
+      marginTop: 4,
+    },
+    noCommentsTitle: {
+      fontSize: fontScale(tokens.fontSize.lg),
+      fontWeight: tokens.fontWeight.semiBold,
+      color: theme.colors.foreground,
+    },
+    commentTextContainer: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      lineHeight: fontScale(tokens.fontSize.sm) * 1.4,
+    },
+    commentMention: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: '#3897f0',
+      fontWeight: tokens.fontWeight.medium,
+    },
+    commentLikesCount: {
+      fontSize: fontScale(13),
+      color: theme.colors.muted,
+      marginTop: 2,
+    },
+    commentReplyButton: {
+      fontSize: fontScale(13),
+      color: theme.colors.muted,
+      fontWeight: tokens.fontWeight.semiBold,
+    },
+    commentLikeContainer: {
+      alignItems: 'center',
+      marginLeft: 12,
+      paddingTop: 4,
+    },
+    postButton: {
+      fontSize: fontScale(tokens.fontSize.sm),
+      color: theme.colors.primary,
+      fontWeight: tokens.fontWeight.bold,
+    },
+    postButtonDisabled: {
+      opacity: 0.4,
     },
     // More button style
     moreButton: {
@@ -3071,7 +3122,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
       </AppleTouchFeedback>
 
-      {/* Comments Modal */}
+      {/* Comments Modal - Instagram Style */}
       <Modal
         visible={commentsModalVisible}
         transparent
@@ -3087,44 +3138,41 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               onPress={() => setCommentsModalVisible(false)}
             />
             <View style={styles.commentsModal}>
+              {/* Drag Handle */}
               <View style={styles.modalHandle} />
+
+              {/* Header - Instagram style centered */}
               <View style={styles.commentsHeader}>
                 <Text style={styles.commentsTitle}>Comments</Text>
-                <Pressable onPress={() => setCommentsModalVisible(false)}>
-                  <MaterialIcons
-                    name="close"
-                    size={24}
-                    color={theme.colors.foreground}
-                  />
-                </Pressable>
               </View>
+
+              {/* Comments List */}
               <FlatList
                 data={commentsData}
                 keyExtractor={item => item.id}
                 style={{flex: 1}}
                 bounces
                 scrollEnabled
+                showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.commentsList}
                 ListEmptyComponent={
                   <View style={styles.noComments}>
-                    <MaterialIcons
-                      name="chat-bubble-outline"
-                      size={40}
-                      color={theme.colors.muted}
-                    />
+                    <Text style={styles.noCommentsTitle}>No comments yet</Text>
                     <Text style={styles.noCommentsText}>
-                      No comments yet. Be the first!
+                      Start the conversation.
                     </Text>
                   </View>
                 }
                 renderItem={({item}) => (
                   <View style={styles.commentItem}>
+                    {/* Avatar */}
                     <UserAvatar
                       avatarUrl={item.user_avatar}
                       userName={item.user_name}
-                      size={32}
+                      size={35}
                       style={styles.commentAvatar}
                       onPress={() => {
+                        setCommentsModalVisible(false);
                         navigate('UserProfileScreen', {
                           userId: item.user_id,
                           userName: item.user_name,
@@ -3132,77 +3180,60 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         });
                       }}
                     />
+
+                    {/* Comment Content */}
                     <View style={styles.commentContent}>
+                      {/* Username + Time on same line */}
                       <View style={styles.commentHeader}>
                         <Text style={styles.commentUser}>{item.user_name}</Text>
+                        <Text style={styles.commentTime}>
+                          {getRelativeTime(item.created_at)}
+                        </Text>
+                      </View>
+
+                      {/* Comment text with @mention */}
+                      <Text style={styles.commentText}>
                         {item.reply_to_user && (
-                          <Text style={styles.commentReplyIndicator}>
-                            replied to @{item.reply_to_user}
+                          <Text style={styles.commentMention}>
+                            @{item.reply_to_user}{' '}
                           </Text>
                         )}
-                      </View>
-                      <Text style={styles.commentText}>{item.content}</Text>
-                      <View style={styles.commentActions}>
-                        <Text style={styles.commentTime}>
-                          {new Date(item.created_at).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                        {item.content}
+                      </Text>
+
+                      {/* Reply button */}
+                      <Pressable
+                        onPress={() => startReply(item.id, item.user_name)}
+                        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                        <Text style={styles.commentReplyButton}>Reply</Text>
+                      </Pressable>
+                    </View>
+
+                    {/* Like Button + Count on Right */}
+                    <View style={styles.commentLikeContainer}>
+                      <Pressable
+                        onPress={() =>
+                          activePostId &&
+                          handleToggleLikeComment(activePostId, item)
+                        }
+                        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                        <MaterialIcons
+                          name={
+                            item.is_liked_by_me ? 'favorite' : 'favorite-border'
+                          }
+                          size={18}
+                          color={
+                            item.is_liked_by_me ? '#FF3040' : theme.colors.muted
+                          }
+                        />
+                      </Pressable>
+                      {item.likes_count > 0 && (
+                        <Text style={styles.commentLikesCount}>
+                          {item.likes_count > 999
+                            ? `${(item.likes_count / 1000).toFixed(0)}K`
+                            : item.likes_count}
                         </Text>
-                        <Pressable
-                          style={styles.commentActionButton}
-                          onPress={() =>
-                            activePostId &&
-                            handleToggleLikeComment(activePostId, item)
-                          }>
-                          <MaterialIcons
-                            name={
-                              item.is_liked_by_me
-                                ? 'favorite'
-                                : 'favorite-border'
-                            }
-                            size={20}
-                            color={
-                              item.is_liked_by_me
-                                ? '#FF4D6D'
-                                : theme.colors.muted
-                            }
-                          />
-                          {item.likes_count > 0 && (
-                            <Text
-                              style={[
-                                styles.commentActionText,
-                                item.is_liked_by_me && {color: '#FF4D6D'},
-                              ]}>
-                              {item.likes_count}
-                            </Text>
-                          )}
-                        </Pressable>
-                        <Pressable
-                          style={styles.commentActionButton}
-                          onPress={() => startReply(item.id, item.user_name)}>
-                          <MaterialIcons
-                            name="reply"
-                            size={20}
-                            color={theme.colors.muted}
-                          />
-                          <Text style={styles.commentActionText}>Reply</Text>
-                        </Pressable>
-                        {item.user_id === userId && (
-                          <Pressable
-                            style={styles.commentActionButton}
-                            onPress={() =>
-                              activePostId &&
-                              handleDeleteComment(activePostId, item.id)
-                            }>
-                            <MaterialIcons
-                              name="delete-outline"
-                              size={20}
-                              color={theme.colors.muted}
-                            />
-                          </Pressable>
-                        )}
-                      </View>
+                      )}
                     </View>
                   </View>
                 )}
@@ -3212,17 +3243,22 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
               {replyingTo && (
                 <View style={styles.replyingToContainer}>
                   <Text style={styles.replyingToText}>
-                    Replying to @{replyingTo.user}
+                    Replying to{' '}
+                    <Text style={{fontWeight: '600'}}>@{replyingTo.user}</Text>
                   </Text>
-                  <Pressable onPress={cancelReply}>
+                  <Pressable
+                    onPress={cancelReply}
+                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
                     <MaterialIcons
                       name="close"
-                      size={16}
+                      size={18}
                       color={theme.colors.muted}
                     />
                   </Pressable>
                 </View>
               )}
+
+              {/* Input Area - Instagram style */}
               <View style={styles.commentInputContainer}>
                 <TextInput
                   style={styles.commentInput}
@@ -3234,19 +3270,20 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                   placeholderTextColor={theme.colors.muted}
                   value={newComment}
                   onChangeText={setNewComment}
+                  multiline
+                  maxLength={2200}
                 />
                 <Pressable
-                  style={[
-                    styles.sendCommentButton,
-                    !newComment.trim() && {opacity: 0.5},
-                  ]}
                   onPress={handleAddComment}
-                  disabled={!newComment.trim()}>
-                  <MaterialIcons
-                    name="send"
-                    size={18}
-                    color={theme.colors.buttonText1}
-                  />
+                  disabled={!newComment.trim()}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <Text
+                    style={[
+                      styles.postButton,
+                      !newComment.trim() && styles.postButtonDisabled,
+                    ]}>
+                    Post
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -3965,7 +4002,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                             return next;
                           });
                           if (userId) {
-                            saveMutation.mutate({postId: detailPost.id, userId, isSaved: currentlySaved});
+                            saveMutation.mutate({
+                              postId: detailPost.id,
+                              userId,
+                              isSaved: currentlySaved,
+                            });
                           }
                         }}
                         style={styles.postDetailActionButton}>

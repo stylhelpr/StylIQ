@@ -208,7 +208,6 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
     },
     newCollectionButton: {
       backgroundColor: theme.colors.button1,
-      borderColor: theme.colors.primary,
     },
     newCollectionButtonText: {
       color: '#fff',

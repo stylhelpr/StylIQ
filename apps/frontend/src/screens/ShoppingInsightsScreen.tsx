@@ -116,7 +116,10 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
 
     // Most saved items (top 5 by view count or recency)
     const mostSavedItems = [...bookmarks]
-      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0) || b.addedAt - a.addedAt)
+      .sort(
+        (a, b) =>
+          (b.viewCount || 0) - (a.viewCount || 0) || b.addedAt - a.addedAt,
+      )
       .slice(0, 5);
 
     // Category trends with week-over-week change
@@ -125,13 +128,15 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
 
     thisWeekBookmarks.forEach(b => {
       if (b.category) {
-        thisWeekCategories[b.category] = (thisWeekCategories[b.category] || 0) + 1;
+        thisWeekCategories[b.category] =
+          (thisWeekCategories[b.category] || 0) + 1;
       }
     });
 
     lastWeekBookmarks.forEach(b => {
       if (b.category) {
-        lastWeekCategories[b.category] = (lastWeekCategories[b.category] || 0) + 1;
+        lastWeekCategories[b.category] =
+          (lastWeekCategories[b.category] || 0) + 1;
       }
     });
 
@@ -225,12 +230,20 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
     // Filter to this month's purchases
     const thisMonthPurchases = completedPurchases.filter(p => {
       const date = new Date(p.timestamp);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+      return (
+        date.getMonth() === currentMonth && date.getFullYear() === currentYear
+      );
     });
 
     // Calculate totals
-    const spentThisMonth = thisMonthPurchases.reduce((sum, p) => sum + p.value, 0);
-    const totalAllTime = completedPurchases.reduce((sum, p) => sum + p.value, 0);
+    const spentThisMonth = thisMonthPurchases.reduce(
+      (sum, p) => sum + p.value,
+      0,
+    );
+    const totalAllTime = completedPurchases.reduce(
+      (sum, p) => sum + p.value,
+      0,
+    );
     const purchaseCount = thisMonthPurchases.length;
 
     return {
@@ -325,7 +338,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       borderRadius: 16,
       padding: 16,
       borderWidth: 1,
-      borderColor: theme.colors.muted,
+      // borderColor: theme.colors.muted,
     },
     listItem: {
       flexDirection: 'row',
@@ -372,7 +385,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       borderRadius: 16,
       padding: 20,
       borderWidth: 1,
-      borderColor: theme.colors.muted,
+      // borderColor: theme.colors.muted,
     },
     priceRow: {
       flexDirection: 'row',
@@ -606,7 +619,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
       borderRadius: 16,
       padding: 20,
       borderWidth: 1,
-      borderColor: theme.colors.muted,
+      // borderColor: theme.colors.muted,
     },
     spendingHeader: {
       flexDirection: 'row',
@@ -728,7 +741,8 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                 color={theme.colors.foreground}
               />
             </AppleTouchFeedback>
-            <Text style={[styles.headerTitle, {color: theme.colors.foreground}]}>
+            <Text
+              style={[styles.headerTitle, {color: theme.colors.foreground}]}>
               Shopping Insights
             </Text>
             <View style={{width: 40}} />
@@ -820,7 +834,9 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
             duration={500}
             delay={400}
             style={styles.section}>
-            <Text style={styles.sectionTitle}>Price Range of Bookmarked Items</Text>
+            <Text style={styles.sectionTitle}>
+              Price Range of Bookmarked Items
+            </Text>
             <View style={styles.priceCard}>
               <View style={styles.priceRow}>
                 <View style={styles.priceItem}>
@@ -867,9 +883,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                   ${spendingInsights.spentThisMonth}
                 </Text>
                 <Text style={styles.spendingAmountLabel}>
-                  {monthlyBudget > 0
-                    ? `of $${monthlyBudget} budget`
-                    : 'spent'}
+                  {monthlyBudget > 0 ? `of $${monthlyBudget} budget` : 'spent'}
                 </Text>
               </View>
               {monthlyBudget > 0 && (
@@ -881,12 +895,17 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                         color:
                           spendingInsights.spentThisMonth > monthlyBudget
                             ? '#ef4444'
-                            : spendingInsights.spentThisMonth > monthlyBudget * 0.8
-                              ? '#f59e0b'
-                              : '#10b981',
+                            : spendingInsights.spentThisMonth >
+                              monthlyBudget * 0.8
+                            ? '#f59e0b'
+                            : '#10b981',
                       },
                     ]}>
-                    ${Math.max(0, monthlyBudget - spendingInsights.spentThisMonth)}
+                    $
+                    {Math.max(
+                      0,
+                      monthlyBudget - spendingInsights.spentThisMonth,
+                    )}
                   </Text>
                   <Text style={styles.spendingAmountLabel}>remaining</Text>
                 </View>
@@ -907,9 +926,10 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                       backgroundColor:
                         spendingInsights.spentThisMonth > monthlyBudget
                           ? '#ef4444'
-                          : spendingInsights.spentThisMonth > monthlyBudget * 0.8
-                            ? '#f59e0b'
-                            : '#10b981',
+                          : spendingInsights.spentThisMonth >
+                            monthlyBudget * 0.8
+                          ? '#f59e0b'
+                          : '#10b981',
                     },
                   ]}
                 />
@@ -917,48 +937,54 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
             )}
 
             {/* Budget Alert */}
-            {monthlyBudget > 0 && spendingInsights.spentThisMonth > monthlyBudget * 0.8 && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor:
-                    spendingInsights.spentThisMonth > monthlyBudget
-                      ? '#ef444420'
-                      : '#f59e0b20',
-                  borderRadius: 8,
-                  padding: 10,
-                  marginBottom: 12,
-                  gap: 8,
-                }}>
-                <MaterialIcons
-                  name={
-                    spendingInsights.spentThisMonth > monthlyBudget
-                      ? 'error'
-                      : 'warning'
-                  }
-                  size={18}
-                  color={
-                    spendingInsights.spentThisMonth > monthlyBudget
-                      ? '#ef4444'
-                      : '#f59e0b'
-                  }
-                />
-                <Text
+            {monthlyBudget > 0 &&
+              spendingInsights.spentThisMonth > monthlyBudget * 0.8 && (
+                <View
                   style={{
-                    fontSize: 13,
-                    color:
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor:
+                      spendingInsights.spentThisMonth > monthlyBudget
+                        ? '#ef444420'
+                        : '#f59e0b20',
+                    borderRadius: 8,
+                    padding: 10,
+                    marginBottom: 12,
+                    gap: 8,
+                  }}>
+                  <MaterialIcons
+                    name={
+                      spendingInsights.spentThisMonth > monthlyBudget
+                        ? 'error'
+                        : 'warning'
+                    }
+                    size={18}
+                    color={
                       spendingInsights.spentThisMonth > monthlyBudget
                         ? '#ef4444'
-                        : '#f59e0b',
-                    flex: 1,
-                  }}>
-                  {spendingInsights.spentThisMonth > monthlyBudget
-                    ? `You've exceeded your budget by $${spendingInsights.spentThisMonth - monthlyBudget}`
-                    : `You're at ${Math.round((spendingInsights.spentThisMonth / monthlyBudget) * 100)}% of your budget`}
-                </Text>
-              </View>
-            )}
+                        : '#f59e0b'
+                    }
+                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color:
+                        spendingInsights.spentThisMonth > monthlyBudget
+                          ? '#ef4444'
+                          : '#f59e0b',
+                      flex: 1,
+                    }}>
+                    {spendingInsights.spentThisMonth > monthlyBudget
+                      ? `You've exceeded your budget by $${
+                          spendingInsights.spentThisMonth - monthlyBudget
+                        }`
+                      : `You're at ${Math.round(
+                          (spendingInsights.spentThisMonth / monthlyBudget) *
+                            100,
+                        )}% of your budget`}
+                  </Text>
+                </View>
+              )}
 
             {/* No budget set prompt */}
             {monthlyBudget === 0 && (
@@ -1019,7 +1045,8 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
             </View>
 
             {/* Reset Spending Data */}
-            {(spendingInsights.spentThisMonth > 0 || spendingInsights.totalAllTime > 0) && (
+            {(spendingInsights.spentThisMonth > 0 ||
+              spendingInsights.totalAllTime > 0) && (
               <AppleTouchFeedback
                 onPress={() => clearCartHistory()}
                 hapticStyle="impactLight"
@@ -1249,9 +1276,7 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                           </View>
                         )}
                         <View style={styles.trendItemLeft}>
-                          <Text
-                            style={styles.trendItemTitle}
-                            numberOfLines={1}>
+                          <Text style={styles.trendItemTitle} numberOfLines={1}>
                             {item.title}
                           </Text>
                           <Text style={styles.trendItemSubtitle}>
@@ -1309,24 +1334,24 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                           trend.percentChange > 0
                             ? styles.trendBadgePositive
                             : trend.percentChange < 0
-                              ? styles.trendBadgeNegative
-                              : styles.trendBadgeNeutral,
+                            ? styles.trendBadgeNegative
+                            : styles.trendBadgeNeutral,
                         ]}>
                         <MaterialIcons
                           name={
                             trend.percentChange > 0
                               ? 'trending-up'
                               : trend.percentChange < 0
-                                ? 'trending-down'
-                                : 'trending-flat'
+                              ? 'trending-down'
+                              : 'trending-flat'
                           }
                           size={12}
                           color={
                             trend.percentChange > 0
                               ? '#10b981'
                               : trend.percentChange < 0
-                                ? '#ef4444'
-                                : theme.colors.foreground
+                              ? '#ef4444'
+                              : theme.colors.foreground
                           }
                         />
                         <Text
@@ -1335,8 +1360,8 @@ export default function ShoppingInsightsScreen({navigate}: Props) {
                             trend.percentChange > 0
                               ? styles.trendBadgeTextPositive
                               : trend.percentChange < 0
-                                ? styles.trendBadgeTextNegative
-                                : styles.trendBadgeTextNeutral,
+                              ? styles.trendBadgeTextNegative
+                              : styles.trendBadgeTextNeutral,
                           ]}>
                           {trend.percentChange > 0 ? '+' : ''}
                           {trend.percentChange}%

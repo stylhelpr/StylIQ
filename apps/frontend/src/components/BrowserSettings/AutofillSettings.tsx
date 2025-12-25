@@ -8,10 +8,12 @@ import {
   Modal,
   TextInput,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useShoppingStore} from '../../../../../store/shoppingStore';
+import {useSecurePasswords} from '../../hooks/useSecurePasswords';
 import {tokens} from '../../styles/tokens/tokens';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 
@@ -24,17 +26,17 @@ type TabType = 'passwords' | 'addresses' | 'cards';
 
 export default function AutofillSettings({visible, onClose}: Props) {
   const {theme} = useAppTheme();
+
+  // Use secure Keychain-based password storage
   const {
     savedPasswords,
+    isLoading: passwordsLoading,
     addPassword,
     removePassword,
-    savedAddresses,
-    addAddress,
-    removeAddress,
-    savedCards,
-    addCard,
-    removeCard,
-  } = useShoppingStore();
+  } = useSecurePasswords();
+
+  const {savedAddresses, addAddress, removeAddress, savedCards, addCard, removeCard} =
+    useShoppingStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('passwords');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -198,16 +200,29 @@ export default function AutofillSettings({visible, onClose}: Props) {
     },
   });
 
-  const handleAddPassword = () => {
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const handleAddPassword = async () => {
     if (!pwdDomain || !pwdUsername || !pwdPassword) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
-    addPassword(pwdDomain, pwdUsername, pwdPassword);
-    setPwdDomain('');
-    setPwdUsername('');
-    setPwdPassword('');
-    setShowAddForm(false);
+    setIsSavingPassword(true);
+    try {
+      const result = await addPassword(pwdDomain, pwdUsername, pwdPassword);
+      if (result) {
+        setPwdDomain('');
+        setPwdUsername('');
+        setPwdPassword('');
+        setShowAddForm(false);
+      } else {
+        Alert.alert('Error', 'Failed to save password securely');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to save password to Keychain');
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
 
   const handleAddAddress = () => {
@@ -341,12 +356,18 @@ export default function AutofillSettings({visible, onClose}: Props) {
               <View style={styles.formButtons}>
                 <TouchableOpacity
                   style={[styles.formButton, styles.submitButton]}
-                  onPress={handleAddPassword}>
-                  <Text style={styles.submitButtonText}>Save</Text>
+                  onPress={handleAddPassword}
+                  disabled={isSavingPassword}>
+                  {isSavingPassword ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Save</Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.formButton, styles.cancelButton]}
-                  onPress={() => setShowAddForm(false)}>
+                  onPress={() => setShowAddForm(false)}
+                  disabled={isSavingPassword}>
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
@@ -354,7 +375,14 @@ export default function AutofillSettings({visible, onClose}: Props) {
           )}
 
           {activeTab === 'passwords' &&
-            (savedPasswords.length === 0 ? (
+            (passwordsLoading ? (
+              <View style={{alignItems: 'center', marginTop: 32}}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={[styles.emptyText, {marginTop: 8}]}>
+                  Loading passwords...
+                </Text>
+              </View>
+            ) : savedPasswords.length === 0 ? (
               <Text style={styles.emptyText}>No saved passwords</Text>
             ) : (
               savedPasswords.map((pwd: any) => (

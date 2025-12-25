@@ -38,6 +38,7 @@ import {
 } from '../utils/autofill';
 // 🔥 VOICE ADD/
 import {useVoiceControl} from '../hooks/useVoiceControl';
+import {useSecurePasswords} from '../hooks/useSecurePasswords';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {PermissionsAndroid, Platform} from 'react-native';
 import ImageSaverModule from '../native/ImageSaverModule';
@@ -113,6 +114,18 @@ export default function WebBrowserScreen({navigate, route}: Props) {
     trackingConsent,
     setTrackingConsent,
   } = useShoppingStore();
+
+  // Secure password management via iOS Keychain
+  const {getPasswordForDomain, addPassword: savePasswordToKeychain} =
+    useSecurePasswords();
+
+  // Password save prompt state
+  const [showPasswordSavePrompt, setShowPasswordSavePrompt] = useState(false);
+  const [pendingPasswordData, setPendingPasswordData] = useState<{
+    domain: string;
+    username: string;
+    password: string;
+  } | null>(null);
 
   // 🔥 VOICE ADD
   async function prepareAudio() {
@@ -359,19 +372,42 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     }
   }, [userId, hasAiSuggestionsLoaded]);
 
-  // Auto-fill: Inject saved password on page load
+  // Auto-fill: Inject saved password on page load using secure Keychain storage
+  // Store the injection function so it can be called from handleWebViewLoadEnd
+  const injectAutofillRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    if (!currentTab?.url || !webRef.current) return;
-
-    const {getPasswordForDomain} = useShoppingStore.getState();
-    const domain = getDomainFromUrl(currentTab.url);
-    const savedPassword = getPasswordForDomain(domain);
-
-    if (savedPassword) {
-      const script = generatePasswordAutofillScript(savedPassword);
-      webRef.current.injectJavaScript(script);
+    if (!currentTab?.url) {
+      injectAutofillRef.current = null;
+      return;
     }
-  }, [currentTab?.url]);
+
+    const domain = getDomainFromUrl(currentTab.url);
+    if (!domain) {
+      injectAutofillRef.current = null;
+      return;
+    }
+
+    // Create injection function
+    const injectSavedPassword = async () => {
+      try {
+        const savedPassword = await getPasswordForDomain(domain);
+        if (savedPassword && webRef.current) {
+          console.log('[Autofill] Injecting password for domain:', domain);
+          const script = generatePasswordAutofillScript(savedPassword);
+          webRef.current.injectJavaScript(script);
+        }
+      } catch (err) {
+        console.log('Failed to get password for autofill:', err);
+      }
+    };
+
+    // Store for later use
+    injectAutofillRef.current = injectSavedPassword;
+
+    // Also try immediately (might work for some navigations)
+    injectSavedPassword();
+  }, [currentTab?.url, getPasswordForDomain]);
 
   // GOLD #1, #9: Track dwell time and scroll depth when page loads
   useEffect(() => {
@@ -813,6 +849,34 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     setShowBookmarksModal(false);
   };
 
+  // Handle saving password to Keychain
+  const handleSavePassword = async () => {
+    if (!pendingPasswordData) return;
+
+    triggerHaptic('impactLight');
+    try {
+      await savePasswordToKeychain(
+        pendingPasswordData.domain,
+        pendingPasswordData.username,
+        pendingPasswordData.password,
+      );
+      console.log('[Password] Saved to Keychain:', pendingPasswordData.domain);
+    } catch (err) {
+      console.error('[Password] Failed to save:', err);
+      Alert.alert('Error', 'Failed to save password securely');
+    } finally {
+      setShowPasswordSavePrompt(false);
+      setPendingPasswordData(null);
+    }
+  };
+
+  // Handle dismissing password save prompt
+  const handleDismissPasswordPrompt = () => {
+    triggerHaptic('impactLight');
+    setShowPasswordSavePrompt(false);
+    setPendingPasswordData(null);
+  };
+
   // Extract and cache page text when page loads, and inject size/color click listeners
   const handleWebViewLoadEnd = useCallback(() => {
     if (!webRef.current) return;
@@ -1136,117 +1200,291 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       true;
     `;
 
+    // Password form submission detection script
+    // Handles multi-step logins (Amazon, Google, etc.) and single-page logins
+    const passwordFormDetectionScript = `
+      (function() {
+        if (window.__styliqPasswordFormDetected) return;
+        window.__styliqPasswordFormDetected = true;
+
+        // Store username from step 1 for multi-step logins
+        if (!window.__styliqCapturedUsername) {
+          window.__styliqCapturedUsername = localStorage.getItem('__styliqLastUsername') || '';
+        }
+
+        function sendPasswordData(username, password) {
+          if (username && password && password.length >= 4) {
+            const domain = window.location.hostname.replace('www.', '');
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'passwordFormSubmit',
+              domain: domain,
+              username: username,
+              password: password
+            }));
+          }
+        }
+
+        function findUsernameOnPage() {
+          // Look for visible email/username fields anywhere on page
+          const selectors = [
+            'input[type="email"]',
+            'input[name*="email"]',
+            'input[name*="user"]',
+            'input[id*="email"]',
+            'input[id*="user"]',
+            'input[autocomplete="username"]',
+            'input[autocomplete="email"]'
+          ];
+          for (const sel of selectors) {
+            const field = document.querySelector(sel);
+            if (field && field.value && field.value.includes('@')) {
+              return field.value;
+            }
+            if (field && field.value && field.value.length > 3) {
+              return field.value;
+            }
+          }
+          return '';
+        }
+
+        function setupPasswordFormListeners() {
+          // Track username fields for multi-step login
+          const usernameFields = document.querySelectorAll(
+            'input[type="email"], input[name*="email"], input[name*="user"], ' +
+            'input[id*="email"], input[id*="user"], input[autocomplete="username"]'
+          );
+          usernameFields.forEach(function(field) {
+            if (field.__styliqTracked) return;
+            field.__styliqTracked = true;
+            field.addEventListener('blur', function() {
+              if (field.value && field.value.length > 3) {
+                window.__styliqCapturedUsername = field.value;
+                try { localStorage.setItem('__styliqLastUsername', field.value); } catch(e) {}
+              }
+            });
+          });
+
+          // Track password fields
+          const passwordFields = document.querySelectorAll('input[type="password"]');
+          passwordFields.forEach(function(pwdField) {
+            if (pwdField.__styliqPasswordTracked) return;
+            pwdField.__styliqPasswordTracked = true;
+
+            // Find the form or closest container
+            const form = pwdField.closest('form');
+
+            // Look for username in same form first
+            let usernameField = null;
+            if (form) {
+              usernameField = form.querySelector(
+                'input[type="email"], input[type="text"][name*="user"], input[type="text"][name*="email"], ' +
+                'input[id*="user"], input[id*="email"]'
+              );
+            }
+
+            function captureCredentials() {
+              const password = pwdField.value;
+              let username = usernameField ? usernameField.value : '';
+
+              // Fall back to stored username from step 1
+              if (!username) {
+                username = window.__styliqCapturedUsername || findUsernameOnPage();
+              }
+
+              sendPasswordData(username, password);
+            }
+
+            // Listen for form submit
+            if (form) {
+              form.addEventListener('submit', captureCredentials);
+            }
+
+            // Also listen for Enter key on password field
+            pwdField.addEventListener('keydown', function(e) {
+              if (e.key === 'Enter') {
+                setTimeout(captureCredentials, 100);
+              }
+            });
+
+            // Listen for clicks on submit buttons near the password field
+            const container = form || pwdField.parentElement?.parentElement?.parentElement;
+            if (container) {
+              const buttons = container.querySelectorAll('button, input[type="submit"], [role="button"]');
+              buttons.forEach(function(btn) {
+                if (btn.__styliqBtnTracked) return;
+                btn.__styliqBtnTracked = true;
+                btn.addEventListener('click', function() {
+                  setTimeout(captureCredentials, 100);
+                });
+              });
+            }
+          });
+        }
+
+        // Run immediately and after delays
+        setupPasswordFormListeners();
+        setTimeout(setupPasswordFormListeners, 500);
+        setTimeout(setupPasswordFormListeners, 1500);
+        setTimeout(setupPasswordFormListeners, 3000);
+
+        // Observe DOM changes
+        const observer = new MutationObserver(function() {
+          setupPasswordFormListeners();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      })();
+      true;
+    `;
+
     webRef.current.injectJavaScript(extractPageTextScript);
     webRef.current.injectJavaScript(sizeColorClickScript);
     webRef.current.injectJavaScript(cartDetectionScript);
     webRef.current.injectJavaScript(purchaseDetectionScript);
     webRef.current.injectJavaScript(imageLongPressScript);
+    webRef.current.injectJavaScript(passwordFormDetectionScript);
+
+    // Inject autofill after page loads
+    if (injectAutofillRef.current) {
+      injectAutofillRef.current();
+    }
   }, []);
 
   // Handle messages from WebView
-  const handleWebViewMessage = useCallback((event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'pageText') {
-        lastPageTextRef.current = data.content || '';
-        console.log(
-          '[MSG] Page text received:',
-          data.length,
-          'chars, extracted:',
-          data.extracted,
-        );
-      } else if (data.type === 'sizeClick') {
-        // GOLD #7: Track size clicks with timestamp
-        const sizeEntry = {size: data.size, timestamp: Date.now()};
-        sizesClickedRef.current = [...sizesClickedRef.current, sizeEntry];
-        console.log(
-          '[MSG] Size clicked:',
-          data.size,
-          'Total:',
-          sizesClickedRef.current.length,
-        );
-      } else if (data.type === 'colorClick') {
-        // GOLD #10: Track color clicks with timestamp
-        const colorEntry = {color: data.color, timestamp: Date.now()};
-        colorsClickedRef.current = [...colorsClickedRef.current, colorEntry];
-        console.log(
-          '[MSG] Color clicked:',
-          data.color,
-          'Total:',
-          colorsClickedRef.current.length,
-        );
-      } else if (data.type === 'cartDetected') {
-        // GOLD: Cart detection with item count and total
-        console.log('[MSG] Cart detected:', {
-          itemCount: data.itemCount,
-          estimatedTotal: data.estimatedTotal,
-        });
+  const handleWebViewMessage = useCallback(
+    (event: any) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
+        if (data.type === 'pageText') {
+          lastPageTextRef.current = data.content || '';
+          console.log(
+            '[MSG] Page text received:',
+            data.length,
+            'chars, extracted:',
+            data.extracted,
+          );
+        } else if (data.type === 'sizeClick') {
+          // GOLD #7: Track size clicks with timestamp
+          const sizeEntry = {size: data.size, timestamp: Date.now()};
+          sizesClickedRef.current = [...sizesClickedRef.current, sizeEntry];
+          console.log(
+            '[MSG] Size clicked:',
+            data.size,
+            'Total:',
+            sizesClickedRef.current.length,
+          );
+        } else if (data.type === 'colorClick') {
+          // GOLD #10: Track color clicks with timestamp
+          const colorEntry = {color: data.color, timestamp: Date.now()};
+          colorsClickedRef.current = [...colorsClickedRef.current, colorEntry];
+          console.log(
+            '[MSG] Color clicked:',
+            data.color,
+            'Total:',
+            colorsClickedRef.current.length,
+          );
+        } else if (data.type === 'cartDetected') {
+          // GOLD: Cart detection with item count and total
+          console.log('[MSG] Cart detected:', {
+            itemCount: data.itemCount,
+            estimatedTotal: data.estimatedTotal,
+          });
 
-        // Deduplicate: skip if same cart detected within 10 seconds
-        const now = Date.now();
-        const lastDetection = lastCartDetectionRef.current;
-        if (
-          lastDetection &&
-          lastDetection.url === data.cartUrl &&
-          now - lastDetection.timestamp < 10000
-        ) {
-          console.log('[MSG] Skipping duplicate cart detection');
-          return;
+          // Deduplicate: skip if same cart detected within 10 seconds
+          const now = Date.now();
+          const lastDetection = lastCartDetectionRef.current;
+          if (
+            lastDetection &&
+            lastDetection.url === data.cartUrl &&
+            now - lastDetection.timestamp < 10000
+          ) {
+            console.log('[MSG] Skipping duplicate cart detection');
+            return;
+          }
+          lastCartDetectionRef.current = {url: data.cartUrl, timestamp: now};
+
+          // Record cart view event
+          useShoppingStore.getState().recordCartEvent({
+            type: 'cart_view',
+            timestamp: now,
+            cartUrl: data.cartUrl,
+            itemCount: data.itemCount,
+            cartValue: data.estimatedTotal,
+          });
+        } else if (data.type === 'purchaseComplete') {
+          // GOLD: Purchase completion detected on order confirmation page
+          console.log('[MSG] Purchase complete detected:', {
+            orderNumber: data.orderNumber,
+            totalAmount: data.totalAmount,
+            itemCount: data.itemCount,
+          });
+
+          // Deduplicate: skip if same purchase URL detected within 60 seconds
+          // (purchase confirmation pages often reload/re-render)
+          const now = Date.now();
+          const lastPurchase = lastPurchaseDetectionRef.current;
+          if (
+            lastPurchase &&
+            lastPurchase.url === data.purchaseUrl &&
+            now - lastPurchase.timestamp < 60000
+          ) {
+            console.log('[MSG] Skipping duplicate purchase detection');
+            return;
+          }
+          lastPurchaseDetectionRef.current = {
+            url: data.purchaseUrl,
+            timestamp: now,
+          };
+
+          // Record purchase completion event
+          useShoppingStore.getState().recordCartEvent({
+            type: 'checkout_complete',
+            timestamp: data.timestamp || Date.now(),
+            cartUrl: data.purchaseUrl,
+            itemCount: data.itemCount,
+            cartValue: data.totalAmount,
+          });
+        } else if (data.type === 'imageLongPress') {
+          // Handle image long-press - show save options
+          console.log('[MSG] Image long-pressed:', data.imageUrl);
+          setLongPressedImageUrl(data.imageUrl);
+          setShowImageSaveModal(true);
+          triggerHaptic('impactMedium');
+        } else if (data.type === 'passwordFormSubmit') {
+          // Handle password form submission - prompt to save
+          console.log(
+            '[MSG] Password form submitted:',
+            data.domain,
+            data.username,
+          );
+
+          // Check if we already have this password saved
+          getPasswordForDomain(data.domain).then(existingPassword => {
+            if (
+              existingPassword &&
+              existingPassword.username === data.username &&
+              existingPassword.password === data.password
+            ) {
+              // Already saved with same credentials, skip prompt
+              console.log('[MSG] Password already saved, skipping prompt');
+              return;
+            }
+
+            // Show save prompt
+            setPendingPasswordData({
+              domain: data.domain,
+              username: data.username,
+              password: data.password,
+            });
+            setShowPasswordSavePrompt(true);
+            triggerHaptic('impactLight');
+          });
         }
-        lastCartDetectionRef.current = {url: data.cartUrl, timestamp: now};
-
-        // Record cart view event
-        useShoppingStore.getState().recordCartEvent({
-          type: 'cart_view',
-          timestamp: now,
-          cartUrl: data.cartUrl,
-          itemCount: data.itemCount,
-          cartValue: data.estimatedTotal,
-        });
-      } else if (data.type === 'purchaseComplete') {
-        // GOLD: Purchase completion detected on order confirmation page
-        console.log('[MSG] Purchase complete detected:', {
-          orderNumber: data.orderNumber,
-          totalAmount: data.totalAmount,
-          itemCount: data.itemCount,
-        });
-
-        // Deduplicate: skip if same purchase URL detected within 60 seconds
-        // (purchase confirmation pages often reload/re-render)
-        const now = Date.now();
-        const lastPurchase = lastPurchaseDetectionRef.current;
-        if (
-          lastPurchase &&
-          lastPurchase.url === data.purchaseUrl &&
-          now - lastPurchase.timestamp < 60000
-        ) {
-          console.log('[MSG] Skipping duplicate purchase detection');
-          return;
-        }
-        lastPurchaseDetectionRef.current = {
-          url: data.purchaseUrl,
-          timestamp: now,
-        };
-
-        // Record purchase completion event
-        useShoppingStore.getState().recordCartEvent({
-          type: 'checkout_complete',
-          timestamp: data.timestamp || Date.now(),
-          cartUrl: data.purchaseUrl,
-          itemCount: data.itemCount,
-          cartValue: data.totalAmount,
-        });
-      } else if (data.type === 'imageLongPress') {
-        // Handle image long-press - show save options
-        console.log('[MSG] Image long-pressed:', data.imageUrl);
-        setLongPressedImageUrl(data.imageUrl);
-        setShowImageSaveModal(true);
-        triggerHaptic('impactMedium');
+      } catch (e) {
+        console.log('[MSG] Error parsing message:', e);
       }
-    } catch (e) {
-      console.log('[MSG] Error parsing message:', e);
-    }
-  }, []);
+    },
+    [getPasswordForDomain],
+  );
 
   // Track last scroll Y for nav bar hide/show
   const lastNavScrollY = useRef(0);
@@ -1698,7 +1936,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       width: TAB_CARD_WIDTH,
       height: TAB_CARD_HEIGHT,
       margin: 6,
-      borderRadius: 12,
+      borderRadius: 20,
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
       borderWidth: 2,
@@ -2945,6 +3183,144 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Password Save Prompt Modal */}
+      <Modal
+        visible={showPasswordSavePrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDismissPasswordPrompt}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20,
+          }}>
+          <View
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: 16,
+              padding: 20,
+              width: '100%',
+              maxWidth: 340,
+              shadowColor: '#000',
+              shadowOffset: {width: 0, height: 4},
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                marginBottom: 16,
+              }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.colors.primary + '20',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 12,
+                }}>
+                <MaterialIcons
+                  name="lock"
+                  size={22}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <View style={{flex: 1}}>
+                <Text
+                  style={{
+                    fontSize: 17,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                  }}>
+                  Save Password?
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: theme.colors.foreground3,
+                    marginTop: 2,
+                  }}>
+                  Securely stored in iOS Keychain
+                </Text>
+              </View>
+            </View>
+
+            {pendingPasswordData && (
+              <View
+                style={{
+                  backgroundColor: theme.colors.background,
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 16,
+                }}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: theme.colors.foreground3,
+                    marginBottom: 4,
+                  }}>
+                  {pendingPasswordData.domain}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: theme.colors.foreground,
+                    fontWeight: '500',
+                  }}>
+                  {pendingPasswordData.username}
+                </Text>
+              </View>
+            )}
+
+            <View style={{flexDirection: 'row', gap: 12}}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  backgroundColor: theme.colors.background,
+                  alignItems: 'center',
+                }}
+                onPress={handleDismissPasswordPrompt}>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                  }}>
+                  Not Now
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  backgroundColor: theme.colors.primary,
+                  alignItems: 'center',
+                }}
+                onPress={handleSavePassword}>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '600',
+                    color: theme.colors.background,
+                  }}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Save Menu Modal */}

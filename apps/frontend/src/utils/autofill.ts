@@ -3,33 +3,78 @@ import {SavedPassword, SavedAddress, SavedCard} from '../../../store/shoppingSto
 /**
  * Generate JavaScript to auto-fill password fields
  * Looks for login forms and injects username/password
+ * Handles multi-step logins by watching for dynamically added fields
  */
 export const generatePasswordAutofillScript = (
   password: SavedPassword,
 ) => `
 (function() {
-  const username = "${password.username}";
-  const password = "${password.password}";
+  const savedUsername = "${password.username}";
+  const savedPassword = "${password.password}";
 
-  // Find username/email field
-  const usernameField = document.querySelector(
-    'input[type="email"], input[type="text"][name*="user"], input[name*="email"], input[id*="user"], input[id*="email"]'
-  );
-  if (usernameField) {
-    usernameField.value = username;
-    usernameField.dispatchEvent(new Event('input', {bubbles: true}));
-    usernameField.dispatchEvent(new Event('change', {bubbles: true}));
+  function fillField(field, value) {
+    if (!field || field.value) return false;
+    field.value = value;
+    field.dispatchEvent(new Event('input', {bubbles: true}));
+    field.dispatchEvent(new Event('change', {bubbles: true}));
+    field.dispatchEvent(new Event('blur', {bubbles: true}));
+    // For React-based sites
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    nativeInputValueSetter.call(field, value);
+    field.dispatchEvent(new Event('input', {bubbles: true}));
+    return true;
   }
 
-  // Find password field
-  const passwordField = document.querySelector(
-    'input[type="password"]'
-  );
-  if (passwordField) {
-    passwordField.value = password;
-    passwordField.dispatchEvent(new Event('input', {bubbles: true}));
-    passwordField.dispatchEvent(new Event('change', {bubbles: true}));
+  function fillFields() {
+    // Username/email selectors - very broad to catch all sites
+    const usernameSelectors = [
+      'input[type="email"]',
+      'input[name="email"]',
+      'input[id="email"]',
+      'input[id="ap_email"]', // Amazon
+      'input[name="ap_email"]', // Amazon
+      'input[id="login-email"]',
+      'input[name="login"]',
+      'input[name="username"]',
+      'input[id="username"]',
+      'input[autocomplete="username"]',
+      'input[autocomplete="email"]',
+      'input[type="text"][name*="mail"]',
+      'input[type="text"][id*="mail"]',
+      'input[type="text"][name*="user"]',
+      'input[type="text"][id*="user"]'
+    ];
+
+    for (const sel of usernameSelectors) {
+      const field = document.querySelector(sel + ':not([readonly]):not([disabled])');
+      if (field && !field.value) {
+        fillField(field, savedUsername);
+        console.log('[StylIQ] Filled username:', sel);
+        break;
+      }
+    }
+
+    // Password selectors
+    const pwdField = document.querySelector('input[type="password"]:not([readonly]):not([disabled])');
+    if (pwdField && !pwdField.value) {
+      fillField(pwdField, savedPassword);
+      console.log('[StylIQ] Filled password');
+    }
   }
+
+  // Try immediately and with delays
+  fillFields();
+  setTimeout(fillFields, 100);
+  setTimeout(fillFields, 300);
+  setTimeout(fillFields, 600);
+  setTimeout(fillFields, 1000);
+  setTimeout(fillFields, 2000);
+  setTimeout(fillFields, 4000);
+
+  // Watch for DOM changes
+  const observer = new MutationObserver(fillFields);
+  observer.observe(document.body, { childList: true, subtree: true });
+  setTimeout(function() { observer.disconnect(); }, 15000);
 })();
 `;
 
