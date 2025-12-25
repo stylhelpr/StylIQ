@@ -1,8 +1,14 @@
 // src/auth/jwt.strategy.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -22,6 +28,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    return payload; // payload.sub will contain auth0|... user ID
+    const auth0Sub = payload.sub;
+    if (!auth0Sub) {
+      throw new UnauthorizedException('Invalid token: missing subject');
+    }
+
+    // Resolve Auth0 sub → internal UUID (ONCE, at auth boundary)
+    const result = await pool.query(
+      'SELECT id FROM users WHERE auth0_sub = $1',
+      [auth0Sub],
+    );
+
+    if (result.rows.length === 0) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Return ONLY internal UUID - Auth0 sub never leaves auth layer
+    return {
+      userId: result.rows[0].id,
+    };
   }
 }

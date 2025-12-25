@@ -1249,7 +1249,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     addCommentMutation.mutate(
       {
         postId: activePostId,
-        userId,
         content: replyingTo
           ? `@${replyingTo.user} ${newComment.trim()}`
           : newComment.trim(),
@@ -1283,7 +1282,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       if (!userId) return;
       h('impactMedium');
       deleteCommentMutation.mutate(
-        {postId, commentId, userId},
+        {postId, commentId},
         {
           onSuccess: () => {
             refetchComments();

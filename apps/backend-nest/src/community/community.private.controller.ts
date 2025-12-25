@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
+import { AuthenticatedRequest } from '../auth/types/auth-user';
 import { CommunityService } from './community.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -28,8 +29,8 @@ export class CommunityPrivateController {
 
   @Post('posts')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  async createPost(@Request() req: any, @Body() dto: CreatePostDto) {
-    const actorId = req.user.sub;
+  async createPost(@Request() req: AuthenticatedRequest, @Body() dto: CreatePostDto) {
+    const actorId = req.user.userId;
     return this.service.createPost(actorId, {
       imageUrl: dto.imageUrl,
       topImage: dto.topImage,
@@ -44,28 +45,28 @@ export class CommunityPrivateController {
 
   @Get('posts/saved')
   async getSavedPosts(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('limit') limit: string = '20',
     @Query('offset') offset: string = '0',
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.getSavedPosts(actorId, parseInt(limit), parseInt(offset));
   }
 
   @Delete('posts/:id')
-  async deletePost(@Request() req: any, @Param('id') postId: string) {
-    const actorId = req.user.sub;
+  async deletePost(@Request() req: AuthenticatedRequest, @Param('id') postId: string) {
+    const actorId = req.user.userId;
     return this.service.deletePost(postId, actorId);
   }
 
   @Patch('posts/:id')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   async updatePost(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') postId: string,
     @Body() dto: UpdatePostDto,
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.updatePost(postId, actorId, dto.name, dto.description, dto.tags);
   }
 
@@ -73,15 +74,15 @@ export class CommunityPrivateController {
 
   @Post('posts/:id/like')
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async likePost(@Request() req: any, @Param('id') postId: string) {
-    const actorId = req.user.sub;
+  async likePost(@Request() req: AuthenticatedRequest, @Param('id') postId: string) {
+    const actorId = req.user.userId;
     return this.service.likePost(postId, actorId);
   }
 
   @Delete('posts/:id/like')
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async unlikePost(@Request() req: any, @Param('id') postId: string) {
-    const actorId = req.user.sub;
+  async unlikePost(@Request() req: AuthenticatedRequest, @Param('id') postId: string) {
+    const actorId = req.user.userId;
     return this.service.unlikePost(postId, actorId);
   }
 
@@ -90,11 +91,11 @@ export class CommunityPrivateController {
   @Post('posts/:id/comments')
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   async addComment(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') postId: string,
     @Body() dto: CreateCommentDto,
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.addComment(
       postId,
       actorId,
@@ -106,24 +107,24 @@ export class CommunityPrivateController {
 
   @Delete('posts/:postId/comments/:commentId')
   async deleteComment(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('commentId') commentId: string,
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.deleteComment(commentId, actorId);
   }
 
   @Post('comments/:id/like')
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async likeComment(@Request() req: any, @Param('id') commentId: string) {
-    const actorId = req.user.sub;
+  async likeComment(@Request() req: AuthenticatedRequest, @Param('id') commentId: string) {
+    const actorId = req.user.userId;
     return this.service.likeComment(commentId, actorId);
   }
 
   @Delete('comments/:id/like')
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async unlikeComment(@Request() req: any, @Param('id') commentId: string) {
-    const actorId = req.user.sub;
+  async unlikeComment(@Request() req: AuthenticatedRequest, @Param('id') commentId: string) {
+    const actorId = req.user.userId;
     return this.service.unlikeComment(commentId, actorId);
   }
 
@@ -131,15 +132,15 @@ export class CommunityPrivateController {
 
   @Post('users/:id/follow')
   @Throttle({ default: { limit: 30, ttl: 60000 } })
-  async followUser(@Request() req: any, @Param('id') followingId: string) {
-    const actorId = req.user.sub;
+  async followUser(@Request() req: AuthenticatedRequest, @Param('id') followingId: string) {
+    const actorId = req.user.userId;
     return this.service.followUser(actorId, followingId);
   }
 
   @Delete('users/:id/follow')
   @Throttle({ default: { limit: 30, ttl: 60000 } })
-  async unfollowUser(@Request() req: any, @Param('id') followingId: string) {
-    const actorId = req.user.sub;
+  async unfollowUser(@Request() req: AuthenticatedRequest, @Param('id') followingId: string) {
+    const actorId = req.user.userId;
     return this.service.unfollowUser(actorId, followingId);
   }
 
@@ -147,15 +148,15 @@ export class CommunityPrivateController {
 
   @Post('posts/:id/save')
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async savePost(@Request() req: any, @Param('id') postId: string) {
-    const actorId = req.user.sub;
+  async savePost(@Request() req: AuthenticatedRequest, @Param('id') postId: string) {
+    const actorId = req.user.userId;
     return this.service.savePost(actorId, postId);
   }
 
   @Delete('posts/:id/save')
   @Throttle({ default: { limit: 60, ttl: 60000 } })
-  async unsavePost(@Request() req: any, @Param('id') postId: string) {
-    const actorId = req.user.sub;
+  async unsavePost(@Request() req: AuthenticatedRequest, @Param('id') postId: string) {
+    const actorId = req.user.userId;
     return this.service.unsavePost(actorId, postId);
   }
 
@@ -163,27 +164,27 @@ export class CommunityPrivateController {
 
   @Post('users/:id/block')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
-  async blockUser(@Request() req: any, @Param('id') blockedId: string) {
-    const actorId = req.user.sub;
+  async blockUser(@Request() req: AuthenticatedRequest, @Param('id') blockedId: string) {
+    const actorId = req.user.userId;
     return this.service.blockUser(actorId, blockedId);
   }
 
   @Delete('users/:id/block')
-  async unblockUser(@Request() req: any, @Param('id') blockedId: string) {
-    const actorId = req.user.sub;
+  async unblockUser(@Request() req: AuthenticatedRequest, @Param('id') blockedId: string) {
+    const actorId = req.user.userId;
     return this.service.unblockUser(actorId, blockedId);
   }
 
   @Post('users/:id/mute')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
-  async muteUser(@Request() req: any, @Param('id') mutedId: string) {
-    const actorId = req.user.sub;
+  async muteUser(@Request() req: AuthenticatedRequest, @Param('id') mutedId: string) {
+    const actorId = req.user.userId;
     return this.service.muteUser(actorId, mutedId);
   }
 
   @Delete('users/:id/mute')
-  async unmuteUser(@Request() req: any, @Param('id') mutedId: string) {
-    const actorId = req.user.sub;
+  async unmuteUser(@Request() req: AuthenticatedRequest, @Param('id') mutedId: string) {
+    const actorId = req.user.userId;
     return this.service.unmuteUser(actorId, mutedId);
   }
 
@@ -192,11 +193,11 @@ export class CommunityPrivateController {
   @Post('posts/:id/report')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async reportPost(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') postId: string,
     @Body() dto: ReportPostDto,
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.reportPost(actorId, postId, dto.reason);
   }
 
@@ -205,10 +206,10 @@ export class CommunityPrivateController {
   @Post('posts/:id/view')
   @Throttle({ default: { limit: 120, ttl: 60000 } })
   async trackView(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') postId: string,
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.trackView(postId, actorId);
   }
 
@@ -217,11 +218,11 @@ export class CommunityPrivateController {
   @Patch('users/:id/bio')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   async updateBio(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') userId: string,
     @Body() dto: UpdateBioDto,
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.updateBio(userId, dto.bio, actorId);
   }
 
@@ -229,18 +230,18 @@ export class CommunityPrivateController {
 
   @Get('users/suggestions')
   async getSuggestedUsers(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('limit') limit: string = '10',
   ) {
-    const actorId = req.user.sub;
+    const actorId = req.user.userId;
     return this.service.getSuggestedUsers(actorId, parseInt(limit));
   }
 
   // ==================== GDPR DELETE ====================
 
   @Delete('users/:id/data')
-  async deleteUserData(@Request() req: any, @Param('id') userId: string) {
-    const actorId = req.user.sub;
+  async deleteUserData(@Request() req: AuthenticatedRequest, @Param('id') userId: string) {
+    const actorId = req.user.userId;
     return this.service.deleteUserData(userId, actorId);
   }
 }

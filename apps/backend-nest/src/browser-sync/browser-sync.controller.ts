@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AuthenticatedRequest } from '../auth/types/auth-user';
 import { BrowserSyncService } from './browser-sync.service';
 import {
   SyncRequestDto,
@@ -29,8 +30,8 @@ export class BrowserSyncController {
    * Use on first app open or when local data is missing
    */
   @Get()
-  async getFullSync(@Request() req): Promise<SyncResponseDto> {
-    const userId = req.user.sub;
+  async getFullSync(@Request() req: AuthenticatedRequest): Promise<SyncResponseDto> {
+    const userId = req.user.userId;
     return this.browserSyncService.getFullSync(userId);
   }
 
@@ -41,10 +42,10 @@ export class BrowserSyncController {
    */
   @Get('delta')
   async getDeltaSync(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query('since') since: string,
   ): Promise<SyncResponseDto> {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     const timestamp = parseInt(since, 10);
 
     if (isNaN(timestamp) || timestamp < 0) {
@@ -64,10 +65,10 @@ export class BrowserSyncController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async pushSync(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() data: SyncRequestDto,
   ): Promise<SyncResponseDto> {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     return this.browserSyncService.pushSync(userId, data);
   }
 
@@ -79,10 +80,10 @@ export class BrowserSyncController {
   @Delete('bookmark')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteBookmark(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body() data: DeleteBookmarkDto,
   ): Promise<void> {
-    const userId = req.user.sub;
+    const userId = req.user.userId;
     await this.browserSyncService.deleteBookmarkByUrl(userId, data.url);
   }
 
@@ -92,8 +93,8 @@ export class BrowserSyncController {
    */
   @Delete('history')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async clearHistory(@Request() req): Promise<void> {
-    const userId = req.user.sub;
+  async clearHistory(@Request() req: AuthenticatedRequest): Promise<void> {
+    const userId = req.user.userId;
     await this.browserSyncService.clearHistory(userId);
   }
 }

@@ -869,67 +869,73 @@ export class CommunityService {
     replyToUser?: string,
   ) {
     console.log('📥 addComment called:', { postId, userId, content, replyToId, replyToUser });
-    const res = await pool.query(
-      `INSERT INTO post_comments (post_id, user_id, content, reply_to_id, reply_to_user)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [postId, userId, content, replyToId || null, replyToUser || null],
-    );
 
-    await pool.query(
-      `UPDATE community_posts
-       SET comments_count = (SELECT COUNT(*) FROM post_comments WHERE post_id = $1)
-       WHERE id = $1`,
-      [postId],
-    );
-
-    // Get user info for response
-    const userRes = await pool.query(
-      `SELECT
-        COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
-        COALESCE(first_name, 'Someone') as commenter_first_name,
-        COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1) as user_avatar
-      FROM users WHERE id = $1::uuid`,
-      [userId],
-    );
-
-    // Send push notification to post owner
     try {
-      const postOwner = await pool.query(
-        `SELECT user_id FROM community_posts WHERE id = $1`,
+      const res = await pool.query(
+        `INSERT INTO post_comments (post_id, user_id, content, reply_to_id, reply_to_user)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, post_id, user_id, content, reply_to_id, reply_to_user, likes_count, created_at`,
+        [postId, userId, content, replyToId || null, replyToUser || null],
+      );
+      console.log('📥 Comment inserted:', res.rows[0]);
+
+      await pool.query(
+        `UPDATE community_posts
+         SET comments_count = (SELECT COUNT(*) FROM post_comments WHERE post_id = $1)
+         WHERE id = $1`,
         [postId],
       );
-      const ownerId = postOwner.rows[0]?.user_id;
-      const commenterName = userRes.rows[0]?.commenter_first_name || 'Someone';
-      if (ownerId && ownerId !== userId) {
-        const title = `${commenterName} commented`;
-        const message = content;
-        this.notifications.sendPushToUser(ownerId, title, message, {
-          type: 'comment',
-          postId,
-          category: 'message',
-        });
-        // Save to inbox for Community Messages section
-        this.notifications.saveInboxItem({
-          id: `comment-${postId}-${userId}-${Date.now()}`,
-          user_id: ownerId,
-          title,
-          message,
-          timestamp: new Date().toISOString(),
-          category: 'message',
-          data: { type: 'comment', postId, commenterId: userId },
-        });
-      }
-    } catch (e) {
-      console.error('Failed to send comment notification:', e);
-    }
 
-    return {
-      ...res.rows[0],
-      user_name: userRes.rows[0]?.user_name || 'You',
-      user_avatar: userRes.rows[0]?.user_avatar || `https://i.pravatar.cc/100?u=${userId}`,
-      is_liked_by_me: false,
-    };
+      // Get user info for response
+      const userRes = await pool.query(
+        `SELECT
+          COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
+          COALESCE(first_name, 'Someone') as commenter_first_name,
+          COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1) as user_avatar
+        FROM users WHERE id = $1::uuid`,
+        [userId],
+      );
+
+      // Send push notification to post owner (non-blocking)
+      this.sendCommentNotification(postId, userId, content, userRes.rows[0]?.commenter_first_name).catch(e => {
+        console.error('Failed to send comment notification:', e);
+      });
+
+      return {
+        ...res.rows[0],
+        user_name: userRes.rows[0]?.user_name || 'You',
+        user_avatar: userRes.rows[0]?.user_avatar || `https://i.pravatar.cc/100?u=${userId}`,
+        is_liked_by_me: false,
+      };
+    } catch (error: any) {
+      console.error('❌ addComment error:', error.message, error.stack);
+      throw error;
+    }
+  }
+
+  private async sendCommentNotification(postId: string, commenterId: string, content: string, commenterName?: string) {
+    const postOwner = await pool.query(
+      `SELECT user_id FROM community_posts WHERE id = $1`,
+      [postId],
+    );
+    const ownerId = postOwner.rows[0]?.user_id;
+    if (ownerId && ownerId !== commenterId) {
+      const title = `${commenterName || 'Someone'} commented`;
+      this.notifications.sendPushToUser(ownerId, title, content, {
+        type: 'comment',
+        postId,
+        category: 'message',
+      });
+      this.notifications.saveInboxItem({
+        id: `comment-${postId}-${commenterId}-${Date.now()}`,
+        user_id: ownerId,
+        title,
+        message: content,
+        timestamp: new Date().toISOString(),
+        category: 'message',
+        data: { type: 'comment', postId, commenterId },
+      });
+    }
   }
 
   async deleteComment(commentId: string, userId: string) {
