@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, Body, Query } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Patch, Param, Body, Query } from '@nestjs/common';
 import { RecreatedLookService } from './recreated-look.service';
 
 @Controller('users/:userId/recreated-looks')
@@ -24,6 +24,15 @@ export class RecreatedLookController {
       userId,
       parseInt(limit, 10),
     );
+  }
+
+  @Patch(':lookId')
+  async updateRecreatedLook(
+    @Param('userId') userId: string,
+    @Param('lookId') lookId: string,
+    @Body() body: { name?: string },
+  ) {
+    return this.recreatedLookService.updateRecreatedLook(userId, lookId, body.name);
   }
 
   @Delete(':lookId')

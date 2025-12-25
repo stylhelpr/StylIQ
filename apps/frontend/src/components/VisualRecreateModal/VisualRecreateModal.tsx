@@ -10,6 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -52,7 +53,9 @@ interface VisualRecreateModalProps {
   results?: any[]; // Legacy support
   source_image?: string;
   lookId?: string;
+  lookName?: string;
   onDelete?: (id: string) => void;
+  onRename?: (id: string, newName: string) => void;
 }
 
 // Category icons mapping
@@ -294,13 +297,17 @@ export default function VisualRecreateModal({
   results,
   source_image,
   lookId,
+  lookName,
   onDelete,
+  onRename,
 }: VisualRecreateModalProps) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const [shopUrl, setShopUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState(lookName || '');
 
   const uuidContext = useUUID();
   const userId =
@@ -341,6 +348,26 @@ export default function VisualRecreateModal({
       ],
     );
   }, [lookId, onDelete, onClose]);
+
+  const handleRename = useCallback(() => {
+    if (!lookId || !newName.trim()) {
+      return;
+    }
+    ReactNativeHapticFeedback.trigger('impactLight');
+    onRename?.(lookId, newName.trim());
+    setIsRenaming(false);
+  }, [lookId, newName, onRename]);
+
+  const handleStartRename = useCallback(() => {
+    setNewName(lookName || '');
+    setIsRenaming(true);
+    ReactNativeHapticFeedback.trigger('impactLight');
+  }, [lookName]);
+
+  const handleCancelRename = useCallback(() => {
+    setIsRenaming(false);
+    setNewName(lookName || '');
+  }, [lookName]);
 
   const handleSave = useCallback(async () => {
     if (!userId || !pieces || pieces.length === 0) {
@@ -455,7 +482,7 @@ export default function VisualRecreateModal({
                     borderRadius: 20,
                     paddingHorizontal: 12,
                     paddingVertical: 6,
-                    flexDirection: 'col',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     opacity: saving ? 0.6 : 1,
                   }}>
@@ -491,6 +518,34 @@ export default function VisualRecreateModal({
                 </TouchableOpacity>
               )}
 
+              {/* Rename Button */}
+              {lookId && onRename && (
+                <TouchableOpacity
+                  onPress={handleStartRename}
+                  style={{
+                    backgroundColor: theme.colors.surface2,
+                    borderRadius: 20,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}>
+                  <MaterialIcons
+                    name="edit"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <Text
+                    style={{
+                      color: theme.colors.primary,
+                      fontSize: 12,
+                      fontWeight: '600',
+                    }}>
+                    Rename
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               {/* Delete Button */}
               {lookId && onDelete && (
                 <TouchableOpacity
@@ -500,7 +555,7 @@ export default function VisualRecreateModal({
                     borderRadius: 20,
                     paddingHorizontal: 12,
                     paddingVertical: 6,
-                    flexDirection: 'col',
+                    flexDirection: 'column',
                     alignItems: 'center',
                   }}>
                   <MaterialIcons
@@ -510,12 +565,9 @@ export default function VisualRecreateModal({
                   />
                   <Text
                     style={{
-                      color: saved
-                        ? theme.colors.background
-                        : theme.colors.error,
+                      color: theme.colors.error,
                       fontSize: 12,
                       fontWeight: '600',
-                      marginLeft: 4,
                     }}>
                     Delete
                   </Text>
@@ -560,15 +612,77 @@ export default function VisualRecreateModal({
                   }}
                   resizeMode="cover"
                 />
-                <Text
-                  style={{
-                    color: theme.colors.muted,
-                    fontSize: 11,
-                    marginTop: 8,
-                    textAlign: 'center',
-                  }}>
-                  Your inspiration look
-                </Text>
+                {/* Look Name Display or Edit */}
+                {isRenaming ? (
+                  <View style={{marginTop: 12, width: '100%', paddingHorizontal: 20}}>
+                    <TextInput
+                      value={newName}
+                      onChangeText={setNewName}
+                      placeholder="Enter look name"
+                      placeholderTextColor={theme.colors.muted}
+                      autoFocus
+                      style={{
+                        backgroundColor: theme.colors.surface2,
+                        borderRadius: tokens.borderRadius.md,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        color: theme.colors.foreground,
+                        fontSize: 14,
+                        textAlign: 'center',
+                      }}
+                    />
+                    <View style={{flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 12}}>
+                      <TouchableOpacity
+                        onPress={handleCancelRename}
+                        style={{
+                          backgroundColor: theme.colors.surface2,
+                          borderRadius: 20,
+                          paddingHorizontal: 20,
+                          paddingVertical: 8,
+                        }}>
+                        <Text style={{color: theme.colors.foreground, fontSize: 14, fontWeight: '600'}}>
+                          Cancel
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleRename}
+                        style={{
+                          backgroundColor: theme.colors.primary,
+                          borderRadius: 20,
+                          paddingHorizontal: 20,
+                          paddingVertical: 8,
+                        }}>
+                        <Text style={{color: theme.colors.background, fontSize: 14, fontWeight: '600'}}>
+                          Save
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    {lookName && (
+                      <Text
+                        style={{
+                          color: theme.colors.foreground,
+                          fontSize: 14,
+                          fontWeight: '600',
+                          marginTop: 10,
+                          textAlign: 'center',
+                        }}>
+                        {lookName}
+                      </Text>
+                    )}
+                    <Text
+                      style={{
+                        color: theme.colors.muted,
+                        fontSize: 11,
+                        marginTop: lookName ? 4 : 8,
+                        textAlign: 'center',
+                      }}>
+                      Your inspiration look
+                    </Text>
+                  </>
+                )}
               </View>
             )}
 

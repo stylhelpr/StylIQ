@@ -595,6 +595,8 @@ export default function SavedOutfitsScreen() {
         .map(t => t.trim().toLowerCase())
         .filter(t => t.length > 0);
 
+      const outfitName =
+        communityDescription || pendingShareOutfit.name || 'My outfit';
       await createPostMutation.mutateAsync({
         userId,
         topImage:
@@ -605,8 +607,8 @@ export default function SavedOutfitsScreen() {
         shoesImage:
           pendingShareOutfit.shoes?.image ||
           pendingShareOutfit.shoes?.image_url,
-        description:
-          communityDescription || pendingShareOutfit.name || 'My outfit',
+        name: outfitName,
+        description: '',
         tags: tagsArray.length > 0 ? tagsArray : ['outfit'],
       });
 

@@ -364,6 +364,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     results?: any[];
     source_image?: string;
     lookId?: string;
+    lookName?: string;
   } | null>(null);
   const [showSavedLooks, setShowSavedLooks] = useState(true);
 
@@ -765,6 +766,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     results?: any[];
     source_image?: string;
     lookId?: string;
+    lookName?: string;
   }) => {
     if (!data) return;
     console.log('👗 Opening Visual Recreate Modal with:', data);
@@ -1042,6 +1044,35 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     }
   };
 
+  // Rename recreated look
+  const handleRenameRecreatedLook = async (lookId: string, newName: string) => {
+    ReactNativeHapticFeedback.trigger('impactMedium');
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/users/${userId}/recreated-looks/${lookId}`,
+        {
+          method: 'PATCH',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({name: newName}),
+        },
+      );
+      const result = await response.json();
+      if (result.success) {
+        // Update local state
+        setRecentCreations(prev =>
+          prev.map(c => (c.id === lookId ? {...c, name: newName} : c)),
+        );
+        // Also update the modal data
+        setVisualRecreateData(prev =>
+          prev ? {...prev, lookName: newName} : prev,
+        );
+        ReactNativeHapticFeedback.trigger('notificationSuccess');
+      }
+    } catch (err) {
+      console.error('Failed to rename recreated look:', err);
+    }
+  };
+
   // Delete saved look (Inspired Looks)
   const handleDeleteSavedLook = async (lookId: string) => {
     ReactNativeHapticFeedback.trigger('impactMedium');
@@ -1172,6 +1203,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
       await Share.share({
         url: compositeUri,
         message: `Check out this look "${
+          vibe.name ||
           (vibe.tags && vibe.tags.slice(0, 3).join(', ')) ||
           vibe.query_used ||
           'AI Look'
@@ -1344,7 +1376,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     marginBottom: 8,
                   }}
                   numberOfLines={1}>
-                  {(shareVibe.tags && shareVibe.tags.slice(0, 3).join(', ')) ||
+                  {shareVibe.name ||
+                    (shareVibe.tags && shareVibe.tags.slice(0, 3).join(', ')) ||
                     shareVibe.query_used ||
                     'AI Look'}
                 </Text>
@@ -2154,6 +2187,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     pieces: c.generated_outfit.pieces,
                                     source_image: c.source_image_url,
                                     lookId: c.id,
+                                    lookName: c.name,
                                   });
                                 } else {
                                   // Legacy format - use RecreatedLookScreen
@@ -2429,7 +2463,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             results={visualRecreateData?.results}
             source_image={visualRecreateData?.source_image}
             lookId={visualRecreateData?.lookId}
+            lookName={visualRecreateData?.lookName}
             onDelete={handleDeleteRecreatedLook}
+            onRename={handleRenameRecreatedLook}
           />
           {showRecreatedModal && recreatedData && (
             <Modal
