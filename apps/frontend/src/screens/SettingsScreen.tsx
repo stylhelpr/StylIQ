@@ -76,7 +76,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const {prefs, setVisible} = useHomePrefs();
 
   // Shopping Analytics Tracking Consent
-  const {trackingConsent, setTrackingConsent, clearAllShoppingData, deleteAllAnalyticsData} =
+  const {trackingConsent, setTrackingConsent, deleteAllAnalyticsData} =
     useShoppingStore();
 
   const safeGoBack = () => {
@@ -322,38 +322,20 @@ export default function SettingsScreen({navigate, goBack}: Props) {
     );
   };
 
-  // Clear all shopping/browser data
-  const handleClearShoppingData = () => {
+  // GDPR/CCPA: Delete analytics and tracking data ONLY (not account, identity, or user content)
+  const handleGDPRDeleteAnalyticsData = () => {
     Alert.alert(
-      'Clear Shopping Data?',
-      'This will permanently delete all your browsing history, bookmarks, collections, spending tracker data, and recent searches. This cannot be undone.',
+      'Delete Tracking Data',
+      'This will delete your shopping analytics, browsing history, search history, and personalization data. Your account, saved items, and preferences are not affected.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Clear All',
+          text: 'Delete Tracking Data',
           style: 'destructive',
           onPress: () => {
-            clearAllShoppingData();
-            Alert.alert('Shopping data cleared successfully.');
-          },
-        },
-      ],
-    );
-  };
-
-  // GDPR Article 17: Delete analytics data only (preserves bookmarks/collections)
-  const handleDeleteAnalyticsData = () => {
-    Alert.alert(
-      'Delete Analytics Data (GDPR)',
-      'This will permanently delete your browsing history, search history, and tracking data. Your bookmarks and collections will be preserved. This cannot be undone.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete Analytics',
-          style: 'destructive',
-          onPress: () => {
+            // Delete analytics/tracking data only
             deleteAllAnalyticsData();
-            Alert.alert('Success', 'Your analytics data has been deleted per GDPR Article 17.');
+            Alert.alert('Done', 'Your tracking and analytics data has been deleted.');
           },
         },
       ],
@@ -706,20 +688,11 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 </Text>
 
                 <AppleTouchFeedback
-                  onPress={handleClearShoppingData}
-                  hapticStyle="impactLight"
-                  style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-                  <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
-                    Clear Shopping Data
-                  </Text>
-                </AppleTouchFeedback>
-
-                <AppleTouchFeedback
-                  onPress={handleDeleteAnalyticsData}
+                  onPress={handleGDPRDeleteAnalyticsData}
                   hapticStyle="impactLight"
                   style={[globalStyles.menuSection1]}>
-                  <Text style={[globalStyles.menuLabel, {color: colors.foreground}]}>
-                    Delete My Data (GDPR)
+                  <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
+                    Delete Tracking Data
                   </Text>
                 </AppleTouchFeedback>
               </View>
