@@ -1,11 +1,9 @@
 // utils/auth.ts
 import Auth0, {Credentials} from 'react-native-auth0';
-import {API_BASE_URL} from '../config/api';
 
-const AUTH0_DOMAIN =
-  process.env.AUTH0_DOMAIN || 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
-const AUTH0_CLIENT_ID =
-  process.env.AUTH0_CLIENT_ID || '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
+const AUTH0_DOMAIN = 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
+const AUTH0_CLIENT_ID = '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
+export const AUTH0_AUDIENCE = 'http://localhost:3001';
 
 // Auth0 instance without biometrics (for normal operations)
 const auth0 = new Auth0({
@@ -41,14 +39,14 @@ export async function getCredentials(): Promise<Credentials> {
 
 /**
  * Log in using Auth0 and save the returned credentials.
+ * Uses Authorization Code + PKCE (SDK default).
  */
 export const loginWithAuth0 = async (): Promise<void> => {
   const credentials = await auth0.webAuth.authorize({
-    scope: 'openid profile email',
-    audience: API_BASE_URL,
-    responseType: 'token id_token',
-    prompt: 'login', // <-- force account chooser
-  } as any);
+    scope: 'openid profile email offline_access',
+    audience: AUTH0_AUDIENCE,
+    additionalParameters: {prompt: 'login'},
+  });
 
   await saveAuthCredentials(credentials);
 };

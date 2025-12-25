@@ -8,7 +8,7 @@ import UIKit
  * SECURITY CONTROLS:
  * - Only allows HTTP/HTTPS schemes
  * - Blocks internal/localhost/private IP ranges (SSRF prevention)
- * - Validates Content-Type is image/*
+ * - Validates Content-Type is image/
  * - Enforces 50MB size limit
  * - Uses ephemeral session (no cookie/cache persistence)
  */

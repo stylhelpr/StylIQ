@@ -21,6 +21,16 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- Auth0 OAuth callback handler -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data
+                android:scheme="com.stylhelpr.stylhelpr.auth0"
+                android:host="dev-xeaol4s5b2zd7wuz.us.auth0.com"
+                android:pathPrefix="/android/com.styliq/callback" />
+        </intent-filter>
       </activity>
     </application>
 </manifest>
