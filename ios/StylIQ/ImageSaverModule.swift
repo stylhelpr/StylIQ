@@ -173,24 +173,39 @@ class ImageSaverModule: NSObject {
         return
       }
 
-      // Step 9: Try to create UIImage from data
-      guard let image = UIImage(data: data) else {
+      // Step 9: Validate image data is valid (without decompressing)
+      guard UIImage(data: data) != nil else {
         rejecter("INVALID_IMAGE", "Could not create image from downloaded data - may be corrupted or not a valid image format", nil)
         return
       }
 
-      // Step 10: Save to Photos library
+      // Step 10: Save original data to Photos library (preserves full quality)
       PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
         guard status == .authorized || status == .limited else {
           rejecter("PERMISSION_DENIED", "Photo library access denied", nil)
           return
         }
 
+        // Write original data to temp file to preserve quality
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".jpg")
+
+        do {
+          try data.write(to: tempFile)
+        } catch {
+          rejecter("TEMP_FILE_ERROR", "Failed to write temporary file", error)
+          return
+        }
+
         PHPhotoLibrary.shared().performChanges({
-          PHAssetChangeRequest.creationRequestForAsset(from: image)
+          // Use creationRequestForAssetFromImage(atFileURL:) to preserve original quality
+          PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: tempFile)
         }) { success, error in
+          // Clean up temp file
+          try? FileManager.default.removeItem(at: tempFile)
+
           if success {
-            print("[ImageSaver] Successfully saved image to Photos")
+            print("[ImageSaver] Successfully saved image to Photos (full quality)")
             resolver(true)
           } else {
             rejecter("SAVE_ERROR", error?.localizedDescription ?? "Failed to save image to Photos library", error)

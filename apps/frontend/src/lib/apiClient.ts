@@ -13,7 +13,7 @@ export const apiClient = axios.create({
 // Flag to prevent multiple simultaneous logout triggers
 let isLoggingOut = false;
 
-// Logout handler - clears all auth state
+// Logout handler - clears auth state but preserves device-level analytics
 const handleAuthExpired = async () => {
   if (isLoggingOut) return;
   isLoggingOut = true;
@@ -30,8 +30,13 @@ const handleAuthExpired = async () => {
     // Clear React Query cache
     queryClient.clear();
 
-    // Clear persisted Zustand stores from AsyncStorage
-    await AsyncStorage.removeItem('shopping-store');
+    // NOTE: We intentionally do NOT clear shopping-store here
+    // Shopping analytics (browsing history, product interactions, etc.)
+    // are device-level behavior data that should persist across logout/login
+    // The resetForLogout() function in shoppingStore handles clearing
+    // only user-specific data (bookmarks, collections, etc.)
+
+    // Clear measurement store (body measurements are user-specific)
     await AsyncStorage.removeItem('measurement-store');
   } catch (e) {
     console.error('Error during auth cleanup:', e);

@@ -54,8 +54,10 @@ interface VisualRecreateModalProps {
   source_image?: string;
   lookId?: string;
   lookName?: string;
+  tags?: string[];
   onDelete?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
+  onSave?: () => void; // Callback to refresh list after save
 }
 
 // Category icons mapping
@@ -298,8 +300,10 @@ export default function VisualRecreateModal({
   source_image,
   lookId,
   lookName,
+  tags: initialTags,
   onDelete,
   onRename,
+  onSave,
 }: VisualRecreateModalProps) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -379,10 +383,12 @@ export default function VisualRecreateModal({
     ReactNativeHapticFeedback.trigger('impactLight');
 
     try {
-      // Extract tags from pieces for easier searching later
-      const tags = pieces
-        .flatMap(p => [p.category, p.item, p.color, p.material, p.style])
-        .filter(Boolean) as string[];
+      // Use passed tags or extract from pieces
+      const tags = initialTags?.length
+        ? initialTags
+        : (pieces
+            .flatMap(p => [p.category, p.item, p.color, p.material, p.style])
+            .filter(Boolean) as string[]);
 
       const response = await fetch(
         `${API_BASE_URL}/users/${userId}/recreated-looks`,
@@ -393,6 +399,7 @@ export default function VisualRecreateModal({
             source_image_url: source_image,
             generated_outfit: {pieces},
             tags,
+            name: lookName || null,
           }),
         },
       );
@@ -403,6 +410,9 @@ export default function VisualRecreateModal({
 
       setSaved(true);
       ReactNativeHapticFeedback.trigger('notificationSuccess');
+
+      // Refresh the recreated looks list
+      onSave?.();
     } catch (err: any) {
       console.error('Failed to save recreated look:', err);
       Alert.alert('Save Failed', 'Could not save this look. Please try again.');
@@ -410,7 +420,7 @@ export default function VisualRecreateModal({
     } finally {
       setSaving(false);
     }
-  }, [userId, pieces, source_image]);
+  }, [userId, pieces, source_image, lookName, initialTags, onSave]);
 
   if (!visible) return null;
 

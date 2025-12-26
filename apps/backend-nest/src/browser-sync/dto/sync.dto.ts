@@ -283,6 +283,35 @@ export class CollectionDto {
   updatedAt?: number;
 }
 
+// Browser Tab DTOs
+export class BrowserTabDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  id?: string;
+
+  @IsString()
+  @MaxLength(2048)
+  url: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  title?: string;
+
+  @IsOptional()
+  @IsNumber()
+  position?: number;
+
+  @IsOptional()
+  @IsNumber()
+  createdAt?: number;
+
+  @IsOptional()
+  @IsNumber()
+  updatedAt?: number;
+}
+
 // Sync request/response DTOs
 export class SyncRequestDto {
   @IsOptional()
@@ -319,6 +348,18 @@ export class SyncRequestDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => BrowserTabDto)
+  tabs?: BrowserTabDto[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  currentTabId?: string;
+
+  @IsOptional()
+  @IsArray()
   @ArrayMaxSize(200)
   @IsString({ each: true })
   deletedBookmarkUrls?: string[];
@@ -349,6 +390,8 @@ export class SyncResponseDto {
   history: HistoryEntryDto[];
   collections: CollectionDto[];
   cartHistory: CartHistoryDto[];
+  tabs: BrowserTabDto[];
+  currentTabId: string | null;
   serverTimestamp: number;
   limits: {
     maxBookmarks: number;

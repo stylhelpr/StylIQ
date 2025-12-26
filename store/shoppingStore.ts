@@ -50,6 +50,7 @@ export type BrowserTab = {
   title: string;
   favicon?: string;
   screenshot?: string; // Base64 encoded screenshot for tab preview
+  needsScreenshotRefresh?: boolean; // True for tabs restored from server that need screenshots captured
   bodyMeasurementsAtTime?: any; // GOLD #8: their measurements when viewing
   sessionId?: string;
 };
@@ -1004,9 +1005,38 @@ export const useShoppingStore = create<ShoppingState>()(
         bookmarks: ShoppingItem[];
         history: BrowsingHistory[];
         collections: Collection[];
+        cartHistory?: {
+          cartUrl: string;
+          events: CartEvent[];
+          abandoned: boolean;
+          timeToCheckout?: number;
+        }[];
+        tabs?: {
+          id: string;
+          url: string;
+          title: string;
+          screenshot?: string;
+        }[];
+        currentTabId?: string | null;
         serverTimestamp: number;
       }) => {
+        console.log('[ShoppingStore] applyServerSync called with:', {
+          bookmarks: data.bookmarks?.length || 0,
+          history: data.history?.length || 0,
+          collections: data.collections?.length || 0,
+          cartHistory: data.cartHistory?.length || 0,
+          tabs: data.tabs?.length || 0,
+        });
+
         set(state => {
+          console.log('[ShoppingStore] Current local state:', {
+            bookmarks: state.bookmarks?.length || 0,
+            history: state.history?.length || 0,
+            collections: state.collections?.length || 0,
+            cartHistory: state.cartHistory?.length || 0,
+            _historyClearedAt: state._historyClearedAt,
+          });
+
           // Merge server data with local data, preferring local for conflicts
           // This prevents wiping local data when server is empty
 
@@ -1048,10 +1078,46 @@ export const useShoppingStore = create<ShoppingState>()(
             ...state.collections.filter(c => !serverCollectionIds.has(c.id)),
           ];
 
+          // Merge cart history - use cartUrl as key, prefer server version if exists
+          const serverCartUrls = new Set((data.cartHistory || []).map(c => c.cartUrl));
+          const mergedCartHistory = [
+            ...(data.cartHistory || []),
+            ...state.cartHistory.filter(c => !serverCartUrls.has(c.cartUrl)),
+          ].slice(0, 100);
+
+          // For tabs, prefer server state if provided (tabs are replaced, not merged)
+          // Only apply tabs from server if there are any - otherwise keep local tabs
+          // Preserve local screenshots since they're not stored in the database
+          const hasSyncedTabs = data.tabs && data.tabs.length > 0;
+          const localTabsById = new Map(state.tabs.map(t => [t.id, t]));
+          const mergedTabs = hasSyncedTabs
+            ? (data.tabs || []).map(serverTab => {
+                const localTab = localTabsById.get(serverTab.id);
+                return {
+                  ...serverTab,
+                  screenshot: localTab?.screenshot || serverTab.screenshot,
+                };
+              })
+            : state.tabs;
+          const mergedCurrentTabId = hasSyncedTabs
+            ? data.currentTabId || (data.tabs?.[0]?.id) || null
+            : state.currentTabId;
+
+          console.log('[ShoppingStore] Merged result:', {
+            bookmarks: mergedBookmarks.length,
+            history: mergedHistory.length,
+            collections: mergedCollections.length,
+            cartHistory: mergedCartHistory.length,
+            tabs: mergedTabs.length,
+          });
+
           return {
             bookmarks: mergedBookmarks,
             history: mergedHistory,
             collections: mergedCollections,
+            cartHistory: mergedCartHistory,
+            tabs: mergedTabs,
+            currentTabId: mergedCurrentTabId,
             lastSyncTimestamp: data.serverTimestamp,
             syncError: null,
           };
@@ -1075,14 +1141,15 @@ export const useShoppingStore = create<ShoppingState>()(
         return get().pendingChanges;
       },
 
-      // Reset all user data on logout
+      // Reset all user data on logout (analytics are user-specific and stored in DB)
       resetForLogout: () => {
+        console.log('[ShoppingStore] resetForLogout called - clearing all data');
+        // NOTE: tabs and currentTabId are NOT cleared on logout
+        // Tabs (with screenshots) persist until manually closed or Clear Shopping Analytics is pressed
         set({
           bookmarks: [],
           history: [],
           collections: [],
-          tabs: [],
-          currentTabId: null,
           recentSearches: [],
           favoriteShops: [],
           productInteractions: [],
@@ -1094,7 +1161,7 @@ export const useShoppingStore = create<ShoppingState>()(
           // CRITICAL: Clear sensitive data (passwords now in iOS Keychain)
           savedAddresses: [],
           savedCards: [],
-          // Clear sync state
+          // Clear sync state so next login triggers full sync
           lastSyncTimestamp: null,
           isSyncing: false,
           syncError: null,
@@ -1106,7 +1173,12 @@ export const useShoppingStore = create<ShoppingState>()(
             deletedCollectionIds: [],
             cartHistory: [],
           },
+          // Clear time-to-action log
+          timeToActionLog: [],
+          // IMPORTANT: Clear _historyClearedAt so history can be restored from server on next login
+          _historyClearedAt: null,
         });
+        console.log('[ShoppingStore] resetForLogout complete');
       },
 
       clearCartHistory: () => {
@@ -1254,6 +1326,9 @@ export const useShoppingStore = create<ShoppingState>()(
           cartHistory: [],
           recentSearches: [],
           timeToActionLog: [],
+          // Clear open tabs
+          tabs: [],
+          currentTabId: null,
           // Reset analytics session (generate fresh ID on next interaction)
           currentSessionId: null,
           // Clear AI personalization derived from analytics

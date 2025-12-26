@@ -61,12 +61,17 @@ export default function AllSavedLooksModal({
   openPersonalizedShopModal?: (data: {
     recreated_outfit?: any[];
     purchases?: any[];
+    suggested_purchases?: any[];
     styleNote?: string;
+    style_note?: string;
   }) => void;
   openVisualRecreateModal?: (data: {
     pieces?: any[];
     results?: any[];
     source_image?: string;
+    lookId?: string;
+    lookName?: string;
+    tags?: string[];
   }) => void;
   onSaveLook?: () => void;
   onRecreate?: () => void;
@@ -297,38 +302,20 @@ export default function AllSavedLooksModal({
       console.log('👗 Outfit recreate result:', data);
       console.log('👗 Found', data?.pieces?.length, 'outfit pieces');
 
-      // Save recreated look to database
-      if (userId) {
-        try {
-          await fetch(`${API_BASE_URL}/users/${userId}/recreated-looks`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-              source_image_url: look.image_url,
-              generated_outfit: data,
-              tags: look.tags || [],
-              name: look.name || null,
-            }),
-          });
-        } catch (saveErr) {
-          console.error('Failed to save recreated look:', saveErr);
-        }
-      }
-
+      // Don't auto-save here - let user save from VisualRecreateModal if they want
       setSuccessState('recreate');
 
-      // Open visual recreate modal with categorized results
+      // Open visual recreate modal with results - user can save from there
       if (openVisualRecreateModal) {
         openVisualRecreateModal({
           pieces: data.pieces || [],
           source_image: look.image_url,
+          lookName: look.name,
+          tags: look.tags || [],
         });
       } else {
         console.warn('⚠️ No visual recreate modal handler provided.');
       }
-
-      // Refresh recreated looks list
-      onRecreate?.();
 
       onClose();
       setTimeout(() => setSuccessState(null), 1200);

@@ -12,12 +12,15 @@ import {useShallow} from 'zustand/react/shallow';
  * - Syncs on initial mount (app open)
  * - Syncs when app returns to foreground
  * - Pushes pending changes when app goes to background
+ * - Re-syncs when user logs in (after logout)
  */
 export function useBrowserSync() {
   const {getCredentials, user} = useAuth0();
   const appState = useRef(AppState.currentState);
   const hasInitialSynced = useRef(false);
   const initialSyncSucceeded = useRef(false);
+  // Track the last user ID to detect login changes
+  const lastUserId = useRef<string | null>(null);
 
   // Use useShallow to prevent infinite re-renders from object selector
   const {
@@ -52,7 +55,9 @@ export function useBrowserSync() {
         return false;
       }
 
+      console.log('[useBrowserSync] Performing sync...');
       const result = await browserSyncService.sync(credentials.accessToken);
+      console.log('[useBrowserSync] Sync result:', result);
       initialSyncSucceeded.current = result;
       return result;
     } catch (error) {
@@ -82,8 +87,37 @@ export function useBrowserSync() {
     }
   }, [_hasHydrated, performSync]);
 
-  // Retry sync when user becomes available (after login)
-  // The `user` object from Auth0 changes when credentials are saved
+  // Re-sync when user changes (login after logout, or different user)
+  // This is the KEY fix: detect when user.sub changes and force a fresh sync
+  useEffect(() => {
+    const currentUserId = user?.sub || null;
+    const previousUserId = lastUserId.current;
+
+    // User logged in (was null, now has value) or switched users
+    if (currentUserId && currentUserId !== previousUserId) {
+      console.log('[useBrowserSync] User changed, triggering sync:', {
+        from: previousUserId,
+        to: currentUserId,
+      });
+      lastUserId.current = currentUserId;
+      // Reset sync state and force a fresh sync
+      initialSyncSucceeded.current = false;
+
+      // Add a small delay to ensure Auth0 credentials are fully available
+      // This prevents race conditions where we try to sync before token is ready
+      setTimeout(() => {
+        console.log('[useBrowserSync] Delayed sync after user change');
+        performSync();
+      }, 500);
+    } else if (!currentUserId && previousUserId) {
+      // User logged out - reset tracking
+      console.log('[useBrowserSync] User logged out, resetting sync state');
+      lastUserId.current = null;
+      initialSyncSucceeded.current = false;
+    }
+  }, [user?.sub, performSync]);
+
+  // Retry sync when user becomes available (after login) - fallback
   useEffect(() => {
     if (user && hasInitialSynced.current && !initialSyncSucceeded.current) {
       performSync();

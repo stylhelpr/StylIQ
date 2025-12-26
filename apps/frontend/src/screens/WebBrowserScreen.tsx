@@ -3029,15 +3029,23 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                     );
                     if (response.ok) {
                       triggerHaptic('notificationSuccess');
+                      Alert.alert('Saved', 'Image saved to Inspired Looks');
                     } else {
+                      const errorText = await response.text();
+                      console.log('Save to Inspired Looks failed:', response.status, errorText);
                       triggerHaptic('notificationError');
+                      Alert.alert('Error', 'Failed to save image. Please try again.');
                     }
                   } catch (error) {
                     console.log('Save to Inspired Looks error:', error);
                     triggerHaptic('notificationError');
+                    Alert.alert('Error', 'Network error. Please check your connection.');
                   }
                 } else {
                   setShowImageSaveModal(false);
+                  if (!userId) {
+                    Alert.alert('Sign In Required', 'Please sign in to save to Inspired Looks.');
+                  }
                 }
               }}>
               <View style={styles.saveMenuItemIcon}>

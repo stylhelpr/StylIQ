@@ -82,12 +82,31 @@ type ServerCartHistory = {
   updatedAt: number;
 };
 
+type ServerTab = {
+  id: string;
+  url: string;
+  title?: string;
+  position?: number;
+  createdAt?: number;
+  updatedAt?: number;
+};
+
 type ServerSyncResponse = {
   bookmarks: ServerBookmark[];
   history: ServerHistory[];
   collections: ServerCollection[];
   cartHistory: ServerCartHistory[];
+  tabs: ServerTab[];
+  currentTabId: string | null;
   serverTimestamp: number;
+};
+
+// Local tab type (matches store structure)
+type LocalTab = {
+  id: string;
+  url: string;
+  title: string;
+  screenshot?: string;
 };
 
 type SyncResponse = {
@@ -95,6 +114,8 @@ type SyncResponse = {
   history: BrowsingHistory[];
   collections: Collection[];
   cartHistory: LocalCartHistory[];
+  tabs: LocalTab[];
+  currentTabId: string | null;
   serverTimestamp: number;
 };
 
@@ -117,13 +138,66 @@ type ProductInteractionEvent = {
   timestamp: number;
 };
 
+// Server-format bookmark for sync request (different property names than local)
+type ServerBookmarkRequest = {
+  id?: string;
+  url: string;
+  title: string;
+  faviconUrl?: string;
+  price?: number;
+  priceHistory?: {price: number; date: number}[];
+  brand?: string;
+  category?: string;
+  source?: string;
+  sizesViewed?: string[];
+  colorsViewed?: string[];
+  viewCount?: number;
+  lastViewedAt?: number;
+  emotionAtSave?: string;
+  createdAt?: number;
+};
+
+// Server-format history for sync request
+type ServerHistoryRequest = {
+  url: string;
+  title: string;
+  source?: string;
+  dwellTimeSeconds?: number;
+  scrollDepthPercent?: number;
+  visitCount: number;
+  visitedAt: number;
+  brand?: string;
+  sessionId?: string;
+  isCartPage?: boolean;
+};
+
+// Server-format collection for sync request
+type ServerCollectionRequest = {
+  id?: string;
+  name: string;
+  description?: string;
+  color?: string;
+  bookmarkIds?: string[];
+  createdAt?: number;
+  updatedAt?: number;
+};
+
+// Server-format tab for sync request
+type ServerTabRequest = {
+  id: string;
+  url: string;
+  title?: string;
+};
+
 type SyncRequest = {
-  bookmarks: ShoppingItem[];
+  bookmarks: ServerBookmarkRequest[];
   deletedBookmarkUrls: string[];
-  history: BrowsingHistory[];
-  collections: Collection[];
+  history: ServerHistoryRequest[];
+  collections: ServerCollectionRequest[];
   deletedCollectionIds: string[];
   cartHistory: LocalCartHistory[];
+  tabs?: ServerTabRequest[];
+  currentTabId?: string | null;
   timeToActionEvents?: TimeToActionEvent[];
   productInteractions?: ProductInteractionEvent[];
 };
@@ -205,6 +279,16 @@ function mapServerCartHistoryToLocal(
   };
 }
 
+// Map server tab to local format
+function mapServerTabToLocal(tab: ServerTab): LocalTab {
+  return {
+    id: tab.id,
+    url: tab.url,
+    title: tab.title || 'New Tab',
+    // screenshot is not synced (too large), will be regenerated locally
+  };
+}
+
 // Transform full server response to local format
 function mapServerResponseToLocal(response: ServerSyncResponse): SyncResponse {
   const bookmarks = response.bookmarks.map(mapServerBookmarkToLocal);
@@ -215,14 +299,24 @@ function mapServerResponseToLocal(response: ServerSyncResponse): SyncResponse {
   const cartHistory = (response.cartHistory || []).map(
     mapServerCartHistoryToLocal,
   );
+  const tabs = (response.tabs || []).map(mapServerTabToLocal);
 
   return {
     bookmarks,
     history,
     collections,
     cartHistory,
+    tabs,
+    currentTabId: response.currentTabId,
     serverTimestamp: response.serverTimestamp,
   };
+}
+
+// Helper to check if string is a valid UUID
+function isValidUUID(str: string): boolean {
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
 }
 
 class BrowserSyncService {
@@ -238,6 +332,7 @@ class BrowserSyncService {
 
     try {
       store.setSyncState(true);
+      console.log('[BrowserSync] Starting full sync...');
 
       const response = await fetch(`${this.baseUrl}/browser-sync`, {
         method: 'GET',
@@ -252,17 +347,35 @@ class BrowserSyncService {
       }
 
       const serverData: ServerSyncResponse = await response.json();
+      console.log('[BrowserSync] Full sync response:', {
+        bookmarks: serverData.bookmarks?.length || 0,
+        history: serverData.history?.length || 0,
+        collections: serverData.collections?.length || 0,
+        cartHistory: serverData.cartHistory?.length || 0,
+      });
       const data = mapServerResponseToLocal(serverData);
 
       // Apply server data to local store
+      console.log('[BrowserSync] Applying server data to store...');
       store.applyServerSync(data);
       store.clearPendingChanges();
       store.setSyncState(false);
 
+      // Verify the data was applied
+      const storeAfter = useShoppingStore.getState();
+      console.log('[BrowserSync] Store after sync:', {
+        bookmarks: storeAfter.bookmarks?.length || 0,
+        history: storeAfter.history?.length || 0,
+        collections: storeAfter.collections?.length || 0,
+        cartHistory: storeAfter.cartHistory?.length || 0,
+      });
+
+      console.log('[BrowserSync] Full sync complete');
       return data;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown sync error';
+      console.error('[BrowserSync] Full sync error:', message);
       store.setSyncState(false, message);
       return null;
     }
@@ -332,7 +445,17 @@ class BrowserSyncService {
     const timeToActionLog = store.timeToActionLog || [];
     const productInteractions = store.productInteractions || [];
 
+    console.log('[BrowserSync] pushChanges called with:', {
+      bookmarks: pendingChanges.bookmarks.length,
+      deletedBookmarkUrls: pendingChanges.deletedBookmarkUrls.length,
+      history: pendingChanges.history.length,
+      collections: pendingChanges.collections.length,
+      cartHistory: pendingCartHistory.length,
+      tabs: store.tabs.length,
+    });
+
     // Check if there are any changes to push
+    // Note: We always push tabs if there are any, to keep them synced
     const hasChanges =
       pendingChanges.bookmarks.length > 0 ||
       pendingChanges.deletedBookmarkUrls.length > 0 ||
@@ -340,10 +463,12 @@ class BrowserSyncService {
       pendingChanges.collections.length > 0 ||
       pendingChanges.deletedCollectionIds.length > 0 ||
       pendingCartHistory.length > 0 ||
+      store.tabs.length > 0 ||
       timeToActionLog.length > 0 ||
       productInteractions.length > 0;
 
     if (!hasChanges) {
+      console.log('[BrowserSync] No changes to push');
       return null;
     }
 
@@ -351,31 +476,49 @@ class BrowserSyncService {
       store.setSyncState(true);
 
       // Map local data to server format
+      // Backend DTO uses different property names than frontend store
       const requestBody: SyncRequest = {
         bookmarks: pendingChanges.bookmarks.map(b => ({
-          ...b,
-          // Ensure required fields are present
-          id: b.id,
+          // Map frontend properties to backend DTO property names
+          // Only send properties that exist in BookmarkDto
+          id: b.id && isValidUUID(b.id) ? b.id : undefined, // Only send if valid UUID
           url: b.url,
           title: b.title,
+          faviconUrl: b.imageUrl, // imageUrl -> faviconUrl
+          price: b.price,
+          priceHistory: b.priceHistory,
+          brand: b.brand,
+          category: b.category,
           source: b.source,
-          addedAt: b.addedAt,
+          sizesViewed: b.sizesViewed,
+          colorsViewed: b.colorsViewed,
+          viewCount: b.viewCount,
+          lastViewedAt: b.lastViewed, // lastViewed -> lastViewedAt
+          emotionAtSave: b.emotionAtSave,
+          createdAt: b.addedAt, // addedAt -> createdAt
+          // NOTE: screenshot is NOT in DTO, don't send it
         })),
         deletedBookmarkUrls: pendingChanges.deletedBookmarkUrls,
         history: pendingChanges.history.map(h => ({
-          ...h,
+          // Map frontend properties to backend DTO property names
           url: h.url,
           title: h.title,
           source: h.source,
-          visitedAt: h.visitedAt,
+          dwellTimeSeconds: h.dwellTime, // dwellTime -> dwellTimeSeconds
+          scrollDepthPercent: h.scrollDepth, // scrollDepth -> scrollDepthPercent
           visitCount: h.visitCount,
+          visitedAt: h.visitedAt,
+          brand: h.brand,
+          sessionId: h.sessionId,
+          isCartPage: h.isCartPage,
         })),
         collections: pendingChanges.collections.map(c => ({
-          ...c,
-          id: c.id,
+          // Map frontend properties to backend DTO property names
+          id: c.id && isValidUUID(c.id) ? c.id : undefined,
           name: c.name,
-          items: c.items,
+          description: c.description,
           color: c.color,
+          bookmarkIds: c.items?.map(item => item.id), // items -> bookmarkIds (array of IDs)
           createdAt: c.createdAt,
           updatedAt: c.updatedAt,
         })),
@@ -386,6 +529,14 @@ class BrowserSyncService {
           abandoned: ch.abandoned,
           timeToCheckout: ch.timeToCheckout,
         })),
+        // Sync tabs - always send current tab state
+        tabs: store.tabs.map(t => ({
+          id: t.id,
+          url: t.url,
+          title: t.title,
+          // NOTE: screenshot is NOT synced (too large)
+        })),
+        currentTabId: store.currentTabId,
         // GOLD: Time-to-action events
         timeToActionEvents: timeToActionLog.map(e => ({
           sessionId: store.currentSessionId || undefined,
@@ -407,6 +558,7 @@ class BrowserSyncService {
         ),
       };
 
+      console.log('[BrowserSync] Pushing to server...');
       const response = await fetch(`${this.baseUrl}/browser-sync`, {
         method: 'POST',
         headers: {
@@ -417,9 +569,12 @@ class BrowserSyncService {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[BrowserSync] Push failed:', response.status, errorText);
         throw new Error(`Push sync failed: ${response.status}`);
       }
 
+      console.log('[BrowserSync] Push successful');
       const serverData: ServerSyncResponse = await response.json();
       const data = mapServerResponseToLocal(serverData);
 
@@ -436,6 +591,7 @@ class BrowserSyncService {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown sync error';
+      console.error('[BrowserSync] Push error:', message);
       store.setSyncState(false, message);
       return null;
     }
@@ -461,6 +617,12 @@ class BrowserSyncService {
         store.history.length === 0 &&
         store.collections.length === 0;
 
+      console.log('[BrowserSync] Sync decision:', {
+        lastSyncTimestamp: store.lastSyncTimestamp,
+        localDataEmpty,
+        willDoFullSync: !store.lastSyncTimestamp || localDataEmpty,
+      });
+
       if (!store.lastSyncTimestamp || localDataEmpty) {
         await this.fullSync(accessToken);
       } else {
@@ -468,7 +630,8 @@ class BrowserSyncService {
       }
 
       return true;
-    } catch {
+    } catch (error) {
+      console.error('[BrowserSync] Sync failed:', error);
       return false;
     }
   }

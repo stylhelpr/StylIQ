@@ -365,6 +365,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     source_image?: string;
     lookId?: string;
     lookName?: string;
+    tags?: string[];
   } | null>(null);
   const [showSavedLooks, setShowSavedLooks] = useState(true);
 
@@ -767,6 +768,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     source_image?: string;
     lookId?: string;
     lookName?: string;
+    tags?: string[];
   }) => {
     if (!data) return;
     console.log('👗 Opening Visual Recreate Modal with:', data);
@@ -1117,8 +1119,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
         [];
 
       // If we have outfit items, use them; otherwise use single image
+      // Note: userId is extracted from JWT token on backend, not sent in body
       const postData: any = {
-        userId,
         name:
           communityName ||
           pendingShareVibe.name ||
@@ -2464,8 +2466,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             source_image={visualRecreateData?.source_image}
             lookId={visualRecreateData?.lookId}
             lookName={visualRecreateData?.lookName}
+            tags={visualRecreateData?.tags}
             onDelete={handleDeleteRecreatedLook}
             onRename={handleRenameRecreatedLook}
+            onSave={loadRecentCreations}
           />
           {showRecreatedModal && recreatedData && (
             <Modal

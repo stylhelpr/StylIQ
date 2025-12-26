@@ -6,6 +6,7 @@ import {
   CollectionDto,
   CartHistoryDto,
   CartEventDto,
+  BrowserTabDto,
   SyncRequestDto,
   SyncResponseDto,
   TimeToActionDto,
@@ -75,7 +76,7 @@ export class BrowserSyncService {
     const limits = await this.getUserLimits(userId);
     const counts = await this.getCurrentCounts(userId);
 
-    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
+    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult, tabsResult, tabStateResult] =
       await Promise.all([
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
@@ -117,6 +118,18 @@ export class BrowserSyncService {
          LIMIT 100`,
           [userId],
         ),
+        this.db.query(
+          `SELECT tab_id, url, title, position, created_at, updated_at
+         FROM browser_tabs
+         WHERE user_id = $1
+         ORDER BY position ASC
+         LIMIT 50`,
+          [userId],
+        ),
+        this.db.query(
+          `SELECT current_tab_id FROM browser_tab_state WHERE user_id = $1`,
+          [userId],
+        ),
       ]);
 
     // Fetch cart events for each cart history entry
@@ -127,6 +140,8 @@ export class BrowserSyncService {
       history: historyResult.rows.map(this.mapHistoryFromDb),
       collections: collectionsResult.rows.map(this.mapCollectionFromDb),
       cartHistory,
+      tabs: tabsResult.rows.map(this.mapTabFromDb),
+      currentTabId: tabStateResult.rows[0]?.current_tab_id || null,
       serverTimestamp: Date.now(),
       limits: {
         maxBookmarks: limits.maxBookmarks,
@@ -147,7 +162,7 @@ export class BrowserSyncService {
     const counts = await this.getCurrentCounts(userId);
     const sinceDate = new Date(lastSyncTimestamp);
 
-    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
+    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult, tabsResult, tabStateResult] =
       await Promise.all([
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
@@ -186,6 +201,19 @@ export class BrowserSyncService {
          ORDER BY updated_at DESC`,
           [userId, sinceDate],
         ),
+        // For tabs, always return all tabs (they're replaced as a set)
+        this.db.query(
+          `SELECT tab_id, url, title, position, created_at, updated_at
+         FROM browser_tabs
+         WHERE user_id = $1
+         ORDER BY position ASC
+         LIMIT 50`,
+          [userId],
+        ),
+        this.db.query(
+          `SELECT current_tab_id FROM browser_tab_state WHERE user_id = $1`,
+          [userId],
+        ),
       ]);
 
     // Fetch cart events for each cart history entry
@@ -196,6 +224,8 @@ export class BrowserSyncService {
       history: historyResult.rows.map(this.mapHistoryFromDb),
       collections: collectionsResult.rows.map(this.mapCollectionFromDb),
       cartHistory,
+      tabs: tabsResult.rows.map(this.mapTabFromDb),
+      currentTabId: tabStateResult.rows[0]?.current_tab_id || null,
       serverTimestamp: Date.now(),
       limits: {
         maxBookmarks: limits.maxBookmarks,
@@ -248,6 +278,11 @@ export class BrowserSyncService {
 
     if (data.cartHistory?.length) {
       await this.upsertCartHistory(userId, data.cartHistory);
+    }
+
+    // Sync tabs - replace all tabs with client state
+    if (data.tabs !== undefined) {
+      await this.replaceTabs(userId, data.tabs || [], data.currentTabId || null);
     }
 
     // GOLD: Insert time-to-action events
@@ -324,7 +359,18 @@ export class BrowserSyncService {
          (user_id, url, title, source, dwell_time_seconds, scroll_depth_percent, visit_count, visited_at, brand,
           session_id, is_cart_page, body_measurements_at_time)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-         ON CONFLICT DO NOTHING`,
+         ON CONFLICT (user_id, url)
+         DO UPDATE SET
+           title = COALESCE(EXCLUDED.title, browser_history.title),
+           source = COALESCE(EXCLUDED.source, browser_history.source),
+           dwell_time_seconds = GREATEST(EXCLUDED.dwell_time_seconds, browser_history.dwell_time_seconds),
+           scroll_depth_percent = GREATEST(EXCLUDED.scroll_depth_percent, browser_history.scroll_depth_percent),
+           visit_count = GREATEST(EXCLUDED.visit_count, browser_history.visit_count),
+           visited_at = GREATEST(EXCLUDED.visited_at, browser_history.visited_at),
+           brand = COALESCE(EXCLUDED.brand, browser_history.brand),
+           session_id = COALESCE(EXCLUDED.session_id, browser_history.session_id),
+           is_cart_page = COALESCE(EXCLUDED.is_cart_page, browser_history.is_cart_page),
+           body_measurements_at_time = COALESCE(EXCLUDED.body_measurements_at_time, browser_history.body_measurements_at_time)`,
         [
           userId,
           entry.url,
@@ -483,6 +529,58 @@ export class BrowserSyncService {
       createdAt: new Date(row.created_at).getTime(),
       updatedAt: new Date(row.updated_at).getTime(),
     };
+  }
+
+  private mapTabFromDb(row: any): BrowserTabDto {
+    return {
+      id: row.tab_id,
+      url: row.url,
+      title: row.title,
+      position: row.position,
+      createdAt: new Date(row.created_at).getTime(),
+      updatedAt: new Date(row.updated_at).getTime(),
+    };
+  }
+
+  // Replace all tabs for a user (full sync approach for tabs)
+  private async replaceTabs(
+    userId: string,
+    tabs: BrowserTabDto[],
+    currentTabId: string | null,
+  ): Promise<void> {
+    // Delete all existing tabs for this user
+    await this.db.query('DELETE FROM browser_tabs WHERE user_id = $1', [userId]);
+
+    // Deduplicate tabs by tab_id (keep first occurrence)
+    const seenTabIds = new Set<string>();
+    const uniqueTabs = tabs.filter(tab => {
+      if (!tab.id || seenTabIds.has(tab.id)) {
+        return false;
+      }
+      seenTabIds.add(tab.id);
+      return true;
+    });
+
+    // Insert new tabs with ON CONFLICT to handle any remaining edge cases
+    for (let i = 0; i < uniqueTabs.length; i++) {
+      const tab = uniqueTabs[i];
+      await this.db.query(
+        `INSERT INTO browser_tabs (user_id, tab_id, url, title, position)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (user_id, tab_id)
+         DO UPDATE SET url = EXCLUDED.url, title = EXCLUDED.title, position = EXCLUDED.position, updated_at = now()`,
+        [userId, tab.id, tab.url, tab.title || 'New Tab', i],
+      );
+    }
+
+    // Update current tab state
+    await this.db.query(
+      `INSERT INTO browser_tab_state (user_id, current_tab_id)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id)
+       DO UPDATE SET current_tab_id = EXCLUDED.current_tab_id, updated_at = now()`,
+      [userId, currentTabId],
+    );
   }
 
   // Upsert cart history with events
