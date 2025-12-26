@@ -109,21 +109,31 @@ export class AnalyticsSyncService {
   }> {
     const API_BASE_URL = process.env.REACT_NATIVE_API_BASE_URL || 'http://localhost:3001';
 
-    const response = await fetch(
-      `${API_BASE_URL}/api/shopping/analytics/events/batch`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          events,
-          client_id: 'device-id-or-session-uuid', // TODO: get from device info
-          client_batch_timestamp_ms: Date.now(),
-        }),
-      },
-    );
+    // Use test endpoint in development (no auth required)
+    // Switch to production endpoint when deploying
+    const isDevelopment = __DEV__;
+    const endpoint = isDevelopment
+      ? `${API_BASE_URL}/api/shopping/analytics/test/events/batch`
+      : `${API_BASE_URL}/api/shopping/analytics/events/batch`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Only add auth token for production endpoint
+    if (!isDevelopment) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        events,
+        client_id: 'device-id-or-session-uuid',
+        client_batch_timestamp_ms: Date.now(),
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(
