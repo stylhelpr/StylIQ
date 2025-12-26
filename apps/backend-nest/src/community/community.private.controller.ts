@@ -240,6 +240,7 @@ export class CommunityPrivateController {
   // ==================== GDPR DELETE ====================
 
   @Delete('users/:id/data')
+  @Throttle({ default: { limit: 1, ttl: 60000 } }) // 1 request per minute
   async deleteUserData(@Request() req: AuthenticatedRequest, @Param('id') userId: string) {
     const actorId = req.user.userId;
     return this.service.deleteUserData(userId, actorId);

@@ -1244,7 +1244,8 @@ export const useShoppingStore = create<ShoppingState>()(
         return Math.round(sum / filtered.length);
       },
 
-      // GDPR: Delete all user analytics data
+      // Clear Shopping Analytics: Delete all local shopping behavior analytics
+      // Does NOT affect: auth, payments, wardrobe, community, bookmarks, collections
       deleteAllAnalyticsData: () => {
         set({
           // Clear all analytics-related data
@@ -1253,8 +1254,14 @@ export const useShoppingStore = create<ShoppingState>()(
           cartHistory: [],
           recentSearches: [],
           timeToActionLog: [],
+          // Reset analytics session (generate fresh ID on next interaction)
+          currentSessionId: null,
+          // Clear AI personalization derived from analytics
+          aiShoppingAssistantSuggestions: [],
+          hasAiSuggestionsLoaded: false,
+          aiSuggestionsCachedAt: null,
           // Keep bookmarks/collections as they're user-created content
-          // Clear sync state
+          // Clear pending analytics sync queue (do NOT flush first)
           pendingChanges: {
             bookmarks: [],
             deletedBookmarkUrls: [],
@@ -1263,10 +1270,10 @@ export const useShoppingStore = create<ShoppingState>()(
             deletedCollectionIds: [],
             cartHistory: [],
           },
+          // Mark history cleared to prevent server from restoring
           _historyClearedAt: Date.now(),
         });
-        // Note: In production, also call backend to delete server-side data
-        console.log('[GDPR] All analytics data deleted');
+        console.log('[Analytics] Shopping analytics cleared');
       },
 
       // Clear synced GOLD metrics after successful server sync

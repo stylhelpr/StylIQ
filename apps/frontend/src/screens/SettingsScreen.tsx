@@ -326,17 +326,31 @@ export default function SettingsScreen({navigate, goBack}: Props) {
     );
   };
 
-  // LOCAL ONLY: Clear shopping analytics (non-destructive)
+  // LOCAL ONLY: Clear shopping analytics (non-destructive, with confirmation)
   const handleClearShoppingAnalytics = () => {
-    deleteAllAnalyticsData();
-    Alert.alert('Done', 'Shopping analytics have been cleared from this device.');
+    Alert.alert(
+      'Clear Shopping Analytics',
+      'This will erase your shopping behavior analytics on this device. Your account, wardrobe, and saved items will not be affected.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Clear Analytics',
+          style: 'destructive',
+          onPress: () => {
+            h('notificationSuccess');
+            deleteAllAnalyticsData();
+            Alert.alert('Done', 'Shopping analytics have been cleared.');
+          },
+        },
+      ],
+    );
   };
 
   // SERVER: Delete community activity (destructive, requires confirmation)
   const handleDeleteCommunityActivity = () => {
     Alert.alert(
       'Delete Community Activity',
-      'This will permanently delete your posts, comments, likes, follows, and view history from our servers. This action cannot be undone.',
+      'This will permanently delete your likes, follows, saved posts, and view history. Your comments will be anonymized. Your posts will remain but can be deleted individually. This cannot be undone.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -709,7 +723,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   onPress={handleClearShoppingAnalytics}
                   hapticStyle="impactLight"
                   style={[globalStyles.menuSection1]}>
-                  <Text style={[globalStyles.menuLabel, {color: colors.foreground}]}>
+                  <Text style={[globalStyles.menuLabel, {color: '#FF3B30'}]}>
                     Clear Shopping Analytics
                   </Text>
                 </AppleTouchFeedback>
@@ -742,7 +756,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                           color: theme.colors.foreground3,
                           marginTop: 4,
                         }}>
-                        Deletes your posts, comments, likes, follows, and view history. This cannot be undone.
+                        Deletes likes, follows, saved posts, and view history. Anonymizes comments. Posts remain.
                       </Text>
                     </View>
                   </AppleTouchFeedback>
