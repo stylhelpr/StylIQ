@@ -20,15 +20,19 @@ export class AnalyticsSyncService {
     authToken: string, // JWT from Auth0
     trackingConsent: 'accepted' | 'declined' | 'pending',
   ): Promise<{ accepted: number; duplicates: number; rejected: number }> {
+    console.log('[Analytics Sync] 🚀 SYNC STARTED', { trackingConsent, hasAuthToken: !!authToken });
+
     // ✅ CONSENT GATE: Don't sync if not accepted
     if (trackingConsent !== 'accepted') {
-      console.log('[Analytics Sync] Tracking not accepted, skipping sync');
+      console.log('[Analytics Sync] ❌ Tracking not accepted, skipping sync');
       return { accepted: 0, duplicates: 0, rejected: 0 };
     }
 
     const pendingEvents = analyticsQueue.getPendingEvents();
+    console.log('[Analytics Sync] 📦 Pending events:', pendingEvents.length);
+
     if (pendingEvents.length === 0) {
-      console.log('[Analytics Sync] No pending events');
+      console.log('[Analytics Sync] ⏭️ No pending events, skipping');
       return { accepted: 0, duplicates: 0, rejected: 0 };
     }
 
@@ -125,6 +129,8 @@ export class AnalyticsSyncService {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
+    console.log('[Analytics Sync] 📤 Sending', events.length, 'events to', isDevelopment ? 'TEST' : 'PROD', 'endpoint');
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
@@ -135,12 +141,18 @@ export class AnalyticsSyncService {
       }),
     });
 
+    console.log('[Analytics Sync] 📨 Response status:', response.status);
+
     if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Analytics Sync] ❌ HTTP error:', response.status, errText);
       throw new Error(
         `HTTP ${response.status}: ${response.statusText}`,
       );
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('[Analytics Sync] ✅ Response:', result);
+    return result;
   }
 }

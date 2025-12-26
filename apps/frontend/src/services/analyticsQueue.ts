@@ -67,8 +67,11 @@ export class AnalyticsQueueService {
       created_at: Date.now(),
     };
 
+    console.log('[AnalyticsQueue] 📥 Event queued:', queuedEvent.event_type, queuedEvent.client_event_id);
+
     this.events.push(queuedEvent);
     this.persist();
+    console.log('[AnalyticsQueue] 💾 Total events in queue:', this.events.length);
     return queuedEvent;
   }
 
