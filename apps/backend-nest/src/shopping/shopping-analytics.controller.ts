@@ -16,7 +16,7 @@ import {
 } from './dto/shopping-analytics.dto';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 
-@Controller('api/shopping/analytics')
+@Controller('shopping/analytics')
 @UseGuards(AuthGuard('jwt')) // JWT required: extracts user_id from token
 @UseGuards(ThrottlerGuard) // Rate limiting
 export class ShoppingAnalyticsController {
