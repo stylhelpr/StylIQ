@@ -66,6 +66,8 @@ export type CartEvent = {
 
 export type ProductInteraction = {
   id: string;
+  // ✅ FIX #3: IDEMPOTENCY - client_event_id for ON CONFLICT dedup
+  clientEventId?: string;
   productUrl: string;
   type: 'view' | 'add_to_cart' | 'bookmark';
   timestamp: number;
@@ -719,10 +721,18 @@ export const useShoppingStore = create<ShoppingState>()(
         type: 'view' | 'add_to_cart' | 'bookmark',
         bodyMeasurements?: any,
       ) => {
+        // ✅ FIX #1: CONSENT GATING - Do not capture without explicit opt-in
+        if (!get().isTrackingEnabled()) {
+          console.log('[Store] Product interaction blocked: tracking consent not accepted');
+          return;
+        }
+
         set(state => ({
           productInteractions: [
             {
               id: `interaction_${Date.now()}`,
+              // ✅ FIX #3: IDEMPOTENCY - Generate client_event_id for deduplication
+              clientEventId: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
               productUrl,
               type,
               timestamp: Date.now(),
@@ -737,6 +747,12 @@ export const useShoppingStore = create<ShoppingState>()(
       // GOLD: Cart Abandonment Tracking
       cartHistory: [],
       recordCartEvent: (event: CartEvent) => {
+        // ✅ FIX #1: CONSENT GATING - Do not capture without explicit opt-in
+        if (!get().isTrackingEnabled()) {
+          console.log('[Store] Cart event blocked: tracking consent not accepted');
+          return;
+        }
+
         set(state => {
           const cartUrl = event.cartUrl;
           let updatedHistory = [...state.cartHistory];

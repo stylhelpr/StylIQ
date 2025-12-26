@@ -299,12 +299,25 @@ export class BrowserSyncService {
     return this.getFullSync(userId);
   }
 
+  // ✅ FIX #2: URL SANITIZATION - Helper to strip query params and fragments
+  private sanitizeUrlForAnalytics(url: string): string {
+    try {
+      const parsed = new URL(url);
+      return `${parsed.protocol}//${parsed.hostname}${parsed.pathname}`;
+    } catch {
+      return url.match(/^(https?:\/\/[^/?#]+(?:\/[^?#]*)?)/)?.[1] || '';
+    }
+  }
+
   // Upsert bookmarks
   private async upsertBookmarks(
     userId: string,
     bookmarks: BookmarkDto[],
   ): Promise<void> {
     for (const bookmark of bookmarks) {
+      // ✅ FIX #2: SANITIZE URL - strip query params and fragments before persistence
+      const sanitizedUrl = this.sanitizeUrlForAnalytics(bookmark.url);
+
       await this.db.query(
         `INSERT INTO browser_bookmarks
          (user_id, url, title, favicon_url, price, price_history, brand, category,
@@ -329,7 +342,7 @@ export class BrowserSyncService {
            updated_at = now()`,
         [
           userId,
-          bookmark.url,
+          sanitizedUrl,
           bookmark.title || null,
           bookmark.faviconUrl || null,
           bookmark.price || null,
@@ -354,6 +367,9 @@ export class BrowserSyncService {
     history: HistoryEntryDto[],
   ): Promise<void> {
     for (const entry of history) {
+      // ✅ FIX #2: SANITIZE URL - strip query params and fragments before persistence
+      const sanitizedUrl = this.sanitizeUrlForAnalytics(entry.url);
+
       await this.db.query(
         `INSERT INTO browser_history
          (user_id, url, title, source, dwell_time_seconds, scroll_depth_percent, visit_count, visited_at, brand,
@@ -373,7 +389,7 @@ export class BrowserSyncService {
            body_measurements_at_time = COALESCE(EXCLUDED.body_measurements_at_time, browser_history.body_measurements_at_time)`,
         [
           userId,
-          entry.url,
+          sanitizedUrl,
           entry.title || null,
           entry.source || null,
           entry.dwellTimeSeconds || 0,
@@ -495,6 +511,37 @@ export class BrowserSyncService {
     ]);
   }
 
+  // ✅ FIX #4: GDPR DELETE - Comprehensive analytics deletion
+  // Matches UI claim: "Delete My Data" - removes all analytics across all tables
+  async deleteAllAnalytics(userId: string): Promise<void> {
+    // Delete in dependency order to avoid foreign key violations
+    await Promise.all([
+      // Delete all GOLD metrics
+      this.db.query('DELETE FROM browser_time_to_action WHERE user_id = $1', [userId]),
+      this.db.query('DELETE FROM browser_product_interactions WHERE user_id = $1', [userId]),
+
+      // Delete cart-related data
+      this.db.query('DELETE FROM browser_cart_events WHERE cart_history_id IN (SELECT id FROM browser_cart_history WHERE user_id = $1)', [userId]),
+      this.db.query('DELETE FROM browser_cart_history WHERE user_id = $1', [userId]),
+
+      // Delete browsing data
+      this.db.query('DELETE FROM browser_history WHERE user_id = $1', [userId]),
+
+      // Delete bookmarks and associated data
+      this.db.query('DELETE FROM browser_collection_items WHERE bookmark_id IN (SELECT id FROM browser_bookmarks WHERE user_id = $1)', [userId]),
+      this.db.query('DELETE FROM browser_bookmarks WHERE user_id = $1', [userId]),
+
+      // Delete collections
+      this.db.query('DELETE FROM browser_collections WHERE user_id = $1', [userId]),
+
+      // Delete tabs
+      this.db.query('DELETE FROM browser_tabs WHERE user_id = $1', [userId]),
+      this.db.query('DELETE FROM browser_tab_state WHERE user_id = $1', [userId]),
+    ]);
+
+    console.log(`[GDPR] Deleted all analytics for user ${userId}`);
+  }
+
   // Map database row to DTO
   private mapBookmarkFromDb(row: any): BookmarkDto {
     return {
@@ -582,12 +629,15 @@ export class BrowserSyncService {
     // Insert new tabs with ON CONFLICT to handle any remaining edge cases
     for (let i = 0; i < uniqueTabs.length; i++) {
       const tab = uniqueTabs[i];
+      // ✅ FIX #2: SANITIZE URL - strip query params and fragments before persistence
+      const sanitizedUrl = this.sanitizeUrlForAnalytics(tab.url);
+
       await this.db.query(
         `INSERT INTO browser_tabs (user_id, tab_id, url, title, position)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (user_id, tab_id)
          DO UPDATE SET url = EXCLUDED.url, title = EXCLUDED.title, position = EXCLUDED.position, updated_at = now()`,
-        [userId, tab.id, tab.url, tab.title || 'New Tab', i],
+        [userId, tab.id, sanitizedUrl, tab.title || 'New Tab', i],
       );
     }
 

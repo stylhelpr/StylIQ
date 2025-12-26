@@ -97,4 +97,17 @@ export class BrowserSyncController {
     const userId = req.user.userId;
     await this.browserSyncService.clearHistory(userId);
   }
+
+  /**
+   * ✅ FIX #4: GDPR DELETE - DELETE /browser-sync/analytics
+   * Comprehensive data deletion covering ALL analytics tables
+   * Clears: history, bookmarks, interactions, time_to_action, cart_history, collections, tabs, etc.
+   * Matches the UI claim: "Delete My Data"
+   */
+  @Delete('analytics')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAllAnalytics(@Request() req: AuthenticatedRequest): Promise<void> {
+    const userId = req.user.userId;
+    await this.browserSyncService.deleteAllAnalytics(userId);
+  }
 }

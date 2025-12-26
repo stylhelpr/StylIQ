@@ -416,6 +416,12 @@ export class DeleteBookmarkDto {
 
 // Time-to-Action DTO (GOLD metric persistence)
 export class TimeToActionDto {
+  // ✅ FIX #3: IDEMPOTENCY - client_event_id for deduplication
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientEventId?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(100)
@@ -439,6 +445,12 @@ export class TimeToActionDto {
 
 // Product Interaction DTO (GOLD metric persistence)
 export class ProductInteractionDto {
+  // ✅ FIX #3: IDEMPOTENCY - client_event_id for deduplication
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientEventId?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(100)

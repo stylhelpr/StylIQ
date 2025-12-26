@@ -122,6 +122,8 @@ type SyncResponse = {
 
 // GOLD: Time-to-action event for sync
 type TimeToActionEvent = {
+  // ✅ FIX #3: IDEMPOTENCY - client_event_id for deduplication
+  clientEventId?: string;
   sessionId?: string;
   productUrl: string;
   actionType: 'bookmark' | 'cart';
@@ -131,6 +133,8 @@ type TimeToActionEvent = {
 
 // GOLD: Product interaction for sync
 type ProductInteractionEvent = {
+  // ✅ FIX #3: IDEMPOTENCY - client_event_id for deduplication
+  clientEventId?: string;
   sessionId?: string;
   productUrl: string;
   interactionType: string;
@@ -320,6 +324,18 @@ function isValidUUID(str: string): boolean {
   return uuidRegex.test(str);
 }
 
+// ✅ FIX #2: URL SANITIZATION - Strip query params and fragments to prevent PII leakage
+function sanitizeUrlForAnalytics(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Return only scheme, host, and path (no ? or #)
+    return `${parsed.protocol}//${parsed.hostname}${parsed.pathname}`;
+  } catch {
+    // Fallback for invalid URLs: regex-based stripping
+    return url.match(/^(https?:\/\/[^/?#]+(?:\/[^?#]*)?)/)?.[1] || '';
+  }
+}
+
 class BrowserSyncService {
   // API_BASE_URL already includes /api suffix
   private baseUrl = API_BASE_URL || 'http://localhost:3001/api';
@@ -483,7 +499,8 @@ class BrowserSyncService {
           // Map frontend properties to backend DTO property names
           // Only send properties that exist in BookmarkDto
           id: b.id && isValidUUID(b.id) ? b.id : undefined, // Only send if valid UUID
-          url: b.url,
+          // ✅ FIX #2: SANITIZE URL - strip query params and fragments
+          url: sanitizeUrlForAnalytics(b.url),
           title: b.title,
           faviconUrl: b.imageUrl, // imageUrl -> faviconUrl
           price: b.price,
@@ -502,7 +519,8 @@ class BrowserSyncService {
         deletedBookmarkUrls: pendingChanges.deletedBookmarkUrls,
         history: pendingChanges.history.map(h => ({
           // Map frontend properties to backend DTO property names
-          url: h.url,
+          // ✅ FIX #2: SANITIZE URL - strip query params and fragments
+          url: sanitizeUrlForAnalytics(h.url),
           title: h.title,
           source: h.source,
           dwellTimeSeconds: h.dwellTime, // dwellTime -> dwellTimeSeconds
@@ -550,6 +568,8 @@ class BrowserSyncService {
         // GOLD: Product interactions
         productInteractions: productInteractions.map(
           (p: ProductInteraction) => ({
+            // ✅ FIX #3: IDEMPOTENCY - Include client_event_id for deduplication
+            clientEventId: p.clientEventId,
             sessionId: p.sessionId,
             productUrl: p.productUrl,
             interactionType: p.type,
