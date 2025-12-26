@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../context/ThemeContext';
 import {useShoppingStore} from '../../../../store/shoppingStore';
+import {shoppingAnalytics} from '../../../../store/shoppingAnalytics';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -33,6 +34,17 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [selectedBookmark, setSelectedBookmark] = useState<any>(null);
   const [isCreatingAlert, setIsCreatingAlert] = useState(false);
+
+  // Track page view on mount
+  useEffect(() => {
+    console.log('[Analytics] Shopping Bookmarks screen mounted');
+    shoppingAnalytics.recordPageVisitQueue(
+      'https://styliq.com/shopping/bookmarks',
+      'Shopping Bookmarks',
+      0,
+      0
+    );
+  }, []);
 
   const filteredBookmarks = bookmarks
     .filter(
