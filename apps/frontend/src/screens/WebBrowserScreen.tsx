@@ -2718,7 +2718,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 style={styles.bottomNavItem}
                 onPress={openTabsView}>
                 <View style={styles.tabsButtonNav}>
-                  <Text style={styles.tabsCountNav}>{tabs.length || 1}</Text>
+                  <Text style={styles.tabsCountNav}>{tabs.filter(t => t.url).length || 1}</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -2777,7 +2777,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 style={styles.bottomNavItem}
                 onPress={openTabsView}>
                 <View style={styles.tabsButtonNav}>
-                  <Text style={styles.tabsCountNav}>{tabs.length || 1}</Text>
+                  <Text style={styles.tabsCountNav}>{tabs.filter(t => t.url).length || 1}</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -2840,7 +2840,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   onPress={handleNewTab}>
                   <Text style={styles.tabsHeaderButtonText}>+</Text>
                 </TouchableOpacity> */}
-                <Text style={styles.tabsHeaderTitle}>{tabs.length} Tabs</Text>
+                <Text style={styles.tabsHeaderTitle}>{tabs.filter(t => t.url).length} Tabs</Text>
                 <TouchableOpacity
                   style={styles.tabsHeaderButton}
                   onPress={closeTabsView}>
@@ -2852,6 +2852,16 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             <ScrollView
               contentContainerStyle={styles.tabsGrid}
               scrollEnabled={draggingIndex === null}>
+              <TouchableOpacity
+                style={styles.newTabCard}
+                onPress={handleNewTab}>
+                <MaterialIcons
+                  name="add"
+                  size={32}
+                  color={theme.colors.foreground3}
+                />
+                <Text style={styles.newTabText}>New Tab</Text>
+              </TouchableOpacity>
               {tabs
                 .filter(tab => tab.url)
                 .map((tab, index) => {
@@ -2951,16 +2961,6 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                     </Animated.View>
                   );
                 })}
-              <TouchableOpacity
-                style={styles.newTabCard}
-                onPress={handleNewTab}>
-                <MaterialIcons
-                  name="add"
-                  size={2}
-                  color={theme.colors.foreground3}
-                />
-                <Text style={styles.newTabText}>New Tab</Text>
-              </TouchableOpacity>
             </ScrollView>
           </Animated.View>
         </TouchableOpacity>

@@ -1413,6 +1413,7 @@ export const useShoppingStore = create<ShoppingState>()(
         collections: state.collections,
         recentSearches: state.recentSearches,
         defaultShoppingSites: state.defaultShoppingSites,
+        quickShopSites: state.quickShopSites,
         tabs: state.tabs,
         currentTabId: state.currentTabId,
         productInteractions: state.productInteractions,

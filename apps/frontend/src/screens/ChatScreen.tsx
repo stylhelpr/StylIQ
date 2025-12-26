@@ -67,6 +67,10 @@ export default function ChatScreen({navigate, route}: Props) {
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
 
+  // Smooth transition animations
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   const currentUserId = useUUID();
   const recipientId = route?.recipientId || '';
   const recipientName = route?.recipientName || 'StyleQueen';
@@ -94,6 +98,42 @@ export default function ChatScreen({navigate, route}: Props) {
   // Voice input using the same hook as AiStyleChatScreen
   const {speech, isRecording, startListening, stopListening} =
     useVoiceControl();
+
+  // Entrance animation on mount
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 65,
+        friction: 11,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
+  // Smooth back navigation with exit animation
+  const handleBack = useCallback(() => {
+    h('selection');
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 30,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      navigate('MessagesScreen');
+    });
+  }, [navigate, fadeAnim, slideAnim]);
 
   // Fetch initial messages
   const {data: apiMessages, isLoading} = useMessages(
@@ -551,14 +591,15 @@ export default function ChatScreen({navigate, route}: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          style={styles.backButton}
-          onPress={() => {
-            h('selection');
-            navigate('MessagesScreen');
-          }}>
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: fadeAnim,
+          transform: [{translateX: slideAnim}],
+        }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={handleBack}>
           <MaterialIcons
             name="arrow-back"
             size={24}
@@ -740,6 +781,7 @@ export default function ChatScreen({navigate, route}: Props) {
           )}
         </View>
       </KeyboardAvoidingView>
+      </Animated.View>
 
       <EmojiPicker
         onEmojiSelected={emoji => {

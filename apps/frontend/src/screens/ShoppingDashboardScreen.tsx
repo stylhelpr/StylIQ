@@ -467,7 +467,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                 styles.statCard,
                 // {backgroundColor: 'rgba(0, 21, 255, 1)'},
               ]}>
-              <Text style={styles.statNumber}>{tabs.length}</Text>
+              <Text style={styles.statNumber}>{tabs.filter(t => t.url).length}</Text>
               <Text style={styles.statLabel}>Open Tabs</Text>
             </Animatable.View>
           </View>
