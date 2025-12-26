@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useMemo, useEffect} from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {useShoppingStore} from '../../../../store/shoppingStore';
+import {shoppingAnalytics} from '../../../../store/shoppingAnalytics';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useStyleProfile} from '../hooks/useStyleProfile';
@@ -44,6 +45,17 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     cartHistory,
   } = useShoppingStore();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Track page view on mount
+  useEffect(() => {
+    console.log('[Analytics] Shopping Dashboard screen mounted');
+    shoppingAnalytics.recordPageVisitQueue(
+      'https://styliq.com/shopping/dashboard',
+      'Shopping Dashboard',
+      0,
+      0
+    );
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
