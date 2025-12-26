@@ -30,6 +30,8 @@ import {useUUID} from '../context/UUIDContext'; // 👈 to get userId
 import GlobalGestureHandler from '../components/Gestures/GlobalGestureHandler';
 import {useShoppingStore} from '../../../../store/shoppingStore';
 import {useDeleteUserData} from '../hooks/useCommunityApi';
+import {browserSyncService} from '../services/browserSyncService';
+import {useAuth0} from 'react-native-auth0';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useWindowDimensions} from 'react-native';
 import {fontScale, moderateScale} from '../utils/scale';
@@ -79,6 +81,9 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   // Shopping Analytics Tracking Consent
   const {trackingConsent, setTrackingConsent, deleteAllAnalyticsData} =
     useShoppingStore();
+
+  // Auth0 for access token
+  const {getCredentials} = useAuth0();
 
   // GDPR server-side deletion mutation
   const deleteUserDataMutation = useDeleteUserData();
@@ -326,19 +331,29 @@ export default function SettingsScreen({navigate, goBack}: Props) {
     );
   };
 
-  // LOCAL ONLY: Clear shopping analytics (non-destructive, with confirmation)
+  // Clear shopping analytics (local + server)
   const handleClearShoppingAnalytics = () => {
     Alert.alert(
       'Clear Shopping Analytics',
-      'This will erase your shopping behavior analytics on this device. Your account, wardrobe, and saved items will not be affected.',
+      'This will erase your shopping behavior analytics from this device and our servers. Your account, wardrobe, and saved items will not be affected.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
           text: 'Clear Analytics',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             h('notificationSuccess');
+            // Clear local data
             deleteAllAnalyticsData();
+            // Clear server data
+            try {
+              const credentials = await getCredentials();
+              if (credentials?.accessToken) {
+                await browserSyncService.deleteAllAnalytics(credentials.accessToken);
+              }
+            } catch (error) {
+              console.log('[Settings] Failed to delete server analytics:', error);
+            }
             Alert.alert('Done', 'Shopping analytics have been cleared.');
           },
         },

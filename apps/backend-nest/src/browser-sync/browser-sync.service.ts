@@ -520,6 +520,9 @@ export class BrowserSyncService {
       this.db.query('DELETE FROM browser_time_to_action WHERE user_id = $1', [userId]),
       this.db.query('DELETE FROM browser_product_interactions WHERE user_id = $1', [userId]),
 
+      // Delete shopping analytics events
+      this.db.query('DELETE FROM shopping_analytics_events WHERE user_id = $1', [userId]),
+
       // Delete cart-related data
       this.db.query('DELETE FROM browser_cart_events WHERE cart_history_id IN (SELECT id FROM browser_cart_history WHERE user_id = $1)', [userId]),
       this.db.query('DELETE FROM browser_cart_history WHERE user_id = $1', [userId]),
@@ -747,16 +750,27 @@ export class BrowserSyncService {
     }));
   }
 
+  // Helper to validate UUID format
+  private isValidUuid(str: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  }
+
   // GOLD: Insert time-to-action events
   private async insertTimeToActionEvents(
     userId: string,
     events: TimeToActionDto[],
   ): Promise<void> {
     for (const event of events) {
+      // Skip events without valid UUID clientEventId (required for deduplication)
+      if (!event.clientEventId || !this.isValidUuid(event.clientEventId)) {
+        continue;
+      }
       await this.db.query(
         `INSERT INTO browser_time_to_action
-         (user_id, session_id, product_url, action_type, time_to_action_seconds, occurred_at)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         (user_id, session_id, product_url, action_type, time_to_action_seconds, occurred_at, client_event_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT DO NOTHING`,
         [
           userId,
@@ -765,6 +779,7 @@ export class BrowserSyncService {
           event.actionType,
           event.seconds,
           new Date(event.timestamp),
+          event.clientEventId,
         ],
       );
     }
@@ -776,10 +791,17 @@ export class BrowserSyncService {
     interactions: ProductInteractionDto[],
   ): Promise<void> {
     for (const interaction of interactions) {
+      // Skip interactions without valid UUID clientEventId (required for deduplication)
+      if (
+        !interaction.clientEventId ||
+        !this.isValidUuid(interaction.clientEventId)
+      ) {
+        continue;
+      }
       await this.db.query(
         `INSERT INTO browser_product_interactions
-         (user_id, session_id, product_url, interaction_type, metadata, body_measurements_at_time, occurred_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (user_id, session_id, product_url, interaction_type, metadata, body_measurements_at_time, occurred_at, client_event_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT DO NOTHING`,
         [
           userId,
@@ -791,6 +813,7 @@ export class BrowserSyncService {
             ? JSON.stringify(interaction.bodyMeasurementsAtTime)
             : null,
           new Date(interaction.timestamp),
+          interaction.clientEventId,
         ],
       );
     }

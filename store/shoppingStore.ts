@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import uuid from 'react-native-uuid';
 
 export type ShoppingItem = {
   id: string;
@@ -314,7 +315,7 @@ type ShoppingState = {
 
   // Time-to-action: record and get avg time from page load to bookmark/cart
   recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => void;
-  timeToActionLog: {productUrl: string; actionType: string; seconds: number; timestamp: number}[];
+  timeToActionLog: {clientEventId: string; productUrl: string; actionType: string; seconds: number; timestamp: number}[];
   getAvgTimeToAction: (actionType?: 'bookmark' | 'cart') => number;
 
   // GDPR: Delete all user analytics data
@@ -377,6 +378,7 @@ export const useShoppingStore = create<ShoppingState>()(
       // History
       history: [],
       addToHistory: (url: string, title: string, source: string, brand?: string) => {
+        if (!get().isTrackingEnabled()) return;
         set(state => {
           const existing = state.history.find(h => h.url === url);
           if (existing) {
@@ -731,8 +733,8 @@ export const useShoppingStore = create<ShoppingState>()(
           productInteractions: [
             {
               id: `interaction_${Date.now()}`,
-              // ✅ FIX #3: IDEMPOTENCY - Generate client_event_id for deduplication
-              clientEventId: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              // ✅ FIX #3: IDEMPOTENCY - Generate client_event_id (UUID) for deduplication
+              clientEventId: uuid.v4() as string,
               productUrl,
               type,
               timestamp: Date.now(),
@@ -848,6 +850,7 @@ export const useShoppingStore = create<ShoppingState>()(
         historyUrl: string,
         metadata: Partial<BrowsingHistory>,
       ) => {
+        if (!get().isTrackingEnabled()) return;
         set(state => ({
           history: state.history.map(h =>
             h.url === historyUrl ? {...h, ...metadata} : h,
@@ -1348,14 +1351,18 @@ export const useShoppingStore = create<ShoppingState>()(
 
       recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => {
         if (!get().isTrackingEnabled()) return;
+        const timestamp = Date.now();
+        // Generate unique client event ID (UUID) for deduplication
+        const clientEventId = uuid.v4() as string;
         set(state => ({
           timeToActionLog: [
             ...state.timeToActionLog,
             {
+              clientEventId,
               productUrl,
               actionType,
               seconds,
-              timestamp: Date.now(),
+              timestamp,
             },
           ].slice(-100), // Keep last 100 entries
         }));

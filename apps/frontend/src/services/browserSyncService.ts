@@ -559,6 +559,7 @@ class BrowserSyncService {
         currentTabId: store.currentTabId,
         // GOLD: Time-to-action events
         timeToActionEvents: timeToActionLog.map(e => ({
+          clientEventId: e.clientEventId,
           sessionId: store.currentSessionId || undefined,
           productUrl: e.productUrl,
           actionType: e.actionType as 'bookmark' | 'cart',
@@ -684,6 +685,25 @@ class BrowserSyncService {
   async clearHistory(accessToken: string): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/browser-sync/history`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Delete all shopping analytics on the server (GDPR)
+   * Clears: time-to-action, product interactions, cart history, browsing history, etc.
+   */
+  async deleteAllAnalytics(accessToken: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/browser-sync/analytics`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${accessToken}`,
