@@ -1056,7 +1056,12 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         }),
       ]).start();
     },
-    [postDetailSlideAnim, postDetailOpacityAnim, trackViewMutation, trackingConsent],
+    [
+      postDetailSlideAnim,
+      postDetailOpacityAnim,
+      trackViewMutation,
+      trackingConsent,
+    ],
   );
 
   // Close post detail modal with animation
@@ -1576,7 +1581,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     try {
       const imageUrl = post.image_url || post.top_image || '';
       // Only allow https URLs to prevent javascript:/data:/etc injection
-      const safeUrl = imageUrl.toLowerCase().startsWith('https://') ? imageUrl : undefined;
+      const safeUrl = imageUrl.toLowerCase().startsWith('https://')
+        ? imageUrl
+        : undefined;
       await Share.share({
         message: `Check out this outfit on StylIQ! ${post.description || ''}`,
         url: safeUrl,
@@ -2335,7 +2342,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      // marginBottom: 16,
     },
     postDetailActionButton: {
       flexDirection: 'row',
@@ -2388,7 +2395,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       fontSize: fontScale(tokens.fontSize.lg),
       fontWeight: tokens.fontWeight.bold,
       color: '#fff',
-      marginBottom: 8,
+      marginBottom: 12,
     },
     postDetailStory: {
       fontSize: fontScale(tokens.fontSize.base),
@@ -2776,6 +2783,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             </View>
           </View>
         </AppleTouchFeedback>
+
         {/* Name below card */}
         {post.name && (
           <Text
@@ -2817,7 +2825,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
             }}
             style={styles.searchIcon}>
             <MaterialIcons
-              name="chat-bubble-outline"
+              name="send"
               size={22}
               color={theme.colors.foreground}
             />

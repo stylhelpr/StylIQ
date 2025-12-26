@@ -1157,7 +1157,6 @@ export const useShoppingStore = create<ShoppingState>()(
           bookmarks: [],
           history: [],
           collections: [],
-          recentSearches: [],
           favoriteShops: [],
           productInteractions: [],
           cartHistory: [],

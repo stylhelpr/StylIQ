@@ -557,7 +557,7 @@ export default function ChatScreen({navigate, route}: Props) {
           style={styles.backButton}
           onPress={() => {
             h('selection');
-            navigate('CommunityShowcaseScreen');
+            navigate('MessagesScreen');
           }}>
           <MaterialIcons
             name="arrow-back"

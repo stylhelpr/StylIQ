@@ -106,7 +106,10 @@ export default function MessagesScreen({navigate}: Props) {
             });
           }}>
           {hasRealAvatar ? (
-            <Image source={{uri: item.other_user_avatar}} style={styles.avatar} />
+            <Image
+              source={{uri: item.other_user_avatar}}
+              style={styles.avatar}
+            />
           ) : (
             <View style={[styles.avatar, styles.initialsAvatar]}>
               <Text style={styles.initialsText}>{initials}</Text>
@@ -168,13 +171,6 @@ export default function MessagesScreen({navigate}: Props) {
             )}
           </View>
         </View>
-
-        {/* Chevron */}
-        <MaterialIcons
-          name="chevron-right"
-          size={24}
-          color={theme.colors.foreground3}
-        />
       </Pressable>
     );
   };
@@ -213,16 +209,16 @@ export default function MessagesScreen({navigate}: Props) {
     conversationItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: moderateScale(tokens.spacing.md),
-      paddingVertical: moderateScale(tokens.spacing.sm),
+      paddingHorizontal: moderateScale(16),
+      paddingVertical: moderateScale(12),
     },
     avatar: {
       width: 56,
       height: 56,
       borderRadius: 28,
-      marginRight: moderateScale(tokens.spacing.sm),
-      borderWidth: 1,
-      borderColor: 'white',
+      marginRight: moderateScale(12),
+      borderWidth: 2,
+      borderColor: '#fff',
     },
     initialsAvatar: {
       backgroundColor: '#000',
@@ -231,12 +227,12 @@ export default function MessagesScreen({navigate}: Props) {
     },
     initialsText: {
       color: '#fff',
-      fontSize: fontScale(tokens.fontSize.lg),
+      fontSize: fontScale(18),
       fontWeight: tokens.fontWeight.bold,
     },
     conversationContent: {
       flex: 1,
-      marginRight: moderateScale(tokens.spacing.xs),
+      marginRight: moderateScale(8),
     },
     conversationHeader: {
       flexDirection: 'row',
@@ -246,19 +242,20 @@ export default function MessagesScreen({navigate}: Props) {
     },
     userName: {
       flex: 1,
-      fontSize: fontScale(tokens.fontSize.base),
-      marginRight: moderateScale(tokens.spacing.xs),
+      fontSize: fontScale(15),
+      marginRight: moderateScale(8),
     },
     timestamp: {
-      fontSize: fontScale(tokens.fontSize.xs),
+      fontSize: fontScale(12),
     },
     messagePreviewRow: {
       flexDirection: 'row',
       alignItems: 'center',
+      marginTop: 2,
     },
     messagePreview: {
       flex: 1,
-      fontSize: fontScale(tokens.fontSize.sm),
+      fontSize: fontScale(14),
     },
     unreadBadge: {
       minWidth: 20,
@@ -318,7 +315,7 @@ export default function MessagesScreen({navigate}: Props) {
             color={theme.colors.foreground}
           />
         </Pressable>
-        <Text style={styles.headerTitle}>Messages</Text>
+        <Text style={styles.headerTitle}>Direct Messages</Text>
       </View>
 
       {/* Content */}
