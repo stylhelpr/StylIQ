@@ -875,7 +875,7 @@ export const useShoppingStore = create<ShoppingState>()(
       _historyClearedAt: null,
 
       // Tracking Consent (GDPR/Privacy)
-      trackingConsent: 'pending' as 'pending' | 'accepted' | 'declined',
+      trackingConsent: 'accepted' as 'pending' | 'accepted' | 'declined',
       setTrackingConsent: (consent: 'accepted' | 'declined') => {
         set({trackingConsent: consent});
       },
