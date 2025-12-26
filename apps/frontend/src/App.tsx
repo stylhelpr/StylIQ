@@ -47,6 +47,8 @@ import {Auth0Provider} from 'react-native-auth0';
 import {UUIDProvider, useUUID} from './context/UUIDContext';
 import {initializeNotifications} from './utils/notificationService';
 import {useBrowserSync} from './hooks/useBrowserSync';
+import {useAnalyticsSyncTriggers} from './hooks/useAnalyticsSyncTriggers';
+import {analyticsQueue} from './services/analyticsQueue';
 import {
   SafeAreaProvider,
   initialWindowMetrics,
@@ -63,12 +65,20 @@ function RootWithNotifications() {
   // Initialize browser sync (handles app open, foreground, background)
   useBrowserSync();
 
+  // Initialize analytics queue and sync triggers
+  useAnalyticsSyncTriggers();
+
   useEffect(() => {
     if (userId) {
       // initializeNotifications handles FCM onMessage - no duplicate handler needed
       initializeNotifications(userId);
     }
   }, [userId]);
+
+  useEffect(() => {
+    // Load analytics queue from storage on app start
+    analyticsQueue.load();
+  }, []);
 
   // ✅ No gesture wrapper here — it's handled globally
   return <MainApp />;

@@ -146,3 +146,26 @@ export function getDomainFromUrl(url: string | undefined | null): string {
     return 'unknown';
   }
 }
+
+/**
+ * Sanitizes a URL for analytics storage (removes query params and hash).
+ * This is critical for privacy - we strip tracking parameters, UTM codes, etc.
+ *
+ * @param url - Raw URL from the page
+ * @returns Canonical URL without query params or hash
+ */
+export function sanitizeUrlForAnalytics(url: string | undefined | null): string {
+  if (!url || typeof url !== 'string') {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(url);
+    // Return only scheme + hostname + pathname (no query, no hash)
+    return `${parsed.protocol}//${parsed.hostname}${parsed.pathname}`;
+  } catch {
+    // Fallback: regex-based extraction
+    const match = url.match(/^(https?:\/\/[^/?#]+(?:\/[^?#]*)?)/);
+    return match ? match[1] : '';
+  }
+}

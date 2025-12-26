@@ -41,6 +41,7 @@ import { CommunityModule } from './community/community.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { SavedNotesModule } from './saved-notes/saved-notes.module';
 import { BrowserSyncModule } from './browser-sync/browser-sync.module';
+import { ShoppingModule } from './shopping/shopping.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -102,6 +103,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     MessagingModule,
     SavedNotesModule,
     BrowserSyncModule,
+    ShoppingModule,
   ],
   controllers: [AppController],
   providers: [
