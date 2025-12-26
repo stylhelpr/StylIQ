@@ -20,7 +20,7 @@ type Props = {navigate: (screen: string) => void};
 
 export default function GoldDataViewer({navigate}: Props) {
   const {theme} = useAppTheme();
-  const store = useShoppingStore.getState();
+  const store = useShoppingStore();
   const [selectedTab, setSelectedTab] = useState<
     'summary' | 'bookmarks' | 'interactions' | 'cart' | 'raw'
   >('summary');
