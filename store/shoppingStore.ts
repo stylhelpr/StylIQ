@@ -104,6 +104,12 @@ export type SavedCard = {
   // Full card number should NEVER be stored (PCI compliance)
 };
 
+export type QuickShopSite = {
+  id: string;
+  name: string;
+  url: string;
+};
+
 type ShoppingState = {
   // Bookmarks & Favorites
   bookmarks: ShoppingItem[];
@@ -164,6 +170,11 @@ type ShoppingState = {
   // Preferences
   defaultShoppingSites: string[];
   updateDefaultSites: (sites: string[]) => void;
+
+  // Quick Shop Sites (customizable)
+  quickShopSites: QuickShopSite[];
+  addQuickShopSite: (name: string, url: string) => void;
+  removeQuickShopSite: (id: string) => void;
 
   // GOLD: Session & Interaction Tracking
   currentSessionId: string | null;
@@ -667,6 +678,30 @@ export const useShoppingStore = create<ShoppingState>()(
       ],
       updateDefaultSites: (sites: string[]) => {
         set({defaultShoppingSites: sites});
+      },
+
+      // Quick Shop Sites (customizable)
+      quickShopSites: [
+        {id: '1', name: 'Google', url: 'https://www.google.com'},
+        {id: '2', name: 'Amazon', url: 'https://www.amazon.com'},
+        {id: '3', name: 'ASOS', url: 'https://www.asos.com'},
+        {id: '4', name: 'H&M', url: 'https://www.hm.com'},
+        {id: '5', name: 'Zara', url: 'https://www.zara.com'},
+        {id: '6', name: 'Shein', url: 'https://www.shein.com'},
+        {id: '7', name: 'SSENSE', url: 'https://www.ssense.com'},
+        {id: '8', name: 'Farfetch', url: 'https://www.farfetch.com'},
+        {id: '9', name: 'Nordstrom', url: 'https://www.nordstrom.com'},
+      ],
+      addQuickShopSite: (name: string, url: string) => {
+        const id = `qs_${Date.now()}`;
+        set(state => ({
+          quickShopSites: [...state.quickShopSites, {id, name, url}],
+        }));
+      },
+      removeQuickShopSite: (id: string) => {
+        set(state => ({
+          quickShopSites: state.quickShopSites.filter(site => site.id !== id),
+        }));
       },
 
       // GOLD: Session & Interaction Tracking

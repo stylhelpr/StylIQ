@@ -50,7 +50,6 @@ import FeedbackScreen from '../screens/FeedBackScreen';
 import WebPageScreen from '../screens/WebPageScreen';
 import WebBrowserScreen from '../screens/WebBrowserScreen';
 import ShoppingDashboardScreen from '../screens/ShoppingDashboardScreen';
-import EnhancedWebBrowserScreen from '../screens/EnhancedWebBrowserScreen';
 import ShoppingBookmarksScreen from '../screens/ShoppingBookmarksScreen';
 import ShoppingCollectionsScreen from '../screens/ShoppingCollectionsScreen';
 import ShoppingInsightsScreen from '../screens/ShoppingInsightsScreen';
@@ -156,7 +155,6 @@ type Screen =
   | 'WebPageScreen'
   | 'WebBrowser'
   | 'ShoppingDashboard'
-  | 'EnhancedWebBrowser'
   | 'ShoppingBookmarks'
   | 'ShoppingCollections'
   | 'ShoppingInsights'
@@ -570,13 +568,6 @@ const RootNavigator = ({
         );
       case 'ShoppingDashboard':
         return <ShoppingDashboardScreen navigate={navigate} />;
-      case 'EnhancedWebBrowser':
-        return (
-          <EnhancedWebBrowserScreen
-            route={{params: screenParams}}
-            navigate={navigate}
-          />
-        );
       case 'ShoppingBookmarks':
         return <ShoppingBookmarksScreen navigate={navigate} />;
       case 'ShoppingCollections':

@@ -361,16 +361,17 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
                     <Text style={styles.itemBrand}>{item.brand}</Text>
                   )}
                 </View>
-                <TouchableOpacity
+                <AppleTouchFeedback
                   onPress={() =>
-                    navigate?.('EnhancedWebBrowser', {url: item.url})
-                  }>
+                    navigate?.('WebBrowser', {url: item.url})
+                  }
+                  hapticStyle="impactLight">
                   <MaterialIcons
                     name="open-in-new"
                     size={18}
                     color={theme.colors.primary}
                   />
-                </TouchableOpacity>
+                </AppleTouchFeedback>
               </View>
             )}
             keyExtractor={item => item.id}
@@ -988,7 +989,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 //                 </View>
 //                 <TouchableOpacity
 //                   onPress={() =>
-//                     navigate?.('EnhancedWebBrowser', {url: item.url})
+//                     navigate?.('WebBrowser', {url: item.url})
 //                   }>
 //                   <MaterialIcons
 //                     name="open-in-new"
@@ -1582,7 +1583,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 //                 </View>
 //                 <TouchableOpacity
 //                   onPress={() =>
-//                     navigate?.('EnhancedWebBrowser', {url: item.url})
+//                     navigate?.('WebBrowser', {url: item.url})
 //                   }>
 //                   <MaterialIcons
 //                     name="open-in-new"
@@ -2172,7 +2173,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 //                 </View>
 //                 <TouchableOpacity
 //                   onPress={() =>
-//                     navigate?.('EnhancedWebBrowser', {url: item.url})
+//                     navigate?.('WebBrowser', {url: item.url})
 //                   }>
 //                   <MaterialIcons
 //                     name="open-in-new"
@@ -2747,7 +2748,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 //                 </View>
 //                 <TouchableOpacity
 //                   onPress={() =>
-//                     navigate?.('EnhancedWebBrowser', {url: item.url})
+//                     navigate?.('WebBrowser', {url: item.url})
 //                   }>
 //                   <MaterialIcons
 //                     name="open-in-new"
@@ -3288,7 +3289,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 //                 </View>
 //                 <TouchableOpacity
 //                   onPress={() =>
-//                     navigate?.('EnhancedWebBrowser', {url: item.url})
+//                     navigate?.('WebBrowser', {url: item.url})
 //                   }>
 //                   <MaterialIcons
 //                     name="open-in-new"
@@ -3808,7 +3809,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 //                   )}
 //                 </View>
 //                 <TouchableOpacity
-//                   onPress={() => navigate?.('EnhancedWebBrowser', {url: item.url})}>
+//                   onPress={() => navigate?.('WebBrowser', {url: item.url})}>
 //                   <MaterialIcons
 //                     name="open-in-new"
 //                     size={18}

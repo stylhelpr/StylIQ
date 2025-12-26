@@ -49,7 +49,6 @@ export type Screen =
   | 'WebPageScreen'
   | 'WebBrowser'
   | 'ShoppingDashboard'
-  | 'EnhancedWebBrowser'
   | 'ShoppingBookmarks'
   | 'ShoppingCollections'
   | 'ShoppingInsights'
