@@ -1,7 +1,15 @@
 // Pure TypeScript service (NO React hooks)
 
-import { v4 as uuidv4 } from 'uuid';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// UUID v4 generator that works in React Native (no crypto.getRandomValues needed)
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 export interface QueuedEvent {
   client_event_id: string; // UUID v4 (idempotency key)
@@ -61,7 +69,7 @@ export class AnalyticsQueueService {
   ): QueuedEvent {
     const queuedEvent: QueuedEvent = {
       ...event,
-      client_event_id: uuidv4(), // ✅ Generate UUID here
+      client_event_id: generateUUID(), // ✅ Generate UUID here (React Native compatible)
       is_sent: false,
       attempt_count: 0,
       created_at: Date.now(),
