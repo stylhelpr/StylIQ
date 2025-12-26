@@ -275,6 +275,12 @@ export class CollectionDto {
   bookmarkIds?: string[];
 
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  bookmarkUrls?: string[]; // Preferred over bookmarkIds - URLs are consistent between client/server
+
+  @IsOptional()
   @IsNumber()
   createdAt?: number;
 

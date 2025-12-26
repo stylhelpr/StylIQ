@@ -59,6 +59,7 @@ type ServerCollection = {
   description?: string;
   color: string;
   bookmarkIds: string[];
+  bookmarkUrls?: string[]; // Used for syncing - URLs are consistent between client/server
   createdAt: number;
   updatedAt: number;
 };
@@ -518,7 +519,8 @@ class BrowserSyncService {
           name: c.name,
           description: c.description,
           color: c.color,
-          bookmarkIds: c.items?.map(item => item.id), // items -> bookmarkIds (array of IDs)
+          bookmarkUrls: c.items?.map(item => item.url), // Use URLs - they're consistent between client/server
+          bookmarkIds: c.items?.map(item => item.id), // Keep for backwards compatibility
           createdAt: c.createdAt,
           updatedAt: c.updatedAt,
         })),

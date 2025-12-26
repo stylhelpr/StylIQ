@@ -1085,23 +1085,30 @@ export const useShoppingStore = create<ShoppingState>()(
             ...state.cartHistory.filter(c => !serverCartUrls.has(c.cartUrl)),
           ].slice(0, 100);
 
-          // For tabs, prefer server state if provided (tabs are replaced, not merged)
-          // Only apply tabs from server if there are any - otherwise keep local tabs
+          // For tabs, merge local and server tabs
           // Preserve local screenshots since they're not stored in the database
-          const hasSyncedTabs = data.tabs && data.tabs.length > 0;
+          // Also preserve local-only tabs that haven't been synced to server yet
           const localTabsById = new Map(state.tabs.map(t => [t.id, t]));
-          const mergedTabs = hasSyncedTabs
-            ? (data.tabs || []).map(serverTab => {
-                const localTab = localTabsById.get(serverTab.id);
-                return {
-                  ...serverTab,
-                  screenshot: localTab?.screenshot || serverTab.screenshot,
-                };
-              })
-            : state.tabs;
-          const mergedCurrentTabId = hasSyncedTabs
-            ? data.currentTabId || (data.tabs?.[0]?.id) || null
-            : state.currentTabId;
+          const serverTabIds = new Set((data.tabs || []).map(t => t.id));
+
+          // Merge server tabs with local screenshots
+          const serverTabsWithScreenshots = (data.tabs || []).map(serverTab => {
+            const localTab = localTabsById.get(serverTab.id);
+            return {
+              ...serverTab,
+              screenshot: localTab?.screenshot || serverTab.screenshot,
+            };
+          });
+
+          // Keep local-only tabs (not on server) - these haven't been synced yet
+          const localOnlyTabs = state.tabs.filter(t => !serverTabIds.has(t.id));
+
+          // Final merged tabs: server tabs (with preserved screenshots) + local-only tabs
+          const mergedTabs = [...serverTabsWithScreenshots, ...localOnlyTabs];
+
+          const mergedCurrentTabId = data.currentTabId
+            || state.currentTabId
+            || (mergedTabs.length > 0 ? mergedTabs[0].id : null);
 
           console.log('[ShoppingStore] Merged result:', {
             bookmarks: mergedBookmarks.length,

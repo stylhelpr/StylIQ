@@ -416,7 +416,25 @@ export class BrowserSyncService {
       const collectionId = result.rows[0].id;
 
       // Update collection items if provided
-      if (collection.bookmarkIds?.length) {
+      // Prefer bookmarkUrls over bookmarkIds (URLs are consistent between client/server)
+      if (collection.bookmarkUrls?.length) {
+        // Clear existing items
+        await this.db.query(
+          'DELETE FROM browser_collection_items WHERE collection_id = $1',
+          [collectionId],
+        );
+
+        // Insert new items by URL lookup
+        for (const url of collection.bookmarkUrls) {
+          await this.db.query(
+            `INSERT INTO browser_collection_items (collection_id, bookmark_id)
+             SELECT $1, id FROM browser_bookmarks WHERE url = $2 AND user_id = $3
+             ON CONFLICT DO NOTHING`,
+            [collectionId, url, userId],
+          );
+        }
+      } else if (collection.bookmarkIds?.length) {
+        // Fallback to bookmarkIds for backwards compatibility
         // Clear existing items
         await this.db.query(
           'DELETE FROM browser_collection_items WHERE collection_id = $1',
