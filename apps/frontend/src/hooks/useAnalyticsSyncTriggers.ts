@@ -14,13 +14,14 @@ export function useAnalyticsSyncTriggers() {
   const appStateRef = useRef<AppStateStatus>('active');
   const { user, getCredentials } = useAuth0(); // Get JWT token
 
-  // Trigger 1: App goes to background
+  // Trigger 1: App goes to background or inactive (iOS sends 'inactive' before 'background')
   useEffect(() => {
     console.log('[Analytics Hook] 🔧 Setting up background sync listener');
     const subscription = AppState.addEventListener('change', (state) => {
       console.log('[Analytics Hook] AppState changed to:', state, 'prev:', appStateRef.current);
-      if (state === 'background' && appStateRef.current !== 'background') {
-        console.log('[Analytics Hook] 📴 App backgrounded, starting sync...');
+      // Sync when app goes to background OR inactive (iOS behavior)
+      if ((state === 'background' || state === 'inactive') && appStateRef.current === 'active') {
+        console.log('[Analytics Hook] 📴 App backgrounded/inactive, starting sync...');
         // Get JWT token and call sync
         getCredentials()
           .then((creds) => {

@@ -1,6 +1,7 @@
 // Pure TypeScript service (NO React hooks)
 
 import { analyticsQueue, QueuedEvent } from './analyticsQueue';
+import { LOCAL_IP } from '../config/localIP';
 
 const BATCH_SIZE = 500;
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
@@ -111,7 +112,7 @@ export class AnalyticsSyncService {
     rejected: Array<{ client_event_id: string; reason: string }>;
     server_timestamp_ms: number;
   }> {
-    const API_BASE_URL = process.env.REACT_NATIVE_API_BASE_URL || 'http://localhost:3001';
+    const API_BASE_URL = `http://${LOCAL_IP}:3001`;
 
     // Use test endpoint in development (no auth required)
     // Switch to production endpoint when deploying
@@ -131,11 +132,23 @@ export class AnalyticsSyncService {
 
     console.log('[Analytics Sync] 📤 Sending', events.length, 'events to', isDevelopment ? 'TEST' : 'PROD', 'endpoint');
 
+    // Filter out internal queue fields before sending to backend
+    const cleanedEvents = events.map((event) => ({
+      client_event_id: event.client_event_id,
+      event_type: event.event_type,
+      event_ts: event.event_ts,
+      canonical_url: event.canonical_url,
+      domain: event.domain,
+      title_sanitized: event.title_sanitized,
+      session_id: event.session_id,
+      payload: event.payload,
+    }));
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        events,
+        events: cleanedEvents,
         client_id: 'device-id-or-session-uuid',
         client_batch_timestamp_ms: Date.now(),
       }),
