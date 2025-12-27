@@ -3301,8 +3301,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         </TouchableOpacity>
       </Modal>
 
-      {/* DEBUG: Price Extraction Display */}
-      {debugInfo && (
+      {/* DEBUG: Price Extraction Display - hidden from UI but logic preserved */}
+      {/* {debugInfo && (
         <View style={styles.debugPanel}>
           <View style={styles.debugHeader}>
             <Text style={styles.debugTitle}>Last Extraction:</Text>
@@ -3366,7 +3366,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             <Text style={styles.debugDismiss}>✕ Dismiss</Text>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
 
       {/* Bookmarks Modal */}
       <Modal
