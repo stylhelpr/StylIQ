@@ -55,6 +55,8 @@ export type BrowserTab = {
   needsScreenshotRefresh?: boolean; // True for tabs restored from server that need screenshots captured
   bodyMeasurementsAtTime?: any; // GOLD #8: their measurements when viewing
   sessionId?: string;
+  navHistory?: string[]; // Navigation history for back/forward
+  navHistoryIndex?: number; // Current position in navigation history
 };
 
 export type CartEvent = {
@@ -166,6 +168,11 @@ type ShoppingState = {
   updateTabScreenshot: (id: string, screenshot: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   closeAllTabs: () => void;
+  updateTabNavHistory: (id: string, url: string) => void;
+  navigateTabBack: (id: string) => string | null;
+  navigateTabForward: (id: string) => string | null;
+  getTabCanGoBack: (id: string) => boolean;
+  getTabCanGoForward: (id: string) => boolean;
 
   // Insights & Analytics
   favoriteShops: string[]; // Most visited/bookmarked shops
@@ -616,7 +623,16 @@ export const useShoppingStore = create<ShoppingState>()(
       addTab: (url: string, title = 'New Tab') => {
         const tabId = `tab_${Date.now()}`;
         set(state => ({
-          tabs: [...state.tabs, {id: tabId, url, title}],
+          tabs: [
+            ...state.tabs,
+            {
+              id: tabId,
+              url,
+              title,
+              navHistory: url ? [url] : [],
+              navHistoryIndex: url ? 0 : -1,
+            },
+          ],
           currentTabId: tabId,
         }));
       },
@@ -658,6 +674,63 @@ export const useShoppingStore = create<ShoppingState>()(
       },
       closeAllTabs: () => {
         set({tabs: [], currentTabId: null});
+      },
+      updateTabNavHistory: (id: string, url: string) => {
+        set(state => ({
+          tabs: state.tabs.map(t => {
+            if (t.id !== id) return t;
+            const history = t.navHistory || [];
+            const index = t.navHistoryIndex ?? -1;
+            // If we're not at the end, truncate forward history
+            const newHistory = [...history.slice(0, index + 1), url];
+            return {
+              ...t,
+              navHistory: newHistory,
+              navHistoryIndex: newHistory.length - 1,
+            };
+          }),
+        }));
+      },
+      navigateTabBack: (id: string) => {
+        const state = get();
+        const tab = state.tabs.find(t => t.id === id);
+        if (!tab || !tab.navHistory || (tab.navHistoryIndex ?? 0) <= 0)
+          return null;
+        const newIndex = (tab.navHistoryIndex ?? 0) - 1;
+        set({
+          tabs: state.tabs.map(t =>
+            t.id === id ? {...t, navHistoryIndex: newIndex} : t,
+          ),
+        });
+        return tab.navHistory[newIndex];
+      },
+      navigateTabForward: (id: string) => {
+        const state = get();
+        const tab = state.tabs.find(t => t.id === id);
+        if (
+          !tab ||
+          !tab.navHistory ||
+          (tab.navHistoryIndex ?? 0) >= tab.navHistory.length - 1
+        )
+          return null;
+        const newIndex = (tab.navHistoryIndex ?? 0) + 1;
+        set({
+          tabs: state.tabs.map(t =>
+            t.id === id ? {...t, navHistoryIndex: newIndex} : t,
+          ),
+        });
+        return tab.navHistory[newIndex];
+      },
+      getTabCanGoBack: (id: string) => {
+        const tab = get().tabs.find(t => t.id === id);
+        return !!tab?.navHistory && (tab.navHistoryIndex ?? 0) > 0;
+      },
+      getTabCanGoForward: (id: string) => {
+        const tab = get().tabs.find(t => t.id === id);
+        return (
+          !!tab?.navHistory &&
+          (tab.navHistoryIndex ?? 0) < tab.navHistory.length - 1
+        );
       },
 
       // Insights

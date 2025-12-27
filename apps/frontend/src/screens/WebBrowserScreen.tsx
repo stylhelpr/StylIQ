@@ -42,6 +42,7 @@ import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TrackingConsentModal from '../components/TrackingConsentModal/TrackingConsentModal';
+import SwipeableCard from '../components/SwipeableCard/SwipeableCard';
 // Security imports
 import {
   SECURE_WEBVIEW_DEFAULTS,
@@ -111,6 +112,11 @@ export default function WebBrowserScreen({navigate, route}: Props) {
     quickShopSites,
     addQuickShopSite,
     removeQuickShopSite,
+    updateTabNavHistory,
+    navigateTabBack,
+    navigateTabForward,
+    getTabCanGoBack,
+    getTabCanGoForward,
   } = useShoppingStore();
 
   // iOS Password AutoFill - passwords are managed by iOS/iCloud Keychain
@@ -257,6 +263,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   // Debounce navigation state changes to prevent rapid URL toggling
   const navStateDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const lastNavUrlRef = useRef<string>('');
+  const isNavHistoryNavigation = useRef<boolean>(false); // Track if we're doing back/forward
 
   // GOLD #7 & #10: Track sizes and colors clicked on current page
   const sizesClickedRef = useRef<{size: string; timestamp: number}[]>([]);
@@ -1462,7 +1469,6 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   };
 
   const handleCloseTab = (tabId: string) => {
-    triggerHaptic('impactMedium');
     removeTab(tabId);
   };
 
@@ -2541,6 +2547,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                     navState.title || currentTab.title,
                   );
                   setInputValue(navState.url);
+
+                  // Track navigation history for back/forward (skip if this is a history navigation)
+                  if (!isNavHistoryNavigation.current) {
+                    updateTabNavHistory(currentTab.id, navState.url);
+                  }
+                  isNavHistoryNavigation.current = false;
+
                   // Track visit history with brand
                   // SECURITY: Sanitize URL to strip sensitive query params before analytics
                   const sanitizedUrl = sanitizeUrlForAnalytics(navState.url);
@@ -2627,7 +2640,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           )}
 
           {/* 🔥 VOICE ADD – Mic button */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPressIn={handleMicPressIn}
             onPressOut={handleMicPressOut}
             style={styles.iconButton}>
@@ -2638,7 +2651,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 isRecording ? theme.colors.primary : theme.colors.foreground3
               }
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
         {showAutocomplete && autocompleteSuggestions.length > 0 && (
           <View style={styles.autocompleteContainer}>
@@ -2697,20 +2710,50 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               </AppleTouchFeedback>
               <TouchableOpacity
                 style={styles.bottomNavItem}
-                onPress={() => webRef.current?.goBack()}>
+                onPress={() => {
+                  if (currentTab) {
+                    const url = navigateTabBack(currentTab.id);
+                    if (url) {
+                      isNavHistoryNavigation.current = true;
+                      webRef.current?.injectJavaScript(
+                        `window.location.href = ${JSON.stringify(url)}; true;`,
+                      );
+                    }
+                  }
+                }}
+                disabled={!currentTab || !getTabCanGoBack(currentTab.id)}>
                 <MaterialIcons
                   name="arrow-back-ios"
                   size={22}
-                  color={theme.colors.buttonText1}
+                  color={
+                    currentTab && getTabCanGoBack(currentTab.id)
+                      ? theme.colors.buttonText1
+                      : theme.colors.foreground3
+                  }
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.bottomNavItem}
-                onPress={() => webRef.current?.goForward()}>
+                onPress={() => {
+                  if (currentTab) {
+                    const url = navigateTabForward(currentTab.id);
+                    if (url) {
+                      isNavHistoryNavigation.current = true;
+                      webRef.current?.injectJavaScript(
+                        `window.location.href = ${JSON.stringify(url)}; true;`,
+                      );
+                    }
+                  }
+                }}
+                disabled={!currentTab || !getTabCanGoForward(currentTab.id)}>
                 <MaterialIcons
                   name="arrow-forward-ios"
                   size={22}
-                  color={theme.colors.buttonText1}
+                  color={
+                    currentTab && getTabCanGoForward(currentTab.id)
+                      ? theme.colors.buttonText1
+                      : theme.colors.foreground3
+                  }
                 />
               </TouchableOpacity>
               {/* Bookmark button - commented out
@@ -2758,20 +2801,50 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             <View style={styles.bottomNavPillFallback}>
               <TouchableOpacity
                 style={styles.bottomNavItem}
-                onPress={() => webRef.current?.goBack()}>
+                onPress={() => {
+                  if (currentTab) {
+                    const url = navigateTabBack(currentTab.id);
+                    if (url) {
+                      isNavHistoryNavigation.current = true;
+                      webRef.current?.injectJavaScript(
+                        `window.location.href = ${JSON.stringify(url)}; true;`,
+                      );
+                    }
+                  }
+                }}
+                disabled={!currentTab || !getTabCanGoBack(currentTab.id)}>
                 <MaterialIcons
                   name="arrow-back-ios"
                   size={22}
-                  color={theme.colors.buttonText1}
+                  color={
+                    currentTab && getTabCanGoBack(currentTab.id)
+                      ? theme.colors.buttonText1
+                      : theme.colors.foreground3
+                  }
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.bottomNavItem}
-                onPress={() => webRef.current?.goForward()}>
+                onPress={() => {
+                  if (currentTab) {
+                    const url = navigateTabForward(currentTab.id);
+                    if (url) {
+                      isNavHistoryNavigation.current = true;
+                      webRef.current?.injectJavaScript(
+                        `window.location.href = ${JSON.stringify(url)}; true;`,
+                      );
+                    }
+                  }
+                }}
+                disabled={!currentTab || !getTabCanGoForward(currentTab.id)}>
                 <MaterialIcons
                   name="arrow-forward-ios"
                   size={22}
-                  color={theme.colors.buttonText1}
+                  color={
+                    currentTab && getTabCanGoForward(currentTab.id)
+                      ? theme.colors.buttonText1
+                      : theme.colors.foreground3
+                  }
                 />
               </TouchableOpacity>
               {/* Bookmark button - commented out
@@ -2898,86 +2971,93 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   const panResponder = createPanResponder(index);
 
                   return (
-                    <Animated.View
+                    <SwipeableCard
                       key={tab.id}
-                      onLayout={e => handleTabLayout(index, e)}
-                      style={[
-                        styles.tabCardWrapper,
-                        isDragging && {
-                          transform: [
-                            {translateX: dragAnimatedValue.x},
-                            {translateY: dragAnimatedValue.y},
-                            {scale: dragScale},
-                          ],
-                          zIndex: 1000,
-                          elevation: 10,
-                        },
-                        isDropTarget && {
-                          opacity: 0.5,
-                        },
-                      ]}
-                      {...panResponder.panHandlers}>
-                      <TouchableOpacity
+                      onSwipeLeft={() => handleCloseTab(tab.id)}
+                      style={styles.tabCardWrapper}>
+                      <Animated.View
+                        onLayout={e => handleTabLayout(index, e)}
                         style={[
-                          styles.tabCard,
-                          tab.id === currentTabId && styles.tabCardActive,
-                          isDragging && styles.tabCardDragging,
+                          isDragging && {
+                            transform: [
+                              {translateX: dragAnimatedValue.x},
+                              {translateY: dragAnimatedValue.y},
+                              {scale: dragScale},
+                            ],
+                            zIndex: 1000,
+                            elevation: 10,
+                          },
+                          isDropTarget && {
+                            opacity: 0.5,
+                          },
                         ]}
-                        onPress={() => handleSelectTab(tab.id)}
-                        onLongPress={() => handleLongPress(index)}
-                        delayLongPress={300}
-                        activeOpacity={0.8}>
-                        {/* Tab Preview Background */}
-                        <View style={styles.tabCardPreviewContainer}>
-                          {tab.screenshot ? (
-                            <Image
-                              source={{uri: tab.screenshot}}
-                              style={styles.tabCardScreenshot}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <>
-                              {/* Gradient/colored background when no screenshot */}
-                              <View
-                                style={[
-                                  styles.tabCardPlaceholder,
-                                  {backgroundColor: theme.colors.surface},
-                                ]}
-                              />
-                              <Image
-                                source={{
-                                  uri: `https://icons.duckduckgo.com/ip3/${getDomain(
-                                    tab.url,
-                                  )}.ico`,
-                                }}
-                                style={styles.tabCardFavicon}
-                                defaultSource={require('../assets/images/desktop-2.jpg')}
-                              />
-                            </>
-                          )}
-                        </View>
-
-                        {/* Close button overlay */}
+                        {...panResponder.panHandlers}>
                         <TouchableOpacity
-                          style={styles.tabCardCloseButton}
-                          onPress={() => handleCloseTab(tab.id)}
-                          hitSlop={{
-                            top: 10,
-                            bottom: 10,
-                            left: 10,
-                            right: 10,
-                          }}>
-                          <MaterialIcons name="close" size={16} color="#fff" />
+                          style={[
+                            styles.tabCard,
+                            tab.id === currentTabId && styles.tabCardActive,
+                            isDragging && styles.tabCardDragging,
+                          ]}
+                          onPress={() => handleSelectTab(tab.id)}
+                          onLongPress={() => handleLongPress(index)}
+                          delayLongPress={300}
+                          activeOpacity={0.8}>
+                          {/* Tab Preview Background */}
+                          <View style={styles.tabCardPreviewContainer}>
+                            {tab.screenshot ? (
+                              <Image
+                                source={{uri: tab.screenshot}}
+                                style={styles.tabCardScreenshot}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <>
+                                {/* Gradient/colored background when no screenshot */}
+                                <View
+                                  style={[
+                                    styles.tabCardPlaceholder,
+                                    {backgroundColor: theme.colors.surface},
+                                  ]}
+                                />
+                                <Image
+                                  source={{
+                                    uri: `https://icons.duckduckgo.com/ip3/${getDomain(
+                                      tab.url,
+                                    )}.ico`,
+                                  }}
+                                  style={styles.tabCardFavicon}
+                                  defaultSource={require('../assets/images/desktop-2.jpg')}
+                                />
+                              </>
+                            )}
+                          </View>
+
+                          {/* Close button overlay */}
+                          <TouchableOpacity
+                            style={styles.tabCardCloseButton}
+                            onPress={() => handleCloseTab(tab.id)}
+                            hitSlop={{
+                              top: 10,
+                              bottom: 10,
+                              left: 10,
+                              right: 10,
+                            }}>
+                            <MaterialIcons
+                              name="close"
+                              size={16}
+                              color="#fff"
+                            />
+                          </TouchableOpacity>
                         </TouchableOpacity>
-                      </TouchableOpacity>
-                      {/* Title below the card */}
-                      <Text
-                        style={styles.tabCardTitleBelow}
-                        numberOfLines={1}
-                        ellipsizeMode="tail">
-                        {tab.title || getDomain(tab.url)}
-                      </Text>
-                    </Animated.View>
+                        {/* Title below the card */}
+                        <Text
+                          style={styles.tabCardTitleBelow}
+                          numberOfLines={1}
+                          ellipsizeMode="tail">
+                          {tab.title || getDomain(tab.url)}
+                        </Text>
+                      </Animated.View>
+                    </SwipeableCard>
                   );
                 })}
             </ScrollView>
