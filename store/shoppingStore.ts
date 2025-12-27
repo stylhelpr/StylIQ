@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
+import {sanitizeUrlForAnalytics} from './utils';
 
 export type ShoppingItem = {
   id: string;
@@ -63,6 +64,8 @@ export type CartEvent = {
   itemCount?: number;
   cartValue?: number;
   items?: {title: string; price?: number; quantity?: number}[];
+  // ✅ FIX: IDEMPOTENCY - client_event_id for ON CONFLICT dedup (REQUIRED)
+  clientEventId: string;
 };
 
 export type ProductInteraction = {
@@ -729,13 +732,22 @@ export const useShoppingStore = create<ShoppingState>()(
           return;
         }
 
+        // ✅ FIX #2: URL SANITIZATION - Strip query params and hash before storage
+        const sanitizedUrl = sanitizeUrlForAnalytics(productUrl);
+
+        // ✅ FIX #4: EMPTY URL GUARD - Do not store events with empty/invalid URLs
+        if (!sanitizedUrl) {
+          console.log('[Store] Product interaction blocked: invalid URL after sanitization');
+          return;
+        }
+
         set(state => ({
           productInteractions: [
             {
               id: `interaction_${Date.now()}`,
               // ✅ FIX #3: IDEMPOTENCY - Generate client_event_id (UUID) for deduplication
               clientEventId: uuid.v4() as string,
-              productUrl,
+              productUrl: sanitizedUrl,
               type,
               timestamp: Date.now(),
               sessionId: state.currentSessionId || undefined,
@@ -755,8 +767,24 @@ export const useShoppingStore = create<ShoppingState>()(
           return;
         }
 
+        // ✅ FIX #2: URL SANITIZATION - Strip query params and hash before storage
+        const sanitizedCartUrl = sanitizeUrlForAnalytics(event.cartUrl);
+
+        // ✅ FIX #4: EMPTY URL GUARD - Do not store events with empty/invalid URLs
+        if (!sanitizedCartUrl) {
+          console.log('[Store] Cart event blocked: invalid URL after sanitization');
+          return;
+        }
+
+        // ✅ FIX #3: IDEMPOTENCY - Generate client_event_id (UUID) for deduplication
+        const sanitizedEvent: CartEvent = {
+          ...event,
+          cartUrl: sanitizedCartUrl,
+          clientEventId: uuid.v4() as string,
+        };
+
         set(state => {
-          const cartUrl = event.cartUrl;
+          const cartUrl = sanitizedCartUrl;
           let updatedHistory = [...state.cartHistory];
 
           // Find existing cart session or create new one
@@ -778,29 +806,29 @@ export const useShoppingStore = create<ShoppingState>()(
           // Skip if same event type with same cartValue within 30 seconds
           const isDuplicate = cartSession.events.some(
             e =>
-              e.type === event.type &&
-              e.cartValue === event.cartValue &&
-              Math.abs(e.timestamp - event.timestamp) < 30000,
+              e.type === sanitizedEvent.type &&
+              e.cartValue === sanitizedEvent.cartValue &&
+              Math.abs(e.timestamp - sanitizedEvent.timestamp) < 30000,
           );
 
           if (isDuplicate) {
-            console.log('[Store] Skipping duplicate cart event:', event.type);
+            console.log('[Store] Skipping duplicate cart event:', sanitizedEvent.type);
             return state; // Return unchanged state
           }
 
           // Add event to timeline
-          cartSession.events.push(event);
+          cartSession.events.push(sanitizedEvent);
 
           // Update cart status based on event type
-          if (event.type === 'checkout_complete') {
+          if (sanitizedEvent.type === 'checkout_complete') {
             const firstAdd = cartSession.events.find(e => e.type === 'add');
             if (firstAdd) {
-              cartSession.timeToCheckout = event.timestamp - firstAdd.timestamp;
+              cartSession.timeToCheckout = sanitizedEvent.timestamp - firstAdd.timestamp;
             }
-          } else if (event.type === 'checkout_start') {
+          } else if (sanitizedEvent.type === 'checkout_start') {
             const firstAdd = cartSession.events.find(e => e.type === 'add');
             if (firstAdd) {
-              cartSession.timeToCheckout = event.timestamp - firstAdd.timestamp;
+              cartSession.timeToCheckout = sanitizedEvent.timestamp - firstAdd.timestamp;
             }
           }
 
@@ -810,7 +838,7 @@ export const useShoppingStore = create<ShoppingState>()(
         });
 
         // Mark cart session for sync
-        get().markCartHistoryForSync(event.cartUrl);
+        get().markCartHistoryForSync(sanitizedCartUrl);
       },
 
       getCartAbandonmentStats: () => {
@@ -1351,6 +1379,16 @@ export const useShoppingStore = create<ShoppingState>()(
 
       recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => {
         if (!get().isTrackingEnabled()) return;
+
+        // ✅ FIX: URL SANITIZATION - Strip query params and hash before storage
+        const sanitizedUrl = sanitizeUrlForAnalytics(productUrl);
+
+        // ✅ FIX: EMPTY URL GUARD - Do not store events with empty/invalid URLs
+        if (!sanitizedUrl) {
+          console.log('[Store] Time-to-action blocked: invalid URL after sanitization');
+          return;
+        }
+
         const timestamp = Date.now();
         // Generate unique client event ID (UUID) for deduplication
         const clientEventId = uuid.v4() as string;
@@ -1359,7 +1397,7 @@ export const useShoppingStore = create<ShoppingState>()(
             ...state.timeToActionLog,
             {
               clientEventId,
-              productUrl,
+              productUrl: sanitizedUrl,
               actionType,
               seconds,
               timestamp,
