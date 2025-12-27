@@ -554,8 +554,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     isXS || isSM
       ? (width - 64) / 2 // ➜ 2 columns on small phones like iPhone SE
       : isMD
-      ? (width - 80) / 3 // ➜ 3 columns on mid-size phones
-      : 160; // ➜ fallback for large phones and tablets
+        ? (width - 80) / 3 // ➜ 3 columns on mid-size phones
+        : 160; // ➜ fallback for large phones and tablets
 
   //  TOOL TIPS
   const [showSettingsTooltip, setShowSettingsTooltip] = useState(false);
@@ -1720,10 +1720,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               isXS
                                 ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
                                 : isSM
-                                ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
-                                : isMD
-                                ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
-                                : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
+                                  ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
+                                  : isMD
+                                    ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
+                                    : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
                             ),
                             fontWeight: tokens.fontWeight.extraBold,
                             color: theme.colors.buttonText1,
@@ -1944,8 +1944,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             style={{
               paddingHorizontal: moderateScale(tokens.spacing.md),
               marginTop: 6,
-              marginBottom: 24,
-              width: '100%',
+              marginBottom: 22,
+              display: 'flex',
+              flexDirection: 'row',
             }}>
             <Animatable.View
               animation={{
@@ -1957,7 +1958,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               duration={2500}
               easing="ease-in-out"
               useNativeDriver
-              style={{width: '50%', margin: 'auto'}}>
+              style={{width: '45%', margin: 'auto'}}>
               <AppleTouchFeedback
                 onPress={() => navigate('Explore')}
                 hapticStyle="impactLight"
@@ -1980,6 +1981,44 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     {textTransform: 'uppercase', fontWeight: '700'},
                   ]}>
                   Fashion News
+                </Text>
+              </AppleTouchFeedback>
+            </Animatable.View>
+
+            <Animatable.View
+              animation={{
+                0: {scale: 1},
+                0.5: {scale: 1.02},
+                1: {scale: 1},
+              }}
+              iterationCount="infinite"
+              duration={2500}
+              easing="ease-in-out"
+              useNativeDriver
+              style={{width: '45%', margin: 'auto'}}>
+              <AppleTouchFeedback
+                onPress={() => navigate('VideoFeedScreen')}
+                hapticStyle="impactLight"
+                style={[
+                  globalStyles.buttonPrimary,
+                  {
+                    width: '100%',
+                    justifyContent: 'center',
+                    backgroundColor: theme.colors.button1,
+                    // backgroundColor: 'transparent',
+                    // borderWidth: tokens.borderWidth.hairline,
+                    // borderColor: theme.colors.foreground,
+                    // borderRadius: tokens.borderRadius.sm,
+                    borderRadius: tokens.borderRadius.xxxl,
+                    // marginTop: 20,
+                  },
+                ]}>
+                <Text
+                  style={[
+                    globalStyles.buttonPrimaryText,
+                    {textTransform: 'uppercase', fontWeight: '700'},
+                  ]}>
+                  Media Center
                 </Text>
               </AppleTouchFeedback>
             </Animatable.View>

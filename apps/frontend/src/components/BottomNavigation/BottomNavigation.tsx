@@ -204,9 +204,10 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 icon="group"
                 label="Community"
                 onPress={() =>
-                  current !== 'VideoFeedScreen' && navigate('VideoFeedScreen')
+                  current !== 'CommunityShowcaseScreen' &&
+                  navigate('CommunityShowcaseScreen')
                 }
-                isActive={current === 'VideoFeedScreen'}
+                isActive={current === 'CommunityShowcaseScreen'}
               />
               <TabButton
                 icon="auto-awesome"

@@ -1261,9 +1261,15 @@ export const useShoppingStore = create<ShoppingState>()(
           // Final merged tabs: server tabs (with preserved screenshots) + local-only tabs
           const mergedTabs = [...serverTabsWithScreenshots, ...localOnlyTabs];
 
-          const mergedCurrentTabId = data.currentTabId
-            || state.currentTabId
-            || (mergedTabs.length > 0 ? mergedTabs[0].id : null);
+          // IMPORTANT: Always preserve local currentTabId if it exists and is valid
+          // This prevents sync from switching the user's active tab while browsing
+          // (e.g., when iOS password autofill triggers an app state change)
+          const localTabStillExists = state.currentTabId &&
+            mergedTabs.some(t => t.id === state.currentTabId);
+
+          const mergedCurrentTabId = localTabStillExists
+            ? state.currentTabId  // Keep user's current tab
+            : (state.currentTabId || data.currentTabId || (mergedTabs.length > 0 ? mergedTabs[0].id : null));
 
           console.log('[ShoppingStore] Merged result:', {
             bookmarks: mergedBookmarks.length,

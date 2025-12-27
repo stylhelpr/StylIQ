@@ -310,27 +310,8 @@ export default function ImageCarouselScreen({
         decelerationRate={0.1}
       />
 
-      {/* Community FAB */}
-      <View style={styles.communityButton}>
-        <AppleTouchFeedback onPress={handleCommunity}>
-          <View style={styles.fabButton}>
-            <BlurView
-              style={styles.closeButtonBlur}
-              blurType="light"
-              blurAmount={0}
-              reducedTransparencyFallbackColor="rgba(255, 0, 0, 0.5)"
-            />
-            <View style={styles.closeButtonTint} />
-            <View style={styles.fabButtonInner}>
-              {/* <Feather name="user-x" color="black" size={22} /> */}
-              <MaterialIcons name="people" size={22} color="black" />
-            </View>
-          </View>
-        </AppleTouchFeedback>
-      </View>
-
       {/* Video Feed Button */}
-      <View style={styles.videoFeedButton}>
+      <View style={styles.communityButton}>
         <AppleTouchFeedback onPress={() => navigate('VideoFeedScreen')}>
           <View style={styles.fabButton}>
             <BlurView
@@ -341,27 +322,15 @@ export default function ImageCarouselScreen({
             />
             <View style={styles.closeButtonTint} />
             <View style={styles.fabButtonInner}>
-              <MaterialIcons name="play-circle-outline" size={22} color="black" />
+              <MaterialIcons
+                name="play-circle-outline"
+                size={22}
+                color="black"
+              />
             </View>
           </View>
         </AppleTouchFeedback>
       </View>
-
-      {/* Close button - removed, using Home button in lower left instead */}
-      {/* <View style={styles.closeButtonContainer}>
-        <View style={styles.closeButton}>
-          <BlurView
-            style={styles.closeButtonBlur}
-            blurType="light"
-            blurAmount={0}
-            reducedTransparencyFallbackColor="rgba(255, 0, 0, 0.5)"
-          />
-          <View style={styles.closeButtonTint} />
-          <Pressable onPress={handleClose} style={styles.closeButtonInner}>
-            <MaterialIcons name="close" size={18} color="black" />
-          </Pressable>
-        </View>
-      </View> */}
 
       {/* Home Button - lower left */}
       <View style={styles.homeButtonContainer}>

@@ -1838,6 +1838,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     tabsHeaderButtonText: {
       fontSize: 17,
       color: theme.colors.primary,
+      fontWeight: '600',
     },
     tabsGrid: {
       flexDirection: 'row',

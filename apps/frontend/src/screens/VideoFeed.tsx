@@ -397,7 +397,7 @@ export default function VideoFeedScreen({
       {/* 🔘 Floating FABs */}
       <View style={styles.fabContainer}>
         {/* Community Button */}
-        <AppleTouchFeedback
+        {/* <AppleTouchFeedback
           onPress={handleCommunity}
           style={{marginBottom: 12}}>
           <View style={styles.fabButton}>
@@ -409,11 +409,10 @@ export default function VideoFeedScreen({
             />
             <View style={styles.fabButtonTint} />
             <View style={styles.fabButtonInner}>
-              {/* <Feather name="user-x" color="black" size={22} /> */}
               <MaterialIcons name="people" size={22} color="black" />
             </View>
           </View>
-        </AppleTouchFeedback>
+        </AppleTouchFeedback> */}
 
         {/* Photo Library Button */}
         <AppleTouchFeedback onPress={handleNavigate}>
