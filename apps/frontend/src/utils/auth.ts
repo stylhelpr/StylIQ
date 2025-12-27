@@ -3,7 +3,14 @@ import Auth0, {Credentials} from 'react-native-auth0';
 
 const AUTH0_DOMAIN = 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
 const AUTH0_CLIENT_ID = '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
-export const AUTH0_AUDIENCE = 'http://localhost:3001';
+
+// Auth0 audience must match what the backend expects for JWT validation
+// In production, tokens are validated against this audience by the backend's JwtStrategy
+const PROD_AUDIENCE = 'https://api.stylhelpr.com';
+const DEV_AUDIENCE = 'http://localhost:3001';
+
+// @ts-ignore - __DEV__ is defined by React Native
+export const AUTH0_AUDIENCE = __DEV__ ? DEV_AUDIENCE : PROD_AUDIENCE;
 
 // Auth0 instance without biometrics (for normal operations)
 const auth0 = new Auth0({
@@ -108,23 +115,25 @@ export const hasStoredCredentials = async (): Promise<boolean> => {
  * If token is expired, it will be refreshed automatically.
  * Returns null if no credentials stored or biometric fails.
  */
-export const getCredentialsWithBiometrics = async (): Promise<Credentials | null> => {
-  try {
-    // Check if we have any stored credentials first
-    const hasCredentials = await hasStoredCredentials();
-    if (!hasCredentials) {
-      console.log('No stored credentials found');
+export const getCredentialsWithBiometrics =
+  async (): Promise<Credentials | null> => {
+    try {
+      // Check if we have any stored credentials first
+      const hasCredentials = await hasStoredCredentials();
+      if (!hasCredentials) {
+        console.log('No stored credentials found');
+        return null;
+      }
+
+      // Get credentials using biometric-enabled instance
+      // This will:
+      // 1. Prompt Face ID automatically
+      // 2. Auto-refresh the token if expired (using refresh token)
+      const credentials =
+        await auth0WithBiometrics.credentialsManager.getCredentials();
+      return credentials;
+    } catch (error) {
+      console.error('Failed to get credentials with biometrics:', error);
       return null;
     }
-
-    // Get credentials using biometric-enabled instance
-    // This will:
-    // 1. Prompt Face ID automatically
-    // 2. Auto-refresh the token if expired (using refresh token)
-    const credentials = await auth0WithBiometrics.credentialsManager.getCredentials();
-    return credentials;
-  } catch (error) {
-    console.error('Failed to get credentials with biometrics:', error);
-    return null;
-  }
-};
+  };
