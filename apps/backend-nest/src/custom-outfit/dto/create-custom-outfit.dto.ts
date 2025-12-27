@@ -1,13 +1,41 @@
 // create-custom-outfit.dto.ts
+import { IsString, IsOptional, IsArray, IsNumber, IsObject } from 'class-validator';
+
 export class CreateCustomOutfitDto {
+  @IsString()
   user_id: string;
+
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
   top_id?: string;
+
+  @IsOptional()
+  @IsString()
   bottom_id?: string;
+
+  @IsOptional()
+  @IsString()
   shoes_id?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   accessory_ids?: string[];
+
+  @IsOptional()
+  @IsObject()
   metadata?: Record<string, any>; // jsonb can hold any JSON object
+
+  @IsOptional()
+  @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsNumber()
   rating?: number;
 }
 
