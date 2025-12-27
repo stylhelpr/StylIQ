@@ -1,20 +1,24 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray, ValidateIf } from 'class-validator';
 
 export class UpdateSavedNoteDto {
   @IsOptional()
+  @ValidateIf((o, v) => v !== null)
   @IsString()
-  url?: string;
+  url?: string | null;
 
   @IsOptional()
+  @ValidateIf((o, v) => v !== null)
   @IsString()
-  title?: string;
+  title?: string | null;
 
   @IsOptional()
+  @ValidateIf((o, v) => v !== null)
   @IsString()
-  content?: string;
+  content?: string | null;
 
   @IsOptional()
+  @ValidateIf((o, v) => v !== null)
   @IsArray()
   @IsString({ each: true })
-  tags?: string[];
+  tags?: string[] | null;
 }
