@@ -6,8 +6,8 @@ export class UpdateScheduledOutfitDto {
   outfit_id?: string;
 
   @IsOptional()
-  @IsIn(['custom', 'ai'])
-  outfit_type?: 'custom' | 'ai';
+  @IsIn(['custom', 'ai', 'suggestion'])
+  outfit_type?: 'custom' | 'ai' | 'suggestion';
 
   @IsOptional()
   @IsString()

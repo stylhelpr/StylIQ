@@ -7,8 +7,8 @@ export class CreateScheduledOutfitDto {
   @IsString()
   outfit_id: string;
 
-  @IsIn(['custom', 'ai'])
-  outfit_type: 'custom' | 'ai';
+  @IsIn(['custom', 'ai', 'suggestion'])
+  outfit_type: 'custom' | 'ai' | 'suggestion';
 
   @IsString()
   scheduled_for: string; // ISO string
