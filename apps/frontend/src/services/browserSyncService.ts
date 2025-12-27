@@ -284,16 +284,6 @@ function mapServerCartHistoryToLocal(
   };
 }
 
-// Map server tab to local format
-function mapServerTabToLocal(tab: ServerTab): LocalTab {
-  return {
-    id: tab.id,
-    url: tab.url,
-    title: tab.title || 'New Tab',
-    // screenshot is not synced (too large), will be regenerated locally
-  };
-}
-
 // Transform full server response to local format
 function mapServerResponseToLocal(response: ServerSyncResponse): SyncResponse {
   const bookmarks = response.bookmarks.map(mapServerBookmarkToLocal);
@@ -304,15 +294,15 @@ function mapServerResponseToLocal(response: ServerSyncResponse): SyncResponse {
   const cartHistory = (response.cartHistory || []).map(
     mapServerCartHistoryToLocal,
   );
-  const tabs = (response.tabs || []).map(mapServerTabToLocal);
+  // Tabs are ephemeral - don't restore from server
 
   return {
     bookmarks,
     history,
     collections,
     cartHistory,
-    tabs,
-    currentTabId: response.currentTabId,
+    tabs: [], // Tabs are ephemeral, not synced
+    currentTabId: null,
     serverTimestamp: response.serverTimestamp,
   };
 }
@@ -549,14 +539,7 @@ class BrowserSyncService {
           abandoned: ch.abandoned,
           timeToCheckout: ch.timeToCheckout,
         })),
-        // Sync tabs - always send current tab state
-        tabs: store.tabs.map(t => ({
-          id: t.id,
-          url: t.url,
-          title: t.title,
-          // NOTE: screenshot is NOT synced (too large)
-        })),
-        currentTabId: store.currentTabId,
+        // Tabs are ephemeral - don't sync to database
         // GOLD: Time-to-action events
         timeToActionEvents: timeToActionLog.map(e => ({
           clientEventId: e.clientEventId,

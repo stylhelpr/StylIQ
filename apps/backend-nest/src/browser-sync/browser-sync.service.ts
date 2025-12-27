@@ -6,7 +6,6 @@ import {
   CollectionDto,
   CartHistoryDto,
   CartEventDto,
-  BrowserTabDto,
   SyncRequestDto,
   SyncResponseDto,
   TimeToActionDto,
@@ -76,7 +75,7 @@ export class BrowserSyncService {
     const limits = await this.getUserLimits(userId);
     const counts = await this.getCurrentCounts(userId);
 
-    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult, tabsResult, tabStateResult] =
+    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
       await Promise.all([
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
@@ -118,18 +117,6 @@ export class BrowserSyncService {
          LIMIT 100`,
           [userId],
         ),
-        this.db.query(
-          `SELECT tab_id, url, title, position, created_at, updated_at
-         FROM browser_tabs
-         WHERE user_id = $1
-         ORDER BY position ASC
-         LIMIT 50`,
-          [userId],
-        ),
-        this.db.query(
-          `SELECT current_tab_id FROM browser_tab_state WHERE user_id = $1`,
-          [userId],
-        ),
       ]);
 
     // Fetch cart events for each cart history entry
@@ -140,8 +127,8 @@ export class BrowserSyncService {
       history: historyResult.rows.map(this.mapHistoryFromDb),
       collections: collectionsResult.rows.map(this.mapCollectionFromDb),
       cartHistory,
-      tabs: tabsResult.rows.map(this.mapTabFromDb),
-      currentTabId: tabStateResult.rows[0]?.current_tab_id || null,
+      tabs: [], // Tabs are ephemeral, not stored in DB
+      currentTabId: null,
       serverTimestamp: Date.now(),
       limits: {
         maxBookmarks: limits.maxBookmarks,
@@ -162,7 +149,7 @@ export class BrowserSyncService {
     const counts = await this.getCurrentCounts(userId);
     const sinceDate = new Date(lastSyncTimestamp);
 
-    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult, tabsResult, tabStateResult] =
+    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
       await Promise.all([
         this.db.query(
           `SELECT id, url, title, favicon_url, price, price_history, brand, category,
@@ -201,19 +188,6 @@ export class BrowserSyncService {
          ORDER BY updated_at DESC`,
           [userId, sinceDate],
         ),
-        // For tabs, always return all tabs (they're replaced as a set)
-        this.db.query(
-          `SELECT tab_id, url, title, position, created_at, updated_at
-         FROM browser_tabs
-         WHERE user_id = $1
-         ORDER BY position ASC
-         LIMIT 50`,
-          [userId],
-        ),
-        this.db.query(
-          `SELECT current_tab_id FROM browser_tab_state WHERE user_id = $1`,
-          [userId],
-        ),
       ]);
 
     // Fetch cart events for each cart history entry
@@ -224,8 +198,8 @@ export class BrowserSyncService {
       history: historyResult.rows.map(this.mapHistoryFromDb),
       collections: collectionsResult.rows.map(this.mapCollectionFromDb),
       cartHistory,
-      tabs: tabsResult.rows.map(this.mapTabFromDb),
-      currentTabId: tabStateResult.rows[0]?.current_tab_id || null,
+      tabs: [], // Tabs are ephemeral, not stored in DB
+      currentTabId: null,
       serverTimestamp: Date.now(),
       limits: {
         maxBookmarks: limits.maxBookmarks,
@@ -280,10 +254,7 @@ export class BrowserSyncService {
       await this.upsertCartHistory(userId, data.cartHistory);
     }
 
-    // Sync tabs - replace all tabs with client state
-    if (data.tabs !== undefined) {
-      await this.replaceTabs(userId, data.tabs || [], data.currentTabId || null);
-    }
+    // Tabs are ephemeral - not synced to DB
 
     // GOLD: Insert time-to-action events
     if (data.timeToActionEvents?.length) {
@@ -536,10 +507,6 @@ export class BrowserSyncService {
 
       // Delete collections
       this.db.query('DELETE FROM browser_collections WHERE user_id = $1', [userId]),
-
-      // Delete tabs
-      this.db.query('DELETE FROM browser_tabs WHERE user_id = $1', [userId]),
-      this.db.query('DELETE FROM browser_tab_state WHERE user_id = $1', [userId]),
     ]);
 
     console.log(`[GDPR] Deleted all analytics for user ${userId}`);
@@ -597,61 +564,6 @@ export class BrowserSyncService {
       createdAt: new Date(row.created_at).getTime(),
       updatedAt: new Date(row.updated_at).getTime(),
     };
-  }
-
-  private mapTabFromDb(row: any): BrowserTabDto {
-    return {
-      id: row.tab_id,
-      url: row.url,
-      title: row.title,
-      position: row.position,
-      createdAt: new Date(row.created_at).getTime(),
-      updatedAt: new Date(row.updated_at).getTime(),
-    };
-  }
-
-  // Replace all tabs for a user (full sync approach for tabs)
-  private async replaceTabs(
-    userId: string,
-    tabs: BrowserTabDto[],
-    currentTabId: string | null,
-  ): Promise<void> {
-    // Delete all existing tabs for this user
-    await this.db.query('DELETE FROM browser_tabs WHERE user_id = $1', [userId]);
-
-    // Deduplicate tabs by tab_id (keep first occurrence)
-    const seenTabIds = new Set<string>();
-    const uniqueTabs = tabs.filter(tab => {
-      if (!tab.id || seenTabIds.has(tab.id)) {
-        return false;
-      }
-      seenTabIds.add(tab.id);
-      return true;
-    });
-
-    // Insert new tabs with ON CONFLICT to handle any remaining edge cases
-    for (let i = 0; i < uniqueTabs.length; i++) {
-      const tab = uniqueTabs[i];
-      // ✅ FIX #2: SANITIZE URL - strip query params and fragments before persistence
-      const sanitizedUrl = this.sanitizeUrlForAnalytics(tab.url);
-
-      await this.db.query(
-        `INSERT INTO browser_tabs (user_id, tab_id, url, title, position)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (user_id, tab_id)
-         DO UPDATE SET url = EXCLUDED.url, title = EXCLUDED.title, position = EXCLUDED.position, updated_at = now()`,
-        [userId, tab.id, sanitizedUrl, tab.title || 'New Tab', i],
-      );
-    }
-
-    // Update current tab state
-    await this.db.query(
-      `INSERT INTO browser_tab_state (user_id, current_tab_id)
-       VALUES ($1, $2)
-       ON CONFLICT (user_id)
-       DO UPDATE SET current_tab_id = EXCLUDED.current_tab_id, updated_at = now()`,
-      [userId, currentTabId],
-    );
   }
 
   // Upsert cart history with events
