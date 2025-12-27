@@ -67,6 +67,7 @@ apiClient.interceptors.response.use(
   async error => {
     if (error.response?.status === 401) {
       console.warn('Token expired or invalid - triggering logout');
+      console.warn('401 from URL:', error.config?.url);
       await handleAuthExpired();
 
       // Emit event for UI to handle navigation to login

@@ -5,12 +5,9 @@ const AUTH0_DOMAIN = 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
 const AUTH0_CLIENT_ID = '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
 
 // Auth0 audience must match what the backend expects for JWT validation
-// In production, tokens are validated against this audience by the backend's JwtStrategy
-const PROD_AUDIENCE = 'https://api.stylhelpr.com';
-const DEV_AUDIENCE = 'http://localhost:3001';
-
-// @ts-ignore - __DEV__ is defined by React Native
-export const AUTH0_AUDIENCE = __DEV__ ? DEV_AUDIENCE : PROD_AUDIENCE;
+// Must match: Auth0 API Identifier + Cloud Run AUTH0_AUDIENCE env var
+// Using single audience for both dev and prod - update local backend .env to match
+export const AUTH0_AUDIENCE = 'https://api.stylhelpr.com';
 
 // Auth0 instance without biometrics (for normal operations)
 const auth0 = new Auth0({
