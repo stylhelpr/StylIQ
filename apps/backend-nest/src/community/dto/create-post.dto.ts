@@ -1,24 +1,29 @@
-import { IsString, IsOptional, IsArray, MaxLength, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsArray, MaxLength, ValidateIf } from 'class-validator';
 
 export class CreatePostDto {
   @IsOptional()
-  @IsUrl()
+  @ValidateIf((o) => o.imageUrl !== '' && o.imageUrl !== null)
+  @IsString()
   imageUrl?: string;
 
   @IsOptional()
-  @IsUrl()
+  @ValidateIf((o) => o.topImage !== '' && o.topImage !== null)
+  @IsString()
   topImage?: string;
 
   @IsOptional()
-  @IsUrl()
+  @ValidateIf((o) => o.bottomImage !== '' && o.bottomImage !== null)
+  @IsString()
   bottomImage?: string;
 
   @IsOptional()
-  @IsUrl()
+  @ValidateIf((o) => o.shoesImage !== '' && o.shoesImage !== null)
+  @IsString()
   shoesImage?: string;
 
   @IsOptional()
-  @IsUrl()
+  @ValidateIf((o) => o.accessoryImage !== '' && o.accessoryImage !== null)
+  @IsString()
   accessoryImage?: string;
 
   @IsOptional()

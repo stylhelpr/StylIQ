@@ -1,6 +1,9 @@
 import {useShoppingStore} from './shoppingStore';
-import { analyticsQueue } from '../apps/frontend/src/services/analyticsQueue';
-import { sanitizeUrlForAnalytics, sanitizeTitle } from '../apps/frontend/src/utils/sanitize';
+import {analyticsQueue} from '../apps/frontend/src/services/analyticsQueue';
+import {
+  sanitizeUrlForAnalytics,
+  sanitizeTitle,
+} from '../apps/frontend/src/utils/sanitize';
 
 /**
  * Quick helpers for recording the 10 gold data points
@@ -343,11 +346,12 @@ export const shoppingAnalytics = {
         b => b.priceHistory?.length || 0 > 0,
       ).length,
       bookmarksWithEmotion: store.bookmarks.filter(b => b.emotionAtSave).length,
-      mostRevisitedItem: store.bookmarks.length > 0
-        ? store.bookmarks.reduce((max, b) =>
-            (b.viewCount || 0) > (max.viewCount || 0) ? b : max,
-          )
-        : null,
+      mostRevisitedItem:
+        store.bookmarks.length > 0
+          ? store.bookmarks.reduce((max, b) =>
+              (b.viewCount || 0) > (max.viewCount || 0) ? b : max,
+            )
+          : null,
       ...cartStats,
     };
   },
@@ -429,8 +433,8 @@ export const shoppingAnalytics = {
         interaction.type === 'view'
           ? 'VIEW'
           : interaction.type === 'bookmark'
-          ? 'BOOKMARK'
-          : 'CART';
+            ? 'BOOKMARK'
+            : 'CART';
       output += `\n  ${idx + 1}. ${typeEmoji}\n`;
       output += `     URL: ${interaction.productUrl}\n`;
       output += `     Time: ${new Date(
@@ -475,9 +479,7 @@ export const shoppingAnalytics = {
   ) => {
     // ✅ CONSENT GATE
     if (!shoppingAnalytics.isTrackingEnabled()) {
-      console.log(
-        '[Analytics] Page visit blocked: tracking not accepted',
-      );
+      console.log('[Analytics] Page visit blocked: tracking not accepted');
       return;
     }
 
@@ -521,7 +523,6 @@ export const shoppingAnalytics = {
     }
 
     try {
-
       const canonicalUrl = sanitizeUrlForAnalytics(url);
       const domain = new URL(canonicalUrl).hostname || 'unknown';
 
@@ -553,7 +554,6 @@ export const shoppingAnalytics = {
     }
 
     try {
-
       const canonicalUrl = sanitizeUrlForAnalytics(url);
       const domain = new URL(canonicalUrl).hostname || 'unknown';
 
@@ -582,7 +582,6 @@ export const shoppingAnalytics = {
     }
 
     try {
-
       const canonicalUrl = sanitizeUrlForAnalytics(url);
       const domain = new URL(canonicalUrl).hostname || 'unknown';
 
@@ -611,7 +610,6 @@ export const shoppingAnalytics = {
     }
 
     try {
-
       const canonicalUrl = sanitizeUrlForAnalytics(url);
       const domain = new URL(canonicalUrl).hostname || 'unknown';
 

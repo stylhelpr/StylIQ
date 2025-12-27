@@ -127,7 +127,12 @@ type ShoppingState = {
 
   // History
   history: BrowsingHistory[];
-  addToHistory: (url: string, title: string, source: string, brand?: string) => void;
+  addToHistory: (
+    url: string,
+    title: string,
+    source: string,
+    brand?: string,
+  ) => void;
   clearHistory: () => void;
   getRecentHistory: (limit?: number) => BrowsingHistory[];
   getMostVisitedSites: (limit?: number) => BrowsingHistory[];
@@ -321,11 +326,25 @@ type ShoppingState = {
   }[];
 
   // Brand affinity score: % of views per brand (derived from history)
-  getBrandAffinityScores: () => {brand: string; score: number; viewCount: number}[];
+  getBrandAffinityScores: () => {
+    brand: string;
+    score: number;
+    viewCount: number;
+  }[];
 
   // Time-to-action: record and get avg time from page load to bookmark/cart
-  recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => void;
-  timeToActionLog: {clientEventId: string; productUrl: string; actionType: string; seconds: number; timestamp: number}[];
+  recordTimeToAction: (
+    productUrl: string,
+    actionType: 'bookmark' | 'cart',
+    seconds: number,
+  ) => void;
+  timeToActionLog: {
+    clientEventId: string;
+    productUrl: string;
+    actionType: string;
+    seconds: number;
+    timestamp: number;
+  }[];
   getAvgTimeToAction: (actionType?: 'bookmark' | 'cart') => number;
 
   // GDPR: Delete all user analytics data
@@ -387,7 +406,12 @@ export const useShoppingStore = create<ShoppingState>()(
 
       // History
       history: [],
-      addToHistory: (url: string, title: string, source: string, brand?: string) => {
+      addToHistory: (
+        url: string,
+        title: string,
+        source: string,
+        brand?: string,
+      ) => {
         if (!get().isTrackingEnabled()) return;
         set(state => {
           const existing = state.history.find(h => h.url === url);
@@ -764,13 +788,13 @@ export const useShoppingStore = create<ShoppingState>()(
       quickShopSites: [
         {id: '1', name: 'Google', url: 'https://www.google.com'},
         {id: '2', name: 'Amazon', url: 'https://www.amazon.com'},
-        {id: '3', name: 'ASOS', url: 'https://www.asos.com'},
-        {id: '4', name: 'H&M', url: 'https://www.hm.com'},
-        {id: '5', name: 'Zara', url: 'https://www.zara.com'},
-        {id: '6', name: 'Shein', url: 'https://www.shein.com'},
-        {id: '7', name: 'SSENSE', url: 'https://www.ssense.com'},
-        {id: '8', name: 'Farfetch', url: 'https://www.farfetch.com'},
-        {id: '9', name: 'Nordstrom', url: 'https://www.nordstrom.com'},
+        // {id: '3', name: 'ASOS', url: 'https://www.asos.com'},
+        // {id: '4', name: 'H&M', url: 'https://www.hm.com'},
+        // {id: '5', name: 'Zara', url: 'https://www.zara.com'},
+        // {id: '6', name: 'Shein', url: 'https://www.shein.com'},
+        // {id: '7', name: 'SSENSE', url: 'https://www.ssense.com'},
+        // {id: '8', name: 'Farfetch', url: 'https://www.farfetch.com'},
+        // {id: '9', name: 'Nordstrom', url: 'https://www.nordstrom.com'},
       ],
       addQuickShopSite: (name: string, url: string) => {
         const id = `qs_${Date.now()}`;
@@ -801,7 +825,9 @@ export const useShoppingStore = create<ShoppingState>()(
       ) => {
         // ✅ FIX #1: CONSENT GATING - Do not capture without explicit opt-in
         if (!get().isTrackingEnabled()) {
-          console.log('[Store] Product interaction blocked: tracking consent not accepted');
+          console.log(
+            '[Store] Product interaction blocked: tracking consent not accepted',
+          );
           return;
         }
 
@@ -810,7 +836,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
         // ✅ FIX #4: EMPTY URL GUARD - Do not store events with empty/invalid URLs
         if (!sanitizedUrl) {
-          console.log('[Store] Product interaction blocked: invalid URL after sanitization');
+          console.log(
+            '[Store] Product interaction blocked: invalid URL after sanitization',
+          );
           return;
         }
 
@@ -836,7 +864,9 @@ export const useShoppingStore = create<ShoppingState>()(
       recordCartEvent: (event: CartEvent) => {
         // ✅ FIX #1: CONSENT GATING - Do not capture without explicit opt-in
         if (!get().isTrackingEnabled()) {
-          console.log('[Store] Cart event blocked: tracking consent not accepted');
+          console.log(
+            '[Store] Cart event blocked: tracking consent not accepted',
+          );
           return;
         }
 
@@ -845,7 +875,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
         // ✅ FIX #4: EMPTY URL GUARD - Do not store events with empty/invalid URLs
         if (!sanitizedCartUrl) {
-          console.log('[Store] Cart event blocked: invalid URL after sanitization');
+          console.log(
+            '[Store] Cart event blocked: invalid URL after sanitization',
+          );
           return;
         }
 
@@ -885,7 +917,10 @@ export const useShoppingStore = create<ShoppingState>()(
           );
 
           if (isDuplicate) {
-            console.log('[Store] Skipping duplicate cart event:', sanitizedEvent.type);
+            console.log(
+              '[Store] Skipping duplicate cart event:',
+              sanitizedEvent.type,
+            );
             return state; // Return unchanged state
           }
 
@@ -896,12 +931,14 @@ export const useShoppingStore = create<ShoppingState>()(
           if (sanitizedEvent.type === 'checkout_complete') {
             const firstAdd = cartSession.events.find(e => e.type === 'add');
             if (firstAdd) {
-              cartSession.timeToCheckout = sanitizedEvent.timestamp - firstAdd.timestamp;
+              cartSession.timeToCheckout =
+                sanitizedEvent.timestamp - firstAdd.timestamp;
             }
           } else if (sanitizedEvent.type === 'checkout_start') {
             const firstAdd = cartSession.events.find(e => e.type === 'add');
             if (firstAdd) {
-              cartSession.timeToCheckout = sanitizedEvent.timestamp - firstAdd.timestamp;
+              cartSession.timeToCheckout =
+                sanitizedEvent.timestamp - firstAdd.timestamp;
             }
           }
 
@@ -1045,13 +1082,14 @@ export const useShoppingStore = create<ShoppingState>()(
           pendingChanges: {
             ...state.pendingChanges,
             // Remove from pending bookmarks if it was there
-            bookmarks: state.pendingChanges.bookmarks.filter(b => b.url !== url),
+            bookmarks: state.pendingChanges.bookmarks.filter(
+              b => b.url !== url,
+            ),
             // Add to deleted list if not already there
-            deletedBookmarkUrls: state.pendingChanges.deletedBookmarkUrls.includes(
-              url,
-            )
-              ? state.pendingChanges.deletedBookmarkUrls
-              : [...state.pendingChanges.deletedBookmarkUrls, url],
+            deletedBookmarkUrls:
+              state.pendingChanges.deletedBookmarkUrls.includes(url)
+                ? state.pendingChanges.deletedBookmarkUrls
+                : [...state.pendingChanges.deletedBookmarkUrls, url],
           },
         }));
       },
@@ -1109,13 +1147,14 @@ export const useShoppingStore = create<ShoppingState>()(
           pendingChanges: {
             ...state.pendingChanges,
             // Remove from pending collections if it was there
-            collections: state.pendingChanges.collections.filter(c => c.id !== id),
+            collections: state.pendingChanges.collections.filter(
+              c => c.id !== id,
+            ),
             // Add to deleted list if not already there
-            deletedCollectionIds: state.pendingChanges.deletedCollectionIds.includes(
-              id,
-            )
-              ? state.pendingChanges.deletedCollectionIds
-              : [...state.pendingChanges.deletedCollectionIds, id],
+            deletedCollectionIds:
+              state.pendingChanges.deletedCollectionIds.includes(id)
+                ? state.pendingChanges.deletedCollectionIds
+                : [...state.pendingChanges.deletedCollectionIds, id],
           },
         }));
       },
@@ -1127,9 +1166,7 @@ export const useShoppingStore = create<ShoppingState>()(
         set(state => {
           // Ensure cartHistory exists (migration from older store versions)
           const pendingCartHistory = state.pendingChanges.cartHistory || [];
-          const existing = pendingCartHistory.find(
-            c => c.cartUrl === cartUrl,
-          );
+          const existing = pendingCartHistory.find(c => c.cartUrl === cartUrl);
           if (existing) {
             return {
               pendingChanges: {
@@ -1204,7 +1241,8 @@ export const useShoppingStore = create<ShoppingState>()(
 
           // Merge history - use URL as key, prefer local visitCount (it's more up-to-date)
           // If history was recently cleared, don't restore from server
-          const historyClearedRecently = state._historyClearedAt &&
+          const historyClearedRecently =
+            state._historyClearedAt &&
             state._historyClearedAt > (data.serverTimestamp || 0);
 
           const mergedHistory = historyClearedRecently
@@ -1217,13 +1255,21 @@ export const useShoppingStore = create<ShoppingState>()(
                     return {
                       ...serverH,
                       ...localH,
-                      visitCount: Math.max(localH.visitCount, serverH.visitCount || 0),
-                      visitedAt: Math.max(localH.visitedAt, serverH.visitedAt || 0),
+                      visitCount: Math.max(
+                        localH.visitCount,
+                        serverH.visitCount || 0,
+                      ),
+                      visitedAt: Math.max(
+                        localH.visitedAt,
+                        serverH.visitedAt || 0,
+                      ),
                     };
                   }
                   return localH;
                 }),
-                ...data.history.filter(h => !state.history.some(lh => lh.url === h.url)),
+                ...data.history.filter(
+                  h => !state.history.some(lh => lh.url === h.url),
+                ),
               ].slice(0, 100);
 
           // Merge collections - use ID as key, prefer server version if exists
@@ -1234,7 +1280,9 @@ export const useShoppingStore = create<ShoppingState>()(
           ];
 
           // Merge cart history - use cartUrl as key, prefer server version if exists
-          const serverCartUrls = new Set((data.cartHistory || []).map(c => c.cartUrl));
+          const serverCartUrls = new Set(
+            (data.cartHistory || []).map(c => c.cartUrl),
+          );
           const mergedCartHistory = [
             ...(data.cartHistory || []),
             ...state.cartHistory.filter(c => !serverCartUrls.has(c.cartUrl)),
@@ -1264,12 +1312,15 @@ export const useShoppingStore = create<ShoppingState>()(
           // IMPORTANT: Always preserve local currentTabId if it exists and is valid
           // This prevents sync from switching the user's active tab while browsing
           // (e.g., when iOS password autofill triggers an app state change)
-          const localTabStillExists = state.currentTabId &&
+          const localTabStillExists =
+            state.currentTabId &&
             mergedTabs.some(t => t.id === state.currentTabId);
 
           const mergedCurrentTabId = localTabStillExists
-            ? state.currentTabId  // Keep user's current tab
-            : (state.currentTabId || data.currentTabId || (mergedTabs.length > 0 ? mergedTabs[0].id : null));
+            ? state.currentTabId // Keep user's current tab
+            : state.currentTabId ||
+              data.currentTabId ||
+              (mergedTabs.length > 0 ? mergedTabs[0].id : null);
 
           console.log('[ShoppingStore] Merged result:', {
             bookmarks: mergedBookmarks.length,
@@ -1311,7 +1362,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
       // Reset all user data on logout (analytics are user-specific and stored in DB)
       resetForLogout: () => {
-        console.log('[ShoppingStore] resetForLogout called - clearing all data');
+        console.log(
+          '[ShoppingStore] resetForLogout called - clearing all data',
+        );
         // NOTE: tabs and currentTabId are NOT cleared on logout
         // Tabs (with screenshots) persist until manually closed or Clear Shopping Analytics is pressed
         set({
@@ -1409,7 +1462,12 @@ export const useShoppingStore = create<ShoppingState>()(
         });
 
         // Filter to products with 2+ sessions and sort by session count
-        const results: {url: string; title: string; sessionCount: number; totalViews: number}[] = [];
+        const results: {
+          url: string;
+          title: string;
+          sessionCount: number;
+          totalViews: number;
+        }[] = [];
         sessionMap.forEach((sessions, url) => {
           if (sessions.size >= 2) {
             const entry = history.find(h => h.url === url);
@@ -1434,7 +1492,10 @@ export const useShoppingStore = create<ShoppingState>()(
 
         history.forEach(entry => {
           if (entry.brand) {
-            brandCounts.set(entry.brand, (brandCounts.get(entry.brand) || 0) + entry.visitCount);
+            brandCounts.set(
+              entry.brand,
+              (brandCounts.get(entry.brand) || 0) + entry.visitCount,
+            );
             totalViews += entry.visitCount;
           }
         });
@@ -1456,7 +1517,11 @@ export const useShoppingStore = create<ShoppingState>()(
       // Time-to-action tracking
       timeToActionLog: [],
 
-      recordTimeToAction: (productUrl: string, actionType: 'bookmark' | 'cart', seconds: number) => {
+      recordTimeToAction: (
+        productUrl: string,
+        actionType: 'bookmark' | 'cart',
+        seconds: number,
+      ) => {
         if (!get().isTrackingEnabled()) return;
 
         // ✅ FIX: URL SANITIZATION - Strip query params and hash before storage
@@ -1464,7 +1529,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
         // ✅ FIX: EMPTY URL GUARD - Do not store events with empty/invalid URLs
         if (!sanitizedUrl) {
-          console.log('[Store] Time-to-action blocked: invalid URL after sanitization');
+          console.log(
+            '[Store] Time-to-action blocked: invalid URL after sanitization',
+          );
           return;
         }
 

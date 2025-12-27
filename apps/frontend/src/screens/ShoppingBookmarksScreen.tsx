@@ -18,7 +18,7 @@ import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import PriceAlertModal from '../components/PriceAlertModal/PriceAlertModal';
-import { usePriceAlerts } from '../hooks/usePriceAlerts';
+import {usePriceAlerts} from '../hooks/usePriceAlerts';
 
 type Props = {
   navigate?: (screen: any, params?: any) => void;
@@ -30,7 +30,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
   const {bookmarks, removeBookmark, history} = useShoppingStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'brand' | 'name'>('recent');
-  const { createAlert } = usePriceAlerts();
+  const {createAlert} = usePriceAlerts();
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [selectedBookmark, setSelectedBookmark] = useState<any>(null);
   const [isCreatingAlert, setIsCreatingAlert] = useState(false);
@@ -42,7 +42,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
       'https://styliq.com/shopping/bookmarks',
       'Shopping Bookmarks',
       0,
-      0
+      0,
     );
   }, []);
 
@@ -283,8 +283,8 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
                 {filter === 'recent'
                   ? 'Recent'
                   : filter === 'brand'
-                  ? 'Brand'
-                  : 'A-Z'}
+                    ? 'Brand'
+                    : 'A-Z'}
               </Text>
             </AppleTouchFeedback>
           ))}
@@ -381,7 +381,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
         currentPrice={selectedBookmark?.price || 0}
         itemTitle={selectedBookmark?.title || ''}
         onDismiss={() => setAlertModalVisible(false)}
-        onConfirm={async (targetPrice) => {
+        onConfirm={async targetPrice => {
           if (selectedBookmark) {
             setIsCreatingAlert(true);
             try {

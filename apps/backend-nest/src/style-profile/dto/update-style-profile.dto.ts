@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsNumber, IsArray, IsObject, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 export class UpdateStyleProfileDto {
   // Appearance
@@ -31,36 +32,44 @@ export class UpdateStyleProfileDto {
   @IsString()
   climate?: string;
 
-  // Measurements
+  // Measurements - use @Type to transform strings to numbers
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   height?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   weight?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   chest?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   waist?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   hip?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   shoulder_width?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   inseam?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   shoe_size?: number;
 
@@ -80,6 +89,7 @@ export class UpdateStyleProfileDto {
   color_preferences?: string[];
 
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
   @IsArray()
   @IsString({ each: true })
   disliked_styles?: string[];
@@ -134,16 +144,19 @@ export class UpdateStyleProfileDto {
   @IsString({ each: true })
   style_icons?: string[];
 
-  // Budget & Fashion
+  // Budget & Fashion - use @Type to transform strings to numbers
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   budget_level?: number; // deprecated, kept for backward compatibility
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   budget_min?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   budget_max?: number;
 
@@ -180,6 +193,7 @@ export class UpdateStyleProfileDto {
 
   // Profile completion
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   is_style_profile_complete?: boolean;
 }
