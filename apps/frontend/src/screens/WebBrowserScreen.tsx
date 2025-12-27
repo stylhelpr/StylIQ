@@ -1839,15 +1839,20 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       paddingHorizontal: 12,
       paddingTop: 4,
     },
+    tabCardWrapper: {
+      width: TAB_CARD_WIDTH,
+      margin: 6,
+      alignItems: 'center',
+      marginBottom: 8,
+    },
     tabCard: {
       width: TAB_CARD_WIDTH,
       height: TAB_CARD_HEIGHT,
-      margin: 6,
-      borderRadius: 20,
+      borderRadius: 15,
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
-      borderWidth: 2,
-      borderColor: 'transparent',
+      // borderWidth: 2,
+      // borderColor: 'transparent',
     },
     tabCardActive: {
       borderColor: theme.colors.primary,
@@ -1870,11 +1875,27 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     tabCardTitle: {
       flex: 1,
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: '600',
       color: '#fff',
     },
     tabCardClose: {
       padding: 2,
+    },
+    tabCardCloseButton: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      borderRadius: 12,
+      padding: 4,
+    },
+    tabCardTitleBelow: {
+      width: TAB_CARD_WIDTH,
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+      marginTop: 6,
+      paddingHorizontal: 4,
     },
     tabCardContent: {
       flex: 1,
@@ -2718,7 +2739,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 style={styles.bottomNavItem}
                 onPress={openTabsView}>
                 <View style={styles.tabsButtonNav}>
-                  <Text style={styles.tabsCountNav}>{tabs.filter(t => t.url).length || 1}</Text>
+                  <Text style={styles.tabsCountNav}>
+                    {tabs.filter(t => t.url).length || 1}
+                  </Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -2777,7 +2800,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 style={styles.bottomNavItem}
                 onPress={openTabsView}>
                 <View style={styles.tabsButtonNav}>
-                  <Text style={styles.tabsCountNav}>{tabs.filter(t => t.url).length || 1}</Text>
+                  <Text style={styles.tabsCountNav}>
+                    {tabs.filter(t => t.url).length || 1}
+                  </Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -2840,7 +2865,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   onPress={handleNewTab}>
                   <Text style={styles.tabsHeaderButtonText}>+</Text>
                 </TouchableOpacity> */}
-                <Text style={styles.tabsHeaderTitle}>{tabs.filter(t => t.url).length} Tabs</Text>
+                <Text style={styles.tabsHeaderTitle}>
+                  {tabs.filter(t => t.url).length} Tabs
+                </Text>
                 <TouchableOpacity
                   style={styles.tabsHeaderButton}
                   onPress={closeTabsView}>
@@ -2875,6 +2902,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                       key={tab.id}
                       onLayout={e => handleTabLayout(index, e)}
                       style={[
+                        styles.tabCardWrapper,
                         isDragging && {
                           transform: [
                             {translateX: dragAnimatedValue.x},
@@ -2929,35 +2957,26 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                           )}
                         </View>
 
-                        {/* Overlay with text content */}
-                        <View style={styles.tabCardOverlay}>
-                          <View style={styles.tabCardHeader}>
-                            <Text style={styles.tabCardTitle} numberOfLines={2}>
-                              {tab.title || getDomain(tab.url)}
-                            </Text>
-                            <TouchableOpacity
-                              style={styles.tabCardClose}
-                              onPress={() => handleCloseTab(tab.id)}
-                              hitSlop={{
-                                top: 10,
-                                bottom: 10,
-                                left: 10,
-                                right: 10,
-                              }}>
-                              <MaterialIcons
-                                name="close"
-                                size={16}
-                                color="#fff"
-                              />
-                            </TouchableOpacity>
-                          </View>
-                          <View style={styles.tabCardContent}>
-                            <Text style={styles.tabCardDomain}>
-                              {getDomain(tab.url)}
-                            </Text>
-                          </View>
-                        </View>
+                        {/* Close button overlay */}
+                        <TouchableOpacity
+                          style={styles.tabCardCloseButton}
+                          onPress={() => handleCloseTab(tab.id)}
+                          hitSlop={{
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10,
+                          }}>
+                          <MaterialIcons name="close" size={16} color="#fff" />
+                        </TouchableOpacity>
                       </TouchableOpacity>
+                      {/* Title below the card */}
+                      <Text
+                        style={styles.tabCardTitleBelow}
+                        numberOfLines={1}
+                        ellipsizeMode="tail">
+                        {tab.title || getDomain(tab.url)}
+                      </Text>
                     </Animated.View>
                   );
                 })}
