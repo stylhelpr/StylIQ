@@ -1,16 +1,40 @@
-export type ChatMessage = {
+import { IsString, IsOptional, IsArray, IsNumber, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class ChatMessage {
+  @IsString()
   role: 'system' | 'user' | 'assistant';
+
+  @IsString()
   content: string;
-};
+}
 
 export class ChatDto {
-  user_id?: string; // optional—send from client if you have it
+  @IsOptional()
+  @IsString()
+  user_id?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChatMessage)
   messages: ChatMessage[];
-  // optional contextual metadata to log along with the prompt
+
+  @IsOptional()
+  @IsString()
   location?: string;
+
+  @IsOptional()
   weather?: Record<string, any>;
+
+  @IsOptional()
+  @IsString()
   suggested_outfit_id?: string | null;
-  // 🌦️ optional lat/lon for automatic weather fetching
+
+  @IsOptional()
+  @IsNumber()
   lat?: number;
+
+  @IsOptional()
+  @IsNumber()
   lon?: number;
 }
