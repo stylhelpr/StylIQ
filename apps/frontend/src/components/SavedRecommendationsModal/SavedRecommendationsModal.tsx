@@ -411,7 +411,7 @@ export default function SavedRecommendationsModal({
                       right: 8,
                       backgroundColor: 'rgba(0, 0, 0, 0.5)',
                       borderRadius: tokens.borderRadius.sm,
-                      paddingVertical: 9,
+                      paddingVertical: 10,
                       borderColor: theme.colors.foreground,
                       borderWidth: tokens.borderWidth.hairline,
                     }}>
@@ -436,21 +436,14 @@ export default function SavedRecommendationsModal({
                       paddingHorizontal: 10,
                       paddingTop: 8,
                     }}>
-                    <View
+                    <Text
                       style={{
-                        backgroundColor: theme.colors.surface2,
-                        borderRadius: 12,
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
+                        color: theme.colors.foreground,
+                        fontWeight: '700',
+                        fontSize: 12,
                       }}>
-                      <Text
-                        style={{
-                          color: theme.colors.muted,
-                          fontSize: 11,
-                        }}>
-                        {product.brand}
-                      </Text>
-                    </View>
+                      {product.brand}
+                    </Text>
                   </View>
                 )}
 

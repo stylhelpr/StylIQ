@@ -332,6 +332,21 @@ export default function GlobalHeader({
                   hapticStyle="impactLight"
                   onPress={() => {
                     setMenuOpen(false);
+                    navigate('Profile');
+                  }}
+                  style={styles.dropdownItem}>
+                  <MaterialIcons
+                    name="person"
+                    size={19}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.dropdownText}>Profile</Text>
+                </AppleTouchFeedback>
+
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() => {
+                    setMenuOpen(false);
                     navigate('Planner');
                   }}
                   style={styles.dropdownItem}>
@@ -356,21 +371,6 @@ export default function GlobalHeader({
                     color={theme.colors.primary}
                   />
                   <Text style={styles.dropdownText}>Notes</Text>
-                </AppleTouchFeedback>
-
-                <AppleTouchFeedback
-                  hapticStyle="impactLight"
-                  onPress={() => {
-                    setMenuOpen(false);
-                    navigate('Profile');
-                  }}
-                  style={styles.dropdownItem}>
-                  <MaterialIcons
-                    name="person"
-                    size={19}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.dropdownText}>Profile</Text>
                 </AppleTouchFeedback>
 
                 <AppleTouchFeedback

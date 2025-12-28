@@ -166,7 +166,8 @@ export default function LifestyleScreen({navigate}: Props) {
             </View>
           ))}
 
-          <Text style={[globalStyles.sectionTitle4, {color: colors.primary}]}>
+          <Text
+            style={[globalStyles.sectionTitle4, {color: colors.foreground}]}>
             Clothing Dislikes (If any)
           </Text>
 
@@ -187,7 +188,7 @@ export default function LifestyleScreen({navigate}: Props) {
                 styles.input,
                 {
                   borderColor: theme.colors.inputBorder,
-                  color: colors.foreground,
+                  color: theme.colors.foreground,
                   borderWidth: tokens.borderWidth.hairline,
                 },
               ]}

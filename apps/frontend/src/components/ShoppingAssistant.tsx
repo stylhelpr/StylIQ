@@ -60,7 +60,7 @@ export default function ShoppingAssistant({
     aiSuggestions.length > 0 ? aiSuggestions[0] : FALLBACK_SUGGESTIONS[0],
   );
   const [isNavigating, setIsNavigating] = useState(false);
-  const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
+  const [suggestionsDisabled, setSuggestionsDisabled] = useState(true);
   const aiSuggestionIndex = useRef(0);
 
   const STORAGE_KEY = '@shopping_assistant_suggestions_disabled';

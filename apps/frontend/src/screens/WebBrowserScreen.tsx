@@ -51,6 +51,7 @@ import {
 } from '../config/webViewDefaults';
 import {sanitizeTitle} from '../utils/sanitize';
 import {sanitizeUrlForAnalytics} from '../utils/urlSanitizer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // iOS Keychain AutoFill reliability imports
 import {KeychainAuthBridge} from '../native/KeychainAuthBridge';
 import {shouldShareCookiesForUrl} from '../utils/keychainCookiePolicy';
@@ -370,18 +371,28 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   }, []);
 
   // 🛍️ Fetch AI Shopping Suggestions once per app session (or if stale after 24h)
+  // Only fetch if the shopping assistant is enabled
   const fetchingRef = useRef(false);
   useEffect(() => {
-    if (
-      userId &&
-      (!hasAiSuggestionsLoaded || isAiSuggestionsStale()) &&
-      !fetchingRef.current
-    ) {
-      fetchingRef.current = true;
-      fetchShoppingAssistantSuggestions().finally(() => {
-        fetchingRef.current = false;
-      });
-    }
+    const checkAndFetch = async () => {
+      // Check if shopping assistant is disabled
+      const disabled = await AsyncStorage.getItem(
+        '@shopping_assistant_suggestions_disabled',
+      );
+      if (disabled === 'true') return;
+
+      if (
+        userId &&
+        (!hasAiSuggestionsLoaded || isAiSuggestionsStale()) &&
+        !fetchingRef.current
+      ) {
+        fetchingRef.current = true;
+        fetchShoppingAssistantSuggestions().finally(() => {
+          fetchingRef.current = false;
+        });
+      }
+    };
+    checkAndFetch();
   }, [userId, hasAiSuggestionsLoaded]);
 
   // iOS Password AutoFill handles password injection automatically via iCloud Keychain

@@ -24,7 +24,19 @@ const STORAGE_KEY = 'clothingSizes';
 
 const shirtSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 const pantSizes = ['28', '30', '32', '34', '36', '38', '40', '42'];
-const dressSizes = ['0', '2', '4', '6', '8', '10', '12', '14', '16', '18', '20'];
+const dressSizes = [
+  '0',
+  '2',
+  '4',
+  '6',
+  '8',
+  '10',
+  '12',
+  '14',
+  '16',
+  '18',
+  '20',
+];
 
 export default function ClothingSizesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
@@ -120,7 +132,7 @@ export default function ClothingSizesScreen({navigate}: Props) {
     <View
       style={[
         globalStyles.container,
-        {backgroundColor: theme.colors.background},
+        {backgroundColor: theme.colors.background, paddingBottom: 250},
       ]}>
       <View
         style={{
@@ -156,7 +168,6 @@ export default function ClothingSizesScreen({navigate}: Props) {
               globalStyles.styleContainer1,
               {borderWidth: tokens.borderWidth.md, paddingBottom: 20},
             ]}>
-
             <Text style={styles.sectionLabel}>Shirt / Top Size</Text>
             <View style={globalStyles.pillContainer}>
               {shirtSizes.map(size => (
