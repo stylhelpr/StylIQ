@@ -1,13 +1,8 @@
 // apps/backend-nest/src/scheduled-outfit/outfit-cron.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { Pool } from 'pg';
 import { NotificationsService } from '../notifications/notifications.service';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class OutfitCronService {

@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import { CreateScheduledOutfitDto } from './dto/create-scheduled-outfit.dto';
 import { UpdateScheduledOutfitDto } from './dto/update-scheduled-outfit.dto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class ScheduledOutfitService {

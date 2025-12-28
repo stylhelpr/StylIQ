@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { Pool } from 'pg';
 import { NotificationsService } from '../notifications/notifications.service';
 import { VertexService } from '../vertex/vertex.service';
 import {
@@ -8,11 +7,7 @@ import {
   deletePostEmbedding,
   fetchPostEmbeddings,
 } from './community-vectors';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class CommunityService {

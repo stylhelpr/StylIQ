@@ -1,19 +1,14 @@
 // apps/backend-nest/src/notifications/notifications.service.ts
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import * as admin from 'firebase-admin';
 import * as fs from 'fs';
+import { pool } from '../db/pool';
 
 type PushPayload = {
   title: string;
   body: string;
   data?: Record<string, string | number | boolean | null | undefined>;
 };
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 // ── Firebase Admin init ────────────────────────────────────/
 // ✅ Always prefer new secret path first, fallback to legacy vars

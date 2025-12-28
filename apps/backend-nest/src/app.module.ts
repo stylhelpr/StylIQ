@@ -54,6 +54,11 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     }),
     ThrottlerModule.forRoot([
       {
+        name: 'default',
+        ttl: 60000,
+        limit: 60,
+      },
+      {
         name: 'short',
         ttl: 1000,
         limit: 3,

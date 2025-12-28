@@ -1,10 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Pool } from 'pg';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 type JsonObj = Record<string, any>;
 

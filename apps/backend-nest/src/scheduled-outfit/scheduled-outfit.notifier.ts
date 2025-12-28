@@ -1,12 +1,7 @@
 // apps/backend-nest/src/scheduled-outfit/scheduled-outfit.notifier.ts
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import { NotificationsService } from '../notifications/notifications.service';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class ScheduledOutfitNotifier {

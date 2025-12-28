@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
+import { pool } from '../db/pool';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 @Injectable()
 export class UsersService {

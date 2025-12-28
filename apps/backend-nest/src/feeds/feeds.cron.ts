@@ -1,13 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as Parser from 'rss-parser';
-import { Pool } from 'pg';
 import { NotificationsService } from '../notifications/notifications.service';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class FeedsCronService {

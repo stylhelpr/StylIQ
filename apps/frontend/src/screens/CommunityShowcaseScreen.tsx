@@ -1535,7 +1535,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         {
           commentId: comment.id,
           postId,
-          userId,
           isLiked: comment.is_liked_by_me,
         },
         {

@@ -1,7 +1,6 @@
 // // apps/backend-nest/src/wardrobe/wardrobe.service.ts
 
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import { Storage } from '@google-cloud/storage';
 import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
 import { UpdateWardrobeItemDto } from './dto/update-wardrobe-item.dto';
@@ -10,6 +9,7 @@ import { upsertItemNs, deleteItemNs } from '../pinecone/pinecone-upsert';
 import { queryUserNs, hybridQueryUserNs } from '../pinecone/pinecone-query';
 import { VertexService } from '../vertex/vertex.service';
 import { randomUUID } from 'crypto'; // ← NEW
+import { pool } from '../db/pool';
 
 // NEW imports for extracted logic (prompts + scoring only)
 import { parseConstraints } from './logic/constraints';
@@ -33,16 +33,6 @@ import {
   compileFeedbackRulesFromRows,
   OutfitFeedbackRow, // ✅ correct type
 } from './logic/feedbackFilters';
-
-/**
- * Postgres connection pool.
- * - SSL enabled for managed DBs.
- * - Used for all CRUD on wardrobe_items table.
- */
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
 
 /**
  * Google Cloud Storage client.

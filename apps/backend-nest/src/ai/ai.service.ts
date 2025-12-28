@@ -3,14 +3,9 @@ import OpenAI from 'openai';
 import { ChatDto } from './dto/chat.dto';
 import { VertexService } from '../vertex/vertex.service'; // 🔹 ADDED
 import { ProductSearchService } from '../product-services/product-search.service';
-import { Pool } from 'pg';
 import { Express } from 'express';
 import { redis } from '../utils/redisClient';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 import * as fs from 'fs';
 import * as path from 'path';

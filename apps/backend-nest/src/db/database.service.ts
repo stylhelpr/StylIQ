@@ -1,6 +1,7 @@
 // src/db/database.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
+import { createPoolConfig } from './pool';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
@@ -8,19 +9,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     try {
-      const databaseUrl = process.env.DATABASE_URL;
-
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL not defined in environment');
-      }
-
       console.log('🔌 Connecting to PostgreSQL...');
-      this.pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: {
-          rejectUnauthorized: false,
-        },
-      });
+      this.pool = new Pool(createPoolConfig());
       await this.pool.query('SELECT 1');
       console.log('✅ PostgreSQL connection established.');
     } catch (err) {

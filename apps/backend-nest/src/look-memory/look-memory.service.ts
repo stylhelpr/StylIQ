@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
+import { pool } from '../db/pool';
 
 @Injectable()
 export class LookMemoryService {
-  private pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-  });
+  private pool = pool;
 
   async createLookMemory(
     userId: string,

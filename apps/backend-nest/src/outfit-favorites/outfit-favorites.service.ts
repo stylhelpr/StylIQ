@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
 import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class OutfitFavoritesService {

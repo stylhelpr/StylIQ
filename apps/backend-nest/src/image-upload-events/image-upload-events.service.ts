@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import { CreateImageUploadEventDto } from './dto/create-image-upload-event.dto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class ImageUploadEventsService {

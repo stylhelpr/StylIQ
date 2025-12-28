@@ -1,11 +1,6 @@
 import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
-import { Pool } from 'pg';
 import { MessagingGateway } from './messaging.gateway';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class MessagingService {

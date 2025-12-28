@@ -1,13 +1,8 @@
 // apps/backend-nest/src/feedback/feedback.service.ts
 
 import { Injectable } from '@nestjs/common';
-import { Pool } from 'pg';
 import { RateFeedbackDto } from './dto/rate-feedback.dto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class FeedbackService {

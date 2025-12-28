@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { Storage } from '@google-cloud/storage';
 import * as path from 'path';
-import { Pool } from 'pg';
+import { pool } from '../db/pool';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
@@ -10,14 +10,7 @@ export class ProfileUploadService {
   private storage = new Storage();
   private bucketName =
     process.env.GCS_PROFILE_BUCKET || 'stylhelpr-prod-profile-photos';
-  private pool: Pool;
-
-  constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    });
-  }
+  private pool = pool;
 
   /**
    * Generate a presigned URL to upload a profile photo directly to GCS

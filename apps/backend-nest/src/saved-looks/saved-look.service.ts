@@ -3,14 +3,9 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { Pool } from 'pg';
 import { CreateSavedLookDto } from './dto/create-saved-look.dto';
 import { UpdateSavedLookDto } from './dto/update-saved-look.dto';
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from '../db/pool';
 
 @Injectable()
 export class SavedLookService {
