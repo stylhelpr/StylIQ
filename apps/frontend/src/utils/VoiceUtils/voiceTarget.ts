@@ -20,12 +20,12 @@ export const VoiceTarget = {
     this.currentName = name || '';
     this.lastSetTime = Date.now();
     this.locked = false;
-    console.log('[VoiceTarget] 🎯 active input set →', this.currentName);
+    // console.log('[VoiceTarget] 🎯 active input set →', this.currentName);
   },
 
   clear() {
     if (this.currentSetter) {
-      console.log('[VoiceTarget] 🧹 cleared →', this.currentName);
+      // console.log('[VoiceTarget] 🧹 cleared →', this.currentName);
     }
     this.currentSetter = null;
     this.currentName = '';
@@ -38,7 +38,7 @@ export const VoiceTarget = {
     this.currentSetter = null;
     this.currentName = '';
     this.lastSetTime = 0;
-    console.log('[VoiceTarget] 🔒 locked (command mode)');
+    // console.log('[VoiceTarget] 🔒 locked (command mode)');
   },
 
   applyText(text: string) {
@@ -54,7 +54,7 @@ export const VoiceTarget = {
           );
           this.locked = false; // temporarily unlock to route command
         } else {
-          console.log('[VoiceTarget] ⛔ locked, ignoring (no context):', text);
+          // console.log('[VoiceTarget] ⛔ locked, ignoring (no context):', text);
           return;
         }
       } else {
@@ -73,7 +73,7 @@ export const VoiceTarget = {
             return;
           }
         }
-        console.log('[VoiceTarget] (no active input) ignored:', text);
+        // console.log('[VoiceTarget] (no active input) ignored:', text);
       }
     }
 
@@ -81,28 +81,28 @@ export const VoiceTarget = {
 
     if (this.currentSetter && now - this.lastSetTime < 15000) {
       this.currentSetter(text);
-      console.log('[VoiceTarget] ✍️ applied →', this.currentName);
+      // console.log('[VoiceTarget] ✍️ applied →', this.currentName);
 
       if (text.trim().endsWith('.') || text.split(' ').length > 5) {
-        console.log('[VoiceTarget] 🧹 auto-clear after commit');
+        // console.log('[VoiceTarget] 🧹 auto-clear after commit');
         this.clear();
       }
     } else {
       if (this.currentSetter) {
-        console.log('[VoiceTarget] ⚠️ stale input ignored →', this.currentName);
+        // console.log('[VoiceTarget] ⚠️ stale input ignored →', this.currentName);
       } else {
         // 🧠 contextual rescue for follow-ups with no active setter
         if (/what about|how about|and then|next|tomorrow/i.test(text)) {
           const lastIntent = VoiceMemory.get('lastIntent');
           if (lastIntent) {
-            console.log('🧠 Routing follow-up via VoiceMemory →', lastIntent);
+            // console.log('🧠 Routing follow-up via VoiceMemory →', lastIntent);
             // forward text directly to your voice command router
             const {matchVoiceCommand} = require('./voiceCommandMap');
             matchVoiceCommand(text, () => {});
             return;
           }
         }
-        console.log('[VoiceTarget] (no active input) ignored:', text);
+        // console.log('[VoiceTarget] (no active input) ignored:', text);
       }
     }
   },
@@ -131,12 +131,12 @@ export const VoiceTarget = {
 //     this.currentName = name || '';
 //     this.lastSetTime = Date.now();
 //     this.locked = false;
-//     console.log('[VoiceTarget] 🎯 active input set →', this.currentName);
+//     // console.log('[VoiceTarget] 🎯 active input set →', this.currentName);
 //   },
 
 //   clear() {
 //     if (this.currentSetter) {
-//       console.log('[VoiceTarget] 🧹 cleared →', this.currentName);
+//       // console.log('[VoiceTarget] 🧹 cleared →', this.currentName);
 //     }
 //     this.currentSetter = null;
 //     this.currentName = '';
@@ -149,7 +149,7 @@ export const VoiceTarget = {
 //     this.currentSetter = null;
 //     this.currentName = '';
 //     this.lastSetTime = 0;
-//     console.log('[VoiceTarget] 🔒 locked (command mode)');
+//     // console.log('[VoiceTarget] 🔒 locked (command mode)');
 //   },
 
 //   applyText(text: string) {
@@ -161,17 +161,17 @@ export const VoiceTarget = {
 //     const now = Date.now();
 //     if (this.currentSetter && now - this.lastSetTime < 15000) {
 //       this.currentSetter(text);
-//       console.log('[VoiceTarget] ✍️ applied →', this.currentName);
+//       // console.log('[VoiceTarget] ✍️ applied →', this.currentName);
 
 //       if (text.trim().endsWith('.') || text.split(' ').length > 5) {
-//         console.log('[VoiceTarget] 🧹 auto-clear after commit');
+//         // console.log('[VoiceTarget] 🧹 auto-clear after commit');
 //         this.clear();
 //       }
 //     } else {
 //       if (this.currentSetter) {
-//         console.log('[VoiceTarget] ⚠️ stale input ignored →', this.currentName);
+//         // console.log('[VoiceTarget] ⚠️ stale input ignored →', this.currentName);
 //       } else {
-//         console.log('[VoiceTarget] (no active input) ignored:', text);
+//         // console.log('[VoiceTarget] (no active input) ignored:', text);
 //       }
 //     }
 //   },
@@ -198,13 +198,13 @@ export const VoiceTarget = {
 //     this.currentSetter = setter;
 //     this.currentName = name || '';
 //     this.lastSetTime = Date.now();
-//     console.log('[VoiceTarget] 🎯 active input set →', this.currentName);
+//     // console.log('[VoiceTarget] 🎯 active input set →', this.currentName);
 //   },
 
 //   // Remove link (on blur or navigation)
 //   clear() {
 //     if (this.currentSetter) {
-//       console.log('[VoiceTarget] 🧹 cleared →', this.currentName);
+//       // console.log('[VoiceTarget] 🧹 cleared →', this.currentName);
 //     }
 //     this.currentSetter = null;
 //     this.currentName = '';
@@ -216,19 +216,19 @@ export const VoiceTarget = {
 //     const now = Date.now();
 //     if (this.currentSetter && now - this.lastSetTime < 15000) {
 //       this.currentSetter(text);
-//       console.log('[VoiceTarget] ✍️ applied →', this.currentName);
+//       // console.log('[VoiceTarget] ✍️ applied →', this.currentName);
 
 //       // 🧠 Auto-release input once speech feels complete
 //       // (heuristic: end of sentence or >5 words)
 //       if (text.trim().endsWith('.') || text.split(' ').length > 5) {
-//         console.log('[VoiceTarget] 🧹 auto-clear after commit');
+//         // console.log('[VoiceTarget] 🧹 auto-clear after commit');
 //         this.clear();
 //       }
 //     } else {
 //       if (this.currentSetter) {
-//         console.log('[VoiceTarget] ⚠️ stale input ignored →', this.currentName);
+//         // console.log('[VoiceTarget] ⚠️ stale input ignored →', this.currentName);
 //       } else {
-//         console.log('[VoiceTarget] (no active input) ignored:', text);
+//         // console.log('[VoiceTarget] (no active input) ignored:', text);
 //       }
 //     }
 //   },

@@ -100,7 +100,7 @@
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 
 //     if (VoiceTarget.currentSetter) {
 //       VoiceTarget.applyText(lower);
@@ -351,7 +351,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
   const handleVoiceCommand = async (cmd: string) => {
     const lower = cmd.toLowerCase();
-    console.log('🎙️ Floating mic voice command received:', lower);
+    // console.log('🎙️ Floating mic voice command received:', lower);
 
     if (VoiceTarget.currentSetter) {
       VoiceTarget.applyText(lower);
@@ -540,7 +540,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 // //   const handleVoiceCommand = async (cmd: string) => {
 // //     const lower = cmd.toLowerCase();
-// //     console.log('🎙️ Floating mic voice command received:', lower);
+// //     // console.log('🎙️ Floating mic voice command received:', lower);
 
 // //     if (VoiceTarget.currentSetter) {
 // //       VoiceTarget.applyText(lower);
@@ -791,7 +791,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 
 //     if (VoiceTarget.currentSetter) {
 //       VoiceTarget.applyText(lower);
@@ -980,7 +980,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 
 //     if (VoiceTarget.currentSetter) {
 //       VoiceTarget.applyText(lower);
@@ -1194,7 +1194,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 
 //     // 🧠 If any input field has registered as the current voice target, insert text there
 //     if (VoiceTarget.currentSetter) {
@@ -1370,7 +1370,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 //     ReactNativeHapticFeedback.trigger('impactLight');
 //     await routeVoiceCommand(lower, navigate);
 //   };
@@ -1548,7 +1548,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 //     ReactNativeHapticFeedback.trigger('impactLight');
 //     await routeVoiceCommand(lower, navigate);
 //   };
@@ -1615,7 +1615,7 @@ export default function FloatingMicButton({navigate}: Props) {
 
 //   const handleVoiceCommand = async (cmd: string) => {
 //     const lower = cmd.toLowerCase();
-//     console.log('🎙️ Floating mic voice command received:', lower);
+//     // console.log('🎙️ Floating mic voice command received:', lower);
 
 //     // ✅ identical haptic + routing behavior as GlobalHeader
 //     ReactNativeHapticFeedback.trigger('impactLight');

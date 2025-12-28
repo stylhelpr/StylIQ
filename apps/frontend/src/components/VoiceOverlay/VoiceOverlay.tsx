@@ -34,6 +34,7 @@ import AnimatedReanimated, {
   Easing,
   useDerivedValue,
   useAnimatedReaction,
+  useAnimatedStyle,
   runOnJS,
   FadeIn,
   FadeOut,
@@ -80,6 +81,25 @@ export const VoiceOverlay: React.FC = () => {
   const blurBreath = useDerivedValue(
     () => 140 + 60 * Math.sin(pulseDriver.value * Math.PI),
   );
+
+  // Derived values for Skia Canvas props (avoids reading .value during render)
+  const outerPathOpacity = useDerivedValue(
+    () => 0.75 + 0.35 * Math.sin(pulseDriver.value * Math.PI),
+  );
+  const innerGlowOpacity = useDerivedValue(
+    () => 0.05 + 0.3 * Math.sin(pulseDriver.value * Math.PI),
+  );
+  const outerBlurAmount = useDerivedValue(
+    () => blurBreath.value * 1.5,
+  );
+  const innerBlurAmount = useDerivedValue(
+    () => blurBreath.value * 2.5,
+  );
+
+  // Animated style for scale transform (avoids reading .value during render)
+  const canvasAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{scale: scaleBreath.value}],
+  }));
 
   useAnimatedReaction(
     () => ({a: hueRotate.value, s: scaleBreath.value, b: blurBreath.value}),
@@ -205,35 +225,30 @@ export const VoiceOverlay: React.FC = () => {
         <AnimatedReanimated.View
           entering={FadeIn.duration(400)}
           exiting={FadeOut.duration(300)}
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              transform: [{scale: scaleBreath}],
-            },
-          ]}>
+          style={[StyleSheet.absoluteFill, canvasAnimatedStyle]}>
           <Canvas style={{width: winW, height: winH}}>
             {/* Outer bright rainbow rim */}
             <Path
               path={outer}
-              opacity={0.75 + 0.35 * Math.sin(pulseDriver.value * Math.PI)}>
+              opacity={outerPathOpacity}>
               <SweepGradient
                 c={vec(winW / 2, winH / 2)}
                 colors={siriColors}
                 transform={[{rotate: (angle * Math.PI) / 180}]}
               />
-              <BlurMask blur={blurBreath.value * 1.5} style="solid" />
+              <BlurMask blur={outerBlurAmount} style="solid" />
             </Path>
 
             {/* Inner warm inward glow */}
             <Path
               path={innerGlow}
-              opacity={0.05 + 0.3 * Math.sin(pulseDriver.value * Math.PI)}>
+              opacity={innerGlowOpacity}>
               <RadialGradient
                 c={vec(winW / 2, winH / 2)}
                 r={Math.max(winW, winH) / 1.1}
                 colors={warmInner}
               />
-              <BlurMask blur={blurBreath.value * 2.5} style="solid" />
+              <BlurMask blur={innerBlurAmount} style="solid" />
             </Path>
           </Canvas>
         </AnimatedReanimated.View>

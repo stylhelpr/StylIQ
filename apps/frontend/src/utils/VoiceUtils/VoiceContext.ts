@@ -52,7 +52,7 @@ export function useHomeVoiceCommands(
   React.useEffect(() => {
     const handleCommand = (cmd: string) => {
       const text = cmd.toLowerCase().trim();
-      console.log('🎙️ [Voice] HomeScreen received:', text);
+      // console.log('🎙️ [Voice] HomeScreen received:', text);
 
       // 🔹 “See All Saved Looks” modal
       if (
@@ -61,7 +61,7 @@ export function useHomeVoiceCommands(
         text.includes('open inspired looks') ||
         text.includes('see inspired looks')
       ) {
-        console.log('🎙️ Voice: opening AllSavedLooksModal');
+        // console.log('🎙️ Voice: opening AllSavedLooksModal');
         setImageModalVisible(true);
         return;
       }
@@ -73,14 +73,14 @@ export function useHomeVoiceCommands(
         text.includes('new look') ||
         text.includes('add outfit')
       ) {
-        console.log('🎙️ Voice: opening SaveLookModal');
+        // console.log('🎙️ Voice: opening SaveLookModal');
         setSaveModalVisible(true);
         return;
       }
 
       // 🔹 Navigate to wardrobe
       if (text.includes('wardrobe') || text.includes('closet')) {
-        console.log('🎙️ Voice: navigating to Wardrobe');
+        // console.log('🎙️ Voice: navigating to Wardrobe');
         navigate('Wardrobe');
         return;
       }
@@ -108,7 +108,7 @@ export function useClosetVoiceCommands(
   React.useEffect(() => {
     const handleCommand = (cmd: string) => {
       const text = cmd.toLowerCase().trim();
-      console.log('🎙️ [Voice] ClosetScreen received:', text);
+      // console.log('🎙️ [Voice] ClosetScreen received:', text);
 
       // 🔹 Category-specific filters first (so “filter tops” works)
       const categories: Record<string, MainCategory> = {
@@ -130,7 +130,7 @@ export function useClosetVoiceCommands(
 
       for (const [keyword, category] of Object.entries(categories)) {
         if (text.includes(keyword)) {
-          console.log(`🎙️ Voice: filtering wardrobe for ${category}`);
+          // console.log(`🎙️ Voice: filtering wardrobe for ${category}`);
           setSelectedCategory(category);
           return;
         }
@@ -138,7 +138,7 @@ export function useClosetVoiceCommands(
 
       // 🔹 Reset filter
       if (text.includes('show all') || text.includes('clear filter')) {
-        console.log('🎙️ Voice: resetting filters');
+        // console.log('🎙️ Voice: resetting filters');
         setSelectedCategory('All');
         return;
       }
@@ -153,7 +153,7 @@ export function useClosetVoiceCommands(
           text.includes('filter wardrobe')) &&
         !Object.keys(categories).some(k => text.includes(k))
       ) {
-        console.log('🎙️ Voice: opening Filter submenu');
+        // console.log('🎙️ Voice: opening Filter submenu');
         setMenuVisible(true);
         openSubmenu('filter');
         return;
@@ -165,7 +165,7 @@ export function useClosetVoiceCommands(
         text.includes('sorting') ||
         text.includes('sort wardrobe')
       ) {
-        console.log('🎙️ Voice: opening Sort submenu');
+        // console.log('🎙️ Voice: opening Sort submenu');
         setMenuVisible(true);
         openSubmenu('sort');
         return;
@@ -173,13 +173,13 @@ export function useClosetVoiceCommands(
 
       // 🔹 Sorting commands
       if (text.includes('sort by name a') || text.includes('a to z')) {
-        console.log('🎙️ Voice: sorting A-Z');
+        // console.log('🎙️ Voice: sorting A-Z');
         setSortOption('az');
         return;
       }
 
       if (text.includes('sort by name z') || text.includes('z to a')) {
-        console.log('🎙️ Voice: sorting Z-A');
+        // console.log('🎙️ Voice: sorting Z-A');
         setSortOption('za');
         return;
       }
@@ -188,7 +188,7 @@ export function useClosetVoiceCommands(
         text.includes('sort by favorites') ||
         text.includes('favorites first')
       ) {
-        console.log('🎙️ Voice: sorting by favorites');
+        // console.log('🎙️ Voice: sorting by favorites');
         setSortOption('favorites');
         return;
       }
@@ -257,7 +257,7 @@ export function useClosetVoiceCommands(
 //   React.useEffect(() => {
 //     const handleCommand = (cmd: string) => {
 //       const text = cmd.toLowerCase().trim();
-//       console.log('🎙️ [Voice] HomeScreen received:', text);
+//       // console.log('🎙️ [Voice] HomeScreen received:', text);
 
 //       // 🔹 “See All Saved Looks” modal
 //       if (
@@ -266,7 +266,7 @@ export function useClosetVoiceCommands(
 //         text.includes('open inspired looks') ||
 //         text.includes('see inspired looks')
 //       ) {
-//         console.log('🎙️ Voice: opening AllSavedLooksModal');
+//         // console.log('🎙️ Voice: opening AllSavedLooksModal');
 //         setImageModalVisible(true);
 //         return;
 //       }
@@ -278,14 +278,14 @@ export function useClosetVoiceCommands(
 //         text.includes('new look') ||
 //         text.includes('add outfit')
 //       ) {
-//         console.log('🎙️ Voice: opening SaveLookModal');
+//         // console.log('🎙️ Voice: opening SaveLookModal');
 //         setSaveModalVisible(true);
 //         return;
 //       }
 
 //       // 🔹 Navigate to wardrobe
 //       if (text.includes('wardrobe') || text.includes('closet')) {
-//         console.log('🎙️ Voice: navigating to Wardrobe');
+//         // console.log('🎙️ Voice: navigating to Wardrobe');
 //         navigate('Wardrobe');
 //         return;
 //       }

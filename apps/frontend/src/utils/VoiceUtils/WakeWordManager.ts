@@ -127,7 +127,7 @@ Voice.onSpeechPartialResults = e => {
  * 👂 Track microphone open
  */
 Voice.onSpeechStart = e => {
-  console.log('[VOICE] onSpeechStart', e);
+  // console.log('[VOICE] onSpeechStart', e);
   inSession = true;
 };
 
@@ -150,7 +150,7 @@ function matchesWakeWord(text: string) {
  * 🔁 Assistant done → re-arm listener
  */
 VoiceBus.on('assistant:done', () => {
-  console.log('🔁 Assistant done → re-arming passive wake listener');
+  // console.log('🔁 Assistant done → re-arming passive wake listener');
   wakeTriggered = false;
   scheduleRearm(1000);
 });
@@ -159,10 +159,10 @@ VoiceBus.on('assistant:done', () => {
  * 🔁 iOS auto-end patch — ensures continual listening
  */
 Voice.onSpeechEnd = () => {
-  console.log('[VOICE] onSpeechEnd → auto-rearm safeguard', {
-    passive,
-    wakeTriggered,
-  });
+  // console.log('[VOICE] onSpeechEnd → auto-rearm safeguard', {
+  //   passive,
+  //   wakeTriggered,
+  // });
   inSession = false;
   if (passive && !wakeTriggered) scheduleRearm(800);
 };
@@ -171,7 +171,7 @@ Voice.onSpeechEnd = () => {
  * 🚨 Error handler (mic interrupted / recognizer closed)
  */
 Voice.onSpeechError = e => {
-  console.log('⚠️ Wake listener error:', e.error);
+  // console.log('⚠️ Wake listener error:', e.error);
   inSession = false;
   if (passive && !wakeTriggered) scheduleRearm(1200);
 };

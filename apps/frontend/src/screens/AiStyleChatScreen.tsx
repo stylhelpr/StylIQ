@@ -327,13 +327,13 @@ export default function AiStylistChatScreen({navigate}: Props) {
     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
     if (!voiceGloballyEnabled) {
-      console.log('🔇 Hard cutoff: Voice disabled from Settings');
+      // console.log('🔇 Hard cutoff: Voice disabled from Settings');
       return; // ✅ prevents all TTS or API calls
     }
 
     const enabled = await getTtsEnabled();
     if (!enabled) {
-      console.log('🔕 Voice toggle off — skipping TTS');
+      // console.log('🔕 Voice toggle off — skipping TTS');
       return;
     }
 
@@ -2097,13 +2097,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 
@@ -3784,13 +3784,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 
@@ -5301,13 +5301,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 
@@ -6713,13 +6713,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 
@@ -8070,13 +8070,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 
@@ -9410,13 +9410,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 
@@ -10569,13 +10569,13 @@ function stylesAssistantBubble(
 //     const voiceGloballyEnabled = voiceEnabledStored === 'true';
 
 //     if (!voiceGloballyEnabled) {
-//       console.log('🔇 Hard cutoff: Voice disabled from Settings');
+//       // console.log('🔇 Hard cutoff: Voice disabled from Settings');
 //       return; // ✅ prevents all TTS or API calls
 //     }
 
 //     const enabled = await getTtsEnabled();
 //     if (!enabled) {
-//       console.log('🔕 Voice toggle off — skipping TTS');
+//       // console.log('🔕 Voice toggle off — skipping TTS');
 //       return;
 //     }
 

@@ -23,7 +23,7 @@ export const routeVoiceCommand = async (
   navigate: (screen: string, params?: any) => void,
 ): Promise<void> => {
   const lower = command.toLowerCase().trim();
-  console.log('🎙️ Routing voice command →', lower);
+  // console.log('🎙️ Routing voice command →', lower);
 
   // 🔍 Check the centralized map first
   if (matchVoiceCommand(lower, navigate)) return;
@@ -607,7 +607,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string, params?: any) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   // 🔍 Check the centralized map first
 //   if (matchVoiceCommand(lower, navigate)) return;
@@ -1105,7 +1105,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string, params?: any) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   // 🔍 Check the centralized map first
 //   if (matchVoiceCommand(lower, navigate)) return;
@@ -1441,7 +1441,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string, params?: any) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   // 🔍 Check the centralized map first
 //   if (matchVoiceCommand(lower, navigate)) return;
@@ -1745,7 +1745,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string, params?: any) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   // 🔍 Check the centralized map first
 //   if (matchVoiceCommand(lower, navigate)) return;
@@ -2028,7 +2028,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string, params?: any) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   // 🔍 Check the centralized map first
 //   if (matchVoiceCommand(lower, navigate)) return;
@@ -2273,7 +2273,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   const go = (screen: string, label: string): void => {
 //     navigate(screen);
@@ -2515,7 +2515,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   const go = (screen: string, label: string): void => {
 //     navigate(screen);
@@ -2751,7 +2751,7 @@ export const routeVoiceCommand = async (
 //   navigate: (screen: string) => void,
 // ): Promise<void> => {
 //   const lower = command.toLowerCase().trim();
-//   console.log('🎙️ Routing voice command →', lower);
+//   // console.log('🎙️ Routing voice command →', lower);
 
 //   const go = (screen: string, label: string): void => {
 //     navigate(screen);

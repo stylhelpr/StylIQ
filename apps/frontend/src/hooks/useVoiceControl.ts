@@ -23,7 +23,7 @@ import {routeVoiceCommand} from '../utils/VoiceUtils/voiceCommandRouter';
 import {globalNavigate} from '../MainApp';
 import {instantSpeak} from '../utils/VoiceUtils/instantTts';
 
-const DEBUG = true;
+const DEBUG = false;
 const log = (...args: any[]) => DEBUG && console.log('[VOICE]', ...args);
 
 const {RCTVoice} = NativeModules as {
@@ -146,7 +146,7 @@ export const useVoiceControl = () => {
         await routeVoiceCommand(text, globalNavigate);
         // instantSpeak('Okay'); // 👈 confirm navigation/command
       } catch (err) {
-        console.log('⚠️ routeVoiceCommand failed', err);
+        // console.log('⚠️ routeVoiceCommand failed', err);
         // instantSpeak("Sorry, I didn't catch that");
       }
     }
@@ -422,7 +422,7 @@ export const useVoiceControl = () => {
 //       try {
 //         await routeVoiceCommand(text, globalNavigate);
 //       } catch (err) {
-//         console.log('⚠️ routeVoiceCommand failed', err);
+//         // console.log('⚠️ routeVoiceCommand failed', err);
 //       }
 //     }
 //   };
@@ -714,7 +714,7 @@ export const useVoiceControl = () => {
 //       try {
 //         await routeVoiceCommand(text, globalNavigate);
 //       } catch (err) {
-//         console.log('⚠️ routeVoiceCommand failed', err);
+//         // console.log('⚠️ routeVoiceCommand failed', err);
 //       }
 //     }
 //   };
@@ -998,7 +998,7 @@ export const useVoiceControl = () => {
 //       try {
 //         await routeVoiceCommand(text, globalNavigate);
 //       } catch (err) {
-//         console.log('⚠️ routeVoiceCommand failed', err);
+//         // console.log('⚠️ routeVoiceCommand failed', err);
 //       }
 //     }
 //   };

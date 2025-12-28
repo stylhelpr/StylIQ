@@ -73,17 +73,17 @@ const VoiceMicButton: React.FC<Props> = ({navigate}) => {
   // 🎤 Voice → Navigation and teardown
   useEffect(() => {
     if (speech) {
-      console.log('[🎤 Voice Command Captured]:', speech);
+      // console.log('[🎤 Voice Command Captured]:', speech);
       handleVoiceNavigation(speech, navigate);
 
       const fullyStopVoice = async () => {
         try {
-          console.log('[🎤] Stopping voice session...');
+          // console.log('[🎤] Stopping voice session...');
           await Voice.stop();
           await Voice.cancel();
           await Voice.destroy();
           Voice.removeAllListeners();
-          console.log('[🎤] Voice session fully destroyed ✅');
+          // console.log('[🎤] Voice session fully destroyed ✅');
         } catch (err) {
           console.warn('[🎤] Voice stop error:', err);
         } finally {

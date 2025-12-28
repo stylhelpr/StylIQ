@@ -228,13 +228,13 @@ export const voiceCommandMap = [
           );
         } else {
           const {lat, lon} = await getCurrentLocation();
-          console.log(
-            '🌦 [VOICE] fetching tomorrow forecast for current location...',
-          );
+          // console.log(
+          //   '🌦 [VOICE] fetching tomorrow forecast for current location...',
+          // );
           forecast = await fetchWeather(lat, lon, 'imperial', 'tomorrow');
         }
 
-        console.log('✅ [VOICE] tomorrow forecast:', forecast);
+        // console.log('✅ [VOICE] tomorrow forecast:', forecast);
 
         // ✅ Update overlay
         globalThis.WeatherBus?.emit?.('update', {

@@ -362,7 +362,7 @@ export default function OutfitTuningControls({
         await Voice.start('en-US');
         setIsListening(true);
       } catch (e) {
-        console.log('🎙️ Voice start error:', e);
+        // console.log('🎙️ Voice start error:', e);
         setIsListening(false);
       }
     }
@@ -1155,7 +1155,7 @@ export default function OutfitTuningControls({
 //         await Voice.start('en-US');
 //         setIsListening(true);
 //       } catch (e) {
-//         console.log('🎙️ Voice start error:', e);
+//         // console.log('🎙️ Voice start error:', e);
 //         setIsListening(false);
 //       }
 //     }
@@ -1939,7 +1939,7 @@ export default function OutfitTuningControls({
 //         await Voice.start('en-US');
 //         setIsListening(true);
 //       } catch (e) {
-//         console.log('🎙️ Voice start error:', e);
+//         // console.log('🎙️ Voice start error:', e);
 //         setIsListening(false);
 //       }
 //     }
@@ -2723,7 +2723,7 @@ export default function OutfitTuningControls({
 //         await Voice.start('en-US');
 //         setIsListening(true);
 //       } catch (e) {
-//         console.log('🎙️ Voice start error:', e);
+//         // console.log('🎙️ Voice start error:', e);
 //         setIsListening(false);
 //       }
 //     }
@@ -3474,7 +3474,7 @@ export default function OutfitTuningControls({
 //         await Voice.start('en-US');
 //         setIsListening(true);
 //       } catch (e) {
-//         console.log('🎙️ Voice start error:', e);
+//         // console.log('🎙️ Voice start error:', e);
 //         setIsListening(false);
 //       }
 //     }

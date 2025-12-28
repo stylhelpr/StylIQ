@@ -30,7 +30,7 @@ export async function speakAI(text: string) {
     await Tts.setDefaultLanguage('en-US');
     await Tts.setDefaultRate(0.45, true);
     await Tts.speak(text);
-    console.log('🔊 Playing voice (react-native-tts)');
+    // console.log('🔊 Playing voice (react-native-tts)');
   } catch (err) {
     console.error('💥 speakAI() failed:', err);
     try {
@@ -38,7 +38,7 @@ export async function speakAI(text: string) {
       await Tts.setDefaultLanguage('en-US');
       await Tts.setDefaultRate(0.45, true);
       await Tts.speak(text);
-      console.log('🔊 Fallback TTS playback triggered');
+      // console.log('🔊 Fallback TTS playback triggered');
     } catch (e2) {
       console.error('🚫 Fallback TTS also failed:', e2);
     }
