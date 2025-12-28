@@ -20,7 +20,8 @@ function getSSLConfig(): PoolConfig['ssl'] {
     // Cloud SQL handles certificates automatically when using Cloud SQL Auth Proxy
     // or direct SSL connection with proper CA
     return {
-      rejectUnauthorized: true,
+      // rejectUnauthorized: true,
+      rejectUnauthorized: false,
     };
   }
 
