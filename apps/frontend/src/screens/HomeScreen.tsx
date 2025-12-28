@@ -2496,6 +2496,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             savedProducts={savedRecommendations}
             onOpenItem={openArticle}
             onUnsave={productId => {
+              // Immediately remove from local state so it disappears from grid
+              setSavedRecommendations(prev =>
+                prev.filter(p => p.product_id !== productId),
+              );
+              // Also update carousel state
               unsaveRecommendation?.(productId);
             }}
             onRefresh={() => {

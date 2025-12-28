@@ -49,3 +49,28 @@ ADD COLUMN IF NOT EXISTS saved_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_user_discover_saved
 ON user_discover_products (user_id, saved_at DESC)
 WHERE saved = TRUE;
+
+-- ==================== PERMANENT SAVED RECOMMENDATIONS ====================
+-- This table stores saved recommendations PERMANENTLY.
+-- Products are copied here when saved and DELETED when unsaved.
+-- This survives weekly discover refreshes.
+
+CREATE TABLE IF NOT EXISTS saved_recommendations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id TEXT NOT NULL,  -- external product ID from SerpAPI
+    title TEXT NOT NULL,
+    brand TEXT,
+    price DECIMAL(10,2),
+    price_raw TEXT,
+    image_url TEXT NOT NULL,
+    link TEXT NOT NULL,
+    source TEXT,
+    category TEXT,
+    saved_at TIMESTAMPTZ DEFAULT now(),
+
+    CONSTRAINT unique_saved_recommendation UNIQUE (user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_recommendations_user
+ON saved_recommendations (user_id, saved_at DESC);

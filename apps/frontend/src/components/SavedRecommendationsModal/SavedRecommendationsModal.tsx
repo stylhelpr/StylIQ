@@ -90,7 +90,7 @@ export default function SavedRecommendationsModal({
       shadowOffset: {width: 0, height: -8},
       elevation: 12,
       alignSelf: 'center',
-      paddingHorizontal: moderateScale(tokens.spacing.md1),
+      paddingHorizontal: moderateScale(tokens.spacing.md),
     },
     closeIcon: {
       position: 'absolute',
@@ -103,16 +103,19 @@ export default function SavedRecommendationsModal({
     },
     gestureZone: {
       position: 'absolute',
-      top: 0,
-      height: 45,
+      top: 0, // ⬅️ extend from top of modal
+      height: 45, // ⬅️ tall gesture zone for easy swiping
       width: '100%',
-      zIndex: 2,
+      zIndex: 99999, // ⬅️ lower than header
       backgroundColor: 'transparent',
+      // backgroundColor: 'red',
     },
     header: {
+      marginTop: 8,
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'flex-start',
+      // paddingHorizontal: 16,
       borderBottomColor: 'rgba(255,255,255,0.08)',
       borderBottomWidth: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.background,
@@ -124,7 +127,6 @@ export default function SavedRecommendationsModal({
       fontSize: 17,
       flex: 1,
       textAlign: 'left',
-      marginTop: 8,
       textTransform: 'uppercase',
     },
     countBadge: {
@@ -238,7 +240,7 @@ export default function SavedRecommendationsModal({
 
         if (response.ok) {
           onUnsave?.(productId);
-          onRefresh?.();
+          // Don't call onRefresh - parent already updates state in onUnsave
         }
       } catch (error) {
         console.error('Failed to unsave product:', error);
@@ -282,9 +284,6 @@ export default function SavedRecommendationsModal({
               marginTop: insets.top,
             },
           ]}>
-          {/* Gesture zone for swipe down */}
-          <View style={styles.gestureZone} {...panResponder.panHandlers} />
-
           {/* Close button */}
           <TouchableOpacity
             style={styles.closeIcon}
@@ -292,6 +291,13 @@ export default function SavedRecommendationsModal({
             hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
             <MaterialIcons name="close" size={20} color="#000" />
           </TouchableOpacity>
+
+          <View
+            {...panResponder.panHandlers}
+            onStartShouldSetResponder={() => true}
+            pointerEvents="box-only"
+            style={styles.gestureZone}
+          />
 
           {/* Header */}
           <View style={styles.header}>
@@ -373,7 +379,9 @@ export default function SavedRecommendationsModal({
                       borderRadius: 16,
                       padding: 6,
                     }}
-                    onPress={() => confirmUnsave(product.product_id, product.title)}
+                    onPress={() =>
+                      confirmUnsave(product.product_id, product.title)
+                    }
                     disabled={unsavingId === product.product_id}>
                     {unsavingId === product.product_id ? (
                       <ActivityIndicator size="small" color="#fff" />

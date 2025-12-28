@@ -133,12 +133,19 @@ export class DiscoverService {
 
   private async getCachedProducts(userId: string): Promise<DiscoverProduct[]> {
     try {
+      // Join with saved_recommendations to get actual saved status
       const result = await pool.query(
-        `SELECT id, product_id, title, brand, price, price_raw, image_url, link, source, category, position,
-                saved, saved_at, batch_date, is_current
-         FROM user_discover_products
-         WHERE user_id = $1 AND is_current = TRUE
-         ORDER BY position ASC
+        `SELECT
+           udp.id, udp.product_id, udp.title, udp.brand, udp.price, udp.price_raw,
+           udp.image_url, udp.link, udp.source, udp.category, udp.position,
+           (sr.id IS NOT NULL) as saved,
+           sr.saved_at,
+           udp.batch_date, udp.is_current
+         FROM user_discover_products udp
+         LEFT JOIN saved_recommendations sr
+           ON sr.user_id = udp.user_id AND sr.product_id = udp.product_id
+         WHERE udp.user_id = $1 AND udp.is_current = TRUE
+         ORDER BY udp.position ASC
          LIMIT $2`,
         [userId, TARGET_PRODUCTS],
       );
@@ -701,18 +708,20 @@ export class DiscoverService {
     return res.rows[0].id;
   }
 
-  // ==================== SAVED PRODUCTS ====================
+  // ==================== SAVED RECOMMENDATIONS (PERMANENT) ====================
+  // Uses the saved_recommendations table - products are COPIED here when saved
+  // and DELETED when unsaved. This survives weekly discover refreshes.
 
   /**
-   * Get all saved products for a user (across all batches)
+   * Get all saved recommendations for a user (permanent history)
    */
   async getSavedProducts(userId: string): Promise<DiscoverProduct[]> {
     try {
       const result = await pool.query(
-        `SELECT id, product_id, title, brand, price, price_raw, image_url, link, source, category, position,
-                saved, saved_at, batch_date, is_current
-         FROM user_discover_products
-         WHERE user_id = $1 AND saved = TRUE
+        `SELECT id, product_id, title, brand, price, price_raw, image_url, link, source, category,
+                0 as position, TRUE as saved, saved_at
+         FROM saved_recommendations
+         WHERE user_id = $1
          ORDER BY saved_at DESC`,
         [userId],
       );
@@ -724,24 +733,54 @@ export class DiscoverService {
   }
 
   /**
-   * Save a product (mark as favorite)
+   * Save a product - COPIES it to the permanent saved_recommendations table
    */
   async saveProduct(userId: string, productId: string): Promise<{ success: boolean }> {
     try {
-      const result = await pool.query(
-        `UPDATE user_discover_products
-         SET saved = TRUE, saved_at = NOW()
-         WHERE user_id = $1 AND product_id = $2
-         RETURNING id`,
+      // Get the product details from user_discover_products
+      const productResult = await pool.query(
+        `SELECT product_id, title, brand, price, price_raw, image_url, link, source, category
+         FROM user_discover_products
+         WHERE user_id = $1 AND product_id = $2`,
         [userId, productId],
       );
 
-      if (result.rowCount === 0) {
-        this.log.warn(`saveProduct: product not found - userId=${userId}, productId=${productId}`);
+      if (productResult.rowCount === 0) {
+        this.log.warn(`saveProduct: product not found in discover - userId=${userId}, productId=${productId}`);
         return { success: false };
       }
 
-      this.log.log(`Product saved: userId=${userId}, productId=${productId}`);
+      const product = productResult.rows[0];
+
+      // Insert into permanent saved_recommendations table
+      await pool.query(
+        `INSERT INTO saved_recommendations
+         (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, saved_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+         ON CONFLICT (user_id, product_id) DO UPDATE SET saved_at = NOW()`,
+        [
+          userId,
+          product.product_id,
+          product.title,
+          product.brand,
+          product.price,
+          product.price_raw,
+          product.image_url,
+          product.link,
+          product.source,
+          product.category,
+        ],
+      );
+
+      // Also mark in discover products for UI consistency
+      await pool.query(
+        `UPDATE user_discover_products
+         SET saved = TRUE, saved_at = NOW()
+         WHERE user_id = $1 AND product_id = $2`,
+        [userId, productId],
+      );
+
+      this.log.log(`Product saved permanently: userId=${userId}, productId=${productId}`);
       return { success: true };
     } catch (error) {
       this.log.error(`saveProduct failed: ${error?.message}`);
@@ -750,24 +789,32 @@ export class DiscoverService {
   }
 
   /**
-   * Unsave a product (remove from favorites)
+   * Unsave a product - DELETES it from saved_recommendations (gone forever)
    */
   async unsaveProduct(userId: string, productId: string): Promise<{ success: boolean }> {
     try {
+      // DELETE from permanent saved_recommendations table
       const result = await pool.query(
-        `UPDATE user_discover_products
-         SET saved = FALSE, saved_at = NULL
+        `DELETE FROM saved_recommendations
          WHERE user_id = $1 AND product_id = $2
          RETURNING id`,
         [userId, productId],
       );
 
+      // Also update discover products if it exists there
+      await pool.query(
+        `UPDATE user_discover_products
+         SET saved = FALSE, saved_at = NULL
+         WHERE user_id = $1 AND product_id = $2`,
+        [userId, productId],
+      );
+
       if (result.rowCount === 0) {
-        this.log.warn(`unsaveProduct: product not found - userId=${userId}, productId=${productId}`);
+        this.log.warn(`unsaveProduct: product not found in saved_recommendations - userId=${userId}, productId=${productId}`);
         return { success: false };
       }
 
-      this.log.log(`Product unsaved: userId=${userId}, productId=${productId}`);
+      this.log.log(`Product deleted from saved: userId=${userId}, productId=${productId}`);
       return { success: true };
     } catch (error) {
       this.log.error(`unsaveProduct failed: ${error?.message}`);
@@ -780,17 +827,13 @@ export class DiscoverService {
    */
   async toggleSaveProduct(userId: string, productId: string): Promise<{ success: boolean; saved: boolean }> {
     try {
-      // Check current state
+      // Check if product is in saved_recommendations
       const current = await pool.query(
-        `SELECT saved FROM user_discover_products WHERE user_id = $1 AND product_id = $2`,
+        `SELECT id FROM saved_recommendations WHERE user_id = $1 AND product_id = $2`,
         [userId, productId],
       );
 
-      if (current.rowCount === 0) {
-        return { success: false, saved: false };
-      }
-
-      const isSaved = current.rows[0].saved;
+      const isSaved = current.rowCount > 0;
 
       if (isSaved) {
         await this.unsaveProduct(userId, productId);

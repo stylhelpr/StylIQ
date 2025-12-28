@@ -18,8 +18,20 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
 
 // Card dimensions for auto-scroll calculation
-const CARD_WIDTH = isTablet ? 160 : isLargePhone ? 180 : isRegularPhone ? 160 : 160;
-const CARD_MARGIN = isTablet ? 16 : isLargePhone ? 10 : isRegularPhone ? 10 : 10;
+const CARD_WIDTH = isTablet
+  ? 160
+  : isLargePhone
+    ? 180
+    : isRegularPhone
+      ? 160
+      : 160;
+const CARD_MARGIN = isTablet
+  ? 16
+  : isLargePhone
+    ? 10
+    : isRegularPhone
+      ? 10
+      : 10;
 const SCROLL_INTERVAL = CARD_WIDTH + CARD_MARGIN;
 const AUTO_SCROLL_DELAY = 10000; // 10 seconds
 
@@ -108,8 +120,10 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   const globalStyles = useGlobalStyles();
 
   // Saved products modal state - use external control if provided
-  const [internalSavedModalVisible, setInternalSavedModalVisible] = useState(false);
-  const savedModalVisible = externalSavedModalVisible ?? internalSavedModalVisible;
+  const [internalSavedModalVisible, setInternalSavedModalVisible] =
+    useState(false);
+  const savedModalVisible =
+    externalSavedModalVisible ?? internalSavedModalVisible;
   const [savedProducts, setSavedProducts] = useState<Product[]>([]);
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
 
@@ -242,22 +256,26 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   }, [savedModalVisible, fetchSavedProducts]);
 
   // Handle unsave from parent (updates local state)
-  const handleUnsaveFromParent = useCallback(
-    (productId: string) => {
-      setSavedProducts(prev => prev.filter(p => p.product_id !== productId));
-      setRecommended(prev =>
-        prev.map(p =>
-          p.product_id === productId ? {...p, saved: false} : p,
-        ),
-      );
-    },
-    [],
-  );
+  const handleUnsaveFromParent = useCallback((productId: string) => {
+    setSavedProducts(prev => prev.filter(p => p.product_id !== productId));
+    setRecommended(prev =>
+      prev.map(p => (p.product_id === productId ? {...p, saved: false} : p)),
+    );
+  }, []);
 
   // Expose saved products to parent
   useEffect(() => {
-    onSavedProductsChange?.(savedProducts, fetchSavedProducts, handleUnsaveFromParent);
-  }, [savedProducts, fetchSavedProducts, handleUnsaveFromParent, onSavedProductsChange]);
+    onSavedProductsChange?.(
+      savedProducts,
+      fetchSavedProducts,
+      handleUnsaveFromParent,
+    );
+  }, [
+    savedProducts,
+    fetchSavedProducts,
+    handleUnsaveFromParent,
+    onSavedProductsChange,
+  ]);
 
   // ⏱️ Initial delay for mount
   useEffect(() => {
