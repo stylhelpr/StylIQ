@@ -256,10 +256,8 @@ export default function SavedRecommendationsModal({
         ignoreAndroidSystemSettings: false,
       });
       if (link && onOpenItem) {
-        // Close this modal with animation, then open the reader
-        handleClose(() => {
-          onOpenItem(link, title);
-        });
+        // Open the reader on top - don't close this modal
+        onOpenItem(link, title);
       }
     },
     [onOpenItem],

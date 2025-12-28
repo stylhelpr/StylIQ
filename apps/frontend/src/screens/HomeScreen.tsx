@@ -30,9 +30,10 @@ import SaveLookModal from '../components/SavedLookModal/SavedLookModal';
 import SavedLookPreviewModal from '../components/SavedLookModal/SavedLookPreviewModal';
 import LiveLocationMap from '../components/LiveLocationMap/LiveLocationMap';
 import {useHomePrefs} from '../hooks/useHomePrefs';
-import DiscoverCarousel from '../components/DiscoverCarousel/DiscoverCarousel';
+import DiscoverCarousel, {DiscoverProduct} from '../components/DiscoverCarousel/DiscoverCarousel';
 import NewsCarousel from '../components/NewsCarousel/NewsCarousel';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
+import SavedRecommendationsModal from '../components/SavedRecommendationsModal/SavedRecommendationsModal';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import AiStylistSuggestions from '../components/AiStylistSuggestions/AiStylistSuggestions';
 import {Surface} from '../components/LinearGradientComponents/Surface';
@@ -358,6 +359,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     savedRecommendationsModalVisible,
     setSavedRecommendationsModalVisible,
   ] = useState(false);
+  const [savedRecommendations, setSavedRecommendations] = useState<DiscoverProduct[]>([]);
+  const [fetchSavedRecommendations, setFetchSavedRecommendations] = useState<(() => void) | null>(null);
+  const [unsaveRecommendation, setUnsaveRecommendation] = useState<((productId: string) => void) | null>(null);
   const [shopResults, setShopResults] = useState<ProductResult[]>([]);
 
   const [personalizedVisible, setPersonalizedVisible] = useState(false);
@@ -2083,6 +2087,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 onCloseSavedModal={() =>
                   setSavedRecommendationsModalVisible(false)
                 }
+                onSavedProductsChange={(products, fetchFn, unsaveFn) => {
+                  setSavedRecommendations(products);
+                  setFetchSavedRecommendations(() => fetchFn);
+                  setUnsaveRecommendation(() => unsaveFn);
+                }}
               />
             </Animatable.View>
           )}
@@ -2480,6 +2489,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             visible={previewVisible}
             look={selectedLook}
             onClose={() => setPreviewVisible(false)}
+          />
+          <SavedRecommendationsModal
+            visible={savedRecommendationsModalVisible && !readerVisible}
+            onClose={() => setSavedRecommendationsModalVisible(false)}
+            savedProducts={savedRecommendations}
+            onOpenItem={openArticle}
+            onUnsave={productId => {
+              unsaveRecommendation?.(productId);
+            }}
+            onRefresh={() => {
+              fetchSavedRecommendations?.();
+            }}
           />
           <ReaderModal
             visible={readerVisible}

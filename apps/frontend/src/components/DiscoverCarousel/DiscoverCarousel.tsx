@@ -68,7 +68,6 @@ import {API_BASE_URL} from '../../config/api';
 import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useAppTheme} from '../../context/ThemeContext';
-import SavedRecommendationsModal from '../SavedRecommendationsModal/SavedRecommendationsModal';
 
 type Product = {
   id: string;
@@ -85,12 +84,20 @@ type DiscoverCarouselProps = {
   onOpenItem?: (url: string, title?: string) => void;
   savedModalVisible?: boolean;
   onCloseSavedModal?: () => void;
+  onSavedProductsChange?: (
+    products: Product[],
+    fetchFn: () => void,
+    unsaveFn: (productId: string) => void,
+  ) => void;
 };
+
+export type DiscoverProduct = Product;
 
 const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   onOpenItem,
   savedModalVisible: externalSavedModalVisible,
   onCloseSavedModal,
+  onSavedProductsChange,
 }) => {
   const userId = useUUID();
   const [ready, setReady] = useState(false);
@@ -233,6 +240,24 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
       fetchSavedProducts();
     }
   }, [savedModalVisible, fetchSavedProducts]);
+
+  // Handle unsave from parent (updates local state)
+  const handleUnsaveFromParent = useCallback(
+    (productId: string) => {
+      setSavedProducts(prev => prev.filter(p => p.product_id !== productId));
+      setRecommended(prev =>
+        prev.map(p =>
+          p.product_id === productId ? {...p, saved: false} : p,
+        ),
+      );
+    },
+    [],
+  );
+
+  // Expose saved products to parent
+  useEffect(() => {
+    onSavedProductsChange?.(savedProducts, fetchSavedProducts, handleUnsaveFromParent);
+  }, [savedProducts, fetchSavedProducts, handleUnsaveFromParent, onSavedProductsChange]);
 
   // ⏱️ Initial delay for mount
   useEffect(() => {
@@ -409,25 +434,6 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
           ))
         )}
       </ScrollView>
-
-      {/* Saved Recommendations Modal */}
-      <SavedRecommendationsModal
-        visible={savedModalVisible}
-        onClose={handleCloseSavedModal}
-        savedProducts={savedProducts}
-        onOpenItem={onOpenItem}
-        onUnsave={productId => {
-          setSavedProducts(prev =>
-            prev.filter(p => p.product_id !== productId),
-          );
-          setRecommended(prev =>
-            prev.map(p =>
-              p.product_id === productId ? {...p, saved: false} : p,
-            ),
-          );
-        }}
-        onRefresh={fetchSavedProducts}
-      />
     </>
   );
 };
