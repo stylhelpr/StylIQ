@@ -5,13 +5,6 @@ import { DiscoverService } from './discover.service';
 export class DiscoverController {
   constructor(private readonly discoverService: DiscoverService) {}
 
-  // keep this BEFORE :userId so "/refresh" isn't treated as a userId
-  @Get('refresh')
-  async refresh() {
-    await this.discoverService.refreshProducts();
-    return { success: true };
-  }
-
   @Get(':userId')
   async getRecommendedByUser(@Param('userId') userId: string) {
     return this.discoverService.getRecommended(userId);
