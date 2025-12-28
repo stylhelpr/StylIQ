@@ -13,6 +13,10 @@ import {Linking, Alert} from 'react-native';
 /**
  * Secure defaults for all WebView instances.
  * Spread these defaults first, then override only what's necessary.
+ *
+ * NOTE: sharedCookiesEnabled is intentionally NOT set here.
+ * It must be set dynamically per-URL using keychainCookiePolicy.ts
+ * to enable conditional cookie sharing for auth pages only.
  */
 export const SECURE_WEBVIEW_DEFAULTS: Partial<WebViewProps> = {
   // === SCHEME & ORIGIN RESTRICTIONS ===
@@ -25,12 +29,30 @@ export const SECURE_WEBVIEW_DEFAULTS: Partial<WebViewProps> = {
   javaScriptCanOpenWindowsAutomatically: false,
 
   // === COOKIES & PRIVACY ===
-  // Don't share cookies with Safari - isolate our browser
-  sharedCookiesEnabled: false,
+  // NOTE: sharedCookiesEnabled is set dynamically - see keychainCookiePolicy.ts
   // Block third-party cookies for privacy
   thirdPartyCookiesEnabled: false,
   // Set true for private mode if needed
   incognito: false,
+
+  // === iOS KEYBOARD & INPUT ===
+  // CRITICAL FOR KEYCHAIN: Allow programmatic focus on password fields
+  // WHY: iOS Keychain AutoFill requires focus to associate password fields.
+  //      Modal login forms inject password fields after page load.
+  //      Without this, focus nudging for modal stabilization fails.
+  // SAFE: Does not bypass any security - only allows focus, not form submission.
+  keyboardDisplayRequiresUserAction: false,
+
+  // === CONTENT MODE ===
+  // WHY: Ensures consistent form rendering for Keychain detection.
+  //      Desktop mode may render login forms differently, breaking AutoFill.
+  // SAFE: Standard iOS behavior for in-app browsers.
+  contentMode: 'mobile' as const,
+
+  // === LINK PREVIEW ===
+  // WHY: Better iOS integration, matches Safari behavior.
+  // SAFE: Standard iOS feature, no security implications.
+  allowsLinkPreview: true,
 
   // === MEDIA ===
   // Require user action for media to prevent audio/video autoplay abuse

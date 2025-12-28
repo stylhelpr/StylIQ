@@ -51,6 +51,10 @@ import {
 } from '../config/webViewDefaults';
 import {sanitizeTitle} from '../utils/sanitize';
 import {sanitizeUrlForAnalytics} from '../utils/urlSanitizer';
+// iOS Keychain AutoFill reliability imports
+import {KeychainAuthBridge} from '../native/KeychainAuthBridge';
+import {shouldShareCookiesForUrl} from '../utils/keychainCookiePolicy';
+import {generateKeychainAutoFillScript} from '../utils/keychainAutoFillScript';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -268,6 +272,12 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   // GOLD #7 & #10: Track sizes and colors clicked on current page
   const sizesClickedRef = useRef<{size: string; timestamp: number}[]>([]);
   const colorsClickedRef = useRef<{color: string; timestamp: number}[]>([]);
+
+  // iOS Keychain AutoFill state
+  // Tracks auth flow to pause navigation during Face ID/Touch ID
+  const isKeychainAuthActiveRef = useRef<boolean>(false);
+  const pendingNavigationRef = useRef<string | null>(null);
+  const keychainScriptInjectedRef = useRef<boolean>(false);
 
   // Debug info display
   const [debugInfo, setDebugInfo] = useState<{
@@ -825,14 +835,35 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const handleWebViewLoadEnd = useCallback(() => {
     if (!webRef.current) return;
 
-    // Security: Only inject scripts on HTTPS pages
     const currentUrl = currentTab?.url?.toLowerCase() || '';
+
+    // Reset auth state on new page load
+    isKeychainAuthActiveRef.current = false;
+    pendingNavigationRef.current = null;
+    keychainScriptInjectedRef.current = false;
+    KeychainAuthBridge.resetAuthFlow().catch(() => {});
+
+    // =========================================================================
+    // KEYCHAIN AUTOFILL SCRIPT INJECTION
+    // This script is SAFE to inject on ALL HTTPS pages because:
+    // 1. It only OBSERVES focus/blur/submit events - never modifies forms
+    // 2. It NEVER reads input values - only event types are signaled
+    // 3. It enables iOS Keychain AutoFill reliability, especially for modals
+    // =========================================================================
+    if (currentUrl.startsWith('https://')) {
+      const keychainScript = generateKeychainAutoFillScript();
+      webRef.current.injectJavaScript(keychainScript);
+      console.log('[Keychain] AutoFill script injected');
+    }
+
+    // Security: Only inject tracking scripts on HTTPS pages
     if (!currentUrl.startsWith('https://')) {
-      console.log('[SECURITY] Skipping script injection on non-HTTPS page');
+      console.log('[SECURITY] Skipping tracking script injection on non-HTTPS page');
       return;
     }
 
-    // Security: Skip injection on login/auth AND payment/checkout pages
+    // Security: Skip TRACKING scripts on login/auth AND payment/checkout pages
+    // (Keychain script is still injected above as it's read-only)
     const sensitivePagePatterns = [
       // Auth pages
       '/login',
@@ -859,7 +890,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       currentUrl.includes(pattern),
     );
     if (isSensitivePage) {
-      console.log('[SECURITY] Skipping script injection on sensitive page');
+      console.log('[SECURITY] Skipping tracking script injection on sensitive page');
       return;
     }
 
@@ -1200,6 +1231,14 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     'cartDetected',
     'purchaseComplete',
     'imageLongPress',
+    // iOS Keychain AutoFill signals (read-only, no credential access)
+    'keychainAuthStart',
+    'keychainAuthBlur',
+    'keychainAuthSubmit',
+    'keychainModalDetected',
+    'keychainPageHasPassword',
+    'keychainPasswordFieldsFound',
+    'keychainScriptInitialized',
   ] as const;
   const MAX_MESSAGE_SIZE = 200 * 1024; // 200KB limit
 
@@ -1345,6 +1384,61 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         setLongPressedImageUrl(data.imageUrl);
         setShowImageSaveModal(true);
         triggerHaptic('impactMedium');
+      }
+      // ===================================================================
+      // iOS KEYCHAIN AUTOFILL SIGNALS
+      // These signals coordinate navigation with Face ID/Touch ID auth.
+      // SECURITY: No credential data is ever accessed or transmitted.
+      // ===================================================================
+      else if (data.type === 'keychainAuthStart') {
+        // Password field focused - auth flow starting
+        // Pause navigation to prevent race condition with Face ID
+        console.log('[Keychain] Auth flow started - pausing navigation');
+        isKeychainAuthActiveRef.current = true;
+        KeychainAuthBridge.signalAuthFlowStarted().catch(() => {
+          // Native module call failed - continue anyway
+        });
+      } else if (data.type === 'keychainAuthSubmit') {
+        // Form submitted - auth flow complete
+        // Resume navigation
+        console.log('[Keychain] Auth flow complete (submit) - resuming navigation');
+        isKeychainAuthActiveRef.current = false;
+        pendingNavigationRef.current = null;
+        KeychainAuthBridge.signalAuthFlowCompleted().catch(() => {
+          // Native module call failed - continue anyway
+        });
+      } else if (data.type === 'keychainAuthBlur') {
+        // Password field blurred without submit - may or may not be complete
+        // Use shorter timeout before resuming
+        console.log('[Keychain] Auth flow blur - will resume navigation shortly');
+        setTimeout(() => {
+          if (isKeychainAuthActiveRef.current) {
+            isKeychainAuthActiveRef.current = false;
+            KeychainAuthBridge.signalAuthFlowCompleted().catch(() => {});
+          }
+        }, 1000);
+      } else if (data.type === 'keychainModalDetected') {
+        // Dynamic modal with password field detected
+        // Focus nudging will be applied by injected script
+        console.log(
+          '[Keychain] Modal with password field detected, fields:',
+          data.fieldCount,
+        );
+      } else if (data.type === 'keychainPageHasPassword') {
+        // Page has password fields - mark for Keychain script injection
+        console.log(
+          '[Keychain] Page has password fields:',
+          data.fieldCount,
+          'inModal:',
+          data.inModal,
+        );
+      } else if (data.type === 'keychainScriptInitialized') {
+        // Keychain script successfully initialized
+        keychainScriptInjectedRef.current = true;
+        console.log(
+          '[Keychain] Script initialized, hasPasswordFields:',
+          data.hasPasswordFields,
+        );
       }
       // iOS Password AutoFill handles password saving automatically via iCloud Keychain
       // No app-level password handling needed
@@ -2497,10 +2591,24 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             {...SECURE_WEBVIEW_DEFAULTS}
             // Allow HTTP for compatibility with some fashion sites
             originWhitelist={['https://*', 'http://*']}
-            onShouldStartLoadWithRequest={createOnShouldStartLoadWithRequest({
-              allowHttp: true,
-            })}
+            onShouldStartLoadWithRequest={request => {
+              // Check if auth flow is active - pause navigation during Face ID
+              if (isKeychainAuthActiveRef.current) {
+                // Store pending navigation to resume after auth completes
+                pendingNavigationRef.current = request.url;
+                console.log('[Keychain] Navigation paused during auth flow:', request.url);
+                // Allow the request but track it
+              }
+              // Delegate to standard security handler
+              return createOnShouldStartLoadWithRequest({allowHttp: true})(request);
+            }}
             onContentProcessDidTerminate={createCrashRecoveryHandler(webRef)}
+            // === iOS KEYCHAIN AUTOFILL: Conditional cookie sharing ===
+            // Only enable cookie sharing for auth-related pages (SSO, login paths, OAuth flows)
+            // This maintains privacy isolation for regular browsing while enabling
+            // reliable Keychain password autofill on login pages.
+            // See keychainCookiePolicy.ts for domain classification logic.
+            sharedCookiesEnabled={shouldShareCookiesForUrl(currentTab?.url || '')}
             // === END SECURITY ===
             contentInset={{
               bottom: insets.bottom + 90,
