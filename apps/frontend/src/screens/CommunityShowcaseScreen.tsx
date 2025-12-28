@@ -2935,142 +2935,171 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           />
         }
         contentContainerStyle={styles.gridContainer}>
-        <View
-          style={{
-            width: '100%',
-            height: 300,
-            overflow: 'hidden',
-            marginBottom: 14,
-          }}>
-          <Animated.Image
-            key={`image-${currentImageIndex}`}
-            source={{uri: MOCK_POSTS[currentImageIndex].imageUrl}}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: tokens.borderRadius.lg,
-              opacity: fadeAnim,
-            }}
-            resizeMode="cover"
-          />
+        {/* Hero Featured Look - uses displayedPosts when available, falls back to MOCK_POSTS */}
+        {(() => {
+          const heroPost = displayedPosts.length > 0
+            ? displayedPosts[currentImageIndex % displayedPosts.length]
+            : null;
+          const mockPost = MOCK_POSTS[currentImageIndex % MOCK_POSTS.length];
+          const heroImageUrl = heroPost?.image_url || mockPost.imageUrl;
+          const heroUserName = heroPost?.user_name || mockPost.userName;
+          const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
+          const heroUserId = heroPost?.user_id;
+          const heroTags = heroPost?.tags || mockPost.tags;
+          const heroLikes = heroPost?.likes_count ?? mockPost.likes;
+          const heroViews = heroPost?.views_count ?? mockPost.views ?? 0;
 
-          {/* Light tinted overlay for better text visibility */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.25)',
-              borderRadius: tokens.borderRadius.lg,
-            }}
-          />
-
-          {/* Title in upper left corner */}
-          <View
-            style={{
-              position: 'absolute',
-              top: moderateScale(tokens.spacing.md),
-              left: moderateScale(tokens.spacing.md),
-            }}>
-            <Text
+          return (
+            <Pressable
+              onPress={() => {
+                if (heroPost) {
+                  openPostDetailModal(heroPost);
+                }
+              }}
               style={{
-                fontSize: fontScale(tokens.fontSize.xl),
-                fontWeight: tokens.fontWeight.bold,
-                color: '#ffffff',
-                textShadowColor: 'rgba(0, 0, 0, 0.6)',
-                textShadowOffset: {width: 0, height: 1},
-                textShadowRadius: 3,
+                width: '100%',
+                height: 300,
+                overflow: 'hidden',
+                marginBottom: 14,
               }}>
-              Featured Look
-            </Text>
-          </View>
-
-          <Animatable.View
-            key={`text-${currentImageIndex}`}
-            animation="fadeInUp"
-            duration={1200}
-            delay={200}
-            useNativeDriver
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              paddingHorizontal: moderateScale(tokens.spacing.sm),
-              paddingBottom: moderateScale(tokens.spacing.sm),
-            }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginBottom: moderateScale(tokens.spacing.xxs),
-              }}>
-              <UserAvatar
-                avatarUrl={MOCK_POSTS[currentImageIndex].userAvatar}
-                userName={MOCK_POSTS[currentImageIndex].userName}
-                size={40}
+              <Animated.Image
+                key={`image-${currentImageIndex}`}
+                source={{uri: heroImageUrl}}
                 style={{
-                  marginRight: 10,
-                  borderWidth: 1.5,
-                  borderColor: theme.colors.button1,
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: tokens.borderRadius.lg,
+                  opacity: fadeAnim,
+                }}
+                resizeMode="cover"
+              />
+
+              {/* Light tinted overlay for better text visibility */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                  borderRadius: tokens.borderRadius.lg,
                 }}
               />
-              <Text
+
+              {/* Title in upper left corner */}
+              <View
                 style={{
-                  fontSize: fontScale(tokens.fontSize['3xl']),
-                  fontWeight: tokens.fontWeight.bold,
-                  color: '#ffffff',
-                  textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                  textShadowOffset: {width: 0, height: 2},
-                  textShadowRadius: 4,
+                  position: 'absolute',
+                  top: moderateScale(tokens.spacing.md),
+                  left: moderateScale(tokens.spacing.md),
                 }}>
-                @{MOCK_POSTS[currentImageIndex].userName}
-              </Text>
-            </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 6,
-              }}>
-              {MOCK_POSTS[currentImageIndex].tags.slice(0, 3).map(tag => (
-                <Pressable
-                  key={tag}
-                  onPress={() => handleTagTap(tag)}
-                  hitSlop={8}>
+                <Text
+                  style={{
+                    fontSize: fontScale(tokens.fontSize.xl),
+                    fontWeight: tokens.fontWeight.bold,
+                    color: '#ffffff',
+                    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+                    textShadowOffset: {width: 0, height: 1},
+                    textShadowRadius: 3,
+                  }}>
+                  Featured Look
+                </Text>
+              </View>
+
+              <Animatable.View
+                key={`text-${currentImageIndex}`}
+                animation="fadeInUp"
+                duration={1200}
+                delay={200}
+                useNativeDriver
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  paddingHorizontal: moderateScale(tokens.spacing.sm),
+                  paddingBottom: moderateScale(tokens.spacing.sm),
+                }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginBottom: moderateScale(tokens.spacing.xxs),
+                  }}>
+                  <UserAvatar
+                    avatarUrl={heroUserAvatar}
+                    userName={heroUserName}
+                    size={40}
+                    style={{
+                      marginRight: 10,
+                      borderWidth: 1.5,
+                      borderColor: theme.colors.button1,
+                    }}
+                    onPress={heroUserId ? () => {
+                      navigate('UserProfileScreen', {
+                        userId: heroUserId,
+                        userName: heroUserName,
+                        userAvatar: heroUserAvatar,
+                      });
+                    } : undefined}
+                  />
+                  <Text
+                    style={{
+                      fontSize: fontScale(tokens.fontSize['3xl']),
+                      fontWeight: tokens.fontWeight.bold,
+                      color: '#ffffff',
+                      textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                      textShadowOffset: {width: 0, height: 2},
+                      textShadowRadius: 4,
+                    }}>
+                    @{heroUserName}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 6,
+                  }}>
+                  {heroTags.slice(0, 3).map(tag => (
+                    <Pressable
+                      key={tag}
+                      onPress={() => handleTagTap(tag)}
+                      hitSlop={8}>
+                      <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.sm),
+                          color: 'rgba(255,255,255,0.85)',
+                          backgroundColor: 'rgba(59, 59, 59, 0.7)',
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                        }}>
+                        #{tag}
+                      </Text>
+                    </Pressable>
+                  ))}
                   <Text
                     style={{
                       fontSize: fontScale(tokens.fontSize.sm),
-                      color: 'rgba(255,255,255,0.85)',
-                      backgroundColor: 'rgba(59, 59, 59, 0.7)',
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                      overflow: 'hidden',
+                      fontWeight: tokens.fontWeight.medium,
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      marginLeft: 4,
+                      textShadowColor: 'rgba(0, 0, 0, 0.4)',
+                      textShadowOffset: {width: 0, height: 1},
+                      textShadowRadius: 3,
                     }}>
-                    #{tag}
+                    • {heroLikes} likes •{' '}
+                    {heroViews} views
                   </Text>
-                </Pressable>
-              ))}
-              <Text
-                style={{
-                  fontSize: fontScale(tokens.fontSize.sm),
-                  fontWeight: tokens.fontWeight.medium,
-                  color: 'rgba(255, 255, 255, 0.9)',
-                  marginLeft: 4,
-                  textShadowColor: 'rgba(0, 0, 0, 0.4)',
-                  textShadowOffset: {width: 0, height: 1},
-                  textShadowRadius: 3,
-                }}>
-                • {MOCK_POSTS[currentImageIndex].likes} likes •{' '}
-                {MOCK_POSTS[currentImageIndex].views || 0} views
-              </Text>
-            </View>
-          </Animatable.View>
-        </View>
+                </View>
+              </Animatable.View>
+            </Pressable>
+          );
+        })()}
 
         {displayedPosts.length > 0 ? (
           <View style={styles.grid}>
