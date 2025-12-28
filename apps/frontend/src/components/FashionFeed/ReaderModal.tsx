@@ -206,7 +206,7 @@ export default function ReaderModal({
             animation="fadeIn"
             delay={250}
             duration={800}
-            style={{flex: 1, paddingHorizontal: 16}}>
+            style={{flex: 1, paddingHorizontal: 4}}>
             <WebView
               {...SECURE_WEBVIEW_DEFAULTS}
               originWhitelist={['https://*', 'http://*']}

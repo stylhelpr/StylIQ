@@ -12,6 +12,7 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -72,7 +73,7 @@ export default function SavedRecommendationsModal({
       backgroundColor: 'transparent',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      paddingTop: tokens.spacing.md,
+      paddingTop: tokens.spacing.sm,
     },
     backdrop: {
       ...StyleSheet.absoluteFill,
@@ -119,10 +120,11 @@ export default function SavedRecommendationsModal({
     },
     title: {
       color: theme.colors.foreground,
-      fontWeight: '800',
+      fontWeight: '700',
       fontSize: 17,
       flex: 1,
       textAlign: 'left',
+      marginTop: 8,
       textTransform: 'uppercase',
     },
     countBadge: {
@@ -140,7 +142,14 @@ export default function SavedRecommendationsModal({
 
   useLayoutEffect(() => {
     if (visible) {
-      translateY.setValue(0);
+      // Start off-screen and animate in
+      translateY.setValue(height);
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
     }
   }, [visible]);
 
@@ -180,6 +189,32 @@ export default function SavedRecommendationsModal({
       },
     }),
   ).current;
+
+  const confirmUnsave = useCallback(
+    (productId: string, productTitle?: string) => {
+      ReactNativeHapticFeedback.trigger('impactMedium', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+
+      Alert.alert(
+        'Remove from Saved',
+        `Are you sure you want to remove "${productTitle || 'this item'}" from your saved recommendations?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => handleUnsave(productId),
+          },
+        ],
+      );
+    },
+    [],
+  );
 
   const handleUnsave = useCallback(
     async (productId: string) => {
@@ -233,7 +268,7 @@ export default function SavedRecommendationsModal({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent
       onRequestClose={handleClosePress}>
       <View style={styles.modalContainer}>
@@ -340,7 +375,7 @@ export default function SavedRecommendationsModal({
                       borderRadius: 16,
                       padding: 6,
                     }}
-                    onPress={() => handleUnsave(product.product_id)}
+                    onPress={() => confirmUnsave(product.product_id, product.title)}
                     disabled={unsavingId === product.product_id}>
                     {unsavingId === product.product_id ? (
                       <ActivityIndicator size="small" color="#fff" />
@@ -351,6 +386,38 @@ export default function SavedRecommendationsModal({
                         color="#ff4d6d"
                       />
                     )}
+                  </TouchableOpacity>
+
+                  {/* Shop Now button overlay - transparent on image above site name */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPressIn={() =>
+                      ReactNativeHapticFeedback.trigger('impactLight', {
+                        enableVibrateFallback: true,
+                        ignoreAndroidSystemSettings: false,
+                      })
+                    }
+                    onPress={() => handleShop(product.link, product.title)}
+                    style={{
+                      position: 'absolute',
+                      bottom: 12,
+                      left: 8,
+                      right: 8,
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      borderRadius: tokens.borderRadius.sm,
+                      paddingVertical: 9,
+                      borderColor: theme.colors.foreground,
+                      borderWidth: tokens.borderWidth.hairline,
+                    }}>
+                    <Text
+                      style={{
+                        textAlign: 'center',
+                        color: '#fff',
+                        fontWeight: '500',
+                        fontSize: 12,
+                      }}>
+                      Shop Now
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -399,6 +466,7 @@ export default function SavedRecommendationsModal({
                   style={{
                     paddingHorizontal: 12,
                     marginTop: 4,
+                    marginBottom: 10,
                     color: theme.colors.primary,
                     fontWeight: '600',
                     fontSize: 14,
@@ -406,38 +474,6 @@ export default function SavedRecommendationsModal({
                   {product.price_raw ||
                     (product.price ? `$${product.price}` : '')}
                 </Text>
-
-                {/* Shop Button */}
-                <View
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 10,
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: theme.colors.surfaceBorder,
-                    backgroundColor: theme.colors.surface,
-                    marginTop: 8,
-                  }}>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => handleShop(product.link, product.title)}
-                    style={{
-                      backgroundColor: 'transparent',
-                      borderRadius: tokens.borderRadius.sm,
-                      paddingVertical: 10,
-                      alignItems: 'center',
-                      borderColor: 'grey',
-                      borderWidth: tokens.borderWidth.hairline,
-                    }}>
-                    <Text
-                      style={{
-                        color: theme.colors.foreground,
-                        fontWeight: '600',
-                        fontSize: 13,
-                      }}>
-                      Shop Now
-                    </Text>
-                  </TouchableOpacity>
-                </View>
               </Animatable.View>
             ))}
           </ScrollView>

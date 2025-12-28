@@ -2071,7 +2071,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       fontSize: fontScale(tokens.fontSize.sm),
                       color: theme.colors.foreground,
                       fontWeight: tokens.fontWeight.bold,
-                      marginTop: 2,
+                      marginTop: -10,
                     }}>
                     See All Saved Recs
                   </Text>
