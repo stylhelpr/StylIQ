@@ -36,6 +36,10 @@ export interface DiscoverProduct {
   source: string | null;
   category: string | null;
   position: number;
+  saved?: boolean;
+  saved_at?: string | null;
+  batch_date?: string;
+  is_current?: boolean;
 }
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -54,58 +58,74 @@ export class DiscoverService {
   async getRecommended(userId: string): Promise<DiscoverProduct[]> {
     this.log.log(`getRecommended called for userId: ${userId}`);
 
-    try {
-      // Check if we need to refresh (weekly limit)
-      const needsRefresh = await this.needsRefresh(userId);
+    // ALWAYS check cache first
+    const cached = await this.getCachedProducts(userId);
+    const cacheValid = await this.isCacheValid(userId);
 
-      if (!needsRefresh) {
-        // Return cached products
-        const cached = await this.getCachedProducts(userId);
-        if (cached.length > 0) {
-          this.log.log(`Returning ${cached.length} cached products for user ${userId}`);
-          return cached;
-        }
-        // Cache is empty despite not needing refresh - fetch anyway
-        this.log.warn(`No cached products found despite fresh timestamp - fetching new`);
-      }
-
-      // Fetch personalized products
-      const products = await this.fetchPersonalizedProducts(userId);
-      return products;
-    } catch (error: any) {
-      this.log.error(`getRecommended failed: ${error?.message}`);
-      // Fallback to simple search on any error
-      return this.getFallbackProducts(userId);
+    // HARDLOCK: If cache is valid (within 7 days), return whatever we have. NO API CALLS. NO EXCEPTIONS.
+    if (cacheValid) {
+      this.log.log(`Returning ${cached.length} cached products for user ${userId} (weekly lock active - NO API CALLS)`);
+      return cached;
     }
+
+    // Cache expired or never set - ONE fetch attempt, then lock for a week
+    this.log.log(`Cache expired or empty for user ${userId} - fetching fresh products`);
+
+    let products: DiscoverProduct[] = [];
+
+    try {
+      products = await this.fetchPersonalizedProducts(userId);
+    } catch (error: any) {
+      this.log.error(`fetchPersonalizedProducts failed: ${error?.message}`);
+    }
+
+    // If personalized didn't get 10, try fallback
+    if (products.length < TARGET_PRODUCTS) {
+      try {
+        const fallback = await this.getFallbackProducts(userId);
+        // Merge: keep what we got, add from fallback to reach 10
+        const existingIds = new Set(products.map(p => p.product_id));
+        for (const p of fallback) {
+          if (products.length >= TARGET_PRODUCTS) break;
+          if (!existingIds.has(p.product_id)) {
+            products.push(p);
+          }
+        }
+      } catch (fallbackError: any) {
+        this.log.error(`getFallbackProducts also failed: ${fallbackError?.message}`);
+      }
+    }
+
+    // ALWAYS set timestamp and save whatever we got - locks for a week regardless
+    if (products.length > 0) {
+      await this.saveProducts(userId, products);
+    }
+    await this.updateRefreshTimestamp(userId);
+
+    this.log.log(`Locked ${products.length} products for user ${userId} - no more API calls for 7 days`);
+    return products;
   }
 
-  // ==================== REFRESH CHECK ====================
-
-  private async needsRefresh(userId: string): Promise<boolean> {
+  // Returns true if cache is still valid (within 7 days), false if expired or never set
+  private async isCacheValid(userId: string): Promise<boolean> {
     try {
       const result = await pool.query(
         'SELECT last_discover_refresh FROM users WHERE id = $1',
         [userId],
       );
 
-      if (result.rowCount === 0) {
-        return true; // User not found, will fail later anyway
-      }
-
-      const lastRefresh = result.rows[0].last_discover_refresh;
+      const lastRefresh = result.rows[0]?.last_discover_refresh;
       if (!lastRefresh) {
-        return true; // Never refreshed
+        return false; // Never refreshed
       }
 
       const lastRefreshTime = new Date(lastRefresh).getTime();
-      const now = Date.now();
-      const age = now - lastRefreshTime;
+      const age = Date.now() - lastRefreshTime;
 
-      return age >= SEVEN_DAYS_MS;
-    } catch (error) {
-      this.log.error(`needsRefresh query failed: ${error?.message}`);
-      // If column doesn't exist or other error, assume needs refresh
-      return true;
+      // Cache is valid if less than 7 days old
+      return age < SEVEN_DAYS_MS;
+    } catch {
+      return false;
     }
   }
 
@@ -114,9 +134,10 @@ export class DiscoverService {
   private async getCachedProducts(userId: string): Promise<DiscoverProduct[]> {
     try {
       const result = await pool.query(
-        `SELECT id, product_id, title, brand, price, price_raw, image_url, link, source, category, position
+        `SELECT id, product_id, title, brand, price, price_raw, image_url, link, source, category, position,
+                saved, saved_at, batch_date, is_current
          FROM user_discover_products
-         WHERE user_id = $1
+         WHERE user_id = $1 AND is_current = TRUE
          ORDER BY position ASC
          LIMIT $2`,
         [userId, TARGET_PRODUCTS],
@@ -168,15 +189,20 @@ export class DiscoverService {
     let allProducts: any[] = [];
     const usedProductIds = new Set(shownProductIds);
 
-    // Execute queries until we have 10 unique products
+    // Limit products per query to ensure diversity across brands/styles
+    const MAX_PER_QUERY = 3;
+
+    // Execute queries, taking limited products from each to ensure variety
     for (const query of queries) {
       if (allProducts.length >= TARGET_PRODUCTS) break;
 
       try {
         const products = await this.searchSerpApi(query, profile.gender);
+        let addedFromQuery = 0;
 
         for (const p of products) {
           if (allProducts.length >= TARGET_PRODUCTS) break;
+          if (addedFromQuery >= MAX_PER_QUERY) break;
 
           // Skip duplicates and previously shown
           const productId = this.getProductId(p);
@@ -187,6 +213,7 @@ export class DiscoverService {
 
           usedProductIds.add(productId);
           allProducts.push(p);
+          addedFromQuery++;
         }
       } catch (error) {
         this.log.warn(`Query failed: ${query} - ${error}`);
@@ -522,15 +549,25 @@ export class DiscoverService {
 
   private async saveProducts(userId: string, products: DiscoverProduct[]): Promise<void> {
     try {
-      // Clear old products for this user
-      await pool.query('DELETE FROM user_discover_products WHERE user_id = $1', [userId]);
+      // Mark old batch as not current (preserve history, especially saved items)
+      await pool.query(
+        `UPDATE user_discover_products
+         SET is_current = FALSE
+         WHERE user_id = $1 AND is_current = TRUE`,
+        [userId],
+      );
 
-      // Insert new products
+      // Insert new products as current batch
+      const batchDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       for (const p of products) {
         await pool.query(
           `INSERT INTO user_discover_products
-           (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, position)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+           (user_id, product_id, title, brand, price, price_raw, image_url, link, source, category, position, batch_date, is_current, saved)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, FALSE)
+           ON CONFLICT (user_id, product_id) DO UPDATE SET
+             is_current = TRUE,
+             position = EXCLUDED.position,
+             batch_date = EXCLUDED.batch_date`,
           [
             userId,
             p.product_id,
@@ -543,6 +580,7 @@ export class DiscoverService {
             p.source,
             p.category,
             p.position,
+            batchDate,
           ],
         );
       }
@@ -661,5 +699,109 @@ export class DiscoverService {
     ]);
     if (res.rowCount === 0) throw new Error('User not found');
     return res.rows[0].id;
+  }
+
+  // ==================== SAVED PRODUCTS ====================
+
+  /**
+   * Get all saved products for a user (across all batches)
+   */
+  async getSavedProducts(userId: string): Promise<DiscoverProduct[]> {
+    try {
+      const result = await pool.query(
+        `SELECT id, product_id, title, brand, price, price_raw, image_url, link, source, category, position,
+                saved, saved_at, batch_date, is_current
+         FROM user_discover_products
+         WHERE user_id = $1 AND saved = TRUE
+         ORDER BY saved_at DESC`,
+        [userId],
+      );
+      return result.rows;
+    } catch (error) {
+      this.log.error(`getSavedProducts failed: ${error?.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Save a product (mark as favorite)
+   */
+  async saveProduct(userId: string, productId: string): Promise<{ success: boolean }> {
+    try {
+      const result = await pool.query(
+        `UPDATE user_discover_products
+         SET saved = TRUE, saved_at = NOW()
+         WHERE user_id = $1 AND product_id = $2
+         RETURNING id`,
+        [userId, productId],
+      );
+
+      if (result.rowCount === 0) {
+        this.log.warn(`saveProduct: product not found - userId=${userId}, productId=${productId}`);
+        return { success: false };
+      }
+
+      this.log.log(`Product saved: userId=${userId}, productId=${productId}`);
+      return { success: true };
+    } catch (error) {
+      this.log.error(`saveProduct failed: ${error?.message}`);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Unsave a product (remove from favorites)
+   */
+  async unsaveProduct(userId: string, productId: string): Promise<{ success: boolean }> {
+    try {
+      const result = await pool.query(
+        `UPDATE user_discover_products
+         SET saved = FALSE, saved_at = NULL
+         WHERE user_id = $1 AND product_id = $2
+         RETURNING id`,
+        [userId, productId],
+      );
+
+      if (result.rowCount === 0) {
+        this.log.warn(`unsaveProduct: product not found - userId=${userId}, productId=${productId}`);
+        return { success: false };
+      }
+
+      this.log.log(`Product unsaved: userId=${userId}, productId=${productId}`);
+      return { success: true };
+    } catch (error) {
+      this.log.error(`unsaveProduct failed: ${error?.message}`);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Toggle saved state for a product
+   */
+  async toggleSaveProduct(userId: string, productId: string): Promise<{ success: boolean; saved: boolean }> {
+    try {
+      // Check current state
+      const current = await pool.query(
+        `SELECT saved FROM user_discover_products WHERE user_id = $1 AND product_id = $2`,
+        [userId, productId],
+      );
+
+      if (current.rowCount === 0) {
+        return { success: false, saved: false };
+      }
+
+      const isSaved = current.rows[0].saved;
+
+      if (isSaved) {
+        await this.unsaveProduct(userId, productId);
+        return { success: true, saved: false };
+      } else {
+        await this.saveProduct(userId, productId);
+        return { success: true, saved: true };
+      }
+    } catch (error) {
+      this.log.error(`toggleSaveProduct failed: ${error?.message}`);
+      return { success: false, saved: false };
+    }
   }
 }

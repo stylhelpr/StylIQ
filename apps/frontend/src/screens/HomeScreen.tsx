@@ -354,6 +354,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [readerUrl, setReaderUrl] = useState<string | undefined>(undefined);
   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
   const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [
+    savedRecommendationsModalVisible,
+    setSavedRecommendationsModalVisible,
+  ] = useState(false);
   const [shopResults, setShopResults] = useState<ProductResult[]>([]);
 
   const [personalizedVisible, setPersonalizedVisible] = useState(false);
@@ -2049,10 +2053,37 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               duration={700}
               useNativeDriver
               style={globalStyles.sectionScroll}>
-              <Text style={[globalStyles.sectionTitle]}>
-                Recommended For You
-              </Text>
-              <DiscoverCarousel onOpenItem={openArticle} />
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginRight: moderateScale(tokens.spacing.md2),
+                }}>
+                <Text style={[globalStyles.sectionTitle]}>Recommendations</Text>
+                <Pressable
+                  onPress={() => {
+                    ReactNativeHapticFeedback.trigger('impactLight');
+                    setSavedRecommendationsModalVisible(true);
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: fontScale(tokens.fontSize.sm),
+                      color: theme.colors.foreground,
+                      fontWeight: tokens.fontWeight.bold,
+                      marginTop: 2,
+                    }}>
+                    See All Saved Recs
+                  </Text>
+                </Pressable>
+              </View>
+              <DiscoverCarousel
+                onOpenItem={openArticle}
+                savedModalVisible={savedRecommendationsModalVisible}
+                onCloseSavedModal={() =>
+                  setSavedRecommendationsModalVisible(false)
+                }
+              />
             </Animatable.View>
           )}
           {prefs.inspiredLooks && (

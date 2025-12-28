@@ -37,3 +37,15 @@ CREATE TABLE IF NOT EXISTS user_discover_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_discover_history_user ON user_discover_history(user_id);
+
+-- Add batch tracking and saved flag for history/favorites
+ALTER TABLE user_discover_products
+ADD COLUMN IF NOT EXISTS batch_date DATE DEFAULT CURRENT_DATE,
+ADD COLUMN IF NOT EXISTS is_current BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS saved BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS saved_at TIMESTAMPTZ;
+
+-- Partial index for fast saved products lookup
+CREATE INDEX IF NOT EXISTS idx_user_discover_saved
+ON user_discover_products (user_id, saved_at DESC)
+WHERE saved = TRUE;

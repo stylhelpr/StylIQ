@@ -5,13 +5,16 @@ import {
   Image,
   ScrollView,
   Linking,
-  StyleSheet,
   Animated,
   Easing,
   Pressable,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {isTablet, isLargePhone, isRegularPhone} from '../../styles/global';
 
 // Card dimensions for auto-scroll calculation
@@ -64,24 +67,31 @@ const ScalePressable = ({
 import {API_BASE_URL} from '../../config/api';
 import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
-import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
-import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+import SavedRecommendationsModal from '../SavedRecommendationsModal/SavedRecommendationsModal';
 
 type Product = {
   id: string;
+  product_id: string;
   title: string;
   brand: string;
   image_url: string;
   link: string;
   category: string;
+  saved?: boolean;
 };
 
 type DiscoverCarouselProps = {
   onOpenItem?: (url: string, title?: string) => void;
+  savedModalVisible?: boolean;
+  onCloseSavedModal?: () => void;
 };
 
-const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
+const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
+  onOpenItem,
+  savedModalVisible: externalSavedModalVisible,
+  onCloseSavedModal,
+}) => {
   const userId = useUUID();
   const [ready, setReady] = useState(false);
   const [recommended, setRecommended] = useState<Product[]>([]);
@@ -89,6 +99,12 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
   const [error, setError] = useState<string | null>(null);
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  // Saved products modal state - use external control if provided
+  const [internalSavedModalVisible, setInternalSavedModalVisible] = useState(false);
+  const savedModalVisible = externalSavedModalVisible ?? internalSavedModalVisible;
+  const [savedProducts, setSavedProducts] = useState<Product[]>([]);
+  const [savingProductId, setSavingProductId] = useState<string | null>(null);
 
   const fadeAnims = useRef<Animated.Value[]>([]);
   const translateAnims = useRef<Animated.Value[]>([]);
@@ -147,15 +163,76 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
     [],
   );
 
-  const styles = StyleSheet.create({
-    image: {
-      width: '100%',
-      height: 120,
-      backgroundColor: theme.colors.surface,
-      borderBottomColor: theme.colors.surfaceBorder,
-      borderBottomWidth: tokens.borderWidth.md,
+  // Toggle save/unsave a product
+  const handleToggleSave = useCallback(
+    async (product: Product) => {
+      if (!userId || savingProductId) return;
+
+      setSavingProductId(product.product_id);
+      ReactNativeHapticFeedback.trigger('impactLight', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/discover/${userId}/toggle-save`,
+          {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({product_id: product.product_id}),
+          },
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          // Update local state
+          setRecommended(prev =>
+            prev.map(p =>
+              p.product_id === product.product_id
+                ? {...p, saved: result.saved}
+                : p,
+            ),
+          );
+        }
+      } catch (err) {
+        console.error('Failed to toggle save:', err);
+      } finally {
+        setSavingProductId(null);
+      }
     },
-  });
+    [userId, savingProductId],
+  );
+
+  // Fetch saved products for modal
+  const fetchSavedProducts = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/discover/${userId}/saved`);
+      if (response.ok) {
+        const data = await response.json();
+        setSavedProducts(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch saved products:', err);
+    }
+  }, [userId]);
+
+  // Close saved modal
+  const handleCloseSavedModal = useCallback(() => {
+    if (onCloseSavedModal) {
+      onCloseSavedModal();
+    } else {
+      setInternalSavedModalVisible(false);
+    }
+  }, [onCloseSavedModal]);
+
+  // Fetch saved products when modal becomes visible
+  useEffect(() => {
+    if (savedModalVisible) {
+      fetchSavedProducts();
+    }
+  }, [savedModalVisible, fetchSavedProducts]);
 
   // ⏱️ Initial delay for mount
   useEffect(() => {
@@ -177,13 +254,15 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
         const items: Product[] = data
           .map((p: any) => ({
             id: String(p.id),
+            product_id: p.product_id || String(p.id),
             title: p.title,
             brand: p.brand,
             image_url: p.image_url,
             link: p.link,
             category: p.category,
+            saved: p.saved || false,
           }))
-          .filter(p => p.image_url?.startsWith('http'));
+          .filter((p: Product) => p.image_url?.startsWith('http'));
         setRecommended(items);
         setError(null);
       } catch (e: any) {
@@ -232,73 +311,124 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({onOpenItem}) => {
     return <Text style={{padding: 16}}>{error}</Text>;
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      onScrollBeginDrag={handleScrollBeginDrag}
-      onScrollEndDrag={handleScrollEndDrag}
-      onMomentumScrollEnd={handleMomentumScrollEnd}
-      scrollEventThrottle={16}>
-      {recommended.length === 0 ? (
-        <Text style={{padding: 16, color: theme.colors.foreground2}}>
-          No picks found
-        </Text>
-      ) : (
-        recommended.map((item, i) => (
-          <Animated.View
-            key={item.id}
-            style={{
-              opacity: fadeAnims.current[i] || new Animated.Value(1),
-              transform: [
-                {
-                  translateY:
-                    translateAnims.current[i] || new Animated.Value(0),
-                },
-              ],
-            }}>
-            <ScalePressable
-              style={globalStyles.outfitCard2}
-              onPress={() => {
-                if (onOpenItem) {
-                  onOpenItem(item.link, item.title);
-                } else {
-                  Linking.openURL(item.link || '#');
-                }
+    <>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        onScrollEndDrag={handleScrollEndDrag}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        scrollEventThrottle={16}>
+        {recommended.length === 0 ? (
+          <Text style={{padding: 16, color: theme.colors.foreground2}}>
+            No picks found
+          </Text>
+        ) : (
+          recommended.map((item, i) => (
+            <Animated.View
+              key={item.id}
+              style={{
+                opacity: fadeAnims.current[i] || new Animated.Value(1),
+                transform: [
+                  {
+                    translateY:
+                      translateAnims.current[i] || new Animated.Value(0),
+                  },
+                ],
               }}>
-              <Image
-                source={{uri: item.image_url}}
-                style={globalStyles.image7}
-                resizeMode="cover"
-                onError={() => console.warn('⚠️ image failed', item.image_url)}
-              />
-              <Text
-                style={[
-                  globalStyles.cardLabel,
-                  {
-                    marginHorizontal: 10,
-                    marginTop: 6,
-                  },
-                ]}
-                numberOfLines={1}>
-                {item.title || 'Untitled'}
-              </Text>
-              <Text
-                style={[
-                  globalStyles.cardSubLabel,
-                  {
-                    marginHorizontal: 10,
-                    marginBottom: 8,
-                    marginTop: 4,
-                  },
-                ]}>
-                {item.brand || 'Brand'}
-              </Text>
-            </ScalePressable>
-          </Animated.View>
-        ))
-      )}
-    </ScrollView>
+              <ScalePressable
+                style={globalStyles.outfitCard2}
+                onPress={() => {
+                  if (onOpenItem) {
+                    onOpenItem(item.link, item.title);
+                  } else {
+                    Linking.openURL(item.link || '#');
+                  }
+                }}>
+                {/* Image with heart overlay */}
+                <View style={{position: 'relative', width: '100%'}}>
+                  <Image
+                    source={{uri: item.image_url}}
+                    style={globalStyles.image7}
+                    resizeMode="cover"
+                    onError={() =>
+                      console.warn('⚠️ image failed', item.image_url)
+                    }
+                  />
+                  {/* Heart icon overlay */}
+                  <TouchableOpacity
+                    onPress={e => {
+                      e.stopPropagation();
+                      handleToggleSave(item);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      borderRadius: 14,
+                      padding: 5,
+                    }}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                    {savingProductId === item.product_id ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <MaterialIcons
+                        name={item.saved ? 'favorite' : 'favorite-border'}
+                        size={16}
+                        color={item.saved ? '#ff4d6d' : '#fff'}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <Text
+                  style={[
+                    globalStyles.cardLabel,
+                    {
+                      marginHorizontal: 10,
+                      marginTop: 6,
+                    },
+                  ]}
+                  numberOfLines={1}>
+                  {item.title || 'Untitled'}
+                </Text>
+                <Text
+                  style={[
+                    globalStyles.cardSubLabel,
+                    {
+                      marginHorizontal: 10,
+                      marginBottom: 8,
+                      marginTop: 4,
+                    },
+                  ]}>
+                  {item.brand || 'Brand'}
+                </Text>
+              </ScalePressable>
+            </Animated.View>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Saved Recommendations Modal */}
+      <SavedRecommendationsModal
+        visible={savedModalVisible}
+        onClose={handleCloseSavedModal}
+        savedProducts={savedProducts}
+        onOpenItem={onOpenItem}
+        onUnsave={productId => {
+          setSavedProducts(prev =>
+            prev.filter(p => p.product_id !== productId),
+          );
+          setRecommended(prev =>
+            prev.map(p =>
+              p.product_id === productId ? {...p, saved: false} : p,
+            ),
+          );
+        }}
+        onRefresh={fetchSavedProducts}
+      />
+    </>
   );
 };
 
