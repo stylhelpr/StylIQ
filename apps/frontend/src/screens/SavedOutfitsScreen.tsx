@@ -928,7 +928,7 @@ export default function SavedOutfitsScreen() {
       if (wornCountsRes.ok) {
         try {
           wornCountsData = await wornCountsRes.json();
-          console.log('📊 Worn counts loaded:', wornCountsData);
+          // console.log('📊 Worn counts loaded:', wornCountsData);
         } catch (e) {
           console.error('Failed to parse worn counts:', e);
         }

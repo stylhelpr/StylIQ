@@ -37,7 +37,7 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
 
   // Track page view on mount
   useEffect(() => {
-    console.log('[Analytics] Shopping Bookmarks screen mounted');
+    // console.log('[Analytics] Shopping Bookmarks screen mounted');
     shoppingAnalytics.recordPageVisitQueue(
       'https://styliq.com/shopping/bookmarks',
       'Shopping Bookmarks',

@@ -52,7 +52,7 @@ export default function ShoppingCollectionsScreen({navigate, route}: Props) {
 
   // Track page view on mount
   useEffect(() => {
-    console.log('[Analytics] Shopping Collections screen mounted');
+    // console.log('[Analytics] Shopping Collections screen mounted');
     shoppingAnalytics.recordPageVisitQueue(
       'https://styliq.com/shopping/collections',
       'Shopping Collections',

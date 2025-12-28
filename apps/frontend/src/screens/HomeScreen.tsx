@@ -779,8 +779,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     tags?: string[];
   }) => {
     if (!data) return;
-    console.log('👗 Opening Visual Recreate Modal with:', data);
-    console.log('👗 Pieces count:', data.pieces?.length);
+    // console.log('👗 Opening Visual Recreate Modal with:', data);
+    // console.log('👗 Pieces count:', data.pieces?.length);
     setVisualRecreateData(data);
     setTimeout(() => {
       setVisualRecreateVisible(true);

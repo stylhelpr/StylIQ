@@ -228,7 +228,7 @@ export class ScheduledOutfitService {
         counts[row.outfit_id] = parseInt(row.times_worn, 10);
       }
     }
-    console.log('📊 getWornCounts for', userId, ':', counts);
+    // console.log('📊 getWornCounts for', userId, ':', counts);
     return counts;
   }
 }

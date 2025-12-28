@@ -30,7 +30,7 @@ export class MessagingGateway
   private socketUsers = new Map<string, string>();
 
   handleConnection(client: Socket) {
-    console.log(`🔌 Client connected: ${client.id}`);
+    // console.log(`🔌 Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
@@ -45,7 +45,7 @@ export class MessagingGateway
       }
       this.socketUsers.delete(client.id);
     }
-    console.log(`🔌 Client disconnected: ${client.id}`);
+    // console.log(`🔌 Client disconnected: ${client.id}`);
   }
 
   // User joins with their userId to receive messages
@@ -67,7 +67,7 @@ export class MessagingGateway
     // Join a room named after the userId for easy targeting
     client.join(`user:${userId}`);
 
-    console.log(`👤 User ${userId} joined with socket ${client.id}`);
+    // console.log(`👤 User ${userId} joined with socket ${client.id}`);
     return { success: true };
   }
 

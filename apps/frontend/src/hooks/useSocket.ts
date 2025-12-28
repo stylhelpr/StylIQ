@@ -65,12 +65,12 @@ export function useMessagingSocket(
 
     // Don't reconnect if already connected with same userId
     if (socketRef.current?.connected) {
-      console.log('🔌 Socket already connected, skipping reconnect');
+      // console.log('🔌 Socket already connected, skipping reconnect');
       return;
     }
 
     const socketUrl = getSocketUrl();
-    console.log('🔌 Connecting to socket:', socketUrl, 'for user:', userId);
+    // console.log('🔌 Connecting to socket:', socketUrl, 'for user:', userId);
 
     // Connect to the messaging namespace
     const socket = io(`${socketUrl}/messaging`, {
@@ -85,7 +85,7 @@ export function useMessagingSocket(
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('✅ Socket connected:', socket.id, 'for user:', userId);
+      // console.log('✅ Socket connected:', socket.id, 'for user:', userId);
       isConnectedRef.current = true;
 
       // Join with userId to receive messages
@@ -93,23 +93,23 @@ export function useMessagingSocket(
     });
 
     socket.on('disconnect', reason => {
-      console.log('❌ Socket disconnected:', reason);
+      // console.log('❌ Socket disconnected:', reason);
       isConnectedRef.current = false;
     });
 
     socket.on('connect_error', error => {
-      console.error('🔴 Socket connection error:', error.message);
+      // console.error('🔴 Socket connection error:', error.message);
     });
 
     // Listen for new messages
     socket.on('new_message', (message: SocketMessage) => {
-      console.log('📨 Received new message:', message);
+      // console.log('📨 Received new message:', message);
       onNewMessageRef.current?.(message);
     });
 
     // Listen for sent message confirmation (for multi-device sync)
     socket.on('message_sent', (message: SocketMessage) => {
-      console.log('📤 Message sent confirmed:', message);
+      // console.log('📤 Message sent confirmed:', message);
       onMessageSentRef.current?.(message);
     });
 
@@ -125,12 +125,12 @@ export function useMessagingSocket(
 
     // Listen for community notifications (like, comment, follow)
     socket.on('community_notification', (notification: CommunityNotification) => {
-      console.log('🔔 Received community notification:', notification);
+      // console.log('🔔 Received community notification:', notification);
       onCommunityNotificationRef.current?.(notification);
     });
 
     return () => {
-      console.log('🔌 Disconnecting socket for user:', userId);
+      // console.log('🔌 Disconnecting socket for user:', userId);
       socket.disconnect();
       socketRef.current = null;
       isConnectedRef.current = false;

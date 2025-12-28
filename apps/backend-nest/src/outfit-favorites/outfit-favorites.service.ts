@@ -24,7 +24,7 @@ export class OutfitFavoritesService {
         return { message: 'Already favorited' };
       }
 
-      console.log('✅ Favorite added:', result.rows[0]);
+      // console.log('✅ Favorite added:', result.rows[0]);
       return { message: 'Favorited' };
     } catch (err) {
       console.error('❌ addFavorite failed:', err);

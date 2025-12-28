@@ -16,48 +16,48 @@ export function useAnalyticsSyncTriggers() {
 
   // Trigger 1: App goes to background or inactive (iOS sends 'inactive' before 'background')
   useEffect(() => {
-    console.log('[Analytics Hook] 🔧 Setting up background sync listener');
+    // console.log('[Analytics Hook] 🔧 Setting up background sync listener');
     const subscription = AppState.addEventListener('change', (state) => {
-      console.log('[Analytics Hook] AppState changed to:', state, 'prev:', appStateRef.current);
+      // console.log('[Analytics Hook] AppState changed to:', state, 'prev:', appStateRef.current);
       // Sync when app goes to background OR inactive (iOS behavior)
       if ((state === 'background' || state === 'inactive') && appStateRef.current === 'active') {
-        console.log('[Analytics Hook] 📴 App backgrounded/inactive, starting sync...');
+        // console.log('[Analytics Hook] 📴 App backgrounded/inactive, starting sync...');
         // Get JWT token and call sync
         getCredentials()
           .then((creds) => {
-            console.log('[Analytics Hook] ✅ Got credentials, calling sync');
+            // console.log('[Analytics Hook] ✅ Got credentials, calling sync');
             AnalyticsSyncService.syncEvents(creds?.accessToken || '', 'accepted');
           })
-          .catch((err) => {
-            console.error('[Analytics Hook] ❌ Failed to get credentials:', err);
+          .catch((_err) => {
+            // console.error('[Analytics Hook] ❌ Failed to get credentials:', err);
           });
       }
       appStateRef.current = state;
     });
 
     return () => {
-      console.log('[Analytics Hook] 🗑️ Cleaning up background sync listener');
+      // console.log('[Analytics Hook] 🗑️ Cleaning up background sync listener');
       subscription.remove();
     };
   }, [user, getCredentials]);
 
   // Trigger 2: Periodic timer (15 minutes)
   useEffect(() => {
-    console.log('[Analytics Hook] ⏰ Setting up 15-min timer sync');
+    // console.log('[Analytics Hook] ⏰ Setting up 15-min timer sync');
     const interval = setInterval(() => {
-      console.log('[Analytics Hook] ⏰ 15-min sync timer fired');
+      // console.log('[Analytics Hook] ⏰ 15-min sync timer fired');
       getCredentials()
         .then((creds) => {
-          console.log('[Analytics Hook] ✅ Got credentials from timer, calling sync');
+          // console.log('[Analytics Hook] ✅ Got credentials from timer, calling sync');
           AnalyticsSyncService.syncEvents(creds?.accessToken || '', 'accepted');
         })
-        .catch((err) => {
-          console.error('[Analytics Hook] ❌ Timer: Failed to get credentials:', err);
+        .catch((_err) => {
+          // console.error('[Analytics Hook] ❌ Timer: Failed to get credentials:', err);
         });
     }, 15 * 60 * 1000);
 
     return () => {
-      console.log('[Analytics Hook] 🗑️ Cleaning up 15-min timer');
+      // console.log('[Analytics Hook] 🗑️ Cleaning up 15-min timer');
       clearInterval(interval);
     };
   }, [getCredentials]);

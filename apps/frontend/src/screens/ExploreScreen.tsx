@@ -664,7 +664,7 @@ export default function ExploreScreen() {
           `${API_BASE_URL}/style-profile/${userId}/brands`,
         );
         const json = await res.json();
-        console.log('👗 Preferred brands:', json);
+        // console.log('👗 Preferred brands:', json);
         setWardrobeBrands(Array.isArray(json.brands) ? json.brands : []);
       } catch (err) {
         console.error('❌ Failed to fetch preferred brands:', err);

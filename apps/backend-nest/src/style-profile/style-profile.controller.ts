@@ -18,7 +18,7 @@ export class StyleProfileController {
   @Get(':userId')
   async getProfile(@Param('userId') userId: string) {
     const profile = await this.service.getProfile(userId);
-    console.log('✅ Returning style profile:', profile);
+    // console.log('✅ Returning style profile:', profile);
     return profile;
   }
 

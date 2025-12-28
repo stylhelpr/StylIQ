@@ -39,9 +39,9 @@ export class PriceTrackingService {
 
     try {
       await this.db.query(createTableQuery);
-      console.log('✅ Price tracking tables initialized');
+      // console.log('✅ Price tracking tables initialized');
     } catch (error) {
-      console.log('ℹ️ Price tracking tables already exist');
+      // console.log('ℹ️ Price tracking tables already exist');
     }
   }
 

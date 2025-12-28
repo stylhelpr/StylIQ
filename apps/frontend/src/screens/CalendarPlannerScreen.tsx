@@ -506,9 +506,9 @@ export default function OutfitPlannerScreen() {
         ...aiData.map((o: any) => normalize(o, false)),
         ...customData.map((o: any) => normalize(o, true)),
       ].filter(Boolean);
-      console.log(
-        `📅 fetchScheduledOutfits: setting ${outfits.length} outfits`,
-      );
+      // console.log(
+      //   `📅 fetchScheduledOutfits: setting ${outfits.length} outfits`,
+      // );
       setScheduledOutfits(outfits);
     } catch (err) {
       console.error('❌ Failed to load outfits:', err);
@@ -519,12 +519,12 @@ export default function OutfitPlannerScreen() {
   const syncDeletedOutfitEvents = useCallback(async () => {
     if (!userId) return;
 
-    console.log('🔄 Starting syncDeletedOutfitEvents...');
+    // console.log('🔄 Starting syncDeletedOutfitEvents...');
 
     try {
       // Get all current iOS calendar event IDs
       const iosEventIds = await getAllIOSCalendarEventIds();
-      console.log(`📅 iOS calendar has ${iosEventIds.size} events`);
+      // console.log(`📅 iOS calendar has ${iosEventIds.size} events`);
 
       // Get all AsyncStorage keys for outfit calendar events
       const allKeys = await AsyncStorage.getAllKeys();
@@ -532,26 +532,26 @@ export default function OutfitPlannerScreen() {
         k.startsWith('outfitCalendar:'),
       );
 
-      console.log(
-        `🔍 Found ${outfitCalendarKeys.length} outfit calendar mappings to check`,
-      );
+      // console.log(
+      //   `🔍 Found ${outfitCalendarKeys.length} outfit calendar mappings to check`,
+      // );
 
       for (const key of outfitCalendarKeys) {
         const iosEventId = await AsyncStorage.getItem(key);
-        console.log(`  📋 Key: ${key}, iOS Event ID: ${iosEventId}`);
+        // console.log(`  📋 Key: ${key}, iOS Event ID: ${iosEventId}`);
 
         if (iosEventId) {
           const exists = iosEventIds.has(iosEventId);
-          console.log(
-            `  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`,
-          );
+          // console.log(
+          //   `  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`,
+          // );
 
           if (!exists) {
             // This iOS event was deleted - remove the scheduled outfit
             const outfitId = key.replace('outfitCalendar:', '');
-            console.log(
-              `🗑️ iOS event ${iosEventId} was deleted, removing outfit schedule ${outfitId}`,
-            );
+            // console.log(
+            //   `🗑️ iOS event ${iosEventId} was deleted, removing outfit schedule ${outfitId}`,
+            // );
 
             // Delete from backend
             try {
@@ -561,7 +561,7 @@ export default function OutfitPlannerScreen() {
                 body: JSON.stringify({user_id: userId, outfit_id: outfitId}),
               });
               const data = await res.json();
-              console.log(`🗑️ Backend delete response:`, data);
+              // console.log(`🗑️ Backend delete response:`, data);
 
               // Remove the AsyncStorage mapping
               await AsyncStorage.removeItem(key);
@@ -572,16 +572,16 @@ export default function OutfitPlannerScreen() {
                 Date.now().toString(),
               );
 
-              console.log(
-                `✅ Removed scheduled outfit ${outfitId} (iOS event deleted)`,
-              );
+              // console.log(
+              //   `✅ Removed scheduled outfit ${outfitId} (iOS event deleted)`,
+              // );
             } catch (err) {
               console.error(`❌ Failed to remove outfit schedule:`, err);
             }
           }
         }
       }
-      console.log('🔄 syncDeletedOutfitEvents complete');
+      // console.log('🔄 syncDeletedOutfitEvents complete');
     } catch (err) {
       console.error('❌ Failed to sync deleted outfit events:', err);
     }
@@ -591,12 +591,12 @@ export default function OutfitPlannerScreen() {
   const syncDeletedAppEvents = useCallback(async () => {
     if (!userId) return;
 
-    console.log('🔄 Starting syncDeletedAppEvents...');
+    // console.log('🔄 Starting syncDeletedAppEvents...');
 
     try {
       // Get all current iOS calendar event IDs
       const iosEventIds = await getAllIOSCalendarEventIds();
-      console.log(`📅 iOS calendar has ${iosEventIds.size} events`);
+      // console.log(`📅 iOS calendar has ${iosEventIds.size} events`);
 
       // Get all AsyncStorage keys for app-created calendar events
       const allKeys = await AsyncStorage.getAllKeys();
@@ -604,31 +604,31 @@ export default function OutfitPlannerScreen() {
         k.startsWith('eventCalendar:'),
       );
 
-      console.log(
-        `🔍 Found ${eventCalendarKeys.length} app event calendar mappings to check`,
-      );
+      // console.log(
+      //   `🔍 Found ${eventCalendarKeys.length} app event calendar mappings to check`,
+      // );
 
       for (const key of eventCalendarKeys) {
         const iosEventId = await AsyncStorage.getItem(key);
-        console.log(`  📋 Key: ${key}, iOS Event ID: ${iosEventId}`);
+        // console.log(`  📋 Key: ${key}, iOS Event ID: ${iosEventId}`);
 
         if (iosEventId) {
           const exists = iosEventIds.has(iosEventId);
-          console.log(
-            `  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`,
-          );
+          // console.log(
+          //   `  🔍 Event ${iosEventId} exists in iOS Calendar: ${exists}`,
+          // );
 
           if (!exists) {
             // This iOS event was deleted - remove the app event from backend
             const eventId = key.replace('eventCalendar:', '');
-            console.log(
-              `🗑️ iOS event ${iosEventId} was deleted, removing app event ${eventId}`,
-            );
+            // console.log(
+            //   `🗑️ iOS event ${iosEventId} was deleted, removing app event ${eventId}`,
+            // );
 
             // Delete from backend
             try {
               const deleted = await deleteEventFromBackend(userId, eventId);
-              console.log(`🗑️ Backend delete result for ${eventId}:`, deleted);
+              // console.log(`🗑️ Backend delete result for ${eventId}:`, deleted);
               // Clean up AsyncStorage
               await AsyncStorage.removeItem(key);
             } catch (err) {
@@ -637,7 +637,7 @@ export default function OutfitPlannerScreen() {
           }
         }
       }
-      console.log('🔄 syncDeletedAppEvents complete');
+      // console.log('🔄 syncDeletedAppEvents complete');
     } catch (err) {
       console.error('❌ Failed to sync deleted app events:', err);
     }
@@ -648,7 +648,7 @@ export default function OutfitPlannerScreen() {
     if (!userId) return;
 
     const initialSync = async () => {
-      console.log('📅 Initial mount sync starting...');
+      // console.log('📅 Initial mount sync starting...');
       // Check for deleted events FIRST (before fetching from backend)
       await syncDeletedOutfitEvents();
       await syncDeletedAppEvents();
@@ -671,7 +671,7 @@ export default function OutfitPlannerScreen() {
     if (!userId) return;
 
     const handleAppActive = async () => {
-      console.log('📅 App became active, re-syncing calendar and outfits...');
+      // console.log('📅 App became active, re-syncing calendar and outfits...');
       // Clear existing data to force UI refresh
       clearCalendarEvents();
       setScheduledOutfits([]);
@@ -682,7 +682,7 @@ export default function OutfitPlannerScreen() {
       // Now sync and fetch fresh data from backend
       await syncCalendarEvents();
       await fetchScheduledOutfits();
-      console.log('📅 Sync complete');
+      // console.log('📅 Sync complete');
     };
 
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -710,30 +710,30 @@ export default function OutfitPlannerScreen() {
       color: outfit.type === 'ai' ? '#405de6' : '#00c6ae',
     });
   }
-  console.log(
-    '📅 Calendar events for dots:',
-    calendarEvents.length,
-    calendarEvents.map(e => ({
-      id: e.event_id,
-      title: e.title,
-      start: e.start_date,
-    })),
-  );
+  // console.log(
+  //   '📅 Calendar events for dots:',
+  //   calendarEvents.length,
+  //   calendarEvents.map(e => ({
+  //     id: e.event_id,
+  //     title: e.title,
+  //     start: e.start_date,
+  //   })),
+  // );
   for (const ev of calendarEvents) {
     const date = getLocalDateKey(ev.start_date);
-    console.log(`📅 Event "${ev.title}" -> date key: "${date}"`);
+    // console.log(`📅 Event "${ev.title}" -> date key: "${date}"`);
     if (!allMarks[date]) allMarks[date] = {dots: []};
     allMarks[date].dots.push({color: '#FFD700'});
   }
-  console.log('📅 All marks:', Object.keys(allMarks));
+  // console.log('📅 All marks:', Object.keys(allMarks));
 
   // ───────── find upcoming events (for AI prompt) ─────────
   useEffect(() => {
     if (!calendarEvents.length) {
-      console.log('📅 No calendar events loaded yet');
+      // console.log('📅 No calendar events loaded yet');
       return;
     }
-    console.log('🔍 Checking calendar events:', calendarEvents);
+    // console.log('🔍 Checking calendar events:', calendarEvents);
     const now = new Date();
     const upcoming = calendarEvents.find(ev => {
       const start = new Date(ev.start_date);
@@ -742,21 +742,21 @@ export default function OutfitPlannerScreen() {
       const isRelevant =
         /(dinner|party|event|drinks|wedding|meeting|launch)/.test(title);
       const answered = hasAnswered(ev.event_id);
-      console.log(
-        `  Event: "${ev.title}" | Hours: ${hoursDiff.toFixed(
-          1,
-        )} | Relevant: ${isRelevant} | Answered: ${answered}`,
-      );
+      // console.log(
+      //   `  Event: "${ev.title}" | Hours: ${hoursDiff.toFixed(
+      //     1,
+      //   )} | Relevant: ${isRelevant} | Answered: ${answered}`,
+      // );
       // Only show prompt if event is relevant, within 24 hours, and user hasn't answered yet
       return isRelevant && hoursDiff >= 0 && hoursDiff < 24 && !answered;
     });
     if (upcoming) {
-      console.log('✅ Found eligible event:', upcoming.title);
+      // console.log('✅ Found eligible event:', upcoming.title);
       setPromptEvent(upcoming);
       setAiPromptVisible(true);
       h('impactMedium');
     } else {
-      console.log('❌ No eligible event found');
+      // console.log('❌ No eligible event found');
     }
   }, [calendarEvents, hasAnswered]);
 
@@ -917,7 +917,7 @@ export default function OutfitPlannerScreen() {
       });
 
       const data = await res.json();
-      console.log('📅 Create event response:', data);
+      // console.log('📅 Create event response:', data);
       if (data.ok && data.event) {
         // Also save to iOS native calendar
         const iosEventId = await saveEventToIOSCalendar({
@@ -927,7 +927,7 @@ export default function OutfitPlannerScreen() {
           location: newEventLocation.trim() || undefined,
           notes: newEventNotes.trim() || undefined,
         });
-        console.log('📅 iOS event created:', iosEventId);
+        // console.log('📅 iOS event created:', iosEventId);
 
         // Store iOS event ID in AsyncStorage so we can delete from iOS calendar later
         // (survives app refreshes unlike local state)
@@ -936,12 +936,12 @@ export default function OutfitPlannerScreen() {
             `eventCalendar:${data.event.event_id}`,
             iosEventId,
           );
-          console.log(
-            '📅 Stored iOS event ID mapping:',
-            data.event.event_id,
-            '->',
-            iosEventId,
-          );
+          // console.log(
+          //   '📅 Stored iOS event ID mapping:',
+          //   data.event.event_id,
+          //   '->',
+          //   iosEventId,
+          // );
         }
 
         h('notificationSuccess');
@@ -961,7 +961,7 @@ export default function OutfitPlannerScreen() {
             ? new Date(data.event.end_date).toISOString()
             : endDate.toISOString(),
         };
-        console.log('📅 Adding normalized event:', newEvent);
+        // console.log('📅 Adding normalized event:', newEvent);
         // Add the new event to the local state
         setCalendarEvents([...calendarEvents, newEvent]);
         // Reset form
@@ -1008,8 +1008,8 @@ export default function OutfitPlannerScreen() {
 
   const handleDeleteEvent = useCallback(
     async (eventId: string) => {
-      console.log('🗑️ handleDeleteEvent called with eventId:', eventId);
-      console.log('🗑️ userId:', userId);
+      // console.log('🗑️ handleDeleteEvent called with eventId:', eventId);
+      // console.log('🗑️ userId:', userId);
       Alert.alert(
         'Delete Event',
         'Are you sure you want to delete this event?',
@@ -1024,11 +1024,11 @@ export default function OutfitPlannerScreen() {
                 const eventToDelete = calendarEvents.find(
                   e => (e.event_id || e.id) === eventId,
                 );
-                console.log('🗑️ Event to delete:', eventToDelete);
+                // console.log('🗑️ Event to delete:', eventToDelete);
 
                 // Delete from backend
                 const deleted = await deleteEventFromBackend(userId, eventId);
-                console.log('🗑️ Backend delete result:', deleted);
+                // console.log('🗑️ Backend delete result:', deleted);
                 if (deleted) {
                   // Update local state
                   setCalendarEvents(
@@ -1046,15 +1046,15 @@ export default function OutfitPlannerScreen() {
                     const iosEventId = await AsyncStorage.getItem(
                       `eventCalendar:${eventId}`,
                     );
-                    console.log(
-                      '🗑️ Retrieved iOS event ID from AsyncStorage:',
-                      iosEventId,
-                    );
+                    // console.log(
+                    //   '🗑️ Retrieved iOS event ID from AsyncStorage:',
+                    //   iosEventId,
+                    // );
                     if (iosEventId) {
                       const iosDeleted = await deleteEventFromIOSCalendar(
                         iosEventId,
                       );
-                      console.log('🗑️ iOS calendar delete result:', iosDeleted);
+                      // console.log('🗑️ iOS calendar delete result:', iosDeleted);
                       // Clean up AsyncStorage
                       await AsyncStorage.removeItem(`eventCalendar:${eventId}`);
                     }
@@ -1109,10 +1109,10 @@ export default function OutfitPlannerScreen() {
                 if (iosEventId) {
                   await removeCalendarEvent(iosEventId);
                   await AsyncStorage.removeItem(key);
-                  console.log(
-                    '✅ Removed outfit from iOS calendar:',
-                    iosEventId,
-                  );
+                  // console.log(
+                  //   '✅ Removed outfit from iOS calendar:',
+                  //   iosEventId,
+                  // );
                 }
 
                 // Signal that schedules have changed so SavedOutfitsScreen can refresh

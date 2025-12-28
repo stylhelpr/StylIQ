@@ -16,19 +16,19 @@ export function useProfileProgress(userProfile: any, wardrobe: WardrobeItem[]) {
   if (userProfile.climate || userProfile.lifestyle_notes) progress += 10;
   if (userProfile.proportions && userProfile.personality_traits) progress += 15;
 
-  console.log('🔍 Progress Debug:', {
-    wardrobeCount: wardrobe.length,
-    hasBodyType: !!userProfile.body_type,
-    hasFitPreferences: !!userProfile.fit_preferences?.length,
-    hasColorPreferences: !!userProfile.color_preferences?.length,
-    hasStyleKeywords: !!userProfile.style_keywords?.length,
-    hasMeasurements: !!userProfile.height && !!userProfile.weight,
-    hasFavoriteBrands: !!userProfile.preferred_brands?.length,
-    hasClimate: !!userProfile.climate,
-    hasLifestyle: !!userProfile.lifestyle_notes,
-    hasProportions: !!userProfile.proportions,
-    hasPersonalityTraits: !!userProfile.personality_traits,
-  });
+  // console.log('🔍 Progress Debug:', {
+  //   wardrobeCount: wardrobe.length,
+  //   hasBodyType: !!userProfile.body_type,
+  //   hasFitPreferences: !!userProfile.fit_preferences?.length,
+  //   hasColorPreferences: !!userProfile.color_preferences?.length,
+  //   hasStyleKeywords: !!userProfile.style_keywords?.length,
+  //   hasMeasurements: !!userProfile.height && !!userProfile.weight,
+  //   hasFavoriteBrands: !!userProfile.preferred_brands?.length,
+  //   hasClimate: !!userProfile.climate,
+  //   hasLifestyle: !!userProfile.lifestyle_notes,
+  //   hasProportions: !!userProfile.proportions,
+  //   hasPersonalityTraits: !!userProfile.personality_traits,
+  // });
 
   return Math.min(progress, 100);
 }

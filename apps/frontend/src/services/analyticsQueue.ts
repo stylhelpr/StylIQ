@@ -48,11 +48,11 @@ export class AnalyticsQueueService {
       const data = await AsyncStorage.getItem(AnalyticsQueueService.QUEUE_KEY);
       this.events = data ? JSON.parse(data) : [];
       this.isLoaded = true;
-      console.log(
-        `[AnalyticsQueue] Loaded ${this.events.length} events from storage`,
-      );
+      // console.log(
+      //   `[AnalyticsQueue] Loaded ${this.events.length} events from storage`,
+      // );
     } catch (err) {
-      console.error(`[AnalyticsQueue] Load failed: ${err.message}`);
+      // console.error(`[AnalyticsQueue] Load failed: ${err.message}`);
       this.events = [];
       this.isLoaded = true;
     }
@@ -75,11 +75,11 @@ export class AnalyticsQueueService {
       created_at: Date.now(),
     };
 
-    console.log('[AnalyticsQueue] 📥 Event queued:', queuedEvent.event_type, queuedEvent.client_event_id);
+    // console.log('[AnalyticsQueue] 📥 Event queued:', queuedEvent.event_type, queuedEvent.client_event_id);
 
     this.events.push(queuedEvent);
     this.persist();
-    console.log('[AnalyticsQueue] 💾 Total events in queue:', this.events.length);
+    // console.log('[AnalyticsQueue] 💾 Total events in queue:', this.events.length);
     return queuedEvent;
   }
 
@@ -122,7 +122,7 @@ export class AnalyticsQueueService {
   clear() {
     this.events = [];
     this.persist();
-    console.log('[AnalyticsQueue] Queue cleared');
+    // console.log('[AnalyticsQueue] Queue cleared');
   }
 
   /**
@@ -135,7 +135,7 @@ export class AnalyticsQueueService {
         JSON.stringify(this.events),
       );
     } catch (err) {
-      console.error(`[AnalyticsQueue] Persist failed: ${err.message}`);
+      // console.error(`[AnalyticsQueue] Persist failed: ${err.message}`);
     }
   }
 }

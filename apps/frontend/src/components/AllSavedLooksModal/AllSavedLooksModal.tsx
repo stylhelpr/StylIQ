@@ -166,7 +166,7 @@ export default function AllSavedLooksModal({
   // Reset animation synchronously when modal opens
   useLayoutEffect(() => {
     if (visible) {
-      console.log('📋 AllSavedLooksModal visible - resetting translateY to 0');
+      // console.log('📋 AllSavedLooksModal visible - resetting translateY to 0');
       translateY.setValue(0);
     }
   }, [visible]);

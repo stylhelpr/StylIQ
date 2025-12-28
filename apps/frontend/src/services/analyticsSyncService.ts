@@ -21,19 +21,19 @@ export class AnalyticsSyncService {
     authToken: string, // JWT from Auth0
     trackingConsent: 'accepted' | 'declined' | 'pending',
   ): Promise<{ accepted: number; duplicates: number; rejected: number }> {
-    console.log('[Analytics Sync] 🚀 SYNC STARTED', { trackingConsent, hasAuthToken: !!authToken });
+    // console.log('[Analytics Sync] 🚀 SYNC STARTED', { trackingConsent, hasAuthToken: !!authToken });
 
     // ✅ CONSENT GATE: Don't sync if not accepted
     if (trackingConsent !== 'accepted') {
-      console.log('[Analytics Sync] ❌ Tracking not accepted, skipping sync');
+      // console.log('[Analytics Sync] ❌ Tracking not accepted, skipping sync');
       return { accepted: 0, duplicates: 0, rejected: 0 };
     }
 
     const pendingEvents = analyticsQueue.getPendingEvents();
-    console.log('[Analytics Sync] 📦 Pending events:', pendingEvents.length);
+    // console.log('[Analytics Sync] 📦 Pending events:', pendingEvents.length);
 
     if (pendingEvents.length === 0) {
-      console.log('[Analytics Sync] ⏭️ No pending events, skipping');
+      // console.log('[Analytics Sync] ⏭️ No pending events, skipping');
       return { accepted: 0, duplicates: 0, rejected: 0 };
     }
 
@@ -62,9 +62,9 @@ export class AnalyticsSyncService {
         // ✅ Mark sent by client_event_id (deterministic)
         analyticsQueue.markAsSent(ack.accepted_client_event_ids);
 
-        console.log(
-          `[Analytics Sync] Batch ${i} sent: accepted=${ack.accepted_client_event_ids.length}, dup=${ack.duplicate_count}, rejected=${ack.rejected.length}`,
-        );
+        // console.log(
+        //   `[Analytics Sync] Batch ${i} sent: accepted=${ack.accepted_client_event_ids.length}, dup=${ack.duplicate_count}, rejected=${ack.rejected.length}`,
+        // );
       } catch (err) {
         console.error(`[Analytics Sync] Batch ${i} failed:`, err);
 
@@ -77,9 +77,9 @@ export class AnalyticsSyncService {
           );
           const delay = BACKOFF_DELAYS[backoffIndex];
 
-          console.log(
-            `[Analytics Sync] Retry scheduled for ${event.client_event_id} in ${delay}ms`,
-          );
+          // console.log(
+          //   `[Analytics Sync] Retry scheduled for ${event.client_event_id} in ${delay}ms`,
+          // );
 
           // Schedule retry
           setTimeout(() => {
@@ -89,9 +89,9 @@ export class AnalyticsSyncService {
       }
     }
 
-    console.log(
-      `[Analytics Sync Complete] accepted=${totalAccepted}, duplicates=${totalDuplicates}, rejected=${totalRejected}`,
-    );
+    // console.log(
+    //   `[Analytics Sync Complete] accepted=${totalAccepted}, duplicates=${totalDuplicates}, rejected=${totalRejected}`,
+    // );
 
     return {
       accepted: totalAccepted,
@@ -130,7 +130,7 @@ export class AnalyticsSyncService {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    console.log('[Analytics Sync] 📤 Sending', events.length, 'events to', isDevelopment ? 'TEST' : 'PROD', 'endpoint');
+    // console.log('[Analytics Sync] 📤 Sending', events.length, 'events to', isDevelopment ? 'TEST' : 'PROD', 'endpoint');
 
     // Filter out internal queue fields before sending to backend
     const cleanedEvents = events.map((event) => ({
@@ -154,7 +154,7 @@ export class AnalyticsSyncService {
       }),
     });
 
-    console.log('[Analytics Sync] 📨 Response status:', response.status);
+    // console.log('[Analytics Sync] 📨 Response status:', response.status);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -165,7 +165,7 @@ export class AnalyticsSyncService {
     }
 
     const result = await response.json();
-    console.log('[Analytics Sync] ✅ Response:', result);
+    // console.log('[Analytics Sync] ✅ Response:', result);
     return result;
   }
 }

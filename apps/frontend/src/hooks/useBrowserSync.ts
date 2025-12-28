@@ -55,13 +55,13 @@ export function useBrowserSync() {
         return false;
       }
 
-      console.log('[useBrowserSync] Performing sync...');
+      // console.log('[useBrowserSync] Performing sync...');
       const result = await browserSyncService.sync(credentials.accessToken);
-      console.log('[useBrowserSync] Sync result:', result);
+      // console.log('[useBrowserSync] Sync result:', result);
       initialSyncSucceeded.current = result;
       return result;
     } catch (error) {
-      console.error('[useBrowserSync] Sync error:', error);
+      // console.error('[useBrowserSync] Sync error:', error);
       initialSyncSucceeded.current = false;
       return false;
     }
@@ -95,10 +95,10 @@ export function useBrowserSync() {
 
     // User logged in (was null, now has value) or switched users
     if (currentUserId && currentUserId !== previousUserId) {
-      console.log('[useBrowserSync] User changed, triggering sync:', {
-        from: previousUserId,
-        to: currentUserId,
-      });
+      // console.log('[useBrowserSync] User changed, triggering sync:', {
+      //   from: previousUserId,
+      //   to: currentUserId,
+      // });
       lastUserId.current = currentUserId;
       // Reset sync state and force a fresh sync
       initialSyncSucceeded.current = false;
@@ -106,12 +106,12 @@ export function useBrowserSync() {
       // Add a small delay to ensure Auth0 credentials are fully available
       // This prevents race conditions where we try to sync before token is ready
       setTimeout(() => {
-        console.log('[useBrowserSync] Delayed sync after user change');
+        // console.log('[useBrowserSync] Delayed sync after user change');
         performSync();
       }, 500);
     } else if (!currentUserId && previousUserId) {
       // User logged out - reset tracking
-      console.log('[useBrowserSync] User logged out, resetting sync state');
+      // console.log('[useBrowserSync] User logged out, resetting sync state');
       lastUserId.current = null;
       initialSyncSucceeded.current = false;
     }

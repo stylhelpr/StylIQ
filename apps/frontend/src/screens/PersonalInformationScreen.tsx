@@ -135,7 +135,7 @@ export default function PersonalInformationScreen({navigate}: any) {
     source: string,
   ) => {
     const clean = stripVersion(url);
-    console.log('[PFI S] safeSetProfile from', source, '->', clean);
+    // console.log('[PFI S] safeSetProfile from', source, '->', clean);
 
     if (clean) {
       setProfilePicture(clean);
@@ -151,7 +151,7 @@ export default function PersonalInformationScreen({navigate}: any) {
       if (!userId) return;
       try {
         const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-        console.log('[PFI BOOT] cached =', cached);
+        // console.log('[PFI BOOT] cached =', cached);
         if (cached) setProfilePicture(cached);
       } catch {}
     })();
@@ -209,7 +209,7 @@ export default function PersonalInformationScreen({navigate}: any) {
   // ---------- pick + upload ----------
   const pickImage = async () => {
     try {
-      console.log('[PFI] pickImage:start');
+      // console.log('[PFI] pickImage:start');
       await requestMediaPermission();
 
       const result = await ImagePicker.launchImageLibrary({
@@ -223,12 +223,12 @@ export default function PersonalInformationScreen({navigate}: any) {
       const filename = asset?.fileName || 'profile.jpg';
       const type = asset?.type || 'image/jpeg';
 
-      console.log('[PFI] picker:result', {
-        didCancel: result?.didCancel,
-        uri: localUri,
-        name: filename,
-        type,
-      });
+      // console.log('[PFI] picker:result', {
+      //   didCancel: result?.didCancel,
+      //   uri: localUri,
+      //   name: filename,
+      //   type,
+      // });
 
       if (result?.didCancel || !localUri) return;
 
@@ -241,8 +241,8 @@ export default function PersonalInformationScreen({navigate}: any) {
       if (!presignRes.ok) throw new Error('Failed to get presigned URL');
       const {uploadUrl, publicUrl, objectKey} = await presignRes.json();
 
-      console.log('[PFI] 📡 Upload URL:', uploadUrl);
-      console.log('[PFI] 📡 Public URL (expected GCS):', publicUrl);
+      // console.log('[PFI] 📡 Upload URL:', uploadUrl);
+      // console.log('[PFI] 📡 Public URL (expected GCS):', publicUrl);
 
       // ✅ Blob conversion that works everywhere
       const blob = await uriToBlob(localUri);
@@ -256,7 +256,7 @@ export default function PersonalInformationScreen({navigate}: any) {
       if (!uploadRes.ok)
         throw new Error(`GCS upload failed: ${uploadRes.status}`);
 
-      console.log('[PFI] ✅ Upload complete');
+      // console.log('[PFI] ✅ Upload complete');
 
       const completeRes = await fetch(
         `${API_BASE_URL}/profile-upload/complete`,
@@ -272,7 +272,7 @@ export default function PersonalInformationScreen({navigate}: any) {
       );
 
       if (!completeRes.ok) throw new Error('Failed to save profile picture');
-      console.log('[PFI] ✅ Backend save complete:', publicUrl);
+      // console.log('[PFI] ✅ Backend save complete:', publicUrl);
 
       await safeSetProfile(
         userId || sub || 'me',
@@ -296,7 +296,7 @@ export default function PersonalInformationScreen({navigate}: any) {
   );
 
   const handleSave = async () => {
-    console.log('[PFI SAVE] start hasChanges=', hasChanges);
+    // console.log('[PFI SAVE] start hasChanges=', hasChanges);
     try {
       const dto: any = {};
       const cleanUrl = stripVersion(profilePicture);
@@ -679,7 +679,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //     source: string,
 //   ) => {
 //     const clean = stripVersion(url);
-//     console.log('[PFI S] safeSetProfile from', source, '->', clean);
+//     // console.log('[PFI S] safeSetProfile from', source, '->', clean);
 
 //     if (clean) {
 //       setProfilePicture(clean);
@@ -695,7 +695,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!userId) return;
 //       try {
 //         const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-//         console.log('[PFI BOOT] cached =', cached);
+//         // console.log('[PFI BOOT] cached =', cached);
 //         if (cached) setProfilePicture(cached);
 //       } catch {}
 //     })();
@@ -752,7 +752,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   // ---------- pick + upload ----------
 //   const pickImage = async () => {
 //     try {
-//       console.log('[PFI] pickImage:start');
+//       // console.log('[PFI] pickImage:start');
 //       await requestMediaPermission();
 
 //       const result = await ImagePicker.launchImageLibrary({
@@ -799,7 +799,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!uploadRes.ok)
 //         throw new Error(`GCS upload failed: ${uploadRes.status}`);
 
-//       console.log('[PFI] ✅ Upload complete');
+//       // console.log('[PFI] ✅ Upload complete');
 
 //       const completeRes = await fetch(
 //         `${API_BASE_URL}/profile-upload/complete`,
@@ -815,7 +815,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       );
 
 //       if (!completeRes.ok) throw new Error('Failed to save profile picture');
-//       console.log('[PFI] ✅ Backend save complete:', publicUrl);
+//       // console.log('[PFI] ✅ Backend save complete:', publicUrl);
 
 //       await safeSetProfile(
 //         userId || sub || 'me',
@@ -838,7 +838,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   );
 
 //   const handleSave = async () => {
-//     console.log('[PFI SAVE] start hasChanges=', hasChanges);
+//     // console.log('[PFI SAVE] start hasChanges=', hasChanges);
 //     try {
 //       const dto: any = {};
 //       const cleanUrl = stripVersion(profilePicture);
@@ -1119,7 +1119,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //     source: string,
 //   ) => {
 //     const clean = stripVersion(url);
-//     console.log('[PFI S] safeSetProfile from', source, '->', clean);
+//     // console.log('[PFI S] safeSetProfile from', source, '->', clean);
 
 //     if (clean) {
 //       setProfilePicture(clean); // ✅ Always update state immediately
@@ -1135,7 +1135,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!userId) return;
 //       try {
 //         const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-//         console.log('[PFI BOOT] cached =', cached);
+//         // console.log('[PFI BOOT] cached =', cached);
 //         if (cached) setProfilePicture(cached);
 //       } catch {}
 //     })();
@@ -1193,7 +1193,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   // ---------- pick + upload ----------
 //   const pickImage = async () => {
 //     try {
-//       console.log('[PFI] pickImage:start');
+//       // console.log('[PFI] pickImage:start');
 //       await requestMediaPermission();
 
 //       const result = await ImagePicker.launchImageLibrary({
@@ -1246,7 +1246,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!uploadRes.ok)
 //         throw new Error(`GCS upload failed: ${uploadRes.status}`);
 
-//       console.log('[PFI] ✅ Upload complete');
+//       // console.log('[PFI] ✅ Upload complete');
 
 //       // 🧠 Step 3: Save to DB
 //       const completeRes = await fetch(
@@ -1263,7 +1263,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       );
 
 //       if (!completeRes.ok) throw new Error('Failed to save profile picture');
-//       console.log('[PFI] ✅ Backend save complete:', publicUrl);
+//       // console.log('[PFI] ✅ Backend save complete:', publicUrl);
 
 //       // ✅ Step 4: Swap file:// for GCS URL
 //       await safeSetProfile(
@@ -1287,7 +1287,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   );
 
 //   const handleSave = async () => {
-//     console.log('[PFI SAVE] start hasChanges=', hasChanges);
+//     // console.log('[PFI SAVE] start hasChanges=', hasChanges);
 //     try {
 //       const dto: any = {};
 //       const cleanUrl = stripVersion(profilePicture);
@@ -1585,7 +1585,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //     source: string,
 //   ) => {
 //     const clean = stripVersion(url);
-//     console.log('[PFI S] safeSetProfile from', source, '->', clean);
+//     // console.log('[PFI S] safeSetProfile from', source, '->', clean);
 
 //     if (clean) {
 //       setProfilePicture(clean); // ✅ Always update state immediately
@@ -1601,7 +1601,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!userId) return;
 //       try {
 //         const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-//         console.log('[PFI BOOT] cached =', cached);
+//         // console.log('[PFI BOOT] cached =', cached);
 //         if (cached) setProfilePicture(cached);
 //       } catch {}
 //     })();
@@ -1722,7 +1722,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 
 //   const pickImage = async () => {
 //     try {
-//       console.log('[PFI] pickImage:start');
+//       // console.log('[PFI] pickImage:start');
 //       await requestMediaPermission();
 
 //       const result = await ImagePicker.launchImageLibrary({
@@ -1766,7 +1766,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!uploadRes.ok)
 //         throw new Error(`GCS upload failed: ${uploadRes.status}`);
 
-//       console.log('[PFI] ✅ Upload complete');
+//       // console.log('[PFI] ✅ Upload complete');
 
 //       // 🧠 Step 3: Tell backend to save URL
 //       const completeRes = await fetch(
@@ -1783,7 +1783,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       );
 //       if (!completeRes.ok) throw new Error('Failed to save profile picture');
 
-//       console.log('[PFI] ✅ Backend save complete:', publicUrl);
+//       // console.log('[PFI] ✅ Backend save complete:', publicUrl);
 
 //       // ✅ Step 4: Replace temp file:// with final GCS URL
 //       await safeSetProfile(
@@ -1807,7 +1807,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   );
 
 //   const handleSave = async () => {
-//     console.log('[PFI SAVE] start hasChanges=', hasChanges);
+//     // console.log('[PFI SAVE] start hasChanges=', hasChanges);
 //     try {
 //       const dto: any = {};
 //       const cleanUrl = stripVersion(profilePicture);
@@ -2106,7 +2106,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //     source: string,
 //   ) => {
 //     const clean = stripVersion(url);
-//     console.log('[PFI S] safeSetProfile from', source, '->', clean);
+//     // console.log('[PFI S] safeSetProfile from', source, '->', clean);
 
 //     if (clean) {
 //       setProfilePicture(clean); // ✅ Always update state immediately
@@ -2122,7 +2122,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!userId) return;
 //       try {
 //         const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-//         console.log('[PFI BOOT] cached =', cached);
+//         // console.log('[PFI BOOT] cached =', cached);
 //         if (cached) setProfilePicture(cached);
 //       } catch {}
 //     })();
@@ -2251,7 +2251,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   );
 
 //   const handleSave = async () => {
-//     console.log('[PFI SAVE] start hasChanges=', hasChanges);
+//     // console.log('[PFI SAVE] start hasChanges=', hasChanges);
 //     try {
 //       const dto: any = {};
 //       const cleanUrl = stripVersion(profilePicture);
@@ -2547,7 +2547,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //       if (!userId) return;
 //       try {
 //         const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-//         console.log('[PFI BOOT] cached =', cached);
+//         // console.log('[PFI BOOT] cached =', cached);
 //         if (cached) setProfilePicture(cached);
 //       } catch {}
 //     })();
@@ -2701,7 +2701,7 @@ export default function PersonalInformationScreen({navigate}: any) {
 //   );
 
 //   const handleSave = async () => {
-//     console.log('[PFI SAVE] start hasChanges=', hasChanges);
+//     // console.log('[PFI SAVE] start hasChanges=', hasChanges);
 //     try {
 //       const dto: any = {};
 //       if (firstName && firstName !== initialData.first_name)

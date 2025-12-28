@@ -503,7 +503,7 @@ const RootNavigator = ({
           />
         );
       case 'Settings':
-        console.log('🔁 Rendering Settings. history:', screenHistory.current);
+        // console.log('🔁 Rendering Settings. history:', screenHistory.current);
         return <SettingsScreen navigate={navigate} />;
 
       case 'Notifications':

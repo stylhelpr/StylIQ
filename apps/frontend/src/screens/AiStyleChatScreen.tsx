@@ -546,7 +546,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
         h('selection');
         speakResponse(calendarReply);
       } catch (e) {
-        console.log('⚠️ Calendar fetch failed:', e);
+        // console.log('⚠️ Calendar fetch failed:', e);
         const aiMsg: Message = {
           id: `a-${Date.now()}`,
           role: 'assistant',
@@ -2306,7 +2306,7 @@ function stylesAssistantBubble(
 //         h('selection');
 //         speakResponse(calendarReply);
 //       } catch (e) {
-//         console.log('⚠️ Calendar fetch failed:', e);
+//         // console.log('⚠️ Calendar fetch failed:', e);
 //         const aiMsg: Message = {
 //           id: `a-${Date.now()}`,
 //           role: 'assistant',
@@ -3985,7 +3985,7 @@ function stylesAssistantBubble(
 //         h('selection');
 //         speakResponse(calendarReply);
 //       } catch (e) {
-//         console.log('⚠️ Calendar fetch failed:', e);
+//         // console.log('⚠️ Calendar fetch failed:', e);
 //         const aiMsg: Message = {
 //           id: `a-${Date.now()}`,
 //           role: 'assistant',

@@ -34,7 +34,7 @@ export default function AddReminderButton() {
         },
       );
 
-      console.log('📅 Event added:', eventId);
+      // console.log('📅 Event added:', eventId);
       Alert.alert(
         '✅ Reminder Added',
         'You will be notified at the event time.',

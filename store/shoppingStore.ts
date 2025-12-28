@@ -825,9 +825,9 @@ export const useShoppingStore = create<ShoppingState>()(
       ) => {
         // ✅ FIX #1: CONSENT GATING - Do not capture without explicit opt-in
         if (!get().isTrackingEnabled()) {
-          console.log(
-            '[Store] Product interaction blocked: tracking consent not accepted',
-          );
+          // console.log(
+          //   '[Store] Product interaction blocked: tracking consent not accepted',
+          // );
           return;
         }
 
@@ -836,9 +836,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
         // ✅ FIX #4: EMPTY URL GUARD - Do not store events with empty/invalid URLs
         if (!sanitizedUrl) {
-          console.log(
-            '[Store] Product interaction blocked: invalid URL after sanitization',
-          );
+          // console.log(
+          //   '[Store] Product interaction blocked: invalid URL after sanitization',
+          // );
           return;
         }
 
@@ -864,9 +864,9 @@ export const useShoppingStore = create<ShoppingState>()(
       recordCartEvent: (event: CartEvent) => {
         // ✅ FIX #1: CONSENT GATING - Do not capture without explicit opt-in
         if (!get().isTrackingEnabled()) {
-          console.log(
-            '[Store] Cart event blocked: tracking consent not accepted',
-          );
+          // console.log(
+          //   '[Store] Cart event blocked: tracking consent not accepted',
+          // );
           return;
         }
 
@@ -875,9 +875,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
         // ✅ FIX #4: EMPTY URL GUARD - Do not store events with empty/invalid URLs
         if (!sanitizedCartUrl) {
-          console.log(
-            '[Store] Cart event blocked: invalid URL after sanitization',
-          );
+          // console.log(
+          //   '[Store] Cart event blocked: invalid URL after sanitization',
+          // );
           return;
         }
 
@@ -917,10 +917,10 @@ export const useShoppingStore = create<ShoppingState>()(
           );
 
           if (isDuplicate) {
-            console.log(
-              '[Store] Skipping duplicate cart event:',
-              sanitizedEvent.type,
-            );
+            // console.log(
+            //   '[Store] Skipping duplicate cart event:',
+            //   sanitizedEvent.type,
+            // );
             return state; // Return unchanged state
           }
 
@@ -1212,22 +1212,22 @@ export const useShoppingStore = create<ShoppingState>()(
         currentTabId?: string | null;
         serverTimestamp: number;
       }) => {
-        console.log('[ShoppingStore] applyServerSync called with:', {
-          bookmarks: data.bookmarks?.length || 0,
-          history: data.history?.length || 0,
-          collections: data.collections?.length || 0,
-          cartHistory: data.cartHistory?.length || 0,
-          tabs: data.tabs?.length || 0,
-        });
+        // console.log('[ShoppingStore] applyServerSync called with:', {
+        //   bookmarks: data.bookmarks?.length || 0,
+        //   history: data.history?.length || 0,
+        //   collections: data.collections?.length || 0,
+        //   cartHistory: data.cartHistory?.length || 0,
+        //   tabs: data.tabs?.length || 0,
+        // });
 
         set(state => {
-          console.log('[ShoppingStore] Current local state:', {
-            bookmarks: state.bookmarks?.length || 0,
-            history: state.history?.length || 0,
-            collections: state.collections?.length || 0,
-            cartHistory: state.cartHistory?.length || 0,
-            _historyClearedAt: state._historyClearedAt,
-          });
+          // console.log('[ShoppingStore] Current local state:', {
+          //   bookmarks: state.bookmarks?.length || 0,
+          //   history: state.history?.length || 0,
+          //   collections: state.collections?.length || 0,
+          //   cartHistory: state.cartHistory?.length || 0,
+          //   _historyClearedAt: state._historyClearedAt,
+          // });
 
           // Merge server data with local data, preferring local for conflicts
           // This prevents wiping local data when server is empty
@@ -1322,13 +1322,13 @@ export const useShoppingStore = create<ShoppingState>()(
               data.currentTabId ||
               (mergedTabs.length > 0 ? mergedTabs[0].id : null);
 
-          console.log('[ShoppingStore] Merged result:', {
-            bookmarks: mergedBookmarks.length,
-            history: mergedHistory.length,
-            collections: mergedCollections.length,
-            cartHistory: mergedCartHistory.length,
-            tabs: mergedTabs.length,
-          });
+          // console.log('[ShoppingStore] Merged result:', {
+          //   bookmarks: mergedBookmarks.length,
+          //   history: mergedHistory.length,
+          //   collections: mergedCollections.length,
+          //   cartHistory: mergedCartHistory.length,
+          //   tabs: mergedTabs.length,
+          // });
 
           return {
             bookmarks: mergedBookmarks,
@@ -1362,9 +1362,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
       // Reset all user data on logout (analytics are user-specific and stored in DB)
       resetForLogout: () => {
-        console.log(
-          '[ShoppingStore] resetForLogout called - clearing all data',
-        );
+        // console.log(
+        //   '[ShoppingStore] resetForLogout called - clearing all data',
+        // );
         // NOTE: tabs and currentTabId are NOT cleared on logout
         // Tabs (with screenshots) persist until manually closed or Clear Shopping Analytics is pressed
         set({
@@ -1398,7 +1398,7 @@ export const useShoppingStore = create<ShoppingState>()(
           // IMPORTANT: Clear _historyClearedAt so history can be restored from server on next login
           _historyClearedAt: null,
         });
-        console.log('[ShoppingStore] resetForLogout complete');
+        // console.log('[ShoppingStore] resetForLogout complete');
       },
 
       clearCartHistory: () => {
@@ -1529,9 +1529,9 @@ export const useShoppingStore = create<ShoppingState>()(
 
         // ✅ FIX: EMPTY URL GUARD - Do not store events with empty/invalid URLs
         if (!sanitizedUrl) {
-          console.log(
-            '[Store] Time-to-action blocked: invalid URL after sanitization',
-          );
+          // console.log(
+          //   '[Store] Time-to-action blocked: invalid URL after sanitization',
+          // );
           return;
         }
 
@@ -1596,7 +1596,7 @@ export const useShoppingStore = create<ShoppingState>()(
           // Mark history cleared to prevent server from restoring
           _historyClearedAt: Date.now(),
         });
-        console.log('[Analytics] Shopping analytics cleared');
+        // console.log('[Analytics] Shopping analytics cleared');
       },
 
       // Clear synced GOLD metrics after successful server sync
@@ -1607,7 +1607,7 @@ export const useShoppingStore = create<ShoppingState>()(
           // Clear product interactions (now persisted to Postgres)
           productInteractions: [],
         });
-        console.log('[Sync] GOLD metrics cleared after successful sync');
+        // console.log('[Sync] GOLD metrics cleared after successful sync');
       },
     }),
     {

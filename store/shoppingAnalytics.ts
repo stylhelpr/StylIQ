@@ -151,12 +151,12 @@ export const shoppingAnalytics = {
   // Detect price from text (looks for currency patterns)
   extractPrice: (pageText: string): number | undefined => {
     if (!pageText) {
-      console.log('[PRICE] No pageText provided');
+      // console.log('[PRICE] No pageText provided');
       return undefined;
     }
 
-    console.log('[PRICE] Extracting from text length:', pageText.length);
-    console.log('[PRICE] First 300 chars:', pageText.substring(0, 300));
+    // console.log('[PRICE] Extracting from text length:', pageText.length);
+    // console.log('[PRICE] First 300 chars:', pageText.substring(0, 300));
 
     // Strategy: Find ALL prices with currency symbols, then pick the best one
     // Product pages typically show the main price prominently early in the text
@@ -174,12 +174,12 @@ export const shoppingAnalytics = {
       const price = parseFloat(`${wholePart}.${decimalPart}`);
       if (!isNaN(price) && price >= 1 && price <= 500000) {
         priceMatches.push({price, index: match.index, hasDecimal: true});
-        console.log(
-          '[PRICE] Found decimal price:',
-          price,
-          'at index:',
-          match.index,
-        );
+        // console.log(
+        //   '[PRICE] Found decimal price:',
+        //   price,
+        //   'at index:',
+        //   match.index,
+        // );
       }
     }
 
@@ -195,12 +195,12 @@ export const shoppingAnalytics = {
         );
         if (!isDupe) {
           priceMatches.push({price, index: match.index, hasDecimal: false});
-          console.log(
-            '[PRICE] Found whole price:',
-            price,
-            'at index:',
-            match.index,
-          );
+          // console.log(
+          //   '[PRICE] Found whole price:',
+          //   price,
+          //   'at index:',
+          //   match.index,
+          // );
         }
       }
     }
@@ -217,7 +217,7 @@ export const shoppingAnalytics = {
         return a.index - b.index;
       });
 
-      console.log('[PRICE] ✅ Best match:', priceMatches[0].price);
+      // console.log('[PRICE] ✅ Best match:', priceMatches[0].price);
       return priceMatches[0].price;
     }
 
@@ -229,14 +229,14 @@ export const shoppingAnalytics = {
       const wholePart = match[1].replace(/,/g, '');
       const decimalPart = match[2] || '00';
       const price = parseFloat(`${wholePart}.${decimalPart}`);
-      console.log('[PRICE] Fallback keyword match:', price);
+      // console.log('[PRICE] Fallback keyword match:', price);
       if (!isNaN(price) && price >= 1 && price <= 500000) {
-        console.log('[PRICE] ✅ Found via keyword:', price);
+        // console.log('[PRICE] ✅ Found via keyword:', price);
         return price;
       }
     }
 
-    console.log('[PRICE] ❌ No price found');
+    // console.log('[PRICE] ❌ No price found');
     return undefined;
   },
 
@@ -358,12 +358,12 @@ export const shoppingAnalytics = {
 
   // Log all gold data to console for review
   logAllGoldData: () => {
-    const store = useShoppingStore.getState();
-    const insights = shoppingAnalytics.getGoldInsights();
+    // const store = useShoppingStore.getState();
+    // const insights = shoppingAnalytics.getGoldInsights();
 
-    console.log('\n=== 🏆 GOLD DATA SUMMARY ===\n');
-    console.log('Bookmarks:', store.bookmarks.length);
-    console.log('Interactions:', store.productInteractions.length);
+    // console.log('\n=== 🏆 GOLD DATA SUMMARY ===\n');
+    // console.log('Bookmarks:', store.bookmarks.length);
+    // console.log('Interactions:', store.productInteractions.length);
   },
 
   // Generate full gold data as a string for display
@@ -479,7 +479,7 @@ export const shoppingAnalytics = {
   ) => {
     // ✅ CONSENT GATE
     if (!shoppingAnalytics.isTrackingEnabled()) {
-      console.log('[Analytics] Page visit blocked: tracking not accepted');
+      // console.log('[Analytics] Page visit blocked: tracking not accepted');
       return;
     }
 
@@ -504,9 +504,9 @@ export const shoppingAnalytics = {
         },
       });
 
-      console.log('[Analytics] Page visit queued:', canonicalUrl);
+      // console.log('[Analytics] Page visit queued:', canonicalUrl);
     } catch (err) {
-      console.error('[Analytics] Failed to queue page visit:', err);
+      // console.error('[Analytics] Failed to queue page visit:', err);
     }
   },
 
@@ -539,9 +539,9 @@ export const shoppingAnalytics = {
         },
       });
 
-      console.log('[Analytics] Bookmark queued:', canonicalUrl);
+      // console.log('[Analytics] Bookmark queued:', canonicalUrl);
     } catch (err) {
-      console.error('[Analytics] Failed to queue bookmark:', err);
+      // console.error('[Analytics] Failed to queue bookmark:', err);
     }
   },
 
@@ -569,7 +569,7 @@ export const shoppingAnalytics = {
         },
       });
     } catch (err) {
-      console.error('[Analytics] Failed to queue size click:', err);
+      // console.error('[Analytics] Failed to queue size click:', err);
     }
   },
 
@@ -597,7 +597,7 @@ export const shoppingAnalytics = {
         },
       });
     } catch (err) {
-      console.error('[Analytics] Failed to queue color click:', err);
+      // console.error('[Analytics] Failed to queue color click:', err);
     }
   },
 
@@ -626,7 +626,7 @@ export const shoppingAnalytics = {
         },
       });
     } catch (err) {
-      console.error('[Analytics] Failed to queue cart add:', err);
+      // console.error('[Analytics] Failed to queue cart add:', err);
     }
   },
 
@@ -636,9 +636,9 @@ export const shoppingAnalytics = {
   clearQueueOnGDPRDelete: () => {
     try {
       analyticsQueue.clear();
-      console.log('[Analytics] Queue cleared (GDPR delete)');
+      // console.log('[Analytics] Queue cleared (GDPR delete)');
     } catch (err) {
-      console.error('[Analytics] Failed to clear queue:', err);
+      // console.error('[Analytics] Failed to clear queue:', err);
     }
   },
 
@@ -648,9 +648,9 @@ export const shoppingAnalytics = {
   clearQueueOnConsentDecline: () => {
     try {
       analyticsQueue.clear();
-      console.log('[Analytics] Queue cleared (consent declined)');
+      // console.log('[Analytics] Queue cleared (consent declined)');
     } catch (err) {
-      console.error('[Analytics] Failed to clear queue:', err);
+      // console.error('[Analytics] Failed to clear queue:', err);
     }
   },
 };

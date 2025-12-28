@@ -424,7 +424,7 @@ export class CommunityService {
     limit: number = 20,
     offset: number = 0,
   ) {
-    console.log('📥 getPosts called:', { filter, currentUserId, limit, offset });
+    // console.log('📥 getPosts called:', { filter, currentUserId, limit, offset });
 
     // Handle 'foryou' filter separately - uses Pinecone vector search
     if (filter === 'foryou' && currentUserId) {
@@ -548,7 +548,7 @@ export class CommunityService {
     });
 
     if (similarPosts.length === 0) {
-      console.log(`ℹ️ No similar posts found for user ${userId}, falling back to trending`);
+      // console.log(`ℹ️ No similar posts found for user ${userId}, falling back to trending`);
       return this.getPosts('trending', userId, limit, offset);
     }
 

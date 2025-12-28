@@ -48,7 +48,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
 
   // Track page view on mount
   useEffect(() => {
-    console.log('[Analytics] Shopping Dashboard screen mounted');
+    // console.log('[Analytics] Shopping Dashboard screen mounted');
     shoppingAnalytics.recordPageVisitQueue(
       'https://styliq.com/shopping/dashboard',
       'Shopping Dashboard',

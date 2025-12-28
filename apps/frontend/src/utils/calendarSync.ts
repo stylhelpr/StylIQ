@@ -43,9 +43,9 @@ export async function saveEventToIOSCalendar(event: {
       calendarId: defaultCalendar.id,
     };
 
-    console.log('📅 Creating iOS calendar event:', eventDetails);
+    // console.log('📅 Creating iOS calendar event:', eventDetails);
     const eventId = await RNCalendarEvents.saveEvent(event.title, eventDetails);
-    console.log('✅ iOS calendar event created with ID:', eventId);
+    // console.log('✅ iOS calendar event created with ID:', eventId);
 
     return eventId;
   } catch (err) {
@@ -93,7 +93,7 @@ export async function syncNativeCalendarToBackend(userId: string) {
       notes: e.notes || '',
     }));
 
-    console.log(`🗓 Found ${simplified.length} events to sync`);
+    // console.log(`🗓 Found ${simplified.length} events to sync`);
 
     // 🚀 POST to backend
     const res = await fetch(`${API_BASE_URL}/calendar/sync-native`, {
@@ -118,19 +118,19 @@ export async function deleteEventFromBackend(
   try {
     const encodedEventId = encodeURIComponent(eventId);
     const url = `${API_BASE_URL}/calendar/event/${userId}/${encodedEventId}`;
-    console.log('🗑️ Deleting event:', {userId, eventId, url});
+    // console.log('🗑️ Deleting event:', {userId, eventId, url});
 
     const res = await fetch(url, {
       method: 'DELETE',
     });
-    console.log('🗑️ Delete response status:', res.status);
+    // console.log('🗑️ Delete response status:', res.status);
 
     const text = await res.text();
-    console.log('🗑️ Delete response text:', text);
+    // console.log('🗑️ Delete response text:', text);
 
     try {
       const data = JSON.parse(text);
-      console.log('🗑️ Delete response data:', data);
+      // console.log('🗑️ Delete response data:', data);
       return data.ok === true;
     } catch (parseErr) {
       console.error('❌ Failed to parse response:', parseErr);
@@ -156,7 +156,7 @@ export async function deleteEventFromIOSCalendar(
     }
 
     await RNCalendarEvents.removeEvent(eventId);
-    console.log('✅ Deleted event from iOS calendar:', eventId);
+    // console.log('✅ Deleted event from iOS calendar:', eventId);
     return true;
   } catch (err) {
     console.error('❌ Failed to delete event from iOS calendar:', err);
@@ -189,7 +189,7 @@ export async function checkIOSCalendarEventExists(
     );
 
     const exists = events.some(e => e.id === eventId);
-    console.log(`🔍 iOS event ${eventId} exists: ${exists}`);
+    // console.log(`🔍 iOS event ${eventId} exists: ${exists}`);
     return exists;
   } catch (err) {
     console.error('❌ Failed to check iOS calendar event:', err);
@@ -219,10 +219,10 @@ export async function getAllIOSCalendarEventIds(): Promise<Set<string>> {
     );
 
     const ids = new Set(events.map(e => e.id));
-    console.log(`📅 Found ${ids.size} iOS calendar events`);
+    // console.log(`📅 Found ${ids.size} iOS calendar events`);
     // Log first few IDs for debugging
     const idsArray = Array.from(ids);
-    console.log(`📅 Sample iOS event IDs:`, idsArray.slice(0, 5));
+    // console.log(`📅 Sample iOS event IDs:`, idsArray.slice(0, 5));
     return ids;
   } catch (err) {
     console.error('❌ Failed to fetch iOS calendar events:', err);

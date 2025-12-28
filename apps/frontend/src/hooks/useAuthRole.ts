@@ -31,7 +31,7 @@ export function useAuthRole() {
         const creds = await getCredentials();
         const token = creds?.accessToken;
         if (!token) {
-          console.log('[useAuthRole] No access token; default → consumer');
+          // console.log('[useAuthRole] No access token; default → consumer');
           setRole('consumer');
           return;
         }
@@ -53,11 +53,11 @@ export function useAuthRole() {
           /* leave json null */
         }
 
-        console.log('[useAuthRole] /me status:', res.status);
-        console.log('[useAuthRole] /me body:', json ?? text);
+        // console.log('[useAuthRole] /me status:', res.status);
+        // console.log('[useAuthRole] /me body:', json ?? text);
 
         if (!res.ok) {
-          console.log('[useAuthRole] Non-200 from /me; default → consumer');
+          // console.log('[useAuthRole] Non-200 from /me; default → consumer');
           setRole('consumer');
           return;
         }
@@ -66,13 +66,13 @@ export function useAuthRole() {
         if (extracted) {
           setRole(extracted);
         } else {
-          console.log(
-            '[useAuthRole] Could not find role in response; default → consumer',
-          );
+          // console.log(
+          //   '[useAuthRole] Could not find role in response; default → consumer',
+          // );
           setRole('consumer');
         }
       } catch (e) {
-        console.warn('[useAuthRole] fetch /me failed:', e);
+        // console.warn('[useAuthRole] fetch /me failed:', e);
         setRole('consumer');
       }
     })();

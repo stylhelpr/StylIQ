@@ -117,7 +117,7 @@ export default function ProfileScreen({navigate}: Props) {
     (async () => {
       const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
       if (cached) {
-        console.log('[PROFILE] Cached profile pic found:', cached);
+        // console.log('[PROFILE] Cached profile pic found:', cached);
         setProfilePicture(cached);
       }
     })();
@@ -249,10 +249,10 @@ export default function ProfileScreen({navigate}: Props) {
       userProfileRaw.profile_picture &&
       userProfileRaw.profile_picture.trim() !== ''
     ) {
-      console.log(
-        '[PROFILE] Using backend profile picture:',
-        userProfileRaw.profile_picture,
-      );
+      // console.log(
+      //   '[PROFILE] Using backend profile picture:',
+      //   userProfileRaw.profile_picture,
+      // );
       setProfilePicture(userProfileRaw.profile_picture);
       if (userId) {
         AsyncStorage.setItem(

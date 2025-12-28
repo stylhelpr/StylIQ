@@ -76,7 +76,7 @@ export default function WebBrowserScreen({navigate, route}: Props) {
   const userId = useUUID();
   // Debug: Log only on actual mount, not every render
   useEffect(() => {
-    console.log('WebBrowserScreen mounted, userId:', userId);
+    // console.log('WebBrowserScreen mounted, userId:', userId);
   }, []);
   const initialUrl = route?.params?.url || '';
   const webRef = useRef<WebView>(null);
@@ -647,11 +647,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         while (!lastPageTextRef.current && Date.now() - startTime < 500) {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
-        console.log(
-          '[Bookmark] Page text received:',
-          lastPageTextRef.current?.length || 0,
-          'chars',
-        );
+        // console.log(
+        //   '[Bookmark] Page text received:',
+        //   lastPageTextRef.current?.length || 0,
+        //   'chars',
+        // );
       }
 
       // GOLD: Enrich bookmark with gold data
@@ -858,7 +858,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     if (currentUrl.startsWith('https://')) {
       const keychainScript = generateKeychainAutoFillScript();
       webRef.current.injectJavaScript(keychainScript);
-      console.log('[Keychain] AutoFill script injected');
+      // console.log('[Keychain] AutoFill script injected');
     }
 
     // Security: Only inject tracking scripts on HTTPS pages
@@ -895,7 +895,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       currentUrl.includes(pattern),
     );
     if (isSensitivePage) {
-      console.log('[SECURITY] Skipping tracking script injection on sensitive page');
+      // console.log('[SECURITY] Skipping tracking script injection on sensitive page');
       return;
     }
 
@@ -1288,12 +1288,12 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 
       if (data.type === 'pageText') {
         lastPageTextRef.current = data.content || '';
-        console.log(
-          '[MSG] Page text received:',
-          data.length,
-          'chars, extracted:',
-          data.extracted,
-        );
+        // console.log(
+        //   '[MSG] Page text received:',
+        //   data.length,
+        //   'chars, extracted:',
+        //   data.extracted,
+        // );
       } else if (data.type === 'sizeClick') {
         // GOLD #7: Track size clicks with timestamp
         const sizeEntry = {size: data.size, timestamp: Date.now()};
@@ -1398,7 +1398,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       else if (data.type === 'keychainAuthStart') {
         // Password field focused - auth flow starting
         // Pause navigation to prevent race condition with Face ID
-        console.log('[Keychain] Auth flow started - pausing navigation');
+        // console.log('[Keychain] Auth flow started - pausing navigation');
         isKeychainAuthActiveRef.current = true;
         KeychainAuthBridge.signalAuthFlowStarted().catch(() => {
           // Native module call failed - continue anyway
@@ -1406,7 +1406,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       } else if (data.type === 'keychainAuthSubmit') {
         // Form submitted - auth flow complete
         // Resume navigation
-        console.log('[Keychain] Auth flow complete (submit) - resuming navigation');
+        // console.log('[Keychain] Auth flow complete (submit) - resuming navigation');
         isKeychainAuthActiveRef.current = false;
         pendingNavigationRef.current = null;
         KeychainAuthBridge.signalAuthFlowCompleted().catch(() => {
@@ -1415,7 +1415,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       } else if (data.type === 'keychainAuthBlur') {
         // Password field blurred without submit - may or may not be complete
         // Use shorter timeout before resuming
-        console.log('[Keychain] Auth flow blur - will resume navigation shortly');
+        // console.log('[Keychain] Auth flow blur - will resume navigation shortly');
         setTimeout(() => {
           if (isKeychainAuthActiveRef.current) {
             isKeychainAuthActiveRef.current = false;
@@ -1431,19 +1431,19 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         );
       } else if (data.type === 'keychainPageHasPassword') {
         // Page has password fields - mark for Keychain script injection
-        console.log(
-          '[Keychain] Page has password fields:',
-          data.fieldCount,
-          'inModal:',
-          data.inModal,
-        );
+        // console.log(
+        //   '[Keychain] Page has password fields:',
+        //   data.fieldCount,
+        //   'inModal:',
+        //   data.inModal,
+        // );
       } else if (data.type === 'keychainScriptInitialized') {
         // Keychain script successfully initialized
         keychainScriptInjectedRef.current = true;
-        console.log(
-          '[Keychain] Script initialized, hasPasswordFields:',
-          data.hasPasswordFields,
-        );
+        // console.log(
+        //   '[Keychain] Script initialized, hasPasswordFields:',
+        //   data.hasPasswordFields,
+        // );
       }
       // iOS Password AutoFill handles password saving automatically via iCloud Keychain
       // No app-level password handling needed
@@ -2616,7 +2616,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               if (isKeychainAuthActiveRef.current) {
                 // Store pending navigation to resume after auth completes
                 pendingNavigationRef.current = request.url;
-                console.log('[Keychain] Navigation paused during auth flow:', request.url);
+                // console.log('[Keychain] Navigation paused during auth flow:', request.url);
                 // Allow the request but track it
               }
               // Delegate to standard security handler

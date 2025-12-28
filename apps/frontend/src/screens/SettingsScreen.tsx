@@ -94,7 +94,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
       return;
     }
 
-    console.log('⬅️ Triggering goBack from SettingsScreen');
+    // console.log('⬅️ Triggering goBack from SettingsScreen');
     global.goingBack = true;
     setTimeout(() => {
       global.goingBack = false;
@@ -296,7 +296,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
     ]);
   };
 
-  console.log('🔙 goBack will navigate to:', typeof goBack);
+  // console.log('🔙 goBack will navigate to:', typeof goBack);
 
   const backFn = useRef(safeGoBack).current;
 

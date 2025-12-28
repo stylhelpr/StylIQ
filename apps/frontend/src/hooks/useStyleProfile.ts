@@ -24,7 +24,7 @@ export function useStyleProfile(userId: string) {
 
   const mutation = useMutation({
     mutationFn: async (updatedProfile: any) => {
-      console.log('📝 Updating style profile for:', userId);
+      // console.log('📝 Updating style profile for:', userId);
       const response = await axios.put(
         `${API_BASE_URL}/style-profile/${userId}`,
         updatedProfile,
@@ -32,7 +32,7 @@ export function useStyleProfile(userId: string) {
       return response.data;
     },
     onSuccess: () => {
-      console.log('♻️ Invalidating style profile cache for:', userId);
+      // console.log('♻️ Invalidating style profile cache for:', userId);
       queryClient.invalidateQueries({queryKey: ['styleProfile', userId]});
     },
   });
@@ -69,7 +69,7 @@ export function useStyleProfile(userId: string) {
       [field]: value,
     };
 
-    console.log('✅ Sending filtered updated profile:', updated);
+    // console.log('✅ Sending filtered updated profile:', updated);
     mutation.mutate(updated);
   };
 

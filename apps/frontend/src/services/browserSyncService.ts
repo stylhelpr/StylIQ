@@ -339,7 +339,7 @@ class BrowserSyncService {
 
     try {
       store.setSyncState(true);
-      console.log('[BrowserSync] Starting full sync...');
+      // console.log('[BrowserSync] Starting full sync...');
 
       const response = await fetch(`${this.baseUrl}/browser-sync`, {
         method: 'GET',
@@ -354,35 +354,35 @@ class BrowserSyncService {
       }
 
       const serverData: ServerSyncResponse = await response.json();
-      console.log('[BrowserSync] Full sync response:', {
-        bookmarks: serverData.bookmarks?.length || 0,
-        history: serverData.history?.length || 0,
-        collections: serverData.collections?.length || 0,
-        cartHistory: serverData.cartHistory?.length || 0,
-      });
+      // console.log('[BrowserSync] Full sync response:', {
+      //   bookmarks: serverData.bookmarks?.length || 0,
+      //   history: serverData.history?.length || 0,
+      //   collections: serverData.collections?.length || 0,
+      //   cartHistory: serverData.cartHistory?.length || 0,
+      // });
       const data = mapServerResponseToLocal(serverData);
 
       // Apply server data to local store
-      console.log('[BrowserSync] Applying server data to store...');
+      // console.log('[BrowserSync] Applying server data to store...');
       store.applyServerSync(data);
       store.clearPendingChanges();
       store.setSyncState(false);
 
       // Verify the data was applied
       const storeAfter = useShoppingStore.getState();
-      console.log('[BrowserSync] Store after sync:', {
-        bookmarks: storeAfter.bookmarks?.length || 0,
-        history: storeAfter.history?.length || 0,
-        collections: storeAfter.collections?.length || 0,
-        cartHistory: storeAfter.cartHistory?.length || 0,
-      });
+      // console.log('[BrowserSync] Store after sync:', {
+      //   bookmarks: storeAfter.bookmarks?.length || 0,
+      //   history: storeAfter.history?.length || 0,
+      //   collections: storeAfter.collections?.length || 0,
+      //   cartHistory: storeAfter.cartHistory?.length || 0,
+      // });
 
-      console.log('[BrowserSync] Full sync complete');
+      // console.log('[BrowserSync] Full sync complete');
       return data;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown sync error';
-      console.error('[BrowserSync] Full sync error:', message);
+      // console.error('[BrowserSync] Full sync error:', message);
       store.setSyncState(false, message);
       return null;
     }
@@ -452,14 +452,14 @@ class BrowserSyncService {
     const timeToActionLog = store.timeToActionLog || [];
     const productInteractions = store.productInteractions || [];
 
-    console.log('[BrowserSync] pushChanges called with:', {
-      bookmarks: pendingChanges.bookmarks.length,
-      deletedBookmarkUrls: pendingChanges.deletedBookmarkUrls.length,
-      history: pendingChanges.history.length,
-      collections: pendingChanges.collections.length,
-      cartHistory: pendingCartHistory.length,
-      tabs: store.tabs.length,
-    });
+    // console.log('[BrowserSync] pushChanges called with:', {
+    //   bookmarks: pendingChanges.bookmarks.length,
+    //   deletedBookmarkUrls: pendingChanges.deletedBookmarkUrls.length,
+    //   history: pendingChanges.history.length,
+    //   collections: pendingChanges.collections.length,
+    //   cartHistory: pendingCartHistory.length,
+    //   tabs: store.tabs.length,
+    // });
 
     // Check if there are any changes to push
     // Note: We always push tabs if there are any, to keep them synced
@@ -475,7 +475,7 @@ class BrowserSyncService {
       productInteractions.length > 0;
 
     if (!hasChanges) {
-      console.log('[BrowserSync] No changes to push');
+      // console.log('[BrowserSync] No changes to push');
       return null;
     }
 
@@ -564,7 +564,7 @@ class BrowserSyncService {
         ),
       };
 
-      console.log('[BrowserSync] Pushing to server...');
+      // console.log('[BrowserSync] Pushing to server...');
       const response = await fetch(`${this.baseUrl}/browser-sync`, {
         method: 'POST',
         headers: {
@@ -576,11 +576,11 @@ class BrowserSyncService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[BrowserSync] Push failed:', response.status, errorText);
+        // console.error('[BrowserSync] Push failed:', response.status, errorText);
         throw new Error(`Push sync failed: ${response.status}`);
       }
 
-      console.log('[BrowserSync] Push successful');
+      // console.log('[BrowserSync] Push successful');
       const serverData: ServerSyncResponse = await response.json();
       const data = mapServerResponseToLocal(serverData);
 
@@ -597,7 +597,7 @@ class BrowserSyncService {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown sync error';
-      console.error('[BrowserSync] Push error:', message);
+      // console.error('[BrowserSync] Push error:', message);
       store.setSyncState(false, message);
       return null;
     }
@@ -623,11 +623,11 @@ class BrowserSyncService {
         store.history.length === 0 &&
         store.collections.length === 0;
 
-      console.log('[BrowserSync] Sync decision:', {
-        lastSyncTimestamp: store.lastSyncTimestamp,
-        localDataEmpty,
-        willDoFullSync: !store.lastSyncTimestamp || localDataEmpty,
-      });
+      // console.log('[BrowserSync] Sync decision:', {
+      //   lastSyncTimestamp: store.lastSyncTimestamp,
+      //   localDataEmpty,
+      //   willDoFullSync: !store.lastSyncTimestamp || localDataEmpty,
+      // });
 
       if (!store.lastSyncTimestamp || localDataEmpty) {
         await this.fullSync(accessToken);
@@ -637,7 +637,7 @@ class BrowserSyncService {
 
       return true;
     } catch (error) {
-      console.error('[BrowserSync] Sync failed:', error);
+      // console.error('[BrowserSync] Sync failed:', error);
       return false;
     }
   }

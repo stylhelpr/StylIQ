@@ -350,13 +350,13 @@ export default function NotificationsScreen({
                       const dataType = n.data?.type;
 
                       // Debug: log each notification's category
-                      console.log('📋 Notification:', {
-                        id: n.id,
-                        title: n.title,
-                        category: n.category,
-                        dataType,
-                        willGoTo: cat === 'message' ? 'Community Messages' : 'other',
-                      });
+                      // console.log('📋 Notification:', {
+                      //   id: n.id,
+                      //   title: n.title,
+                      //   category: n.category,
+                      //   dataType,
+                      //   willGoTo: cat === 'message' ? 'Community Messages' : 'other',
+                      // });
 
                       // Community Messages section - check both category AND data.type
                       if (
