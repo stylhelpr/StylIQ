@@ -279,6 +279,11 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   const pendingNavigationRef = useRef<string | null>(null);
   const keychainScriptInjectedRef = useRef<boolean>(false);
 
+  // Safari-style loading progress bar state
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const progressAnimValue = useRef(new Animated.Value(0)).current;
+
   // Debug info display
   const [debugInfo, setDebugInfo] = useState<{
     price?: number;
@@ -1685,6 +1690,21 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
       // backgroundColor: 'rgba(0, 0, 0, 0.26)',
       zIndex: 998,
     },
+    // Safari-style loading progress bar
+    progressBarContainer: {
+      position: 'absolute',
+      top: insets.top + 55 + 45 + 10, // 45 = ADDRESS_BAR_HEIGHT
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: 'transparent',
+      zIndex: 1000,
+      overflow: 'hidden',
+    },
+    progressBar: {
+      height: 2,
+      backgroundColor: '#007AFF', // Safari blue
+    },
     header: {
       position: 'absolute',
       top: insets.top + 53,
@@ -2681,11 +2701,60 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               }, 300);
             }}
             onScroll={handleWebViewScroll}
-            onLoadEnd={handleWebViewLoadEnd}
+            onLoadStart={() => {
+              setIsLoading(true);
+              setLoadProgress(0);
+              // Animate progress bar appearance
+              progressAnimValue.setValue(0);
+            }}
+            onLoadProgress={({nativeEvent}) => {
+              const progress = nativeEvent.progress;
+              setLoadProgress(progress);
+              // Animate to current progress
+              Animated.timing(progressAnimValue, {
+                toValue: progress,
+                duration: 100,
+                useNativeDriver: false,
+              }).start();
+            }}
+            onLoadEnd={() => {
+              // Complete the progress animation then hide
+              Animated.timing(progressAnimValue, {
+                toValue: 1,
+                duration: 100,
+                useNativeDriver: false,
+              }).start(() => {
+                // Small delay before hiding to show completion
+                setTimeout(() => {
+                  setIsLoading(false);
+                  setLoadProgress(0);
+                  progressAnimValue.setValue(0);
+                }, 150);
+              });
+              // Call existing load end handler
+              handleWebViewLoadEnd();
+            }}
             onMessage={handleWebViewMessage}
             userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
             pullToRefreshEnabled={true}
             allowsBackForwardNavigationGestures={true}
+          />
+        </View>
+      )}
+
+      {/* Safari-style loading progress bar */}
+      {isLoading && !showTabsView && currentTab?.url && (
+        <View style={styles.progressBarContainer}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                width: progressAnimValue.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
           />
         </View>
       )}
