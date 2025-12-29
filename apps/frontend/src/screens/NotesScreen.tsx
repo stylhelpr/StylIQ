@@ -11,7 +11,6 @@ import {
   Easing,
   Pressable,
   RefreshControl,
-  Dimensions,
   Modal,
   Image,
 } from 'react-native';
@@ -26,9 +25,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import {tokens} from '../styles/tokens/tokens';
 import {fontScale, moderateScale} from '../utils/scale';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const CARD_GAP = 12;
-const CARD_WIDTH = (SCREEN_WIDTH - 32 - CARD_GAP) / 2;
 
 // Color options for notes
 const NOTE_COLORS = [
@@ -617,21 +614,29 @@ export default function NotesScreen({navigate}: Props) {
       color: colors.foreground,
     },
     // Grid cards container
-    gridContainer: {
+    // Pinterest-style masonry container
+    masonryContainer: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: CARD_GAP,
       paddingBottom: 140,
+    },
+    masonryColumn: {
+      flex: 1,
+      gap: CARD_GAP,
+    },
+    masonryColumnLeft: {
+      marginRight: CARD_GAP / 2,
+    },
+    masonryColumnRight: {
+      marginLeft: CARD_GAP / 2,
     },
     // List cards container
     listContainer: {
       gap: 10,
       paddingBottom: 140,
     },
-    // Uniform grid card
+    // Masonry grid card (auto-height for Pinterest layout)
     gridCard: {
-      width: CARD_WIDTH,
-      height: 220,
+      width: '100%',
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.xxl,
       paddingVertical: 16,
@@ -646,7 +651,6 @@ export default function NotesScreen({navigate}: Props) {
     },
     // Grid card without padding for image cards
     gridCardWithImage: {
-      height: 325,
       paddingVertical: 0,
       paddingHorizontal: 0,
     },
@@ -795,6 +799,18 @@ export default function NotesScreen({navigate}: Props) {
       alignItems: 'center',
       backgroundColor: theme.colors.muted + '20',
     },
+    listSectionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.muted,
+      marginTop: 16,
+      marginBottom: 10,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    listSectionCards: {
+      gap: 10,
+    },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center',
@@ -934,7 +950,7 @@ export default function NotesScreen({navigate}: Props) {
     setViewMode(prev => (prev === 'grid' ? 'list' : 'grid'));
   };
 
-  // Render grid cards (uniform size)
+  // Render grid cards (Pinterest-style masonry layout)
   const renderGridCards = () => {
     if (filteredNotes.length === 0) return null;
 
@@ -944,99 +960,165 @@ export default function NotesScreen({navigate}: Props) {
         new Date(a.updated_at || a.created_at).getTime(),
     );
 
-    return (
-      <View style={styles.gridContainer}>
-        {sortedNotes.map((note, index) => {
-          const hasUrl = !!note.url;
-          const hasImage = !!note.image_url;
-          const noteColor = getNoteColor(note);
+    // Distribute notes into two columns for masonry layout
+    const leftColumn: typeof sortedNotes = [];
+    const rightColumn: typeof sortedNotes = [];
+    let leftHeight = 0;
+    let rightHeight = 0;
 
-          return (
-            <AnimatedCard
-              key={note.id}
-              index={index}
-              onPress={() => openNote(note)}
-              onLongPress={() => deleteNote(note.id)}
-              style={[styles.gridCard, hasImage && styles.gridCardWithImage]}
-              noteColor={noteColor}>
-              {hasImage ? (
-                <>
-                  <Image
-                    source={{uri: note.image_url}}
-                    style={styles.gridCardImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.gridCardContent}>
-                    <Text style={styles.gridCardTitle} numberOfLines={1}>
-                      {note.title || 'Untitled'}
-                    </Text>
-                    <View style={styles.gridCardPreviewContainer}>
-                      <Text style={styles.gridCardPreview} numberOfLines={3}>
-                        {getPreview(note)}
-                      </Text>
-                    </View>
-                    <View style={styles.gridCardFooter}>
-                      <Text style={styles.gridCardDate}>
-                        {formatNoteTime(note.updated_at || note.created_at)}
-                      </Text>
-                      {hasUrl && (
-                        <View style={styles.gridCardTag}>
-                          <Text style={styles.gridCardTagText}>Link</Text>
-                        </View>
-                      )}
-                      <Pressable
-                        style={styles.gridCardColorBtn}
-                        onPress={() => openColorPicker(note)}
-                        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                        <MaterialIcons
-                          name="palette"
-                          size={16}
-                          color={noteColor || colors.muted}
-                        />
-                      </Pressable>
-                    </View>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.gridCardTitle} numberOfLines={2}>
-                    {note.title || 'Untitled'}
+    // Estimate card heights: image cards are taller
+    const IMAGE_CARD_HEIGHT = 280;
+    const TEXT_CARD_HEIGHT = 180;
+
+    sortedNotes.forEach(note => {
+      const cardHeight = note.image_url ? IMAGE_CARD_HEIGHT : TEXT_CARD_HEIGHT;
+      if (leftHeight <= rightHeight) {
+        leftColumn.push(note);
+        leftHeight += cardHeight + CARD_GAP;
+      } else {
+        rightColumn.push(note);
+        rightHeight += cardHeight + CARD_GAP;
+      }
+    });
+
+    const renderCard = (note: SavedNote, index: number) => {
+      const hasUrl = !!note.url;
+      const hasImage = !!note.image_url;
+      const noteColor = getNoteColor(note);
+
+      return (
+        <AnimatedCard
+          key={note.id}
+          index={index}
+          onPress={() => openNote(note)}
+          onLongPress={() => deleteNote(note.id)}
+          style={[styles.gridCard, hasImage && styles.gridCardWithImage]}
+          noteColor={noteColor}>
+          {hasImage ? (
+            <>
+              <Image
+                source={{uri: note.image_url}}
+                style={styles.gridCardImage}
+                resizeMode="cover"
+              />
+              <View style={styles.gridCardContent}>
+                <Text style={styles.gridCardTitle} numberOfLines={1}>
+                  {note.title || 'Untitled'}
+                </Text>
+                <View style={styles.gridCardPreviewContainer}>
+                  <Text style={styles.gridCardPreview} numberOfLines={3}>
+                    {getPreview(note)}
                   </Text>
-                  <View style={styles.gridCardPreviewContainer}>
-                    <Text style={styles.gridCardPreview} numberOfLines={7}>
-                      {getPreview(note)}
-                    </Text>
+                </View>
+                <View style={styles.gridCardFooter}>
+                  <Text style={styles.gridCardDate}>
+                    {formatNoteTime(note.updated_at || note.created_at)}
+                  </Text>
+                  {hasUrl && (
+                    <View style={styles.gridCardTag}>
+                      <Text style={styles.gridCardTagText}>Link</Text>
+                    </View>
+                  )}
+                  <Pressable
+                    style={styles.gridCardColorBtn}
+                    onPress={() => openColorPicker(note)}
+                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                    <MaterialIcons
+                      name="palette"
+                      size={16}
+                      color={noteColor || colors.muted}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.gridCardTitle} numberOfLines={2}>
+                {note.title || 'Untitled'}
+              </Text>
+              <View style={styles.gridCardPreviewContainer}>
+                <Text style={styles.gridCardPreview} numberOfLines={7}>
+                  {getPreview(note)}
+                </Text>
+              </View>
+              <View style={styles.gridCardFooter}>
+                <Text style={styles.gridCardDate}>
+                  {formatNoteTime(note.updated_at || note.created_at)}
+                </Text>
+                {hasUrl && (
+                  <View style={styles.gridCardTag}>
+                    <Text style={styles.gridCardTagText}>Link</Text>
                   </View>
-                  <View style={styles.gridCardFooter}>
-                    <Text style={styles.gridCardDate}>
-                      {formatNoteTime(note.updated_at || note.created_at)}
-                    </Text>
-                    {hasUrl && (
-                      <View style={styles.gridCardTag}>
-                        <Text style={styles.gridCardTagText}>Link</Text>
-                      </View>
-                    )}
-                    <Pressable
-                      style={styles.gridCardColorBtn}
-                      onPress={() => openColorPicker(note)}
-                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                      <MaterialIcons
-                        name="palette"
-                        size={16}
-                        color={noteColor || colors.muted}
-                      />
-                    </Pressable>
-                  </View>
-                </>
-              )}
-            </AnimatedCard>
-          );
-        })}
+                )}
+                <Pressable
+                  style={styles.gridCardColorBtn}
+                  onPress={() => openColorPicker(note)}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <MaterialIcons
+                    name="palette"
+                    size={16}
+                    color={noteColor || colors.muted}
+                  />
+                </Pressable>
+              </View>
+            </>
+          )}
+        </AnimatedCard>
+      );
+    };
+
+    return (
+      <View style={styles.masonryContainer}>
+        <View style={[styles.masonryColumn, styles.masonryColumnLeft]}>
+          {leftColumn.map((note, index) => renderCard(note, index * 2))}
+        </View>
+        <View style={[styles.masonryColumn, styles.masonryColumnRight]}>
+          {rightColumn.map((note, index) => renderCard(note, index * 2 + 1))}
+        </View>
       </View>
     );
   };
 
-  // Render list cards
+  // Group notes by day for list view
+  const groupNotesByDay = (notes: SavedNote[]) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const groups: {title: string; notes: SavedNote[]}[] = [
+      {title: 'Today', notes: []},
+      {title: 'Yesterday', notes: []},
+      {title: 'This Week', notes: []},
+      {title: 'Earlier', notes: []},
+    ];
+
+    notes.forEach(note => {
+      const noteDate = new Date(note.updated_at || note.created_at);
+      const noteDateOnly = new Date(
+        noteDate.getFullYear(),
+        noteDate.getMonth(),
+        noteDate.getDate(),
+      );
+
+      if (noteDateOnly >= today) {
+        groups[0].notes.push(note);
+      } else if (noteDateOnly >= yesterday) {
+        groups[1].notes.push(note);
+      } else if (noteDateOnly >= weekAgo) {
+        groups[2].notes.push(note);
+      } else {
+        groups[3].notes.push(note);
+      }
+    });
+
+    return groups.filter(g => g.notes.length > 0);
+  };
+
+  // Render list cards with day sections
   const renderListCards = () => {
     if (filteredNotes.length === 0) return null;
 
@@ -1046,70 +1128,85 @@ export default function NotesScreen({navigate}: Props) {
         new Date(a.updated_at || a.created_at).getTime(),
     );
 
+    const groupedNotes = groupNotesByDay(sortedNotes);
+    let globalIndex = 0;
+
+    const renderCard = (note: SavedNote, index: number) => {
+      const hasUrl = !!note.url;
+      const hasImage = !!note.image_url;
+      const noteColor = getNoteColor(note);
+
+      return (
+        <AnimatedCard
+          key={note.id}
+          index={index}
+          onPress={() => openNote(note)}
+          onLongPress={() => deleteNote(note.id)}
+          style={styles.listCard}
+          noteColor={noteColor}>
+          {hasImage ? (
+            <Image
+              source={{uri: note.image_url}}
+              style={styles.listCardImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.listCardIcon}>
+              <MaterialIcons
+                name={hasUrl ? 'link' : 'sticky-note-2'}
+                size={22}
+                color={theme.colors.primary}
+              />
+            </View>
+          )}
+          <View style={styles.listCardContent}>
+            <Text style={styles.listCardTitle} numberOfLines={1}>
+              {note.title || 'Untitled'}
+            </Text>
+            <View style={styles.listCardMeta}>
+              <Text style={styles.listCardDate}>
+                {formatNoteTime(note.updated_at || note.created_at)}
+              </Text>
+              <Text style={styles.listCardDot}>•</Text>
+              <Text style={styles.listCardPreview} numberOfLines={1}>
+                {getPreview(note)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.listCardActions}>
+            <Pressable
+              style={styles.listCardColorBtn}
+              onPress={() => openColorPicker(note)}
+              hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+              <MaterialIcons
+                name="palette"
+                size={18}
+                color={noteColor || colors.muted}
+              />
+            </Pressable>
+            <MaterialIcons
+              name="chevron-right"
+              size={24}
+              color={colors.muted}
+            />
+          </View>
+        </AnimatedCard>
+      );
+    };
+
     return (
       <View style={styles.listContainer}>
-        {sortedNotes.map((note, index) => {
-          const hasUrl = !!note.url;
-          const hasImage = !!note.image_url;
-          const noteColor = getNoteColor(note);
-
-          return (
-            <AnimatedCard
-              key={note.id}
-              index={index}
-              onPress={() => openNote(note)}
-              onLongPress={() => deleteNote(note.id)}
-              style={styles.listCard}
-              noteColor={noteColor}>
-              {hasImage ? (
-                <Image
-                  source={{uri: note.image_url}}
-                  style={styles.listCardImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.listCardIcon}>
-                  <MaterialIcons
-                    name={hasUrl ? 'link' : 'sticky-note-2'}
-                    size={22}
-                    color={theme.colors.primary}
-                  />
-                </View>
-              )}
-              <View style={styles.listCardContent}>
-                <Text style={styles.listCardTitle} numberOfLines={1}>
-                  {note.title || 'Untitled'}
-                </Text>
-                <View style={styles.listCardMeta}>
-                  <Text style={styles.listCardDate}>
-                    {formatNoteTime(note.updated_at || note.created_at)}
-                  </Text>
-                  <Text style={styles.listCardDot}>•</Text>
-                  <Text style={styles.listCardPreview} numberOfLines={1}>
-                    {getPreview(note)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.listCardActions}>
-                <Pressable
-                  style={styles.listCardColorBtn}
-                  onPress={() => openColorPicker(note)}
-                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                  <MaterialIcons
-                    name="palette"
-                    size={18}
-                    color={noteColor || colors.muted}
-                  />
-                </Pressable>
-                <MaterialIcons
-                  name="chevron-right"
-                  size={24}
-                  color={colors.muted}
-                />
-              </View>
-            </AnimatedCard>
-          );
-        })}
+        {groupedNotes.map(group => (
+          <View key={group.title}>
+            <Text style={styles.listSectionTitle}>{group.title}</Text>
+            <View style={styles.listSectionCards}>
+              {group.notes.map(note => {
+                const cardIndex = globalIndex++;
+                return renderCard(note, cardIndex);
+              })}
+            </View>
+          </View>
+        ))}
       </View>
     );
   };
