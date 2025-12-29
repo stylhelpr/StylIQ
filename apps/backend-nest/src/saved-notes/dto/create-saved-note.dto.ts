@@ -24,4 +24,8 @@ export class CreateSavedNoteDto {
   @IsOptional()
   @IsString()
   color?: string;
+
+  @IsOptional()
+  @IsString()
+  image_url?: string;
 }

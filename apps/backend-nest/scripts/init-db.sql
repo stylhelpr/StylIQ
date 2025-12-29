@@ -245,6 +245,7 @@ CREATE TABLE IF NOT EXISTS saved_notes (
   content TEXT,
   tags TEXT[],
   color TEXT,
+  image_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -259,5 +260,16 @@ BEGIN
     WHERE table_name = 'saved_notes' AND column_name = 'color'
   ) THEN
     ALTER TABLE saved_notes ADD COLUMN color TEXT;
+  END IF;
+END $$;
+
+-- Add image_url column if it doesn't exist (for existing databases)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'saved_notes' AND column_name = 'image_url'
+  ) THEN
+    ALTER TABLE saved_notes ADD COLUMN image_url TEXT;
   END IF;
 END $$;

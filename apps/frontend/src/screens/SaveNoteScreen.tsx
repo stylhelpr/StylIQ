@@ -11,16 +11,20 @@ import {
   Animated,
   Easing,
   Pressable,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import LinearGradient from 'react-native-linear-gradient';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {uploadImageToGCS} from '../api/uploadImageToGCS';
 
 type Props = {
   navigate: (screen: any, params?: any) => void;
@@ -41,6 +45,8 @@ export default function SaveNoteScreen({navigate, params}: Props) {
   const [content, setContent] = useState(params?.content || '');
   const [tagsInput, setTagsInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Animation refs
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
@@ -122,9 +128,37 @@ export default function SaveNoteScreen({navigate, params}: Props) {
       ignoreAndroidSystemSettings: false,
     });
 
+  const pickImage = async () => {
+    h('impactLight');
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+      selectionLimit: 1,
+    });
+    if (result.assets?.[0]?.uri) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    h('impactLight');
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+    if (result.assets?.[0]?.uri) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    h('impactLight');
+    setImageUri(null);
+  };
+
   const handleSave = async () => {
-    if (!title.trim() && !content.trim() && !url.trim()) {
-      Alert.alert('Empty Note', 'Please add a title, content, or URL.');
+    if (!title.trim() && !content.trim() && !url.trim() && !imageUri) {
+      Alert.alert('Empty Note', 'Please add a title, content, URL, or image.');
       return;
     }
 
@@ -132,6 +166,21 @@ export default function SaveNoteScreen({navigate, params}: Props) {
     h('impactMedium');
 
     try {
+      let uploadedImageUrl: string | null = null;
+
+      // Upload image if selected
+      if (imageUri && userId) {
+        setUploadingImage(true);
+        const filename = `note-${Date.now()}.jpg`;
+        const {publicUrl} = await uploadImageToGCS({
+          localUri: imageUri,
+          filename,
+          userId,
+        });
+        uploadedImageUrl = publicUrl;
+        setUploadingImage(false);
+      }
+
       const tags = tagsInput
         .split(',')
         .map(t => t.trim())
@@ -146,6 +195,7 @@ export default function SaveNoteScreen({navigate, params}: Props) {
           title: title.trim() || null,
           content: content.trim() || null,
           tags: tags.length > 0 ? tags : null,
+          image_url: uploadedImageUrl,
         }),
       });
 
@@ -159,10 +209,11 @@ export default function SaveNoteScreen({navigate, params}: Props) {
       Alert.alert('Error', 'Failed to save note. Please try again.');
     } finally {
       setSaving(false);
+      setUploadingImage(false);
     }
   };
 
-  const hasContent = title.trim() || content.trim() || url.trim();
+  const hasContent = title.trim() || content.trim() || url.trim() || imageUri;
 
   const styles = StyleSheet.create({
     screen: {
@@ -283,6 +334,70 @@ export default function SaveNoteScreen({navigate, params}: Props) {
       fontSize: 13,
       color: colors.muted,
       lineHeight: 18,
+    },
+    imageSection: {
+      marginBottom: 24,
+    },
+    imagePickerRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    imagePickerBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: theme.colors.surface,
+      paddingVertical: 14,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: theme.colors.inputBorder,
+      borderStyle: 'dashed',
+    },
+    imagePickerBtnText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.foreground,
+    },
+    imagePreviewContainer: {
+      marginTop: 12,
+      borderRadius: 16,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    imagePreview: {
+      width: '100%',
+      height: 200,
+      borderRadius: 16,
+    },
+    removeImageBtn: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    uploadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 16,
+    },
+    uploadingText: {
+      color: '#FFFFFF',
+      marginTop: 8,
+      fontSize: 14,
+      fontWeight: '500',
     },
   });
 
@@ -476,6 +591,74 @@ export default function SaveNoteScreen({navigate, params}: Props) {
                   onBlur={() => setContentFocused(false)}
                 />
               </View>
+            </Animated.View>
+
+            {/* Image Section */}
+            <Animated.View
+              style={[
+                styles.imageSection,
+                {
+                  opacity: contentInputAnim,
+                  transform: [
+                    {
+                      translateY: contentInputAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [20, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}>
+              <View style={styles.labelRow}>
+                <View style={styles.labelIcon}>
+                  <MaterialIcons
+                    name="image"
+                    size={16}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <Text style={styles.label}>Image</Text>
+              </View>
+
+              {!imageUri ? (
+                <View style={styles.imagePickerRow}>
+                  <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+                    <MaterialIcons
+                      name="photo-library"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.imagePickerBtnText}>Gallery</Text>
+                  </Pressable>
+                  <Pressable style={styles.imagePickerBtn} onPress={takePhoto}>
+                    <MaterialIcons
+                      name="camera-alt"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.imagePickerBtnText}>Camera</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{uri: imageUri}}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <Pressable
+                    style={styles.removeImageBtn}
+                    onPress={removeImage}>
+                    <MaterialIcons name="close" size={20} color="#FFFFFF" />
+                  </Pressable>
+                  {uploadingImage && (
+                    <View style={styles.uploadingOverlay}>
+                      <ActivityIndicator size="large" color="#FFFFFF" />
+                      <Text style={styles.uploadingText}>Uploading...</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </Animated.View>
 
             <Animated.View

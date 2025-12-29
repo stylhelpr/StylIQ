@@ -6,12 +6,12 @@ import { pool } from '../db/pool';
 @Injectable()
 export class SavedNotesService {
   async create(dto: CreateSavedNoteDto) {
-    const { user_id, url, title, content, tags, color } = dto;
+    const { user_id, url, title, content, tags, color, image_url } = dto;
     const res = await pool.query(
-      `INSERT INTO saved_notes (user_id, url, title, content, tags, color)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO saved_notes (user_id, url, title, content, tags, color, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [user_id, url ?? null, title ?? null, content ?? null, tags ?? null, color ?? null],
+      [user_id, url ?? null, title ?? null, content ?? null, tags ?? null, color ?? null, image_url ?? null],
     );
     return res.rows[0];
   }

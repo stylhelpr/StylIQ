@@ -13,6 +13,7 @@ import {
   RefreshControl,
   Dimensions,
   Modal,
+  Image,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -311,6 +312,7 @@ type SavedNote = {
   content?: string;
   tags?: string[];
   color?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 };
@@ -640,6 +642,13 @@ export default function NotesScreen({navigate}: Props) {
       shadowRadius: 12,
       elevation: 4,
       flexDirection: 'column',
+      overflow: 'hidden',
+    },
+    // Grid card without padding for image cards
+    gridCardWithImage: {
+      height: 325,
+      paddingVertical: 0,
+      paddingHorizontal: 0,
     },
     gridCardHeader: {
       flexDirection: 'row',
@@ -701,6 +710,27 @@ export default function NotesScreen({navigate}: Props) {
       fontSize: 10,
       color: theme.colors.primary,
       fontWeight: '600',
+    },
+    // Full-width image at top of card (edge to edge)
+    gridCardImage: {
+      width: '100%',
+      height: 150,
+      borderTopLeftRadius: tokens.borderRadius.xxl,
+      borderTopRightRadius: tokens.borderRadius.xxl,
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+    },
+    // Content wrapper with padding for cards with images
+    gridCardContent: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 20,
+      flexDirection: 'column',
+    },
+    listCardImage: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
     },
     // List card
     listCard: {
@@ -918,6 +948,7 @@ export default function NotesScreen({navigate}: Props) {
       <View style={styles.gridContainer}>
         {sortedNotes.map((note, index) => {
           const hasUrl = !!note.url;
+          const hasImage = !!note.image_url;
           const noteColor = getNoteColor(note);
 
           return (
@@ -926,36 +957,78 @@ export default function NotesScreen({navigate}: Props) {
               index={index}
               onPress={() => openNote(note)}
               onLongPress={() => deleteNote(note.id)}
-              style={styles.gridCard}
+              style={[styles.gridCard, hasImage && styles.gridCardWithImage]}
               noteColor={noteColor}>
-              <Text style={styles.gridCardTitle} numberOfLines={2}>
-                {note.title || 'Untitled'}
-              </Text>
-              <View style={styles.gridCardPreviewContainer}>
-                <Text style={styles.gridCardPreview} numberOfLines={7}>
-                  {getPreview(note)}
-                </Text>
-              </View>
-              <View style={styles.gridCardFooter}>
-                <Text style={styles.gridCardDate}>
-                  {formatNoteTime(note.updated_at || note.created_at)}
-                </Text>
-                {hasUrl && (
-                  <View style={styles.gridCardTag}>
-                    <Text style={styles.gridCardTagText}>Link</Text>
-                  </View>
-                )}
-                <Pressable
-                  style={styles.gridCardColorBtn}
-                  onPress={() => openColorPicker(note)}
-                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                  <MaterialIcons
-                    name="palette"
-                    size={16}
-                    color={noteColor || colors.muted}
+              {hasImage ? (
+                <>
+                  <Image
+                    source={{uri: note.image_url}}
+                    style={styles.gridCardImage}
+                    resizeMode="cover"
                   />
-                </Pressable>
-              </View>
+                  <View style={styles.gridCardContent}>
+                    <Text style={styles.gridCardTitle} numberOfLines={1}>
+                      {note.title || 'Untitled'}
+                    </Text>
+                    <View style={styles.gridCardPreviewContainer}>
+                      <Text style={styles.gridCardPreview} numberOfLines={3}>
+                        {getPreview(note)}
+                      </Text>
+                    </View>
+                    <View style={styles.gridCardFooter}>
+                      <Text style={styles.gridCardDate}>
+                        {formatNoteTime(note.updated_at || note.created_at)}
+                      </Text>
+                      {hasUrl && (
+                        <View style={styles.gridCardTag}>
+                          <Text style={styles.gridCardTagText}>Link</Text>
+                        </View>
+                      )}
+                      <Pressable
+                        style={styles.gridCardColorBtn}
+                        onPress={() => openColorPicker(note)}
+                        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                        <MaterialIcons
+                          name="palette"
+                          size={16}
+                          color={noteColor || colors.muted}
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.gridCardTitle} numberOfLines={2}>
+                    {note.title || 'Untitled'}
+                  </Text>
+                  <View style={styles.gridCardPreviewContainer}>
+                    <Text style={styles.gridCardPreview} numberOfLines={7}>
+                      {getPreview(note)}
+                    </Text>
+                  </View>
+                  <View style={styles.gridCardFooter}>
+                    <Text style={styles.gridCardDate}>
+                      {formatNoteTime(note.updated_at || note.created_at)}
+                    </Text>
+                    {hasUrl && (
+                      <View style={styles.gridCardTag}>
+                        <Text style={styles.gridCardTagText}>Link</Text>
+                      </View>
+                    )}
+                    <Pressable
+                      style={styles.gridCardColorBtn}
+                      onPress={() => openColorPicker(note)}
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                      <MaterialIcons
+                        name="palette"
+                        size={16}
+                        color={noteColor || colors.muted}
+                      />
+                    </Pressable>
+                  </View>
+                </>
+              )}
             </AnimatedCard>
           );
         })}
@@ -977,6 +1050,7 @@ export default function NotesScreen({navigate}: Props) {
       <View style={styles.listContainer}>
         {sortedNotes.map((note, index) => {
           const hasUrl = !!note.url;
+          const hasImage = !!note.image_url;
           const noteColor = getNoteColor(note);
 
           return (
@@ -987,13 +1061,21 @@ export default function NotesScreen({navigate}: Props) {
               onLongPress={() => deleteNote(note.id)}
               style={styles.listCard}
               noteColor={noteColor}>
-              <View style={styles.listCardIcon}>
-                <MaterialIcons
-                  name={hasUrl ? 'link' : 'sticky-note-2'}
-                  size={22}
-                  color={theme.colors.primary}
+              {hasImage ? (
+                <Image
+                  source={{uri: note.image_url}}
+                  style={styles.listCardImage}
+                  resizeMode="cover"
                 />
-              </View>
+              ) : (
+                <View style={styles.listCardIcon}>
+                  <MaterialIcons
+                    name={hasUrl ? 'link' : 'sticky-note-2'}
+                    size={22}
+                    color={theme.colors.primary}
+                  />
+                </View>
+              )}
               <View style={styles.listCardContent}>
                 <Text style={styles.listCardTitle} numberOfLines={1}>
                   {note.title || 'Untitled'}

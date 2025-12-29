@@ -26,4 +26,9 @@ export class UpdateSavedNoteDto {
   @ValidateIf((o, v) => v !== null)
   @IsString()
   color?: string | null;
+
+  @IsOptional()
+  @ValidateIf((o, v) => v !== null)
+  @IsString()
+  image_url?: string | null;
 }

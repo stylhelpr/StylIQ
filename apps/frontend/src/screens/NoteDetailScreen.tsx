@@ -12,13 +12,17 @@ import {
   Animated,
   Easing,
   Pressable,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {uploadImageToGCS} from '../api/uploadImageToGCS';
 
 type SavedNote = {
   id: string;
@@ -27,6 +31,7 @@ type SavedNote = {
   title?: string;
   content?: string;
   tags?: string[];
+  image_url?: string;
   created_at: string;
   updated_at: string;
 };
@@ -50,6 +55,9 @@ export default function NoteDetailScreen({navigate, params}: Props) {
   const [tagsInput, setTagsInput] = useState(note?.tags?.join(', ') || '');
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(note?.image_url || null);
+  const [localImageUri, setLocalImageUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Animation refs
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
@@ -119,9 +127,40 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       title !== (note.title || '') ||
       url !== (note.url || '') ||
       content !== (note.content || '') ||
-      tagsInput !== (note.tags?.join(', ') || '');
+      tagsInput !== (note.tags?.join(', ') || '') ||
+      localImageUri !== null ||
+      imageUrl !== (note.image_url || null);
     setHasChanges(changed);
-  }, [title, url, content, tagsInput, note]);
+  }, [title, url, content, tagsInput, note, localImageUri, imageUrl]);
+
+  const pickImage = async () => {
+    h('impactLight');
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+      selectionLimit: 1,
+    });
+    if (result.assets?.[0]?.uri) {
+      setLocalImageUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    h('impactLight');
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+    if (result.assets?.[0]?.uri) {
+      setLocalImageUri(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    h('impactLight');
+    setLocalImageUri(null);
+    setImageUrl(null);
+  };
 
   const handleSave = async () => {
     if (!note) return;
@@ -130,6 +169,21 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     h('impactMedium');
 
     try {
+      let finalImageUrl = imageUrl;
+
+      // Upload new image if selected
+      if (localImageUri && userId) {
+        setUploadingImage(true);
+        const filename = `note-${Date.now()}.jpg`;
+        const {publicUrl} = await uploadImageToGCS({
+          localUri: localImageUri,
+          filename,
+          userId,
+        });
+        finalImageUrl = publicUrl;
+        setUploadingImage(false);
+      }
+
       const tags = tagsInput
         .split(',')
         .map(t => t.trim())
@@ -143,6 +197,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
           title: title.trim() || null,
           content: content.trim() || null,
           tags: tags.length > 0 ? tags : null,
+          image_url: finalImageUrl,
         }),
       });
 
@@ -157,6 +212,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       Alert.alert('Error', 'Failed to save note. Please try again.');
     } finally {
       setSaving(false);
+      setUploadingImage(false);
     }
   };
 
@@ -409,6 +465,77 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       color: colors.foreground,
       paddingVertical: 8,
     },
+    imageSection: {
+      marginTop: 20,
+    },
+    imageSectionLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.muted,
+      marginBottom: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    imagePickerRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    imagePickerBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: theme.colors.surface,
+      paddingVertical: 14,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: theme.colors.inputBorder,
+      borderStyle: 'dashed',
+    },
+    imagePickerBtnText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.foreground,
+    },
+    imagePreviewContainer: {
+      borderRadius: 16,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    imagePreview: {
+      width: '100%',
+      height: 200,
+      borderRadius: 16,
+    },
+    removeImageBtn: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    uploadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 16,
+    },
+    uploadingText: {
+      color: '#FFFFFF',
+      marginTop: 8,
+      fontSize: 14,
+      fontWeight: '500',
+    },
   });
 
   if (!userId || !note) return null;
@@ -563,6 +690,58 @@ export default function NoteDetailScreen({navigate, params}: Props) {
                 onChangeText={setContent}
                 multiline
               />
+            </Animated.View>
+
+            {/* Image Section */}
+            <Animated.View
+              style={[
+                styles.imageSection,
+                {
+                  opacity: contentFadeAnim,
+                  transform: [{translateY: contentSlideAnim}],
+                },
+              ]}>
+              <Text style={styles.imageSectionLabel}>Image</Text>
+
+              {!localImageUri && !imageUrl ? (
+                <View style={styles.imagePickerRow}>
+                  <Pressable style={styles.imagePickerBtn} onPress={pickImage}>
+                    <MaterialIcons
+                      name="photo-library"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.imagePickerBtnText}>Gallery</Text>
+                  </Pressable>
+                  <Pressable style={styles.imagePickerBtn} onPress={takePhoto}>
+                    <MaterialIcons
+                      name="camera-alt"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                    <Text style={styles.imagePickerBtnText}>Camera</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{uri: localImageUri || imageUrl || ''}}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <Pressable
+                    style={styles.removeImageBtn}
+                    onPress={removeImage}>
+                    <MaterialIcons name="close" size={20} color="#FFFFFF" />
+                  </Pressable>
+                  {uploadingImage && (
+                    <View style={styles.uploadingOverlay}>
+                      <ActivityIndicator size="large" color="#FFFFFF" />
+                      <Text style={styles.uploadingText}>Uploading...</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </Animated.View>
           </ScrollView>
         </View>
