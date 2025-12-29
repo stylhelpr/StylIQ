@@ -25,7 +25,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import {tokens} from '../styles/tokens/tokens';
 import {fontScale, moderateScale} from '../utils/scale';
 
-const CARD_GAP = 12;
+const CARD_GAP = 10;
 
 // Color options for notes
 const NOTE_COLORS = [
@@ -677,20 +677,21 @@ export default function NotesScreen({navigate}: Props) {
       backgroundColor: theme.colors.muted + '20',
     },
     gridCardTitle: {
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 18,
+      fontWeight: '700',
       color: colors.foreground,
       marginBottom: 8,
-      lineHeight: 20,
+      lineHeight: 22,
     },
     gridCardPreviewContainer: {
       flex: 1,
       overflow: 'hidden',
     },
     gridCardPreview: {
-      fontSize: 13,
+      fontSize: 14,
       color: colors.muted,
-      lineHeight: 18,
+      lineHeight: 17,
+      fontWeight: '500',
     },
     gridCardFooter: {
       flexDirection: 'row',
@@ -809,7 +810,7 @@ export default function NotesScreen({navigate}: Props) {
       letterSpacing: 0.5,
     },
     listSectionCards: {
-      gap: 10,
+      gap: 6,
     },
     emptyContainer: {
       flex: 1,
