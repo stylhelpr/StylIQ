@@ -464,21 +464,21 @@ export default function NotesScreen({navigate}: Props) {
   };
 
   const updateNoteColor = async (noteId: string, colorId: string) => {
-    try {
-      // Update locally first for instant feedback
-      setNotes(prev =>
-        prev.map(n =>
-          n.id === noteId
-            ? {...n, color: colorId === 'default' ? undefined : colorId}
-            : n,
-        ),
-      );
+    const newColor = colorId === 'default' ? null : colorId;
 
-      // Then update on server (if your API supports it)
+    // Update locally first for instant feedback
+    setNotes(prev =>
+      prev.map(n =>
+        n.id === noteId ? {...n, color: newColor || undefined} : n,
+      ),
+    );
+
+    try {
+      // Persist to backend
       await fetch(`${API_BASE_URL}/saved-notes/${noteId}`, {
         method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({color: colorId === 'default' ? null : colorId}),
+        body: JSON.stringify({color: newColor}),
       });
     } catch (err) {
       console.error('Failed to update note color:', err);
@@ -629,17 +629,17 @@ export default function NotesScreen({navigate}: Props) {
     // Uniform grid card
     gridCard: {
       width: CARD_WIDTH,
-      height: 250,
+      height: 220,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.xxl,
-      // paddingVertical: 22,
-      paddingHorizontal: 20,
-      minHeight: 160,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
       shadowColor: '#000',
       shadowOffset: {width: 0, height: 4},
       shadowOpacity: 0.08,
       shadowRadius: 12,
       elevation: 4,
+      flexDirection: 'column',
     },
     gridCardHeader: {
       flexDirection: 'row',
@@ -664,26 +664,27 @@ export default function NotesScreen({navigate}: Props) {
       backgroundColor: theme.colors.muted + '20',
     },
     gridCardTitle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '600',
       color: colors.foreground,
-      marginTop: 20,
-      marginBottom: 10,
+      marginBottom: 8,
       lineHeight: 20,
     },
+    gridCardPreviewContainer: {
+      flex: 1,
+      overflow: 'hidden',
+    },
     gridCardPreview: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.muted,
       lineHeight: 18,
-      flex: 1,
-      // backgroundColor: 'red',
     },
     gridCardFooter: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: 10,
-      marginBottom: 8,
+      marginTop: 8,
+      gap: 8,
     },
     gridCardDate: {
       fontSize: 11,
@@ -930,9 +931,11 @@ export default function NotesScreen({navigate}: Props) {
               <Text style={styles.gridCardTitle} numberOfLines={2}>
                 {note.title || 'Untitled'}
               </Text>
-              <Text style={styles.gridCardPreview} numberOfLines={100}>
-                {getPreview(note)}
-              </Text>
+              <View style={styles.gridCardPreviewContainer}>
+                <Text style={styles.gridCardPreview} numberOfLines={7}>
+                  {getPreview(note)}
+                </Text>
+              </View>
               <View style={styles.gridCardFooter}>
                 <Text style={styles.gridCardDate}>
                   {formatNoteTime(note.updated_at || note.created_at)}
@@ -942,18 +945,16 @@ export default function NotesScreen({navigate}: Props) {
                     <Text style={styles.gridCardTagText}>Link</Text>
                   </View>
                 )}
-                <View style={styles.gridCardHeader}>
-                  <Pressable
-                    style={styles.gridCardColorBtn}
-                    onPress={() => openColorPicker(note)}
-                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                    <MaterialIcons
-                      name="palette"
-                      size={16}
-                      color={noteColor || colors.muted}
-                    />
-                  </Pressable>
-                </View>
+                <Pressable
+                  style={styles.gridCardColorBtn}
+                  onPress={() => openColorPicker(note)}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <MaterialIcons
+                    name="palette"
+                    size={16}
+                    color={noteColor || colors.muted}
+                  />
+                </Pressable>
               </View>
             </AnimatedCard>
           );

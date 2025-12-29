@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -32,6 +33,11 @@ export class SavedNotesController {
 
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
+    return this.service.update(id, dto);
+  }
+
+  @Patch(':id')
+  partialUpdate(@Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
     return this.service.update(id, dto);
   }
 

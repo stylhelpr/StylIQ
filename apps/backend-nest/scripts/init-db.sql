@@ -233,3 +233,31 @@ ADD COLUMN shopping_habits TEXT[],
 ADD COLUMN personality_traits TEXT[],
 ADD COLUMN lifestyle_notes TEXT,
 ADD COLUMN is_style_profile_complete BOOLEAN DEFAULT false;
+
+-- ========================
+-- SAVED NOTES
+-- ========================
+CREATE TABLE IF NOT EXISTS saved_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  url TEXT,
+  title TEXT,
+  content TEXT,
+  tags TEXT[],
+  color TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_notes_user ON saved_notes(user_id);
+
+-- Add color column if it doesn't exist (for existing databases)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'saved_notes' AND column_name = 'color'
+  ) THEN
+    ALTER TABLE saved_notes ADD COLUMN color TEXT;
+  END IF;
+END $$;

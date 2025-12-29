@@ -21,4 +21,9 @@ export class UpdateSavedNoteDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[] | null;
+
+  @IsOptional()
+  @ValidateIf((o, v) => v !== null)
+  @IsString()
+  color?: string | null;
 }

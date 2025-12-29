@@ -20,4 +20,8 @@ export class CreateSavedNoteDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @IsString()
+  color?: string;
 }
