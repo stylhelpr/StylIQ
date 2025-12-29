@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -6,19 +6,302 @@ import {
   TouchableOpacity,
   Alert,
   TextInput,
-  SectionList,
-  Linking,
+  ScrollView,
+  Animated,
+  Easing,
+  Pressable,
   RefreshControl,
+  Dimensions,
+  Modal,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import {tokens} from '../styles/tokens/tokens';
-import {fontScale, moderateScale} from '../utils/scale';
-import {useAppTheme} from '../context/ThemeContext';
+import LinearGradient from 'react-native-linear-gradient';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useAppTheme} from '../context/ThemeContext';
+import {tokens} from '../styles/tokens/tokens';
+import {fontScale, moderateScale} from '../utils/scale';
+
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
+const CARD_GAP = 12;
+const CARD_WIDTH = (SCREEN_WIDTH - 32 - CARD_GAP) / 2;
+
+// Color options for notes
+const NOTE_COLORS = [
+  {id: 'green', color: '#34C759', label: 'Green'},
+  {id: 'red', color: '#FF3B30', label: 'Red'},
+  {id: 'blue', color: '#007AFF', label: 'Blue'},
+  {id: 'purple', color: '#AF52DE', label: 'Purple'},
+  {id: 'orange', color: '#FF9500', label: 'Orange'},
+  {id: 'default', color: null, label: 'Default'},
+];
+
+// Animated card component
+const AnimatedCard = ({
+  children,
+  onPress,
+  onLongPress,
+  style,
+  index,
+  noteColor,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  onLongPress?: () => void;
+  style?: any;
+  index: number;
+  noteColor?: string | null;
+}) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    const delay = Math.min(index * 60, 400);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        delay,
+        useNativeDriver: true,
+        speed: 12,
+        bounciness: 6,
+      }),
+    ]).start();
+  }, [index, fadeAnim, slideAnim]);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}>
+      <Animated.View
+        style={[
+          style,
+          {
+            opacity: fadeAnim,
+            transform: [{scale: scaleAnim}, {translateY: slideAnim}],
+          },
+          noteColor && {
+            borderLeftWidth: 4,
+            borderLeftColor: noteColor,
+          },
+        ]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+};
+
+// Color Picker Modal Component
+const ColorPickerModal = ({
+  visible,
+  onClose,
+  onSelectColor,
+  currentColor,
+  theme,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelectColor: (colorId: string) => void;
+  currentColor?: string | null;
+  theme: any;
+}) => {
+  const slideAnim = useRef(new Animated.Value(300)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          speed: 14,
+          bounciness: 4,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 300,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, slideAnim, backdropAnim]);
+
+  const modalStyles = StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContainer: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingTop: 12,
+      paddingBottom: 40,
+      paddingHorizontal: 24,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      backgroundColor: theme.colors.muted + '50',
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+      marginBottom: 20,
+      textAlign: 'center',
+    },
+    colorsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: 16,
+    },
+    colorOption: {
+      alignItems: 'center',
+      gap: 8,
+    },
+    colorDot: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 3,
+      borderColor: 'transparent',
+    },
+    colorDotSelected: {
+      borderColor: theme.colors.foreground,
+    },
+    colorDotDefault: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 2,
+      borderColor: theme.colors.muted + '40',
+    },
+    colorLabel: {
+      fontSize: 12,
+      color: theme.colors.muted,
+      fontWeight: '500',
+    },
+    cancelBtn: {
+      marginTop: 24,
+      paddingVertical: 14,
+      borderRadius: 12,
+      backgroundColor: theme.colors.muted + '20',
+      alignItems: 'center',
+    },
+    cancelBtnText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+    },
+  });
+
+  return (
+    <Modal visible={visible} transparent animationType="none">
+      <Animated.View style={[modalStyles.backdrop, {opacity: backdropAnim}]}>
+        <Pressable style={{flex: 1}} onPress={onClose} />
+        <Animated.View
+          style={[
+            modalStyles.modalContainer,
+            {transform: [{translateY: slideAnim}]},
+          ]}>
+          <View style={modalStyles.handle} />
+          <Text style={modalStyles.title}>Choose Color</Text>
+          <View style={modalStyles.colorsContainer}>
+            {NOTE_COLORS.map(colorOption => {
+              const isSelected = currentColor === colorOption.id;
+              const isDefault = colorOption.id === 'default';
+
+              return (
+                <Pressable
+                  key={colorOption.id}
+                  style={modalStyles.colorOption}
+                  onPress={() => {
+                    ReactNativeHapticFeedback.trigger('impactLight', {
+                      enableVibrateFallback: true,
+                      ignoreAndroidSystemSettings: false,
+                    });
+                    onSelectColor(colorOption.id);
+                  }}>
+                  <View
+                    style={[
+                      modalStyles.colorDot,
+                      isDefault
+                        ? modalStyles.colorDotDefault
+                        : {backgroundColor: colorOption.color || undefined},
+                      isSelected && modalStyles.colorDotSelected,
+                    ]}>
+                    {isSelected && (
+                      <MaterialIcons
+                        name="check"
+                        size={24}
+                        color={isDefault ? theme.colors.foreground : '#FFFFFF'}
+                      />
+                    )}
+                  </View>
+                  <Text style={modalStyles.colorLabel}>
+                    {colorOption.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable style={modalStyles.cancelBtn} onPress={onClose}>
+            <Text style={modalStyles.cancelBtnText}>Cancel</Text>
+          </Pressable>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+};
 
 type SavedNote = {
   id: string;
@@ -27,6 +310,7 @@ type SavedNote = {
   title?: string;
   content?: string;
   tags?: string[];
+  color?: string;
   created_at: string;
   updated_at: string;
 };
@@ -34,6 +318,8 @@ type SavedNote = {
 type Props = {
   navigate: (screen: any, params?: any) => void;
 };
+
+type ViewMode = 'grid' | 'list';
 
 export default function NotesScreen({navigate}: Props) {
   const userId = useUUID();
@@ -44,6 +330,82 @@ export default function NotesScreen({navigate}: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [colorModalVisible, setColorModalVisible] = useState(false);
+  const [selectedNoteForColor, setSelectedNoteForColor] =
+    useState<SavedNote | null>(null);
+
+  // Animation refs
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const headerSlideAnim = useRef(new Animated.Value(-20)).current;
+  const searchFadeAnim = useRef(new Animated.Value(0)).current;
+  const searchScaleAnim = useRef(new Animated.Value(0.95)).current;
+  const fabScaleAnim = useRef(new Animated.Value(0)).current;
+  const emptyStateAnim = useRef(new Animated.Value(0)).current;
+  const searchFocusAnim = useRef(new Animated.Value(0)).current;
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // Entrance animations
+  useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(headerFadeAnim, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerSlideAnim, {
+          toValue: 0,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(searchFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(searchScaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          speed: 12,
+          bounciness: 8,
+        }),
+      ]),
+      Animated.spring(fabScaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 8,
+        bounciness: 12,
+      }),
+    ]).start();
+  }, []);
+
+  // Empty state animation
+  useEffect(() => {
+    if (!loading && notes.length === 0) {
+      Animated.spring(emptyStateAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 8,
+        bounciness: 10,
+      }).start();
+    }
+  }, [loading, notes.length]);
+
+  // Search focus animation
+  useEffect(() => {
+    Animated.timing(searchFocusAnim, {
+      toValue: isSearchFocused ? 1 : 0,
+      duration: 200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [isSearchFocused]);
 
   const h = (
     type:
@@ -101,10 +463,40 @@ export default function NotesScreen({navigate}: Props) {
     ]);
   };
 
-  const openUrl = (url: string) => {
-    if (url) {
-      navigate('WebBrowser', {url});
+  const updateNoteColor = async (noteId: string, colorId: string) => {
+    try {
+      // Update locally first for instant feedback
+      setNotes(prev =>
+        prev.map(n =>
+          n.id === noteId
+            ? {...n, color: colorId === 'default' ? undefined : colorId}
+            : n,
+        ),
+      );
+
+      // Then update on server (if your API supports it)
+      await fetch(`${API_BASE_URL}/saved-notes/${noteId}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({color: colorId === 'default' ? null : colorId}),
+      });
+    } catch (err) {
+      console.error('Failed to update note color:', err);
     }
+  };
+
+  const openColorPicker = (note: SavedNote) => {
+    h('impactLight');
+    setSelectedNoteForColor(note);
+    setColorModalVisible(true);
+  };
+
+  const handleColorSelect = (colorId: string) => {
+    if (selectedNoteForColor) {
+      updateNoteColor(selectedNoteForColor.id, colorId);
+    }
+    setColorModalVisible(false);
+    setSelectedNoteForColor(null);
   };
 
   const filteredNotes = notes.filter(note => {
@@ -116,63 +508,22 @@ export default function NotesScreen({navigate}: Props) {
     );
   });
 
-  // Group notes by date sections like Apple Notes
-  const getDateSection = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date(today);
-    monthAgo.setDate(monthAgo.getDate() - 30);
+  // Interpolate search border color based on focus
+  const searchBorderColor = searchFocusAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [theme.colors.inputBorder, theme.colors.primary],
+  });
 
-    const noteDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-    );
-
-    if (noteDate >= today) return 'Today';
-    if (noteDate >= yesterday) return 'Yesterday';
-    if (noteDate >= weekAgo) return 'Previous 7 Days';
-    if (noteDate >= monthAgo) return 'Previous 30 Days';
-    return date.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
+  const getNoteColor = (note: SavedNote) => {
+    if (!note.color) return null;
+    const colorOption = NOTE_COLORS.find(c => c.id === note.color);
+    return colorOption?.color || null;
   };
-
-  type SectionData = {
-    title: string;
-    data: SavedNote[];
-  };
-
-  const groupedNotes: SectionData[] = React.useMemo(() => {
-    const groups: Record<string, SavedNote[]> = {};
-    const order = ['Today', 'Yesterday', 'Previous 7 Days', 'Previous 30 Days'];
-
-    filteredNotes.forEach(note => {
-      const section = getDateSection(note.updated_at || note.created_at);
-      if (!groups[section]) groups[section] = [];
-      groups[section].push(note);
-    });
-
-    // Sort sections: predefined order first, then by date
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-      const aIndex = order.indexOf(a);
-      const bIndex = order.indexOf(b);
-      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
-      return b.localeCompare(a); // Newer months first
-    });
-
-    return sortedKeys.map(title => ({title, data: groups[title]}));
-  }, [filteredNotes]);
 
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
-      paddingTop: 60, // Space for GlobalHeader
+      paddingTop: 60,
     },
     container: {
       flex: 1,
@@ -185,132 +536,311 @@ export default function NotesScreen({navigate}: Props) {
       gap: 12,
     },
     title: {
-      fontSize: 24,
-      fontWeight: '700',
+      fontSize: 32,
+      fontWeight: '800',
       color: colors.foreground,
       flex: 1,
     },
-    searchContainer: {
-      marginBottom: 16,
-    },
-    searchInput: {
-      backgroundColor: theme.colors.input2,
-      borderRadius: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      fontSize: 16,
-      color: colors.foreground,
-      borderWidth: 1,
-      borderColor: theme.colors.inputBorder,
-    },
-    noteCardWrapper: {
-      backgroundColor: theme.colors.surface,
-      paddingHorizontal: 8,
-    },
-    noteCardFirst: {
-      borderTopLeftRadius: 12,
-      borderTopRightRadius: 12,
-    },
-    noteCardLastWrapper: {
-      borderBottomLeftRadius: 12,
-      borderBottomRightRadius: 12,
-    },
-    noteCard: {
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.inputBorder,
-    },
-    noteCardLast: {
-      borderBottomWidth: 0,
-    },
-    noteTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.foreground,
-      marginBottom: 4,
-    },
-    notePreviewRow: {
+    headerActions: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
     },
-    noteDate: {
-      fontSize: 13,
-      color: colors.foreground2,
+    viewToggle: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    notePreview: {
-      fontSize: 15,
-      color: colors.foreground2,
+    searchContainer: {
+      marginBottom: 20,
+    },
+    searchInputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      borderWidth: 1.5,
+      overflow: 'hidden',
+    },
+    searchIcon: {
+      marginRight: 12,
+    },
+    searchInput: {
       flex: 1,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.foreground,
+    },
+    searchClearBtn: {
+      padding: 4,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      marginBottom: 20,
+      gap: 12,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      alignItems: 'center',
+    },
+    statNumber: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: theme.colors.primary,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: colors.muted,
+      marginTop: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      marginTop: 8,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.foreground,
+    },
+    // Grid cards container
+    gridContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: CARD_GAP,
+      paddingBottom: 140,
+    },
+    // List cards container
+    listContainer: {
+      gap: 10,
+      paddingBottom: 140,
+    },
+    // Uniform grid card
+    gridCard: {
+      width: CARD_WIDTH,
+      height: 250,
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.xxl,
+      // paddingVertical: 22,
+      paddingHorizontal: 20,
+      minHeight: 160,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    gridCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      // marginBottom: 10,
+    },
+    gridCardIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: theme.colors.primary + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    gridCardColorBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.muted + '20',
+    },
+    gridCardTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.foreground,
+      marginTop: 20,
+      marginBottom: 10,
+      lineHeight: 20,
+    },
+    gridCardPreview: {
+      fontSize: 14,
+      color: colors.muted,
+      lineHeight: 18,
+      flex: 1,
+      // backgroundColor: 'red',
+    },
+    gridCardFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 10,
+      marginBottom: 8,
+    },
+    gridCardDate: {
+      fontSize: 11,
+      color: colors.muted,
+      fontWeight: '500',
+    },
+    gridCardTag: {
+      backgroundColor: theme.colors.primary + '15',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    gridCardTagText: {
+      fontSize: 10,
+      color: theme.colors.primary,
+      fontWeight: '600',
+    },
+    // List card
+    listCard: {
+      width: '100%',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 14,
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      shadowColor: '#000',
+      shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    listCardIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: theme.colors.primary + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    listCardContent: {
+      flex: 1,
+    },
+    listCardTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.foreground,
+      marginBottom: 4,
+    },
+    listCardMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    listCardDate: {
+      fontSize: 12,
+      color: colors.muted,
+    },
+    listCardDot: {
+      fontSize: 12,
+      color: colors.muted,
+    },
+    listCardPreview: {
+      fontSize: 12,
+      color: colors.muted,
+      flex: 1,
+    },
+    listCardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    listCardColorBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.muted + '20',
     },
     emptyContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingTop: 100,
+      paddingTop: 60,
+    },
+    emptyIconContainer: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: theme.colors.primary + '10',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    emptyTitle: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.foreground,
+      marginBottom: 10,
     },
     emptyText: {
-      fontSize: 16,
+      fontSize: 15,
       color: colors.muted,
       textAlign: 'center',
-      marginTop: 12,
+      lineHeight: 22,
+      paddingHorizontal: 40,
     },
     addButton: {
       position: 'absolute',
       bottom: 100,
       right: 20,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      borderColor: theme.colors.muted,
-      borderWidth: tokens.borderWidth.hairline,
-      backgroundColor: theme.colors.surface,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      overflow: 'hidden',
+    },
+    addButtonGradient: {
+      width: 64,
+      height: 64,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
     },
-    tagsRow: {
+    addButtonShadow: {
+      shadowColor: theme.colors.primary,
+      shadowOffset: {width: 0, height: 8},
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      elevation: 12,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 100,
+    },
+    loadingDots: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-      marginTop: 8,
+      gap: 8,
     },
-    tag: {
-      backgroundColor: theme.colors.primary + '20',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 12,
-    },
-    tagText: {
-      fontSize: 12,
-      color: theme.colors.primary,
-    },
-    sectionHeader: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: colors.foreground,
-      paddingVertical: 12,
-      paddingTop: 20,
-      backgroundColor: 'transparent',
+    loadingDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.colors.primary,
     },
   });
 
   if (!userId) return null;
 
-  // Format time like Apple Notes - show time for today/yesterday, day name for this week, date for older
+  // Format time
   const formatNoteTime = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
 
     const noteDate = new Date(
       date.getFullYear(),
@@ -319,7 +849,6 @@ export default function NotesScreen({navigate}: Props) {
     );
 
     if (noteDate >= today) {
-      // Today - show time like "3:13 PM"
       return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
@@ -327,14 +856,8 @@ export default function NotesScreen({navigate}: Props) {
       });
     }
     if (noteDate >= yesterday) {
-      // Yesterday
       return 'Yesterday';
     }
-    if (noteDate >= weekAgo) {
-      // This week - show day name like "Friday"
-      return date.toLocaleDateString('en-US', {weekday: 'long'});
-    }
-    // Older - show date like "Dec 15"
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -346,10 +869,9 @@ export default function NotesScreen({navigate}: Props) {
     navigate('NoteDetail', {note});
   };
 
-  // Get preview text - first line of content or URL
   const getPreview = (note: SavedNote) => {
     if (note.content) {
-      return note.content.split('\n')[0].substring(0, 80);
+      return note.content.split('\n')[0].substring(0, 100);
     }
     if (note.url) {
       return note.url;
@@ -357,41 +879,154 @@ export default function NotesScreen({navigate}: Props) {
     return '';
   };
 
-  const renderNote = ({
-    item,
-    index,
-    section,
-  }: {
-    item: SavedNote;
-    index: number;
-    section: SectionData;
-  }) => {
-    const isFirst = index === 0;
-    const isLast = index === section.data.length - 1;
+  // FAB press animation
+  const handleFabPressIn = () => {
+    Animated.spring(fabScaleAnim, {
+      toValue: 0.9,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handleFabPressOut = () => {
+    Animated.spring(fabScaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const toggleViewMode = () => {
+    h('impactLight');
+    setViewMode(prev => (prev === 'grid' ? 'list' : 'grid'));
+  };
+
+  // Render grid cards (uniform size)
+  const renderGridCards = () => {
+    if (filteredNotes.length === 0) return null;
+
+    const sortedNotes = [...filteredNotes].sort(
+      (a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime(),
+    );
 
     return (
-      <View
-        style={[
-          styles.noteCardWrapper,
-          isFirst && styles.noteCardFirst,
-          isLast && styles.noteCardLastWrapper,
-        ]}>
-        <TouchableOpacity
-          style={[styles.noteCard, isLast && styles.noteCardLast]}
-          onPress={() => openNote(item)}
-          activeOpacity={0.7}>
-          <Text style={styles.noteTitle} numberOfLines={1}>
-            {item.title || 'Untitled'}
-          </Text>
-          <View style={styles.notePreviewRow}>
-            <Text style={styles.noteDate}>
-              {formatNoteTime(item.updated_at || item.created_at)}
-            </Text>
-            <Text style={styles.notePreview} numberOfLines={1}>
-              {getPreview(item)}
-            </Text>
-          </View>
-        </TouchableOpacity>
+      <View style={styles.gridContainer}>
+        {sortedNotes.map((note, index) => {
+          const hasUrl = !!note.url;
+          const noteColor = getNoteColor(note);
+
+          return (
+            <AnimatedCard
+              key={note.id}
+              index={index}
+              onPress={() => openNote(note)}
+              onLongPress={() => deleteNote(note.id)}
+              style={styles.gridCard}
+              noteColor={noteColor}>
+              <Text style={styles.gridCardTitle} numberOfLines={2}>
+                {note.title || 'Untitled'}
+              </Text>
+              <Text style={styles.gridCardPreview} numberOfLines={100}>
+                {getPreview(note)}
+              </Text>
+              <View style={styles.gridCardFooter}>
+                <Text style={styles.gridCardDate}>
+                  {formatNoteTime(note.updated_at || note.created_at)}
+                </Text>
+                {hasUrl && (
+                  <View style={styles.gridCardTag}>
+                    <Text style={styles.gridCardTagText}>Link</Text>
+                  </View>
+                )}
+                <View style={styles.gridCardHeader}>
+                  <Pressable
+                    style={styles.gridCardColorBtn}
+                    onPress={() => openColorPicker(note)}
+                    hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                    <MaterialIcons
+                      name="palette"
+                      size={16}
+                      color={noteColor || colors.muted}
+                    />
+                  </Pressable>
+                </View>
+              </View>
+            </AnimatedCard>
+          );
+        })}
+      </View>
+    );
+  };
+
+  // Render list cards
+  const renderListCards = () => {
+    if (filteredNotes.length === 0) return null;
+
+    const sortedNotes = [...filteredNotes].sort(
+      (a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime(),
+    );
+
+    return (
+      <View style={styles.listContainer}>
+        {sortedNotes.map((note, index) => {
+          const hasUrl = !!note.url;
+          const noteColor = getNoteColor(note);
+
+          return (
+            <AnimatedCard
+              key={note.id}
+              index={index}
+              onPress={() => openNote(note)}
+              onLongPress={() => deleteNote(note.id)}
+              style={styles.listCard}
+              noteColor={noteColor}>
+              <View style={styles.listCardIcon}>
+                <MaterialIcons
+                  name={hasUrl ? 'link' : 'sticky-note-2'}
+                  size={22}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <View style={styles.listCardContent}>
+                <Text style={styles.listCardTitle} numberOfLines={1}>
+                  {note.title || 'Untitled'}
+                </Text>
+                <View style={styles.listCardMeta}>
+                  <Text style={styles.listCardDate}>
+                    {formatNoteTime(note.updated_at || note.created_at)}
+                  </Text>
+                  <Text style={styles.listCardDot}>•</Text>
+                  <Text style={styles.listCardPreview} numberOfLines={1}>
+                    {getPreview(note)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.listCardActions}>
+                <Pressable
+                  style={styles.listCardColorBtn}
+                  onPress={() => openColorPicker(note)}
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <MaterialIcons
+                    name="palette"
+                    size={18}
+                    color={noteColor || colors.muted}
+                  />
+                </Pressable>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={24}
+                  color={colors.muted}
+                />
+              </View>
+            </AnimatedCard>
+          );
+        })}
       </View>
     );
   };
@@ -399,7 +1034,14 @@ export default function NotesScreen({navigate}: Props) {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.container}>
-        <View style={styles.header}>
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: headerFadeAnim,
+              transform: [{translateY: headerSlideAnim}],
+            },
+          ]}>
           <AppleTouchFeedback
             hapticStyle="impactLight"
             onPress={() => navigate('Home')}>
@@ -409,424 +1051,173 @@ export default function NotesScreen({navigate}: Props) {
               color={colors.foreground}
             />
           </AppleTouchFeedback>
-          <Text style={styles.title}>MY NOTES</Text>
-        </View>
+          <Text style={styles.title}>My Notes</Text>
+          <View style={styles.headerActions}>
+            <Pressable style={styles.viewToggle} onPress={toggleViewMode}>
+              <MaterialIcons
+                name={viewMode === 'grid' ? 'view-list' : 'grid-view'}
+                size={22}
+                color={colors.foreground}
+              />
+            </Pressable>
+          </View>
+        </Animated.View>
 
-        <View style={styles.searchContainer}>
-          <TextInput
-            placeholder="Search notes..."
-            placeholderTextColor={colors.muted}
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+        <Animated.View
+          style={[
+            styles.searchContainer,
+            {
+              opacity: searchFadeAnim,
+              transform: [{scale: searchScaleAnim}],
+            },
+          ]}>
+          <Animated.View
+            style={[
+              styles.searchInputWrapper,
+              {borderColor: searchBorderColor},
+            ]}>
+            <MaterialIcons
+              name="search"
+              size={22}
+              color={isSearchFocused ? theme.colors.primary : colors.muted}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              placeholder="Search notes..."
+              placeholderTextColor={colors.muted}
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                style={styles.searchClearBtn}
+                onPress={() => {
+                  h('impactLight');
+                  setSearchQuery('');
+                }}>
+                <MaterialIcons name="close" size={20} color={colors.muted} />
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+        </Animated.View>
 
         {loading ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Loading...</Text>
+          <View style={styles.loadingContainer}>
+            <View style={styles.loadingDots}>
+              {[0, 1, 2].map(i => (
+                <Animated.View
+                  key={i}
+                  style={[styles.loadingDot, {opacity: headerFadeAnim}]}
+                />
+              ))}
+            </View>
           </View>
         ) : filteredNotes.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <MaterialIcons name="note-add" size={64} color={colors.muted} />
+          <Animated.View
+            style={[
+              styles.emptyContainer,
+              {
+                opacity: emptyStateAnim,
+                transform: [
+                  {
+                    scale: emptyStateAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <View style={styles.emptyIconContainer}>
+              <MaterialIcons
+                name="note-add"
+                size={56}
+                color={theme.colors.primary}
+              />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {searchQuery ? 'No Results' : 'No Notes Yet'}
+            </Text>
             <Text style={styles.emptyText}>
               {searchQuery
-                ? 'No notes match your search'
-                : 'No notes yet.\nSave URLs and text from the browser!'}
+                ? 'Try a different search term'
+                : 'Tap the + button to create your first note\nor save URLs from the browser'}
             </Text>
-          </View>
+          </Animated.View>
         ) : (
-          <SectionList
-            sections={groupedNotes}
-            keyExtractor={item => item.id}
-            renderItem={({item, index, section}) =>
-              renderNote({item, index, section})
-            }
-            renderSectionHeader={({section: {title}}) => (
-              <Text style={styles.sectionHeader}>{title}</Text>
-            )}
-            renderSectionFooter={() => <View style={{height: 8}} />}
-            SectionSeparatorComponent={() => null}
-            ItemSeparatorComponent={() => null}
+          <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{paddingBottom: 100}}
-            stickySectionHeadersEnabled={false}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={colors.foreground}
+                tintColor={theme.colors.primary}
               />
-            }
-          />
+            }>
+            {/* Stats Row */}
+            <Animated.View style={[styles.statsRow, {opacity: searchFadeAnim}]}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{filteredNotes.length}</Text>
+                <Text style={styles.statLabel}>Total Notes</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>
+                  {filteredNotes.filter(n => n.url).length}
+                </Text>
+                <Text style={styles.statLabel}>Saved Links</Text>
+              </View>
+            </Animated.View>
+
+            {/* Section Header */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {searchQuery ? 'Search Results' : 'Recent Notes'}
+              </Text>
+            </View>
+
+            {/* Cards - Grid or List */}
+            {viewMode === 'grid' ? renderGridCards() : renderListCards()}
+          </ScrollView>
         )}
       </View>
 
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => {
-          h('impactMedium');
-          navigate('SaveNote');
-        }}>
-        <MaterialIcons name="add" size={28} color={theme.colors.buttonText1} />
-      </TouchableOpacity>
+      <Animated.View
+        style={[
+          styles.addButton,
+          styles.addButtonShadow,
+          {transform: [{scale: fabScaleAnim}]},
+        ]}>
+        <Pressable
+          onPress={() => {
+            h('impactMedium');
+            navigate('SaveNote');
+          }}
+          onPressIn={handleFabPressIn}
+          onPressOut={handleFabPressOut}>
+          <LinearGradient
+            colors={[theme.colors.primary, theme.colors.primary + 'CC']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={styles.addButtonGradient}>
+            <MaterialIcons name="add" size={32} color="#FFFFFF" />
+          </LinearGradient>
+        </Pressable>
+      </Animated.View>
+
+      {/* Color Picker Modal */}
+      <ColorPickerModal
+        visible={colorModalVisible}
+        onClose={() => {
+          setColorModalVisible(false);
+          setSelectedNoteForColor(null);
+        }}
+        onSelectColor={handleColorSelect}
+        currentColor={selectedNoteForColor?.color}
+        theme={theme}
+      />
     </SafeAreaView>
   );
 }
-
-//////////////////
-
-// import React, {useEffect, useState, useCallback} from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   TouchableOpacity,
-//   Alert,
-//   TextInput,
-//   FlatList,
-//   Linking,
-//   RefreshControl,
-// } from 'react-native';
-// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-
-// import {useAppTheme} from '../context/ThemeContext';
-// import {useUUID} from '../context/UUIDContext';
-// import {API_BASE_URL} from '../config/api';
-// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
-// import {SafeAreaView} from 'react-native-safe-area-context';
-// import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
-
-// type SavedNote = {
-//   id: string;
-//   user_id: string;
-//   url?: string;
-//   title?: string;
-//   content?: string;
-//   tags?: string[];
-//   created_at: string;
-//   updated_at: string;
-// };
-
-// type Props = {
-//   navigate: (screen: any, params?: any) => void;
-// };
-
-// export default function NotesScreen({navigate}: Props) {
-//   const userId = useUUID();
-//   const {theme} = useAppTheme();
-//   const colors = theme.colors;
-
-//   const [notes, setNotes] = useState<SavedNote[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [refreshing, setRefreshing] = useState(false);
-//   const [searchQuery, setSearchQuery] = useState('');
-
-//   const h = (type: 'impactLight' | 'impactMedium' | 'impactHeavy' | 'notificationSuccess') =>
-//     ReactNativeHapticFeedback.trigger(type, {
-//       enableVibrateFallback: true,
-//       ignoreAndroidSystemSettings: false,
-//     });
-
-//   const fetchNotes = useCallback(async () => {
-//     if (!userId) return;
-//     try {
-//       const res = await fetch(`${API_BASE_URL}/saved-notes/${userId}`);
-//       const data = await res.json();
-//       setNotes(Array.isArray(data) ? data : []);
-//     } catch (err) {
-//       console.error('Failed to fetch notes:', err);
-//     } finally {
-//       setLoading(false);
-//       setRefreshing(false);
-//     }
-//   }, [userId]);
-
-//   useEffect(() => {
-//     fetchNotes();
-//   }, [fetchNotes]);
-
-//   const onRefresh = () => {
-//     setRefreshing(true);
-//     fetchNotes();
-//   };
-
-//   const deleteNote = async (id: string) => {
-//     h('impactMedium');
-//     Alert.alert('Delete Note', 'Are you sure you want to delete this note?', [
-//       {text: 'Cancel', style: 'cancel'},
-//       {
-//         text: 'Delete',
-//         style: 'destructive',
-//         onPress: async () => {
-//           try {
-//             await fetch(`${API_BASE_URL}/saved-notes/${id}`, {
-//               method: 'DELETE',
-//             });
-//             setNotes(prev => prev.filter(n => n.id !== id));
-//           } catch (err) {
-//             Alert.alert('Error', 'Failed to delete note');
-//           }
-//         },
-//       },
-//     ]);
-//   };
-
-//   const openUrl = (url: string) => {
-//     if (url) {
-//       Linking.openURL(url).catch(() => {
-//         Alert.alert('Error', 'Could not open URL');
-//       });
-//     }
-//   };
-
-//   const filteredNotes = notes.filter(note => {
-//     const query = searchQuery.toLowerCase();
-//     return (
-//       note.title?.toLowerCase().includes(query) ||
-//       note.content?.toLowerCase().includes(query) ||
-//       note.url?.toLowerCase().includes(query)
-//     );
-//   });
-
-//   const styles = StyleSheet.create({
-//     screen: {
-//       flex: 1,
-//     },
-//     container: {
-//       flex: 1,
-//       paddingHorizontal: 16,
-//     },
-//     header: {
-//       flexDirection: 'row',
-//       alignItems: 'center',
-//       paddingVertical: 16,
-//       gap: 12,
-//     },
-//     title: {
-//       fontSize: 24,
-//       fontWeight: '700',
-//       color: colors.foreground,
-//       flex: 1,
-//     },
-//     searchContainer: {
-//       marginBottom: 16,
-//     },
-//     searchInput: {
-//       backgroundColor: theme.colors.input2,
-//       borderRadius: 12,
-//       paddingHorizontal: 16,
-//       paddingVertical: 12,
-//       fontSize: 16,
-//       color: colors.foreground,
-//       borderWidth: 1,
-//       borderColor: theme.colors.inputBorder,
-//     },
-//     noteCard: {
-//       backgroundColor: theme.colors.cardBackground,
-//       borderRadius: 16,
-//       padding: 16,
-//       marginBottom: 12,
-//       borderWidth: 1,
-//       borderColor: theme.colors.inputBorder,
-//     },
-//     noteHeader: {
-//       flexDirection: 'row',
-//       justifyContent: 'space-between',
-//       alignItems: 'flex-start',
-//       marginBottom: 8,
-//     },
-//     noteTitle: {
-//       fontSize: 17,
-//       fontWeight: '600',
-//       color: colors.foreground,
-//       flex: 1,
-//       marginRight: 8,
-//     },
-//     noteContent: {
-//       fontSize: 15,
-//       color: colors.muted,
-//       marginBottom: 8,
-//       lineHeight: 22,
-//     },
-//     noteUrl: {
-//       fontSize: 14,
-//       color: theme.colors.primary,
-//       marginBottom: 8,
-//     },
-//     noteDate: {
-//       fontSize: 12,
-//       color: colors.muted,
-//     },
-//     deleteBtn: {
-//       padding: 4,
-//     },
-//     emptyContainer: {
-//       flex: 1,
-//       justifyContent: 'center',
-//       alignItems: 'center',
-//       paddingTop: 100,
-//     },
-//     emptyText: {
-//       fontSize: 16,
-//       color: colors.muted,
-//       textAlign: 'center',
-//       marginTop: 12,
-//     },
-//     addButton: {
-//       position: 'absolute',
-//       bottom: 30,
-//       right: 20,
-//       width: 56,
-//       height: 56,
-//       borderRadius: 28,
-//       backgroundColor: theme.colors.primary,
-//       justifyContent: 'center',
-//       alignItems: 'center',
-//       shadowColor: '#000',
-//       shadowOffset: {width: 0, height: 4},
-//       shadowOpacity: 0.3,
-//       shadowRadius: 8,
-//       elevation: 8,
-//     },
-//     tagsRow: {
-//       flexDirection: 'row',
-//       flexWrap: 'wrap',
-//       gap: 6,
-//       marginTop: 8,
-//     },
-//     tag: {
-//       backgroundColor: theme.colors.primary + '20',
-//       paddingHorizontal: 10,
-//       paddingVertical: 4,
-//       borderRadius: 12,
-//     },
-//     tagText: {
-//       fontSize: 12,
-//       color: theme.colors.primary,
-//     },
-//   });
-
-//   if (!userId) return null;
-
-//   const formatDate = (dateStr: string) => {
-//     const date = new Date(dateStr);
-//     return date.toLocaleDateString('en-US', {
-//       month: 'short',
-//       day: 'numeric',
-//       year: 'numeric',
-//     });
-//   };
-
-//   const renderNote = ({item}: {item: SavedNote}) => (
-//     <View style={styles.noteCard}>
-//       <View style={styles.noteHeader}>
-//         <Text style={styles.noteTitle} numberOfLines={2}>
-//           {item.title || 'Untitled Note'}
-//         </Text>
-//         <TouchableOpacity
-//           style={styles.deleteBtn}
-//           onPress={() => deleteNote(item.id)}>
-//           <MaterialIcons name="delete-outline" size={22} color={colors.muted} />
-//         </TouchableOpacity>
-//       </View>
-
-//       {item.content && (
-//         <Text style={styles.noteContent} numberOfLines={3}>
-//           {item.content}
-//         </Text>
-//       )}
-
-//       {item.url && (
-//         <TouchableOpacity onPress={() => openUrl(item.url!)}>
-//           <Text style={styles.noteUrl} numberOfLines={1}>
-//             {item.url}
-//           </Text>
-//         </TouchableOpacity>
-//       )}
-
-//       {item.tags && item.tags.length > 0 && (
-//         <View style={styles.tagsRow}>
-//           {item.tags.map((tag, idx) => (
-//             <View key={idx} style={styles.tag}>
-//               <Text style={styles.tagText}>{tag}</Text>
-//             </View>
-//           ))}
-//         </View>
-//       )}
-
-//       <Text style={styles.noteDate}>{formatDate(item.created_at)}</Text>
-//     </View>
-//   );
-
-//   return (
-//     <GradientBackground>
-//       <SafeAreaView style={styles.screen} edges={['top']}>
-//         <View style={styles.container}>
-//           <View style={styles.header}>
-//             <AppleTouchFeedback
-//               hapticStyle="impactLight"
-//               onPress={() => navigate('Home')}>
-//               <MaterialIcons
-//                 name="arrow-back-ios"
-//                 size={24}
-//                 color={colors.foreground}
-//               />
-//             </AppleTouchFeedback>
-//             <Text style={styles.title}>My Notes</Text>
-//           </View>
-
-//           <View style={styles.searchContainer}>
-//             <TextInput
-//               placeholder="Search notes..."
-//               placeholderTextColor={colors.muted}
-//               style={styles.searchInput}
-//               value={searchQuery}
-//               onChangeText={setSearchQuery}
-//             />
-//           </View>
-
-//           {loading ? (
-//             <View style={styles.emptyContainer}>
-//               <Text style={styles.emptyText}>Loading...</Text>
-//             </View>
-//           ) : filteredNotes.length === 0 ? (
-//             <View style={styles.emptyContainer}>
-//               <MaterialIcons name="note-add" size={64} color={colors.muted} />
-//               <Text style={styles.emptyText}>
-//                 {searchQuery
-//                   ? 'No notes match your search'
-//                   : 'No notes yet.\nSave URLs and text from the browser!'}
-//               </Text>
-//             </View>
-//           ) : (
-//             <FlatList
-//               data={filteredNotes}
-//               keyExtractor={item => item.id}
-//               renderItem={renderNote}
-//               showsVerticalScrollIndicator={false}
-//               contentContainerStyle={{paddingBottom: 100}}
-//               refreshControl={
-//                 <RefreshControl
-//                   refreshing={refreshing}
-//                   onRefresh={onRefresh}
-//                   tintColor={colors.foreground}
-//                 />
-//               }
-//             />
-//           )}
-//         </View>
-
-//         <TouchableOpacity
-//           style={styles.addButton}
-//           onPress={() => {
-//             h('impactMedium');
-//             navigate('SaveNote');
-//           }}>
-//           <MaterialIcons name="add" size={28} color="#fff" />
-//         </TouchableOpacity>
-//       </SafeAreaView>
-//     </GradientBackground>
-//   );
-// }

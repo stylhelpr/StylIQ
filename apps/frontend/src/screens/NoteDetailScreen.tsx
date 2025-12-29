@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,15 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Linking,
+  Animated,
+  Easing,
+  Pressable,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
-import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 type SavedNote = {
@@ -50,6 +50,55 @@ export default function NoteDetailScreen({navigate, params}: Props) {
   const [tagsInput, setTagsInput] = useState(note?.tags?.join(', ') || '');
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Animation refs
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const headerSlideAnim = useRef(new Animated.Value(-15)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const contentSlideAnim = useRef(new Animated.Value(30)).current;
+  const urlContainerAnim = useRef(new Animated.Value(0)).current;
+  const saveBtnScaleAnim = useRef(new Animated.Value(1)).current;
+  const deleteBtnScaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Entrance animations
+  useEffect(() => {
+    Animated.stagger(80, [
+      Animated.parallel([
+        Animated.timing(headerFadeAnim, {
+          toValue: 1,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerSlideAnim, {
+          toValue: 0,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(contentFadeAnim, {
+          toValue: 1,
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(contentSlideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          speed: 12,
+          bounciness: 6,
+        }),
+      ]),
+      Animated.spring(urlContainerAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 10,
+        bounciness: 8,
+      }),
+    ]).start();
+  }, []);
 
   const h = (
     type:
@@ -168,6 +217,43 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     });
   };
 
+  // Button press animations
+  const handleSavePressIn = () => {
+    Animated.spring(saveBtnScaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handleSavePressOut = () => {
+    Animated.spring(saveBtnScaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handleDeletePressIn = () => {
+    Animated.spring(deleteBtnScaleAnim, {
+      toValue: 0.9,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handleDeletePressOut = () => {
+    Animated.spring(deleteBtnScaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
@@ -191,45 +277,85 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     headerRight: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 16,
+      gap: 12,
     },
     backText: {
       fontSize: 17,
       color: theme.colors.primary,
+      fontWeight: '500',
+    },
+    deleteBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#FF3B3015',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     saveBtn: {
-      opacity: hasChanges ? 1 : 0.4,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 20,
+      overflow: 'hidden',
+    },
+    saveBtnActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    saveBtnInactive: {
+      backgroundColor: theme.colors.muted + '30',
     },
     saveBtnText: {
-      fontSize: 17,
-      color: theme.colors.primary,
+      fontSize: 15,
       fontWeight: '600',
+      color: hasChanges ? '#FFFFFF' : colors.muted,
+    },
+    dateContainer: {
+      alignItems: 'center',
+      marginBottom: 24,
     },
     dateText: {
       fontSize: 13,
       color: colors.muted,
       textAlign: 'center',
-      marginBottom: 20,
     },
     formContainer: {
       flex: 1,
     },
+    titleInputContainer: {
+      marginBottom: 16,
+    },
     titleInput: {
-      fontSize: 24,
+      fontSize: 28,
       fontWeight: '700',
       color: colors.foreground,
       paddingVertical: 8,
-      marginBottom: 8,
+      letterSpacing: -0.5,
+    },
+    titleUnderline: {
+      height: 2,
+      backgroundColor: theme.colors.primary + '30',
+      borderRadius: 1,
+      marginTop: 4,
     },
     urlContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.colors.input2,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 20,
+      gap: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.inputBorder,
+    },
+    urlIconContainer: {
+      width: 32,
+      height: 32,
       borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      marginBottom: 16,
-      gap: 8,
+      backgroundColor: theme.colors.primary + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     urlInput: {
       flex: 1,
@@ -237,12 +363,33 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       color: colors.foreground,
     },
     urlOpenBtn: {
-      padding: 4,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    contentContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 16,
+      minHeight: 250,
+      borderWidth: 1,
+      borderColor: theme.colors.inputBorder,
+    },
+    contentLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.muted,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
     },
     contentInput: {
       fontSize: 16,
       color: colors.foreground,
-      lineHeight: 24,
+      lineHeight: 26,
       minHeight: 200,
       textAlignVertical: 'top',
     },
@@ -272,53 +419,111 @@ export default function NoteDetailScreen({navigate, params}: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}>
         <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.headerLeft} onPress={handleBack}>
+          <Animated.View
+            style={[
+              styles.header,
+              {
+                opacity: headerFadeAnim,
+                transform: [{translateY: headerSlideAnim}],
+              },
+            ]}>
+            <Pressable style={styles.headerLeft} onPress={handleBack}>
               <MaterialIcons
                 name="arrow-back-ios"
                 size={20}
                 color={theme.colors.primary}
               />
               <Text style={styles.backText}>Notes</Text>
-            </TouchableOpacity>
+            </Pressable>
             <View style={styles.headerRight}>
-              <TouchableOpacity onPress={handleDelete}>
-                <MaterialIcons
-                  name="delete-outline"
-                  size={24}
-                  color={colors.muted}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={handleSave}
-                disabled={!hasChanges || saving}>
-                <Text style={styles.saveBtnText}>
-                  {saving ? 'Saving...' : 'Done'}
-                </Text>
-              </TouchableOpacity>
+              <Animated.View style={{transform: [{scale: deleteBtnScaleAnim}]}}>
+                <Pressable
+                  style={styles.deleteBtn}
+                  onPress={handleDelete}
+                  onPressIn={handleDeletePressIn}
+                  onPressOut={handleDeletePressOut}>
+                  <MaterialIcons
+                    name="delete-outline"
+                    size={22}
+                    color="#FF3B30"
+                  />
+                </Pressable>
+              </Animated.View>
+              <Animated.View style={{transform: [{scale: saveBtnScaleAnim}]}}>
+                <Pressable
+                  style={[
+                    styles.saveBtn,
+                    hasChanges ? styles.saveBtnActive : styles.saveBtnInactive,
+                  ]}
+                  onPress={handleSave}
+                  onPressIn={handleSavePressIn}
+                  onPressOut={handleSavePressOut}
+                  disabled={!hasChanges || saving}>
+                  <Text style={styles.saveBtnText}>
+                    {saving ? 'Saving...' : 'Done'}
+                  </Text>
+                </Pressable>
+              </Animated.View>
             </View>
-          </View>
+          </Animated.View>
 
-          <Text style={styles.dateText}>
-            {formatDate(note.updated_at || note.created_at)}
-          </Text>
+          <Animated.View
+            style={[
+              styles.dateContainer,
+              {
+                opacity: headerFadeAnim,
+              },
+            ]}>
+            <Text style={styles.dateText}>
+              {formatDate(note.updated_at || note.created_at)}
+            </Text>
+          </Animated.View>
 
           <ScrollView
             style={styles.formContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled">
-            <TextInput
-              placeholder="Title"
-              placeholderTextColor={colors.muted}
-              style={styles.titleInput}
-              value={title}
-              onChangeText={setTitle}
-            />
+            <Animated.View
+              style={[
+                styles.titleInputContainer,
+                {
+                  opacity: contentFadeAnim,
+                  transform: [{translateY: contentSlideAnim}],
+                },
+              ]}>
+              <TextInput
+                placeholder="Title"
+                placeholderTextColor={colors.muted}
+                style={styles.titleInput}
+                value={title}
+                onChangeText={setTitle}
+              />
+              <View style={styles.titleUnderline} />
+            </Animated.View>
 
             {(url || !content) && (
-              <View style={styles.urlContainer}>
-                <MaterialIcons name="link" size={20} color={colors.muted} />
+              <Animated.View
+                style={[
+                  styles.urlContainer,
+                  {
+                    opacity: urlContainerAnim,
+                    transform: [
+                      {
+                        scale: urlContainerAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.95, 1],
+                        }),
+                      },
+                    ],
+                  },
+                ]}>
+                <View style={styles.urlIconContainer}>
+                  <MaterialIcons
+                    name="link"
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                </View>
                 <TextInput
                   placeholder="URL"
                   placeholderTextColor={colors.muted}
@@ -333,33 +538,32 @@ export default function NoteDetailScreen({navigate, params}: Props) {
                   <TouchableOpacity style={styles.urlOpenBtn} onPress={openUrl}>
                     <MaterialIcons
                       name="open-in-new"
-                      size={20}
-                      color={theme.colors.primary}
+                      size={18}
+                      color="#FFFFFF"
                     />
                   </TouchableOpacity>
                 ) : null}
-              </View>
+              </Animated.View>
             )}
 
-            <TextInput
-              placeholder="Start typing..."
-              placeholderTextColor={colors.muted}
-              style={styles.contentInput}
-              value={content}
-              onChangeText={setContent}
-              multiline
-            />
-
-            {/* <View style={styles.tagsContainer}>
-              <Text style={styles.tagsLabel}>TAGS</Text>
+            <Animated.View
+              style={[
+                styles.contentContainer,
+                {
+                  opacity: contentFadeAnim,
+                  transform: [{translateY: contentSlideAnim}],
+                },
+              ]}>
+              <Text style={styles.contentLabel}>Notes</Text>
               <TextInput
-                placeholder="Add tags separated by commas"
+                placeholder="Start typing..."
                 placeholderTextColor={colors.muted}
-                style={styles.tagsInput}
-                value={tagsInput}
-                onChangeText={setTagsInput}
+                style={styles.contentInput}
+                value={content}
+                onChangeText={setContent}
+                multiline
               />
-            </View> */}
+            </Animated.View>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
