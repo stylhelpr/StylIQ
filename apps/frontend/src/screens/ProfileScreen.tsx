@@ -588,14 +588,18 @@ export default function ProfileScreen({navigate}: Props) {
               : 'stylhelpr'}
           </Text>
           {userProfile?.fashion_level && (
-            <Text style={styles.bioText}>{userProfile.fashion_level}</Text>
+            <Text style={styles.bioText}>
+              Fashion Level: {userProfile.fashion_level}
+            </Text>
           )}
           {userProfile?.profession && (
-            <Text style={styles.bioText}>{userProfile.profession}</Text>
+            <Text style={styles.bioText}>
+              Profession: {userProfile.profession}
+            </Text>
           )}
           {/* Bio Display (edit in Personal Information screen) */}
           {bio ? (
-            <Text style={[styles.bioText, {marginTop: 8}]}>{bio}</Text>
+            <Text style={[styles.bioText, {marginTop: 8}]}>Bio: "{bio}"</Text>
           ) : null}
         </Animatable.View>
       </Animatable.View>

@@ -349,10 +349,15 @@ export default function SettingsScreen({navigate, goBack}: Props) {
             try {
               const credentials = await getCredentials();
               if (credentials?.accessToken) {
-                await browserSyncService.deleteAllAnalytics(credentials.accessToken);
+                await browserSyncService.deleteAllAnalytics(
+                  credentials.accessToken,
+                );
               }
             } catch (error) {
-              console.log('[Settings] Failed to delete server analytics:', error);
+              console.log(
+                '[Settings] Failed to delete server analytics:',
+                error,
+              );
             }
             Alert.alert('Done', 'Shopping analytics have been cleared.');
           },
@@ -375,13 +380,22 @@ export default function SettingsScreen({navigate, goBack}: Props) {
             if (userId) {
               try {
                 await deleteUserDataMutation.mutateAsync({userId});
-                Alert.alert('Done', 'Your community activity has been deleted.');
+                Alert.alert(
+                  'Done',
+                  'Your community activity has been deleted.',
+                );
               } catch (error) {
                 console.error('Failed to delete community data:', error);
-                Alert.alert('Error', 'Failed to delete community data. Please try again.');
+                Alert.alert(
+                  'Error',
+                  'Failed to delete community data. Please try again.',
+                );
               }
             } else {
-              Alert.alert('Error', 'You must be logged in to delete community data.');
+              Alert.alert(
+                'Error',
+                'You must be logged in to delete community data.',
+              );
             }
           },
         },
@@ -686,7 +700,6 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   {
                     borderWidth: tokens.borderWidth.md,
                     marginTop: 10,
-                    marginBottom: 20,
                   },
                 ]}>
                 <View
@@ -744,7 +757,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                 </AppleTouchFeedback>
               </View>
 
-              <View style={{marginTop: 24}}>
+              <View style={{marginTop: 24, marginBottom: 20}}>
                 <Text
                   style={[
                     globalStyles.sectionTitle2,
@@ -762,7 +775,8 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                     hapticStyle="impactMedium"
                     style={[globalStyles.menuSection1]}>
                     <View>
-                      <Text style={[globalStyles.menuLabel, {color: colors.error}]}>
+                      <Text
+                        style={[globalStyles.menuLabel, {color: colors.error}]}>
                         Delete Community Activity
                       </Text>
                       <Text
@@ -771,7 +785,8 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                           color: theme.colors.foreground3,
                           marginTop: 4,
                         }}>
-                        Deletes likes, follows, saved posts, and view history. Anonymizes comments. Posts remain.
+                        Deletes likes, follows, saved posts, and view history.
+                        Anonymizes comments. Posts remain.
                       </Text>
                     </View>
                   </AppleTouchFeedback>

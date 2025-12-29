@@ -250,10 +250,10 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
   const profileUri = isRealAvatar(userProfile?.profile_picture)
     ? userProfile?.profile_picture
     : isRealAvatar(communityProfile?.user_avatar)
-    ? communityProfile?.user_avatar
-    : isRealAvatar(passedAvatar)
-    ? passedAvatar
-    : '';
+      ? communityProfile?.user_avatar
+      : isRealAvatar(passedAvatar)
+        ? passedAvatar
+        : '';
   const displayName =
     userProfile?.first_name && userProfile?.last_name
       ? `${userProfile.first_name} ${userProfile.last_name}`
@@ -262,8 +262,8 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     userProfile?.first_name && userProfile?.last_name
       ? `@${userProfile.first_name.toLowerCase()}${userProfile.last_name.toLowerCase()}`
       : passedName
-      ? `@${passedName.toLowerCase().replace(/\s+/g, '')}`
-      : '@user';
+        ? `@${passedName.toLowerCase().replace(/\s+/g, '')}`
+        : '@user';
 
   const handleMessage = () => {
     navigate('ChatScreen', {
@@ -545,15 +545,17 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
 
                 {userProfile?.fashion_level && (
                   <Text style={styles.bioText}>
-                    {userProfile.fashion_level}
+                    Fashion Level: {userProfile.fashion_level}
                   </Text>
                 )}
                 {userProfile?.profession && (
-                  <Text style={styles.bioText}>{userProfile.profession}</Text>
+                  <Text style={styles.bioText}>
+                    Profession: {userProfile.profession}
+                  </Text>
                 )}
                 {(communityProfile?.bio || userProfile?.bio) && (
                   <Text style={styles.bioText}>
-                    {communityProfile?.bio || userProfile?.bio}
+                    Bio: "{communityProfile?.bio || userProfile?.bio}""
                   </Text>
                 )}
               </Animatable.View>

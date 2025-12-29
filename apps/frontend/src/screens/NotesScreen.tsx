@@ -330,7 +330,7 @@ export default function NotesScreen({navigate}: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [colorModalVisible, setColorModalVisible] = useState(false);
   const [selectedNoteForColor, setSelectedNoteForColor] =
