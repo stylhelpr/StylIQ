@@ -244,13 +244,14 @@ export default function SaveNoteScreen({navigate, params}: Props) {
     saveBtn: {
       borderRadius: 22,
       overflow: 'hidden',
+      backgroundColor: theme.colors.button1,
     },
     saveBtnGradient: {
       paddingHorizontal: 24,
       paddingVertical: 12,
     },
     saveBtnDisabled: {
-      backgroundColor: theme.colors.muted + '30',
+      backgroundColor: theme.colors.surface,
       paddingHorizontal: 24,
       paddingVertical: 12,
     },
@@ -430,20 +431,19 @@ export default function SaveNoteScreen({navigate, params}: Props) {
               <Text style={styles.title}>New Note</Text>
             </View>
             <Animated.View
-              style={[styles.saveBtn, {transform: [{scale: saveBtnScaleAnim}]}]}>
+              style={[
+                styles.saveBtn,
+                {transform: [{scale: saveBtnScaleAnim}]},
+              ]}>
               <Pressable
                 onPress={handleSave}
                 onPressIn={handleSavePressIn}
                 onPressOut={handleSavePressOut}
                 disabled={saving || !hasContent}>
                 {hasContent && !saving ? (
-                  <LinearGradient
-                    colors={[theme.colors.primary, theme.colors.primary + 'CC']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 1}}
-                    style={styles.saveBtnGradient}>
+                  <View style={styles.saveBtnGradient}>
                     <Text style={styles.saveBtnText}>Save</Text>
-                  </LinearGradient>
+                  </View>
                 ) : (
                   <View style={styles.saveBtnDisabled}>
                     <Text style={styles.saveBtnTextDisabled}>

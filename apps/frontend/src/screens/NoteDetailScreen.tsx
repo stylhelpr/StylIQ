@@ -55,7 +55,9 @@ export default function NoteDetailScreen({navigate, params}: Props) {
   const [tagsInput, setTagsInput] = useState(note?.tags?.join(', ') || '');
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(note?.image_url || null);
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    note?.image_url || null,
+  );
   const [localImageUri, setLocalImageUri] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -344,7 +346,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#FF3B3015',
+      backgroundColor: theme.colors.surface,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -355,7 +357,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       overflow: 'hidden',
     },
     saveBtnActive: {
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.button1,
     },
     saveBtnInactive: {
       backgroundColor: theme.colors.muted + '30',

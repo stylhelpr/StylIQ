@@ -524,7 +524,7 @@ export default function NotesScreen({navigate}: Props) {
   const styles = StyleSheet.create({
     screen: {
       flex: 1,
-      paddingTop: 60,
+      paddingTop: 55,
     },
     container: {
       flex: 1,
@@ -537,8 +537,8 @@ export default function NotesScreen({navigate}: Props) {
       gap: 12,
     },
     title: {
-      fontSize: 32,
-      fontWeight: '800',
+      fontSize: 28,
+      fontWeight: '700',
       color: colors.foreground,
       flex: 1,
     },
@@ -777,28 +777,21 @@ export default function NotesScreen({navigate}: Props) {
       flex: 1,
     },
     listCardTitle: {
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: '600',
       color: colors.foreground,
       marginBottom: 4,
     },
-    listCardMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
+    listCardPreview: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.muted,
+      lineHeight: 18,
+      marginBottom: 4,
     },
     listCardDate: {
       fontSize: 12,
       color: colors.muted,
-    },
-    listCardDot: {
-      fontSize: 12,
-      color: colors.muted,
-    },
-    listCardPreview: {
-      fontSize: 12,
-      color: colors.muted,
-      flex: 1,
     },
     listCardActions: {
       flexDirection: 'row',
@@ -829,8 +822,8 @@ export default function NotesScreen({navigate}: Props) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
-      marginTop: 20,
-      marginBottom: 12,
+      marginTop: 22,
+      marginBottom: 10,
     },
     colorSectionDot: {
       width: 14,
@@ -879,17 +872,16 @@ export default function NotesScreen({navigate}: Props) {
       position: 'absolute',
       bottom: 100,
       right: 20,
-      width: 64,
-      height: 64,
+      width: 54,
+      height: 54,
       borderRadius: 32,
-      overflow: 'hidden',
-    },
-    addButtonGradient: {
-      width: 64,
-      height: 64,
-      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.foreground,
+      backgroundColor: 'rgba(54, 54, 54, 0.52)',
       alignItems: 'center',
+      justifyContent: 'center',
     },
+
     addButtonShadow: {
       shadowColor: theme.colors.primary,
       shadowOffset: {width: 0, height: 8},
@@ -1116,7 +1108,11 @@ export default function NotesScreen({navigate}: Props) {
   };
 
   // Render masonry columns for a set of notes
-  const renderMasonryColumns = (notes: SavedNote[], startIndex: number = 0) => {
+  const renderMasonryColumns = (
+    notes: SavedNote[],
+    startIndex: number = 0,
+    skipBottomPadding: boolean = false,
+  ) => {
     const leftColumn: SavedNote[] = [];
     const rightColumn: SavedNote[] = [];
     let leftHeight = 0;
@@ -1137,7 +1133,11 @@ export default function NotesScreen({navigate}: Props) {
     });
 
     return (
-      <View style={styles.masonryContainer}>
+      <View
+        style={[
+          styles.masonryContainer,
+          skipBottomPadding && {paddingBottom: 0},
+        ]}>
         <View style={[styles.masonryColumn, styles.masonryColumnLeft]}>
           {leftColumn.map((note, index) =>
             renderGridCard(note, startIndex + index * 2),
@@ -1192,7 +1192,7 @@ export default function NotesScreen({navigate}: Props) {
                     ({group.notes.length})
                   </Text>
                 </View>
-                {renderMasonryColumns(group.notes, groupStartIndex)}
+                {renderMasonryColumns(group.notes, groupStartIndex, true)}
               </View>
             );
           })}
@@ -1275,15 +1275,12 @@ export default function NotesScreen({navigate}: Props) {
           <Text style={styles.listCardTitle} numberOfLines={1}>
             {note.title || 'Untitled'}
           </Text>
-          <View style={styles.listCardMeta}>
-            <Text style={styles.listCardDate}>
-              {formatNoteTime(note.updated_at || note.created_at)}
-            </Text>
-            <Text style={styles.listCardDot}>•</Text>
-            <Text style={styles.listCardPreview} numberOfLines={1}>
-              {getPreview(note)}
-            </Text>
-          </View>
+          <Text style={styles.listCardPreview} numberOfLines={1}>
+            {getPreview(note)}
+          </Text>
+          <Text style={styles.listCardDate}>
+            {formatNoteTime(note.updated_at || note.created_at)}
+          </Text>
         </View>
         <View style={styles.listCardActions}>
           <Pressable
@@ -1541,11 +1538,7 @@ export default function NotesScreen({navigate}: Props) {
       </View>
 
       <Animated.View
-        style={[
-          styles.addButton,
-          styles.addButtonShadow,
-          {transform: [{scale: fabScaleAnim}]},
-        ]}>
+        style={[styles.addButton, {transform: [{scale: fabScaleAnim}]}]}>
         <Pressable
           onPress={() => {
             h('impactMedium');
@@ -1553,13 +1546,7 @@ export default function NotesScreen({navigate}: Props) {
           }}
           onPressIn={handleFabPressIn}
           onPressOut={handleFabPressOut}>
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primary + 'CC']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.addButtonGradient}>
-            <MaterialIcons name="add" size={32} color="#FFFFFF" />
-          </LinearGradient>
+          <MaterialIcons name="add" size={32} color="#FFFFFF" />
         </Pressable>
       </Animated.View>
 
