@@ -15,7 +15,7 @@ import {
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -38,6 +38,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   const userId = useUUID();
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+  const queryClient = useQueryClient();
 
   const insets = useSafeAreaInsets();
 
@@ -45,6 +46,39 @@ export default function OutfitBuilderScreen({navigate}: Props) {
   const [showNameModal, setShowNameModal] = useState(false);
   const [outfitName, setOutfitName] = useState('');
   const [saved, setSaved] = useState(false);
+
+  // Mutation for saving custom outfit
+  const saveOutfitMutation = useMutation({
+    mutationFn: async (payload: {
+      user_id: string;
+      name: string;
+      top_id: string | null;
+      bottom_id: string | null;
+      shoes_id: string | null;
+      accessory_ids: string[];
+      thumbnail_url: string;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/custom-outfits`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({...payload, prompt: 'manual'}),
+      });
+      if (!res.ok) throw new Error('Failed to save outfit');
+      return res.json();
+    },
+    onSuccess: async newOutfit => {
+      // Auto-favorite the new outfit
+      await fetch(`${API_BASE_URL}/outfit/favorite`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, outfit_id: newOutfit.id}),
+      });
+      // Invalidate caches so SavedOutfits screen shows the new outfit
+      queryClient.invalidateQueries({queryKey: ['saved-outfits', userId]});
+      queryClient.invalidateQueries({queryKey: ['savedOutfits', userId]});
+      queryClient.invalidateQueries({queryKey: ['favorites', userId]});
+    },
+  });
 
   const resolveUri = (u?: string) => {
     if (!u) return '';
@@ -189,39 +223,30 @@ export default function OutfitBuilderScreen({navigate}: Props) {
 
     const thumbnail = selectedItems[0]?.image_url ?? '';
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/custom-outfits`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: userId,
-          prompt: 'manual',
-          name,
-          top_id: top?.id ?? null,
-          bottom_id: bottom?.id ?? null,
-          shoes_id: shoes?.id ?? null,
-          accessory_ids: accessories.map(i => i.id),
-          thumbnail_url: thumbnail,
-        }),
-      });
-
-      const newOutfit = await res.json();
-
-      await fetch(`${API_BASE_URL}/outfit/favorite`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: userId, outfit_id: newOutfit.id}),
-      });
-
-      hSuccess();
-      setSaved(true);
-      setShowNameModal(false);
-      setOutfitName('');
-      navigate('SavedOutfits');
-    } catch (err) {
-      hError();
-      console.error('❌ Failed to save outfit:', err);
-    }
+    saveOutfitMutation.mutate(
+      {
+        user_id: userId || '',
+        name,
+        top_id: top?.id ?? null,
+        bottom_id: bottom?.id ?? null,
+        shoes_id: shoes?.id ?? null,
+        accessory_ids: accessories.map(i => i.id),
+        thumbnail_url: thumbnail,
+      },
+      {
+        onSuccess: () => {
+          hSuccess();
+          setSaved(true);
+          setShowNameModal(false);
+          setOutfitName('');
+          navigate('SavedOutfits');
+        },
+        onError: err => {
+          hError();
+          console.error('❌ Failed to save outfit:', err);
+        },
+      },
+    );
   };
 
   const styles = StyleSheet.create({

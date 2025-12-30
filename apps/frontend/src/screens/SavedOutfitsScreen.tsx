@@ -31,6 +31,18 @@ import {useFavorites} from '../hooks/useFavorites';
 import {useUUID} from '../context/UUIDContext';
 import {useAuth0} from 'react-native-auth0';
 import {API_BASE_URL} from '../config/api';
+import {
+  useOutfitsQuery,
+  useUpdateOutfit,
+  useDeleteOutfit,
+  useScheduleOutfit,
+  useCancelScheduledOutfit,
+  useMarkOutfitWorn,
+  useUnmarkOutfitWorn,
+  useInvalidateSavedOutfits,
+  SavedOutfitData,
+} from '../hooks/useOutfitsData';
+import {useUserProfile} from '../hooks/useHomeData';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -145,7 +157,12 @@ export default function SavedOutfitsScreen() {
   const {user} = useAuth0();
   const insets = useSafeAreaInsets();
   const [profilePicture, setProfilePicture] = useState<string>('');
-  const [userName, setUserName] = useState<string>('');
+
+  // TanStack Query: Fetch user profile for name
+  const {data: userProfile} = useUserProfile(userId || '');
+  const userName =
+    `${userProfile?.first_name || ''}${userProfile?.last_name || ''}`.trim() ||
+    'StylHelpr';
 
   // Load profile picture from AsyncStorage
   useEffect(() => {
@@ -154,22 +171,6 @@ export default function SavedOutfitsScreen() {
       const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
       if (cached) {
         setProfilePicture(cached);
-      }
-    })();
-  }, [userId]);
-
-  // Fetch user's first and last name
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
-        const data = await res.json();
-        const first = data.first_name || '';
-        const last = data.last_name || '';
-        setUserName(`${first}${last}`.trim() || 'StylHelpr');
-      } catch (err) {
-        setUserName('StylHelpr');
       }
     })();
   }, [userId]);
@@ -387,7 +388,6 @@ export default function SavedOutfitsScreen() {
   });
 
   // 🧠 State Management
-  const [combinedOutfits, setCombinedOutfits] = useState<SavedOutfit[]>([]);
   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
   const [editedOccasion, setEditedOccasion] = useState<
@@ -412,6 +412,22 @@ export default function SavedOutfitsScreen() {
     isLoading: favoritesLoading,
     toggleFavorite,
   } = useFavorites(userId);
+
+  // TanStack Query: Fetch outfits with caching
+  const {
+    data: combinedOutfits = [],
+    isLoading: outfitsLoading,
+    refetch: refetchOutfits,
+  } = useOutfitsQuery(userId, favorites);
+
+  // TanStack Query: Mutations
+  const updateOutfitMutation = useUpdateOutfit();
+  const deleteOutfitMutation = useDeleteOutfit();
+  const scheduleOutfitMutation = useScheduleOutfit();
+  const cancelScheduledOutfitMutation = useCancelScheduledOutfit();
+  const markWornMutation = useMarkOutfitWorn();
+  const unmarkWornMutation = useUnmarkOutfitWorn();
+  const invalidateSavedOutfits = useInvalidateSavedOutfits();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -677,60 +693,49 @@ export default function SavedOutfitsScreen() {
     const outfit = combinedOutfits.find(o => o.id === editingOutfitId);
     if (!outfit) return;
 
-    try {
-      // ✅ dynamically hit the correct endpoint just like the old version
-      const table = outfit.type === 'custom' ? 'custom' : 'suggestions';
-      const res = await fetch(
-        `${API_BASE_URL}/outfit/${table}/${editingOutfitId}`,
-        {
-          method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            name: editedName.trim() || outfit.name,
-            occasion: editedOccasion ?? null,
-          }),
+    // Use TanStack Query mutation (optimistic update handled in hook)
+    updateOutfitMutation.mutate(
+      {
+        userId,
+        outfitId: editingOutfitId,
+        outfitType: outfit.type,
+        name: editedName.trim() || outfit.name,
+        occasion: editedOccasion ?? null,
+      },
+      {
+        onSuccess: () => {
+          // Reset modal state on success
+          setEditingOutfitId(null);
+          setEditedName('');
+          setEditedOccasion(undefined);
         },
-      );
-
-      if (!res.ok) throw new Error('Failed to update outfit');
-
-      // ✅ update state so UI reflects the change immediately
-      const updated = combinedOutfits.map(o =>
-        o.id === editingOutfitId
-          ? {...o, name: editedName.trim() || o.name, occasion: editedOccasion}
-          : o,
-      );
-      setCombinedOutfits(updated);
-
-      // ✅ reset modal state
-      setEditingOutfitId(null);
-      setEditedName('');
-      setEditedOccasion(undefined);
-    } catch (err) {
-      console.error('❌ Error updating outfit:', err);
-      Alert.alert('Error', 'Failed to update outfit in the database.');
-    }
+        onError: err => {
+          console.error('❌ Error updating outfit:', err);
+          Alert.alert('Error', 'Failed to update outfit in the database.');
+        },
+      },
+    );
   };
 
-  // ✅ Restore old delete logic (single DELETE endpoint)
-  const handleDelete = async (id: string) => {
+  // ✅ Delete outfit using TanStack Query mutation
+  const handleDelete = (id: string) => {
     const deleted = combinedOutfits.find(o => o.id === id);
     if (!deleted) return;
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/outfit/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete from DB');
+    // Store for undo toast before optimistic delete
+    setLastDeletedOutfit(deleted);
+    setTimeout(() => setLastDeletedOutfit(null), 3000);
 
-      const updated = combinedOutfits.filter(o => o.id !== id);
-      setCombinedOutfits(updated);
-      setLastDeletedOutfit(deleted); // keep your existing Undo toast
-      setTimeout(() => setLastDeletedOutfit(null), 3000);
-    } catch (err) {
-      console.error('❌ Error deleting outfit:', err);
-      Alert.alert('Error', 'Could not delete outfit from the database.');
-    }
+    deleteOutfitMutation.mutate(
+      {userId, outfitId: id},
+      {
+        onError: err => {
+          console.error('❌ Error deleting outfit:', err);
+          Alert.alert('Error', 'Could not delete outfit from the database.');
+          setLastDeletedOutfit(null);
+        },
+      },
+    );
   };
 
   // 📅 Local notification helpers
@@ -812,30 +817,13 @@ export default function SavedOutfitsScreen() {
         await AsyncStorage.removeItem(oldKey);
       }
 
-      // save to server
-      await fetch(`${API_BASE_URL}/scheduled-outfits`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: userId,
-          outfit_id: planningOutfitId,
-          outfit_type,
-          scheduled_for: combined.toISOString(),
-        }),
+      // Save to server using TanStack Query mutation (optimistic update in hook)
+      scheduleOutfitMutation.mutate({
+        userId,
+        outfitId: planningOutfitId,
+        outfitType: outfit_type,
+        scheduledFor: combined.toISOString(),
       });
-
-      // reflect in UI - update planned date and increment worn count
-      setCombinedOutfits(prev =>
-        prev.map(o =>
-          o.id === planningOutfitId
-            ? {
-                ...o,
-                plannedDate: combined.toISOString(),
-                timesWorn: (o.timesWorn ?? 0) + 1,
-              }
-            : o,
-        ),
-      );
 
       // local notification + add to inbox
       await scheduleOutfitLocalAlert(
@@ -865,142 +853,32 @@ export default function SavedOutfitsScreen() {
   };
 
   const cancelPlannedOutfit = async (outfitId: string) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: userId, outfit_id: outfitId}),
-      });
-      if (!res.ok) throw new Error('Failed to cancel planned outfit');
+    // Cancel local alert first
+    cancelOutfitLocalAlert(outfitId);
 
-      // Update UI
-      setCombinedOutfits(prev =>
-        prev.map(o => (o.id === outfitId ? {...o, plannedDate: undefined} : o)),
-      );
-
-      // Cancel local alert
-      cancelOutfitLocalAlert(outfitId);
-
-      // Remove calendar event (if any)
-      const key = `outfitCalendar:${outfitId}`;
-      const existingId = await AsyncStorage.getItem(key);
-      if (existingId) {
-        await removeCalendarEvent(existingId);
-        await AsyncStorage.removeItem(key);
-      }
-    } catch (err) {
-      console.error('❌ Failed to cancel plan:', err);
-      Alert.alert('Error', 'Could not cancel the planned date.');
+    // Remove calendar event (if any)
+    const key = `outfitCalendar:${outfitId}`;
+    const existingId = await AsyncStorage.getItem(key);
+    if (existingId) {
+      await removeCalendarEvent(existingId);
+      await AsyncStorage.removeItem(key);
     }
+
+    // Use TanStack Query mutation (optimistic update in hook)
+    cancelScheduledOutfitMutation.mutate(
+      {userId, outfitId},
+      {
+        onError: err => {
+          console.error('❌ Failed to cancel plan:', err);
+          Alert.alert('Error', 'Could not cancel the planned date.');
+        },
+      },
+    );
   };
 
   const cancelOutfitLocalAlert = (outfitId: string) => {
     PushNotification.cancelLocalNotifications({id: `outfit-${outfitId}`});
   };
-
-  const normalizeImageUrl = (url: string | undefined | null): string => {
-    if (!url) return '';
-    return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-  };
-
-  // 🧠 Fetch outfits and merge AI + custom
-  const loadOutfits = async () => {
-    try {
-      const [aiRes, customRes, scheduledRes, wornCountsRes] = await Promise.all(
-        [
-          fetch(`${API_BASE_URL}/outfit/suggestions/${userId}`),
-          fetch(`${API_BASE_URL}/outfit/custom/${userId}`),
-          fetch(`${API_BASE_URL}/scheduled-outfits/${userId}`),
-          fetch(`${API_BASE_URL}/scheduled-outfits/worn-counts/${userId}`),
-        ],
-      );
-
-      if (!aiRes.ok || !customRes.ok || !scheduledRes.ok)
-        throw new Error('Failed to fetch outfits');
-
-      const [aiData, customData, scheduledData] = await Promise.all([
-        aiRes.json(),
-        customRes.json(),
-        scheduledRes.json(),
-      ]);
-
-      let wornCountsData: Record<string, number> = {};
-      if (wornCountsRes.ok) {
-        try {
-          wornCountsData = await wornCountsRes.json();
-          // console.log('📊 Worn counts loaded:', wornCountsData);
-        } catch (e) {
-          console.error('Failed to parse worn counts:', e);
-        }
-      } else {
-        console.error('Failed to fetch worn counts:', wornCountsRes.status);
-      }
-
-      const scheduleMap: Record<string, string> = {};
-      for (const s of scheduledData) {
-        if (s.ai_outfit_id) scheduleMap[s.ai_outfit_id] = s.scheduled_for;
-        else if (s.custom_outfit_id)
-          scheduleMap[s.custom_outfit_id] = s.scheduled_for;
-      }
-
-      const normalize = (o: any, isCustom: boolean): SavedOutfit => {
-        const outfitId = o.id;
-        return {
-          id: outfitId,
-          name: o.name || '',
-          top: o.top
-            ? ({
-                id: o.top.id,
-                name: o.top.name,
-                image: normalizeImageUrl(o.top.image || o.top.image_url),
-              } as any)
-            : ({} as any),
-          bottom: o.bottom
-            ? ({
-                id: o.bottom.id,
-                name: o.bottom.name,
-                image: normalizeImageUrl(o.bottom.image || o.bottom.image_url),
-              } as any)
-            : ({} as any),
-          shoes: o.shoes
-            ? ({
-                id: o.shoes.id,
-                name: o.shoes.name,
-                image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
-              } as any)
-            : ({} as any),
-          createdAt:
-            o.created_at || o.createdAt
-              ? new Date(o.created_at || o.createdAt).toISOString()
-              : new Date().toISOString(),
-          tags: o.tags || [],
-          notes: o.notes || '',
-          rating: o.rating ?? undefined,
-          favorited: favorites.some(
-            f =>
-              f.id === outfitId &&
-              f.source === (isCustom ? 'custom' : 'suggestion'),
-          ),
-          plannedDate: scheduleMap[outfitId] ?? undefined,
-          type: isCustom ? 'custom' : 'ai',
-          timesWorn: wornCountsData[outfitId] ?? 0,
-          occasion: o.occasion ?? undefined,
-        };
-      };
-
-      const allOutfits = [
-        ...aiData.map((o: any) => normalize(o, false)),
-        ...customData.map((o: any) => normalize(o, true)),
-      ];
-      setCombinedOutfits(allOutfits);
-    } catch (err) {
-      console.error('❌ Failed to load outfits:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (userId && !favoritesLoading) loadOutfits();
-  }, [userId, favoritesLoading]);
 
   // Check for schedule changes when component mounts or userId changes
   // This handles updates made from CalendarPlannerScreen
@@ -1012,17 +890,15 @@ export default function SavedOutfitsScreen() {
       const changed = await AsyncStorage.getItem('schedulesChanged');
       if (changed && changed !== lastScheduleCheck) {
         setLastScheduleCheck(changed);
-        // Reload outfits to get updated schedule state
-        if (userId && !favoritesLoading) {
-          loadOutfits();
-        }
+        // Invalidate TanStack Query cache to refetch
+        invalidateSavedOutfits(userId);
       }
     };
     checkScheduleChanges();
     // Also check periodically when screen is visible
     const interval = setInterval(checkScheduleChanges, 1000);
     return () => clearInterval(interval);
-  }, [userId, favoritesLoading, lastScheduleCheck]);
+  }, [userId, lastScheduleCheck, invalidateSavedOutfits]);
 
   // ✨ Sort state and computed outfits
   const [sortType, setSortType] = useState<
@@ -1052,19 +928,7 @@ export default function SavedOutfitsScreen() {
     }
   });
 
-  // 🔄 Keep favorites synced
-  useEffect(() => {
-    setCombinedOutfits(prev =>
-      prev.map(outfit => ({
-        ...outfit,
-        favorited: favorites.some(
-          f =>
-            f.id === outfit.id &&
-            f.source === (outfit.type === 'custom' ? 'custom' : 'suggestion'),
-        ),
-      })),
-    );
-  }, [favorites]);
+  // Note: Favorites are already synced via useOutfitsQuery which takes favorites as a parameter
 
   // function resetPlanFlow(): void {
   //   throw new Error('Function not implemented.');
@@ -1683,14 +1547,13 @@ export default function SavedOutfitsScreen() {
 
                               {/* ❤️ Favorite */}
                               <Pressable
-                                onPress={e => {
+                                onPress={() => {
                                   hSelect();
                                   toggleFavorite(
                                     outfit.id,
                                     outfit.type === 'custom'
                                       ? 'custom'
                                       : 'suggestion',
-                                    setCombinedOutfits,
                                   );
                                 }}
                                 style={{
@@ -1779,51 +1642,22 @@ export default function SavedOutfitsScreen() {
                               }}>
                               {/* 👕 Mark as worn (tap to increment, long press to decrement) */}
                               <Pressable
-                                onPress={async () => {
+                                onPress={() => {
                                   hSelect();
-                                  try {
-                                    await fetch(
-                                      `${API_BASE_URL}/outfit/mark-worn/${outfit.id}/${outfit.type}/${userId}`,
-                                      {method: 'POST'},
-                                    );
-                                    setCombinedOutfits(prev =>
-                                      prev.map(o =>
-                                        o.id === outfit.id
-                                          ? {
-                                              ...o,
-                                              timesWorn: (o.timesWorn ?? 0) + 1,
-                                            }
-                                          : o,
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    console.error('Failed to mark as worn', e);
-                                  }
+                                  markWornMutation.mutate({
+                                    userId,
+                                    outfitId: outfit.id,
+                                    outfitType: outfit.type,
+                                  });
                                 }}
-                                onLongPress={async () => {
+                                onLongPress={() => {
                                   if ((outfit.timesWorn ?? 0) <= 0) return;
                                   hSelect();
-                                  try {
-                                    await fetch(
-                                      `${API_BASE_URL}/outfit/unmark-worn/${outfit.id}/${outfit.type}/${userId}`,
-                                      {method: 'DELETE'},
-                                    );
-                                    setCombinedOutfits(prev =>
-                                      prev.map(o =>
-                                        o.id === outfit.id
-                                          ? {
-                                              ...o,
-                                              timesWorn: Math.max(
-                                                0,
-                                                (o.timesWorn ?? 0) - 1,
-                                              ),
-                                            }
-                                          : o,
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    console.error('Failed to unmark worn', e);
-                                  }
+                                  unmarkWornMutation.mutate({
+                                    userId,
+                                    outfitId: outfit.id,
+                                    outfitType: outfit.type,
+                                  });
                                 }}
                                 delayLongPress={500}
                                 style={{
@@ -2306,7 +2140,7 @@ export default function SavedOutfitsScreen() {
         </BlurView>
       )}
 
-      {/* 🧼 Undo Toast */}
+      {/* 🧼 Deleted Toast (undo not available since delete is server-side) */}
       {lastDeletedOutfit && (
         <Animatable.View
           animation="bounceInUp"
@@ -2314,21 +2148,6 @@ export default function SavedOutfitsScreen() {
           easing="ease-out-back"
           style={styles.toast}>
           <Text style={{color: theme.colors.foreground}}>Outfit deleted</Text>
-          <AppleTouchFeedback
-            hapticStyle="impactLight"
-            onPress={async () => {
-              const updated = [...combinedOutfits, lastDeletedOutfit];
-              const manual = updated.filter(o => !o.favorited);
-              const favs = updated.filter(o => o.favorited);
-              await AsyncStorage.setItem(CLOSET_KEY, JSON.stringify(manual));
-              await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
-              setCombinedOutfits(updated);
-              setLastDeletedOutfit(null);
-            }}>
-            <Text style={{color: theme.colors.primary, fontWeight: '700'}}>
-              Undo
-            </Text>
-          </AppleTouchFeedback>
         </Animatable.View>
       )}
 

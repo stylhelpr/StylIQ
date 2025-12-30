@@ -76,7 +76,7 @@ export function useFavorites(userId: string) {
   const toggleFavorite = async (
     outfitId: string,
     outfitType: 'suggestion' | 'custom',
-    setCombinedOutfits: React.Dispatch<React.SetStateAction<any[]>>,
+    setCombinedOutfits?: React.Dispatch<React.SetStateAction<any[]>>,
   ) => {
     const isFavorited = favorites.some(
       f => f.id === outfitId && f.source === outfitType,
@@ -105,15 +105,18 @@ export function useFavorites(userId: string) {
         : [...favorites, {id: outfitId, source: outfitType}];
       setFavorites(updatedFavorites);
 
-      // Immediate UI update
-      setCombinedOutfits(prev =>
-        prev.map(o =>
-          o.id === outfitId ? {...o, favorited: !isFavorited} : o,
-        ),
-      );
+      // Immediate UI update (for legacy callers)
+      if (setCombinedOutfits) {
+        setCombinedOutfits(prev =>
+          prev.map(o =>
+            o.id === outfitId ? {...o, favorited: !isFavorited} : o,
+          ),
+        );
+      }
 
-      // Revalidate cache
+      // Revalidate cache (both favorites and saved-outfits)
       queryClient.invalidateQueries({queryKey: ['favorites', userId]});
+      queryClient.invalidateQueries({queryKey: ['saved-outfits', userId]});
     } catch (err) {
       console.error('❌ Error toggling favorite:', err);
     }

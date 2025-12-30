@@ -180,6 +180,7 @@ export default function SearchScreen({navigate, goBack}) {
       if (!res.ok) throw new Error('Failed to fetch wardrobe items');
       return res.json();
     },
+    staleTime: 30000, // 30 seconds - shared cache with Closet/Profile
   });
 
   const {data: savedOutfits = []} = useQuery<SavedOutfit[]>({
@@ -192,6 +193,7 @@ export default function SearchScreen({navigate, goBack}) {
       if (!res.ok) throw new Error('Failed to fetch saved outfits');
       return res.json();
     },
+    staleTime: 30000, // 30 seconds
   });
 
   const matchesQuery = (text: string | undefined): boolean =>

@@ -202,6 +202,7 @@ export default function ClosetScreen({navigate}: Props) {
       return res.json();
     },
     enabled: !!userId,
+    staleTime: 30000, // 30 seconds - prevent unnecessary refetches
   });
 
   const hSelect = () =>
@@ -214,7 +215,61 @@ export default function ClosetScreen({navigate}: Props) {
     mutationFn: async (id: string) => {
       await fetch(`${API_BASE_URL}/wardrobe/${id}`, {method: 'DELETE'});
     },
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
+      const prev = queryClient.getQueryData<WardrobeItem[]>(['wardrobe', userId]);
+      queryClient.setQueryData<WardrobeItem[]>(
+        ['wardrobe', userId],
+        old => old?.filter(item => item.id !== id) || [],
+      );
+      return {prev};
+    },
+    onError: (_err, _id, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(['wardrobe', userId], context.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      name,
+      color,
+    }: {
+      id: string;
+      name?: string;
+      color?: string;
+    }) => {
+      await fetch(`${API_BASE_URL}/wardrobe/${id}`, {
+        method: 'Put',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, color}),
+      });
+    },
+    onMutate: async ({id, name, color}) => {
+      await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
+      const prev = queryClient.getQueryData<WardrobeItem[]>(['wardrobe', userId]);
+      queryClient.setQueryData<WardrobeItem[]>(
+        ['wardrobe', userId],
+        old =>
+          old?.map(item =>
+            item.id === id
+              ? {...item, name: name ?? item.name, color: color ?? item.color}
+              : item,
+          ) || [],
+      );
+      return {prev};
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(['wardrobe', userId], context.prev);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
     },
   });
@@ -937,21 +992,12 @@ export default function ClosetScreen({navigate}: Props) {
 
               <AppleTouchFeedback
                 hapticStyle="impactLight"
-                onPress={async () => {
+                onPress={() => {
                   if (selectedItemToEdit) {
-                    await fetch(
-                      `${API_BASE_URL}/wardrobe/${selectedItemToEdit.id}`,
-                      {
-                        method: 'Put',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                          name: editedName || selectedItemToEdit.name,
-                          color: editedColor || selectedItemToEdit.color,
-                        }),
-                      },
-                    );
-                    queryClient.invalidateQueries({
-                      queryKey: ['wardrobe', userId],
+                    updateMutation.mutate({
+                      id: selectedItemToEdit.id,
+                      name: editedName || selectedItemToEdit.name,
+                      color: editedColor || selectedItemToEdit.color,
                     });
                     setShowEditModal(false);
                     setSelectedItemToEdit(null);

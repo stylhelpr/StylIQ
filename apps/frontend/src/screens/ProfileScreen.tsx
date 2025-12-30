@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
+import {useSavedLooks} from '../hooks/useHomeData';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth0} from 'react-native-auth0';
 import {useUUID} from '../context/UUIDContext';
@@ -90,13 +91,9 @@ export default function ProfileScreen({navigate}: Props) {
   const {styleProfile} = useStyleProfile(auth0Sub || '');
   const styleTags = styleProfile?.style_preferences || [];
 
-  const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
-  const [savedLooks, setSavedLooks] = useState<any[]>([]);
-  const [loadingSaved, setLoadingSaved] = useState(true);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedLook, setSelectedLook] = useState<any | null>(null);
   const [profilePicture, setProfilePicture] = useState<string>(''); // keep as string only
-  const [sharedLooks, setSharedLooks] = useState<any[]>([]);
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
     new Set(),
   );
@@ -104,6 +101,35 @@ export default function ProfileScreen({navigate}: Props) {
   const [followListModal, setFollowListModal] = useState<
     'followers' | 'following' | null
   >(null);
+
+  // TanStack Query hooks for saved/shared looks
+  const {data: savedLooks = [], isLoading: loadingSaved} = useSavedLooks(userId || '');
+
+  // Shared looks (community posts by user) - uses different structure than SharedLook type
+  const {data: sharedLooks = []} = useQuery<any[]>({
+    queryKey: ['sharedLooks', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const res = await fetch(
+        `${API_BASE_URL}/community/posts/by-user/${userId}?limit=20`,
+      );
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60000, // 1 minute
+  });
+
+  // Favorite brands query
+  const {data: favoriteBrands = []} = useQuery<string[]>({
+    queryKey: ['favoriteBrands', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/style-profile/${userId}/brands`);
+      const json = await res.json();
+      return Array.isArray(json.brands) ? json.brands : [];
+    },
+    staleTime: 60000, // 1 minute
+  });
 
   const HEADER_HEIGHT = 70; // adjust to your actual header height
   const BOTTOM_NAV_HEIGHT = 90; // adjust to your nav height
@@ -124,65 +150,6 @@ export default function ProfileScreen({navigate}: Props) {
   }, [userId]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Fetch favorite brands
-  // ─────────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/style-profile/${userId}/brands`,
-        );
-        const json = await res.json();
-        setFavoriteBrands(Array.isArray(json.brands) ? json.brands : []);
-      } catch {
-        setFavoriteBrands([]);
-      }
-    })();
-  }, [userId]);
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Fetch saved looks
-  // ─────────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/saved-looks/${userId}`);
-        if (!res.ok) throw new Error('Failed to fetch saved looks');
-        const data = await res.json();
-        setSavedLooks(data);
-      } catch {
-      } finally {
-        setLoadingSaved(false);
-      }
-    })();
-  }, [userId]);
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Fetch shared looks (user's community posts)
-  // ─────────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/community/posts/by-user/${userId}?limit=20`,
-        );
-        if (!res.ok) throw new Error('Failed to fetch shared looks');
-        const data = await res.json();
-        setSharedLooks(data);
-      } catch {
-        setSharedLooks([]);
-      }
-    })();
-  }, [userId]);
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Bio is fetched from userProfileRaw below and set via useEffect
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // ─────────────────────────────────────────────────────────────────────────────
   // Queries: profile, wardrobe, counts
   // ─────────────────────────────────────────────────────────────────────────────
   const {data: userProfileRaw} = useQuery<UserProfile>({
@@ -193,6 +160,7 @@ export default function ProfileScreen({navigate}: Props) {
       if (!res.ok) throw new Error('Failed to fetch user profile');
       return res.json();
     },
+    staleTime: 60000, // 1 minute
   });
 
   // Fetch community profile for follower/following counts
@@ -211,6 +179,7 @@ export default function ProfileScreen({navigate}: Props) {
         return {followers_count: 0, following_count: 0, posts_count: 0};
       return res.json();
     },
+    staleTime: 30000, // 30 seconds
   });
 
   // Fetch followers/following lists
@@ -289,6 +258,7 @@ export default function ProfileScreen({navigate}: Props) {
       if (!res.ok) throw new Error('Failed to fetch wardrobe');
       return res.json();
     },
+    staleTime: 30000, // 30 seconds - shared with ClosetScreen
   });
 
   const {data: totalFavorites = 0} = useQuery({
@@ -301,6 +271,7 @@ export default function ProfileScreen({navigate}: Props) {
       const data = await res.json();
       return data.count;
     },
+    staleTime: 30000, // 30 seconds
   });
 
   const {data: totalCustomOutfits = 0} = useQuery({
@@ -311,6 +282,7 @@ export default function ProfileScreen({navigate}: Props) {
       const data = await res.json();
       return data.count;
     },
+    staleTime: 30000, // 30 seconds
   });
 
   const totalItems = wardrobe.length;
