@@ -1,5 +1,14 @@
+import {useMemo} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '../lib/apiClient';
+
+// ─────────────────────────────────────────────────────────────
+// Stable empty arrays to prevent new references on every render
+// ─────────────────────────────────────────────────────────────
+const EMPTY_LOOK_MEMORY: LookMemory[] = [];
+const EMPTY_RECREATED_LOOKS: RecreatedLook[] = [];
+const EMPTY_SAVED_LOOKS: SavedLook[] = [];
+const EMPTY_SHARED_LOOKS: SharedLook[] = [];
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -76,7 +85,7 @@ export function useUserProfile(userId: string) {
  * Fetch user's look memory (recent vibes/outfit history)
  */
 export function useLookMemory(userId: string) {
-  return useQuery<LookMemory[], Error>({
+  const query = useQuery<LookMemory[], Error>({
     queryKey: ['look-memory', userId],
     queryFn: async () => {
       const res = await apiClient.get(`/users/${userId}/look-memory`);
@@ -89,6 +98,12 @@ export function useLookMemory(userId: string) {
     enabled: !!userId,
     staleTime: 30000, // 30 seconds
   });
+  // Use stable empty array when no data to prevent re-renders
+  const data = useMemo(
+    () => query.data ?? EMPTY_LOOK_MEMORY,
+    [query.data],
+  );
+  return {...query, data};
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -99,7 +114,7 @@ export function useLookMemory(userId: string) {
  * Fetch user's recreated looks (AI-generated outfits)
  */
 export function useRecreatedLooks(userId: string) {
-  return useQuery<RecreatedLook[], Error>({
+  const query = useQuery<RecreatedLook[], Error>({
     queryKey: ['recreated-looks', userId],
     queryFn: async () => {
       const res = await apiClient.get(`/users/${userId}/recreated-looks`);
@@ -111,6 +126,12 @@ export function useRecreatedLooks(userId: string) {
     enabled: !!userId,
     staleTime: 30000,
   });
+  // Use stable empty array when no data to prevent re-renders
+  const data = useMemo(
+    () => query.data ?? EMPTY_RECREATED_LOOKS,
+    [query.data],
+  );
+  return {...query, data};
 }
 
 /**
@@ -244,7 +265,7 @@ export function useRenameRecreatedLook() {
  * Fetch user's saved/inspired looks
  */
 export function useSavedLooks(userId: string) {
-  return useQuery<SavedLook[], Error>({
+  const query = useQuery<SavedLook[], Error>({
     queryKey: ['saved-looks', userId],
     queryFn: async () => {
       const res = await apiClient.get(`/saved-looks/${userId}`);
@@ -253,6 +274,12 @@ export function useSavedLooks(userId: string) {
     enabled: !!userId,
     staleTime: 30000,
   });
+  // Use stable empty array when no data to prevent re-renders
+  const data = useMemo(
+    () => query.data ?? EMPTY_SAVED_LOOKS,
+    [query.data],
+  );
+  return {...query, data};
 }
 
 /**
@@ -382,7 +409,7 @@ export function useSaveLookMemory() {
  * Fetch user's shared looks (community posts)
  */
 export function useSharedLooks(userId: string) {
-  return useQuery<SharedLook[], Error>({
+  const query = useQuery<SharedLook[], Error>({
     queryKey: ['shared-looks', userId],
     queryFn: async () => {
       const res = await apiClient.get(
@@ -393,6 +420,12 @@ export function useSharedLooks(userId: string) {
     enabled: !!userId,
     staleTime: 30000,
   });
+  // Use stable empty array when no data to prevent re-renders
+  const data = useMemo(
+    () => query.data ?? EMPTY_SHARED_LOOKS,
+    [query.data],
+  );
+  return {...query, data};
 }
 
 // ─────────────────────────────────────────────────────────────

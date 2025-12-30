@@ -409,9 +409,16 @@ export default function ExploreScreen() {
   const [addError, setAddError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Memoize sources array to prevent infinite re-renders
+  const feedSourcesForQuery = useMemo(
+    () => feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
+    [feedsForTab],
+  );
+  const feedOpts = useMemo(() => ({userId}), [userId]);
+
   const {articles, loading, refresh} = useFashionFeeds(
-    feedsForTab.map(fs => ({name: fs.name, url: fs.url})),
-    {userId},
+    feedSourcesForQuery,
+    feedOpts,
   );
 
   const HEADER_HEIGHT = 70; // adjust to your actual header height

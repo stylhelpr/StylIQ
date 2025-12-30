@@ -134,6 +134,119 @@ const ScalePressable = ({
   );
 };
 
+// Memoized Hero Carousel - prevents parent re-renders when image changes
+const HeroCarousel = React.memo(({
+  fashionImages,
+  fashionTexts,
+  scrollActiveScale,
+  scrollY,
+}: {
+  fashionImages: any[];
+  fashionTexts: {title: string; subtitle: string}[];
+  scrollActiveScale: Animated.Value;
+  scrollY: Animated.Value;
+}) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const heroFadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (fashionImages.length <= 1) return;
+
+    const interval = setInterval(() => {
+      Animated.timing(heroFadeAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }).start(() => {
+        setCurrentImageIndex(prev => (prev + 1) % fashionImages.length);
+        Animated.timing(heroFadeAnim, {
+          toValue: 1,
+          duration: 1200,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [fashionImages.length, heroFadeAnim]);
+
+  return (
+    <Animated.View
+      style={{
+        overflow: 'hidden',
+        borderRadius: tokens.borderRadius.xxxl,
+        transform: [
+          {
+            translateY: scrollY.interpolate({
+              inputRange: [0, 100],
+              outputRange: [0, -10],
+              extrapolate: 'clamp',
+            }),
+          },
+          {
+            scale: scrollActiveScale,
+          },
+        ],
+      }}>
+      <View style={{width: '100%', height: 300, overflow: 'hidden'}}>
+        <Animated.Image
+          source={fashionImages[currentImageIndex]}
+          style={{
+            width: '100%',
+            height: '100%',
+            opacity: heroFadeAnim,
+          }}
+          resizeMode="cover"
+        />
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.15)',
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: moderateScale(tokens.spacing.md),
+            paddingBottom: moderateScale(tokens.spacing.lg),
+          }}>
+          <Text
+            style={{
+              fontSize: fontScale(tokens.fontSize['2.5xl']),
+              fontWeight: tokens.fontWeight.bold,
+              color: '#ffffff',
+              marginBottom: moderateScale(tokens.spacing.sm),
+              textShadowColor: 'rgba(0, 0, 0, 0.5)',
+              textShadowOffset: {width: 0, height: 2},
+              textShadowRadius: 4,
+            }}>
+            {fashionTexts[currentImageIndex % fashionTexts.length].title}
+          </Text>
+          <Text
+            style={{
+              color: 'rgba(255, 255, 255, 1)',
+              fontSize: fontScale(tokens.fontSize.md),
+              fontWeight: tokens.fontWeight.semiBold,
+              lineHeight: 18,
+              textShadowColor: 'rgba(0, 0, 0, 0.4)',
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: 3,
+            }}>
+            {fashionTexts[currentImageIndex % fashionTexts.length].subtitle}
+          </Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+});
+
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -400,10 +513,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [shoppedOpen, setShoppedOpen] = useState(true);
   const [sharedOpen, setSharedOpen] = useState(true);
 
-  // Fashion hero carousel state
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const heroFadeAnim = useRef(new Animated.Value(1)).current;
-  const heroBlurAnim = useRef(new Animated.Value(0)).current;
+  // Carousel scroll refs - preserve position across re-renders
+  const inspiredScrollRef = useRef<ScrollView>(null);
+  const recreatedScrollRef = useRef<ScrollView>(null);
+  const sharedScrollRef = useRef<ScrollView>(null);
+  const inspiredScrollPos = useRef(0);
+  const recreatedScrollPos = useRef(0);
+  const sharedScrollPos = useRef(0);
 
   // Fashion hero text messages
   const fashionTexts = [
@@ -477,24 +593,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
   // 🗣️ Enable voice control for HomeScreen
   // All voice commands are centralized in VoiceContext.ts → HOME_VOICE_COMMANDS
-  useHomeVoiceCommands({
-    // Modals
-    setImageModalVisible,
-    setSaveModalVisible,
-    setShopVisible,
-    // Map
-    toggleMap,
-    setMapOpen,
-    // Collapsible sections
-    setSavedOpen,
-    setCreatedOpen,
-    setShoppedOpen,
-    // Hero carousel
-    setCurrentImageIndex,
-    heroImageCount: fashionImages.length,
-    // Navigation
-    navigate,
-  });
+  useHomeVoiceCommands(setImageModalVisible, setSaveModalVisible, navigate);
 
   useEffect(() => {
     const restoreSectionsState = async () => {
@@ -512,28 +611,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     restoreSectionsState();
   }, []);
 
-  // Fashion hero carousel auto-cycle effect
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Fade out current image
-      Animated.timing(heroFadeAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }).start(() => {
-        // Switch to next image
-        setCurrentImageIndex(prev => (prev + 1) % fashionImages.length);
-        // Fade in new image
-        Animated.timing(heroFadeAnim, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }).start();
-      });
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [fashionImages.length, heroFadeAnim]);
-
   const {recreateLook, loading: recreating} = useRecreateLook();
   const [recreatedData, setRecreatedData] = useState<any | null>(null);
   const [showRecreatedModal, setShowRecreatedModal] = useState(false);
@@ -541,10 +618,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [shopVisible, setShopVisible] = useState(false);
 
   // 🎯 TanStack Query: Look memory, recreated looks, saved looks, shared looks
-  const {data: lookMemoryData = [], isLoading: loadingVibes} = useLookMemory(userId ?? '');
-  const {data: recreatedLooksData = [], isLoading: loadingCreations, refetch: refetchRecreatedLooks} = useRecreatedLooks(userId ?? '');
-  const {data: savedLooksData = [], refetch: refetchSavedLooks} = useSavedLooks(userId ?? '');
-  const {data: sharedLooksData = []} = useSharedLooks(userId ?? '');
+  // Note: hooks return stable empty arrays, no need for = [] defaults here
+  const {data: lookMemoryData, isLoading: loadingVibes} = useLookMemory(userId ?? '');
+  const {data: recreatedLooksData, isLoading: loadingCreations, refetch: refetchRecreatedLooks} = useRecreatedLooks(userId ?? '');
+  const {data: savedLooksData, refetch: refetchSavedLooks} = useSavedLooks(userId ?? '');
+  const {data: sharedLooksData} = useSharedLooks(userId ?? '');
 
   // TanStack Query mutations
   const saveRecreatedLookMutation = useSaveRecreatedLook();
@@ -552,28 +630,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const renameRecreatedLookMutation = useRenameRecreatedLook();
   const deleteSavedLookMutation = useDeleteSavedLook();
 
-  // Keep local state for UI updates (derived from query data)
-  const [recentVibes, setRecentVibes] = useState<any[]>([]);
-  const [recentCreations, setRecentCreations] = useState<any[]>([]);
-  const [savedLooks, setSavedLooks] = useState<any[]>([]);
-  const [sharedLooks, setSharedLooks] = useState<any[]>([]);
-
-  // Sync TanStack Query data to local state
-  useEffect(() => {
-    if (lookMemoryData.length > 0) setRecentVibes(lookMemoryData);
-  }, [lookMemoryData]);
-
-  useEffect(() => {
-    if (recreatedLooksData.length > 0) setRecentCreations(recreatedLooksData);
-  }, [recreatedLooksData]);
-
-  useEffect(() => {
-    if (savedLooksData.length > 0) setSavedLooks(savedLooksData);
-  }, [savedLooksData]);
-
-  useEffect(() => {
-    if (sharedLooksData.length > 0) setSharedLooks(sharedLooksData);
-  }, [sharedLooksData]);
+  // Use TanStack Query data directly - no local state sync needed
+  // This prevents unnecessary re-renders that cause image flashing
+  const recentVibes = lookMemoryData;
+  const recentCreations = recreatedLooksData;
+  const savedLooks = savedLooksData;
+  const sharedLooks = sharedLooksData;
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
     new Set(),
   );
@@ -1442,98 +1504,14 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             </AppleTouchFeedback>
           </View>
 
-          {/* <View style={globalStyles.section}> */}
+          {/* Hero Carousel - Memoized to prevent re-renders from interval */}
           <View style={globalStyles.section}>
-            <Animated.View
-              style={{
-                overflow: 'hidden',
-                // marginBottom: 8,
-                borderRadius: tokens.borderRadius.xxxl,
-                // borderRadius: tokens.borderRadius.lg,
-                transform: [
-                  {
-                    translateY: scrollY.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: [0, -10],
-                      extrapolate: 'clamp',
-                    }),
-                  },
-                  {
-                    scale: scrollActiveScale,
-                  },
-                ],
-              }}>
-              <View style={{width: '100%', height: 300, overflow: 'hidden'}}>
-                <Animated.Image
-                  key={`hero-image-${currentImageIndex}`}
-                  source={fashionImages[currentImageIndex]}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    opacity: heroFadeAnim,
-                  }}
-                  resizeMode="cover"
-                />
-                {/* Light tinted overlay for better text visibility */}
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-                  }}
-                />
-                <Animatable.View
-                  key={`hero-text-${currentImageIndex}`}
-                  animation="fadeInUp"
-                  duration={1200}
-                  delay={200}
-                  useNativeDriver
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    paddingHorizontal: moderateScale(tokens.spacing.md),
-                    paddingBottom: moderateScale(tokens.spacing.lg),
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: fontScale(tokens.fontSize['2.5xl']),
-                      fontWeight: tokens.fontWeight.bold,
-                      color: '#ffffff',
-                      marginBottom: moderateScale(tokens.spacing.sm),
-                      textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                      textShadowOffset: {width: 0, height: 2},
-                      textShadowRadius: 4,
-                      // textTransform: 'uppercase',
-                    }}>
-                    {
-                      fashionTexts[currentImageIndex % fashionTexts.length]
-                        .title
-                    }
-                  </Text>
-                  <Text
-                    style={{
-                      color: 'rgba(255, 255, 255, 1)',
-                      fontSize: fontScale(tokens.fontSize.md),
-                      fontWeight: tokens.fontWeight.semiBold,
-
-                      lineHeight: 18,
-                      textShadowColor: 'rgba(0, 0, 0, 0.4)',
-                      textShadowOffset: {width: 0, height: 1},
-                      textShadowRadius: 3,
-                    }}>
-                    {
-                      fashionTexts[currentImageIndex % fashionTexts.length]
-                        .subtitle
-                    }
-                  </Text>
-                </Animatable.View>
-              </View>
-            </Animated.View>
+            <HeroCarousel
+              fashionImages={fashionImages}
+              fashionTexts={fashionTexts}
+              scrollActiveScale={scrollActiveScale}
+              scrollY={scrollY}
+            />
           </View>
 
           {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
@@ -2079,8 +2057,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       </View>
                     ) : (
                       <ScrollView
+                        ref={inspiredScrollRef}
                         horizontal
                         showsHorizontalScrollIndicator={false}
+                        onScroll={e => {
+                          inspiredScrollPos.current = e.nativeEvent.contentOffset.x;
+                        }}
+                        scrollEventThrottle={16}
+                        onLayout={() => {
+                          if (inspiredScrollPos.current > 0) {
+                            inspiredScrollRef.current?.scrollTo({
+                              x: inspiredScrollPos.current,
+                              animated: false,
+                            });
+                          }
+                        }}
                         contentContainerStyle={{
                           paddingRight: moderateScale(tokens.spacing.xs),
                         }}>
@@ -2175,8 +2166,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       </View>
                     ) : (
                       <ScrollView
+                        ref={recreatedScrollRef}
                         horizontal
                         showsHorizontalScrollIndicator={false}
+                        onScroll={e => {
+                          recreatedScrollPos.current = e.nativeEvent.contentOffset.x;
+                        }}
+                        scrollEventThrottle={16}
+                        onLayout={() => {
+                          if (recreatedScrollPos.current > 0) {
+                            recreatedScrollRef.current?.scrollTo({
+                              x: recreatedScrollPos.current,
+                              animated: false,
+                            });
+                          }
+                        }}
                         contentContainerStyle={{
                           paddingRight: moderateScale(tokens.spacing.xs),
                         }}>
@@ -2281,8 +2285,21 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     </View>
                   ) : (
                     <ScrollView
+                      ref={sharedScrollRef}
                       horizontal
                       showsHorizontalScrollIndicator={false}
+                      onScroll={e => {
+                        sharedScrollPos.current = e.nativeEvent.contentOffset.x;
+                      }}
+                      scrollEventThrottle={16}
+                      onLayout={() => {
+                        if (sharedScrollPos.current > 0) {
+                          sharedScrollRef.current?.scrollTo({
+                            x: sharedScrollPos.current,
+                            animated: false,
+                          });
+                        }
+                      }}
                       contentContainerStyle={{paddingRight: 8}}>
                       {sharedLooks
                         .filter(look => !hiddenSharedLooks.has(look.id))

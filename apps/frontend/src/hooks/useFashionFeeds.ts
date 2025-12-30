@@ -1,7 +1,11 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {XMLParser} from 'fast-xml-parser';
 import dayjs from 'dayjs';
 import {API_BASE_URL} from '../config/api';
+
+// Stable empty array to avoid new reference on every render
+const EMPTY_ARTICLES: Article[] = [];
 
 export type Article = {
   id: string;
@@ -180,25 +184,23 @@ function buildTrending(articles: Article[], windowHours = 72): string[] {
 }
 
 export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const loadingRef = useRef(false);
+  // Stable key based on sources array
+  const sourcesKey = JSON.stringify(sources);
 
-  const load = useCallback(async () => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
+  const {
+    data: articles = EMPTY_ARTICLES,
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery<Article[], Error>({
+    queryKey: ['fashion-feeds', sourcesKey, opts?.userId],
+    queryFn: async () => {
+      if (!sources || sources.length === 0) {
+        return [];
+      }
 
-    if (!sources || sources.length === 0) {
-      loadingRef.current = false;
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
       const batches = await Promise.all(sources.map(fetchFeed));
-      const merged = [...batches.flat()]
+      return [...batches.flat()]
         .filter(a => !!a.title && !!a.link)
         .reduce<Article[]>((acc, cur) => {
           if (!acc.find(x => x.id === cur.id)) acc.push(cur);
@@ -209,30 +211,21 @@ export function useFashionFeeds(sources: Source[], opts?: {userId?: string}) {
           const bt = b.publishedAt ? +new Date(b.publishedAt) : 0;
           return bt - at;
         });
-
-      setArticles(merged);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to load feeds');
-    } finally {
-      setLoading(false);
-      loadingRef.current = false;
-    }
-  }, [sources]);
-
-  useEffect(() => {
-    load();
-    // ✅ run only when sources array *length or values* change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(sources), opts?.userId]);
+    },
+    enabled: sources.length > 0,
+    staleTime: 300000, // 5 minutes - feeds don't update that frequently
+    retry: 1, // Only retry once on failure
+  });
 
   const trending = useMemo(() => buildTrending(articles), [articles]);
 
+  // Keep the same return interface for backwards compatibility
   return {
     articles,
     trending,
     loading,
-    error,
-    refresh: load,
+    error: queryError?.message ?? null,
+    refresh: refetch,
     loadMore: () => {},
     hasMore: false,
   };
