@@ -593,26 +593,28 @@ export default function NotesScreen({navigate}: Props) {
     statsRow: {
       flexDirection: 'row',
       marginBottom: 20,
-      gap: 12,
+      gap: 10,
     },
     statCard: {
       flex: 1,
-      backgroundColor: theme.colors.surface,
+      // backgroundColor: '#ff6806',
+      backgroundColor: theme.colors.button1,
       borderRadius: 16,
       padding: 16,
       alignItems: 'center',
     },
     statNumber: {
       fontSize: 28,
-      fontWeight: '800',
-      color: theme.colors.primary,
+      color: theme.colors.foreground,
+      fontWeight: '700',
     },
     statLabel: {
       fontSize: 12,
-      color: colors.muted,
+      color: theme.colors.foreground,
       marginTop: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
+      fontWeight: '700',
     },
     sectionHeader: {
       flexDirection: 'row',
@@ -703,7 +705,7 @@ export default function NotesScreen({navigate}: Props) {
     gridCardPreview: {
       fontSize: 14,
       color: colors.muted,
-      lineHeight: 17,
+      lineHeight: 18,
       fontWeight: '500',
     },
     gridCardFooter: {

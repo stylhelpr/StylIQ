@@ -1767,7 +1767,7 @@ export default function SavedOutfitsScreen() {
                           <View
                             style={{
                               flexDirection: 'row',
-                              paddingVertical: 1,
+                              // paddingVertical: 1,
                               alignItems: 'center',
                             }}>
                             {/* Left 50% */}
@@ -1827,8 +1827,8 @@ export default function SavedOutfitsScreen() {
                                 }}
                                 delayLongPress={500}
                                 style={{
-                                  paddingVertical: 7,
-                                  borderRadius: 50,
+                                  paddingVertical: 5,
+                                  borderRadius: 8,
                                   paddingHorizontal: 12,
                                   backgroundColor:
                                     theme.colors.button1 ?? 'rgba(43,43,43,1)',
@@ -1846,7 +1846,7 @@ export default function SavedOutfitsScreen() {
                                     flexDirection: 'row',
                                     alignItems: 'center',
                                     backgroundColor: theme.colors.surface,
-                                    paddingHorizontal: 8,
+                                    paddingHorizontal: 9,
                                     borderRadius: 12,
                                   }}>
                                   <Text
@@ -1886,9 +1886,9 @@ export default function SavedOutfitsScreen() {
                                         OCCASION_CONFIG[outfit.occasion].color
                                       }`,
                                       paddingHorizontal: 14,
-                                      paddingVertical: 10,
+                                      paddingVertical: 9,
                                       borderRadius: 50,
-                                      borderWidth: 1,
+                                      // borderWidth: 1,
                                     }}>
                                     <MaterialIcons
                                       name={
