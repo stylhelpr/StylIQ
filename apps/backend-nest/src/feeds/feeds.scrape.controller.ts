@@ -8,7 +8,9 @@ import {
 import * as puppeteer from 'puppeteer';
 import * as cheerio from 'cheerio';
 import { FeedsScrapeService } from './feeds.scrap.service';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
+@SkipAuth() // Public feed scraping - no user data
 @Controller('feeds')
 export class FeedScrapeController {
   constructor(private readonly feedsScrapeService: FeedsScrapeService) {}

@@ -8,12 +8,14 @@ import {
   Get,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FastifyRequest } from 'fastify';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
 import { Delete, Param } from '@nestjs/common';
 import { Readable } from 'stream';
 
+@Throttle({ default: { limit: 15, ttl: 60000 } }) // 15 requests per minute for AI endpoints
 @Controller('ai')
 export class AiController {
   aiService: any;

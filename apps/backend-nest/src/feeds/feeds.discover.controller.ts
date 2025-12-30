@@ -10,6 +10,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as cheerio from 'cheerio';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
 type FeedHit = { title: string; href: string };
 type DebugLine =
@@ -23,6 +24,7 @@ function pushDbg(dbg: DebugLine[], t: DebugLine['t'], msg: string, data?: any) {
 const IOS_SAFARI_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
 
+@SkipAuth()
 @Controller('feeds')
 export class FeedDiscoverController {
   // ─────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -22,10 +23,10 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMe(@Req() req) {
-    const sub = req.user?.sub;
-    if (!sub) return null;
+    const userId = req.user?.userId;
+    if (!userId) return null;
 
-    const user = await this.service.findByAuth0Sub(sub);
+    const user = await this.service.findById(userId);
     if (!user) return null;
 
     // ✅ Return theme_mode and bio too
@@ -54,11 +55,13 @@ export class UsersController {
     return this.service.findByAuth0Sub(sub);
   }
 
+  @SkipAuth()
   @Post()
   create(@Body() dto: CreateUserDto) {
     return this.service.create(dto);
   }
 
+  @SkipAuth()
   @Post('sync')
   async sync(@Body() dto: CreateUserDto) {
     // console.log('🟡 SYNC REQUEST BODY:', dto);
@@ -69,11 +72,8 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Put('me')
   async updateMe(@Req() req, @Body() body: any) {
-    const sub = req.user?.sub;
-    if (!sub) return null;
-
-    const user = await this.service.findByAuth0Sub(sub);
-    if (!user) return null;
+    const userId = req.user?.userId;
+    if (!userId) return null;
 
     const allowed = new Set([
       'first_name',
@@ -99,7 +99,7 @@ export class UsersController {
     }
 
     console.log('📝 PUT /users/me dto =', dto);
-    return this.service.update(user.id, dto);
+    return this.service.update(userId, dto);
   }
 
   // ✅ Update any user by ID (also supports theme_mode)

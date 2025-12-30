@@ -9,6 +9,7 @@ import {
   Delete,
   Put,
   Query,
+  Req,
 } from '@nestjs/common';
 import { WardrobeService } from './wardrobe.service';
 import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
@@ -19,6 +20,7 @@ import {
   AnalyzeImageRequestDto,
   AnalyzeImageResponseDto,
 } from './dto/analyze-image.dto';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
 // ─────────────────────────────────────────────────────────────
 // Normalizer: coerce whatever the client sends into UserStyle
@@ -61,6 +63,7 @@ function normalizeUserStyle(
   return Object.keys(out).length ? out : undefined;
 }
 
+@SkipAuth() // TODO: Remove after frontend sends auth headers
 @Controller('wardrobe')
 export class WardrobeController {
   constructor(
@@ -73,13 +76,32 @@ export class WardrobeController {
     return this.service.createItem(dto);
   }
 
-  @Get(':user_id')
-  getByUser(@Param('user_id') userId: string) {
+  // IMPORTANT: Static routes MUST come before dynamic :param routes
+  @Get()
+  getByUserQuery(@Req() req, @Query('user_id') queryUserId: string) {
+    const userId = req.user?.userId ?? queryUserId;
+    if (!userId) return [];
     return this.service.getItemsByUser(userId);
   }
 
-  @Get()
-  getByUserQuery(@Query('user_id') userId: string) {
+  // Brands routes - static path, must be before :user_id
+  @Get('brands/:user_id')
+  getBrandsParam(@Req() req, @Param('user_id') paramUserId: string) {
+    const userId = req.user?.userId ?? paramUserId;
+    return this.service.getWardrobeBrands(userId);
+  }
+
+  @Get('brands')
+  getBrandsQuery(@Req() req, @Query('user_id') queryUserId: string) {
+    const userId = req.user?.userId ?? queryUserId;
+    return this.service.getWardrobeBrands(userId);
+  }
+
+  // Dynamic param route - must come LAST after all static GET routes
+  @Get(':user_id')
+  getByUser(@Req() req, @Param('user_id') paramUserId: string) {
+    const userId = req.user?.userId ?? paramUserId;
+    if (!userId) return [];
     return this.service.getItemsByUser(userId);
   }
 
@@ -204,16 +226,6 @@ export class WardrobeController {
     return this.service.updateFavorite(itemId, body.favorite);
   }
 
-  // 👉 NEW: brands endpoints to support the modal fetch
-  @Get('brands/:user_id')
-  getBrandsParam(@Param('user_id') userId: string) {
-    return this.service.getWardrobeBrands(userId);
-  }
-
-  @Get('brands')
-  getBrandsQuery(@Query('user_id') userId: string) {
-    return this.service.getWardrobeBrands(userId);
-  }
 }
 
 /////////////////////

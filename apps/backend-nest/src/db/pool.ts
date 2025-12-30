@@ -46,9 +46,12 @@ export function createPoolConfig(): PoolConfig {
     connectionString,
     ssl: getSSLConfig(),
     // Connection pool settings
-    max: 20,
+    max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 5000,
+    // Keep-alive settings to prevent connection timeouts
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
   };
 }
 
@@ -57,8 +60,8 @@ export function createPoolConfig(): PoolConfig {
  * All services should import this pool instead of creating their own.
  *
  * Usage:
- *   import { pool } from '../db/pool';
- *   const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+ *   import { pool, safeQuery } from '../db/pool';
+ *   const result = await safeQuery('SELECT * FROM users WHERE id = $1', [userId]);
  */
 export const pool = new Pool(createPoolConfig());
 
@@ -72,3 +75,21 @@ pool.on('connect', () => {
 pool.on('error', (err) => {
   console.error('❌ Unexpected PostgreSQL pool error:', err);
 });
+
+/**
+ * Safe query wrapper that handles connection timeouts gracefully.
+ * Use this for read operations where returning empty/null is acceptable on failure.
+ * For write operations, use pool.query directly and handle errors appropriately.
+ */
+export async function safeQuery<T = any>(
+  text: string,
+  params?: any[],
+  fallback: T[] = [] as T[],
+): Promise<{ rows: T[] }> {
+  try {
+    return await pool.query(text, params);
+  } catch (err) {
+    console.error('⚠️ Database query failed (returning fallback):', err);
+    return { rows: fallback };
+  }
+}

@@ -23,7 +23,9 @@
 
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { ContactDto } from './dto/contact.dto';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
+@SkipAuth()
 @Controller('contact')
 export class ContactController {
   @Post()

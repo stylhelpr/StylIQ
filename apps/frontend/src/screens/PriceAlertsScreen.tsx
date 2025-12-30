@@ -1,21 +1,19 @@
-import React, { useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   FlatList,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
 import { useAppTheme } from '../context/ThemeContext';
 import { tokens } from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import { usePriceAlerts } from '../hooks/usePriceAlerts';
-import { useAuthStore } from '../../../store/authStore';
+import { getAccessToken } from '../utils/auth';
 
 type Props = {
   navigate?: (screen: any, params?: any) => void;
@@ -23,23 +21,24 @@ type Props = {
 
 export default function PriceAlertsScreen({ navigate }: Props) {
   const { theme } = useAppTheme();
-  const { token } = useAuthStore();
+  const [token, setToken] = useState<string | undefined>(undefined);
+
+  // Get token on mount
+  useEffect(() => {
+    getAccessToken()
+      .then(t => setToken(t))
+      .catch(() => setToken(undefined));
+  }, []);
+
+  // Pass token to hook - TanStack Query handles automatic fetching
   const {
     alerts,
-    loading,
-    error,
-    fetchAlerts,
     deleteAlert,
     updatePriceAlert,
     getAlertsWithPriceDrop,
-    getPriceChangePercent,
-  } = usePriceAlerts();
+  } = usePriceAlerts(token);
 
-  useEffect(() => {
-    if (token) {
-      fetchAlerts(token);
-    }
-  }, [token, fetchAlerts]);
+  // No need for manual fetch useEffect - TanStack Query auto-fetches when token is available
 
   const handleDeleteAlert = (alertId: number, title: string) => {
     Alert.alert(
@@ -50,12 +49,11 @@ export default function PriceAlertsScreen({ navigate }: Props) {
         {
           text: 'Remove',
           onPress: async () => {
-            if (token) {
-              try {
-                await deleteAlert(token, alertId);
-              } catch (err) {
-                console.error('Failed to delete alert:', err);
-              }
+            try {
+              // Token is passed via hook, use empty string for backward compatibility
+              await deleteAlert('', alertId);
+            } catch (err) {
+              console.error('Failed to delete alert:', err);
             }
           },
           style: 'destructive',
@@ -65,12 +63,11 @@ export default function PriceAlertsScreen({ navigate }: Props) {
   };
 
   const handleToggleAlert = async (alertId: number, currentEnabled: boolean) => {
-    if (token) {
-      try {
-        await updatePriceAlert(token, alertId, { enabled: !currentEnabled });
-      } catch (err) {
-        console.error('Failed to toggle alert:', err);
-      }
+    try {
+      // Token is passed via hook, use empty string for backward compatibility
+      await updatePriceAlert('', alertId, { enabled: !currentEnabled });
+    } catch (err) {
+      console.error('Failed to toggle alert:', err);
     }
   };
 

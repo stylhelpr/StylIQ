@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {AuthGuard} from '@nestjs/passport';
 import {ConnectedAccountsService, SocialPlatform} from './connected-accounts.service';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
 interface ConnectAccountDto {
   platform: SocialPlatform;
@@ -145,6 +146,7 @@ export class ConnectedAccountsController {
    * Social platforms redirect here with an authorization code that can be exchanged for an access token
    * Returns HTML that redirects back to the mobile app via deep linking
    */
+  @SkipAuth()
   @Get('oauth/callback/:platform')
   async handleOAuthCallback(
     @Param('platform') platform: string,

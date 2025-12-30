@@ -5,7 +5,9 @@ import {
   Query,
 } from '@nestjs/common';
 import { CommunityService } from './community.service';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
+@SkipAuth() // Public community feed - read-only, no user-specific data exposed
 @Controller('community')
 export class CommunityPublicController {
   constructor(private readonly service: CommunityService) {}

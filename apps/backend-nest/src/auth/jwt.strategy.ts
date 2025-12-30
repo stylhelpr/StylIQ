@@ -28,19 +28,28 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid token: missing subject');
     }
 
-    // Resolve Auth0 sub → internal UUID (ONCE, at auth boundary)
-    const result = await pool.query(
-      'SELECT id FROM users WHERE auth0_sub = $1',
-      [auth0Sub],
-    );
+    try {
+      // Resolve Auth0 sub → internal UUID (ONCE, at auth boundary)
+      const result = await pool.query(
+        'SELECT id FROM users WHERE auth0_sub = $1',
+        [auth0Sub],
+      );
 
-    if (result.rows.length === 0) {
-      throw new UnauthorizedException('User not found');
+      if (result.rows.length === 0) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Return ONLY internal UUID - Auth0 sub never leaves auth layer
+      return {
+        userId: result.rows[0].id,
+      };
+    } catch (err) {
+      // Wrap DB errors as UnauthorizedException to prevent pg errors from bubbling up
+      if (err instanceof UnauthorizedException) {
+        throw err;
+      }
+      console.error('JWT validation DB error:', err);
+      throw new UnauthorizedException('Authentication failed');
     }
-
-    // Return ONLY internal UUID - Auth0 sub never leaves auth layer
-    return {
-      userId: result.rows[0].id,
-    };
   }
 }

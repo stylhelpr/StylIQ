@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateSavedLookDto } from './dto/create-saved-look.dto';
 import { UpdateSavedLookDto } from './dto/update-saved-look.dto';
-import { pool } from '../db/pool';
+import { pool, safeQuery } from '../db/pool';
 
 @Injectable()
 export class SavedLookService {
@@ -23,13 +23,13 @@ export class SavedLookService {
   }
 
   async getByUser(userId: string) {
-    const res = await pool.query(
+    // Use safeQuery to handle connection timeouts gracefully (returns [] on failure)
+    const res = await safeQuery(
       `SELECT * FROM saved_looks
        WHERE user_id = $1
        ORDER BY created_at DESC`,
       [userId],
     );
-    // console.log('✅ Saved looks found:', res.rows);
     return res.rows;
   }
 

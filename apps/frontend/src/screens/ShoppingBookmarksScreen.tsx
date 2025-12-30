@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   Alert,
   TextInput,
 } from 'react-native';
@@ -19,6 +18,7 @@ import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import PriceAlertModal from '../components/PriceAlertModal/PriceAlertModal';
 import {usePriceAlerts} from '../hooks/usePriceAlerts';
+import {getAccessToken} from '../utils/auth';
 
 type Props = {
   navigate?: (screen: any, params?: any) => void;
@@ -27,13 +27,20 @@ type Props = {
 export default function ShoppingBookmarksScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
-  const {bookmarks, removeBookmark, history} = useShoppingStore();
+  const {bookmarks, removeBookmark} = useShoppingStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'brand' | 'name'>('recent');
-  const {createAlert} = usePriceAlerts();
+  const [token, setToken] = useState<string | undefined>(undefined);
+  const {createAlert, isCreating} = usePriceAlerts(token);
   const [alertModalVisible, setAlertModalVisible] = useState(false);
   const [selectedBookmark, setSelectedBookmark] = useState<any>(null);
-  const [isCreatingAlert, setIsCreatingAlert] = useState(false);
+
+  // Get token on mount
+  useEffect(() => {
+    getAccessToken()
+      .then(t => setToken(t))
+      .catch(() => setToken(undefined));
+  }, []);
 
   // Track page view on mount
   useEffect(() => {
@@ -383,9 +390,9 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
         onDismiss={() => setAlertModalVisible(false)}
         onConfirm={async targetPrice => {
           if (selectedBookmark) {
-            setIsCreatingAlert(true);
             try {
-              await createAlert('dummy-token', {
+              // Token is passed via hook, use empty string for backward compatibility
+              await createAlert('', {
                 url: selectedBookmark.url,
                 title: selectedBookmark.title,
                 currentPrice: selectedBookmark.price || 0,
@@ -393,14 +400,13 @@ export default function ShoppingBookmarksScreen({navigate}: Props) {
                 brand: selectedBookmark.brand,
                 source: selectedBookmark.source,
               });
+              setAlertModalVisible(false);
             } catch (err) {
               console.error('Failed to create alert:', err);
-            } finally {
-              setIsCreatingAlert(false);
             }
           }
         }}
-        isLoading={isCreatingAlert}
+        isLoading={isCreating}
       />
     </SafeAreaView>
   );

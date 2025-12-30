@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import { Response } from 'express';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
+@SkipAuth() // Share links are public
 @Controller('share')
 export class ShareController {
   @Get('look/:id')

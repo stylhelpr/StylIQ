@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { DatabaseService } from './db/database.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -115,6 +116,12 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     AppService,
     DatabaseService,
     ScheduledOutfitNotifier,
+    // Global JWT auth guard - TEMPORARILY DISABLED FOR DEV
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: JwtAuthGuard,
+    // },
+    // Global rate limiting
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

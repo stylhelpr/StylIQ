@@ -1,7 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ProductSearchService } from './product-search.service';
 import { ShopbyProductSearchService } from './shopby-product-search.service';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
+@SkipAuth()
 @Controller('products')
 export class ProductsController {
   constructor(
