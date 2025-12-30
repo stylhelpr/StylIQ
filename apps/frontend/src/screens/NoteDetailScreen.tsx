@@ -21,22 +21,9 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
-import {API_BASE_URL} from '../config/api';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {uploadImageToGCS} from '../api/uploadImageToGCS';
-import {useNotesStore} from '../../../../store/notesStore';
-
-type SavedNote = {
-  id: string;
-  user_id: string;
-  url?: string;
-  title?: string;
-  content?: string;
-  tags?: string[];
-  image_url?: string;
-  created_at: string;
-  updated_at: string;
-};
+import {useUpdateNote, useDeleteNote, SavedNote} from '../hooks/useSavedNotes';
 
 type Props = {
   navigate: (screen: any, params?: any) => void;
@@ -50,7 +37,8 @@ export default function NoteDetailScreen({navigate, params}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const note = params?.note;
-  const {updateNote, removeNote} = useNotesStore();
+  const updateNoteMutation = useUpdateNote();
+  const deleteNoteMutation = useDeleteNote();
 
   const [title, setTitle] = useState(note?.title || '');
   const [url, setUrl] = useState(note?.url || '');
@@ -194,37 +182,33 @@ export default function NoteDetailScreen({navigate, params}: Props) {
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const res = await fetch(`${API_BASE_URL}/saved-notes/${note.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          url: url.trim() || null,
-          title: title.trim() || null,
-          content: content.trim() || null,
-          tags: tags.length > 0 ? tags : null,
-          image_url: finalImageUrl,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to save note');
-      }
-
-      // Update the cache with new values
-      updateNote(note.id, {
-        url: url.trim() || undefined,
-        title: title.trim() || undefined,
-        content: content.trim() || undefined,
-        tags: tags.length > 0 ? tags : undefined,
-        image_url: finalImageUrl || undefined,
-      });
-
-      h('notificationSuccess');
-      setHasChanges(false);
-      navigate('Notes');
+      updateNoteMutation.mutate(
+        {
+          noteId: note.id,
+          userId: userId || '',
+          url: url.trim() || undefined,
+          title: title.trim() || undefined,
+          content: content.trim() || undefined,
+          tags: tags.length > 0 ? tags : undefined,
+          image_url: finalImageUrl || undefined,
+        },
+        {
+          onSuccess: () => {
+            h('notificationSuccess');
+            setHasChanges(false);
+            navigate('Notes');
+          },
+          onError: () => {
+            Alert.alert('Error', 'Failed to save note. Please try again.');
+          },
+          onSettled: () => {
+            setSaving(false);
+            setUploadingImage(false);
+          },
+        },
+      );
     } catch (err) {
       Alert.alert('Error', 'Failed to save note. Please try again.');
-    } finally {
       setSaving(false);
       setUploadingImage(false);
     }
@@ -238,19 +222,19 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: async () => {
-          // Optimistic delete from cache
-          removeNote(note.id);
-
-          try {
-            await fetch(`${API_BASE_URL}/saved-notes/${note.id}`, {
-              method: 'DELETE',
-            });
-            h('notificationSuccess');
-            navigate('Notes');
-          } catch (err) {
-            Alert.alert('Error', 'Failed to delete note');
-          }
+        onPress: () => {
+          deleteNoteMutation.mutate(
+            {noteId: note.id, userId: userId || ''},
+            {
+              onSuccess: () => {
+                h('notificationSuccess');
+                navigate('Notes');
+              },
+              onError: () => {
+                Alert.alert('Error', 'Failed to delete note');
+              },
+            },
+          );
         },
       },
     ]);

@@ -21,11 +21,10 @@ import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
-import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {uploadImageToGCS} from '../api/uploadImageToGCS';
-import {useNotesStore} from '../../../../store/notesStore';
+import {useCreateNote} from '../hooks/useSavedNotes';
 
 type Props = {
   navigate: (screen: any, params?: any) => void;
@@ -40,7 +39,7 @@ export default function SaveNoteScreen({navigate, params}: Props) {
   const userId = useUUID();
   const {theme} = useAppTheme();
   const colors = theme.colors;
-  const {addNote} = useNotesStore();
+  const createNoteMutation = useCreateNote();
 
   const [url, setUrl] = useState(params?.url || '');
   const [title, setTitle] = useState(params?.title || '');
@@ -188,32 +187,31 @@ export default function SaveNoteScreen({navigate, params}: Props) {
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      const res = await fetch(`${API_BASE_URL}/saved-notes`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: userId,
-          url: url.trim() || null,
-          title: title.trim() || null,
-          content: content.trim() || null,
-          tags: tags.length > 0 ? tags : null,
-          image_url: uploadedImageUrl,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to save note');
-      }
-
-      // Add the new note to the cache
-      const newNote = await res.json();
-      addNote(newNote);
-
-      h('notificationSuccess');
-      navigate('Notes');
+      createNoteMutation.mutate(
+        {
+          userId: userId || '',
+          url: url.trim() || undefined,
+          title: title.trim() || undefined,
+          content: content.trim() || undefined,
+          tags: tags.length > 0 ? tags : undefined,
+          image_url: uploadedImageUrl || undefined,
+        },
+        {
+          onSuccess: () => {
+            h('notificationSuccess');
+            navigate('Notes');
+          },
+          onError: () => {
+            Alert.alert('Error', 'Failed to save note. Please try again.');
+          },
+          onSettled: () => {
+            setSaving(false);
+            setUploadingImage(false);
+          },
+        },
+      );
     } catch (err) {
       Alert.alert('Error', 'Failed to save note. Please try again.');
-    } finally {
       setSaving(false);
       setUploadingImage(false);
     }

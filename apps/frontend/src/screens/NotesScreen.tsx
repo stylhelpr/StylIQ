@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback, useRef} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
@@ -18,8 +18,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import LinearGradient from 'react-native-linear-gradient';
 import {useUUID} from '../context/UUIDContext';
-import {API_BASE_URL} from '../config/api';
-import {useNotesStore} from '../../../../store/notesStore';
+import {useSavedNotes, useDeleteNote, useUpdateNote, SavedNote} from '../hooks/useSavedNotes';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
@@ -303,18 +302,7 @@ const ColorPickerModal = ({
   );
 };
 
-type SavedNote = {
-  id: string;
-  user_id: string;
-  url?: string;
-  title?: string;
-  content?: string;
-  tags?: string[];
-  color?: string;
-  image_url?: string;
-  created_at: string;
-  updated_at: string;
-};
+// SavedNote type is imported from useSavedNotes hook
 
 type Props = {
   navigate: (screen: any, params?: any) => void;
@@ -328,15 +316,11 @@ export default function NotesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
 
-  // Use Zustand store as single source of truth
-  const {
-    notes,
-    setNotes,
-    updateNote,
-    removeNote,
-  } = useNotesStore();
+  // TanStack Query hooks
+  const {data: notes = [], isLoading, refetch} = useSavedNotes(userId || '');
+  const deleteNoteMutation = useDeleteNote();
+  const updateNoteMutation = useUpdateNote();
 
-  const [loading, setLoading] = useState(!notes.length);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -393,7 +377,7 @@ export default function NotesScreen({navigate}: Props) {
 
   // Empty state animation
   useEffect(() => {
-    if (!loading && notes.length === 0) {
+    if (!isLoading && notes.length === 0) {
       Animated.spring(emptyStateAnim, {
         toValue: 1,
         useNativeDriver: true,
@@ -401,7 +385,7 @@ export default function NotesScreen({navigate}: Props) {
         bounciness: 10,
       }).start();
     }
-  }, [loading, notes.length]);
+  }, [isLoading, notes.length]);
 
   // Search focus animation
   useEffect(() => {
@@ -425,34 +409,10 @@ export default function NotesScreen({navigate}: Props) {
       ignoreAndroidSystemSettings: false,
     });
 
-  const fetchNotes = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/saved-notes/${userId}`);
-      const data = await res.json();
-      const notesData = Array.isArray(data) ? data : [];
-      setNotes(notesData);
-    } catch (err) {
-      console.error('Failed to fetch notes:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [userId, setNotes]);
-
-  // Fetch on mount only if cache is empty
-  useEffect(() => {
-    if (notes.length === 0) {
-      fetchNotes();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    fetchNotes();
+    await refetch();
+    setRefreshing(false);
   };
 
   const deleteNote = async (id: string) => {
@@ -462,40 +422,27 @@ export default function NotesScreen({navigate}: Props) {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: async () => {
-          // Optimistic update - remove immediately from UI
-          removeNote(id);
-
-          try {
-            await fetch(`${API_BASE_URL}/saved-notes/${id}`, {
-              method: 'DELETE',
-            });
-          } catch (err) {
-            // Revert on error - refetch from server
-            fetchNotes();
-            Alert.alert('Error', 'Failed to delete note');
-          }
+        onPress: () => {
+          deleteNoteMutation.mutate(
+            {noteId: id, userId: userId || ''},
+            {
+              onError: () => {
+                Alert.alert('Error', 'Failed to delete note');
+              },
+            },
+          );
         },
       },
     ]);
   };
 
-  const updateNoteColor = async (noteId: string, colorId: string) => {
+  const updateNoteColor = (noteId: string, colorId: string) => {
     const newColor = colorId === 'default' ? null : colorId;
-
-    // Update locally first for instant feedback
-    updateNote(noteId, {color: newColor || undefined});
-
-    try {
-      // Persist to backend
-      await fetch(`${API_BASE_URL}/saved-notes/${noteId}`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({color: newColor}),
-      });
-    } catch (err) {
-      console.error('Failed to update note color:', err);
-    }
+    updateNoteMutation.mutate({
+      noteId,
+      userId: userId || '',
+      color: newColor,
+    });
   };
 
   const openColorPicker = (note: SavedNote) => {
@@ -1471,7 +1418,7 @@ export default function NotesScreen({navigate}: Props) {
           </Animated.View>
         </Animated.View>
 
-        {loading ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingDots}>
               {[0, 1, 2].map(i => (
