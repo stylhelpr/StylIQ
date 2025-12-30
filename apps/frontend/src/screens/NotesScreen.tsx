@@ -19,6 +19,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import LinearGradient from 'react-native-linear-gradient';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {useNotesStore} from '../../../../store/notesStore';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
@@ -58,21 +59,22 @@ const AnimatedCard = ({
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    const delay = Math.min(index * 60, 400);
+    // Fast stagger: 20ms per card, max 100ms delay for snappy feel
+    const delay = Math.min(index * 20, 100);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 200,
         delay,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.spring(slideAnim, {
+      Animated.timing(slideAnim, {
         toValue: 0,
+        duration: 200,
         delay,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-        speed: 12,
-        bounciness: 6,
       }),
     ]).start();
   }, [index, fadeAnim, slideAnim]);
@@ -326,8 +328,15 @@ export default function NotesScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
 
-  const [notes, setNotes] = useState<SavedNote[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use Zustand store as single source of truth
+  const {
+    notes,
+    setNotes,
+    updateNote,
+    removeNote,
+  } = useNotesStore();
+
+  const [loading, setLoading] = useState(!notes.length);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -346,42 +355,38 @@ export default function NotesScreen({navigate}: Props) {
   const searchFocusAnim = useRef(new Animated.Value(0)).current;
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Entrance animations
+  // Entrance animations - run all in parallel for instant feel
   useEffect(() => {
-    Animated.stagger(100, [
-      Animated.parallel([
-        Animated.timing(headerFadeAnim, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(headerSlideAnim, {
-          toValue: 0,
-          duration: 500,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(searchFadeAnim, {
-          toValue: 1,
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.spring(searchScaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          speed: 12,
-          bounciness: 8,
-        }),
-      ]),
-      Animated.spring(fabScaleAnim, {
+    Animated.parallel([
+      Animated.timing(headerFadeAnim, {
         toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-        speed: 8,
-        bounciness: 12,
+      }),
+      Animated.timing(headerSlideAnim, {
+        toValue: 0,
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(searchFadeAnim, {
+        toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(searchScaleAnim, {
+        toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(fabScaleAnim, {
+        toValue: 1,
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
       }),
     ]).start();
   }, []);
@@ -422,21 +427,28 @@ export default function NotesScreen({navigate}: Props) {
 
   const fetchNotes = useCallback(async () => {
     if (!userId) return;
+
     try {
       const res = await fetch(`${API_BASE_URL}/saved-notes/${userId}`);
       const data = await res.json();
-      setNotes(Array.isArray(data) ? data : []);
+      const notesData = Array.isArray(data) ? data : [];
+      setNotes(notesData);
     } catch (err) {
       console.error('Failed to fetch notes:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, setNotes]);
 
+  // Fetch on mount only if cache is empty
   useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+    if (notes.length === 0) {
+      fetchNotes();
+    } else {
+      setLoading(false);
+    }
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -451,12 +463,16 @@ export default function NotesScreen({navigate}: Props) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          // Optimistic update - remove immediately from UI
+          removeNote(id);
+
           try {
             await fetch(`${API_BASE_URL}/saved-notes/${id}`, {
               method: 'DELETE',
             });
-            setNotes(prev => prev.filter(n => n.id !== id));
           } catch (err) {
+            // Revert on error - refetch from server
+            fetchNotes();
             Alert.alert('Error', 'Failed to delete note');
           }
         },
@@ -468,11 +484,7 @@ export default function NotesScreen({navigate}: Props) {
     const newColor = colorId === 'default' ? null : colorId;
 
     // Update locally first for instant feedback
-    setNotes(prev =>
-      prev.map(n =>
-        n.id === noteId ? {...n, color: newColor || undefined} : n,
-      ),
-    );
+    updateNote(noteId, {color: newColor || undefined});
 
     try {
       // Persist to backend

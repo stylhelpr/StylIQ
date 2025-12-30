@@ -14,6 +14,7 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
@@ -23,6 +24,7 @@ import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {uploadImageToGCS} from '../api/uploadImageToGCS';
+import {useNotesStore} from '../../../../store/notesStore';
 
 type SavedNote = {
   id: string;
@@ -48,6 +50,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
   const {theme} = useAppTheme();
   const colors = theme.colors;
   const note = params?.note;
+  const {updateNote, removeNote} = useNotesStore();
 
   const [title, setTitle] = useState(note?.title || '');
   const [url, setUrl] = useState(note?.url || '');
@@ -207,6 +210,15 @@ export default function NoteDetailScreen({navigate, params}: Props) {
         throw new Error('Failed to save note');
       }
 
+      // Update the cache with new values
+      updateNote(note.id, {
+        url: url.trim() || undefined,
+        title: title.trim() || undefined,
+        content: content.trim() || undefined,
+        tags: tags.length > 0 ? tags : undefined,
+        image_url: finalImageUrl || undefined,
+      });
+
       h('notificationSuccess');
       setHasChanges(false);
       navigate('Notes');
@@ -227,6 +239,9 @@ export default function NoteDetailScreen({navigate, params}: Props) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          // Optimistic delete from cache
+          removeNote(note.id);
+
           try {
             await fetch(`${API_BASE_URL}/saved-notes/${note.id}`, {
               method: 'DELETE',
@@ -243,7 +258,12 @@ export default function NoteDetailScreen({navigate, params}: Props) {
 
   const openUrl = () => {
     if (url) {
-      navigate('WebBrowser', {url});
+      let normalizedUrl = url.trim();
+      // Add https:// if no protocol specified
+      if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+        normalizedUrl = `https://${normalizedUrl}`;
+      }
+      navigate('WebBrowser', {url: normalizedUrl});
     }
   };
 
@@ -424,7 +444,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: theme.colors.primary,
+      backgroundColor: theme.colors.button1,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -538,6 +558,10 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       fontSize: 14,
       fontWeight: '500',
     },
+    keyboardDismissArea: {
+      height: 200,
+      marginTop: 20,
+    },
   });
 
   if (!userId || !note) return null;
@@ -611,7 +635,8 @@ export default function NoteDetailScreen({navigate, params}: Props) {
           <ScrollView
             style={styles.formContainer}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled">
+            keyboardShouldPersistTaps="handled"
+            onScrollBeginDrag={Keyboard.dismiss}>
             <Animated.View
               style={[
                 styles.titleInputContainer,
@@ -630,69 +655,70 @@ export default function NoteDetailScreen({navigate, params}: Props) {
               <View style={styles.titleUnderline} />
             </Animated.View>
 
-            {(url || !content) && (
-              <Animated.View
-                style={[
-                  styles.urlContainer,
-                  {
-                    opacity: urlContainerAnim,
-                    transform: [
-                      {
-                        scale: urlContainerAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.95, 1],
-                        }),
-                      },
-                    ],
-                  },
-                ]}>
-                <View style={styles.urlIconContainer}>
-                  <MaterialIcons
-                    name="link"
-                    size={18}
-                    color={theme.colors.primary}
-                  />
-                </View>
-                <TextInput
-                  placeholder="URL"
-                  placeholderTextColor={colors.muted}
-                  style={styles.urlInput}
-                  value={url}
-                  onChangeText={setUrl}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                />
-                {url ? (
-                  <TouchableOpacity style={styles.urlOpenBtn} onPress={openUrl}>
-                    <MaterialIcons
-                      name="open-in-new"
-                      size={18}
-                      color="#FFFFFF"
-                    />
-                  </TouchableOpacity>
-                ) : null}
-              </Animated.View>
-            )}
-
             <Animated.View
               style={[
-                styles.contentContainer,
+                styles.urlContainer,
                 {
-                  opacity: contentFadeAnim,
-                  transform: [{translateY: contentSlideAnim}],
+                  opacity: urlContainerAnim,
+                  transform: [
+                    {
+                      scale: urlContainerAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.95, 1],
+                      }),
+                    },
+                  ],
                 },
               ]}>
-              <Text style={styles.contentLabel}>Notes</Text>
+              <View style={styles.urlIconContainer}>
+                <MaterialIcons
+                  name="link"
+                  size={18}
+                  color={theme.colors.buttonText1}
+                />
+              </View>
               <TextInput
-                placeholder="Start typing..."
+                placeholder="URL"
                 placeholderTextColor={colors.muted}
-                style={styles.contentInput}
-                value={content}
-                onChangeText={setContent}
-                multiline
+                style={styles.urlInput}
+                value={url}
+                onChangeText={setUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
               />
+              {url ? (
+                <TouchableOpacity style={styles.urlOpenBtn} onPress={openUrl}>
+                  <MaterialIcons
+                    name="open-in-new"
+                    size={18}
+                    color={theme.colors.buttonText1}
+                  />
+                </TouchableOpacity>
+              ) : null}
             </Animated.View>
+
+            <Pressable onPress={Keyboard.dismiss}>
+              <Animated.View
+                style={[
+                  styles.contentContainer,
+                  {
+                    opacity: contentFadeAnim,
+                    transform: [{translateY: contentSlideAnim}],
+                  },
+                ]}>
+                <Text style={styles.contentLabel}>Notes</Text>
+                <TextInput
+                  placeholder="Start typing..."
+                  placeholderTextColor={colors.muted}
+                  style={styles.contentInput}
+                  value={content}
+                  onChangeText={setContent}
+                  multiline
+                  onBlur={Keyboard.dismiss}
+                />
+              </Animated.View>
+            </Pressable>
 
             {/* Image Section */}
             <Animated.View
@@ -745,6 +771,12 @@ export default function NoteDetailScreen({navigate, params}: Props) {
                 </View>
               )}
             </Animated.View>
+
+            {/* Spacer to dismiss keyboard when tapping below content */}
+            <Pressable
+              onPress={Keyboard.dismiss}
+              style={styles.keyboardDismissArea}
+            />
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

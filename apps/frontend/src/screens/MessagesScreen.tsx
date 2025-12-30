@@ -325,9 +325,12 @@ export default function MessagesScreen({navigate}: Props) {
         </View>
       ) : conversations && conversations.length > 0 ? (
         <FlatList
-          data={conversations}
+          data={conversations.filter(
+            (conv, index, self) =>
+              index === self.findIndex(c => c.other_user_id === conv.other_user_id),
+          )}
           renderItem={renderConversation}
-          keyExtractor={item => item.other_user_id}
+          keyExtractor={(item, index) => `${item.other_user_id}-${index}`}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onRefresh={refetch}

@@ -1530,23 +1530,23 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 
   const captureCurrentTabScreenshot = useCallback(async () => {
     if (!containerRef.current || !currentTab || !currentTab.url) {
-      console.log('Screenshot skipped - no containerRef or currentTab');
+      // console.log('Screenshot skipped - no containerRef or currentTab');
       return;
     }
     try {
-      console.log('Capturing screenshot for tab:', currentTab.id);
+      // console.log('Capturing screenshot for tab:', currentTab.id);
       const uri = await captureRef(containerRef, {
         format: 'jpg',
         quality: 0.7,
         result: 'data-uri',
       });
-      console.log('Screenshot captured, length:', uri?.length);
+      // console.log('Screenshot captured, length:', uri?.length);
       if (uri) {
         updateTabScreenshot(currentTab.id, uri);
-        console.log('Screenshot saved to tab');
+        // console.log('Screenshot saved to tab');
       }
     } catch (error) {
-      console.log('Screenshot capture error:', error);
+      // console.log('Screenshot capture error:', error);
     }
   }, [currentTab, updateTabScreenshot]);
 
@@ -2620,8 +2620,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             style={{flex: 1}}
             // === SECURITY: Apply secure defaults ===
             {...SECURE_WEBVIEW_DEFAULTS}
-            // Allow HTTP for compatibility with some fashion sites
-            originWhitelist={['https://*', 'http://*']}
+            // Allow HTTP for compatibility with some fashion sites, and about: for iframes
+            originWhitelist={['https://*', 'http://*', 'about:*']}
             onShouldStartLoadWithRequest={request => {
               // Check if auth flow is active - pause navigation during Face ID
               if (isKeychainAuthActiveRef.current) {

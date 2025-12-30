@@ -25,6 +25,7 @@ import {API_BASE_URL} from '../config/api';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {uploadImageToGCS} from '../api/uploadImageToGCS';
+import {useNotesStore} from '../../../../store/notesStore';
 
 type Props = {
   navigate: (screen: any, params?: any) => void;
@@ -39,6 +40,7 @@ export default function SaveNoteScreen({navigate, params}: Props) {
   const userId = useUUID();
   const {theme} = useAppTheme();
   const colors = theme.colors;
+  const {addNote} = useNotesStore();
 
   const [url, setUrl] = useState(params?.url || '');
   const [title, setTitle] = useState(params?.title || '');
@@ -202,6 +204,10 @@ export default function SaveNoteScreen({navigate, params}: Props) {
       if (!res.ok) {
         throw new Error('Failed to save note');
       }
+
+      // Add the new note to the cache
+      const newNote = await res.json();
+      addNote(newNote);
 
       h('notificationSuccess');
       navigate('Notes');
@@ -409,7 +415,7 @@ export default function SaveNoteScreen({navigate, params}: Props) {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{flex: 1}}>
-        <View style={styles.container}>
+        <View style={[styles.container, {paddingBottom: 100}]}>
           <Animated.View
             style={[
               styles.header,
