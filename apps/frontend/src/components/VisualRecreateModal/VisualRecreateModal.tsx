@@ -19,7 +19,7 @@ import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import IntegratedShopOverlay from '../ShopModal/IntegratedShopOverlay';
 import {useUUID} from '../../context/UUIDContext';
-import {API_BASE_URL} from '../../config/api';
+import {useSaveRecreatedLook} from '../../hooks/useHomeData';
 
 const {width: screenWidth} = Dimensions.get('window');
 const CARD_WIDTH = (screenWidth - 60) / 2;
@@ -319,6 +319,9 @@ export default function VisualRecreateModal({
       ? uuidContext
       : (uuidContext as any)?.uuid || '';
 
+  // TanStack Query mutation for saving recreated looks
+  const saveRecreatedLookMutation = useSaveRecreatedLook();
+
   const handleShopPress = useCallback((url: string) => {
     setShopUrl(url);
   }, []);
@@ -373,7 +376,7 @@ export default function VisualRecreateModal({
     setNewName(lookName || '');
   }, [lookName]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     if (!userId || !pieces || pieces.length === 0) {
       Alert.alert('Cannot Save', 'No outfit data to save.');
       return;
@@ -382,45 +385,37 @@ export default function VisualRecreateModal({
     setSaving(true);
     ReactNativeHapticFeedback.trigger('impactLight');
 
-    try {
-      // Use passed tags or extract from pieces
-      const tags = initialTags?.length
-        ? initialTags
-        : (pieces
-            .flatMap(p => [p.category, p.item, p.color, p.material, p.style])
-            .filter(Boolean) as string[]);
+    // Use passed tags or extract from pieces
+    const tags = initialTags?.length
+      ? initialTags
+      : (pieces
+          .flatMap(p => [p.category, p.item, p.color, p.material, p.style])
+          .filter(Boolean) as string[]);
 
-      const response = await fetch(
-        `${API_BASE_URL}/users/${userId}/recreated-looks`,
-        {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            source_image_url: source_image,
-            generated_outfit: {pieces},
-            tags,
-            name: lookName || null,
-          }),
+    saveRecreatedLookMutation.mutate(
+      {
+        userId,
+        source_image_url: source_image || '',
+        generated_outfit: {pieces},
+        tags,
+      },
+      {
+        onSuccess: () => {
+          setSaved(true);
+          setSaving(false);
+          ReactNativeHapticFeedback.trigger('notificationSuccess');
+          // Refresh the recreated looks list
+          onSave?.();
         },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to save recreated look');
-      }
-
-      setSaved(true);
-      ReactNativeHapticFeedback.trigger('notificationSuccess');
-
-      // Refresh the recreated looks list
-      onSave?.();
-    } catch (err: any) {
-      console.error('Failed to save recreated look:', err);
-      Alert.alert('Save Failed', 'Could not save this look. Please try again.');
-      ReactNativeHapticFeedback.trigger('notificationError');
-    } finally {
-      setSaving(false);
-    }
-  }, [userId, pieces, source_image, lookName, initialTags, onSave]);
+        onError: (err: any) => {
+          console.error('Failed to save recreated look:', err);
+          Alert.alert('Save Failed', 'Could not save this look. Please try again.');
+          ReactNativeHapticFeedback.trigger('notificationError');
+          setSaving(false);
+        },
+      },
+    );
+  }, [userId, pieces, source_image, initialTags, onSave, saveRecreatedLookMutation]);
 
   if (!visible) return null;
 

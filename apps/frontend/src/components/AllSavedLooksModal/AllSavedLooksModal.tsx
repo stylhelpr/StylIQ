@@ -25,6 +25,7 @@ import {useAnalyzeLook} from '../../hooks/useAnalyzeLook';
 import {useRecreateLook} from '../../hooks/useRecreateLook';
 import {useUUID} from '../../context/UUIDContext';
 import {API_BASE_URL} from '../../config/api';
+import {useSaveRecreatedLook, useSaveLookMemory} from '../../hooks/useHomeData';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {fontScale, moderateScale} from '../../utils/scale';
 import LinearGradient from 'react-native-linear-gradient';
@@ -98,6 +99,10 @@ export default function AllSavedLooksModal({
 
   const [personalizedMode, setPersonalizedMode] = useState(false);
   const {personalizedRecreate, loading: recreateLoading} = useRecreateLook();
+
+  // TanStack Query mutations for optimized data saving
+  const saveRecreatedLookMutation = useSaveRecreatedLook();
+  const saveLookMemoryMutation = useSaveLookMemory();
 
   const styles = StyleSheet.create({
     modalContainer: {
@@ -227,22 +232,21 @@ export default function AllSavedLooksModal({
 
         console.log('💎 Personalized result:', data);
 
-        // Save recreated look to database
+        // Save recreated look to database using TanStack Query mutation
         if (userId) {
-          try {
-            await fetch(`${API_BASE_URL}/users/${userId}/recreated-looks`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                source_image_url: look.image_url,
-                generated_outfit: data,
-                tags: look.tags || [],
-                name: look.name || null,
-              }),
-            });
-          } catch (saveErr) {
-            console.error('Failed to save recreated look:', saveErr);
-          }
+          saveRecreatedLookMutation.mutate(
+            {
+              userId,
+              source_image_url: look.image_url,
+              generated_outfit: data,
+              tags: look.tags || [],
+            },
+            {
+              onError: (saveErr) => {
+                console.error('Failed to save recreated look:', saveErr);
+              },
+            },
+          );
         }
 
         setSuccessState('recreate');
@@ -404,31 +408,26 @@ export default function AllSavedLooksModal({
       const query = unique.join(' ').trim();
       console.log('🧩 [ShopPress] Final query:', query);
 
-      // 4) look memory (unchanged)
-      console.log('💾 [LookMemory] API_BASE_URL:', API_BASE_URL);
+      // 4) look memory - using TanStack Query mutation
       console.log('💾 [LookMemory] userId:', userId);
-      const payload = {
-        image_url: look.image_url,
-        ai_tags: unique,
-        query_used: query,
-      };
 
       if (userId) {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}/look-memory`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(payload),
-        });
-
-        const text = await res.text();
-        console.log(
-          '💾 [LookMemory] Status:',
-          res.status,
-          res.statusText,
-          text,
+        saveLookMemoryMutation.mutate(
+          {
+            userId,
+            image_url: look.image_url,
+            ai_tags: unique,
+            query_used: query,
+          },
+          {
+            onSuccess: () => {
+              console.log('💾 [LookMemory] Saved successfully');
+            },
+            onError: (err) => {
+              console.error('💾 [LookMemory] Save failed:', err);
+            },
+          },
         );
-        if (!res.ok)
-          throw new Error(`Look memory save failed (${res.status}): ${text}`);
       } else {
         console.warn('[LookMemory] No UUID found — skipping look memory save.');
       }

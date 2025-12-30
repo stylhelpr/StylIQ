@@ -14,9 +14,9 @@ import {
 } from 'react-native';
 import {BlurView} from '@react-native-community/blur';
 import {useAppTheme} from '../../context/ThemeContext';
+import {useUUID} from '../../context/UUIDContext';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {API_BASE_URL} from '../../config/api';
+import {useDeleteSavedLook, useRenameSavedLook} from '../../hooks/useHomeData';
 import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -34,8 +34,12 @@ type Props = {
 
 export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
   const {theme} = useAppTheme();
-  const queryClient = useQueryClient();
+  const userId = useUUID();
   const [newName, setNewName] = useState('');
+
+  // TanStack Query mutations from shared hooks
+  const deleteSavedLookMutation = useDeleteSavedLook();
+  const renameSavedLookMutation = useRenameSavedLook();
   const translateY = useRef(new Animated.Value(0)).current;
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
@@ -177,49 +181,36 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
     }),
   ).current;
 
-  // Delete
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`${API_BASE_URL}/saved-looks/${id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(data?.message || 'Failed to delete saved look');
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['savedOutfits']});
-      onClose();
-    },
-    onError: (err: any) => {
-      Alert.alert('Error', err?.message || 'Could not delete the saved look.');
-    },
-  });
+  // Handle delete using shared mutation
+  const handleDelete = () => {
+    if (!look?.id || !userId) return;
+    deleteSavedLookMutation.mutate(
+      {userId, lookId: look.id},
+      {
+        onSuccess: () => onClose(),
+        onError: (err: any) => {
+          Alert.alert('Error', err?.message || 'Could not delete the saved look.');
+        },
+      },
+    );
+  };
 
-  // Update
-  const updateMutation = useMutation({
-    mutationFn: async () => {
-      if (!look?.id) throw new Error('Missing look ID');
-      const res = await fetch(`${API_BASE_URL}/saved-looks/${look.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: newName}),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(data?.message || 'Failed to update look name');
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['savedOutfits']});
-      Alert.alert('✅ Updated', 'Look name updated successfully.');
-      onClose();
-    },
-    onError: (err: any) => {
-      Alert.alert('Error', err?.message || 'Could not update the saved look.');
-    },
-  });
+  // Handle rename using shared mutation
+  const handleRename = () => {
+    if (!look?.id || !userId || !newName.trim()) return;
+    renameSavedLookMutation.mutate(
+      {userId, lookId: look.id, name: newName.trim()},
+      {
+        onSuccess: () => {
+          Alert.alert('✅ Updated', 'Look name updated successfully.');
+          onClose();
+        },
+        onError: (err: any) => {
+          Alert.alert('Error', err?.message || 'Could not update the saved look.');
+        },
+      },
+    );
+  };
 
   if (!look) return null;
 
@@ -311,22 +302,22 @@ export default function SavedLookPreviewModal({visible, onClose, look}: Props) {
             <View style={styles.actions}>
               <AppleTouchFeedback
                 hapticStyle="impactLight"
-                onPress={() => updateMutation.mutate()}
+                onPress={handleRename}
                 style={[globalStyles.buttonPrimary, {paddingHorizontal: 32}]}>
                 <Text style={styles.actionText}>
-                  {updateMutation.isLoading ? 'Saving…' : 'Save'}
+                  {renameSavedLookMutation.isPending ? 'Saving…' : 'Save'}
                 </Text>
               </AppleTouchFeedback>
 
               <AppleTouchFeedback
                 hapticStyle="impactLight"
-                onPress={() => deleteMutation.mutate(look.id)}
+                onPress={handleDelete}
                 style={[
                   globalStyles.buttonPrimary,
                   {paddingHorizontal: 32, backgroundColor: theme.colors.error},
                 ]}>
                 <Text style={styles.actionText}>
-                  {deleteMutation.isLoading ? 'Deleting…' : 'Delete'}
+                  {deleteSavedLookMutation.isPending ? 'Deleting…' : 'Delete'}
                 </Text>
               </AppleTouchFeedback>
             </View>

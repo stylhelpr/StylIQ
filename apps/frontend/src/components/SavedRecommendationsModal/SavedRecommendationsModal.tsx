@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useRef, useLayoutEffect, useState, useCallback} from 'react';
+import React, {useRef, useLayoutEffect, useCallback, useState, useMemo} from 'react';
 import {
   Modal,
   View,
@@ -20,7 +20,7 @@ import {tokens} from '../../styles/tokens/tokens';
 import {useAppTheme} from '../../context/ThemeContext';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useUUID} from '../../context/UUIDContext';
-import {API_BASE_URL} from '../../config/api';
+import {useUnsaveProduct} from '../../hooks/useSavedProducts';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {moderateScale} from '../../utils/scale';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -65,7 +65,25 @@ export default function SavedRecommendationsModal({
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
-  const [unsavingId, setUnsavingId] = useState<string | null>(null);
+
+  // Track locally removed products to prevent reappearing from stale parent state
+  const [locallyRemovedIds, setLocallyRemovedIds] = useState<Set<string>>(new Set());
+
+  // TanStack Query mutation for unsaving products
+  const unsaveProductMutation = useUnsaveProduct();
+
+  // Filter out locally removed products
+  const filteredProducts = useMemo(
+    () => savedProducts.filter(p => !locallyRemovedIds.has(p.product_id)),
+    [savedProducts, locallyRemovedIds],
+  );
+
+  // Reset locally removed IDs when modal closes
+  useLayoutEffect(() => {
+    if (!visible) {
+      setLocallyRemovedIds(new Set());
+    }
+  }, [visible]);
 
   const styles = StyleSheet.create({
     modalContainer: {
@@ -219,36 +237,36 @@ export default function SavedRecommendationsModal({
   );
 
   const handleUnsave = useCallback(
-    async (productId: string) => {
+    (productId: string) => {
       if (!userId) return;
 
-      setUnsavingId(productId);
       ReactNativeHapticFeedback.trigger('impactLight', {
         enableVibrateFallback: true,
         ignoreAndroidSystemSettings: false,
       });
 
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/discover/${userId}/unsave`,
-          {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({product_id: productId}),
-          },
-        );
+      // Immediately hide from local display (prevents reappearing from stale parent state)
+      setLocallyRemovedIds(prev => new Set(prev).add(productId));
 
-        if (response.ok) {
-          onUnsave?.(productId);
-          // Don't call onRefresh - parent already updates state in onUnsave
-        }
-      } catch (error) {
-        console.error('Failed to unsave product:', error);
-      } finally {
-        setUnsavingId(null);
-      }
+      // Also notify parent
+      onUnsave?.(productId);
+
+      unsaveProductMutation.mutate(
+        {userId, productId},
+        {
+          onError: (error) => {
+            console.error('Failed to unsave product:', error);
+            // Rollback: remove from locally removed set so it reappears
+            setLocallyRemovedIds(prev => {
+              const next = new Set(prev);
+              next.delete(productId);
+              return next;
+            });
+          },
+        },
+      );
     },
-    [userId, onUnsave, onRefresh],
+    [userId, onUnsave, unsaveProductMutation],
   );
 
   const handleShop = useCallback(
@@ -315,7 +333,7 @@ export default function SavedRecommendationsModal({
               justifyContent: 'space-between',
             }}>
             {/* Empty state */}
-            {savedProducts.length === 0 && (
+            {filteredProducts.length === 0 && (
               <View
                 style={{
                   width: '100%',
@@ -344,7 +362,7 @@ export default function SavedRecommendationsModal({
             )}
 
             {/* Product Grid */}
-            {savedProducts.map((product, index) => (
+            {filteredProducts.map((product, index) => (
               <Animatable.View
                 key={product.id || index}
                 animation="fadeInUp"
@@ -382,8 +400,8 @@ export default function SavedRecommendationsModal({
                     onPress={() =>
                       confirmUnsave(product.product_id, product.title)
                     }
-                    disabled={unsavingId === product.product_id}>
-                    {unsavingId === product.product_id ? (
+                    disabled={unsaveProductMutation.isPending && unsaveProductMutation.variables?.productId === product.product_id}>
+                    {unsaveProductMutation.isPending && unsaveProductMutation.variables?.productId === product.product_id ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <MaterialIcons

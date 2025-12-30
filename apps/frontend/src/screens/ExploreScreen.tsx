@@ -45,6 +45,15 @@ import {useStyleProfile} from '../hooks/useStyleProfile';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import {fontScale, moderateScale} from '../utils/scale';
 import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+import {
+  useFollowedSources,
+  useFollowSource,
+  useUnfollowSource,
+  useNotificationPreferences,
+  useUpdateNotificationPreferences,
+  usePreferredBrands,
+  useSendTestNotification,
+} from '../hooks/useExploreNotifications';
 
 type Tab = 'For You' | 'Following';
 
@@ -408,15 +417,24 @@ export default function ExploreScreen() {
   const HEADER_HEIGHT = 70; // adjust to your actual header height
   const BOTTOM_NAV_HEIGHT = 90; // adjust to your nav height
 
-  // ───────── Notifications: follows + preferences ─────────
+  // ───────── Notifications: follows + preferences (TanStack Query) ─────────
   const [notifOpen, setNotifOpen] = useState(false);
-  const [followingSet, setFollowingSet] = useState<Set<string>>(new Set());
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [followingRealtime, setFollowingRealtime] = useState(false);
-  const [brandsRealtime, setBrandsRealtime] = useState(false);
-  const [breakingRealtime, setBreakingRealtime] = useState(true);
-  const [digestHour, setDigestHour] = useState<number>(8);
-  const [prefsLoaded, setPrefsLoaded] = useState(false); // gate init
+
+  // TanStack Query hooks for notification data
+  const {data: followingSet = new Set<string>()} = useFollowedSources(userId);
+  const {data: notificationPrefs, isSuccess: prefsLoaded} =
+    useNotificationPreferences(userId);
+  const updatePrefsMutation = useUpdateNotificationPreferences();
+  const followMutation = useFollowSource();
+  const unfollowMutation = useUnfollowSource();
+  const testNotificationMutation = useSendTestNotification();
+
+  // Derive state from cached preferences
+  const pushEnabled = notificationPrefs?.push_enabled ?? true;
+  const followingRealtime = notificationPrefs?.following_realtime ?? false;
+  const brandsRealtime = notificationPrefs?.brands_realtime ?? false;
+  const breakingRealtime = notificationPrefs?.breaking_realtime ?? true;
+  const digestHour = notificationPrefs?.digest_hour ?? 8;
 
   // === OPEN FROM NOTIFICATION -> open Reader ===
   const [openUrl, setOpenUrl] = useState<string | undefined>();
@@ -524,68 +542,11 @@ export default function ExploreScreen() {
     })();
   }, [userId, prefsLoaded, pushEnabled]);
 
-  // Load follows
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/notifications/follows?user_id=${encodeURIComponent(
-            userId,
-          )}`,
-        );
-        const json = await res.json();
-        const list: string[] = Array.isArray(json?.sources) ? json.sources : [];
-        setFollowingSet(new Set(list.map(s => s.toLowerCase())));
-      } catch (e) {
-        console.log('⚠️ load follows failed', e);
-      }
-    })();
-  }, [userId]);
+  // NOTE: Follows and preferences are now loaded via TanStack Query hooks above
+  // (useFollowedSources and useNotificationPreferences)
 
-  // Load preferences (and mirror the local flag so initialize can run)
-  useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/notifications/preferences/get?user_id=${encodeURIComponent(
-            userId,
-          )}`,
-        ).catch(() => null);
-
-        const json =
-          (await res?.json().catch(() => null)) ??
-          (await (
-            await fetch(`${API_BASE_URL}/notifications/preferences`, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({user_id: userId}),
-            })
-          ).json());
-
-        if (json) {
-          const pe = json.push_enabled ?? true;
-          setPushEnabled(pe);
-          setFollowingRealtime(json.following_realtime ?? false);
-          setBrandsRealtime(json.brands_realtime ?? false);
-          setBreakingRealtime(json.breaking_realtime ?? true);
-          setDigestHour(Number(json.digest_hour ?? 8));
-
-          await AsyncStorage.setItem(
-            'notificationsEnabled',
-            pe ? 'true' : 'false',
-          );
-        }
-      } catch (e) {
-        console.log('⚠️ load prefs failed', e);
-      } finally {
-        setPrefsLoaded(true); // allow init effect to run
-      }
-    })();
-  }, [userId]);
-
-  const savePrefs = async (
+  // Save preferences using TanStack Query mutation (with optimistic updates)
+  const savePrefs = (
     overrides?: Partial<{
       push_enabled: boolean;
       following_realtime: boolean;
@@ -594,84 +555,31 @@ export default function ExploreScreen() {
       digest_hour: number;
     }>,
   ) => {
-    try {
-      const payload = {
-        user_id: userId,
+    updatePrefsMutation.mutate({
+      userId,
+      preferences: {
         push_enabled: pushEnabled,
         following_realtime: followingRealtime,
         brands_realtime: brandsRealtime,
         breaking_realtime: breakingRealtime,
         digest_hour: digestHour,
         ...(overrides ?? {}),
-      };
-      await fetch(`${API_BASE_URL}/notifications/preferences`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
-      });
-    } catch (e) {
-      console.log('⚠️ save prefs failed', e);
-    }
+      },
+    });
   };
 
-  const followSource = async (name: string) => {
-    const key = name.toLowerCase();
-    setFollowingSet(prev => new Set([...prev, key])); // optimistic
-    try {
-      await fetch(`${API_BASE_URL}/notifications/follow`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: userId, source: name}),
-      });
-    } catch (e) {
-      // revert on error
-      setFollowingSet(prev => {
-        const copy = new Set(prev);
-        copy.delete(key);
-        return copy;
-      });
-    }
+  // Follow/unfollow using TanStack Query mutations (with optimistic updates + rollback)
+  const followSource = (name: string) => {
+    followMutation.mutate({userId, source: name});
   };
 
-  const unfollowSource = async (name: string) => {
-    const key = name.toLowerCase();
-    setFollowingSet(prev => {
-      const copy = new Set(prev);
-      copy.delete(key);
-      return copy;
-    }); // optimistic
-    try {
-      await fetch(`${API_BASE_URL}/notifications/unfollow`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id: userId, source: name}),
-      });
-    } catch (e) {
-      // revert on error
-      setFollowingSet(prev => new Set([...prev, key]));
-    }
+  const unfollowSource = (name: string) => {
+    unfollowMutation.mutate({userId, source: name});
   };
 
   // ───────── Personal chips (from style_profiles.preferred_brands) ─────────
-  const [wardrobeBrands, setWardrobeBrands] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    (async () => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/style-profile/${userId}/brands`,
-        );
-        const json = await res.json();
-        // console.log('👗 Preferred brands:', json);
-        setWardrobeBrands(Array.isArray(json.brands) ? json.brands : []);
-      } catch (err) {
-        console.error('❌ Failed to fetch preferred brands:', err);
-        setWardrobeBrands([]);
-      }
-    })();
-  }, [userId]);
+  // Now using TanStack Query for caching and efficiency
+  const {data: wardrobeBrands = []} = usePreferredBrands(userId);
 
   // ───────── Trending chips ─────────
   const trendingKeywords = useMemo(() => {
@@ -938,35 +846,35 @@ export default function ExploreScreen() {
   const [manageBrandsOpen, setManageBrandsOpen] = useState(false);
 
   // === Send a REAL article push for testing (kept for dev) ===
-  const sendTestPush = async () => {
-    try {
-      const candidate = hero || list?.[0];
-      const data = {
-        type: 'article',
-        article_id: String(candidate?.id ?? Date.now()),
-        url: candidate?.link ?? 'https://www.vogue.com/',
-        title: candidate?.title ?? 'Fashion test article',
-        source: candidate?.source ?? 'Fashion Feed',
-      };
+  const sendTestPush = () => {
+    const candidate = hero || list?.[0];
+    const data = {
+      type: 'article',
+      article_id: String(candidate?.id ?? Date.now()),
+      url: candidate?.link ?? 'https://www.vogue.com/',
+      title: candidate?.title ?? 'Fashion test article',
+      source: candidate?.source ?? 'Fashion Feed',
+    };
 
-      const res = await fetch(`${API_BASE_URL}/notifications/test`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: userId,
-          title: data.source,
-          body: data.title,
-          data,
-        }),
-      });
-      const json = await res.json();
-      Alert.alert(
-        'Push sent',
-        `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
-      );
-    } catch (e) {
-      Alert.alert('Push failed', String(e));
-    }
+    testNotificationMutation.mutate(
+      {
+        userId,
+        title: data.source,
+        body: data.title,
+        data,
+      },
+      {
+        onSuccess: json => {
+          Alert.alert(
+            'Push sent',
+            `Devices notified: ${json.sent ?? json.notifications_sent ?? 0}`,
+          );
+        },
+        onError: e => {
+          Alert.alert('Push failed', String(e));
+        },
+      },
+    );
   };
 
   // Memoized callback for article press

@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef, useCallback} from 'react';
+import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
 import {
   View,
   Text,
@@ -126,6 +126,19 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     externalSavedModalVisible ?? internalSavedModalVisible;
   const [savedProducts, setSavedProducts] = useState<Product[]>([]);
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
+
+  // Track locally unsaved product IDs to ensure heart icon shows correct state
+  const [locallyUnsavedIds, setLocallyUnsavedIds] = useState<Set<string>>(new Set());
+
+  // Compute display items with corrected saved state
+  const displayItems = useMemo(
+    () =>
+      recommended.map(item => ({
+        ...item,
+        saved: item.saved && !locallyUnsavedIds.has(item.product_id),
+      })),
+    [recommended, locallyUnsavedIds],
+  );
 
   const fadeAnims = useRef<Animated.Value[]>([]);
   const translateAnims = useRef<Animated.Value[]>([]);
@@ -261,6 +274,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     setRecommended(prev =>
       prev.map(p => (p.product_id === productId ? {...p, saved: false} : p)),
     );
+    // Also track in local set to ensure heart icon updates immediately
+    setLocallyUnsavedIds(prev => new Set(prev).add(productId));
   }, []);
 
   // Expose saved products to parent
@@ -368,7 +383,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
             No picks found
           </Text>
         ) : (
-          recommended.map((item, i) => (
+          displayItems.map((item, i) => (
             <Animated.View
               key={item.id}
               style={{

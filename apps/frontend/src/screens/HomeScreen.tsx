@@ -69,6 +69,17 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
 import FilamentPreview from '../components/FilamentPreview';
 import {useHeadPoseActions} from '../hooks/useHeadPoseActions';
+import {
+  useUserProfile,
+  useLookMemory,
+  useRecreatedLooks,
+  useSavedLooks,
+  useSharedLooks,
+  useSaveRecreatedLook,
+  useDeleteRecreatedLook,
+  useRenameRecreatedLook,
+  useDeleteSavedLook,
+} from '../hooks/useHomeData';
 
 // import {NativeModules} from 'react-native';
 // const {StylIQDynamicIslandModule} = NativeModules;
@@ -326,28 +337,27 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     );
   };
 
-  // 🎨 Load user's saved theme mode from backend on app load
+  // 🎨 TanStack Query: User profile data (name, picture, theme)
+  const {data: userProfile} = useUserProfile(userId ?? '');
+
+  // Apply theme from user profile
   useEffect(() => {
-    if (!userId) return;
-    const loadTheme = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
-        if (!res.ok) throw new Error('Failed to fetch user');
-        const data = await res.json();
+    if (userProfile?.theme_mode) {
+      setSkin(userProfile.theme_mode);
+    }
+  }, [userProfile?.theme_mode, setSkin]);
 
-        if (data?.theme_mode) {
-          setSkin(data.theme_mode);
-        }
-      } catch (err) {
-        // Failed to load theme mode
-      }
-    };
-    loadTheme();
-  }, [userId, setSkin]);
-
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Derive user data from TanStack Query cache
+  const firstName = userProfile?.first_name ?? '';
+  const lastName = userProfile?.last_name ?? '';
   const [userPicture, setUserPicture] = useState<string | null>(null);
+
+  // Sync userPicture from profile (but allow local override from AsyncStorage)
+  useEffect(() => {
+    if (userProfile?.picture && !userPicture) {
+      setUserPicture(userProfile.picture);
+    }
+  }, [userProfile?.picture, userPicture]);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedLook, setSelectedLook] = useState<any | null>(null);
@@ -529,11 +539,41 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [showRecreatedModal, setShowRecreatedModal] = useState(false);
 
   const [shopVisible, setShopVisible] = useState(false);
-  const [recentVibes, setRecentVibes] = useState([]);
-  const [loadingVibes, setLoadingVibes] = useState(false);
+
+  // 🎯 TanStack Query: Look memory, recreated looks, saved looks, shared looks
+  const {data: lookMemoryData = [], isLoading: loadingVibes} = useLookMemory(userId ?? '');
+  const {data: recreatedLooksData = [], isLoading: loadingCreations, refetch: refetchRecreatedLooks} = useRecreatedLooks(userId ?? '');
+  const {data: savedLooksData = [], refetch: refetchSavedLooks} = useSavedLooks(userId ?? '');
+  const {data: sharedLooksData = []} = useSharedLooks(userId ?? '');
+
+  // TanStack Query mutations
+  const saveRecreatedLookMutation = useSaveRecreatedLook();
+  const deleteRecreatedLookMutation = useDeleteRecreatedLook();
+  const renameRecreatedLookMutation = useRenameRecreatedLook();
+  const deleteSavedLookMutation = useDeleteSavedLook();
+
+  // Keep local state for UI updates (derived from query data)
+  const [recentVibes, setRecentVibes] = useState<any[]>([]);
   const [recentCreations, setRecentCreations] = useState<any[]>([]);
-  const [loadingCreations, setLoadingCreations] = useState(false);
+  const [savedLooks, setSavedLooks] = useState<any[]>([]);
   const [sharedLooks, setSharedLooks] = useState<any[]>([]);
+
+  // Sync TanStack Query data to local state
+  useEffect(() => {
+    if (lookMemoryData.length > 0) setRecentVibes(lookMemoryData);
+  }, [lookMemoryData]);
+
+  useEffect(() => {
+    if (recreatedLooksData.length > 0) setRecentCreations(recreatedLooksData);
+  }, [recreatedLooksData]);
+
+  useEffect(() => {
+    if (savedLooksData.length > 0) setSavedLooks(savedLooksData);
+  }, [savedLooksData]);
+
+  useEffect(() => {
+    if (sharedLooksData.length > 0) setSharedLooks(sharedLooksData);
+  }, [sharedLooksData]);
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
     new Set(),
   );
@@ -593,23 +633,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     restoreSectionsState();
   }, []);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!userId) return;
-      try {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
-        const data = await res.json();
-        setFirstName(data.first_name || '');
-        setLastName(data.last_name || '');
-        if (data.picture) {
-          setUserPicture(data.picture);
-        }
-      } catch (err) {
-        console.error('❌ Failed to fetch user:', err);
-      }
-    };
-    fetchUserData();
-  }, [userId]);
+  // User data now comes from useUserProfile TanStack Query hook above
 
   // Load profile picture from AsyncStorage
   useEffect(() => {
@@ -624,69 +648,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     })();
   }, [userId]);
 
-  useEffect(() => {
-    const loadRecentVibes = async () => {
-      if (!userId) return;
-      setLoadingVibes(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}/look-memory`);
-        const json = await res.json();
+  // Look memory now comes from useLookMemory TanStack Query hook above
 
-        if (json?.data?.length) {
-          setRecentVibes(json.data);
-        } else if (Array.isArray(json)) {
-          setRecentVibes(json);
-        }
-      } catch (err) {
-        // RecentVibes load failed silently
-      } finally {
-        setLoadingVibes(false);
-      }
-    };
-    loadRecentVibes();
-  }, [userId]);
+  // Recreated looks now come from useRecreatedLooks TanStack Query hook
+  // Use refetchRecreatedLooks() to refresh the data
+  const loadRecentCreations = useCallback(() => {
+    refetchRecreatedLooks();
+  }, [refetchRecreatedLooks]);
 
-  const loadRecentCreations = useCallback(async () => {
-    if (!userId) return;
-    setLoadingCreations(true);
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/users/${userId}/recreated-looks`,
-      );
-      const json = await res.json();
-
-      if (json?.data?.length) {
-        setRecentCreations(json.data);
-      } else if (Array.isArray(json)) {
-        setRecentCreations(json);
-      }
-    } catch (err) {
-      // RecentCreations load failed silently
-    } finally {
-      setLoadingCreations(false);
-    }
-  }, [userId]);
-  useEffect(() => {
-    loadRecentCreations();
-  }, [loadRecentCreations]);
-
-  // Fetch shared looks (user's community posts)
-  const fetchSharedLooks = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/community/posts/by-user/${userId}?limit=20`,
-      );
-      if (!res.ok) throw new Error('Failed to fetch shared looks');
-      const data = await res.json();
-      setSharedLooks(data);
-    } catch {
-      setSharedLooks([]);
-    }
-  }, [userId]);
-  useEffect(() => {
-    fetchSharedLooks();
-  }, [fetchSharedLooks]);
+  // Shared looks now come from useSharedLooks TanStack Query hook above
 
   useEffect(() => {
     const restoreMapState = async () => {
@@ -731,21 +701,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     initializeNotifications();
   }, []);
 
-  const [savedLooks, setSavedLooks] = useState<any[]>([]);
-  const fetchSavedLooks = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/saved-looks/${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch saved looks');
-      const data = await res.json();
-      setSavedLooks(data);
-    } catch (err) {
-      console.error('❌ Failed to fetch saved looks:', err);
-    }
-  }, [userId]);
-  useEffect(() => {
-    fetchSavedLooks();
-  }, [fetchSavedLooks]);
+  // Saved looks now come from useSavedLooks TanStack Query hook above
+  // Use refetchSavedLooks() to refresh the data
+  const fetchSavedLooks = useCallback(() => {
+    refetchSavedLooks();
+  }, [refetchSavedLooks]);
 
   const openPersonalizedShopModal = (data: PersonalizedResult) => {
     if (!data) return;
@@ -974,36 +934,19 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     return <View style={globalStyles.screen} />;
   }
 
-  // 🧥 Recreate Look
-  const handleRecreateLook = async ({image_url, tags}) => {
+  // 🧥 Recreate Look (uses TanStack Query mutation for saving)
+  const handleRecreateLook = async ({image_url, tags}: {image_url: string; tags?: string[]}) => {
     try {
       const result = await recreateLook({user_id: userId, tags, image_url});
 
-      // 💾 Save recreated look for recall
+      // 💾 Save recreated look using TanStack Query mutation
       if (userId && result) {
-        try {
-          const payload = {
-            source_image_url: image_url,
-            generated_outfit: result,
-            tags,
-          };
-
-          const saveRes = await fetch(
-            `${API_BASE_URL}/users/${userId}/recreated-looks`,
-            {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify(payload),
-            },
-          );
-
-          // Refresh the recreated looks list after save completes
-          if (saveRes.ok) {
-            await loadRecentCreations();
-          }
-        } catch (err) {
-          // RecreateSave failed silently
-        }
+        saveRecreatedLookMutation.mutate({
+          userId,
+          source_image_url: image_url,
+          generated_outfit: result,
+          tags,
+        });
       }
 
       // 👇 Instead of navigation
@@ -1036,67 +979,53 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     setShareOptionsVisible(true);
   };
 
-  // Delete recreated look
-  const handleDeleteRecreatedLook = async (lookId: string) => {
+  // Delete recreated look (uses TanStack Query mutation with optimistic update)
+  const handleDeleteRecreatedLook = (lookId: string) => {
     ReactNativeHapticFeedback.trigger('impactMedium');
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/users/${userId}/recreated-looks/${lookId}`,
-        {method: 'DELETE'},
-      );
-      const result = await response.json();
-      if (result.success) {
-        setRecentCreations(prev => prev.filter(c => c.id !== lookId));
-        ReactNativeHapticFeedback.trigger('notificationSuccess');
-      }
-    } catch (err) {
-      console.error('Failed to delete recreated look:', err);
-    }
-  };
+    if (!userId) return;
 
-  // Rename recreated look
-  const handleRenameRecreatedLook = async (lookId: string, newName: string) => {
-    ReactNativeHapticFeedback.trigger('impactMedium');
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/users/${userId}/recreated-looks/${lookId}`,
-        {
-          method: 'PATCH',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({name: newName}),
+    deleteRecreatedLookMutation.mutate(
+      {userId, lookId},
+      {
+        onSuccess: () => {
+          ReactNativeHapticFeedback.trigger('notificationSuccess');
         },
-      );
-      const result = await response.json();
-      if (result.success) {
-        // Update local state
-        setRecentCreations(prev =>
-          prev.map(c => (c.id === lookId ? {...c, name: newName} : c)),
-        );
-        // Also update the modal data
-        setVisualRecreateData(prev =>
-          prev ? {...prev, lookName: newName} : prev,
-        );
-        ReactNativeHapticFeedback.trigger('notificationSuccess');
-      }
-    } catch (err) {
-      console.error('Failed to rename recreated look:', err);
-    }
+      },
+    );
   };
 
-  // Delete saved look (Inspired Looks)
-  const handleDeleteSavedLook = async (lookId: string) => {
+  // Rename recreated look (uses TanStack Query mutation with optimistic update)
+  const handleRenameRecreatedLook = (lookId: string, newName: string) => {
     ReactNativeHapticFeedback.trigger('impactMedium');
-    try {
-      const response = await fetch(`${API_BASE_URL}/saved-looks/${lookId}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setSavedLooks(prev => prev.filter(l => l.id !== lookId));
-        ReactNativeHapticFeedback.trigger('notificationSuccess');
-      }
-    } catch (err) {
-      console.error('Failed to delete saved look:', err);
-    }
+    if (!userId) return;
+
+    renameRecreatedLookMutation.mutate(
+      {userId, lookId, name: newName},
+      {
+        onSuccess: () => {
+          // Also update the modal data
+          setVisualRecreateData(prev =>
+            prev ? {...prev, lookName: newName} : prev,
+          );
+          ReactNativeHapticFeedback.trigger('notificationSuccess');
+        },
+      },
+    );
+  };
+
+  // Delete saved look (Inspired Looks) - uses TanStack Query mutation with optimistic update
+  const handleDeleteSavedLook = (lookId: string) => {
+    ReactNativeHapticFeedback.trigger('impactMedium');
+    if (!userId) return;
+
+    deleteSavedLookMutation.mutate(
+      {userId, lookId},
+      {
+        onSuccess: () => {
+          ReactNativeHapticFeedback.trigger('notificationSuccess');
+        },
+      },
+    );
   };
 
   // Share to Community
