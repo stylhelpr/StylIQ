@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import * as fs from 'fs';
 import OpenAI from 'openai';
 import { ChatDto } from './dto/chat.dto';
 import { VertexService } from '../vertex/vertex.service'; // 🔹 ADDED

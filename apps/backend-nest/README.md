@@ -31,6 +31,101 @@
 $ npm install
 ```
 
+## Local Secrets Configuration
+
+**The backend will not start without secrets.** This is intentional for security.
+
+Secrets are loaded from filesystem mounts, not environment variables:
+- **Production (Cloud Run):** `/secrets/<SECRET_NAME>`
+- **Local development:** `./secrets/<SECRET_NAME>`
+
+### Quick Setup (Recommended)
+
+Run the interactive setup script to populate all secrets:
+
+```bash
+bash scripts/setup-local-secrets-interactive.sh
+```
+
+This prompts for each secret value, validates JSON secrets with `jq`, and writes them to the `secrets/` directory. Input is masked for security.
+
+**Requires:** `jq` (`brew install jq`)
+
+### Alternative: Manual Setup
+
+To scaffold empty placeholder files first:
+
+```bash
+bash scripts/setup-local-secrets.sh
+```
+
+Then manually populate each file in `secrets/`.
+
+### Required Secrets
+
+| File | Description |
+|------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `AUTH0_ISSUER` | Auth0 domain URL (e.g., `https://tenant.auth0.com/`) |
+| `AUTH0_AUDIENCE` | Auth0 API audience |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `PINECONE_API_KEY` | Pinecone vector DB API key |
+| `PINECONE_INDEX` | Pinecone index name |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
+| `GCP_SERVICE_ACCOUNT_JSON` | Full GCP service account JSON content |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Full Firebase service account JSON content |
+
+### File Format
+
+Each secret file contains **only the raw value** (no quotes, no trailing newline):
+
+```bash
+# Example: Create DATABASE_URL secret
+echo -n "postgresql://user:pass@host:5432/db" > secrets/DATABASE_URL
+```
+
+For JSON secrets, paste the full JSON content directly into the file.
+
+### Security Notes
+
+- **Filesystem-only:** Secrets are NEVER stored in environment variables. This is enforced.
+- The `secrets/` directory is gitignored. **Never commit secrets.**
+- Startup fails fast if any required secret is missing or invalid.
+- Use `scripts/check-env-secrets.sh` to verify no secrets leak via `process.env`.
+- The interactive setup script is for **local development only**.
+
+## Allowlisted Non-Secret Environment Variables
+
+The following environment variables are explicitly **allowed** to be read from `process.env` because they are **non-secret configuration flags**. They do not contain credentials, API keys, tokens, passwords, or any sensitive data.
+
+**Secrets must NEVER be read from `process.env`.** All secrets are loaded exclusively from filesystem mounts via `getSecret()` / `getSecretJson()`.
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `NODE_ENV` | Runtime environment (`development`, `production`, `test`) | — |
+| `PORT` | HTTP server port | `3001` (local), `8080` (Cloud Run) |
+| `FASTIFY_LOG_LEVEL` | Fastify logger verbosity | `error` |
+| `SCHEDULE_NOTIFIER_INTERVAL_MS` | Background job interval in milliseconds | `30000` |
+| `USE_VERTEX` | Enable Vertex AI instead of OpenAI (`true`/`false`) | `false` |
+| `DISABLE_FEEDBACK` | Disable feedback collection (`1`/`0`) | `0` |
+| `STYLE_DEBUG` | Enable style scoring debug logs | `false` |
+| `WEATHER_DEBUG` | Enable weather debug logs | `false` |
+| `GCP_REGION` | GCP region for Vertex AI | `us-central1` |
+| `DEFAULT_GENDER` | Default gender for style recommendations | `neutral` |
+| `SECRETS_PATH` | Override secrets directory path (testing only) | — |
+
+### Why These Are Safe
+
+1. **No credentials** — None of these contain API keys, passwords, tokens, or connection strings.
+2. **Public knowledge** — Values like `NODE_ENV=production` or `PORT=8080` are not sensitive.
+3. **Feature flags** — Boolean toggles that control behavior, not access.
+4. **Operational config** — Tuning parameters that don't grant system access.
+
+### CI Enforcement
+
+A GitHub Actions workflow (`secret-scan.yml`) runs on every push and pull request to detect accidentally committed secrets using gitleaks. The build fails if secrets are detected.
+
 ## Compile and run the project
 
 ```bash

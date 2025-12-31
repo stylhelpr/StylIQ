@@ -38,7 +38,7 @@ function getSSLConfig(): PoolConfig['ssl'] {
  * Creates a PostgreSQL pool configuration with proper TLS settings.
  * Use this instead of creating Pool instances directly in services.
  */
-function createPoolConfig(): PoolConfig {
+export function createPoolConfig(): PoolConfig {
   const connectionString = getSecret('DATABASE_URL');
 
   return {
