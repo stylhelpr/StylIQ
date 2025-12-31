@@ -5,7 +5,7 @@ RUN apk add --no-cache python3 make g++  # needed for node-gyp deps
 
 # Copy backend package files
 COPY apps/backend-nest/package*.json ./
-RUN npm ci
+RUN npm config set fetch-retries 5 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci
 
 # Copy backend source code
 COPY apps/backend-nest ./
@@ -22,7 +22,7 @@ RUN apk add --no-cache dumb-init curl ca-certificates
 
 # Copy backend package files (ensure both JSON files are present)
 COPY apps/backend-nest/package.json apps/backend-nest/package-lock.json ./
-RUN ls -la && npm ci --omit=dev
+RUN npm config set fetch-retries 5 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci --omit=dev
 
 # Copy built dist folder from build stage
 COPY --from=build /app/dist ./dist
