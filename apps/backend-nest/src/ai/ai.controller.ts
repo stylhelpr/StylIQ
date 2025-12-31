@@ -7,12 +7,14 @@ import {
   BadRequestException,
   Get,
   Query,
+  UseGuards,
+  Delete,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { FastifyRequest } from 'fastify';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
-import { Delete, Param } from '@nestjs/common';
 import { Readable } from 'stream';
 
 @Throttle({ default: { limit: 15, ttl: 60000 } }) // 15 requests per minute for AI endpoints
@@ -42,17 +44,19 @@ export class AiController {
   }
 
   @Post('recreate')
+  @UseGuards(AuthGuard('jwt'))
   recreate(
+    @Req() req: FastifyRequest & { user: { userId: string } },
     @Body()
     body: {
-      user_id: string;
       tags: string[];
       image_url?: string;
       user_gender?: string;
     },
   ) {
+    const userId = req.user.userId;
     return this.service.recreate(
-      body.user_id,
+      userId,
       body.tags,
       body.image_url,
       body.user_gender,
@@ -60,27 +64,32 @@ export class AiController {
   }
 
   @Post('personalized-shop')
+  @UseGuards(AuthGuard('jwt'))
   personalizedShop(
-    @Body() body: { user_id: string; image_url: string; gender?: string },
+    @Req() req: FastifyRequest & { user: { userId: string } },
+    @Body() body: { image_url: string; gender?: string },
   ) {
+    const userId = req.user.userId;
     return this.service.personalizedShop(
-      body.user_id,
+      userId,
       body.image_url,
       body.gender,
     );
   }
 
   @Post('recreate-visual')
+  @UseGuards(AuthGuard('jwt'))
   recreateVisual(
+    @Req() req: FastifyRequest & { user: { userId: string } },
     @Body()
     body: {
-      user_id: string;
       image_url: string;
       user_gender?: string;
     },
   ) {
+    const userId = req.user.userId;
     return this.service.recreateVisual(
-      body.user_id,
+      userId,
       body.image_url,
       body.user_gender,
     );
@@ -323,15 +332,19 @@ export class AiController {
     return this.service.lookupProductByBarcode(upc);
   }
 
-  @Delete('chat/clear/:user_id')
-  async clearChat(@Param('user_id') user_id: string) {
-    return this.service.clearChatHistory(user_id);
+  @Delete('chat/clear')
+  @UseGuards(AuthGuard('jwt'))
+  async clearChat(@Req() req: FastifyRequest & { user: { userId: string } }) {
+    const userId = req.user.userId;
+    return this.service.clearChatHistory(userId);
   }
 
   /* 🧹 Soft reset (keep long-term memory but remove short-term messages) */
-  @Delete('chat/soft-reset/:user_id')
-  async softReset(@Param('user_id') user_id: string) {
-    return this.service.softResetChat(user_id);
+  @Delete('chat/soft-reset')
+  @UseGuards(AuthGuard('jwt'))
+  async softReset(@Req() req: FastifyRequest & { user: { userId: string } }) {
+    const userId = req.user.userId;
+    return this.service.softResetChat(userId);
   }
 
   /* 🔊 Text-to-Speech — returns MP3 buffer (Alloy voice) */
