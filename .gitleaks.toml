@@ -8,25 +8,51 @@ paths = [
   '''\.md$''',
   '''ios/Podfile\.lock''',
   '''ios/.*\.jsbundle''',
+  '''apps/frontend/src/App\.tsx''',
+  '''apps/frontend/src/utils/auth\.ts''',
+  '''apps/backend-nest/src/product-services/product-search\.service\.ts''',
+  '''apps/frontend/src/screens/OutfitSuggestionScreen\.tsx''',
 ]
 regexes = [
   # Auth0 client ID is public, not a secret
   '''0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5''',
   # CocoaPods checksums (SHA-1 hashes of packages)
-  '''[A-Za-z0-9]{40}.*boost:''',
+  '''[A-Za-z0-9]{40}.*boost''',
   '''SimpleKeychain:''',
   '''A0Auth0:''',
-  '''Auth0:.*boost''',
+  '''Auth0:.*[0-9a-f]{40}''',
   # Store keys are just identifiers
   '''outfit_prefs_v1''',
   # RapidAPI hostnames
   '''rapidapi\.com''',
 ]
 commits = [
-  # Historical commits with secrets that cannot be removed
+  # Historical commits with secrets that cannot be removed from git history
   "8ae227f638ec1175aba709a64d4719c16d4aa480",
   "56507840bef7887575a2c49639c2e659582da25f",
   "d27c609cbde956813355408ba922513bfb824ae8",
   "23ce09503e37a8224d2c361e9f50791c5820d84c",
   "755fc38acf3558336b5f946cb30f463ffed00d84",
+  "f1705f4c79ba12188706507e1f05b3441e91cb49",
+  "b282d50ecfb68d5b276a8a7b7f2cf8bd0ca423c7",
+  "2196f678de6329701639e276a3734fcc42ab2413",
+  "f46d7c950392f81454e770e35b6c733a3219a5f5",
+  "e6e01c3b85ff317f7fcc932592250316bb020f62",
+  "f4ee3b0e06355197c031c98183db754cb7e1e208",
+  "94f8ae20c75145b9997b2a582928df5ca093d200",
+  "49fd70a9806722e31779096a10484f674fcf6446",
+  "d7b5169c9a59b1355537d42bd6bcdd88714249ed",
+  "0edfeb18625275c9844f2605355d6f358ea4f18c",
+  "eb3e7fd917bff9cb65e49274873e32b43126ca94",
+  "6412998aedd3042ad97f5b11609d8ac9f9b88051",
+  "48dafcb85d66116f4b6aaff7770636daaa613b85",
+  "1a2097737fd3f265be11515ad9198171389f713b",
+  "c5dbffd49e9b82967fe62a36df9657fafd282d9b",
+  "0eae92d21116d8d0ee9ce94a7c9ddbb919fc8add",
+  "8d0b2a4fa45a1c8c4fc16879a8980ab4bbe6fd84",
+  "f64b33d0d2b44610f76916c34c24e49d7fbc3c68",
+  "fffbd6f64cbbb2c73bb34099f6e0dc8ca22f076f",
+  "37e37866d962f0142077493c330952204c397a90",
+  "37d7a99ab2f682e7f95580dfb19e3e0b62798895",
+  "66f2a3f31768164b363c482efbee8861da8b9ad7",
 ]

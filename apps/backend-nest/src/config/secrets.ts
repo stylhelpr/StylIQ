@@ -13,8 +13,14 @@ const LOCAL_SECRETS_PATH = path.resolve(__dirname, '../../secrets');
 const cache = new Map<string, string>();
 
 function getBasePath(): string {
-  if (fs.existsSync(CLOUD_RUN_SECRETS_PATH)) return CLOUD_RUN_SECRETS_PATH;
-  if (fs.existsSync(LOCAL_SECRETS_PATH)) return LOCAL_SECRETS_PATH;
+  // Cloud Run: check if any secret mount exists under /secrets
+  if (fs.existsSync(CLOUD_RUN_SECRETS_PATH)) {
+    return CLOUD_RUN_SECRETS_PATH;
+  }
+  // Local dev: check for local secrets directory
+  if (fs.existsSync(LOCAL_SECRETS_PATH)) {
+    return LOCAL_SECRETS_PATH;
+  }
   throw new Error('Secrets directory not found');
 }
 
