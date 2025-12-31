@@ -21,7 +21,14 @@ function getBasePath(): string {
 export function getSecret(name: string): string {
   if (cache.has(name)) return cache.get(name)!;
 
-  const file = path.join(getBasePath(), name);
+  const basePath = getBasePath();
+  let file = path.join(basePath, name);
+
+  // Cloud Run mounts secrets as directories with a 'latest' symlink inside
+  if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+    file = path.join(file, 'latest');
+  }
+
   const value = fs.readFileSync(file, 'utf8').trim();
 
   cache.set(name, value);
@@ -38,7 +45,14 @@ export function getSecretJson<T>(name: string): T {
  */
 export function secretExists(name: string): boolean {
   try {
-    const file = path.join(getBasePath(), name);
+    const basePath = getBasePath();
+    let file = path.join(basePath, name);
+
+    // Cloud Run mounts secrets as directories with a 'latest' symlink inside
+    if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+      file = path.join(file, 'latest');
+    }
+
     return fs.existsSync(file);
   } catch {
     return false;
