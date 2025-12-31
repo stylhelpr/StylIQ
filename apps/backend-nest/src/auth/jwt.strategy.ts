@@ -1,5 +1,5 @@
 // src/auth/jwt.strategy.ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
@@ -8,6 +8,9 @@ import { getSecret } from '../config/secrets';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private readonly logger = new Logger(JwtStrategy.name);
+  private request: any;
+
   constructor() {
     const issuer = getSecret('AUTH0_ISSUER');
     const audience = getSecret('AUTH0_AUDIENCE');
@@ -23,12 +26,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       issuer,
       audience,
       algorithms: ['RS256'],
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: any) {
+  private logAuthFailure(reason: string): void {
+    this.logger.warn({
+      event: 'AUTH_FAILURE',
+      reason,
+      ip: this.request?.ip || this.request?.connection?.remoteAddress,
+      userAgent: this.request?.headers?.['user-agent'],
+    });
+  }
+
+  async validate(req: any, payload: any) {
+    this.request = req;
     const auth0Sub = payload.sub;
     if (!auth0Sub) {
+      this.logAuthFailure('Invalid token: missing subject');
       throw new UnauthorizedException('Invalid token: missing subject');
     }
 
@@ -40,6 +55,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
 
       if (result.rows.length === 0) {
+        this.logAuthFailure('User not found');
         throw new UnauthorizedException('User not found');
       }
 
@@ -53,6 +69,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw err;
       }
       console.error('JWT validation DB error:', err);
+      this.logAuthFailure('Authentication failed');
       throw new UnauthorizedException('Authentication failed');
     }
   }

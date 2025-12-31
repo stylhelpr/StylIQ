@@ -3,10 +3,20 @@ import {
   Get,
   Param,
   Query,
+  Req,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CommunityService } from './community.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
+
+/**
+ * Resolves the effective userId for personalization.
+ * SECURITY: Never trust currentUserId from query params - it enables user impersonation.
+ * If authenticated, use req.user.userId. If unauthenticated, disable personalization.
+ */
+function resolveUserId(req: any, _queryUserId?: string): string | undefined {
+  return req?.user?.userId ?? undefined;
+}
 
 @SkipAuth() // Public community feed - read-only, no user-specific data exposed
 @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
@@ -18,6 +28,7 @@ export class CommunityPublicController {
 
   @Get('posts')
   async getPosts(
+    @Req() req,
     @Query('filter') filter: string = 'all',
     @Query('limit') limit: string = '20',
     @Query('offset') offset: string = '0',
@@ -25,7 +36,7 @@ export class CommunityPublicController {
   ) {
     return this.service.getPosts(
       filter,
-      currentUserId,
+      resolveUserId(req, currentUserId),
       parseInt(limit),
       parseInt(offset),
     );
@@ -33,11 +44,12 @@ export class CommunityPublicController {
 
   @Get('posts/search')
   async searchPosts(
+    @Req() req,
     @Query('q') query: string,
     @Query('currentUserId') currentUserId?: string,
     @Query('limit') limit: string = '20',
   ) {
-    return this.service.searchPosts(query, currentUserId, parseInt(limit));
+    return this.service.searchPosts(query, resolveUserId(req, currentUserId), parseInt(limit));
   }
 
   @Get('posts/by-user/:authorId')
@@ -51,20 +63,22 @@ export class CommunityPublicController {
 
   @Get('posts/:id')
   async getPost(
+    @Req() req,
     @Param('id') postId: string,
     @Query('currentUserId') currentUserId?: string,
   ) {
-    return this.service.getPostById(postId, currentUserId);
+    return this.service.getPostById(postId, resolveUserId(req, currentUserId));
   }
 
   // ==================== PUBLIC COMMENTS ====================
 
   @Get('posts/:id/comments')
   async getComments(
+    @Req() req,
     @Param('id') postId: string,
     @Query('currentUserId') currentUserId?: string,
   ) {
-    return this.service.getComments(postId, currentUserId);
+    return this.service.getComments(postId, resolveUserId(req, currentUserId));
   }
 
   // ==================== PUBLIC USER PROFILE ====================
@@ -76,25 +90,28 @@ export class CommunityPublicController {
 
   @Get('users/:id/profile')
   async getUserProfile(
+    @Req() req,
     @Param('id') userId: string,
     @Query('currentUserId') currentUserId?: string,
   ) {
-    return this.service.getUserProfile(userId, currentUserId);
+    return this.service.getUserProfile(userId, resolveUserId(req, currentUserId));
   }
 
   @Get('users/:id/followers')
   async getFollowers(
+    @Req() req,
     @Param('id') userId: string,
     @Query('currentUserId') currentUserId?: string,
   ) {
-    return this.service.getFollowers(userId, currentUserId);
+    return this.service.getFollowers(userId, resolveUserId(req, currentUserId));
   }
 
   @Get('users/:id/following')
   async getFollowing(
+    @Req() req,
     @Param('id') userId: string,
     @Query('currentUserId') currentUserId?: string,
   ) {
-    return this.service.getFollowing(userId, currentUserId);
+    return this.service.getFollowing(userId, resolveUserId(req, currentUserId));
   }
 }
