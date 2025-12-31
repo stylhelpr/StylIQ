@@ -7,20 +7,26 @@ import {
   Get,
   Post,
   Query,
+  Request,
+  UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { AuthenticatedRequest } from '../auth/types/auth-user';
 import { UploadService } from './upload.service';
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Get('presign')
   async getPresignedUrl(
-    @Query('userId') userId: string,
+    @Request() req: AuthenticatedRequest,
     @Query('filename') filename: string,
     @Query('contentType') contentType: string = 'image/jpeg',
   ) {
+    const userId = req.user.userId;
     const result = await this.uploadService.generatePresignedUrl(
       userId,
       filename,
@@ -31,9 +37,10 @@ export class UploadController {
 
   @Post('complete')
   async saveToDatabase(
+    @Request() req: AuthenticatedRequest,
     @Body()
     body: {
-      user_id: string;
+      user_id?: string;
       image_url: string;
       object_key: string;
       name: string;
@@ -48,15 +55,17 @@ export class UploadController {
       [k: string]: any;
     },
   ) {
-    return this.uploadService.saveWardrobeItem(body);
+    const userId = req.user.userId;
+    return this.uploadService.saveWardrobeItem({ ...body, user_id: userId });
   }
 
   @Post('complete-batch')
   async saveBatch(
+    @Request() req: AuthenticatedRequest,
     @Body()
     body: {
       items: Array<{
-        user_id: string;
+        user_id?: string;
         image_url: string;
         object_key: string;
         name: string;
@@ -72,6 +81,7 @@ export class UploadController {
       }>;
     },
   ) {
+    const userId = req.user.userId;
     const { items } = body || {};
     if (!Array.isArray(items) || items.length === 0) {
       throw new BadRequestException('items[] is required');
@@ -79,7 +89,7 @@ export class UploadController {
 
     const results: any[] = [];
     for (const item of items) {
-      const res = await this.uploadService.saveWardrobeItem(item);
+      const res = await this.uploadService.saveWardrobeItem({ ...item, user_id: userId });
       results.push(res);
     }
     return { count: results.length, results };
