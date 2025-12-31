@@ -4,9 +4,8 @@ import { pool } from '../db/pool';
 
 @Injectable()
 export class ImageUploadEventsService {
-  async create(dto: CreateImageUploadEventDto) {
+  async create(userId: string, dto: Omit<CreateImageUploadEventDto, 'user_id'>) {
     const {
-      user_id,
       wardrobe_item_id,
       file_name,
       width,
@@ -21,7 +20,7 @@ export class ImageUploadEventsService {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`,
       [
-        user_id,
+        userId,
         wardrobe_item_id,
         file_name,
         width,

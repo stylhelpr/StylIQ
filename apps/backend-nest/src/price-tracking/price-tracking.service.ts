@@ -159,15 +159,16 @@ export class PriceTrackingService {
     return result.rows[0];
   }
 
-  async getPriceHistory(trackingId: number) {
+  async getPriceHistory(userId: string, trackingId: number) {
     const query = `
-      SELECT * FROM price_history
-      WHERE tracking_id = $1
-      ORDER BY recorded_at DESC
+      SELECT ph.* FROM price_history ph
+      JOIN price_tracking pt ON ph.tracking_id = pt.id
+      WHERE ph.tracking_id = $1 AND pt.user_id = $2
+      ORDER BY ph.recorded_at DESC
       LIMIT 100;
     `;
 
-    const result = await this.db.query(query, [trackingId]);
+    const result = await this.db.query(query, [trackingId, userId]);
     return result.rows;
   }
 

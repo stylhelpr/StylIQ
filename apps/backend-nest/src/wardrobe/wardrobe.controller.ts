@@ -10,6 +10,7 @@ import {
   Put,
   Req,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { WardrobeService } from './wardrobe.service';
 import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
@@ -88,8 +89,16 @@ export class WardrobeController {
   }
 
   @Put(':item_id')
-  update(@Param('item_id') itemId: string, @Body() dto: UpdateWardrobeItemDto) {
-    return this.service.updateItem(itemId, dto);
+  async update(
+    @Req() req,
+    @Param('item_id') itemId: string,
+    @Body() dto: UpdateWardrobeItemDto,
+  ) {
+    const result = await this.service.updateItem(itemId, req.user.userId, dto);
+    if (!result) {
+      throw new NotFoundException('Wardrobe item not found');
+    }
+    return result;
   }
 
   @Delete()
@@ -191,11 +200,16 @@ export class WardrobeController {
   }
 
   @Put('favorite/:item_id')
-  updateFavorite(
+  async updateFavorite(
+    @Req() req,
     @Param('item_id') itemId: string,
     @Body() body: { favorite: boolean },
   ) {
-    return this.service.updateFavorite(itemId, body.favorite);
+    const result = await this.service.updateFavorite(itemId, req.user.userId, body.favorite);
+    if (!result) {
+      throw new NotFoundException('Wardrobe item not found');
+    }
+    return result;
   }
 
 }

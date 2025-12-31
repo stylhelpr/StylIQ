@@ -2391,7 +2391,7 @@ ${lockedLines}
   }
 
   // UPDATE
-  async updateItem(itemId: string, dto: UpdateWardrobeItemDto) {
+  async updateItem(itemId: string, userId: string, dto: UpdateWardrobeItemDto) {
     const fields: string[] = [];
     const values: any[] = [];
     let index = 1;
@@ -2442,14 +2442,18 @@ ${lockedLines}
     if (fields.length === 0) throw new Error('No fields provided for update.');
 
     values.push(itemId);
+    values.push(userId);
 
     const query = `
       UPDATE wardrobe_items
       SET ${fields.join(', ')}, updated_at = NOW()
-      WHERE id = $${index}
+      WHERE id = $${index} AND user_id = $${index + 1}
       RETURNING *;
     `;
     const result = await pool.query(query, values);
+    if (result.rowCount === 0) {
+      return null;
+    }
     const item = result.rows[0];
 
     let textVec: number[] | undefined;
@@ -2540,16 +2544,18 @@ ${lockedLines}
     };
   }
 
-  // 👉 ADD THIS RIGHT BELOW updateItem
-  async updateFavorite(itemId: string, favorite: boolean) {
+  async updateFavorite(itemId: string, userId: string, favorite: boolean) {
     const result = await pool.query(
       `UPDATE wardrobe_items
      SET favorite = $1,
          updated_at = now()
-     WHERE id = $2
+     WHERE id = $2 AND user_id = $3
      RETURNING *`,
-      [favorite, itemId],
+      [favorite, itemId, userId],
     );
+    if (result.rowCount === 0) {
+      return null;
+    }
     return result.rows[0];
   }
 

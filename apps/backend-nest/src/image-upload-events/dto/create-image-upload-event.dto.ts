@@ -1,5 +1,5 @@
 export class CreateImageUploadEventDto {
-  user_id: string;
+  user_id?: string;
   wardrobe_item_id?: string;
   file_name: string;
   width: number;

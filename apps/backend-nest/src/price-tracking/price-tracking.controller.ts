@@ -63,7 +63,8 @@ export class PriceTrackingController {
 
   @Get(':id/history')
   @UseGuards(AuthGuard('jwt'))
-  async getPriceHistory(@Param('id') id: number) {
-    return this.priceTrackingService.getPriceHistory(id);
+  async getPriceHistory(@Request() req: AuthenticatedRequest, @Param('id') id: number) {
+    const userId = req.user.userId;
+    return this.priceTrackingService.getPriceHistory(userId, id);
   }
 }
