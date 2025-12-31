@@ -1,6 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import axios from 'axios';
+import { SkipAuth } from '../auth/skip-auth.decorator';
 
+@SkipAuth() // Public product search - no user-specific data
 @Controller('shopping')
 export class ShoppingController {
   @Get('search')
