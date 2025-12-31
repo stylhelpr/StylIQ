@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { StyleProfilesService } from './style-profiles.service';
 import { UpdateStyleProfileDto } from '../style-profile/dto/update-style-profile.dto';
@@ -9,15 +9,17 @@ export class StyleProfilesController {
   constructor(private readonly styleProfilesService: StyleProfilesService) {}
 
   @Get(':userId')
-  getMeasurements(@Param('userId') userId: string) {
+  getMeasurements(@Req() req) {
+    const userId = req.user.userId;
     return this.styleProfilesService.getMeasurements(userId);
   }
 
   @Put(':userId/measurements')
   updateMeasurements(
-    @Param('userId') userId: string,
+    @Req() req,
     @Body() dto: UpdateStyleProfileDto,
   ) {
+    const userId = req.user.userId;
     return this.styleProfilesService.updateMeasurements(userId, dto);
   }
 }

@@ -15,8 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../context/ThemeContext';
-import {useUUID} from '../context/UUIDContext';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import {Screen} from '../navigation/types';
 
 // Enable LayoutAnimation on Android
@@ -46,7 +45,6 @@ interface Props {
 
 export default function OutfitHistoryScreen({navigate}: Props) {
   const {theme} = useAppTheme();
-  const uuid = useUUID();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -62,15 +60,15 @@ export default function OutfitHistoryScreen({navigate}: Props) {
   };
 
   useEffect(() => {
-    if (!uuid) return;
-    fetch(`${API_BASE_URL}/scheduled-outfits/history/${uuid}`)
-      .then(res => res.json())
-      .then(data => {
+    apiClient
+      .get('/scheduled-outfits/history')
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : [];
         setHistory(data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [uuid]);
+  }, []);
 
   // Group history items by month/year
   const sections = useMemo((): HistorySection[] => {

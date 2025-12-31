@@ -52,7 +52,7 @@ export function useCalendarEvents(userId: string) {
   return useQuery<CalendarEvent[], Error>({
     queryKey: ['calendar-events', userId],
     queryFn: async () => {
-      const res = await apiClient.get(`${CALENDAR_BASE}/user/${userId}`);
+      const res = await apiClient.get(`${CALENDAR_BASE}/user`);
       return res.data.events || [];
     },
     enabled: !!userId,
@@ -132,7 +132,7 @@ export function useDeleteCalendarEvent() {
       eventId: string;
     }) => {
       const res = await apiClient.delete(
-        `${CALENDAR_BASE}/event/${userId}/${eventId}`,
+        `${CALENDAR_BASE}/event/${eventId}`,
       );
       return {deleted: res.data.deleted, eventId, userId};
     },
@@ -179,9 +179,9 @@ export function useScheduledOutfits(userId: string, apiBaseUrl: string) {
     queryFn: async () => {
       // Fetch all three endpoints in parallel
       const [aiRes, customRes, scheduledRes] = await Promise.all([
-        apiClient.get(`${OUTFIT_BASE}/suggestions/${userId}`),
-        apiClient.get(`${OUTFIT_BASE}/custom/${userId}`),
-        apiClient.get(`${SCHEDULED_OUTFITS_BASE}/${userId}`),
+        apiClient.get(`${OUTFIT_BASE}/suggestions`),
+        apiClient.get(`${OUTFIT_BASE}/custom`),
+        apiClient.get(`${SCHEDULED_OUTFITS_BASE}`),
       ]);
 
       const aiData = aiRes.data;

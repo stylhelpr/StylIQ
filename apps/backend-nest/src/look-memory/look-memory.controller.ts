@@ -2,21 +2,24 @@ import {
   Controller,
   Post,
   Get,
-  Param,
   Query,
   Body,
   HttpException,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { LookMemoryService } from './look-memory.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('users/:userId/look-memory')
 export class LookMemoryController {
   constructor(private readonly lookMemoryService: LookMemoryService) {}
 
   @Post()
   async createLookMemory(
-    @Param('userId') userId: string,
+    @Req() req,
     @Body()
     body: {
       image_url: string;
@@ -25,15 +28,16 @@ export class LookMemoryController {
       result_clicked?: string;
     },
   ) {
+    const userId = req.user.userId;
     return this.lookMemoryService.createLookMemory(userId, body);
   }
 
-  // ✅ New GET endpoint
   @Get()
   async getLookMemory(
-    @Param('userId') userId: string,
+    @Req() req,
     @Query('limit') limit?: string,
   ) {
+    const userId = req.user.userId;
     try {
       const data = await this.lookMemoryService.getLookMemory(
         userId,

@@ -1,7 +1,6 @@
 // hooks/useFavorites.ts
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import axios from 'axios';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 
 type FavoriteOutfit = {id: string; source: 'suggestion' | 'custom'};
 
@@ -14,7 +13,6 @@ type ToggleFavoriteParams = {
 
 export function useFavorites(userId: string) {
   const queryClient = useQueryClient();
-  const BASE = `${API_BASE_URL}/outfit-favorites`;
 
   // Main query for favorites - data is accessed directly via query.data
   const favoritesQuery = useQuery<FavoriteOutfit[], Error>({
@@ -27,7 +25,7 @@ export function useFavorites(userId: string) {
       if (!userId || !/^[0-9a-fA-F\-]{36}$/.test(userId)) {
         throw new Error(`Invalid or missing UUID: ${userId}`);
       }
-      const res = await axios.get(`${BASE}?user_id=${userId}`);
+      const res = await apiClient.get('/outfit-favorites');
       return res.data;
     },
   });
@@ -44,22 +42,11 @@ export function useFavorites(userId: string) {
   >({
     mutationFn: async ({outfitId, outfitType, wasFavorited}) => {
       // Use the captured state from before optimistic update
-      const endpoint = wasFavorited ? `${BASE}/remove` : `${BASE}/add`;
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: userId,
-          outfit_id: outfitId,
-          outfit_type: outfitType,
-        }),
+      const endpoint = wasFavorited ? '/outfit-favorites/remove' : '/outfit-favorites/add';
+      await apiClient.post(endpoint, {
+        outfit_id: outfitId,
+        outfit_type: outfitType,
       });
-
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(`Failed to toggle favorite: ${error}`);
-      }
     },
     // Optimistic update before server response
     onMutate: async ({outfitId, outfitType}) => {
@@ -113,8 +100,7 @@ export function useFavorites(userId: string) {
   // Add favorite mutation (standalone, for direct use)
   const addFavorite = useMutation({
     mutationFn: async ({outfitId, outfitType}: ToggleFavoriteParams) => {
-      await axios.post(`${BASE}/add`, {
-        user_id: userId,
+      await apiClient.post('/outfit-favorites/add', {
         outfit_id: outfitId,
         outfit_type: outfitType,
       });
@@ -127,8 +113,7 @@ export function useFavorites(userId: string) {
   // Remove favorite mutation (standalone, for direct use)
   const removeFavorite = useMutation({
     mutationFn: async ({outfitId, outfitType}: ToggleFavoriteParams) => {
-      await axios.post(`${BASE}/remove`, {
-        user_id: userId,
+      await apiClient.post('/outfit-favorites/remove', {
         outfit_id: outfitId,
         outfit_type: outfitType,
       });

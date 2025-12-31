@@ -135,10 +135,10 @@ export function useOutfitsQuery(
     queryFn: async () => {
       // Fetch all 4 endpoints in parallel for speed
       const [aiRes, customRes, scheduledRes, wornCountsRes] = await Promise.all([
-        apiClient.get(`/outfit/suggestions/${userId}`),
-        apiClient.get(`/outfit/custom/${userId}`),
-        apiClient.get(`/scheduled-outfits/${userId}`),
-        apiClient.get(`/scheduled-outfits/worn-counts/${userId}`).catch(() => ({data: {}})),
+        apiClient.get('/outfit/suggestions'),
+        apiClient.get('/outfit/custom'),
+        apiClient.get('/scheduled-outfits'),
+        apiClient.get('/scheduled-outfits/worn-counts').catch(() => ({data: {}})),
       ]);
 
       const aiData: RawOutfitData[] = aiRes.data || [];

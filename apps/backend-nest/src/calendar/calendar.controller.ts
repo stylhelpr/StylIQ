@@ -7,9 +7,13 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { CalendarService } from './calendar.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('calendar')
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
@@ -19,37 +23,30 @@ export class CalendarController {
   // Sync inbound native iOS calendar events
   @Post('sync-native')
   @HttpCode(HttpStatus.CREATED)
-  async syncNative(@Body() body: { userId?: string; events?: any[] }) {
-    // console.log('📥 /calendar/sync-native received:', {
-    //   userId: body?.userId,
-    //   eventCount: body?.events?.length ?? 0,
-    //   sample: body?.events?.[0] ?? null,
-    // });
+  async syncNative(@Req() req, @Body() body: { events?: any[] }) {
+    const userId = req.user.userId;
 
-    if (!body?.userId || !Array.isArray(body?.events)) {
-      // console.warn('⚠️ Invalid request payload received:', body);
+    if (!Array.isArray(body?.events)) {
       return { ok: false, error: 'invalid_payload' };
     }
 
     const res = await this.calendarService.syncNativeEvents({
-      user_id: body.userId,
+      user_id: userId,
       events: body.events,
     });
 
-    // console.log('📤 /calendar/sync-native response:', res);
     return res;
   }
 
   // ────────────────────────────────────────────────
-  // 📤 GET /api/calendar/user/:user_id
+  // 📤 GET /api/calendar/user
   // Retrieve all stored events for a user
-  @Get('user/:user_id')
+  @Get('user')
   @HttpCode(HttpStatus.OK)
-  async getUserEvents(@Param('user_id') user_id: string) {
-    // console.log(`📡 Fetching stored events for user: ${user_id}`);
+  async getUserEvents(@Req() req) {
+    const user_id = req.user.userId;
     const events = await this.calendarService.getEventsForUser(user_id);
 
-    // console.log(`📦 Retrieved ${events.length} events for ${user_id}`);
     return { ok: true, count: events.length, events };
   }
 
@@ -59,9 +56,9 @@ export class CalendarController {
   @Post('event')
   @HttpCode(HttpStatus.CREATED)
   async createEvent(
+    @Req() req,
     @Body()
     body: {
-      user_id: string;
       title: string;
       start_date: string;
       end_date?: string;
@@ -69,15 +66,16 @@ export class CalendarController {
       notes?: string;
     },
   ) {
-    console.log('📅 POST /calendar/event received:', body);
+    const user_id = req.user.userId;
+    console.log('📅 POST /calendar/event received:', { user_id, ...body });
 
-    if (!body?.user_id || !body?.title || !body?.start_date) {
-      console.warn('⚠️ Missing required fields:', { user_id: !!body?.user_id, title: !!body?.title, start_date: !!body?.start_date });
+    if (!body?.title || !body?.start_date) {
+      console.warn('⚠️ Missing required fields:', { title: !!body?.title, start_date: !!body?.start_date });
       return { ok: false, error: 'missing_required_fields' };
     }
 
     try {
-      const event = await this.calendarService.createEvent(body);
+      const event = await this.calendarService.createEvent({ user_id, ...body });
       console.log('✅ Event created successfully:', event);
       return { ok: true, event };
     } catch (err) {
@@ -87,17 +85,18 @@ export class CalendarController {
   }
 
   // ────────────────────────────────────────────────
-  // 🗑️ DELETE /api/calendar/event/:user_id/:event_id
+  // 🗑️ DELETE /api/calendar/event/:event_id
   // Delete a single calendar event
-  @Delete('event/:user_id/:event_id')
+  @Delete('event/:event_id')
   @HttpCode(HttpStatus.OK)
   async deleteEvent(
-    @Param('user_id') user_id: string,
+    @Req() req,
     @Param('event_id') event_id: string,
   ) {
+    const user_id = req.user.userId;
     console.log('🗑️ DELETE /calendar/event received:', { user_id, event_id });
 
-    if (!user_id || !event_id) {
+    if (!event_id) {
       return { ok: false, error: 'missing_required_params' };
     }
 

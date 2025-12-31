@@ -57,6 +57,10 @@ import {
 
 type Tab = 'For You' | 'Following';
 
+// Stable empty arrays to prevent infinite re-renders
+const EMPTY_BRANDS: string[] = [];
+const EMPTY_KEYWORDS: string[] = [];
+
 type Chip = {
   id: string;
   label: string;
@@ -586,11 +590,11 @@ export default function ExploreScreen() {
 
   // ───────── Personal chips (from style_profiles.preferred_brands) ─────────
   // Now using TanStack Query for caching and efficiency
-  const {data: wardrobeBrands = []} = usePreferredBrands(userId);
+  const {data: wardrobeBrands = EMPTY_BRANDS} = usePreferredBrands(userId);
 
   // ───────── Trending chips ─────────
   const trendingKeywords = useMemo(() => {
-    if (!articles?.length) return [];
+    if (!articles?.length) return EMPTY_KEYWORDS;
     const wordCounts: Record<string, number> = {};
     for (const a of articles) {
       const text = `${a.title ?? ''} ${a.summary ?? ''}`.toLowerCase();

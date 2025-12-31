@@ -9,6 +9,7 @@ import {
   HttpCode,
   BadRequestException,
   Query,
+  Req,
 } from '@nestjs/common';
 import {AuthGuard} from '@nestjs/passport';
 import {ConnectedAccountsService, SocialPlatform} from './connected-accounts.service';
@@ -30,6 +31,7 @@ interface ConnectedAccountsResponse {
   }>;
 }
 
+@UseGuards(AuthGuard('jwt'))
 @Controller('api/connected-accounts')
 export class ConnectedAccountsController {
   constructor(private readonly connectedAccountsService: ConnectedAccountsService) {}
@@ -39,10 +41,8 @@ export class ConnectedAccountsController {
    * Fetch all connected accounts for a user
    */
   @Get(':userId')
-  async getConnectedAccounts(@Param('userId') userId: string): Promise<ConnectedAccountsResponse> {
-    if (!userId) {
-      throw new BadRequestException('User ID is required');
-    }
+  async getConnectedAccounts(@Req() req): Promise<ConnectedAccountsResponse> {
+    const userId = req.user.userId;
 
     const accounts = await this.connectedAccountsService.getConnectedAccounts(userId);
     const formatted = this.connectedAccountsService.formatForFrontend(accounts);
@@ -58,14 +58,14 @@ export class ConnectedAccountsController {
    * In production, this should verify OAuth tokens and retrieve account details from the social platform
    */
   @Post(':userId/connect')
-  @UseGuards(AuthGuard('jwt'))
   @HttpCode(200)
   async connectAccount(
-    @Param('userId') userId: string,
+    @Req() req,
     @Body() body: ConnectAccountDto
   ): Promise<{platform: SocialPlatform; isConnected: boolean; username?: string; accountId?: string}> {
-    if (!userId || !body.platform) {
-      throw new BadRequestException('User ID and platform are required');
+    const userId = req.user.userId;
+    if (!body.platform) {
+      throw new BadRequestException('Platform is required');
     }
 
     // NOTE: In production, you would:
@@ -98,14 +98,14 @@ export class ConnectedAccountsController {
    * Disconnect a social account
    */
   @Delete(':userId/disconnect/:platform')
-  @UseGuards(AuthGuard('jwt'))
   @HttpCode(200)
   async disconnectAccount(
-    @Param('userId') userId: string,
+    @Req() req,
     @Param('platform') platform: string
   ): Promise<{success: boolean; message: string}> {
-    if (!userId || !platform) {
-      throw new BadRequestException('User ID and platform are required');
+    const userId = req.user.userId;
+    if (!platform) {
+      throw new BadRequestException('Platform is required');
     }
 
     await this.connectedAccountsService.disconnectAccount(userId, platform as SocialPlatform);
@@ -122,11 +122,12 @@ export class ConnectedAccountsController {
    */
   @Get(':userId/:platform')
   async checkConnection(
-    @Param('userId') userId: string,
+    @Req() req,
     @Param('platform') platform: string
   ): Promise<{isConnected: boolean; username?: string}> {
-    if (!userId || !platform) {
-      throw new BadRequestException('User ID and platform are required');
+    const userId = req.user.userId;
+    if (!platform) {
+      throw new BadRequestException('Platform is required');
     }
 
     const account = await this.connectedAccountsService.getConnectedAccount(

@@ -1,7 +1,6 @@
 // hooks/useStyleProfile.ts
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import axios from 'axios';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 
 export function useStyleProfile(userId: string) {
   const queryClient = useQueryClient();
@@ -10,29 +9,17 @@ export function useStyleProfile(userId: string) {
     queryKey: ['styleProfile', userId],
     enabled: !!userId,
     queryFn: async () => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/style-profile/${userId}`,
-        );
-        return response.data;
-      } catch (err: any) {
-        // Style profile fetch failed
-        throw err;
-      }
+      const response = await apiClient.get('/style-profile');
+      return response.data;
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (updatedProfile: any) => {
-      // console.log('📝 Updating style profile for:', userId);
-      const response = await axios.put(
-        `${API_BASE_URL}/style-profile/${userId}`,
-        updatedProfile,
-      );
+      const response = await apiClient.put('/style-profile', updatedProfile);
       return response.data;
     },
     onSuccess: () => {
-      // console.log('♻️ Invalidating style profile cache for:', userId);
       queryClient.invalidateQueries({queryKey: ['styleProfile', userId]});
     },
   });

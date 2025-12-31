@@ -5,7 +5,7 @@ import messaging, {
   FirebaseMessagingTypes,
 } from '@react-native-firebase/messaging';
 import {Linking, Platform} from 'react-native';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import {addToInbox} from './notificationInbox';
 import {DynamicIsland} from '../native/dynamicIsland';
 
@@ -134,16 +134,11 @@ export const initializeNotifications = async (userId?: string) => {
 
     // 📡 Register token with backend
     if (fcmToken) {
-      await fetch(`${API_BASE_URL}/notifications/register`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: userId,
-          device_token: fcmToken,
-          platform: Platform.OS,
-          sender_id: senderId,
-          project_id: projectId,
-        }),
+      await apiClient.post('/notifications/register', {
+        device_token: fcmToken,
+        platform: Platform.OS,
+        sender_id: senderId,
+        project_id: projectId,
       });
     }
 
@@ -244,16 +239,11 @@ export const initializeNotifications = async (userId?: string) => {
     // 🔄 Token refresh → register again
     messaging().onTokenRefresh(async newTok => {
       try {
-        await fetch(`${API_BASE_URL}/notifications/register`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            user_id: userId,
-            device_token: newTok,
-            platform: Platform.OS,
-            sender_id: senderId,
-            project_id: projectId,
-          }),
+        await apiClient.post('/notifications/register', {
+          device_token: newTok,
+          platform: Platform.OS,
+          sender_id: senderId,
+          project_id: projectId,
         });
       } catch (e) {
         // register(refresh) failed

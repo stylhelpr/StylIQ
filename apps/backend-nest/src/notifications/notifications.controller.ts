@@ -1,50 +1,54 @@
 // apps/backend-nest/src/notifications/notifications.controller.ts
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly service: NotificationsService) {}
 
   @Post('register')
-  register(@Body() body: any) {
-    return this.service.registerToken(body);
+  register(@Req() req, @Body() body: any) {
+    const user_id = req.user.userId;
+    return this.service.registerToken({ ...body, user_id });
   }
 
   @Post('preferences')
-  upsertPrefs(@Body() body: any) {
-    return this.service.upsertPreferences(body);
+  upsertPrefs(@Req() req, @Body() body: any) {
+    const user_id = req.user.userId;
+    return this.service.upsertPreferences({ ...body, user_id });
   }
 
   @Get('preferences/get')
-  getPrefs(@Query('user_id') user_id: string) {
-    return this.service.getPreferences(user_id);
+  getPrefs(@Req() req) {
+    return this.service.getPreferences(req.user.userId);
   }
 
   // ── Follows ──────────────────────────────────────────────
   @Get('follows')
-  getFollows(@Query('user_id') user_id: string) {
-    return this.service.getFollows(user_id);
+  getFollows(@Req() req) {
+    return this.service.getFollows(req.user.userId);
   }
 
   @Post('follow')
-  follow(@Body() body: { user_id: string; source: string }) {
-    return this.service.follow(body.user_id, body.source);
+  follow(@Req() req, @Body() body: { source: string }) {
+    return this.service.follow(req.user.userId, body.source);
   }
 
   @Post('unfollow')
-  unfollow(@Body() body: { user_id: string; source: string }) {
-    return this.service.unfollow(body.user_id, body.source);
+  unfollow(@Req() req, @Body() body: { source: string }) {
+    return this.service.unfollow(req.user.userId, body.source);
   }
 
   // ── Test / debug ─────────────────────────────────────────
   @Post('test')
-  async sendTest(@Body() body: any) {
-    const { user_id, title, body: msgBody, data } = body;
+  async sendTest(@Req() req, @Body() body: any) {
+    const { title, body: msgBody, data } = body;
     console.log('📤 /test called with', body);
 
     const res = await this.service.sendPushToUser(
-      user_id,
+      req.user.userId,
       title,
       msgBody,
       data,
@@ -54,33 +58,33 @@ export class NotificationsController {
   }
 
   @Get('debug')
-  debug(@Query('user_id') user_id?: string) {
-    return this.service.debug(user_id);
+  debug(@Req() req) {
+    return this.service.debug(req.user.userId);
   }
 
   @Post('save')
-  async saveInboxItem(@Body() body: any) {
-    return this.service.saveInboxItem(body);
+  async saveInboxItem(@Req() req, @Body() body: any) {
+    return this.service.saveInboxItem({ ...body, user_id: req.user.userId });
   }
 
   @Get('inbox')
-  async getInbox(@Query('user_id') user_id: string) {
-    return this.service.getInboxItems(user_id);
+  async getInbox(@Req() req) {
+    return this.service.getInboxItems(req.user.userId);
   }
 
   @Post('mark-read')
-  async markRead(@Body() body: { user_id: string; id: string }) {
-    return this.service.markRead(body.user_id, body.id);
+  async markRead(@Req() req, @Body() body: { id: string }) {
+    return this.service.markRead(req.user.userId, body.id);
   }
 
   @Post('mark-all-read')
-  async markAllRead(@Body() body: { user_id: string }) {
-    return this.service.markAllRead(body.user_id);
+  async markAllRead(@Req() req) {
+    return this.service.markAllRead(req.user.userId);
   }
 
   @Post('clear-all')
-  async clearAll(@Body() body: { user_id: string }) {
-    return this.service.clearAll(body.user_id);
+  async clearAll(@Req() req) {
+    return this.service.clearAll(req.user.userId);
   }
 
   // Optional manual trigger to prove the full flow:

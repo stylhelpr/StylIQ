@@ -6,32 +6,40 @@ import {
   Delete,
   Param,
   Body,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ScheduledOutfitService } from './scheduled-outfit.service';
 import { CreateScheduledOutfitDto } from './dto/create-scheduled-outfit.dto';
 import { UpdateScheduledOutfitDto } from './dto/update-scheduled-outfit.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('scheduled-outfits')
 export class ScheduledOutfitController {
   constructor(private readonly service: ScheduledOutfitService) {}
 
   @Post()
-  create(@Body() dto: CreateScheduledOutfitDto) {
-    return this.service.create(dto);
+  create(@Req() req, @Body() dto: Omit<CreateScheduledOutfitDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.service.create({ user_id, ...dto });
   }
 
-  @Get('history/:userId')
-  getHistory(@Param('userId') userId: string) {
+  @Get('history')
+  getHistory(@Req() req) {
+    const userId = req.user.userId;
     return this.service.getHistory(userId);
   }
 
-  @Get('worn-counts/:userId')
-  getWornCounts(@Param('userId') userId: string) {
+  @Get('worn-counts')
+  getWornCounts(@Req() req) {
+    const userId = req.user.userId;
     return this.service.getWornCounts(userId);
   }
 
-  @Get(':userId')
-  getUserSchedule(@Param('userId') userId: string) {
+  @Get()
+  getUserSchedule(@Req() req) {
+    const userId = req.user.userId;
     return this.service.getByUser(userId);
   }
 
@@ -47,9 +55,11 @@ export class ScheduledOutfitController {
 
   @Delete()
   async deleteByUserAndOutfit(
-    @Body() body: { user_id: string; outfit_id: string },
+    @Req() req,
+    @Body() body: { outfit_id: string },
   ) {
-    return this.service.deleteByUserAndOutfit(body.user_id, body.outfit_id);
+    const user_id = req.user.userId;
+    return this.service.deleteByUserAndOutfit(user_id, body.outfit_id);
   }
 
   @Post(':id/worn')

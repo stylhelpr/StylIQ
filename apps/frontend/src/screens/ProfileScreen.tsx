@@ -19,6 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAuth0} from 'react-native-auth0';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import * as Animatable from 'react-native-animatable';
@@ -124,9 +125,8 @@ export default function ProfileScreen({navigate}: Props) {
     queryKey: ['favoriteBrands', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/style-profile/${userId}/brands`);
-      const json = await res.json();
-      return Array.isArray(json.brands) ? json.brands : [];
+      const res = await apiClient.get('/style-profile/brands');
+      return Array.isArray(res.data.brands) ? res.data.brands : [];
     },
     staleTime: 60000, // 1 minute
   });
@@ -254,9 +254,8 @@ export default function ProfileScreen({navigate}: Props) {
     queryKey: ['wardrobe', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch wardrobe');
-      return res.json();
+      const res = await apiClient.get('/wardrobe');
+      return res.data;
     },
     staleTime: 30000, // 30 seconds - shared with ClosetScreen
   });
@@ -265,11 +264,8 @@ export default function ProfileScreen({navigate}: Props) {
     queryKey: ['totalFavorites', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(
-        `${API_BASE_URL}/outfit-favorites/count/${userId}`,
-      );
-      const data = await res.json();
-      return data.count;
+      const res = await apiClient.get('/outfit-favorites/count');
+      return res.data.count ?? 0;
     },
     staleTime: 30000, // 30 seconds
   });
@@ -278,9 +274,8 @@ export default function ProfileScreen({navigate}: Props) {
     queryKey: ['totalCustomOutfits', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/custom-outfits/count/${userId}`);
-      const data = await res.json();
-      return data.count;
+      const res = await apiClient.get('/custom-outfits/count');
+      return res.data.count ?? 0;
     },
     staleTime: 30000, // 30 seconds
   });

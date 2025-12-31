@@ -22,7 +22,7 @@ import {getInferredCategory} from '../utils/categoryUtils';
 import {MainCategory, Subcategory} from '../types/categoryTypes';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useUUID} from '../context/UUIDContext';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
@@ -197,9 +197,8 @@ export default function ClosetScreen({navigate}: Props) {
   const {data: wardrobe = [], isLoading} = useQuery({
     queryKey: ['wardrobe', userId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
-      if (!res.ok) throw new Error('Failed to fetch wardrobe');
-      return res.json();
+      const res = await apiClient.get('/wardrobe');
+      return res.data;
     },
     enabled: !!userId,
     staleTime: 30000, // 30 seconds - prevent unnecessary refetches
@@ -213,7 +212,7 @@ export default function ClosetScreen({navigate}: Props) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await fetch(`${API_BASE_URL}/wardrobe/${id}`, {method: 'DELETE'});
+      await apiClient.delete(`/wardrobe/${id}`);
     },
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
@@ -244,11 +243,7 @@ export default function ClosetScreen({navigate}: Props) {
       name?: string;
       color?: string;
     }) => {
-      await fetch(`${API_BASE_URL}/wardrobe/${id}`, {
-        method: 'Put',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name, color}),
-      });
+      await apiClient.put(`/wardrobe/${id}`, {name, color});
     },
     onMutate: async ({id, name, color}) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
@@ -343,11 +338,7 @@ export default function ClosetScreen({navigate}: Props) {
 
   const favoriteMutation = useMutation({
     mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
-      await fetch(`${API_BASE_URL}/wardrobe/favorite/${id}`, {
-        method: 'Put',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({favorite}),
-      });
+      await apiClient.put(`/wardrobe/favorite/${id}`, {favorite});
     },
     onMutate: async ({id, favorite}) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});

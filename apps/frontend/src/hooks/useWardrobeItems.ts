@@ -1,22 +1,14 @@
 // hooks/useWardrobeItems.ts
 import {useQuery} from '@tanstack/react-query';
-import {API_BASE_URL} from '../config/api';
+import apiClient from '../lib/apiClient';
 
 export async function fetchWardrobeItems(userId: string) {
   if (!userId || !/^[0-9a-fA-F\-]{36}$/.test(userId)) {
     throw new Error(`❌ Invalid or missing UUID: ${userId}`);
   }
 
-  const res = await fetch(`${API_BASE_URL}/wardrobe/${userId}`);
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error(
-      `❌ Failed to fetch wardrobe items ${res.status}:`,
-      errorText,
-    );
-    throw new Error(`Failed to fetch wardrobe items: ${res.status}`);
-  }
-  return res.json();
+  const res = await apiClient.get(`/wardrobe/${userId}`);
+  return res.data;
 }
 
 export function useWardrobeItems(userId: string) {

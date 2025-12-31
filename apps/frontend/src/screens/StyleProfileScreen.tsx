@@ -15,7 +15,7 @@ import {useProfileProgress} from '../hooks/useProfileProgress';
 import {useStyleProfile} from '../hooks/useStyleProfile';
 import {useUUID} from '../context/UUIDContext';
 import {useQuery} from '@tanstack/react-query';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import {useAuth0} from 'react-native-auth0';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import type {WardrobeItem} from '../types/wardrobe';
@@ -135,7 +135,7 @@ export default function StyleProfileScreen({navigate}: Props) {
     styleProfile,
     isLoading: profileLoading,
     isError,
-  } = useStyleProfile(auth0Sub || '');
+  } = useStyleProfile(uuid || '');
 
   const {
     data: wardrobe = [],
@@ -145,42 +145,22 @@ export default function StyleProfileScreen({navigate}: Props) {
     queryKey: ['wardrobe', uuid],
     enabled: !!uuid,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${uuid}`);
-      if (!res.ok) throw new Error('Failed to fetch wardrobe');
-      return await res.json();
+      const res = await apiClient.get('/wardrobe');
+      return res.data;
     },
   });
 
-  if (!auth0Sub || !uuid || profileLoading || wardrobeLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{color: 'gray', marginTop: 12}}>Loading profile...</Text>
-      </View>
-    );
-  }
+  // Calculate progress (useProfileProgress is a pure function, not a hook)
+  const progress = styleProfile && wardrobe
+    ? useProfileProgress(styleProfile, wardrobe)
+    : 0;
 
-  if (isError || wardrobeError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={{color: 'red'}}>❌ Error loading style profile.</Text>
-      </View>
-    );
-  }
-
-  let progress = 0;
-  try {
-    progress = useProfileProgress(styleProfile, wardrobe);
-  } catch (e) {
-    // keep as 0 if calculation fails
-  }
-
-  // ── Warning visibility logic: only show when progress < 100
+  // Warning visibility logic: only show when progress < 100
   const showWarning = Number(progress) < 100;
 
-  // Smooth fade-out when reaching 100%, then unmount the block
-  const warnOpacity = useRef(new Animated.Value(showWarning ? 1 : 0)).current;
-  const [warningMounted, setWarningMounted] = useState(showWarning);
+  // All hooks must be called before any conditional returns
+  const warnOpacity = useRef(new Animated.Value(1)).current;
+  const [warningMounted, setWarningMounted] = useState(true);
 
   useEffect(() => {
     if (showWarning) {
@@ -200,6 +180,25 @@ export default function StyleProfileScreen({navigate}: Props) {
       });
     }
   }, [showWarning, warnOpacity]);
+
+  // Loading state
+  if (!auth0Sub || !uuid || profileLoading || wardrobeLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{color: 'gray', marginTop: 12}}>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  // Error state
+  if (isError || wardrobeError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{color: 'red'}}>Error loading style profile.</Text>
+      </View>
+    );
+  }
 
   const profileSections = [
     ['Preferences', '🧪', 'Style Preferences'],

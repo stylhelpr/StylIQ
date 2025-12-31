@@ -1,25 +1,39 @@
-import { Controller, Post, Get, Delete, Patch, Param, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { RecreatedLookService } from './recreated-look.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('users/:userId/recreated-looks')
 export class RecreatedLookController {
   constructor(private readonly recreatedLookService: RecreatedLookService) {}
 
   @Post()
   async saveRecreatedLook(
-    @Param('userId') userId: string,
+    @Req() req,
     @Body()
     body: { source_image_url: string; generated_outfit: any; tags?: string[] },
   ) {
+    const userId = req.user.userId;
     return this.recreatedLookService.saveRecreatedLook(userId, body);
   }
 
-  // 👇 ADD THIS
   @Get()
   async getRecentRecreatedLooks(
-    @Param('userId') userId: string,
+    @Req() req,
     @Query('limit') limit = '20',
   ) {
+    const userId = req.user.userId;
     return this.recreatedLookService.getRecentRecreatedLooks(
       userId,
       parseInt(limit, 10),
@@ -28,18 +42,20 @@ export class RecreatedLookController {
 
   @Patch(':lookId')
   async updateRecreatedLook(
-    @Param('userId') userId: string,
+    @Req() req,
     @Param('lookId') lookId: string,
     @Body() body: { name?: string },
   ) {
+    const userId = req.user.userId;
     return this.recreatedLookService.updateRecreatedLook(userId, lookId, body.name);
   }
 
   @Delete(':lookId')
   async deleteRecreatedLook(
-    @Param('userId') userId: string,
+    @Req() req,
     @Param('lookId') lookId: string,
   ) {
+    const userId = req.user.userId;
     return this.recreatedLookService.deleteRecreatedLook(userId, lookId);
   }
 }

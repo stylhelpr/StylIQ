@@ -7,23 +7,28 @@ import {
   Delete,
   Param,
   Body,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { SavedLookService } from './saved-look.service';
 import { CreateSavedLookDto } from './dto/create-saved-look.dto';
 import { UpdateSavedLookDto } from './dto/update-saved-look.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('saved-looks')
 export class SavedLookController {
   constructor(private readonly service: SavedLookService) {}
 
   @Post()
-  create(@Body() dto: CreateSavedLookDto) {
-    return this.service.create(dto);
+  create(@Req() req, @Body() dto: Omit<CreateSavedLookDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.service.create({ user_id, ...dto });
   }
 
   @Get(':userId')
-  getUserLooks(@Param('userId') userId: string) {
-    // console.log('📡 GET /saved-looks/:userId hit →', userId);
+  getUserLooks(@Req() req) {
+    const userId = req.user.userId;
     return this.service.getByUser(userId);
   }
 

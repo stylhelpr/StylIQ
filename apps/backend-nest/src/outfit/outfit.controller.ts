@@ -6,49 +6,60 @@ import {
   Body,
   Delete,
   Put,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { OutfitService } from './outfit.service';
 import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
 import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('outfit')
 export class OutfitController {
   constructor(private readonly outfitService: OutfitService) {}
 
-  @Get('custom/:userId')
-  getCustomOutfits(@Param('userId') userId: string) {
+  @Get('custom')
+  getCustomOutfits(@Req() req) {
+    const userId = req.user.userId;
     return this.outfitService.getCustomOutfits(userId);
   }
 
   @Post('suggest')
-  suggestOutfit(@Body() dto: SuggestOutfitDto) {
-    return this.outfitService.suggestOutfit(dto);
+  suggestOutfit(@Req() req, @Body() dto: Omit<SuggestOutfitDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.outfitService.suggestOutfit({ user_id, ...dto });
   }
 
-  @Get('suggestions/:userId')
-  getSuggestions(@Param('userId') userId: string) {
+  @Get('suggestions')
+  getSuggestions(@Req() req) {
+    const userId = req.user.userId;
     return this.outfitService.getSuggestions(userId);
   }
 
   @Post('feedback')
-  submitFeedback(@Body() dto: OutfitFeedbackDto) {
-    return this.outfitService.submitFeedback(dto);
+  submitFeedback(@Req() req, @Body() dto: Omit<OutfitFeedbackDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.outfitService.submitFeedback({ user_id, ...dto });
   }
 
   @Post('favorite')
-  favoriteOutfit(@Body() dto: FavoriteOutfitDto) {
-    return this.outfitService.favoriteOutfit(dto);
+  favoriteOutfit(@Req() req, @Body() dto: Omit<FavoriteOutfitDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.outfitService.favoriteOutfit({ user_id, ...dto });
   }
 
   @Get('favorites/:userId')
-  getFavorites(@Param('userId') userId: string) {
+  getFavorites(@Req() req) {
+    const userId = req.user.userId;
     return this.outfitService.getFavorites(userId);
   }
 
   @Delete('favorite')
-  unfavoriteOutfit(@Body() dto: FavoriteOutfitDto) {
-    return this.outfitService.unfavoriteOutfit(dto);
+  unfavoriteOutfit(@Req() req, @Body() dto: Omit<FavoriteOutfitDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.outfitService.unfavoriteOutfit({ user_id, ...dto });
   }
 
   @Get('suggestion/:id')
@@ -72,19 +83,21 @@ export class OutfitController {
 
   @Post('mark-worn/:outfitId/:outfitType/:userId')
   markAsWorn(
+    @Req() req,
     @Param('outfitId') outfitId: string,
     @Param('outfitType') outfitType: 'custom' | 'ai',
-    @Param('userId') userId: string,
   ) {
+    const userId = req.user.userId;
     return this.outfitService.markAsWorn(outfitId, outfitType, userId);
   }
 
   @Delete('unmark-worn/:outfitId/:outfitType/:userId')
   unmarkWorn(
+    @Req() req,
     @Param('outfitId') outfitId: string,
     @Param('outfitType') outfitType: 'custom' | 'ai',
-    @Param('userId') userId: string,
   ) {
+    const userId = req.user.userId;
     return this.outfitService.unmarkWorn(outfitId, outfitType, userId);
   }
 }

@@ -76,10 +76,10 @@ const ScalePressable = ({
     </Pressable>
   );
 };
-import {API_BASE_URL} from '../../config/api';
 import {useUUID} from '../../context/UUIDContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useAppTheme} from '../../context/ThemeContext';
+import {apiClient} from '../../lib/apiClient';
 
 type Product = {
   id: string;
@@ -209,26 +209,19 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
       });
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/discover/${userId}/toggle-save`,
-          {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({product_id: product.product_id}),
-          },
-        );
+        const response = await apiClient.post(`/discover/${userId}/toggle-save`, {
+          product_id: product.product_id,
+        });
 
-        if (response.ok) {
-          const result = await response.json();
-          // Update local state
-          setRecommended(prev =>
-            prev.map(p =>
-              p.product_id === product.product_id
-                ? {...p, saved: result.saved}
-                : p,
-            ),
-          );
-        }
+        const result = response.data;
+        // Update local state
+        setRecommended(prev =>
+          prev.map(p =>
+            p.product_id === product.product_id
+              ? {...p, saved: result.saved}
+              : p,
+          ),
+        );
       } catch (err) {
         console.error('Failed to toggle save:', err);
       } finally {
@@ -242,11 +235,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
   const fetchSavedProducts = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/discover/${userId}/saved`);
-      if (response.ok) {
-        const data = await response.json();
-        setSavedProducts(data);
-      }
+      const response = await apiClient.get(`/discover/${userId}/saved`);
+      setSavedProducts(response.data);
     } catch (err) {
       console.error('Failed to fetch saved products:', err);
     }
@@ -304,11 +294,8 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     (async () => {
       setLoading(true);
       try {
-        const resp = await fetch(
-          `${API_BASE_URL}/discover/${encodeURIComponent(userId)}`,
-        );
-        if (!resp.ok) throw new Error(`Failed (${resp.status})`);
-        const data = await resp.json();
+        const resp = await apiClient.get(`/discover/${encodeURIComponent(userId)}`);
+        const data = resp.data;
         const items: Product[] = data
           .map((p: any) => ({
             id: String(p.id),

@@ -14,6 +14,7 @@ import {useAppTheme} from '../context/ThemeContext';
 import {useQuery} from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import * as Animatable from 'react-native-animatable';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
@@ -143,11 +144,8 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     queryKey: ['publicStyleProfile', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(
-        `${API_BASE_URL}/style-profile/by-user-id/${userId}`,
-      );
-      if (!res.ok) return null;
-      return res.json();
+      const res = await apiClient.get(`/style-profile/by-user-id/${userId}`);
+      return res.data;
     },
   });
   const styleTags = styleProfile?.style_preferences || [];
@@ -194,11 +192,8 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     if (!userId) return;
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/style-profile/${userId}/brands`,
-        );
-        const json = await res.json();
-        setFavoriteBrands(Array.isArray(json.brands) ? json.brands : []);
+        const res = await apiClient.get(`/style-profile/by-user-id/${userId}/brands`);
+        setFavoriteBrands(Array.isArray(res.data.brands) ? res.data.brands : []);
       } catch {
         setFavoriteBrands([]);
       }

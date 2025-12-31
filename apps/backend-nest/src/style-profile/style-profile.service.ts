@@ -16,8 +16,7 @@ export class StyleProfileService {
     return userRes.rows[0].id;
   }
 
-  async getProfile(auth0Sub: string) {
-    const userId = await this.getInternalUserId(auth0Sub);
+  async getProfile(userId: string) {
     let profileRes = await pool.query(
       'SELECT * FROM style_profiles WHERE user_id = $1',
       [userId],
@@ -36,8 +35,7 @@ export class StyleProfileService {
     return profileRes.rows[0];
   }
 
-  async updateProfile(auth0Sub: string, dto: UpdateStyleProfileDto) {
-    const userId = await this.getInternalUserId(auth0Sub);
+  async updateProfile(userId: string, dto: UpdateStyleProfileDto) {
     const filteredEntries = Object.entries(dto).filter(
       ([, val]) => val !== null && val !== undefined,
     );

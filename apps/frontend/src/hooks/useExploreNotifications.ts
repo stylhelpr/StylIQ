@@ -250,7 +250,7 @@ export function usePreferredBrands(userId: string) {
   return useQuery<string[], Error>({
     queryKey: ['preferred-brands', userId],
     queryFn: async () => {
-      const res = await apiClient.get(`/style-profile/${userId}/brands`);
+      const res = await apiClient.get('/style-profile/brands');
       return Array.isArray(res.data.brands) ? res.data.brands : [];
     },
     enabled: !!userId,

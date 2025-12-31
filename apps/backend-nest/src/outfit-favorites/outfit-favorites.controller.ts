@@ -2,35 +2,41 @@ import {
   Controller,
   Get,
   Post,
-  Delete,
   Body,
-  Query,
-  Param,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { OutfitFavoritesService } from './outfit-favorites.service';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
 import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('outfit-favorites')
 export class OutfitFavoritesController {
   constructor(private readonly service: OutfitFavoritesService) {}
 
   @Post('add')
-  async addFavorite(@Body() dto: AddFavoriteDto) {
-    return this.service.addFavorite(dto);
+  async addFavorite(@Req() req, @Body() dto: Omit<AddFavoriteDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.service.addFavorite({ user_id, ...dto });
   }
 
   @Post('remove')
-  async removeFavorite(@Body() dto: RemoveFavoriteDto) {
-    return this.service.removeFavorite(dto);
+  async removeFavorite(@Req() req, @Body() dto: Omit<RemoveFavoriteDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.service.removeFavorite({ user_id, ...dto });
   }
+
   @Get()
-  async getFavorites(@Query('user_id') user_id: string) {
+  async getFavorites(@Req() req) {
+    const user_id = req.user.userId;
     return this.service.getFavorites(user_id);
   }
 
-  @Get('count/:userId')
-  getUserFavoritesCount(@Param('userId') userId: string) {
+  @Get('count')
+  getUserFavoritesCount(@Req() req) {
+    const userId = req.user.userId;
     return this.service.getUserFavoritesCount(userId);
   }
 }

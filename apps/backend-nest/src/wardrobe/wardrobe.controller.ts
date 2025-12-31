@@ -8,8 +8,8 @@ import {
   Param,
   Delete,
   Put,
-  Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { WardrobeService } from './wardrobe.service';
 import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
@@ -20,7 +20,7 @@ import {
   AnalyzeImageRequestDto,
   AnalyzeImageResponseDto,
 } from './dto/analyze-image.dto';
-import { SkipAuth } from '../auth/skip-auth.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 // ─────────────────────────────────────────────────────────────
 // Normalizer: coerce whatever the client sends into UserStyle
@@ -63,7 +63,7 @@ function normalizeUserStyle(
   return Object.keys(out).length ? out : undefined;
 }
 
-@SkipAuth() // TODO: Remove after frontend sends auth headers
+@UseGuards(JwtAuthGuard)
 @Controller('wardrobe')
 export class WardrobeController {
   constructor(
@@ -72,37 +72,19 @@ export class WardrobeController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateWardrobeItemDto) {
-    return this.service.createItem(dto);
+  create(@Req() req, @Body() dto: Omit<CreateWardrobeItemDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.service.createItem({ user_id, ...dto });
   }
 
-  // IMPORTANT: Static routes MUST come before dynamic :param routes
   @Get()
-  getByUserQuery(@Req() req, @Query('user_id') queryUserId: string) {
-    const userId = req.user?.userId ?? queryUserId;
-    if (!userId) return [];
-    return this.service.getItemsByUser(userId);
-  }
-
-  // Brands routes - static path, must be before :user_id
-  @Get('brands/:user_id')
-  getBrandsParam(@Req() req, @Param('user_id') paramUserId: string) {
-    const userId = req.user?.userId ?? paramUserId;
-    return this.service.getWardrobeBrands(userId);
+  getByUserQuery(@Req() req) {
+    return this.service.getItemsByUser(req.user.userId);
   }
 
   @Get('brands')
-  getBrandsQuery(@Req() req, @Query('user_id') queryUserId: string) {
-    const userId = req.user?.userId ?? queryUserId;
-    return this.service.getWardrobeBrands(userId);
-  }
-
-  // Dynamic param route - must come LAST after all static GET routes
-  @Get(':user_id')
-  getByUser(@Req() req, @Param('user_id') paramUserId: string) {
-    const userId = req.user?.userId ?? paramUserId;
-    if (!userId) return [];
-    return this.service.getItemsByUser(userId);
+  getBrands(@Req() req) {
+    return this.service.getWardrobeBrands(req.user.userId);
   }
 
   @Put(':item_id')
@@ -111,38 +93,36 @@ export class WardrobeController {
   }
 
   @Delete()
-  delete(@Body() dto: DeleteItemDto) {
-    return this.service.deleteItem(dto);
+  delete(@Req() req, @Body() dto: Omit<DeleteItemDto, 'user_id'>) {
+    const user_id = req.user.userId;
+    return this.service.deleteItem({ user_id, ...dto });
   }
 
-  // ------- Vector search / outfits (existing) -------
   @Post('suggest')
-  suggest(@Body() body: { user_id: string; queryVec: number[] }) {
-    return this.service.suggestOutfits(body.user_id, body.queryVec);
+  suggest(@Req() req, @Body() body: { queryVec: number[] }) {
+    return this.service.suggestOutfits(req.user.userId, body.queryVec);
   }
 
   @Post('search-text')
-  searchText(@Body() b: { user_id: string; q: string; topK?: number }) {
-    return this.service.searchText(b.user_id, b.q, b.topK);
+  searchText(@Req() req, @Body() b: { q: string; topK?: number }) {
+    return this.service.searchText(req.user.userId, b.q, b.topK);
   }
 
   @Post('search-image')
-  searchImage(@Body() b: { user_id: string; gcs_uri: string; topK?: number }) {
-    return this.service.searchImage(b.user_id, b.gcs_uri, b.topK);
+  searchImage(@Req() req, @Body() b: { gcs_uri: string; topK?: number }) {
+    return this.service.searchImage(req.user.userId, b.gcs_uri, b.topK);
   }
 
   @Post('search-hybrid')
-  searchHybrid(
-    @Body() b: { user_id: string; q?: string; gcs_uri?: string; topK?: number },
-  ) {
-    return this.service.searchHybrid(b.user_id, b.q, b.gcs_uri, b.topK);
+  searchHybrid(@Req() req, @Body() b: { q?: string; gcs_uri?: string; topK?: number }) {
+    return this.service.searchHybrid(req.user.userId, b.q, b.gcs_uri, b.topK);
   }
 
   @Post('outfits')
   generateOutfits(
+    @Req() req,
     @Body()
     body: {
-      user_id: string;
       query: string;
       topK?: number;
       style_profile?: any;
@@ -153,23 +133,15 @@ export class WardrobeController {
       styleAgent?: 'agent1' | 'agent2' | 'agent3';
       session_id?: string;
       refinementPrompt?: string;
-      lockedItemIds?: string[]; // 👈 add this
+      lockedItemIds?: string[];
     },
   ) {
+    const userId = req.user.userId;
     const weatherArg = body.useWeather === false ? undefined : body.weather;
     const userStyle = normalizeUserStyle(body.style_profile);
 
-    // if (process.env.NODE_ENV !== 'production') {
-    //   console.log('[CTRL] raw style_profile =', body.style_profile);
-    //   console.log('[CTRL] useFeedback =', body.useFeedback);
-    //   console.log('[CTRL] styleAgent =', body.styleAgent);
-    //   console.log('[CTRL] session_id =', body.session_id);
-    //   console.log('[CTRL] refinementPrompt =', body.refinementPrompt);
-    //   console.log('[CTRL] lockedItemIds =', body.lockedItemIds);
-    // }
-
     return this.service.generateOutfits(
-      body.user_id,
+      userId,
       body.query,
       body.topK || 5,
       {
@@ -181,7 +153,7 @@ export class WardrobeController {
         styleAgent: body.styleAgent,
         sessionId: body.session_id || (body as any).sessionId,
         refinementPrompt: body.refinementPrompt,
-        lockedItemIds: body.lockedItemIds ?? [], // 👈 forward to service
+        lockedItemIds: body.lockedItemIds ?? [],
       },
     );
   }
@@ -200,9 +172,9 @@ export class WardrobeController {
 
   @Post('auto-create')
   async autoCreate(
+    @Req() req,
     @Body()
     dto: Partial<CreateWardrobeItemDto> & {
-      user_id: string;
       image_url: string;
       gsutil_uri?: string;
       name?: string;
@@ -212,7 +184,7 @@ export class WardrobeController {
       ? await this.vertex.analyzeImage(dto.gsutil_uri)
       : {};
     const payload: CreateWardrobeItemDto = this.service.composeFromAiDraft(
-      dto as any,
+      { ...dto, user_id: req.user.userId } as any,
       draft,
     );
     return this.service.createItem(payload);

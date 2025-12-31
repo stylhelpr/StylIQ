@@ -1,6 +1,6 @@
 // utils/notificationInbox.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 
 export type AppNotification = {
   id: string;
@@ -38,22 +38,20 @@ export async function loadInbox(userId?: string): Promise<AppNotification[]> {
   // If we have a userId, also fetch from backend and merge
   if (userId) {
     try {
-      const res = await fetch(`${API_BASE_URL}/notifications/inbox?user_id=${userId}`);
-      if (res.ok) {
-        const remote: AppNotification[] = await res.json();
-        // Merge: combine remote + local, dedupe by id
-        const merged = [...remote, ...local];
-        const seen = new Set<string>();
-        const deduped = merged.filter(n => {
-          const key = n.id || `${n.title}-${n.message}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        // Save merged list locally
-        await AsyncStorage.setItem(INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
-        return deduped;
-      }
+      const res = await apiClient.get('/notifications/inbox');
+      const remote: AppNotification[] = res.data;
+      // Merge: combine remote + local, dedupe by id
+      const merged = [...remote, ...local];
+      const seen = new Set<string>();
+      const deduped = merged.filter(n => {
+        const key = n.id || `${n.title}-${n.message}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      // Save merged list locally
+      await AsyncStorage.setItem(INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
+      return deduped;
     } catch (err) {
       console.warn('⚠️ Failed to fetch notifications from backend:', err);
     }
@@ -107,11 +105,7 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
   // 🆕 Mirror notification to backend (non-breaking optional best practice)
   try {
     if (n.user_id) {
-      await fetch(`${API_BASE_URL}/notifications/save`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(n),
-      });
+      await apiClient.post('/notifications/save', n);
       console.log('☁️ Notification mirrored to backend');
     }
   } catch (err) {
@@ -122,11 +116,7 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
 export async function markRead(userId: string, id: string) {
   // First mark as read in backend
   try {
-    await fetch(`${API_BASE_URL}/notifications/mark-read`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: userId, id}),
-    });
+    await apiClient.post('/notifications/mark-read', {id});
   } catch (err) {
     console.warn('⚠️ Failed to mark read in backend:', err);
   }
@@ -140,12 +130,8 @@ export async function markRead(userId: string, id: string) {
 export async function markAllRead(userId: string) {
   // First mark all as read in backend (await it!)
   try {
-    const res = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: userId}),
-    });
-    console.log('☁️ Backend mark-all-read response:', res.status);
+    await apiClient.post('/notifications/mark-all-read', {});
+    console.log('☁️ Backend mark-all-read completed');
   } catch (err) {
     console.warn('⚠️ Failed to mark all read in backend:', err);
   }
@@ -158,11 +144,7 @@ export async function markAllRead(userId: string) {
 export async function clearAll(userId: string) {
   // First clear from backend
   try {
-    await fetch(`${API_BASE_URL}/notifications/clear-all`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: userId}),
-    });
+    await apiClient.post('/notifications/clear-all', {});
     console.log('☁️ Backend clear-all completed');
   } catch (err) {
     console.warn('⚠️ Failed to clear all in backend:', err);

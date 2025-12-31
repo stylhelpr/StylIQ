@@ -13,7 +13,7 @@ import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 import {Screen} from '../navigation/types';
 
 type OutfitOccasion =
@@ -154,14 +154,12 @@ export default function OutfitsByOccasionScreen({navigate}: Props) {
     const fetchOutfits = async () => {
       try {
         const [aiRes, customRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/outfit/suggestions/${uuid}`),
-          fetch(`${API_BASE_URL}/outfit/custom/${uuid}`),
+          apiClient.get('/outfit/suggestions'),
+          apiClient.get('/outfit/custom'),
         ]);
 
-        const [aiData, customData] = await Promise.all([
-          aiRes.json(),
-          customRes.json(),
-        ]);
+        const aiData = Array.isArray(aiRes.data) ? aiRes.data : [];
+        const customData = Array.isArray(customRes.data) ? customRes.data : [];
 
         const allOutfits: OutfitItem[] = [
           ...aiData.map((o: any) => ({

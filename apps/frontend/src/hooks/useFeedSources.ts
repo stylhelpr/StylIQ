@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState, useCallback} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {API_BASE_URL} from '../config/api';
+import {apiClient} from '../lib/apiClient';
 
 export type FeedSource = {
   id: string; // stable id
@@ -83,10 +83,8 @@ export function useFeedSources({userId}: {userId: string}) {
         // 1️⃣ Try backend first
         let serverData: FeedSource[] | null = null;
         try {
-          const res = await fetch(
-            `${API_BASE_URL}/users/${userId}/feed-sources`,
-          );
-          if (res.ok) serverData = await res.json();
+          const res = await apiClient.get(`/users/${userId}/feed-sources`);
+          serverData = res.data;
         } catch (err) {
           console.log('⚠️ Could not fetch server feed sources:', err);
         }
@@ -132,11 +130,7 @@ export function useFeedSources({userId}: {userId: string}) {
     // Save to backend
     (async () => {
       try {
-        await fetch(`${API_BASE_URL}/users/${userId}/feed-sources`, {
-          method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({sources}),
-        });
+        await apiClient.put(`/users/${userId}/feed-sources`, {sources});
       } catch (err) {
         console.log('⚠️ Failed to sync sources with server:', err);
       }
