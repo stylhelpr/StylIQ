@@ -113,22 +113,12 @@ export class AnalyticsSyncService {
     server_timestamp_ms: number;
   }> {
     const API_BASE_URL = `http://${LOCAL_IP}:3001`;
-
-    // Use test endpoint in development (no auth required)
-    // Switch to production endpoint when deploying
-    const isDevelopment = __DEV__;
-    const endpoint = isDevelopment
-      ? `${API_BASE_URL}/api/shopping/analytics/test/events/batch`
-      : `${API_BASE_URL}/api/shopping/analytics/events/batch`;
+    const endpoint = `${API_BASE_URL}/api/shopping/analytics/events/batch`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
     };
-
-    // Only add auth token for production endpoint
-    if (!isDevelopment) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
 
     // console.log('[Analytics Sync] 📤 Sending', events.length, 'events to', isDevelopment ? 'TEST' : 'PROD', 'endpoint');
 
