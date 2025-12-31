@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
+import { getSecret, secretExists } from '../config/secrets';
 
 interface UserProfile {
   gender: string | null;
@@ -50,7 +51,7 @@ export class DiscoverService {
   private readonly log = new Logger(DiscoverService.name);
 
   private get serpApiKey(): string | undefined {
-    return process.env.SERPAPI_KEY;
+    return secretExists('SERPAPI_KEY') ? getSecret('SERPAPI_KEY') : undefined;
   }
 
   // ==================== MAIN ENTRY POINT ====================

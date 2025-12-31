@@ -6,41 +6,7 @@ import { ProductSearchService } from '../product-services/product-search.service
 import { Express } from 'express';
 import { redis } from '../utils/redisClient';
 import { pool } from '../db/pool';
-
-import * as fs from 'fs';
-import * as path from 'path';
-import * as dotenv from 'dotenv';
-
-function loadOpenAISecrets(): {
-  apiKey?: string;
-  project?: string;
-  source: string;
-} {
-  const candidates = [
-    path.join(process.cwd(), '.env'),
-    path.join(process.cwd(), 'apps', 'backend-nest', '.env'),
-    path.join(__dirname, '..', '..', '.env'),
-  ];
-
-  for (const p of candidates) {
-    try {
-      if (fs.existsSync(p)) {
-        const parsed = dotenv.parse(fs.readFileSync(p));
-        const apiKey = parsed['OPENAI_API_KEY'];
-        const project = parsed['OPENAI_PROJECT_ID'];
-        if (apiKey) return { apiKey, project, source: p };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  return {
-    apiKey: process.env.OPENAI_API_KEY,
-    project: process.env.OPENAI_PROJECT_ID,
-    source: 'process.env',
-  };
-}
+import { getSecret, secretExists } from '../config/secrets';
 
 // 🧥 Basic capsule wardrobe templates
 const CAPSULES = {
@@ -123,10 +89,10 @@ async function fetchWeatherForAI(
   condition: string;
 } | null> {
   try {
-    const apiKey = process.env.TOMORROW_API_KEY;
-    if (!apiKey) {
+    if (!secretExists('TOMORROW_API_KEY')) {
       return null;
     }
+    const apiKey = getSecret('TOMORROW_API_KEY');
     const url = `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${apiKey}`;
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -180,21 +146,17 @@ export class AiService {
   private ttsCache = new Map<string, Buffer>();
 
   constructor(vertexService?: VertexService) {
-    const { apiKey, project, source } = loadOpenAISecrets();
-
-    // const snippet = apiKey?.slice(0, 20) ?? '';
-    // const len = apiKey?.length ?? 0;
-    // console.log('🔑 OPENAI key source:', source);
-    // console.log('🔑 OPENAI key snippet:', JSON.stringify(snippet));
-    // console.log('🔑 OPENAI key length:', len);
-    // console.log('📂 CWD:', process.cwd());
+    const apiKey = getSecret('OPENAI_API_KEY');
+    const project = secretExists('OPENAI_PROJECT_ID')
+      ? getSecret('OPENAI_PROJECT_ID')
+      : undefined;
 
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY not found in .env or environment.');
+      throw new Error('OPENAI_API_KEY secret not found.');
     }
     if (/^sk-?x{3,}/i.test(apiKey)) {
       throw new Error(
-        'OPENAI_API_KEY appears masked (e.g., "sk-xxxxx..."). Read from the correct .env instead.',
+        'OPENAI_API_KEY appears masked (e.g., "sk-xxxxx...").',
       );
     }
     if (!apiKey.startsWith('sk-')) {
@@ -203,14 +165,13 @@ export class AiService {
 
     this.openai = new OpenAI({ apiKey, project });
 
-    // 🔹 New: Vertex toggle
+    // 🔹 New: Vertex toggle - feature flag (not a secret)
     this.useVertex = process.env.USE_VERTEX === 'true';
     if (this.useVertex) {
       this.vertexService = vertexService;
-      // console.log('🧠 Vertex/Gemini mode enabled for analyze/recreate');
     }
 
-    this.productSearch = new ProductSearchService(); // NEW
+    this.productSearch = new ProductSearchService();
   }
 
   // async generateSpeechBuffer(text: string): Promise<Buffer> {
@@ -882,7 +843,7 @@ Output JSON only:
     }
 
     // 🛍️ Step 2: Use Google Lens to find purchasable matches for EACH piece
-    const serpApiKey = process.env.SERPAPI_KEY;
+    const serpApiKey = secretExists('SERPAPI_KEY') ? getSecret('SERPAPI_KEY') : null;
 
     const enrichedPieces = await Promise.all(
       pieces.map(async (piece: any) => {
@@ -2997,8 +2958,8 @@ Write a concise, 150-word updated summary focusing on their taste, preferences, 
 
   /** 🔍 Lightweight Unsplash fetch helper */
   private async fetchUnsplash(terms: string[]) {
-    const key = process.env.UNSPLASH_ACCESS_KEY;
-    if (!key || !terms.length) return [];
+    if (!secretExists('UNSPLASH_ACCESS_KEY') || !terms.length) return [];
+    const key = getSecret('UNSPLASH_ACCESS_KEY');
     const q = encodeURIComponent(terms[0]);
     const res = await fetch(
       `https://api.unsplash.com/search/photos?query=${q}&per_page=5&client_id=${key}`,
@@ -3194,9 +3155,10 @@ Preferences: ${JSON.stringify(preferences || {})}
   -------------------------------------------------------------*/
   async lookupFallback(upc: string) {
     try {
+      const rapidApiKey = secretExists('RAPIDAPI_KEY') ? getSecret('RAPIDAPI_KEY') : '';
       const res = await fetch(`https://barcodes1.p.rapidapi.com/?upc=${upc}`, {
         headers: {
-          'X-RapidAPI-Key': process.env.RAPIDAPI_KEY ?? '',
+          'X-RapidAPI-Key': rapidApiKey,
           'X-RapidAPI-Host': 'barcodes1.p.rapidapi.com',
         },
       });

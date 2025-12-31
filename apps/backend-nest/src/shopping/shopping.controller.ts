@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import axios from 'axios';
 import { SkipAuth } from '../auth/skip-auth.decorator';
+import { getSecret } from '../config/secrets';
 
 @SkipAuth() // Public product search - no user-specific data
 @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
@@ -15,7 +16,7 @@ export class ShoppingController {
         url: 'https://amazon-product-search-api.p.rapidapi.com/products',
         params: { query: q, page: '1', country: 'US' },
         headers: {
-          'x-rapidapi-key': process.env.RAPIDAPI_KEY!, // store in .env
+          'x-rapidapi-key': getSecret('RAPIDAPI_KEY'),
           'x-rapidapi-host': 'amazon-product-search-api.p.rapidapi.com',
         },
       };

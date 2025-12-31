@@ -1,6 +1,4 @@
-import * as dotenv from 'dotenv';
-dotenv.config(); // Load env variables first
-
+// SECURITY: No dotenv - secrets loaded from filesystem only
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import {
@@ -13,10 +11,34 @@ import multipart from '@fastify/multipart';
 import * as passport from 'passport';
 import fastifyExpress from '@fastify/express';
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
-import { redis } from './utils/redisClient'; // ✅ Redis client import
+import { redis } from './utils/redisClient';
+import { verifyRequiredSecrets } from './config/secrets';
 
-// ✅ Quick boot-time Redis self-test
-(async () => {
+// Required secrets that must exist at startup
+const REQUIRED_SECRETS = [
+  'DATABASE_URL',
+  'AUTH0_ISSUER',
+  'AUTH0_AUDIENCE',
+  'OPENAI_API_KEY',
+  'PINECONE_API_KEY',
+  'PINECONE_INDEX',
+  'UPSTASH_REDIS_REST_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
+  'GCP_SERVICE_ACCOUNT_JSON',
+  'FIREBASE_SERVICE_ACCOUNT_JSON',
+];
+
+// Verify required secrets exist (fail fast)
+try {
+  verifyRequiredSecrets(REQUIRED_SECRETS);
+  console.log('🔐 All required secrets verified');
+} catch (err: any) {
+  console.error('❌ Secret verification failed:', err.message);
+  process.exit(1);
+}
+
+// Quick boot-time Redis self-test (deferred to avoid module-scope secret read)
+setTimeout(async () => {
   try {
     await redis.set('boot-test', 'ok', { ex: 10 });
     const val = await redis.get('boot-test');
@@ -26,7 +48,7 @@ import { redis } from './utils/redisClient'; // ✅ Redis client import
   } catch (err: any) {
     console.warn('🔴 Redis connection failed:', err.message);
   }
-})();
+}, 100);
 
 async function bootstrap() {
   try {

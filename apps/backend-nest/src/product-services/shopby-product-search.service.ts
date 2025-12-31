@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import fetch from 'node-fetch';
 import { Storage } from '@google-cloud/storage';
+import { getSecret, secretExists } from '../config/secrets';
 
 export interface ProductResult {
   name: string;
@@ -14,12 +15,20 @@ export interface ProductResult {
 @Injectable()
 export class ShopbyProductSearchService {
   private readonly logger = new Logger(ShopbyProductSearchService.name);
-  private readonly rapidKey = process.env.RAPIDAPI_KEY;
-  private readonly serpapiKey = process.env.SERPAPI_KEY;
-  private readonly bucketName =
-    process.env.GCS_BUCKET || 'stylhelpr-prod-bucket';
   private readonly storage = new Storage();
   private serpCooldownUntil = 0;
+
+  private get rapidKey(): string | undefined {
+    return secretExists('RAPIDAPI_KEY') ? getSecret('RAPIDAPI_KEY') : undefined;
+  }
+
+  private get serpapiKey(): string | undefined {
+    return secretExists('SERPAPI_KEY') ? getSecret('SERPAPI_KEY') : undefined;
+  }
+
+  private get bucketName(): string {
+    return secretExists('GCS_BUCKET') ? getSecret('GCS_BUCKET') : 'stylhelpr-prod-bucket';
+  }
 
   /* ⚡️ Cache image to GCS */
   private async cacheImageToGCS(imageUrl?: string): Promise<string> {

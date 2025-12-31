@@ -3,11 +3,18 @@
 // apps/backend-nest/src/vertex/vertex.service.ts
 import { Injectable } from '@nestjs/common';
 import { PredictionServiceClient, helpers } from '@google-cloud/aiplatform';
-import * as fs from 'fs';
 import { VertexAI, SchemaType } from '@google-cloud/vertexai';
 import { withBackoff } from './vertex.util';
+import { getSecretJson } from '../config/secrets';
 
 const { toValue } = helpers;
+
+type GCPServiceAccount = {
+  project_id: string;
+  client_email: string;
+  private_key: string;
+  [key: string]: any;
+};
 
 type AnalyzeHints = {
   gender?: 'Male' | 'Female' | 'Unisex';
@@ -145,21 +152,15 @@ export class VertexService {
   private location: string;
   private vertexAI: VertexAI; // Generative API (Gemini)
 
-  // Model names, configurable via .env
-  private textModel =
-    process.env.VERTEX_TEXT_EMBED_MODEL || 'gemini-embedding-001';
-  private imageModel =
-    process.env.VERTEX_IMAGE_EMBED_MODEL || 'multimodalembedding@001';
-  private generationModel =
-    process.env.VERTEX_GENERATION_MODEL || 'gemini-2.5-flash';
-  private reasoningModel =
-    process.env.VERTEX_REASONING_MODEL || 'gemini-2.5-pro';
+  // Model names - defaults, can be overridden via config secrets if needed
+  private textModel = 'gemini-embedding-001';
+  private imageModel = 'multimodalembedding@001';
+  private generationModel = 'gemini-2.5-flash';
+  private reasoningModel = 'gemini-2.5-pro';
 
   // 🔒 simple in-process semaphore to cap concurrent Vertex calls
   private static inflight = 0;
-  private static readonly MAX_CONCURRENT = Number(
-    process.env.VERTEX_MAX_CONCURRENT || 5,
-  );
+  private static readonly MAX_CONCURRENT = 5;
 
   private async withSemaphore<T>(fn: () => Promise<T>): Promise<T> {
     while (VertexService.inflight >= VertexService.MAX_CONCURRENT) {
@@ -188,12 +189,11 @@ export class VertexService {
     // Predict API client for embeddings
     this.client = new PredictionServiceClient();
 
-    // Load project ID from service account JSON
-    const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS!;
-    const keyFile = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+    // Load project ID from service account JSON secret
+    const keyFile = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
     this.projectId = keyFile.project_id;
 
-    // Region
+    // Region - config (not a secret)
     this.location = process.env.GCP_REGION || 'us-central1';
 
     // Generative API client
@@ -201,15 +201,6 @@ export class VertexService {
       project: this.projectId,
       location: this.location,
     });
-
-    // console.log('🔌 VertexService initialized:', this.projectId, this.location);
-    // console.log('📦 Models:', {
-    //   text: this.textModel,
-    //   image: this.imageModel,
-    //   generation: this.generationModel,
-    //   reasoning: this.reasoningModel,
-    //   maxConcurrent: VertexService.MAX_CONCURRENT,
-    // });
   }
 
   // -------------------

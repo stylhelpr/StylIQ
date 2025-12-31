@@ -6,13 +6,19 @@ import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import { WardrobeService } from '../wardrobe/wardrobe.service';
+import { getSecret, secretExists } from '../config/secrets';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
 @Injectable()
 export class UploadService {
   private storage = new Storage();
-  private bucketName = process.env.GCS_BUCKET_NAME || 'stylhelpr-prod-bucket';
+
+  private get bucketName(): string {
+    return secretExists('GCS_BUCKET_NAME')
+      ? getSecret('GCS_BUCKET_NAME')
+      : 'stylhelpr-prod-bucket';
+  }
 
   constructor(private readonly wardrobe: WardrobeService) {}
 

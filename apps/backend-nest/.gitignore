@@ -35,12 +35,16 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# dotenv environment variable files (DEPRECATED - use secrets/ directory)
 .env
 .env.development.local
 .env.test.local
 .env.production.local
 .env.local
+
+# Secrets directory (file-based secrets for local development)
+# Each secret is a plaintext file: secrets/SECRET_NAME
+secrets/
 
 # temp directory
 .temp

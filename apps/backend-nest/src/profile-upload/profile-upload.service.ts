@@ -2,15 +2,20 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { Storage } from '@google-cloud/storage';
 import * as path from 'path';
 import { pool } from '../db/pool';
+import { getSecret, secretExists } from '../config/secrets';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
 @Injectable()
 export class ProfileUploadService {
   private storage = new Storage();
-  private bucketName =
-    process.env.GCS_PROFILE_BUCKET || 'stylhelpr-prod-profile-photos';
   private pool = pool;
+
+  private get bucketName(): string {
+    return secretExists('GCS_PROFILE_BUCKET')
+      ? getSecret('GCS_PROFILE_BUCKET')
+      : 'stylhelpr-prod-profile-photos';
+  }
 
   /**
    * Generate a presigned URL to upload a profile photo directly to GCS

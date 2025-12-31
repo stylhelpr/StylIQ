@@ -16,6 +16,7 @@ import { FastifyRequest } from 'fastify';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
 import { Readable } from 'stream';
+import { getSecret } from '../config/secrets';
 
 @Throttle({ default: { limit: 15, ttl: 60000 } }) // 15 requests per minute for AI endpoints
 @Controller('ai')
@@ -110,7 +111,7 @@ export class AiController {
 
     const serpUrl = `https://serpapi.com/search.json?engine=google_lens&url=${encodeURIComponent(
       imageUrl,
-    )}&hl=en&gl=us&api_key=${process.env.SERPAPI_KEY}`;
+    )}&hl=en&gl=us&api_key=${getSecret('SERPAPI_KEY')}`;
 
     console.log('🔍 [similar-looks] Calling SerpAPI with URL:', imageUrl);
 
@@ -277,7 +278,7 @@ export class AiController {
 
     const serpUrl = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(
       fullQuery,
-    )}&hl=en&gl=us&api_key=${process.env.SERPAPI_KEY}`;
+    )}&hl=en&gl=us&api_key=${getSecret('SERPAPI_KEY')}`;
 
     const res = await fetch(serpUrl);
     if (!res.ok) throw new Error(`Google Shopping search failed (${res.status})`);

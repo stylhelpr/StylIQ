@@ -4,20 +4,24 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import * as jwksRsa from 'jwks-rsa';
 import { pool } from '../db/pool';
+import { getSecret } from '../config/secrets';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
+    const issuer = getSecret('AUTH0_ISSUER');
+    const audience = getSecret('AUTH0_AUDIENCE');
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKeyProvider: jwksRsa.passportJwtSecret({
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 5,
-        jwksUri: `${process.env.AUTH0_ISSUER}.well-known/jwks.json`,
+        jwksUri: `${issuer}.well-known/jwks.json`,
       }),
-      issuer: process.env.AUTH0_ISSUER,
-      audience: process.env.AUTH0_AUDIENCE,
+      issuer,
+      audience,
       algorithms: ['RS256'],
     });
   }

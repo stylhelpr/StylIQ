@@ -1,14 +1,19 @@
 import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
+import { getSecret } from './config/secrets';
 
-dotenv.config();
+let pool: Pool | null = null;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+function getPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: getSecret('DATABASE_URL'),
+    });
+  }
+  return pool;
+}
 
 async function insertData() {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     // Get a real user
     const userRes = await client.query('SELECT id FROM users LIMIT 1');
@@ -91,11 +96,11 @@ async function insertData() {
     );
     console.log(`\n✅ Total events in DB: ${countRes.rows[0].count}`);
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('❌ Error:', err.message);
   } finally {
     client.release();
-    await pool.end();
+    await getPool().end();
   }
 }
 

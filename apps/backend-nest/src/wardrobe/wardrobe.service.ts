@@ -10,6 +10,7 @@ import { queryUserNs, hybridQueryUserNs } from '../pinecone/pinecone-query';
 import { VertexService } from '../vertex/vertex.service';
 import { randomUUID } from 'crypto'; // ← NEW
 import { pool } from '../db/pool';
+import { getSecret, secretExists } from '../config/secrets';
 
 // NEW imports for extracted logic (prompts + scoring only)
 import { parseConstraints } from './logic/constraints';
@@ -2576,7 +2577,7 @@ ${lockedLines}
       console.warn(`⚠️ Pinecone delete skipped: ${err.message}`);
     }
     if (image_url) {
-      const bucketName = process.env.GCS_BUCKET_NAME!;
+      const bucketName = getSecret('GCS_BUCKET_NAME');
       const fileName = this.extractFileName(image_url);
       try {
         await storage.bucket(bucketName).file(fileName).delete();
