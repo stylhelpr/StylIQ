@@ -48,7 +48,7 @@ export function createPoolConfig(): PoolConfig {
     // Connection pool settings
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 30000,
     // Keep-alive settings to prevent connection timeouts
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,

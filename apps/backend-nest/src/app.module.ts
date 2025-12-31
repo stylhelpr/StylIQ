@@ -117,10 +117,10 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     DatabaseService,
     ScheduledOutfitNotifier,
     // Global JWT auth guard - TEMPORARILY DISABLED FOR DEV
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtAuthGuard,
-    // },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
     // Global rate limiting
     {
       provide: APP_GUARD,

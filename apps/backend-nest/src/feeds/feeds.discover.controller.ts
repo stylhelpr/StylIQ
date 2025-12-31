@@ -7,10 +7,15 @@ import {
   Get,
   Query,
   BadRequestException,
+  ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { SkipAuth } from '../auth/skip-auth.decorator';
+import * as dns from 'dns';
+import { promisify } from 'util';
+
+const dnsLookup = promisify(dns.lookup);
 
 type FeedHit = { title: string; href: string };
 type DebugLine =
@@ -23,6 +28,99 @@ function pushDbg(dbg: DebugLine[], t: DebugLine['t'], msg: string, data?: any) {
 
 const IOS_SAFARI_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+
+// SSRF Protection: Allowed domains for feed discovery
+const ALLOWED_DOMAINS = new Set([
+  'vogue.com', 'www.vogue.com',
+  'gq.com', 'www.gq.com',
+  'elle.com', 'www.elle.com',
+  'harpersbazaar.com', 'www.harpersbazaar.com',
+  'wwd.com', 'www.wwd.com',
+  'businessoffashion.com', 'www.businessoffashion.com',
+  'fashionista.com', 'www.fashionista.com',
+  'thecut.com', 'www.thecut.com',
+  'refinery29.com', 'www.refinery29.com',
+  'whowhatwear.com', 'www.whowhatwear.com',
+  'highsnobiety.com', 'www.highsnobiety.com',
+  'hypebeast.com', 'www.hypebeast.com',
+  'nymag.com', 'www.nymag.com',
+  'feeds.feedburner.com',
+  'medium.com',
+  'substack.com',
+]);
+
+function isPrivateIP(ip: string): boolean {
+  if (ip === 'localhost' || ip === '::1') return true;
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4) return ip.startsWith('::') || ip.startsWith('fe80:');
+  const [a, b] = parts;
+  if (a === 127) return true;                         // 127.0.0.0/8
+  if (a === 10) return true;                          // 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31) return true;   // 172.16.0.0/12
+  if (a === 192 && b === 168) return true;            // 192.168.0.0/16
+  if (a === 169 && b === 254) return true;            // 169.254.0.0/16 link-local
+  if (a === 0) return true;                           // 0.0.0.0/8
+  return false;
+}
+
+async function validateUrlForSSRF(urlString: string): Promise<URL> {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    throw new BadRequestException('Invalid URL format');
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new BadRequestException('Only http/https protocols allowed');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (!ALLOWED_DOMAINS.has(hostname)) {
+    throw new ForbiddenException('Domain not in allowlist');
+  }
+
+  try {
+    const { address } = await dnsLookup(hostname);
+    if (isPrivateIP(address)) {
+      throw new ForbiddenException('Request blocked');
+    }
+  } catch (err) {
+    if (err instanceof ForbiddenException || err instanceof BadRequestException) {
+      throw err;
+    }
+    throw new BadRequestException('DNS resolution failed');
+  }
+
+  return parsed;
+}
+
+async function safeFetchWithRedirects(
+  url: string,
+  options: RequestInit = {},
+  maxRedirects = 5,
+): Promise<Response> {
+  let currentUrl = url;
+  let redirectCount = 0;
+
+  while (redirectCount < maxRedirects) {
+    await validateUrlForSSRF(currentUrl);
+    const res = await fetch(currentUrl, { ...options, redirect: 'manual' });
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location');
+      if (!location) break;
+      currentUrl = new URL(location, currentUrl).href;
+      redirectCount++;
+      continue;
+    }
+
+    return res;
+  }
+
+  throw new BadRequestException('Too many redirects');
+}
 
 @SkipAuth()
 @Controller('feeds')
@@ -79,7 +177,7 @@ export class FeedDiscoverController {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
 
-      const res = await fetch(finalTarget, {
+      const res = await safeFetchWithRedirects(finalTarget, {
         headers: {
           'User-Agent': IOS_SAFARI_UA,
           Accept:
@@ -88,7 +186,6 @@ export class FeedDiscoverController {
           Referer: 'https://www.google.com',
           'Cache-Control': 'no-cache',
         },
-        redirect: 'follow',
         signal: controller.signal,
       });
 
@@ -234,7 +331,7 @@ export class FeedDiscoverController {
     const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const upstream = await fetch(target, {
+      const upstream = await safeFetchWithRedirects(target, {
         headers: {
           'User-Agent': IOS_SAFARI_UA,
           Accept:
@@ -243,7 +340,6 @@ export class FeedDiscoverController {
           Referer: 'https://www.google.com',
           'Cache-Control': 'no-cache',
         },
-        redirect: 'follow',
         signal: controller.signal,
       });
 
@@ -282,9 +378,8 @@ export class FeedDiscoverController {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(url, {
+      const res = await safeFetchWithRedirects(url, {
         method: 'GET',
-        redirect: 'follow',
         headers: {
           'User-Agent': IOS_SAFARI_UA,
           Accept:
@@ -341,7 +436,7 @@ export class FeedDiscoverController {
     for (const u of patterns) {
       try {
         pushDbg(dbg ?? [], 't', 'try_brand_url', { url: u });
-        const res = await fetch(u, { method: 'HEAD', redirect: 'follow' });
+        const res = await safeFetchWithRedirects(u, { method: 'HEAD' });
         pushDbg(dbg ?? [], 't', 'brand_url_result', {
           tried: u,
           status: res.status,

@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Req,
+  NotFoundException,
 } from '@nestjs/common';
 import { CustomOutfitService } from './custom-outfit.service';
 import { CreateCustomOutfitDto } from './dto/create-custom-outfit.dto';
@@ -38,12 +39,22 @@ export class CustomOutfitController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateCustomOutfitDto) {
-    return this.service.update(id, dto);
+  async update(@Req() req, @Param('id') id: string, @Body() dto: UpdateCustomOutfitDto) {
+    const userId = req.user.userId;
+    const result = await this.service.update(id, userId, dto);
+    if (!result.outfit) {
+      throw new NotFoundException();
+    }
+    return result;
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  async delete(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    const deleted = await this.service.delete(id, userId);
+    if (!deleted) {
+      throw new NotFoundException();
+    }
+    return { message: 'Custom outfit deleted successfully' };
   }
 }

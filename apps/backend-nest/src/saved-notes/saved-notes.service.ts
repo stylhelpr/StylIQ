@@ -26,42 +26,40 @@ export class SavedNotesService {
     return res.rows;
   }
 
-  async getById(id: string) {
+  async getById(id: string, userId: string) {
     const res = await pool.query(
-      `SELECT * FROM saved_notes WHERE id = $1`,
-      [id],
+      `SELECT * FROM saved_notes WHERE id = $1 AND user_id = $2`,
+      [id, userId],
     );
     return res.rows[0] || null;
   }
 
-  async update(id: string, dto: UpdateSavedNoteDto) {
+  async update(id: string, userId: string, dto: UpdateSavedNoteDto) {
     const entries = Object.entries(dto).filter(
       ([_, value]) => value !== undefined,
     );
     if (entries.length === 0) {
-      return this.getById(id);
+      return this.getById(id, userId);
     }
 
-    const fields = entries.map(([key], i) => `${key} = $${i + 2}`);
+    const fields = entries.map(([key], i) => `${key} = $${i + 3}`);
     const values = entries.map(([_, value]) => value);
 
     const res = await pool.query(
       `UPDATE saved_notes
        SET ${fields.join(', ')}, updated_at = now()
-       WHERE id = $1
+       WHERE id = $1 AND user_id = $2
        RETURNING *`,
-      [id, ...values],
+      [id, userId, ...values],
     );
-    return res.rows[0];
+    return res.rows[0] || null;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId: string): Promise<boolean> {
     const result = await pool.query(
-      `DELETE FROM saved_notes WHERE id = $1`,
-      [id],
+      `DELETE FROM saved_notes WHERE id = $1 AND user_id = $2`,
+      [id, userId],
     );
-    return {
-      message: result.rowCount && result.rowCount > 0 ? 'Deleted' : 'Not found',
-    };
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }

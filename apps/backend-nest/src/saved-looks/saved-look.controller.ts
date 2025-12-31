@@ -33,13 +33,15 @@ export class SavedLookController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateSavedLookDto) {
-    return this.service.update(id, dto);
+  update(@Req() req, @Param('id') id: string, @Body() dto: UpdateSavedLookDto) {
+    const userId = req.user.userId;
+    return this.service.update(id, userId, dto);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  delete(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    return this.service.delete(id, userId);
   }
 }
 

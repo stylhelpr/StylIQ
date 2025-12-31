@@ -33,8 +33,7 @@ export class SavedLookService {
     return res.rows;
   }
 
-  async update(id: string, dto: UpdateSavedLookDto) {
-    // 🔎 Filter out undefined or null values so partial updates work
+  async update(id: string, userId: string, dto: UpdateSavedLookDto) {
     const entries = Object.entries(dto).filter(
       ([_, value]) => value !== undefined,
     );
@@ -43,29 +42,35 @@ export class SavedLookService {
       throw new BadRequestException('No fields provided for update');
     }
 
-    const fields = entries.map(([key], i) => `${key} = $${i + 2}`);
+    const fields = entries.map(([key], i) => `${key} = $${i + 3}`);
     const values = entries.map(([, value]) => value);
 
     const res = await pool.query(
       `UPDATE saved_looks
        SET ${fields.join(', ')}, updated_at = now()
-       WHERE id = $1
+       WHERE id = $1 AND user_id = $2
        RETURNING *`,
-      [id, ...values],
+      [id, userId, ...values],
     );
 
     if (res.rowCount === 0) {
-      throw new NotFoundException(`Saved look with ID ${id} not found`);
+      throw new NotFoundException('Saved look not found');
     }
 
     return res.rows[0];
   }
 
-  async delete(id: string) {
-    const result = await pool.query(`DELETE FROM saved_looks WHERE id = $1`, [
-      id,
-    ]);
-    return { message: result.rowCount > 0 ? 'Deleted' : 'Not found' };
+  async delete(id: string, userId: string) {
+    const result = await pool.query(
+      `DELETE FROM saved_looks WHERE id = $1 AND user_id = $2`,
+      [id, userId],
+    );
+
+    if (result.rowCount === 0) {
+      throw new NotFoundException('Saved look not found');
+    }
+
+    return { message: 'Deleted' };
   }
 }
 

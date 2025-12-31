@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
 import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
@@ -240,14 +240,25 @@ export class OutfitService {
     }));
   }
 
-  async deleteOutfit(id: string) {
-    // Delete from AI-generated outfits
-    await pool.query(`DELETE FROM outfit_suggestions WHERE id = $1`, [id]);
+  async deleteOutfit(id: string, userId: string) {
+    // Delete from AI-generated outfits (ownership enforced)
+    const suggestionsResult = await pool.query(
+      `DELETE FROM outfit_suggestions WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, userId],
+    );
 
-    // Also delete from custom outfits (safe to run even if not found)
-    await pool.query(`DELETE FROM custom_outfits WHERE id = $1`, [id]);
+    // Delete from custom outfits (ownership enforced)
+    const customResult = await pool.query(
+      `DELETE FROM custom_outfits WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, userId],
+    );
 
-    // Also optionally delete feedback & favorites linked to this outfit
+    // If neither table had a matching row owned by this user, throw 404
+    if (suggestionsResult.rowCount === 0 && customResult.rowCount === 0) {
+      throw new NotFoundException('Outfit not found');
+    }
+
+    // Clean up related data (these are scoped by outfit_id, not user-owned directly)
     await pool.query(`DELETE FROM outfit_feedback WHERE outfit_id = $1`, [id]);
     await pool.query(`DELETE FROM outfit_favorites WHERE outfit_id = $1`, [id]);
 
@@ -273,6 +284,7 @@ export class OutfitService {
   async updateOutfit(
     table: 'custom' | 'suggestions',
     id: string,
+    userId: string,
     name?: string,
     occasion?: string,
   ) {
@@ -306,10 +318,19 @@ export class OutfitService {
     }
 
     values.push(id);
-    await pool.query(
-      `UPDATE ${tableName} SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+    const idParamIndex = paramIndex;
+    paramIndex++;
+    values.push(userId);
+    const userIdParamIndex = paramIndex;
+
+    const result = await pool.query(
+      `UPDATE ${tableName} SET ${updates.join(', ')} WHERE id = $${idParamIndex} AND user_id = $${userIdParamIndex} RETURNING id`,
       values,
     );
+
+    if (result.rowCount === 0) {
+      throw new NotFoundException('Outfit not found');
+    }
 
     return { message: 'Outfit updated' };
   }

@@ -68,17 +68,20 @@ export class OutfitController {
   }
 
   @Delete(':id')
-  deleteOutfit(@Param('id') id: string) {
-    return this.outfitService.deleteOutfit(id);
+  deleteOutfit(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    return this.outfitService.deleteOutfit(id, userId);
   }
 
   @Put(':table/:id')
   updateOutfit(
+    @Req() req,
     @Param('table') table: 'custom' | 'suggestions',
     @Param('id') id: string,
     @Body() body: { name?: string; occasion?: string },
   ) {
-    return this.outfitService.updateOutfit(table, id, body.name, body.occasion);
+    const userId = req.user.userId;
+    return this.outfitService.updateOutfit(table, id, userId, body.name, body.occasion);
   }
 
   @Post('mark-worn/:outfitId/:outfitType/:userId')

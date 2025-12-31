@@ -9,6 +9,7 @@ import {
   Param,
   UseGuards,
   Req,
+  NotFoundException,
 } from '@nestjs/common';
 import { SavedNotesService } from './saved-notes.service';
 import { CreateSavedNoteDto } from './dto/create-saved-note.dto';
@@ -26,10 +27,14 @@ export class SavedNotesController {
     return this.service.create({ user_id, ...dto });
   }
 
-  // Static route must come before dynamic :userId
   @Get('note/:id')
-  getNote(@Param('id') id: string) {
-    return this.service.getById(id);
+  async getNote(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    const note = await this.service.getById(id, userId);
+    if (!note) {
+      throw new NotFoundException();
+    }
+    return note;
   }
 
   @Get(':userId')
@@ -39,17 +44,32 @@ export class SavedNotesController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
-    return this.service.update(id, dto);
+  async update(@Req() req, @Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
+    const userId = req.user.userId;
+    const note = await this.service.update(id, userId, dto);
+    if (!note) {
+      throw new NotFoundException();
+    }
+    return note;
   }
 
   @Patch(':id')
-  partialUpdate(@Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
-    return this.service.update(id, dto);
+  async partialUpdate(@Req() req, @Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
+    const userId = req.user.userId;
+    const note = await this.service.update(id, userId, dto);
+    if (!note) {
+      throw new NotFoundException();
+    }
+    return note;
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  async delete(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    const deleted = await this.service.delete(id, userId);
+    if (!deleted) {
+      throw new NotFoundException();
+    }
+    return { message: 'Deleted' };
   }
 }

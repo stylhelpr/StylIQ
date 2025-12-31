@@ -39,10 +39,10 @@ export class CustomOutfitService {
     return result.rows;
   }
 
-  async update(id: string, dto: UpdateCustomOutfitDto) {
+  async update(id: string, userId: string, dto: UpdateCustomOutfitDto) {
     const fields: string[] = [];
     const values: any[] = [];
-    let i = 1;
+    let i = 2;
 
     for (const key of Object.keys(dto) as (keyof UpdateCustomOutfitDto)[]) {
       const value = dto[key];
@@ -52,22 +52,36 @@ export class CustomOutfitService {
       }
     }
 
+    if (fields.length === 0) {
+      const existing = await pool.query(
+        `SELECT * FROM custom_outfits WHERE id = $1 AND user_id = $2`,
+        [id, userId],
+      );
+      return {
+        message: 'Custom outfit updated successfully',
+        outfit: existing.rows[0] || null,
+      };
+    }
+
     const query = `
     UPDATE custom_outfits
     SET ${fields.join(', ')}, updated_at = now()
-    WHERE id = $1
+    WHERE id = $1 AND user_id = $2
     RETURNING *;
   `;
 
-    const result = await pool.query(query, [id, ...values]);
+    const result = await pool.query(query, [id, userId, ...values]);
     return {
       message: 'Custom outfit updated successfully',
-      outfit: result.rows[0],
+      outfit: result.rows[0] || null,
     };
   }
 
-  async delete(id: string) {
-    await pool.query(`DELETE FROM custom_outfits WHERE id = $1`, [id]);
-    return { message: 'Custom outfit deleted successfully' };
+  async delete(id: string, userId: string): Promise<boolean> {
+    const result = await pool.query(
+      `DELETE FROM custom_outfits WHERE id = $1 AND user_id = $2`,
+      [id, userId],
+    );
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
