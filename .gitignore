@@ -100,4 +100,4 @@ stylhelpr-prod-12ff0cbcc3ed.json
 # include backend config files required for build
 !apps/backend-nest/tsconfig.json
 !apps/backend-nest/tsconfig.build.json
-!apps/backend-nest/nest-cli.json
+!apps/backend-nest/nest-cli.jsonbackend-service.yaml
