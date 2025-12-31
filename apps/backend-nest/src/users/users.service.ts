@@ -42,10 +42,12 @@ export class UsersService {
         [auth0_sub, first_name, last_name, email, cleanedProfilePicture],
       );
 
-      console.log('🟢 USER CREATED:', res.rows[0]);
+      // Log only user ID, never PII (email, name)
+      console.log('🟢 USER CREATED:', res.rows[0]?.id);
       return res.rows[0];
     } catch (error) {
-      console.error('🔥 ERROR CREATING USER:', error);
+      // Log error type only, not user data
+      console.error('🔥 ERROR CREATING USER:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }

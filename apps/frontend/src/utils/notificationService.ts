@@ -8,6 +8,7 @@ import {Linking, Platform} from 'react-native';
 import {apiClient} from '../lib/apiClient';
 import {addToInbox} from './notificationInbox';
 import {DynamicIsland} from '../native/dynamicIsland';
+import {isValidDeepLink} from './urlSanitizer';
 
 // ----- inbox record type -----
 type InboxItem = {
@@ -217,7 +218,8 @@ export const initializeNotifications = async (userId?: string) => {
     openUnsub = messaging().onNotificationOpenedApp(async msg => {
       const mapped = mapMessage(msg);
       await addToInbox(mapped);
-      if (mapped.deeplink) {
+      // Validate deep-link before opening to prevent phishing attacks
+      if (mapped.deeplink && isValidDeepLink(mapped.deeplink)) {
         try {
           await Linking.openURL(mapped.deeplink);
         } catch {}
@@ -229,7 +231,8 @@ export const initializeNotifications = async (userId?: string) => {
     if (initial) {
       const mapped = mapMessage(initial);
       await addToInbox(mapped);
-      if (mapped.deeplink) {
+      // Validate deep-link before opening to prevent phishing attacks
+      if (mapped.deeplink && isValidDeepLink(mapped.deeplink)) {
         try {
           await Linking.openURL(mapped.deeplink);
         } catch {}

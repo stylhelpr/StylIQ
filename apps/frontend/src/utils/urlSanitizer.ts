@@ -276,3 +276,92 @@ export function validateImageUrl(url: string): {
     return {isValid: false, error: 'Invalid URL format'};
   }
 }
+
+/**
+ * Allowed URL schemes for deep-links.
+ * Only these schemes can be opened via Linking.openURL from notifications.
+ */
+const ALLOWED_DEEPLINK_SCHEMES = ['https:', 'styliq:'];
+
+/**
+ * Allowed domains for https deep-links.
+ * Prevents opening malicious external sites from push notifications.
+ */
+const ALLOWED_DEEPLINK_DOMAINS = [
+  'stylhelpr.com',
+  'www.stylhelpr.com',
+  'styliq.app',
+  'www.styliq.app',
+  'backend-161054336483.us-central1.run.app', // Backend domain
+];
+
+/**
+ * Validates a deep-link URL before opening.
+ * Blocks dangerous schemes and untrusted domains to prevent phishing.
+ *
+ * @param url - The deep-link URL to validate
+ * @returns true if the URL is safe to open
+ *
+ * @security This prevents malicious FCM payloads from redirecting users.
+ */
+export function isValidDeepLink(url: string | undefined | null): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return false;
+  }
+
+  try {
+    // Check for dangerous schemes first (before URL parsing)
+    const lowerUrl = trimmedUrl.toLowerCase();
+    const dangerousSchemes = [
+      'javascript:',
+      'data:',
+      'blob:',
+      'file:',
+      'vbscript:',
+      'ftp:',
+    ];
+    for (const scheme of dangerousSchemes) {
+      if (lowerUrl.startsWith(scheme)) {
+        console.warn('[DeepLink] Blocked dangerous scheme:', scheme);
+        return false;
+      }
+    }
+
+    const parsed = new URL(trimmedUrl);
+    const scheme = parsed.protocol.toLowerCase();
+
+    // Check if scheme is allowed
+    if (!ALLOWED_DEEPLINK_SCHEMES.includes(scheme)) {
+      console.warn('[DeepLink] Blocked disallowed scheme:', scheme);
+      return false;
+    }
+
+    // For styliq: scheme, allow all (internal app navigation)
+    if (scheme === 'styliq:') {
+      return true;
+    }
+
+    // For https: scheme, validate domain
+    if (scheme === 'https:') {
+      const host = parsed.hostname.toLowerCase();
+      const isAllowed = ALLOWED_DEEPLINK_DOMAINS.some(
+        domain => host === domain || host.endsWith('.' + domain),
+      );
+      if (!isAllowed) {
+        console.warn('[DeepLink] Blocked untrusted domain:', host);
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  } catch {
+    console.warn('[DeepLink] Failed to parse URL:', trimmedUrl);
+    return false;
+  }
+}

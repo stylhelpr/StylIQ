@@ -44,13 +44,15 @@ export class ScheduledOutfitController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateScheduledOutfitDto) {
-    return this.service.update(id, dto);
+  update(@Req() req, @Param('id') id: string, @Body() dto: UpdateScheduledOutfitDto) {
+    const userId = req.user.userId;
+    return this.service.update(id, userId, dto);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.service.delete(id);
+  delete(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    return this.service.delete(id, userId);
   }
 
   @Delete()
@@ -63,12 +65,14 @@ export class ScheduledOutfitController {
   }
 
   @Post(':id/worn')
-  markAsWorn(@Param('id') id: string) {
-    return this.service.markAsWorn(id);
+  markAsWorn(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    return this.service.markAsWorn(id, userId);
   }
 
   @Delete(':id/worn')
-  unmarkAsWorn(@Param('id') id: string) {
-    return this.service.unmarkAsWorn(id);
+  unmarkAsWorn(@Req() req, @Param('id') id: string) {
+    const userId = req.user.userId;
+    return this.service.unmarkAsWorn(id, userId);
   }
 }

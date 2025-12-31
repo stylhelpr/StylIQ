@@ -4,12 +4,12 @@ import {
   Query,
   BadRequestException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import * as puppeteer from 'puppeteer';
-import * as cheerio from 'cheerio';
 import { FeedsScrapeService } from './feeds.scrap.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
+import { validateFeedUrlForSSRF } from '../utils/ssrf-protection';
 
 @SkipAuth() // Public feed scraping - no user data
 @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute (expensive operation)
@@ -21,8 +21,28 @@ export class FeedScrapeController {
   async scrape(@Query('url') url: string) {
     if (!url) throw new BadRequestException('Missing URL');
 
+    // SSRF Protection: Validate URL before scraping
+    // Checks: protocol (http/https only), domain allowlist, DNS resolution, private IP blocking
+    let validatedUrl: string;
     try {
-      return await this.feedsScrapeService.scrapeUrl(url);
+      let target = url.trim();
+      if (!/^https?:\/\//i.test(target)) {
+        target = `https://${target}`;
+      }
+      const parsed = await validateFeedUrlForSSRF(target);
+      validatedUrl = parsed.href;
+    } catch (err) {
+      if (err instanceof ForbiddenException) {
+        throw err;
+      }
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+      throw new BadRequestException('Invalid URL');
+    }
+
+    try {
+      return await this.feedsScrapeService.scrapeUrl(validatedUrl);
     } catch (err) {
       console.error('❌ Scrape failed:', err.message || err);
       throw new InternalServerErrorException({

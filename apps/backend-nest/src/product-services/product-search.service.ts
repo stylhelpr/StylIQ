@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import fetch from 'node-fetch';
 import { Storage } from '@google-cloud/storage';
 import { getSecret, secretExists } from '../config/secrets';
+import { validateImageUrlForSSRF } from '../utils/ssrf-protection';
 
 export interface ProductResult {
   name: string;
@@ -70,6 +71,17 @@ export class ProductSearchService {
     ) {
       this.logger.warn(
         `🚫 [cacheImageToGCS] Blocked female image: ${imageUrl}`,
+      );
+      return 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
+    }
+
+    // 🔒 SSRF Protection: Validate image URL before fetching
+    // Checks: protocol (http/https only), domain allowlist, DNS resolution, private IP blocking
+    try {
+      await validateImageUrlForSSRF(imageUrl);
+    } catch (err) {
+      this.logger.warn(
+        `🚫 [cacheImageToGCS] SSRF validation failed for: ${imageUrl} - ${err.message}`,
       );
       return 'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
     }

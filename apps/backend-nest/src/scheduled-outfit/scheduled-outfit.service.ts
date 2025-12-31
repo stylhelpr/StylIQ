@@ -69,17 +69,17 @@ export class ScheduledOutfitService {
     }
   }
 
-  async update(id: string, dto: UpdateScheduledOutfitDto) {
+  async update(id: string, userId: string, dto: UpdateScheduledOutfitDto) {
     const entries = Object.entries(dto);
     if (entries.length === 0) {
       const { rows } = await pool.query(
-        `UPDATE scheduled_outfits SET updated_at = now() WHERE id = $1 RETURNING *`,
-        [id],
+        `UPDATE scheduled_outfits SET updated_at = now() WHERE id = $1 AND user_id = $2 RETURNING *`,
+        [id, userId],
       );
       return rows[0];
     }
 
-    const fields = entries.map(([key], i) => `${key} = $${i + 2}`);
+    const fields = entries.map(([key], i) => `${key} = $${i + 3}`);
     const values = entries.map(([, value]) => value);
 
     // If scheduled_for is changing, clear notified_at to re-arm the alert
@@ -93,19 +93,20 @@ export class ScheduledOutfitService {
          SET ${fields.join(', ')}
            ${shouldClearNotified ? ', notified_at = NULL' : ''}
            , updated_at = now()
-       WHERE id = $1
+       WHERE id = $1 AND user_id = $2
        RETURNING *;
     `;
 
-    const res = await pool.query(sql, [id, ...values]);
+    const res = await pool.query(sql, [id, userId, ...values]);
     return res.rows[0];
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId: string) {
     // Only delete if it's not a worn-tracking entry (epoch date entries are for worn counts)
+    // Enforce ownership via user_id check
     await pool.query(
-      `DELETE FROM scheduled_outfits WHERE id = $1 AND scheduled_for > '1980-01-01'::timestamptz`,
-      [id],
+      `DELETE FROM scheduled_outfits WHERE id = $1 AND user_id = $2 AND scheduled_for > '1980-01-01'::timestamptz`,
+      [id, userId],
     );
     return { message: 'Deleted' };
   }
@@ -192,19 +193,19 @@ export class ScheduledOutfitService {
   }
 
   /** Mark a scheduled outfit as worn */
-  async markAsWorn(id: string) {
+  async markAsWorn(id: string, userId: string) {
     const { rows } = await pool.query(
-      `UPDATE scheduled_outfits SET worn_at = NOW() WHERE id = $1 RETURNING *`,
-      [id],
+      `UPDATE scheduled_outfits SET worn_at = NOW() WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, userId],
     );
     return rows[0];
   }
 
   /** Unmark a scheduled outfit as worn */
-  async unmarkAsWorn(id: string) {
+  async unmarkAsWorn(id: string, userId: string) {
     const { rows } = await pool.query(
-      `UPDATE scheduled_outfits SET worn_at = NULL WHERE id = $1 RETURNING *`,
-      [id],
+      `UPDATE scheduled_outfits SET worn_at = NULL WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, userId],
     );
     return rows[0];
   }

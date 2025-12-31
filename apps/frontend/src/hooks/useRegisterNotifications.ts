@@ -3,6 +3,7 @@ import messaging from '@react-native-firebase/messaging';
 import {Linking, Platform} from 'react-native';
 import {addToInbox, AppNotification} from '../utils/notificationInbox';
 import {useUUID} from '../context/UUIDContext';
+import {isValidDeepLink} from '../utils/urlSanitizer';
 
 // Helper to determine the correct category for community notifications
 const getCommunityCategory = (
@@ -57,8 +58,9 @@ export function useRegisterNotifications() {
         data: data ?? {},
         read: false,
       });
+      // Validate deep-link before opening to prevent phishing attacks
       const link = data?.deeplink;
-      if (link) Linking.openURL(link);
+      if (link && isValidDeepLink(link)) Linking.openURL(link);
     });
 
     // Tapped from quit (cold start)
@@ -78,8 +80,9 @@ export function useRegisterNotifications() {
           data: data ?? {},
           read: false,
         });
+        // Validate deep-link before opening to prevent phishing attacks
         const link = data?.deeplink;
-        if (link) Linking.openURL(link);
+        if (link && isValidDeepLink(link)) Linking.openURL(link);
       });
 
     // iOS: ensure presentation while app in foreground (optional)

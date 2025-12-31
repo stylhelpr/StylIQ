@@ -34,8 +34,8 @@ export class ContactController {
   @HttpCode(200)
   async submit(@Body() body: ContactDto) {
     // TODO: forward to Slack, SendGrid, or DB
-    // eslint-disable-next-line no-console
-    console.log('[CONTACT]', new Date().toISOString(), body);
+    // Log only topic for debugging, never PII (name, email, message)
+    console.log('[CONTACT]', new Date().toISOString(), { topic: body.topic });
     return { ok: true };
   }
 }

@@ -19,33 +19,43 @@ import { Readable } from 'stream';
 import { getSecret } from '../config/secrets';
 
 @Throttle({ default: { limit: 15, ttl: 60000 } }) // 15 requests per minute for AI endpoints
+@UseGuards(AuthGuard('jwt')) // All AI endpoints require authentication
 @Controller('ai')
 export class AiController {
   aiService: any;
   constructor(private readonly service: AiService) {}
 
   @Post('chat')
-  async chat(@Body() dto: ChatDto) {
+  async chat(
+    @Req() req: FastifyRequest & { user: { userId: string } },
+    @Body() dto: ChatDto,
+  ) {
+    const userId = req.user.userId;
     try {
-      return await this.service.chat(dto);
+      // Enforce per-user quota (15 AI calls per minute already via Throttle, but add user tracking)
+      return await this.service.chat({ ...dto, user_id: userId });
     } catch (err) {
       console.error('❌ [AI Controller] chat() failed:', err);
-      throw err; // Nest will rethrow but you’ll see the real cause in the logs
+      throw err;
     }
   }
 
   @Post('suggest')
-  suggest(@Body() body: any) {
-    return this.service.suggest(body);
+  suggest(
+    @Req() req: FastifyRequest & { user: { userId: string } },
+    @Body() body: any,
+  ) {
+    const userId = req.user.userId;
+    return this.service.suggest({ ...body, user_id: userId });
   }
 
   @Post('analyze')
   analyze(@Body() body: { imageUrl: string }) {
+    // User authenticated via class-level guard
     return this.service.analyze(body.imageUrl);
   }
 
   @Post('recreate')
-  @UseGuards(AuthGuard('jwt'))
   recreate(
     @Req() req: FastifyRequest & { user: { userId: string } },
     @Body()
@@ -65,7 +75,6 @@ export class AiController {
   }
 
   @Post('personalized-shop')
-  @UseGuards(AuthGuard('jwt'))
   personalizedShop(
     @Req() req: FastifyRequest & { user: { userId: string } },
     @Body() body: { image_url: string; gender?: string },
@@ -79,7 +88,6 @@ export class AiController {
   }
 
   @Post('recreate-visual')
-  @UseGuards(AuthGuard('jwt'))
   recreateVisual(
     @Req() req: FastifyRequest & { user: { userId: string } },
     @Body()
@@ -334,7 +342,6 @@ export class AiController {
   }
 
   @Delete('chat/clear')
-  @UseGuards(AuthGuard('jwt'))
   async clearChat(@Req() req: FastifyRequest & { user: { userId: string } }) {
     const userId = req.user.userId;
     return this.service.clearChatHistory(userId);
@@ -342,7 +349,6 @@ export class AiController {
 
   /* 🧹 Soft reset (keep long-term memory but remove short-term messages) */
   @Delete('chat/soft-reset')
-  @UseGuards(AuthGuard('jwt'))
   async softReset(@Req() req: FastifyRequest & { user: { userId: string } }) {
     const userId = req.user.userId;
     return this.service.softResetChat(userId);
