@@ -7,6 +7,7 @@ import {
   Put,
   Delete,
   Body,
+  Param,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -38,6 +39,7 @@ export class UsersController {
       fashion_level: user.fashion_level,
       profile_picture: user.profile_picture,
       theme_mode: user.theme_mode,
+      onboarding_complete: user.onboarding_complete,
     };
   }
 
@@ -92,6 +94,25 @@ export class UsersController {
   @Delete('me')
   deleteMe(@Req() req) {
     return this.service.delete(req.user.userId);
+  }
+
+  // ✅ Get public user profile by ID (for viewing other users)
+  @SkipAuth()
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    const user = await this.service.findById(id);
+    if (!user) return null;
+
+    // Return only public-safe fields
+    return {
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      profession: user.profession,
+      bio: user.bio,
+      fashion_level: user.fashion_level,
+      profile_picture: user.profile_picture,
+    };
   }
 }
 

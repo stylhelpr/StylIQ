@@ -38,6 +38,7 @@ import {
 } from '../hooks/useCommunityApi';
 import type {FollowUser} from '../types/community';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import {getAccessToken} from '../utils/auth';
 
 const screenWidth = Dimensions.get('window').width;
 const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
@@ -156,7 +157,10 @@ export default function ProfileScreen({navigate}: Props) {
     enabled: !!userId,
     queryKey: ['userProfile', userId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
+        headers: {Authorization: `Bearer ${token}`},
+      });
       if (!res.ok) throw new Error('Failed to fetch user profile');
       return res.json();
     },

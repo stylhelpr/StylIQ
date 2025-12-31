@@ -21,6 +21,7 @@ import {useAuth0} from 'react-native-auth0';
 import {tokens} from '../styles/tokens/tokens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SafeScreenWrapper from '../components/SafeScreenWrapper';
+import {getAccessToken} from '../utils/auth';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const STORAGE_KEY = (uid: string) => `profile_picture:${uid}`;
@@ -162,17 +163,14 @@ export default function PersonalInformationScreen({navigate}: any) {
     const fetchUser = async () => {
       if (!userId && !sub) return;
 
-      const endpoint = userId
-        ? `${API_BASE_URL}/users/${userId}`
-        : sub
-        ? `${API_BASE_URL}/users/auth0/${sub}`
-        : null;
-
-      if (!endpoint) return;
+      const endpoint = `${API_BASE_URL}/users/me`;
 
       console.log('[USR F1] GET', endpoint);
       try {
-        const res = await fetch(endpoint);
+        const token = await getAccessToken();
+        const res = await fetch(endpoint, {
+          headers: {Authorization: `Bearer ${token}`},
+        });
         const data = await res.json();
         console.log('[USR F1] ok', {
           id: data?.id,
@@ -319,13 +317,13 @@ export default function PersonalInformationScreen({navigate}: any) {
         return;
       }
 
-      const endpoint = userId
-        ? `${API_BASE_URL}/users/${userId}`
-        : `${API_BASE_URL}/users/auth0/${sub}`;
-
-      const res = await fetch(endpoint, {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(dto),
       });
 

@@ -25,39 +25,8 @@ export function useStyleProfile(userId: string) {
   });
 
   const updateProfile = (field: string, value: any) => {
-    if (!query.data) return;
-
-    const validKeys = [
-      'body_type',
-      'skin_tone',
-      'undertone',
-      'climate',
-      'favorite_colors',
-      'disliked_styles',
-      'style_keywords',
-      'budget_level',
-      'budget_min',
-      'budget_max',
-      'preferred_brands',
-      'daily_activities',
-      'goals',
-      'fit_preferences',
-      'style_icons',
-    ];
-
-    const filtered = Object.fromEntries(
-      Object.entries(query.data || {}).filter(([key]) =>
-        validKeys.includes(key),
-      ),
-    );
-
-    const updated = {
-      ...filtered,
-      [field]: value,
-    };
-
-    // console.log('✅ Sending filtered updated profile:', updated);
-    mutation.mutate(updated);
+    // Just send the single field update - backend handles UPSERT correctly
+    mutation.mutate({ [field]: value });
   };
 
   return {

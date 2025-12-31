@@ -13,7 +13,7 @@ export type UserData = {
 };
 
 /**
- * Fetches user data by userId from /users/:userId
+ * Fetches user data from /users/me
  * - Cached and deduplicated via TanStack Query
  * - Prevents duplicate requests during navigation
  */
@@ -24,7 +24,7 @@ export function useUserData(userId: string | null) {
     staleTime: 30000, // Match default staleTime
     queryFn: async () => {
       if (!userId) return null;
-      const response = await apiClient.get(`/users/${userId}`);
+      const response = await apiClient.get('/users/me');
       return response.data;
     },
   });
@@ -41,7 +41,7 @@ export async function fetchUserData(userId: string): Promise<UserData | null> {
       queryKey: ['user', userId],
       staleTime: 30000,
       queryFn: async () => {
-        const response = await apiClient.get(`/users/${userId}`);
+        const response = await apiClient.get('/users/me');
         return response.data;
       },
     });

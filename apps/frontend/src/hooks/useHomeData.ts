@@ -69,8 +69,14 @@ export function useUserProfile(userId: string) {
   return useQuery<UserProfile, Error>({
     queryKey: ['user-profile', userId],
     queryFn: async () => {
-      const res = await apiClient.get(`/users/${userId}`);
-      return res.data;
+      const res = await apiClient.get('/users/me');
+      return {
+        id: res.data.id,
+        first_name: res.data.first_name,
+        last_name: res.data.last_name,
+        picture: res.data.profile_picture,
+        theme_mode: res.data.theme_mode,
+      };
     },
     enabled: !!userId,
     staleTime: 60000, // 1 minute - profile data doesn't change often

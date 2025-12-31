@@ -49,6 +49,7 @@ import {GradientBackground} from '../components/LinearGradientComponents/Gradien
 import {fetchWeather} from '../utils/travelWeather';
 import {getOutfitByDate, getAllPlannedOutfits} from '../utils/calendarStorage';
 import RNCalendarEvents from 'react-native-calendar-events';
+import {getAccessToken} from '../utils/auth';
 
 // ---- Persistent TTS Toggle ----
 const TTS_TOGGLE_KEY = 'tts_enabled';
@@ -154,7 +155,10 @@ export default function AiStylistChatScreen({navigate}: Props) {
     const fetchFirstName = async () => {
       if (!userId) return;
       try {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+        const token = await getAccessToken();
+        const res = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: {Authorization: `Bearer ${token}`},
+        });
         const data = await res.json();
         if (data.first_name) {
           setFirstName(data.first_name);

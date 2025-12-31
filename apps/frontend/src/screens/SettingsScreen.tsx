@@ -35,6 +35,7 @@ import {useAuth0} from 'react-native-auth0';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useWindowDimensions} from 'react-native';
 import {fontScale, moderateScale} from '../utils/scale';
+import {getAccessToken} from '../utils/auth';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -215,9 +216,13 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   // ✅ DB updater for theme_mode
   const updateThemeInDB = async (theme: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      const token = await getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({theme_mode: theme}),
       });
       if (!res.ok) {
