@@ -30,9 +30,16 @@ export function getSecret(name: string): string {
   const basePath = getBasePath();
   let file = path.join(basePath, name);
 
-  // Cloud Run mounts secrets as directories with a 'latest' symlink inside
+  // Cloud Run mounts secrets as directories - check for the file inside
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
-    file = path.join(file, 'latest');
+    // Try common patterns: /secrets/NAME/NAME or /secrets/NAME/latest
+    const nameFile = path.join(file, name);
+    const latestFile = path.join(file, 'latest');
+    if (fs.existsSync(nameFile)) {
+      file = nameFile;
+    } else if (fs.existsSync(latestFile)) {
+      file = latestFile;
+    }
   }
 
   const value = fs.readFileSync(file, 'utf8').trim();
@@ -54,12 +61,18 @@ export function secretExists(name: string): boolean {
     const basePath = getBasePath();
     let file = path.join(basePath, name);
 
-    // Cloud Run mounts secrets as directories with a 'latest' symlink inside
+    // Cloud Run mounts secrets as directories - check for the file inside
     if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
-      file = path.join(file, 'latest');
+      const nameFile = path.join(file, name);
+      const latestFile = path.join(file, 'latest');
+      if (fs.existsSync(nameFile)) {
+        file = nameFile;
+      } else if (fs.existsSync(latestFile)) {
+        file = latestFile;
+      }
     }
 
-    return fs.existsSync(file);
+    return fs.existsSync(file) && fs.statSync(file).isFile();
   } catch {
     return false;
   }
