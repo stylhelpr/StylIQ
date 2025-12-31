@@ -4,10 +4,12 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CommunityService } from './community.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @SkipAuth() // Public community feed - read-only, no user-specific data exposed
+@Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
 @Controller('community')
 export class CommunityPublicController {
   constructor(private readonly service: CommunityService) {}

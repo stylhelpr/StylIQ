@@ -62,10 +62,10 @@ async function bootstrap() {
     }
     fastifyInstance.use(passport.initialize());
 
-    // CORS
+    // CORS: Disabled for mobile-only app (no browser clients)
     await app.register(cors, {
-      origin: '*', // tighten in prod
-      credentials: true,
+      origin: false,
+      credentials: false,
     });
 
     // Prefix real APIs under /api

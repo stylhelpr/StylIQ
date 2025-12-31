@@ -5,12 +5,14 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import * as puppeteer from 'puppeteer';
 import * as cheerio from 'cheerio';
 import { FeedsScrapeService } from './feeds.scrap.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @SkipAuth() // Public feed scraping - no user data
+@Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute (expensive operation)
 @Controller('feeds')
 export class FeedScrapeController {
   constructor(private readonly feedsScrapeService: FeedsScrapeService) {}

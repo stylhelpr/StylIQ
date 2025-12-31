@@ -98,6 +98,7 @@ import {
 import {useSetUUID} from '../context/UUIDContext';
 import jwtDecode from 'jwt-decode';
 import {API_BASE_URL} from '../config/api';
+import {fetchUserData} from '../hooks/useUserData';
 
 type Screen =
   | 'Splash'
@@ -302,11 +303,10 @@ const RootNavigator = ({
         setCurrentScreen('Login');
         return;
       }
-      // Fetch fresh onboarding status from server
+      // Fetch fresh onboarding status from server (cached via TanStack Query)
       if (userId) {
-        const res = await fetch(`${API_BASE_URL}/users/${userId}`);
-        if (res.ok) {
-          const user = await res.json();
+        const user = await fetchUserData(userId);
+        if (user) {
           const onboarded = user?.onboarding_complete === true;
           await AsyncStorage.setItem('onboarding_complete', onboarded ? 'true' : 'false');
           setCurrentScreen(onboarded ? 'Home' : 'Onboarding');

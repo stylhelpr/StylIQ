@@ -1,8 +1,10 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @SkipAuth() // Share links are public
+@Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
 @Controller('share')
 export class ShareController {
   @Get('look/:id')

@@ -1,8 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import axios from 'axios';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @SkipAuth() // Public product search - no user-specific data
+@Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
 @Controller('shopping')
 export class ShoppingController {
   @Get('search')

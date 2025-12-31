@@ -1608,6 +1608,15 @@ async function callAiChatAPI(
   userId: string,
   coords?: {lat: number; lon: number} | null,
 ): Promise<{text: string; images?: any[]; links?: any[]}> {
+  // Get access token for authenticated request
+  const {getAccessToken} = await import('../utils/auth');
+  let accessToken: string | null = null;
+  try {
+    accessToken = await getAccessToken();
+  } catch (err) {
+    console.warn('⚠️ Could not get access token for AI chat:', err);
+  }
+
   const payload: Record<string, any> = {
     user_id: userId,
     messages: [...history, latest].map(m => ({
@@ -1624,9 +1633,14 @@ async function callAiChatAPI(
   }
   console.log('📡 calling:', `${API_BASE_URL}/ai/chat`);
 
+  const headers: Record<string, string> = {'Content-Type': 'application/json'};
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
   const res = await fetch(`${API_BASE_URL}/ai/chat`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers,
     body: JSON.stringify(payload),
   });
 

@@ -100,4 +100,5 @@ export class ShoppingAnalyticsEventAckDto {
     reason: string;
   }>; // Events that failed validation
   server_timestamp_ms: number; // For clock sync
+  skipped_reason?: string; // If set, batch was skipped (e.g., 'no_consent')
 }

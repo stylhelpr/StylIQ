@@ -22,10 +22,12 @@
 ///////////////////
 
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ContactDto } from './dto/contact.dto';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @SkipAuth()
+@Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
 @Controller('contact')
 export class ContactController {
   @Post()

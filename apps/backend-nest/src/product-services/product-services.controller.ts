@@ -1,9 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ProductSearchService } from './product-search.service';
 import { ShopbyProductSearchService } from './shopby-product-search.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 @SkipAuth()
+@Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
 @Controller('products')
 export class ProductsController {
   constructor(

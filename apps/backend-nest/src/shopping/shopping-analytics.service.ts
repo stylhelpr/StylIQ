@@ -12,9 +12,28 @@ export class ShoppingAnalyticsService {
   constructor(private db: DatabaseService) {}
 
   /**
+   * Check if user has granted analytics consent.
+   * Default: NO CONSENT (conservative approach for GDPR/CCPA compliance)
+   */
+  private async hasAnalyticsConsent(userId: string): Promise<boolean> {
+    try {
+      const result = await this.db.query(
+        `SELECT analytics_consent FROM users WHERE id = $1`,
+        [userId],
+      );
+      // Default to false if column doesn't exist or user not found
+      return result.rows[0]?.analytics_consent === true;
+    } catch {
+      // If column doesn't exist yet, default to no consent
+      return false;
+    }
+  }
+
+  /**
    * Ingest batch of events from client.
    *
    * Guarantees:
+   * - Consent-gated: events only stored if user has analytics_consent = true
    * - Idempotent: same client_event_id → only 1 row inserted
    * - Transactional: all-or-nothing
    * - Immutable: events never updated after insertion
@@ -23,6 +42,19 @@ export class ShoppingAnalyticsService {
     userId: string,
     events: ShoppingAnalyticsEventDto[],
   ): Promise<ShoppingAnalyticsEventAckDto> {
+    // BLOCKER FIX: Check consent before ingesting analytics
+    const hasConsent = await this.hasAnalyticsConsent(userId);
+    if (!hasConsent) {
+      this.logger.debug(`[Analytics] Skipped: user_id=${userId} has no consent`);
+      return {
+        accepted_client_event_ids: [],
+        duplicate_count: 0,
+        rejected: [],
+        server_timestamp_ms: Date.now(),
+        skipped_reason: 'no_consent',
+      };
+    }
+
     const acceptedClientEventIds: string[] = [];
     const rejectedEvents: Array<{ client_event_id: string; reason: string }> =
       [];

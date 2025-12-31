@@ -7,10 +7,9 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getAccessToken} from '../utils/auth';
-import {API_BASE_URL} from '../config/api';
+import {useAuthProfile} from '../hooks/useAuthProfile';
 
 type UUIDCtx = {
   uuid: string | null;
@@ -28,6 +27,8 @@ type UUIDProviderProps = {children: ReactNode};
 export const UUIDProvider = ({children}: UUIDProviderProps) => {
   const [uuid, setUUIDState] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+  const [storedId, setStoredId] = useState<string | null>(null);
 
   // Wrapper that also persists to AsyncStorage
   const setUUID = useCallback((id: string | null) => {
@@ -37,46 +38,58 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
     }
   }, []);
 
+  // 1) Hydrate from AsyncStorage and check for token on mount
   useEffect(() => {
     const init = async () => {
-      // 1) Hydrate instantly from AsyncStorage (what you store after login)
       const stored = await AsyncStorage.getItem('user_id');
       if (stored) {
         setUUIDState(stored);
+        setStoredId(stored);
       }
 
-      // 2) If we have a token, confirm with backend
       try {
         const token = await getAccessToken();
-        if (!token) {
+        if (token) {
+          setHasToken(true);
+        } else {
+          // No token - mark as initialized immediately
           setIsInitialized(true);
-          return;
         }
-
-        const {data} = await axios.get(`${API_BASE_URL}/auth/profile`, {
-          headers: {Authorization: `Bearer ${token}`},
-        });
-
-        const serverId = data?.id ?? data?.uuid ?? null;
-        if (serverId) {
-          const serverIdStr = String(serverId);
-          if (serverIdStr !== stored) {
-            setUUIDState(serverIdStr);
-            await AsyncStorage.setItem('user_id', serverIdStr);
-          }
-        }
-      } catch (err: any) {
-        console.log(
-          '⚠️ /auth/profile check skipped:',
-          err?.response?.data || err?.message,
-        );
-      } finally {
+      } catch {
         setIsInitialized(true);
       }
     };
 
     init();
   }, []);
+
+  // 2) Use TanStack Query to fetch auth profile (only when we have a token)
+  const {data, isSuccess, isError, error} = useAuthProfile(hasToken);
+
+  // 3) Process auth profile response
+  useEffect(() => {
+    if (!hasToken) return;
+
+    if (isSuccess) {
+      const serverId = data?.id ?? data?.uuid ?? null;
+      if (serverId) {
+        const serverIdStr = String(serverId);
+        if (serverIdStr !== storedId) {
+          setUUIDState(serverIdStr);
+          AsyncStorage.setItem('user_id', serverIdStr).catch(() => {});
+        }
+      }
+      setIsInitialized(true);
+    }
+
+    if (isError) {
+      console.log(
+        '⚠️ /auth/profile check skipped:',
+        (error as any)?.response?.data || (error as any)?.message,
+      );
+      setIsInitialized(true);
+    }
+  }, [hasToken, isSuccess, isError, data, error, storedId]);
 
   return (
     <UUIDContext.Provider value={{uuid, setUUID, isInitialized}}>

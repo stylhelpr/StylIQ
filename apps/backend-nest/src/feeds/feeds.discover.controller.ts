@@ -10,6 +10,7 @@ import {
   ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import * as cheerio from 'cheerio';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 import * as dns from 'dns';
@@ -123,6 +124,7 @@ async function safeFetchWithRedirects(
 }
 
 @SkipAuth()
+@Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
 @Controller('feeds')
 export class FeedDiscoverController {
   // ─────────────────────────────────────────────────────────────
