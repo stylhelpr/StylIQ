@@ -1,0 +1,19 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  '''ios/local-pods/.*''',
+  '''\.md$''',
+]
+commits = [
+  "8ae227f638ec1175aba709a64d4719c16d4aa480",
+  "56507840bef7887575a2c49639c2e659582da25f",
+]
+
+[[rules]]
+id = "example-uuid"
+description = "Ignore example UUIDs"
+regex = '''abc12345-def6-7890'''
+allowlist = { description = "example data" }
