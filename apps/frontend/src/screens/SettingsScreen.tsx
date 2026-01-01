@@ -788,7 +788,8 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                         style={{
                           fontSize: 12,
                           color: theme.colors.foreground3,
-                          marginTop: 4,
+                          marginTop: 10,
+                          marginLeft: 10,
                         }}>
                         Deletes likes, follows, saved posts, and view history.
                         Anonymizes comments. Posts remain.

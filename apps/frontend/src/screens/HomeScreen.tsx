@@ -1908,8 +1908,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     // backgroundColor: 'transparent',
                     // borderWidth: tokens.borderWidth.hairline,
                     // borderColor: theme.colors.foreground,
-                    // borderRadius: tokens.borderRadius.sm,
-                    borderRadius: tokens.borderRadius.xxxl,
+                    borderRadius: tokens.borderRadius.sm,
+                    // borderRadius: tokens.borderRadius.xxxl,
                   },
                 ]}>
                 <Text
@@ -1945,8 +1945,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     // backgroundColor: 'transparent',
                     // borderWidth: tokens.borderWidth.hairline,
                     // borderColor: theme.colors.foreground,
-                    // borderRadius: tokens.borderRadius.sm,
-                    borderRadius: tokens.borderRadius.xxxl,
+                    borderRadius: tokens.borderRadius.sm,
+                    // borderRadius: tokens.borderRadius.xxxl,
                     // marginTop: 20,
                   },
                 ]}>
@@ -2724,6 +2724,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <Text
                     style={{
                       fontSize: 14,
+                      fontWeight: '600',
                       color: theme.colors.foreground2,
                       marginBottom: 8,
                     }}>
@@ -2735,7 +2736,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     placeholder="Give your look a name..."
                     placeholderTextColor={theme.colors.muted}
                     style={{
-                      backgroundColor: theme.colors.surface2,
+                      backgroundColor: theme.colors.surface3,
                       borderRadius: 14,
                       borderWidth: tokens.borderWidth.md,
                       borderColor: theme.colors.muted,
@@ -2750,6 +2751,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <Text
                     style={{
                       fontSize: 14,
+                      fontWeight: '600',
                       color: theme.colors.foreground2,
                       marginBottom: 8,
                     }}>
@@ -2762,7 +2764,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     placeholderTextColor={theme.colors.muted}
                     multiline
                     style={{
-                      backgroundColor: theme.colors.surface2,
+                      backgroundColor: theme.colors.surface3,
                       borderRadius: 14,
                       borderWidth: tokens.borderWidth.md,
                       borderColor: theme.colors.muted,
@@ -2779,6 +2781,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <Text
                     style={{
                       fontSize: 14,
+                      fontWeight: '600',
                       color: theme.colors.foreground2,
                       marginBottom: 8,
                     }}>
@@ -2790,7 +2793,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     placeholder="casual, summer, streetwear..."
                     placeholderTextColor={theme.colors.muted}
                     style={{
-                      backgroundColor: theme.colors.surface2,
+                      backgroundColor: theme.colors.surface3,
                       borderRadius: 14,
                       borderWidth: tokens.borderWidth.md,
                       borderColor: theme.colors.muted,
