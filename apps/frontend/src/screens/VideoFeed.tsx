@@ -246,7 +246,7 @@ export default function VideoFeedScreen({
     },
     fabContainer: {
       position: 'absolute',
-      top: insets.bottom + 37,
+      top: insets.top + 12,
       right: 15,
       zIndex: 10,
     },
@@ -302,7 +302,7 @@ export default function VideoFeedScreen({
     },
     homeButtonContainer: {
       position: 'absolute',
-      bottom: insets.bottom + 5,
+      bottom: insets.bottom + 15,
       left: 20,
       zIndex: 10,
     },

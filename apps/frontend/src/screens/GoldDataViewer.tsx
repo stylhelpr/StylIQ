@@ -47,15 +47,14 @@ export default function GoldDataViewer({navigate}: Props) {
       color: theme.colors.foreground,
     },
     tabs: {
-      flexDirection: 'row',
       backgroundColor: theme.colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.surfaceBorder,
-      paddingHorizontal: 16,
+      flexGrow: 0,
     },
     tab: {
       paddingVertical: 12,
-      paddingHorizontal: 16,
+      paddingHorizontal: 10,
       borderBottomWidth: 2,
       borderBottomColor: 'transparent',
     },
@@ -664,7 +663,7 @@ export default function GoldDataViewer({navigate}: Props) {
         <View
           style={{
             flexDirection: 'row',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             alignItems: 'center',
           }}>
           <Text style={styles.title}>🏆 GOLD DATA VIEWER</Text>
@@ -674,9 +673,6 @@ export default function GoldDataViewer({navigate}: Props) {
             onPress={() => navigate('ShoppingDashboard')}>
             <View
               style={{
-                position: 'absolute',
-                right: -90,
-                bottom: -16,
                 padding: 6,
                 borderRadius: 20,
                 backgroundColor: theme.colors.surface3,
@@ -691,7 +687,11 @@ export default function GoldDataViewer({navigate}: Props) {
         </View>
       </View>
 
-      <View style={styles.tabs}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabs}
+        contentContainerStyle={{paddingHorizontal: 8}}>
         {(['summary', 'bookmarks', 'interactions', 'cart', 'raw'] as const).map(
           tabName => (
             <TouchableOpacity
@@ -708,7 +708,7 @@ export default function GoldDataViewer({navigate}: Props) {
             </TouchableOpacity>
           ),
         )}
-      </View>
+      </ScrollView>
 
       <View style={styles.content}>
         {selectedTab === 'summary' && renderSummary()}

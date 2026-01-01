@@ -698,56 +698,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
               marginTop: moderateScale(tokens.spacing.md1),
               width: '100%',
             }}>
-            {/* 👚 View Wardrobe Gaps */}
-            <AppleTouchFeedback
-              hapticStyle="impactLight"
-              onPress={() => navigate('Wardrobe')}
-              style={{
-                flex: isXS || isSM ? undefined : 1,
-                width: isXS || isSM ? '100%' : undefined,
-                marginRight:
-                  isXS || isSM
-                    ? 0
-                    : isMD
-                      ? moderateScale(tokens.spacing.xxs) // tighter on regular phones
-                      : moderateScale(tokens.spacing.xsm),
-                marginBottom:
-                  isXS || isSM ? moderateScale(tokens.spacing.xs) : 0,
-                paddingVertical: isMD
-                  ? moderateScale(tokens.spacing.xsm) // slightly shorter buttons
-                  : moderateScale(tokens.spacing.xsm),
-                paddingHorizontal: isMD
-                  ? moderateScale(tokens.spacing.xs) // slightly shorter buttons
-                  : moderateScale(tokens.spacing.xsm),
-                borderRadius: tokens.borderRadius.sm,
-                backgroundColor: theme.colors.button1,
-                // borderWidth: theme.borderWidth.sm,
-                // borderColor: theme.colors.surfaceBorder,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderColor: 'rgba(255,255,255,0.6)',
-                // shadowColor: '#000',
-                // shadowOffset: {width: 0, height: 4},
-                // shadowOpacity: 0.4,
-                // shadowRadius: 5,
-                // elevation: 5,
-                // shadowColor: '#000',
-                // shadowOffset: {width: 8, height: 9},
-                // shadowOpacity: 0.4,
-                // shadowRadius: 5,
-                // elevation: 6,
-                minWidth: isMD ? 150 : 170, // narrower for 390–429 px phones
-              }}>
-              <Text
-                style={{
-                  fontSize: fontScale(tokens.fontSize.md),
-                  fontWeight: tokens.fontWeight.semiBold,
-                  color: theme.colors.buttonText1,
-                }}>
-                Wardrobe Gaps
-              </Text>
-            </AppleTouchFeedback>
-
             {/* 💬 Ask a Styling Question */}
             <AppleTouchFeedback
               hapticStyle="impactLight"
@@ -791,7 +741,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   fontWeight: tokens.fontWeight.semiBold,
                   color: theme.colors.buttonText1,
                 }}>
-                Styling Question
+                Ask Styling Questions
               </Text>
             </AppleTouchFeedback>
           </View>

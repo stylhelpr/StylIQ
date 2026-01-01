@@ -2039,7 +2039,7 @@ export default function SavedOutfitsScreen() {
                 position: 'relative',
                 backgroundColor: showDatePicker
                   ? theme.colors.background
-                  : 'rgba(0, 0, 0, 1)',
+                  : theme.colors.background,
                 borderRadius: 25,
                 paddingBottom: insets.bottom + 10,
                 paddingTop: showDatePicker ? 6 : 12,

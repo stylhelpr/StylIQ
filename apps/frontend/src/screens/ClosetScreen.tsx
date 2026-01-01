@@ -466,7 +466,7 @@ export default function ClosetScreen({navigate}: Props) {
         }}>
         <View
           style={{
-            height: insets.top + 0, // ⬅️ 56 is about the old navbar height
+            height: Math.max(insets.top, 44), // ⬅️ min 44px for non-notched devices
             backgroundColor: theme.colors.background, // same tone as old nav
           }}
         />

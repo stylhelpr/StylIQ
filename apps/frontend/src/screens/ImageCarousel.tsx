@@ -19,6 +19,7 @@ import Animated, {
   SharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -213,6 +214,7 @@ export default function ImageCarouselScreen({
 }: {
   navigate: (screen: string) => void;
 }) {
+  const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   const screenOpacity = useSharedValue(0);
   const progressWidth = useSharedValue(0);
@@ -311,7 +313,7 @@ export default function ImageCarouselScreen({
       />
 
       {/* Video Feed Button */}
-      <View style={styles.communityButton}>
+      <View style={[styles.communityButton, {top: insets.top + 12}]}>
         <AppleTouchFeedback onPress={() => navigate('VideoFeedScreen')}>
           <View style={styles.fabButton}>
             <BlurView
@@ -333,7 +335,7 @@ export default function ImageCarouselScreen({
       </View>
 
       {/* Home Button - lower left */}
-      <View style={styles.homeButtonContainer}>
+      <View style={[styles.homeButtonContainer, {bottom: insets.bottom + 15}]}>
         <AppleTouchFeedback onPress={handleClose}>
           <View style={styles.fabButton}>
             <BlurView
@@ -432,7 +434,6 @@ const styles = StyleSheet.create({
   },
   communityButton: {
     position: 'absolute',
-    top: 60,
     right: 15,
     zIndex: 999,
   },
@@ -489,7 +490,6 @@ const styles = StyleSheet.create({
   },
   homeButtonContainer: {
     position: 'absolute',
-    bottom: 35,
     left: 20,
     zIndex: 999,
   },

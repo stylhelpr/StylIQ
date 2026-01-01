@@ -2173,6 +2173,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       borderTopRightRadius: 20,
       paddingTop: 12,
       paddingBottom: insets.bottom + 20,
+      maxHeight: '85%',
     },
     actionsUserRow: {
       flexDirection: 'row',

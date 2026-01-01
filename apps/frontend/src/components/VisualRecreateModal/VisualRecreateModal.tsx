@@ -476,9 +476,6 @@ export default function VisualRecreateModal({
               paddingHorizontal: 20,
               paddingTop: 10,
               paddingBottom: 4,
-              borderBottomWidth: 1,
-              borderBottomColor: theme.colors.surface2,
-              // marginTop: 45,
             }}>
             <View style={{flex: 1}}>
               <Text style={[globalStyles.sectionTitle, {marginTop: 8}]}>
