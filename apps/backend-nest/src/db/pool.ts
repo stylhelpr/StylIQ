@@ -39,7 +39,8 @@ function getSSLConfig(): PoolConfig['ssl'] {
  * Use this instead of creating Pool instances directly in services.
  */
 export function createPoolConfig(): PoolConfig {
-  const connectionString = getSecret('DATABASE_URL');
+  const connectionString =
+    process.env.DATABASE_URL || getSecret('DATABASE_URL');
 
   return {
     connectionString,

@@ -45,7 +45,9 @@ export class ShoppingAnalyticsService {
     // BLOCKER FIX: Check consent before ingesting analytics
     const hasConsent = await this.hasAnalyticsConsent(userId);
     if (!hasConsent) {
-      this.logger.debug(`[Analytics] Skipped: user_id=${userId} has no consent`);
+      this.logger.debug(
+        `[Analytics] Skipped: user_id=${userId} has no consent`,
+      );
       return {
         accepted_client_event_ids: [],
         duplicate_count: 0,

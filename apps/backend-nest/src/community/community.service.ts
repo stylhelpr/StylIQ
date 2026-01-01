@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { NotificationsService } from '../notifications/notifications.service';
 import { VertexService } from '../vertex/vertex.service';
 import {
@@ -10,30 +15,47 @@ import {
 import { pool } from '../db/pool';
 
 @Injectable()
-export class CommunityService {
+export class CommunityService implements OnModuleInit {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly vertex: VertexService,
-  ) {
-    this.initTables();
+  ) {}
+
+  async onModuleInit() {
+    // Run table init safely during boot
+    try {
+      await this.initTables();
+      console.log('✅ Community tables ready');
+    } catch (e: any) {
+      // IMPORTANT: don’t crash the whole service just because DB is momentarily unavailable
+      console.error('❌ Community initTables failed:', e?.message || e);
+    }
   }
 
   // One-time migration to fix tables with TEXT user_id columns to UUID
   private async migrateToUuidUserIds() {
-    // Check if migration is needed by checking column type of post_likes.user_id
+    // SAFETY: never drop tables automatically in production
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('⚠️ Skipping migrateToUuidUserIds in production');
+      return;
+    }
+
     const columnCheck = await pool.query(`
       SELECT data_type FROM information_schema.columns
       WHERE table_name = 'post_likes' AND column_name = 'user_id'
     `);
 
-    // If table doesn't exist or already UUID, skip migration
-    if (columnCheck.rows.length === 0 || columnCheck.rows[0].data_type === 'uuid') {
+    if (
+      columnCheck.rows.length === 0 ||
+      columnCheck.rows[0].data_type === 'uuid'
+    ) {
       return;
     }
 
-    console.log('🔄 Migrating community tables from TEXT to UUID user_id columns...');
+    console.log(
+      '🔄 Migrating community tables from TEXT to UUID user_id columns...',
+    );
 
-    // Drop all community tables to recreate with correct types
     await pool.query('DROP TABLE IF EXISTS post_reports CASCADE');
     await pool.query('DROP TABLE IF EXISTS muted_users CASCADE');
     await pool.query('DROP TABLE IF EXISTS blocked_users CASCADE');
@@ -44,7 +66,9 @@ export class CommunityService {
     await pool.query('DROP TABLE IF EXISTS post_likes CASCADE');
     await pool.query('DROP TABLE IF EXISTS community_posts CASCADE');
 
-    console.log('✅ Community tables dropped, will be recreated with UUID columns');
+    console.log(
+      '✅ Community tables dropped, will be recreated with UUID columns',
+    );
   }
 
   private async initTables() {
@@ -206,48 +230,62 @@ export class CommunityService {
 
     const demoPosts = [
       {
-        image_url: 'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=400',
+        image_url:
+          'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=400',
         tags: ['casual', 'summer'],
         description: 'Summer vibes',
       },
       {
-        image_url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400',
+        image_url:
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400',
         tags: ['elegant', 'evening'],
         description: 'Evening elegance',
       },
       {
-        image_url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400',
+        image_url:
+          'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400',
         tags: ['streetwear', 'urban'],
         description: 'Street style',
       },
       {
-        image_url: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400',
+        image_url:
+          'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400',
         tags: ['minimal', 'clean'],
         description: 'Minimal look',
       },
       {
-        image_url: 'https://images.unsplash.com/photo-1485968579169-51d62cf4b8e6?w=400',
+        image_url:
+          'https://images.unsplash.com/photo-1485968579169-51d62cf4b8e6?w=400',
         tags: ['professional', 'smart'],
         description: 'Office ready',
       },
       {
-        image_url: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400',
+        image_url:
+          'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400',
         tags: ['boho', 'relaxed'],
         description: 'Boho vibes',
       },
       {
-        top_image: 'https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=400',
-        bottom_image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400',
-        shoes_image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
-        accessory_image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+        top_image:
+          'https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=400',
+        bottom_image:
+          'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400',
+        shoes_image:
+          'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400',
+        accessory_image:
+          'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
         tags: ['casual', 'summer'],
         description: 'Complete summer outfit',
       },
       {
-        top_image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400',
-        bottom_image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400',
-        shoes_image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400',
-        accessory_image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
+        top_image:
+          'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400',
+        bottom_image:
+          'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400',
+        shoes_image:
+          'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400',
+        accessory_image:
+          'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
         tags: ['elegant', 'evening'],
         description: 'Evening outfit combo',
       },
@@ -328,10 +366,9 @@ export class CommunityService {
         vector = await this.vertex.embedImage(imageUrl);
       } else if (post.description || (post.tags && post.tags.length > 0)) {
         // Fall back to text embedding from description + tags
-        const textContent = [
-          post.description || '',
-          ...(post.tags || []),
-        ].join(' ').trim();
+        const textContent = [post.description || '', ...(post.tags || [])]
+          .join(' ')
+          .trim();
 
         if (!textContent) {
           console.log(`ℹ️ Post ${post.id} has no embeddable content, skipping`);
@@ -340,7 +377,9 @@ export class CommunityService {
 
         vector = await this.vertex.embedText(textContent);
       } else {
-        console.log(`ℹ️ Post ${post.id} has no image or text to embed, skipping`);
+        console.log(
+          `ℹ️ Post ${post.id} has no image or text to embed, skipping`,
+        );
         return;
       }
 
@@ -370,7 +409,9 @@ export class CommunityService {
       const postEmbedding = embeddings[postId];
 
       if (!postEmbedding?.values || postEmbedding.values.length === 0) {
-        console.log(`ℹ️ Post ${postId} has no embedding yet, skipping preference update`);
+        console.log(
+          `ℹ️ Post ${postId} has no embedding yet, skipping preference update`,
+        );
         return;
       }
 
@@ -397,7 +438,9 @@ export class CommunityService {
         // Weight new interactions more heavily for fresh users, less for established
         const alpha = Math.max(0.1, 1 / (count + 1));
 
-        newVector = currentVector.map((v, i) => v * (1 - alpha) + postVector[i] * alpha);
+        newVector = currentVector.map(
+          (v, i) => v * (1 - alpha) + postVector[i] * alpha,
+        );
         newCount = count + 1;
       }
 
@@ -412,7 +455,9 @@ export class CommunityService {
         [userId, newVector, newCount],
       );
 
-      console.log(`✅ Updated preference vector for user ${userId} (${newCount} interactions)`);
+      console.log(
+        `✅ Updated preference vector for user ${userId} (${newCount} interactions)`,
+      );
     } catch (err: any) {
       console.error(`⚠️ updateUserPreference error:`, err.message);
     }
@@ -446,7 +491,7 @@ export class CommunityService {
       // Debug: check what follows exist for this user
       const followsCheck = await pool.query(
         'SELECT follower_id, following_id, created_at FROM user_follows WHERE follower_id = $1',
-        [currentUserId]
+        [currentUserId],
       );
       console.log('📊 User follows:', followsCheck.rows);
     }
@@ -486,7 +531,9 @@ export class CommunityService {
       LIMIT $1 OFFSET $2
     `;
 
-    const params = currentUserId ? [limit, offset, currentUserId] : [limit, offset];
+    const params = currentUserId
+      ? [limit, offset, currentUserId]
+      : [limit, offset];
     const res = await pool.query(query, params);
     return res.rows;
   }
@@ -504,7 +551,9 @@ export class CommunityService {
 
     // If no preference vector, fall back to trending
     if (prefResult.rows.length === 0 || !prefResult.rows[0].vector) {
-      console.log(`ℹ️ User ${userId} has no preference vector, falling back to trending`);
+      console.log(
+        `ℹ️ User ${userId} has no preference vector, falling back to trending`,
+      );
       return this.getPosts('trending', userId, limit, offset);
     }
 
@@ -524,7 +573,9 @@ export class CommunityService {
       `SELECT following_id FROM user_follows WHERE follower_id = $1`,
       [userId],
     );
-    const followingUserIds = followingResult.rows.map((r: any) => r.following_id);
+    const followingUserIds = followingResult.rows.map(
+      (r: any) => r.following_id,
+    );
 
     // Get blocked/muted users
     const blockedResult = await pool.query(
@@ -687,7 +738,10 @@ export class CommunityService {
   }
 
   async deletePost(postId: string, userId: string) {
-    const post = await pool.query('SELECT user_id FROM community_posts WHERE id = $1', [postId]);
+    const post = await pool.query(
+      'SELECT user_id FROM community_posts WHERE id = $1',
+      [postId],
+    );
     if (post.rows.length === 0) {
       throw new NotFoundException('Post not found');
     }
@@ -702,14 +756,26 @@ export class CommunityService {
 
     // Delete embedding from Pinecone asynchronously
     deletePostEmbedding(postId).catch((err: any) => {
-      console.error(`⚠️ Failed to delete embedding for post ${postId}:`, err.message);
+      console.error(
+        `⚠️ Failed to delete embedding for post ${postId}:`,
+        err.message,
+      );
     });
 
     return { message: 'Post deleted' };
   }
 
-  async updatePost(postId: string, userId: string, name?: string, description?: string, tags?: string[]) {
-    const post = await pool.query('SELECT user_id FROM community_posts WHERE id = $1', [postId]);
+  async updatePost(
+    postId: string,
+    userId: string,
+    name?: string,
+    description?: string,
+    tags?: string[],
+  ) {
+    const post = await pool.query(
+      'SELECT user_id FROM community_posts WHERE id = $1',
+      [postId],
+    );
     if (post.rows.length === 0) {
       throw new NotFoundException('Post not found');
     }
@@ -791,7 +857,11 @@ export class CommunityService {
       if (ownerId && ownerId !== userId) {
         const title = 'New Like';
         const message = `${likerName} liked your post`;
-        this.notifications.sendPushToUser(ownerId, title, message, { type: 'like', postId, category: 'message' });
+        this.notifications.sendPushToUser(ownerId, title, message, {
+          type: 'like',
+          postId,
+          category: 'message',
+        });
         // Save to inbox for Community Messages section
         this.notifications.saveInboxItem({
           id: `like-${postId}-${userId}-${Date.now()}`,
@@ -809,7 +879,10 @@ export class CommunityService {
 
     // Update user preference vector asynchronously
     this.updateUserPreference(userId, postId).catch((err: any) => {
-      console.error(`⚠️ Failed to update preference for user ${userId}:`, err.message);
+      console.error(
+        `⚠️ Failed to update preference for user ${userId}:`,
+        err.message,
+      );
     });
 
     return { message: 'Post liked' };
@@ -863,7 +936,13 @@ export class CommunityService {
     replyToId?: string,
     replyToUser?: string,
   ) {
-    console.log('📥 addComment called:', { postId, userId, content, replyToId, replyToUser });
+    console.log('📥 addComment called:', {
+      postId,
+      userId,
+      content,
+      replyToId,
+      replyToUser,
+    });
 
     try {
       const res = await pool.query(
@@ -892,14 +971,21 @@ export class CommunityService {
       );
 
       // Send push notification to post owner (non-blocking)
-      this.sendCommentNotification(postId, userId, content, userRes.rows[0]?.commenter_first_name).catch(e => {
+      this.sendCommentNotification(
+        postId,
+        userId,
+        content,
+        userRes.rows[0]?.commenter_first_name,
+      ).catch((e) => {
         console.error('Failed to send comment notification:', e);
       });
 
       return {
         ...res.rows[0],
         user_name: userRes.rows[0]?.user_name || 'You',
-        user_avatar: userRes.rows[0]?.user_avatar || `https://i.pravatar.cc/100?u=${userId}`,
+        user_avatar:
+          userRes.rows[0]?.user_avatar ||
+          `https://i.pravatar.cc/100?u=${userId}`,
         is_liked_by_me: false,
       };
     } catch (error: any) {
@@ -908,7 +994,12 @@ export class CommunityService {
     }
   }
 
-  private async sendCommentNotification(postId: string, commenterId: string, content: string, commenterName?: string) {
+  private async sendCommentNotification(
+    postId: string,
+    commenterId: string,
+    content: string,
+    commenterName?: string,
+  ) {
     const postOwner = await pool.query(
       `SELECT user_id FROM community_posts WHERE id = $1`,
       [postId],
@@ -947,7 +1038,9 @@ export class CommunityService {
 
     const postId = comment.rows[0].post_id;
 
-    await pool.query('DELETE FROM comment_likes WHERE comment_id = $1', [commentId]);
+    await pool.query('DELETE FROM comment_likes WHERE comment_id = $1', [
+      commentId,
+    ]);
     await pool.query('DELETE FROM post_comments WHERE id = $1', [commentId]);
 
     await pool.query(
@@ -1031,7 +1124,11 @@ export class CommunityService {
       const followerName = followerInfo.rows[0]?.follower_name || 'Someone';
       const title = 'New Follower';
       const message = `${followerName} started following you`;
-      this.notifications.sendPushToUser(followingId, title, message, { type: 'follow', followerId, category: 'message' });
+      this.notifications.sendPushToUser(followingId, title, message, {
+        type: 'follow',
+        followerId,
+        category: 'message',
+      });
       // Save to inbox for Community Messages section
       this.notifications.saveInboxItem({
         id: `follow-${followerId}-${followingId}-${Date.now()}`,
@@ -1078,7 +1175,10 @@ export class CommunityService {
 
     // Update user preference vector asynchronously (saves indicate strong interest)
     this.updateUserPreference(userId, postId).catch((err: any) => {
-      console.error(`⚠️ Failed to update preference for user ${userId}:`, err.message);
+      console.error(
+        `⚠️ Failed to update preference for user ${userId}:`,
+        err.message,
+      );
     });
 
     return { message: 'Post saved' };
@@ -1126,7 +1226,11 @@ export class CommunityService {
     return res.rows;
   }
 
-  async getPostsByUser(authorId: string, limit: number = 20, offset: number = 0) {
+  async getPostsByUser(
+    authorId: string,
+    limit: number = 20,
+    offset: number = 0,
+  ) {
     const res = await pool.query(
       `SELECT
         cp.id,
@@ -1255,19 +1359,15 @@ export class CommunityService {
       throw new ForbiddenException('You can only update your own bio');
     }
 
-    await pool.query(
-      `UPDATE users SET bio = $2 WHERE id = $1`,
-      [userId, bio],
-    );
+    await pool.query(`UPDATE users SET bio = $2 WHERE id = $1`, [userId, bio]);
 
     return { message: 'Bio updated' };
   }
 
   async getBio(userId: string) {
-    const res = await pool.query(
-      `SELECT bio FROM users WHERE id = $1`,
-      [userId],
-    );
+    const res = await pool.query(`SELECT bio FROM users WHERE id = $1`, [
+      userId,
+    ]);
     return { bio: res.rows[0]?.bio || null };
   }
 
@@ -1338,7 +1438,9 @@ export class CommunityService {
         `SELECT following_id FROM user_follows WHERE follower_id = $1`,
         [currentUserId],
       );
-      const followingSet = new Set(followingRes.rows.map((r) => r.following_id));
+      const followingSet = new Set(
+        followingRes.rows.map((r) => r.following_id),
+      );
 
       return res.rows.map((user) => ({
         ...user,
@@ -1370,7 +1472,9 @@ export class CommunityService {
         `SELECT following_id FROM user_follows WHERE follower_id = $1`,
         [currentUserId],
       );
-      const followingSet = new Set(followingRes.rows.map((r) => r.following_id));
+      const followingSet = new Set(
+        followingRes.rows.map((r) => r.following_id),
+      );
 
       return res.rows.map((user) => ({
         ...user,
@@ -1457,11 +1561,24 @@ export class CommunityService {
     await pool.query('DELETE FROM post_likes WHERE user_id = $1', [userId]);
     await pool.query('DELETE FROM comment_likes WHERE user_id = $1', [userId]);
     await pool.query('DELETE FROM saved_posts WHERE user_id = $1', [userId]);
-    await pool.query('DELETE FROM user_follows WHERE follower_id = $1 OR following_id = $1', [userId]);
-    await pool.query('DELETE FROM blocked_users WHERE blocker_id = $1 OR blocked_id = $1', [userId]);
-    await pool.query('DELETE FROM muted_users WHERE muter_id = $1 OR muted_id = $1', [userId]);
-    await pool.query('DELETE FROM post_reports WHERE reporter_id = $1', [userId]);
-    await pool.query('DELETE FROM user_preference_vectors WHERE user_id = $1', [userId]);
+    await pool.query(
+      'DELETE FROM user_follows WHERE follower_id = $1 OR following_id = $1',
+      [userId],
+    );
+    await pool.query(
+      'DELETE FROM blocked_users WHERE blocker_id = $1 OR blocked_id = $1',
+      [userId],
+    );
+    await pool.query(
+      'DELETE FROM muted_users WHERE muter_id = $1 OR muted_id = $1',
+      [userId],
+    );
+    await pool.query('DELETE FROM post_reports WHERE reporter_id = $1', [
+      userId,
+    ]);
+    await pool.query('DELETE FROM user_preference_vectors WHERE user_id = $1', [
+      userId,
+    ]);
 
     // Anonymize comments (keep for thread integrity)
     await pool.query(
