@@ -39,6 +39,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {PermissionsAndroid, Platform} from 'react-native';
 import ImageSaverModule from '../native/ImageSaverModule';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import TrackingConsentModal from '../components/TrackingConsentModal/TrackingConsentModal';
@@ -191,9 +192,13 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 ]`;
 
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           user_id: userId,
           messages: [{role: 'user', content: SHOPPING_PROMPT}],

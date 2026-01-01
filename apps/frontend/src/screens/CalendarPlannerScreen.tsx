@@ -586,8 +586,12 @@ export default function OutfitPlannerScreen() {
 
             // Delete from backend using apiClient
             try {
+              const accessToken = await getAccessToken();
               await fetch(`${API_BASE_URL}/calendar/event/${userId}/${eventId}`, {
                 method: 'DELETE',
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
               });
               // Clean up AsyncStorage
               await AsyncStorage.removeItem(key);

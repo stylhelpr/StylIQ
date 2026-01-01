@@ -25,6 +25,7 @@ import {useAnalyzeLook} from '../../hooks/useAnalyzeLook';
 import {useRecreateLook} from '../../hooks/useRecreateLook';
 import {useUUID} from '../../context/UUIDContext';
 import {API_BASE_URL} from '../../config/api';
+import {getAccessToken} from '../../utils/auth';
 import {useSaveRecreatedLook, useSaveLookMemory} from '../../hooks/useHomeData';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {fontScale, moderateScale} from '../../utils/scale';
@@ -286,9 +287,13 @@ export default function AllSavedLooksModal({
 
       // Call the new outfit recreate endpoint that identifies each piece
       console.log('👗 Calling API:', `${API_BASE_URL}/ai/recreate-outfit`);
+      const accessToken = await getAccessToken();
       const response = await fetch(`${API_BASE_URL}/ai/recreate-outfit`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({imageUrl: look.image_url}),
       });
 

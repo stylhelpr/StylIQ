@@ -21,6 +21,7 @@ import * as Animatable from 'react-native-animatable';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import {tokens} from '../styles/tokens/tokens';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -119,8 +120,12 @@ export default function BarcodeScannerScreen({
       });
 
       console.log('📸 Uploading photo to decode...');
+      const accessToken = await getAccessToken();
       const decodeRes = await fetch(`${API_BASE_URL}/ai/decode-barcode`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: form,
       });
       const decodeData = await decodeRes.json();
@@ -130,7 +135,10 @@ export default function BarcodeScannerScreen({
         const barcode = decodeData.barcode;
         const productRes = await fetch(`${API_BASE_URL}/ai/lookup-barcode`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({upc: barcode}),
         });
         const product = await productRes.json();
@@ -142,7 +150,10 @@ export default function BarcodeScannerScreen({
 
         const recreateRes = await fetch(`${API_BASE_URL}/ai/recreate`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({
             user_id: userId,
             tags: [product.name, product.brand, product.category].filter(
@@ -162,7 +173,10 @@ export default function BarcodeScannerScreen({
         const item = decodeData.inferred;
         const recreateRes = await fetch(`${API_BASE_URL}/ai/recreate`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({
             user_id: userId,
             tags: [item.name, item.brand, item.category, item.material].filter(
