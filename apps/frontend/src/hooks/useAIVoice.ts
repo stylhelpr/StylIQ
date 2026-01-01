@@ -1,6 +1,7 @@
 // src/hooks/useAIVoice.ts
 import Tts from 'react-native-tts';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 /**
  * 🎙️ speakAI
@@ -12,9 +13,13 @@ export async function speakAI(text: string) {
   try {
     console.log('🎤 Requesting TTS:', `${API_BASE_URL}/ai/tts`);
 
+    const accessToken = await getAccessToken();
     const res = await fetch(`${API_BASE_URL}/ai/tts`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({text}),
     });
 

@@ -19,6 +19,7 @@ import {tokens} from '../styles/tokens/tokens';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DeviceInfo from 'react-native-device-info';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 export default function FeedbackScreen({navigate}: any) {
@@ -162,9 +163,13 @@ export default function FeedbackScreen({navigate}: any) {
       }
 
       const diag = includeDiagnostics ? await buildDiagnostics() : '';
+      const accessToken = await getAccessToken();
       const res = await fetch(`${API_BASE_URL}/feedback`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           name: name || undefined,
           email: email || undefined,

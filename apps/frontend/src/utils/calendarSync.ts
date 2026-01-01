@@ -1,5 +1,6 @@
 import RNCalendarEvents, {CalendarEventWritable} from 'react-native-calendar-events';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from './auth';
 
 /**
  * ➕ Create an event in the native iOS calendar
@@ -96,9 +97,13 @@ export async function syncNativeCalendarToBackend(userId: string) {
     // console.log(`🗓 Found ${simplified.length} events to sync`);
 
     // 🚀 POST to backend
+    const accessToken = await getAccessToken();
     const res = await fetch(`${API_BASE_URL}/calendar/sync-native`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({userId, events: simplified}),
     });
 

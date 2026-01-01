@@ -1,6 +1,7 @@
 import {useState, useCallback} from 'react';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export type SimilarLook = {
   brand: string | null;
@@ -22,9 +23,13 @@ export function useSimilarLooks() {
     ReactNativeHapticFeedback.trigger('impactLight');
 
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(`${API_BASE_URL}/ai/similar-looks`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({imageUrl}),
       });
 

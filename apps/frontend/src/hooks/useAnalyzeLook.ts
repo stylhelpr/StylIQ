@@ -1,5 +1,6 @@
 import {useState, useCallback} from 'react';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export function useAnalyzeLook() {
   const [loading, setLoading] = useState(false);
@@ -26,9 +27,13 @@ export function useAnalyzeLook() {
         console.log('[useAnalyzeLook] 🔍 called');
         console.log('[useAnalyzeLook] API_BASE_URL →', API_BASE_URL);
 
+        const accessToken = await getAccessToken();
         let res = await fetch(`${API_BASE_URL}/ai/analyze`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({imageUrl}),
         });
 
@@ -40,7 +45,10 @@ export function useAnalyzeLook() {
           await new Promise(r => setTimeout(r, 500));
           res = await fetch(`${API_BASE_URL}/ai/analyze`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
             body: JSON.stringify({imageUrl}),
           });
         }

@@ -18,6 +18,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useQueryClient} from '@tanstack/react-query';
 import * as ImagePicker from 'react-native-image-picker';
 import {uploadImageToGCS} from '../../api/uploadImageToGCS';
+import {getAccessToken} from '../../utils/auth';
 
 type Props = {
   visible: boolean;
@@ -96,9 +97,13 @@ export default function SaveLookModal({visible, onClose, onSave}: Props) {
         console.log('✅ Uploaded to GCS:', imageUrl);
       }
 
+      const accessToken = await getAccessToken();
       const res = await fetch(`${API_BASE_URL}/saved-looks`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           user_id: userId,
           image_url: imageUrl,

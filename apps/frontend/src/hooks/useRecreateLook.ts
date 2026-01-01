@@ -1,5 +1,6 @@
 import {useState, useCallback} from 'react';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import {useAnalyzeLook} from './useAnalyzeLook';
 
 /* ------------------------------------ */
@@ -119,9 +120,13 @@ export function useRecreateLook() {
         const safeTags = Array.from(new Set(weighted)).filter(Boolean);
 
         // 🪄 Step 3: Backend call
+        const accessToken = await getAccessToken();
         const res = await fetch(`${API_BASE_URL}/ai/recreate`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({
             user_id,
             tags: safeTags,
@@ -170,9 +175,13 @@ export function useRecreateLook() {
       setLoading(true);
 
       try {
+        const accessToken = await getAccessToken();
         const res = await fetch(`${API_BASE_URL}/ai/personalized-shop`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({user_id, image_url, gender: user_gender}),
         });
 
@@ -225,9 +234,13 @@ export function useRecreateLook() {
       setLoading(true);
 
       try {
+        const accessToken = await getAccessToken();
         const res = await fetch(`${API_BASE_URL}/ai/recreate-visual`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({user_id, image_url, user_gender}),
         });
 

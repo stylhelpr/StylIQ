@@ -15,6 +15,7 @@ import {
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
@@ -58,9 +59,13 @@ export default function OutfitBuilderScreen({navigate}: Props) {
       accessory_ids: string[];
       thumbnail_url: string;
     }) => {
+      const accessToken = await getAccessToken();
       const res = await fetch(`${API_BASE_URL}/custom-outfits`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({...payload, prompt: 'manual'}),
       });
       if (!res.ok) throw new Error('Failed to save outfit');
@@ -68,9 +73,13 @@ export default function OutfitBuilderScreen({navigate}: Props) {
     },
     onSuccess: async newOutfit => {
       // Auto-favorite the new outfit
+      const accessToken = await getAccessToken();
       await fetch(`${API_BASE_URL}/outfit/favorite`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({user_id: userId, outfit_id: newOutfit.id}),
       });
       // Invalidate caches so SavedOutfits screen shows the new outfit

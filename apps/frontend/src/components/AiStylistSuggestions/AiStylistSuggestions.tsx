@@ -29,6 +29,7 @@ import {useAiSuggestionVoiceCommands} from '../../utils/VoiceUtils/VoiceContext'
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {findNodeHandle, UIManager} from 'react-native';
 import {DynamicIsland} from '../../native/dynamicIsland';
+import {getAccessToken} from '../../utils/auth';
 
 type Props = {
   weather: any;
@@ -91,7 +92,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
   const scrollRef = useRef<ScrollView>(null);
 
-  const fetchSuggestion = async (trigger: string = 'manual') => {
+  const fetchSuggestion = async (_trigger: string = 'manual') => {
     if (!weather?.fahrenheit?.main?.temp) {
       return;
     }
@@ -100,11 +101,25 @@ const AiStylistSuggestions: React.FC<Props> = ({
       setLoading(true);
       setError(null);
 
+      // Get auth token for authenticated API call
+      let accessToken: string | null = null;
+      try {
+        accessToken = await getAccessToken();
+      } catch {
+        // If no token, user is not authenticated
+        setError('Please log in to get AI suggestions.');
+        setLoading(false);
+        return;
+      }
+
       const payload = {user: userName, weather, wardrobe, preferences};
 
       const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(payload),
       });
 

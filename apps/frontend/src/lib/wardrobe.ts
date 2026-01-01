@@ -1,10 +1,17 @@
 import {WardrobeItem} from '../types/wardrobe';
 import {mapApiWardrobeItem} from './mappers';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export async function listWardrobe(userId: string): Promise<WardrobeItem[]> {
+  const accessToken = await getAccessToken();
   const r = await fetch(
     `${API_BASE_URL}/wardrobe?user_id=${encodeURIComponent(userId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
   );
   if (!r.ok) throw new Error(await r.text());
   const data = await r.json();
@@ -12,9 +19,13 @@ export async function listWardrobe(userId: string): Promise<WardrobeItem[]> {
 }
 
 export async function createWardrobeItem(payload: any): Promise<WardrobeItem> {
+  const accessToken = await getAccessToken();
   const r = await fetch(`${API_BASE_URL}/wardrobe`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error(await r.text());
@@ -27,9 +38,13 @@ export async function searchText(
   q: string,
   topK = 20,
 ): Promise<any[]> {
+  const accessToken = await getAccessToken();
   const r = await fetch(`${API_BASE_URL}/wardrobe/search-text`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify({user_id: userId, q, topK}),
   });
   if (!r.ok) throw new Error(await r.text());
@@ -40,9 +55,13 @@ export async function updateWardrobeItem(
   itemId: string,
   patch: any,
 ): Promise<WardrobeItem> {
+  const accessToken = await getAccessToken();
   const r = await fetch(`${API_BASE_URL}/wardrobe/${itemId}`, {
     method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(patch),
   });
   if (!r.ok) throw new Error(await r.text());

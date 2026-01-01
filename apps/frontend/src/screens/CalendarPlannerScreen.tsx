@@ -24,6 +24,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {moderateScale} from '../utils/scale';
@@ -509,9 +510,13 @@ export default function OutfitPlannerScreen() {
 
             // Delete from backend
             try {
+              const accessToken = await getAccessToken();
               const res = await fetch(`${API_BASE_URL}/scheduled-outfits`, {
                 method: 'DELETE',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${accessToken}`,
+                },
                 body: JSON.stringify({user_id: userId, outfit_id: outfitId}),
               });
               const data = await res.json();

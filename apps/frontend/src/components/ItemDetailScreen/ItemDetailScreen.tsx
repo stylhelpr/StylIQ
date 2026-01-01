@@ -15,6 +15,7 @@ import {
 import {useAppTheme} from '../../context/ThemeContext';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {API_BASE_URL} from '../../config/api';
+import {getAccessToken} from '../../utils/auth';
 import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
@@ -235,9 +236,13 @@ export default function ItemDetailScreen({route, navigation}: Props) {
           .filter(Boolean),
       };
 
+      const accessToken = await getAccessToken();
       const res = await fetch(`${API_BASE_URL}/wardrobe/${item.id}`, {
         method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -294,9 +299,13 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       if (!item?.id || !item?.user_id || !item?.image_url) {
         throw new Error('Missing item info');
       }
+      const accessToken = await getAccessToken();
       const res = await fetch(`${API_BASE_URL}/wardrobe`, {
         method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           item_id: item.id,
           user_id: item.user_id,

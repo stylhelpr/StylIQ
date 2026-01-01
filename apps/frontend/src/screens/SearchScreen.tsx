@@ -17,6 +17,7 @@ import type {WardrobeItem} from '../types/wardrobe';
 import {useUUID} from '../context/UUIDContext';
 import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {useVoiceControl} from '../hooks/useVoiceControl';
@@ -176,7 +177,10 @@ export default function SearchScreen({navigate, goBack}) {
     queryKey: ['wardrobe', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
+      const accessToken = await getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`, {
+        headers: {Authorization: `Bearer ${accessToken}`},
+      });
       if (!res.ok) throw new Error('Failed to fetch wardrobe items');
       return res.json();
     },
@@ -187,8 +191,12 @@ export default function SearchScreen({navigate, goBack}) {
     queryKey: ['savedOutfits', userId],
     enabled: !!userId,
     queryFn: async () => {
+      const accessToken = await getAccessToken();
       const res = await fetch(
         `${API_BASE_URL}/custom-outfits?user_id=${userId}`,
+        {
+          headers: {Authorization: `Bearer ${accessToken}`},
+        },
       );
       if (!res.ok) throw new Error('Failed to fetch saved outfits');
       return res.json();

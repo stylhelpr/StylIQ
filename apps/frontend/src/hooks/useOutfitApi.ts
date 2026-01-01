@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export type OutfitApiItem = {
   index: number;
@@ -209,11 +210,13 @@ export function useOutfitApi(userId?: string) {
           };
         }
 
+        const accessToken = await getAccessToken();
         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(body),
           signal: ac.signal,

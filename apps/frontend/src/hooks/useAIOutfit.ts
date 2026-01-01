@@ -1,5 +1,6 @@
 import {useState, useCallback} from 'react';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export type UiWardrobeItem = {
   id: string;
@@ -100,11 +101,13 @@ export function useAIOutfit(userId?: string) {
         const mappedStyle = mapStyleProfileToUserStyle(opts?.styleProfile);
         if (mappedStyle) body.style_profile = mappedStyle;
 
+        const accessToken = await getAccessToken();
         const res = await fetch(`${API_BASE_URL}/wardrobe/outfits`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify(body),
         });

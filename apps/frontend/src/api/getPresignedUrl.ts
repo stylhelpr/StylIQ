@@ -1,6 +1,7 @@
 // apps/frontend/api/getPresignedUrl.ts
 import axios from 'axios';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export const getPresignedUrl = async (
   userId: string,
@@ -11,11 +12,15 @@ export const getPresignedUrl = async (
     throw new Error(`❌ Invalid or missing UUID: ${userId}`);
   }
 
+  const accessToken = await getAccessToken();
   const response = await axios.get(`${API_BASE_URL}/upload/presign`, {
     params: {
       userId,
       filename,
       contentType, // 👈 send to backend
+    },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 

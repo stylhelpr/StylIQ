@@ -1,4 +1,5 @@
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 export async function analyzeImage(body: {
   user_id: string;
@@ -7,9 +8,13 @@ export async function analyzeImage(body: {
   dressCode?: string;
   season?: 'Spring' | 'Summer' | 'Fall' | 'Winter' | 'AllSeason';
 }) {
+  const accessToken = await getAccessToken();
   const res = await fetch(`${API_BASE_URL}/wardrobe/analyze`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok)
@@ -24,9 +29,13 @@ export async function autoCreateWithAI(payload: {
   name?: string;
   object_key?: string;
 }) {
+  const accessToken = await getAccessToken();
   const res = await fetch(`${API_BASE_URL}/wardrobe/auto-create`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!res.ok)

@@ -593,7 +593,10 @@ export default function AiStylistChatScreen({navigate}: Props) {
           query.includes('pieces') ||
           query.includes('how many')
         ) {
-          const res = await fetch(`${API_BASE_URL}/wardrobe/${userId}`);
+          const accessToken = await getAccessToken();
+          const res = await fetch(`${API_BASE_URL}/wardrobe/${userId}`, {
+            headers: {Authorization: `Bearer ${accessToken}`},
+          });
           if (res.ok) {
             const items = await res.json();
             if (items && items.length > 0) {
@@ -619,7 +622,10 @@ export default function AiStylistChatScreen({navigate}: Props) {
           query.includes('favourites') ||
           query.includes('liked')
         ) {
-          const res = await fetch(`${API_BASE_URL}/wardrobe/${userId}`);
+          const accessToken = await getAccessToken();
+          const res = await fetch(`${API_BASE_URL}/wardrobe/${userId}`, {
+            headers: {Authorization: `Bearer ${accessToken}`},
+          });
           if (res.ok) {
             const items = await res.json();
             const favorites = items.filter((item: any) => item.favorite);
@@ -639,7 +645,10 @@ export default function AiStylistChatScreen({navigate}: Props) {
         }
         // Brands query
         else if (query.includes('brand')) {
-          const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`);
+          const accessToken = await getAccessToken();
+          const res = await fetch(`${API_BASE_URL}/wardrobe/brands/${userId}`, {
+            headers: {Authorization: `Bearer ${accessToken}`},
+          });
           if (res.ok) {
             const brands = await res.json();
             if (brands && brands.length > 0) {
@@ -655,8 +664,12 @@ export default function AiStylistChatScreen({navigate}: Props) {
         }
         // Saved looks query
         else if (query.includes('saved') || query.includes('look')) {
+          const accessToken = await getAccessToken();
           const res = await fetch(
             `${API_BASE_URL}/saved-looks?user_id=${userId}`,
+            {
+              headers: {Authorization: `Bearer ${accessToken}`},
+            },
           );
           if (res.ok) {
             const looks = await res.json();
@@ -676,7 +689,10 @@ export default function AiStylistChatScreen({navigate}: Props) {
           query.includes('style') ||
           query.includes('preference')
         ) {
-          const res = await fetch(`${API_BASE_URL}/users/${userId}`);
+          const accessToken = await getAccessToken();
+          const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            headers: {Authorization: `Bearer ${accessToken}`},
+          });
           if (res.ok) {
             const profile = await res.json();
             const parts = [];

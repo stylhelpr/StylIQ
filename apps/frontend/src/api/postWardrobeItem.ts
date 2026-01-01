@@ -1,5 +1,6 @@
 // postWardrobeItem.ts
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 
 const patternScaleNumToText = (v?: number) =>
   v === undefined || v === null
@@ -256,9 +257,13 @@ export async function postWardrobeItem(args: CreateArgs) {
   // remove undefineds
   Object.keys(dto).forEach(k => dto[k] === undefined && delete dto[k]);
 
+  const accessToken = await getAccessToken();
   const res = await fetch(`${API_BASE_URL}/wardrobe`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(dto),
   });
 

@@ -35,6 +35,7 @@ import {
   pickFirstByCategory,
 } from '../hooks/useOutfitApi';
 import {API_BASE_URL} from '../config/api';
+import {getAccessToken} from '../utils/auth';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
@@ -1124,11 +1125,15 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               onSave={async (name, date) => {
                 if (pendingSaveOutfit && userId) {
                   try {
+                    const accessToken = await getAccessToken();
                     const response = await fetch(
                       `${API_BASE_URL}/custom-outfits`,
                       {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${accessToken}`,
+                        },
                         body: JSON.stringify({
                           user_id: userId,
                           name,
