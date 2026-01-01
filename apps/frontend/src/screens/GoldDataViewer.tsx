@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Share,
 } from 'react-native';
@@ -15,6 +14,7 @@ import {useShoppingStore} from '../../../../store/shoppingStore';
 import {shoppingAnalytics} from '../../../../store/shoppingAnalytics';
 import {tokens} from '../styles/tokens/tokens';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 
 type Props = {navigate: (screen: string) => void};
 
@@ -253,11 +253,14 @@ export default function GoldDataViewer({navigate}: Props) {
         {(() => {
           const brandCounts = store.bookmarks
             .filter(b => b.brand)
-            .reduce((acc, b) => {
-              const brand = b.brand!;
-              acc[brand] = (acc[brand] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
+            .reduce(
+              (acc, b) => {
+                const brand = b.brand!;
+                acc[brand] = (acc[brand] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            );
           const topBrands = Object.entries(brandCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
@@ -278,10 +281,13 @@ export default function GoldDataViewer({navigate}: Props) {
         <Text style={styles.cardTitle}>📏 Size Preferences</Text>
         {(() => {
           const allSizes = store.bookmarks.flatMap(b => b.sizesViewed || []);
-          const sizeCounts = allSizes.reduce((acc, size) => {
-            acc[size] = (acc[size] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          const sizeCounts = allSizes.reduce(
+            (acc, size) => {
+              acc[size] = (acc[size] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          );
           const topSizes = Object.entries(sizeCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);
@@ -312,10 +318,13 @@ export default function GoldDataViewer({navigate}: Props) {
         <Text style={styles.cardTitle}>🎨 Color Preferences</Text>
         {(() => {
           const allColors = store.bookmarks.flatMap(b => b.colorsViewed || []);
-          const colorCounts = allColors.reduce((acc, color) => {
-            acc[color] = (acc[color] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          const colorCounts = allColors.reduce(
+            (acc, color) => {
+              acc[color] = (acc[color] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          );
           const topColors = Object.entries(colorCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5);

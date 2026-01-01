@@ -879,7 +879,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
 
     // Security: Only inject tracking scripts on HTTPS pages
     if (!currentUrl.startsWith('https://')) {
-      console.log('[SECURITY] Skipping tracking script injection on non-HTTPS page');
+      console.log(
+        '[SECURITY] Skipping tracking script injection on non-HTTPS page',
+      );
       return;
     }
 
@@ -1734,7 +1736,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     urlBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      backgroundColor: theme.colors.surface,
       borderRadius: 25,
       borderWidth: tokens.borderWidth.md,
       borderColor: theme.colors.foreground,
@@ -2636,7 +2638,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 // Allow the request but track it
               }
               // Delegate to standard security handler
-              return createOnShouldStartLoadWithRequest({allowHttp: true})(request);
+              return createOnShouldStartLoadWithRequest({allowHttp: true})(
+                request,
+              );
             }}
             onContentProcessDidTerminate={createCrashRecoveryHandler(webRef)}
             // === iOS KEYCHAIN AUTOFILL: Conditional cookie sharing ===
@@ -2644,7 +2648,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             // This maintains privacy isolation for regular browsing while enabling
             // reliable Keychain password autofill on login pages.
             // See keychainCookiePolicy.ts for domain classification logic.
-            sharedCookiesEnabled={shouldShareCookiesForUrl(currentTab?.url || '')}
+            sharedCookiesEnabled={shouldShareCookiesForUrl(
+              currentTab?.url || '',
+            )}
             // === END SECURITY ===
             contentInset={{
               bottom: insets.bottom + 90,
@@ -2900,7 +2906,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   padding: moderateScale(tokens.spacing.xxs),
                   marginLeft: moderateScale(tokens.spacing.xsm),
                 }}>
-                <Icon name="home" size={26} color={theme.colors.foreground} />
+                <Icon name="home" size={26} color={theme.colors.buttonText1} />
               </AppleTouchFeedback>
               <TouchableOpacity
                 style={styles.bottomNavItem}
@@ -2922,7 +2928,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={
                     currentTab && getTabCanGoBack(currentTab.id)
                       ? theme.colors.buttonText1
-                      : theme.colors.foreground3
+                      : theme.colors.buttonText1
                   }
                 />
               </TouchableOpacity>
@@ -2946,7 +2952,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={
                     currentTab && getTabCanGoForward(currentTab.id)
                       ? theme.colors.buttonText1
-                      : theme.colors.foreground3
+                      : theme.colors.buttonText1
                   }
                 />
               </TouchableOpacity>
@@ -2975,8 +2981,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={openTabsView}>
-                <View style={styles.tabsButtonNav}>
-                  <Text style={styles.tabsCountNav}>
+                <View
+                  style={[
+                    styles.tabsButtonNav,
+                    {borderColor: theme.colors.buttonText1},
+                  ]}>
+                  <Text
+                    style={
+                      (styles.tabsCountNav, {color: theme.colors.buttonText1})
+                    }>
                     {tabs.filter(t => t.url).length || 1}
                   </Text>
                 </View>
@@ -2993,6 +3006,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             </LiquidGlassView>
           ) : (
             <View style={styles.bottomNavPillFallback}>
+              <AppleTouchFeedback
+                onPress={() => navigate('Home')}
+                hapticStyle="impactLight"
+                style={{
+                  padding: moderateScale(tokens.spacing.xxs),
+                  marginLeft: moderateScale(tokens.spacing.xsm),
+                }}>
+                <Icon name="home" size={26} color={theme.colors.buttonText1} />
+              </AppleTouchFeedback>
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={() => {
@@ -3013,7 +3035,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={
                     currentTab && getTabCanGoBack(currentTab.id)
                       ? theme.colors.buttonText1
-                      : theme.colors.foreground3
+                      : theme.colors.buttonText1
                   }
                 />
               </TouchableOpacity>
@@ -3037,7 +3059,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                   color={
                     currentTab && getTabCanGoForward(currentTab.id)
                       ? theme.colors.buttonText1
-                      : theme.colors.foreground3
+                      : theme.colors.buttonText1
                   }
                 />
               </TouchableOpacity>
@@ -3066,8 +3088,16 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={openTabsView}>
-                <View style={styles.tabsButtonNav}>
-                  <Text style={styles.tabsCountNav}>
+                <View
+                  style={[
+                    styles.tabsButtonNav,
+                    {borderColor: theme.colors.buttonText1},
+                  ]}>
+                  <Text
+                    style={[
+                      styles.tabsCountNav,
+                      {color: theme.colors.buttonText1},
+                    ]}>
                     {tabs.filter(t => t.url).length || 1}
                   </Text>
                 </View>

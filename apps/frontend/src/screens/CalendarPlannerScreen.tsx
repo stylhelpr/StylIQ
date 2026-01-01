@@ -396,15 +396,11 @@ export default function OutfitPlannerScreen() {
   const translateAnim = useRef(new Animated.Value(30)).current;
 
   // ───────── TanStack Query hooks ─────────
-  const {
-    data: calendarEvents = [],
-    refetch: refetchCalendarEvents,
-  } = useCalendarEvents(userId);
+  const {data: calendarEvents = [], refetch: refetchCalendarEvents} =
+    useCalendarEvents(userId);
 
-  const {
-    data: scheduledOutfits = [],
-    refetch: refetchScheduledOutfits,
-  } = useScheduledOutfits(userId, API_BASE_URL);
+  const {data: scheduledOutfits = [], refetch: refetchScheduledOutfits} =
+    useScheduledOutfits(userId, API_BASE_URL);
 
   const createEventMutation = useCreateCalendarEvent();
   const deleteEventMutation = useDeleteCalendarEvent();
@@ -587,12 +583,15 @@ export default function OutfitPlannerScreen() {
             // Delete from backend using apiClient
             try {
               const accessToken = await getAccessToken();
-              await fetch(`${API_BASE_URL}/calendar/event/${userId}/${eventId}`, {
-                method: 'DELETE',
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
+              await fetch(
+                `${API_BASE_URL}/calendar/event/${userId}/${eventId}`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                  },
                 },
-              });
+              );
               // Clean up AsyncStorage
               await AsyncStorage.removeItem(key);
             } catch (err) {
@@ -667,7 +666,7 @@ export default function OutfitPlannerScreen() {
     const date = getLocalDateKey(outfit.plannedDate);
     if (!allMarks[date]) allMarks[date] = {dots: []};
     allMarks[date].dots.push({
-      color: outfit.type === 'ai' ? '#405de6' : '#00c6ae',
+      color: outfit.type === 'ai' ? '#405de6' : '#00ff73ff',
     });
   }
   // console.log(
@@ -683,7 +682,7 @@ export default function OutfitPlannerScreen() {
     const date = getLocalDateKey(ev.start_date);
     // console.log(`📅 Event "${ev.title}" -> date key: "${date}"`);
     if (!allMarks[date]) allMarks[date] = {dots: []};
-    allMarks[date].dots.push({color: '#FFD700'});
+    allMarks[date].dots.push({color: '#ffdd00ff'});
   }
   // console.log('📅 All marks:', Object.keys(allMarks));
 
@@ -814,12 +813,15 @@ export default function OutfitPlannerScreen() {
     btnText: {color: theme.colors.foreground, fontWeight: '600', fontSize: 15},
   });
 
-  const outfitsByDate = scheduledOutfits.reduce((acc, outfit) => {
-    const date = getLocalDateKey(outfit.plannedDate);
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(outfit);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const outfitsByDate = scheduledOutfits.reduce(
+    (acc, outfit) => {
+      const date = getLocalDateKey(outfit.plannedDate);
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(outfit);
+      return acc;
+    },
+    {} as Record<string, any[]>,
+  );
 
   const handleDayPress = (day: DateData) => {
     setSelectedDate(day.dateString);
@@ -874,7 +876,7 @@ export default function OutfitPlannerScreen() {
           notes: newEventNotes.trim() || undefined,
         },
         {
-          onSuccess: async (data) => {
+          onSuccess: async data => {
             if (data.ok && data.event) {
               // Also save to iOS native calendar
               const iosEventId = await saveEventToIOSCalendar({
@@ -968,7 +970,9 @@ export default function OutfitPlannerScreen() {
                       );
                       if (iosEventId) {
                         await deleteEventFromIOSCalendar(iosEventId);
-                        await AsyncStorage.removeItem(`eventCalendar:${eventId}`);
+                        await AsyncStorage.removeItem(
+                          `eventCalendar:${eventId}`,
+                        );
                       }
                     } else {
                       await deleteEventFromIOSCalendar(eventId);
@@ -1042,7 +1046,7 @@ export default function OutfitPlannerScreen() {
         }}>
         <View
           style={{
-            height: insets.top + 10, // ✅ matches GlobalHeader spacing
+            height: Math.max(insets.top + 10, 54), // ✅ min 54px for non-notched devices
             backgroundColor: theme.colors.background,
           }}
         />
@@ -1130,8 +1134,8 @@ export default function OutfitPlannerScreen() {
                 textSectionTitleColor: theme.colors.foreground2,
                 dayTextColor: theme.colors.foreground,
                 todayTextColor: theme.colors.primary,
-                selectedDayBackgroundColor: theme.colors.primary,
-                selectedDayTextColor: '#fff',
+                selectedDayBackgroundColor: theme.colors.foreground,
+                selectedDayTextColor: theme.colors.background,
                 arrowColor: theme.colors.primary,
                 monthTextColor: theme.colors.primary,
                 textMonthFontWeight: tokens.fontWeight.bold,
@@ -1666,7 +1670,7 @@ export default function OutfitPlannerScreen() {
                   style={{
                     fontSize: 32,
                     fontWeight: '800',
-                    color: '#fff',
+                    color: theme.colors.foreground,
                     letterSpacing: -0.5,
                   }}>
                   7-Day Outlook
@@ -1674,7 +1678,7 @@ export default function OutfitPlannerScreen() {
                 <Text
                   style={{
                     fontSize: 15,
-                    color: 'rgba(255,255,255,0.75)',
+                    color: theme.colors.foreground,
                     marginTop: 6,
                     lineHeight: 20,
                     fontWeight: '600',
@@ -1918,7 +1922,7 @@ export default function OutfitPlannerScreen() {
                               <MaterialIcons
                                 name="chevron-right"
                                 size={22}
-                                color="rgba(255, 215, 0, 0.6)"
+                                color="rgba(255, 217, 0, 1)"
                               />
                             </LinearGradient>
                           </TouchableOpacity>

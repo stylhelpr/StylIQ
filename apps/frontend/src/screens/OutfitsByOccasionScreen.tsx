@@ -11,6 +11,8 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {apiClient} from '../lib/apiClient';
@@ -85,11 +87,18 @@ export default function OutfitsByOccasionScreen({navigate}: Props) {
     title: {
       fontSize: 28,
       fontWeight: '700',
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     closeButton: {
-      padding: 8,
+      position: 'absolute',
+      top: -15,
+      right: 0,
+      zIndex: 20,
+      backgroundColor: 'white',
       borderRadius: 20,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
+      padding: 6,
     },
     scrollContent: {
       paddingBottom: 100,
@@ -132,9 +141,10 @@ export default function OutfitsByOccasionScreen({navigate}: Props) {
     },
     outfitName: {
       fontSize: 15,
-      color: '#fff',
+      color: theme.colors.foreground,
       flex: 1,
       marginRight: 12,
+      fontWeight: '500',
     },
     outfitType: {
       fontSize: 12,
@@ -236,7 +246,7 @@ export default function OutfitsByOccasionScreen({navigate}: Props) {
             {config.label}
           </Text>
           <View
-            style={[styles.countBadge, {backgroundColor: `${config.color}30`}]}>
+            style={[styles.countBadge, {backgroundColor: `${config.color}40`}]}>
             <Text style={[styles.countText, {color: config.color}]}>
               {items.length}
             </Text>
@@ -266,9 +276,10 @@ export default function OutfitsByOccasionScreen({navigate}: Props) {
   };
 
   // Get visible sections for proper indexing
-  const visibleSections = [...Object.keys(OCCASION_CONFIG), 'Uncategorized'].filter(
-    key => groupedOutfits[key]?.length > 0,
-  );
+  const visibleSections = [
+    ...Object.keys(OCCASION_CONFIG),
+    'Uncategorized',
+  ].filter(key => groupedOutfits[key]?.length > 0);
 
   return (
     <Animatable.View
@@ -293,45 +304,47 @@ export default function OutfitsByOccasionScreen({navigate}: Props) {
             style={[styles.title, {color: theme.colors.foreground}]}>
             Outfits by Occasion
           </Animatable.Text>
-          <Animatable.View animation="fadeIn" delay={200} duration={400} useNativeDriver>
+          <Animatable.View
+            animation="fadeIn"
+            delay={200}
+            duration={400}
+            useNativeDriver>
             <TouchableOpacity
               onPress={handleClose}
               style={[
                 styles.closeButton,
                 {backgroundColor: theme.colors.buttonText1},
               ]}>
-              <MaterialIcons
-                name="close"
-                size={24}
-                color={theme.colors.background}
-              />
+              <MaterialIcons name="close" size={24} color={'black'} />
             </TouchableOpacity>
           </Animatable.View>
         </Animatable.View>
 
-      {loading ? (
-        <Animatable.View animation="fadeIn" duration={300} useNativeDriver>
-          <ActivityIndicator
-            color={theme.colors.primary}
-            style={{marginTop: 40}}
-          />
-        </Animatable.View>
-      ) : outfits.length === 0 ? (
-        <Animatable.Text
-          animation="fadeIn"
-          delay={300}
-          duration={500}
-          useNativeDriver
-          style={[styles.empty, {color: theme.colors.foreground3}]}>
-          No outfits saved yet
-        </Animatable.Text>
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
-          {visibleSections.map((key, index) => renderOccasionSection(key, index))}
-        </ScrollView>
-      )}
+        {loading ? (
+          <Animatable.View animation="fadeIn" duration={300} useNativeDriver>
+            <ActivityIndicator
+              color={theme.colors.primary}
+              style={{marginTop: 40}}
+            />
+          </Animatable.View>
+        ) : outfits.length === 0 ? (
+          <Animatable.Text
+            animation="fadeIn"
+            delay={300}
+            duration={500}
+            useNativeDriver
+            style={[styles.empty, {color: theme.colors.foreground3}]}>
+            No outfits saved yet
+          </Animatable.Text>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}>
+            {visibleSections.map((key, index) =>
+              renderOccasionSection(key, index),
+            )}
+          </ScrollView>
+        )}
       </SafeAreaView>
     </Animatable.View>
   );

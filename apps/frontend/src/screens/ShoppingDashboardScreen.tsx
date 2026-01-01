@@ -53,7 +53,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
       'https://styliq.com/shopping/dashboard',
       'Shopping Dashboard',
       0,
-      0
+      0,
     );
   }, []);
 
@@ -205,7 +205,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
     quickActionLabel: {
       fontSize: 12,
       fontWeight: tokens.fontWeight.semiBold,
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       textAlign: 'center',
     },
     trendingCard: {
@@ -479,7 +479,9 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                 styles.statCard,
                 // {backgroundColor: 'rgba(0, 21, 255, 1)'},
               ]}>
-              <Text style={styles.statNumber}>{tabs.filter(t => t.url).length}</Text>
+              <Text style={styles.statNumber}>
+                {tabs.filter(t => t.url).length}
+              </Text>
               <Text style={styles.statLabel}>Open Tabs</Text>
             </Animatable.View>
           </View>
@@ -498,7 +500,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
               <MaterialIcons
                 name="bookmark"
                 size={28}
-                color={theme.colors.primary}
+                color={theme.colors.buttonText1}
                 style={styles.quickActionIcon}
               />
               <Text style={styles.quickActionLabel}>Bookmarks</Text>
@@ -511,7 +513,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
               <MaterialIcons
                 name="collections"
                 size={28}
-                color={theme.colors.primary}
+                color={theme.colors.buttonText1}
                 style={styles.quickActionIcon}
               />
               <Text style={styles.quickActionLabel}>Collections</Text>
@@ -524,7 +526,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
               <MaterialIcons
                 name="trending-up"
                 size={28}
-                color={theme.colors.primary}
+                color={theme.colors.buttonText1}
                 style={styles.quickActionIcon}
               />
               <Text style={styles.quickActionLabel}>Insights</Text>
@@ -549,8 +551,8 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                       budgetStatus.spent > budgetStatus.budget
                         ? '#ef4444'
                         : budgetStatus.spent > budgetStatus.budget * 0.8
-                        ? '#f59e0b'
-                        : '#10b981',
+                          ? '#f59e0b'
+                          : '#10b981',
                   },
                 ]}
               />

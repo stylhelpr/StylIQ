@@ -1127,7 +1127,7 @@ export default function SavedOutfitsScreen() {
       {/* 🧭 Spacer to restore old navbar height */}
       <View
         style={{
-          height: insets.top - 10, // ✅ matches GlobalHeader spacing
+          height: Math.max(insets.top - 10, 44), // ✅ min 44px for non-notched devices
           backgroundColor: theme.colors.background,
         }}
       />

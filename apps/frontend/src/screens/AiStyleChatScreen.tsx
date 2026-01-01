@@ -38,7 +38,10 @@ import {Linking} from 'react-native';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import Tts from 'react-native-tts';
 import {WebView} from 'react-native-webview';
-import {TTS_WEBVIEW_DEFAULTS, createTtsUrlHandler} from '../config/webViewDefaults';
+import {
+  TTS_WEBVIEW_DEFAULTS,
+  createTtsUrlHandler,
+} from '../config/webViewDefaults';
 import {ENABLE_REMOTE_TTS, API_BASE_URL} from '../config/api';
 import {globalTtsRef} from '../MainApp';
 import {isTtsEnabled} from '../utils/ttsToggle';
@@ -1355,8 +1358,10 @@ export default function AiStylistChatScreen({navigate}: Props) {
               />
             </View>
 
-            {/* 🧱 Bottom spacer for safe-area */}
-            <View style={{height: insets.bottom}} />
+            {/* 🧱 Bottom spacer for safe-area + bottom nav */}
+            <View
+              style={{height: insets.bottom + (insets.bottom === 0 ? 70 : 0)}}
+            />
           </KeyboardAvoidingView>
 
           {webUrl && (
@@ -1492,7 +1497,7 @@ export function AnimatedInputBar({
       delay={200}
       style={{
         paddingHorizontal: isTablet ? 18 : 10,
-        paddingBottom: (isTablet ? 24 : 16) + insets.bottom - 20,
+        paddingBottom: Math.max((isTablet ? 24 : 16) + insets.bottom - 30, 8),
         backgroundColor: 'transparent',
       }}>
       <View
@@ -1515,7 +1520,7 @@ export function AnimatedInputBar({
           ref={inputRef}
           value={input}
           onChangeText={setInput}
-          placeholder="Ask for a look… event, vibe, weather"
+          placeholder="Ask for a look… event, vibe, etc..."
           placeholderTextColor={'#9c9c9cff'}
           multiline
           scrollEnabled={false}

@@ -534,12 +534,12 @@ export default function NotesScreen({navigate}: Props) {
       width: 40,
       height: 40,
       borderRadius: 12,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: theme.colors.surface3,
       justifyContent: 'center',
       alignItems: 'center',
     },
     sortToggleActive: {
-      backgroundColor: theme.colors.primary + '20',
+      backgroundColor: theme.colors.button1 + '20',
     },
     searchContainer: {
       marginBottom: 20,
@@ -580,12 +580,12 @@ export default function NotesScreen({navigate}: Props) {
     },
     statNumber: {
       fontSize: 28,
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       fontWeight: '700',
     },
     statLabel: {
       fontSize: 13,
-      color: theme.colors.foreground,
+      color: theme.colors.buttonText1,
       marginTop: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -1382,7 +1382,7 @@ export default function NotesScreen({navigate}: Props) {
                 size={20}
                 color={
                   sortMode === 'color'
-                    ? theme.colors.primary
+                    ? theme.colors.buttonText1
                     : colors.foreground
                 }
               />

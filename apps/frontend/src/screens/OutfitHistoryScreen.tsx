@@ -14,6 +14,8 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {useGlobalStyles} from '../styles/useGlobalStyles';
+import {tokens} from '../styles/tokens/tokens';
 import {useAppTheme} from '../context/ThemeContext';
 import {apiClient} from '../lib/apiClient';
 import {Screen} from '../navigation/types';
@@ -58,6 +60,97 @@ export default function OutfitHistoryScreen({navigate}: Props) {
     }
     navigate('SavedOutfits');
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: 16,
+      marginTop: 45,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 16,
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+    },
+    closeButton: {
+      position: 'absolute',
+      top: -15,
+      right: 0,
+      zIndex: 20,
+      backgroundColor: 'white',
+      borderRadius: 20,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
+      padding: 6,
+    },
+    list: {
+      paddingBottom: 100,
+    },
+    section: {
+      marginBottom: 8,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255,255,255,0.2)',
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+      flex: 1,
+      marginLeft: 8,
+    },
+    countBadge: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    countText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+    },
+    sectionContent: {
+      overflow: 'hidden',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingLeft: 12,
+      borderLeftWidth: 2,
+      borderLeftColor: 'rgba(255,255,255,0.1)',
+      marginLeft: 4,
+    },
+    date: {
+      fontSize: 14,
+      color: '#888',
+      width: 70,
+    },
+    name: {
+      fontSize: 15,
+      color: theme.colors.foreground,
+      flex: 1,
+    },
+    empty: {
+      color: '#666',
+      fontSize: 16,
+      textAlign: 'center',
+      marginTop: 40,
+    },
+  });
 
   useEffect(() => {
     apiClient
@@ -204,8 +297,13 @@ export default function OutfitHistoryScreen({navigate}: Props) {
             delay={200}
             duration={400}
             useNativeDriver>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <MaterialIcons name="close" size={24} color="black" />
+            <TouchableOpacity
+              onPress={handleClose}
+              style={[
+                styles.closeButton,
+                {backgroundColor: theme.colors.buttonText1},
+              ]}>
+              <MaterialIcons name="close" size={24} color={'black'} />
             </TouchableOpacity>
           </Animatable.View>
         </Animatable.View>
@@ -233,91 +331,6 @@ export default function OutfitHistoryScreen({navigate}: Props) {
     </Animatable.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    marginTop: 45,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'white',
-  },
-  list: {
-    paddingBottom: 100,
-  },
-  section: {
-    marginBottom: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-    marginLeft: 8,
-  },
-  countBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#aaa',
-  },
-  sectionContent: {
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingLeft: 12,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(255,255,255,0.1)',
-    marginLeft: 4,
-  },
-  date: {
-    fontSize: 14,
-    color: '#888',
-    width: 70,
-  },
-  name: {
-    fontSize: 15,
-    color: '#fff',
-    flex: 1,
-  },
-  empty: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 40,
-  },
-});
 
 ///////////////
 
