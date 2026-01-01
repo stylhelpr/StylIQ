@@ -131,6 +131,8 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     const result = await launchImageLibrary({
       mediaType: 'photo',
       quality: 0.8,
+      maxWidth: 2048,
+      maxHeight: 2048,
       selectionLimit: 1,
     });
     if (result.assets?.[0]?.uri) {
@@ -143,6 +145,8 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     const result = await launchCamera({
       mediaType: 'photo',
       quality: 0.8,
+      maxWidth: 2048,
+      maxHeight: 2048,
     });
     if (result.assets?.[0]?.uri) {
       setLocalImageUri(result.assets[0].uri);
@@ -244,7 +248,10 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     if (url) {
       let normalizedUrl = url.trim();
       // Add https:// if no protocol specified
-      if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      if (
+        !normalizedUrl.startsWith('http://') &&
+        !normalizedUrl.startsWith('https://')
+      ) {
         normalizedUrl = `https://${normalizedUrl}`;
       }
       navigate('WebBrowser', {url: normalizedUrl});
@@ -347,12 +354,14 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       fontWeight: '500',
     },
     deleteBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
       backgroundColor: theme.colors.surface,
+      flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 9,
+      borderRadius: 20,
+      overflow: 'hidden',
     },
     saveBtn: {
       paddingHorizontal: 20,
@@ -584,6 +593,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
                     size={22}
                     color="#FF3B30"
                   />
+                  <Text style={{color: '#FF3B30'}}>Delete</Text>
                 </Pressable>
               </Animated.View>
               <Animated.View style={{transform: [{scale: saveBtnScaleAnim}]}}>

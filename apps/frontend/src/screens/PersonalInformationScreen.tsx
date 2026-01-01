@@ -212,7 +212,9 @@ export default function PersonalInformationScreen({navigate}: any) {
 
       const result = await ImagePicker.launchImageLibrary({
         mediaType: 'photo',
-        quality: 1,
+        quality: 0.8,
+        maxWidth: 1024,
+        maxHeight: 1024,
         selectionLimit: 1,
       });
 

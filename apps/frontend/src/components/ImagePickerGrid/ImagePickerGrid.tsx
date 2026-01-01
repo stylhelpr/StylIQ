@@ -105,7 +105,12 @@ export default function ImagePickerGrid({
 
   const takePhoto = async () => {
     if (!(await requestAndroidPermissions())) return;
-    const result = await launchCamera({mediaType: 'photo', quality: 1});
+    const result = await launchCamera({
+      mediaType: 'photo',
+      quality: 0.8,
+      maxWidth: 2048,
+      maxHeight: 2048,
+    });
     if (result.assets?.length) {
       const {accepted, rejected} = splitBySize(result.assets);
       if (rejected.length) {
@@ -129,7 +134,9 @@ export default function ImagePickerGrid({
   const pickFromGallery = async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      quality: 1,
+      quality: 0.8,
+      maxWidth: 2048,
+      maxHeight: 2048,
       selectionLimit: 0,
     });
     if (result.assets?.length) {

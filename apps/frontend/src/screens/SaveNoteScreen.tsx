@@ -134,6 +134,8 @@ export default function SaveNoteScreen({navigate, params}: Props) {
     const result = await launchImageLibrary({
       mediaType: 'photo',
       quality: 0.8,
+      maxWidth: 2048,
+      maxHeight: 2048,
       selectionLimit: 1,
     });
     if (result.assets?.[0]?.uri) {
@@ -146,6 +148,8 @@ export default function SaveNoteScreen({navigate, params}: Props) {
     const result = await launchCamera({
       mediaType: 'photo',
       quality: 0.8,
+      maxWidth: 2048,
+      maxHeight: 2048,
     });
     if (result.assets?.[0]?.uri) {
       setImageUri(result.assets[0].uri);

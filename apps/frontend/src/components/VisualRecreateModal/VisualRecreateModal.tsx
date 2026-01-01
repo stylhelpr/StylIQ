@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {
   Modal,
   View,
@@ -322,6 +322,16 @@ export default function VisualRecreateModal({
   // TanStack Query mutation for saving recreated looks
   const saveRecreatedLookMutation = useSaveRecreatedLook();
 
+  // Reset state when modal opens with new data
+  useEffect(() => {
+    if (visible) {
+      setNewName(lookName || '');
+      setSaved(false);
+      setSaving(false);
+      setIsRenaming(false);
+    }
+  }, [visible, lookName]);
+
   const handleShopPress = useCallback((url: string) => {
     setShopUrl(url);
   }, []);
@@ -409,15 +419,23 @@ export default function VisualRecreateModal({
         },
         onError: (err: any) => {
           console.error('Failed to save recreated look:', err);
-          Alert.alert('Save Failed', 'Could not save this look. Please try again.');
+          Alert.alert(
+            'Save Failed',
+            'Could not save this look. Please try again.',
+          );
           ReactNativeHapticFeedback.trigger('notificationError');
           setSaving(false);
         },
       },
     );
-  }, [userId, pieces, source_image, initialTags, onSave, saveRecreatedLookMutation]);
-
-  if (!visible) return null;
+  }, [
+    userId,
+    pieces,
+    source_image,
+    initialTags,
+    onSave,
+    saveRecreatedLookMutation,
+  ]);
 
   // Calculate total products found
   const totalProducts =
@@ -429,17 +447,21 @@ export default function VisualRecreateModal({
   const hasPieces = pieces && pieces.length > 0;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleClose}>
       <View
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 1)',
           justifyContent: 'flex-end',
         }}>
         <View
           style={{
             width: '100%',
-            height: '100%',
+            height: '95%',
             backgroundColor: theme.colors.background,
             borderTopLeftRadius: tokens.borderRadius['2xl'],
             borderTopRightRadius: tokens.borderRadius['2xl'],
@@ -456,7 +478,7 @@ export default function VisualRecreateModal({
               paddingBottom: 4,
               borderBottomWidth: 1,
               borderBottomColor: theme.colors.surface2,
-              marginTop: 45,
+              // marginTop: 45,
             }}>
             <View style={{flex: 1}}>
               <Text style={[globalStyles.sectionTitle, {marginTop: 8}]}>

@@ -17,8 +17,14 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import LinearGradient from 'react-native-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useUUID} from '../context/UUIDContext';
-import {useSavedNotes, useDeleteNote, useUpdateNote, SavedNote} from '../hooks/useSavedNotes';
+import {
+  useSavedNotes,
+  useDeleteNote,
+  useUpdateNote,
+  SavedNote,
+} from '../hooks/useSavedNotes';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
@@ -26,6 +32,7 @@ import {tokens} from '../styles/tokens/tokens';
 import {fontScale, moderateScale} from '../utils/scale';
 
 const CARD_GAP = 10;
+const NOTES_VIEW_MODE_KEY = 'notes_view_mode';
 
 // Color options for notes
 const NOTE_COLORS = [
@@ -339,6 +346,15 @@ export default function NotesScreen({navigate}: Props) {
   const searchFocusAnim = useRef(new Animated.Value(0)).current;
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+  // Load saved view mode on mount
+  useEffect(() => {
+    AsyncStorage.getItem(NOTES_VIEW_MODE_KEY).then(saved => {
+      if (saved === 'grid' || saved === 'list') {
+        setViewMode(saved);
+      }
+    });
+  }, []);
+
   // Entrance animations - run all in parallel for instant feel
   useEffect(() => {
     Animated.parallel([
@@ -568,12 +584,12 @@ export default function NotesScreen({navigate}: Props) {
       fontWeight: '700',
     },
     statLabel: {
-      fontSize: 12,
+      fontSize: 13,
       color: theme.colors.foreground,
       marginTop: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
-      fontWeight: '700',
+      fontWeight: '800',
     },
     sectionHeader: {
       flexDirection: 'row',
@@ -936,7 +952,11 @@ export default function NotesScreen({navigate}: Props) {
 
   const toggleViewMode = () => {
     h('impactLight');
-    setViewMode(prev => (prev === 'grid' ? 'list' : 'grid'));
+    setViewMode(prev => {
+      const newMode = prev === 'grid' ? 'list' : 'grid';
+      AsyncStorage.setItem(NOTES_VIEW_MODE_KEY, newMode);
+      return newMode;
+    });
   };
 
   const toggleSortMode = () => {

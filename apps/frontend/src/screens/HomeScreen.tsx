@@ -804,9 +804,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     // console.log('👗 Opening Visual Recreate Modal with:', data);
     // console.log('👗 Pieces count:', data.pieces?.length);
     setVisualRecreateData(data);
-    setTimeout(() => {
-      setVisualRecreateVisible(true);
-    }, 100);
+    setVisualRecreateVisible(true);
   };
 
   const toggleMap = async () => {

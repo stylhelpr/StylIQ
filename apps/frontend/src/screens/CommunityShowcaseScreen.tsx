@@ -1120,6 +1120,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [userSavedPosts, setUserSavedPosts] = useState<Map<string, boolean>>(
     new Map(),
   );
+  const [userLikedComments, setUserLikedComments] = useState<Map<string, boolean>>(
+    new Map(),
+  );
 
   // Check if post is liked - local override takes precedence
   const isPostLiked = useCallback(
@@ -1141,6 +1144,17 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       return post.is_saved_by_me;
     },
     [userSavedPosts],
+  );
+
+  // Check if comment is liked - local override takes precedence
+  const isCommentLiked = useCallback(
+    (comment: PostComment) => {
+      if (userLikedComments.has(comment.id)) {
+        return userLikedComments.get(comment.id)!;
+      }
+      return comment.is_liked_by_me;
+    },
+    [userLikedComments],
   );
 
   // Toggle like - store user's intent locally, fire API in background
@@ -1526,16 +1540,28 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     refetch,
   ]);
 
-  // Like a comment
+  // Like a comment - optimistic update
   const handleToggleLikeComment = useCallback(
     (postId: string, comment: PostComment) => {
       if (!userId) return;
       h('impactLight');
+
+      const currentlyLiked = isCommentLiked(comment);
+      const newLikedState = !currentlyLiked;
+
+      // Update local state immediately for instant feedback
+      setUserLikedComments(prev => {
+        const next = new Map(prev);
+        next.set(comment.id, newLikedState);
+        return next;
+      });
+
+      // API call in background
       likeCommentMutation.mutate(
         {
           commentId: comment.id,
           postId,
-          isLiked: comment.is_liked_by_me,
+          isLiked: currentlyLiked,
         },
         {
           onSuccess: () => {
@@ -1544,7 +1570,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         },
       );
     },
-    [likeCommentMutation, refetchComments, userId],
+    [likeCommentMutation, refetchComments, userId, isCommentLiked],
   );
 
   // Reply to a comment
@@ -3264,11 +3290,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
                         <MaterialIcons
                           name={
-                            item.is_liked_by_me ? 'favorite' : 'favorite-border'
+                            isCommentLiked(item) ? 'favorite' : 'favorite-border'
                           }
                           size={18}
                           color={
-                            item.is_liked_by_me ? '#FF3040' : theme.colors.muted
+                            isCommentLiked(item) ? '#FF3040' : theme.colors.muted
                           }
                         />
                       </Pressable>
