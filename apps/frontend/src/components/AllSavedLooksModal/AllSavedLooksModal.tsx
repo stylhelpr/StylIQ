@@ -138,6 +138,8 @@ export default function AllSavedLooksModal({
       zIndex: 20,
       backgroundColor: 'white',
       borderRadius: 20,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
       padding: 6,
     },
     gestureZone: {
@@ -243,7 +245,7 @@ export default function AllSavedLooksModal({
               tags: look.tags || [],
             },
             {
-              onError: (saveErr) => {
+              onError: saveErr => {
                 console.error('Failed to save recreated look:', saveErr);
               },
             },
@@ -428,7 +430,7 @@ export default function AllSavedLooksModal({
             onSuccess: () => {
               console.log('💾 [LookMemory] Saved successfully');
             },
-            onError: (err) => {
+            onError: err => {
               console.error('💾 [LookMemory] Save failed:', err);
             },
           },
@@ -614,7 +616,7 @@ export default function AllSavedLooksModal({
                   style={
                     (globalStyles.buttonPrimaryText4,
                     {
-                      color: theme.colors.foreground,
+                      color: theme.colors.buttonText1,
                       fontWeight: 700,
                       fontSize: 12,
                     })

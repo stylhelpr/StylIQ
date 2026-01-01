@@ -245,10 +245,13 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               isActive={current === 'Home'}
             />
             <TabButton
-              icon="explore"
-              label="Fashion"
-              onPress={() => current !== 'Explore' && navigate('Explore')}
-              isActive={current === 'Explore'}
+              icon="group"
+              label="Community"
+              onPress={() =>
+                current !== 'CommunityShowcaseScreen' &&
+                navigate('CommunityShowcaseScreen')
+              }
+              isActive={current === 'CommunityShowcaseScreen'}
             />
             <TabButton
               icon="auto-awesome"

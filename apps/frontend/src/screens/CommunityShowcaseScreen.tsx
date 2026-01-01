@@ -1120,9 +1120,9 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   const [userSavedPosts, setUserSavedPosts] = useState<Map<string, boolean>>(
     new Map(),
   );
-  const [userLikedComments, setUserLikedComments] = useState<Map<string, boolean>>(
-    new Map(),
-  );
+  const [userLikedComments, setUserLikedComments] = useState<
+    Map<string, boolean>
+  >(new Map());
 
   // Check if post is liked - local override takes precedence
   const isPostLiked = useCallback(
@@ -1980,12 +1980,13 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     followButtonFollowing: {
       backgroundColor: theme.colors.button1,
-      borderColor: 'transparent',
+      borderColor: theme.colors.muted,
+      borderWidth: tokens.borderWidth.hairline,
     },
     followButtonText: {
       fontSize: 10,
       fontWeight: tokens.fontWeight.semiBold,
-      color: theme.colors.buttonText1,
+      color: theme.colors.foreground,
     },
     // Comments modal styles
     modalOverlay: {
@@ -2139,7 +2140,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     commentLikesCount: {
       fontSize: fontScale(13),
-      color: theme.colors.muted,
+      color: theme.colors.foreground,
       marginTop: 2,
     },
     commentReplyButton: {
@@ -2276,6 +2277,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     postDetailContainer: {
       flex: 1,
+      backgroundColor: theme.colors.background,
     },
     postDetailHeader: {
       flexDirection: 'row',
@@ -2284,13 +2286,15 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       // paddingHorizontal: 16,
       paddingTop: insets.top + 8,
       paddingBottom: 12,
-      // backgroundColor: 'red',
+      backgroundColor: theme.colors.background,
     },
     postDetailCloseButton: {
       width: 35,
       height: 35,
-      borderRadius: 20,
       backgroundColor: 'white',
+      borderRadius: 20,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 16,
@@ -2313,11 +2317,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     postDetailUserName: {
       fontSize: fontScale(tokens.fontSize.base),
       fontWeight: tokens.fontWeight.semiBold,
-      color: '#fff',
+      color: theme.colors.foreground,
     },
     postDetailHandle: {
       fontSize: fontScale(tokens.fontSize.xs),
-      color: 'rgba(255,255,255,0.6)',
+      color: theme.colors.foreground,
       marginTop: 1,
     },
     postDetailFollowButton: {
@@ -2377,7 +2381,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     postDetailActionText: {
       fontSize: fontScale(tokens.fontSize.sm),
-      color: '#fff',
+      color: theme.colors.foreground,
       marginLeft: 6,
       fontWeight: tokens.fontWeight.medium,
     },
@@ -2388,7 +2392,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     postDetailDescription: {
       fontSize: fontScale(tokens.fontSize.base),
-      color: '#fff',
+      color: theme.colors.foreground,
       lineHeight: 22,
       marginBottom: 12,
     },
@@ -2399,7 +2403,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     postDetailTag: {
       fontSize: fontScale(tokens.fontSize.sm),
-      color: 'rgba(255,255,255,0.8)',
+      color: theme.colors.foreground,
       backgroundColor: 'rgba(255,255,255,0.15)',
       paddingHorizontal: 12,
       paddingVertical: 6,
@@ -2413,18 +2417,18 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     postDetailStat: {
       fontSize: fontScale(tokens.fontSize.md),
-      color: 'white',
+      color: theme.colors.foreground,
       fontWeight: '500',
     },
     postDetailTitle: {
       fontSize: fontScale(tokens.fontSize.lg),
       fontWeight: tokens.fontWeight.bold,
-      color: '#fff',
+      color: theme.colors.foreground,
       marginBottom: 12,
     },
     postDetailStory: {
       fontSize: fontScale(tokens.fontSize.base),
-      color: 'rgba(255,255,255,0.85)',
+      color: theme.colors.foreground,
       lineHeight: 22,
       marginTop: 12,
     },
@@ -2963,9 +2967,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         contentContainerStyle={styles.gridContainer}>
         {/* Hero Featured Look - uses displayedPosts when available, falls back to MOCK_POSTS */}
         {(() => {
-          const heroPost = displayedPosts.length > 0
-            ? displayedPosts[currentImageIndex % displayedPosts.length]
-            : null;
+          const heroPost =
+            displayedPosts.length > 0
+              ? displayedPosts[currentImageIndex % displayedPosts.length]
+              : null;
           const mockPost = MOCK_POSTS[currentImageIndex % MOCK_POSTS.length];
           const heroImageUrl = heroPost?.image_url || mockPost.imageUrl;
           const heroUserName = heroPost?.user_name || mockPost.userName;
@@ -3062,13 +3067,17 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       borderWidth: 1.5,
                       borderColor: theme.colors.button1,
                     }}
-                    onPress={heroUserId ? () => {
-                      navigate('UserProfileScreen', {
-                        userId: heroUserId,
-                        userName: heroUserName,
-                        userAvatar: heroUserAvatar,
-                      });
-                    } : undefined}
+                    onPress={
+                      heroUserId
+                        ? () => {
+                            navigate('UserProfileScreen', {
+                              userId: heroUserId,
+                              userName: heroUserName,
+                              userAvatar: heroUserAvatar,
+                            });
+                          }
+                        : undefined
+                    }
                   />
                   <Text
                     style={{
@@ -3118,8 +3127,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                       textShadowOffset: {width: 0, height: 1},
                       textShadowRadius: 3,
                     }}>
-                    • {heroLikes} likes •{' '}
-                    {heroViews} views
+                    • {heroLikes} likes • {heroViews} views
                   </Text>
                 </View>
               </Animatable.View>
@@ -3180,7 +3188,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           width: 48,
           height: 48,
           borderRadius: 24,
-          backgroundColor: theme.colors.background,
+          backgroundColor: 'rgba(0, 0, 0, 0.43)',
           borderColor: theme.colors.muted,
           borderWidth: tokens.borderWidth.md,
           alignItems: 'center',
@@ -3190,7 +3198,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           shadowRadius: 8,
           shadowOffset: {width: 0, height: 4},
         }}>
-        <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
+        <MaterialIcons name="keyboard-arrow-up" size={32} color={'white'} />
       </AppleTouchFeedback>
 
       {/* Comments Modal - Instagram Style */}
@@ -3290,11 +3298,15 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
                         <MaterialIcons
                           name={
-                            isCommentLiked(item) ? 'favorite' : 'favorite-border'
+                            isCommentLiked(item)
+                              ? 'favorite'
+                              : 'favorite-border'
                           }
                           size={18}
                           color={
-                            isCommentLiked(item) ? '#FF3040' : theme.colors.muted
+                            isCommentLiked(item)
+                              ? '#FF3040'
+                              : theme.colors.foreground
                           }
                         />
                       </Pressable>
@@ -4030,7 +4042,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                               : 'favorite-border'
                           }
                           size={28}
-                          color={isPostLiked(detailPost) ? '#FF4D6D' : '#fff'}
+                          color={
+                            isPostLiked(detailPost)
+                              ? '#FF4D6D'
+                              : theme.colors.foreground
+                          }
                         />
                         <Text style={styles.postDetailActionText}>
                           {isPostLiked(detailPost)
@@ -4048,7 +4064,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         <MaterialIcons
                           name="chat-bubble-outline"
                           size={26}
-                          color="#fff"
+                          color={theme.colors.foreground}
                         />
                         <Text style={styles.postDetailActionText}>
                           {detailPost.comments_count || 0}
@@ -4088,7 +4104,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                               : 'bookmark-border'
                           }
                           size={28}
-                          color={isPostSaved(detailPost) ? '#FFD700' : '#fff'}
+                          color={
+                            isPostSaved(detailPost)
+                              ? '#FFD700'
+                              : theme.colors.foreground
+                          }
                         />
                       </Pressable>
                       <Pressable
@@ -4100,7 +4120,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         <MaterialIcons
                           name="more-horiz"
                           size={28}
-                          color="#fff"
+                          color={theme.colors.foreground}
                         />
                       </Pressable>
                     </View>

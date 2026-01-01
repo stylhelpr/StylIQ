@@ -91,6 +91,8 @@ export default function ReaderModal({
       zIndex: 20,
       backgroundColor: 'white',
       borderRadius: 20,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
       padding: 6,
     },
     gestureZone: {

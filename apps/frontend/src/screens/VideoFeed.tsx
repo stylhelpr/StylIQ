@@ -303,7 +303,7 @@ export default function VideoFeedScreen({
     homeButtonContainer: {
       position: 'absolute',
       bottom: insets.bottom + 5,
-      left: 40,
+      left: 20,
       zIndex: 10,
     },
     progressBarContainer: {

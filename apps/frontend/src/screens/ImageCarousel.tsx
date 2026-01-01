@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   homeButtonContainer: {
     position: 'absolute',
     bottom: 35,
-    left: 40,
+    left: 20,
     zIndex: 999,
   },
 });

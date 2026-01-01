@@ -216,7 +216,10 @@ export default function ClosetScreen({navigate}: Props) {
     },
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
-      const prev = queryClient.getQueryData<WardrobeItem[]>(['wardrobe', userId]);
+      const prev = queryClient.getQueryData<WardrobeItem[]>([
+        'wardrobe',
+        userId,
+      ]);
       queryClient.setQueryData<WardrobeItem[]>(
         ['wardrobe', userId],
         old => old?.filter(item => item.id !== id) || [],
@@ -247,7 +250,10 @@ export default function ClosetScreen({navigate}: Props) {
     },
     onMutate: async ({id, name, color}) => {
       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
-      const prev = queryClient.getQueryData<WardrobeItem[]>(['wardrobe', userId]);
+      const prev = queryClient.getQueryData<WardrobeItem[]>([
+        'wardrobe',
+        userId,
+      ]);
       queryClient.setQueryData<WardrobeItem[]>(
         ['wardrobe', userId],
         old =>
@@ -716,7 +722,7 @@ export default function ClosetScreen({navigate}: Props) {
                   borderRadius: 26,
                   borderWidth: 1,
                   borderColor: theme.colors.foreground,
-                  backgroundColor: 'rgba(54, 54, 54, 0.56)',
+                  backgroundColor: 'rgba(54, 54, 54, 0.44)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
@@ -756,7 +762,7 @@ export default function ClosetScreen({navigate}: Props) {
                 borderRadius: 32,
                 borderWidth: 1,
                 borderColor: theme.colors.foreground,
-                backgroundColor: 'rgba(54, 54, 54, 0.56)',
+                backgroundColor: 'rgba(54, 54, 54, 0.44)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>

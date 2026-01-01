@@ -1,5 +1,11 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useRef, useLayoutEffect, useCallback, useState, useMemo} from 'react';
+import React, {
+  useRef,
+  useLayoutEffect,
+  useCallback,
+  useState,
+  useMemo,
+} from 'react';
 import {
   Modal,
   View,
@@ -67,7 +73,9 @@ export default function SavedRecommendationsModal({
   const insets = useSafeAreaInsets();
 
   // Track locally removed products to prevent reappearing from stale parent state
-  const [locallyRemovedIds, setLocallyRemovedIds] = useState<Set<string>>(new Set());
+  const [locallyRemovedIds, setLocallyRemovedIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   // TanStack Query mutation for unsaving products
   const unsaveProductMutation = useUnsaveProduct();
@@ -91,7 +99,7 @@ export default function SavedRecommendationsModal({
       backgroundColor: 'transparent',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      paddingTop: tokens.spacing.sm,
+      // paddingTop: tokens.spacing.sm,
     },
     backdrop: {
       ...StyleSheet.absoluteFill,
@@ -112,11 +120,13 @@ export default function SavedRecommendationsModal({
     },
     closeIcon: {
       position: 'absolute',
-      top: 0,
+      top: 10,
       right: 18,
       zIndex: 20,
       backgroundColor: 'white',
       borderRadius: 20,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.muted,
       padding: 6,
     },
     gestureZone: {
@@ -129,7 +139,7 @@ export default function SavedRecommendationsModal({
       // backgroundColor: 'red',
     },
     header: {
-      marginTop: 8,
+      marginTop: 16,
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'flex-start',
@@ -254,7 +264,7 @@ export default function SavedRecommendationsModal({
       unsaveProductMutation.mutate(
         {userId, productId},
         {
-          onError: (error) => {
+          onError: error => {
             console.error('Failed to unsave product:', error);
             // Rollback: remove from locally removed set so it reappears
             setLocallyRemovedIds(prev => {
@@ -400,8 +410,14 @@ export default function SavedRecommendationsModal({
                     onPress={() =>
                       confirmUnsave(product.product_id, product.title)
                     }
-                    disabled={unsaveProductMutation.isPending && unsaveProductMutation.variables?.productId === product.product_id}>
-                    {unsaveProductMutation.isPending && unsaveProductMutation.variables?.productId === product.product_id ? (
+                    disabled={
+                      unsaveProductMutation.isPending &&
+                      unsaveProductMutation.variables?.productId ===
+                        product.product_id
+                    }>
+                    {unsaveProductMutation.isPending &&
+                    unsaveProductMutation.variables?.productId ===
+                      product.product_id ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <MaterialIcons

@@ -222,7 +222,7 @@ function PieceSection({
           <MaterialIcons
             name={iconName}
             size={20}
-            color={theme.colors.primary}
+            color={theme.colors.buttonText1}
           />
         </View>
         <View style={{flex: 1}}>
@@ -474,7 +474,7 @@ export default function VisualRecreateModal({
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingHorizontal: 20,
-              paddingTop: 20,
+              paddingTop: 10,
               paddingBottom: 4,
               borderBottomWidth: 1,
               borderBottomColor: theme.colors.surface2,
@@ -485,19 +485,22 @@ export default function VisualRecreateModal({
                 RECREATE THIS LOOK
               </Text>
             </View>
+
             {/* Close Button */}
             <TouchableOpacity
               onPress={handleClose}
               style={{
-                backgroundColor: theme.colors.foreground,
+                backgroundColor: 'white',
                 borderRadius: 20,
+                borderWidth: tokens.borderWidth.hairline,
+                borderColor: theme.colors.muted,
                 padding: 6,
                 marginLeft: 12,
               }}>
               <MaterialIcons
                 name="close"
                 size={20}
-                color={theme.colors.background}
+                color={theme.colors.foreground}
               />
             </TouchableOpacity>
           </View>

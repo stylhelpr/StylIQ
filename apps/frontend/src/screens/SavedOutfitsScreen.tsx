@@ -1273,12 +1273,12 @@ export default function SavedOutfitsScreen() {
               borderRadius: 16,
               backgroundColor:
                 occasionFilter === null
-                  ? theme.colors.primary
-                  : theme.colors.surface,
+                  ? theme.colors.button1
+                  : theme.colors.surface3,
               borderWidth: 1,
               borderColor:
                 occasionFilter === null
-                  ? theme.colors.primary
+                  ? theme.colors.surfaceBorder
                   : theme.colors.surfaceBorder,
             }}>
             <Text
@@ -1286,7 +1286,7 @@ export default function SavedOutfitsScreen() {
                 fontSize: 13,
                 fontWeight: '600',
                 color:
-                  occasionFilter === null ? 'black' : theme.colors.foreground,
+                  occasionFilter === null ? 'white' : theme.colors.foreground,
               }}>
               All ({combinedOutfits.length})
             </Text>
@@ -1661,7 +1661,7 @@ export default function SavedOutfitsScreen() {
                                 }}
                                 delayLongPress={500}
                                 style={{
-                                  paddingVertical: 5,
+                                  paddingVertical: 4.5,
                                   borderRadius: 8,
                                   paddingHorizontal: 12,
                                   backgroundColor:
@@ -1670,7 +1670,7 @@ export default function SavedOutfitsScreen() {
                                 <MaterialIcons
                                   name="checkroom"
                                   size={22}
-                                  color={theme.colors.primary}
+                                  color={theme.colors.buttonText1}
                                 />
                               </Pressable>
 
@@ -1686,8 +1686,8 @@ export default function SavedOutfitsScreen() {
                                   <Text
                                     style={{
                                       fontSize: 16,
-                                      fontWeight: '800',
-                                      color: theme.colors.primary,
+                                      fontWeight: '700',
+                                      color: theme.colors.foreground,
                                     }}>
                                     Worn:
                                     {outfit.timesWorn} x{' '}
@@ -2289,8 +2289,10 @@ export default function SavedOutfitsScreen() {
                 backgroundColor: theme.colors.surface2,
                 paddingVertical: 14,
                 paddingHorizontal: 20,
-                borderRadius: 14,
                 marginBottom: 12,
+                borderRadius: 14,
+                borderWidth: tokens.borderWidth.md,
+                borderColor: theme.colors.muted,
               }}>
               <MaterialIcons
                 name="ios-share"
@@ -2318,6 +2320,9 @@ export default function SavedOutfitsScreen() {
               style={{
                 paddingVertical: 12,
                 alignItems: 'center',
+                borderRadius: 14,
+                borderWidth: tokens.borderWidth.md,
+                borderColor: theme.colors.muted,
               }}>
               <Text
                 style={{
@@ -2481,7 +2486,10 @@ export default function SavedOutfitsScreen() {
             }}>
             {/* ✨ Backdrop */}
             <View
-              style={[StyleSheet.absoluteFill, {backgroundColor: '#000'}]}
+              style={[
+                StyleSheet.absoluteFill,
+                {backgroundColor: theme.colors.background},
+              ]}
             />
 
             {/* ✖️ Close Button ABOVE gesture zone */}
@@ -2491,14 +2499,17 @@ export default function SavedOutfitsScreen() {
                 top: 11,
                 right: 18,
                 zIndex: 20,
-                backgroundColor: 'rgba(255, 255, 255, 1)',
-                borderRadius: 50,
+                borderRadius: 20,
+                borderWidth: tokens.borderWidth.hairline,
+                borderColor: theme.colors.muted,
                 paddingHorizontal: 8,
                 paddingVertical: 6,
               }}
               onPress={handleClose}
               hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
-              <Text style={{color: 'black', fontSize: 20}}>✕</Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 20}}>
+                ✕
+              </Text>
             </TouchableOpacity>
 
             {/* 🟥 Swipe Gesture Zone */}
@@ -2532,7 +2543,7 @@ export default function SavedOutfitsScreen() {
                 style={{
                   fontSize: 28,
                   fontWeight: '800',
-                  color: '#fff',
+                  color: theme.colors.foreground,
                   textAlign: 'center',
                   marginTop: 25,
                   marginBottom: 20,
@@ -2560,7 +2571,10 @@ export default function SavedOutfitsScreen() {
                         height: 400,
                         maxWidth: 400,
                         borderRadius: 20,
+                        borderWidth: tokens.borderWidth.hairline,
+                        borderColor: theme.colors.muted,
                         marginBottom: 28,
+
                         shadowColor: '#000',
                         shadowOpacity: 0.35,
                         shadowRadius: 24,

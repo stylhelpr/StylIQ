@@ -709,8 +709,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   isXS || isSM
                     ? 0
                     : isMD
-                    ? moderateScale(tokens.spacing.xxs) // tighter on regular phones
-                    : moderateScale(tokens.spacing.xsm),
+                      ? moderateScale(tokens.spacing.xxs) // tighter on regular phones
+                      : moderateScale(tokens.spacing.xsm),
                 marginBottom:
                   isXS || isSM ? moderateScale(tokens.spacing.xs) : 0,
                 paddingVertical: isMD
@@ -744,7 +744,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   fontWeight: tokens.fontWeight.semiBold,
                   color: theme.colors.buttonText1,
                 }}>
-                View Wardrobe Gaps
+                Wardrobe Gaps
               </Text>
             </AppleTouchFeedback>
 
@@ -759,8 +759,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   isXS || isSM
                     ? 0
                     : isMD
-                    ? moderateScale(tokens.spacing.xxs)
-                    : moderateScale(tokens.spacing.xsm),
+                      ? moderateScale(tokens.spacing.xxs)
+                      : moderateScale(tokens.spacing.xsm),
                 paddingVertical: isMD
                   ? moderateScale(tokens.spacing.xsm)
                   : moderateScale(tokens.spacing.xsm),
@@ -772,7 +772,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 // borderWidth: theme.borderWidth.sm,
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: isMD ? 150 : 170,
+                minWidth: isMD ? 170 : 170,
                 borderColor: theme.colors.surfaceBorder,
                 // shadowColor: '#000',
                 // shadowOffset: {width: 0, height: 4},
@@ -791,7 +791,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   fontWeight: tokens.fontWeight.semiBold,
                   color: theme.colors.buttonText1,
                 }}>
-                Ask a Styling Question
+                Styling Question
               </Text>
             </AppleTouchFeedback>
           </View>

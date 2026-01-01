@@ -30,7 +30,9 @@ import SaveLookModal from '../components/SavedLookModal/SavedLookModal';
 import SavedLookPreviewModal from '../components/SavedLookModal/SavedLookPreviewModal';
 import LiveLocationMap from '../components/LiveLocationMap/LiveLocationMap';
 import {useHomePrefs} from '../hooks/useHomePrefs';
-import DiscoverCarousel, {DiscoverProduct} from '../components/DiscoverCarousel/DiscoverCarousel';
+import DiscoverCarousel, {
+  DiscoverProduct,
+} from '../components/DiscoverCarousel/DiscoverCarousel';
 import NewsCarousel from '../components/NewsCarousel/NewsCarousel';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import SavedRecommendationsModal from '../components/SavedRecommendationsModal/SavedRecommendationsModal';
@@ -135,117 +137,119 @@ const ScalePressable = ({
 };
 
 // Memoized Hero Carousel - prevents parent re-renders when image changes
-const HeroCarousel = React.memo(({
-  fashionImages,
-  fashionTexts,
-  scrollActiveScale,
-  scrollY,
-}: {
-  fashionImages: any[];
-  fashionTexts: {title: string; subtitle: string}[];
-  scrollActiveScale: Animated.Value;
-  scrollY: Animated.Value;
-}) => {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const heroFadeAnim = useRef(new Animated.Value(1)).current;
+const HeroCarousel = React.memo(
+  ({
+    fashionImages,
+    fashionTexts,
+    scrollActiveScale,
+    scrollY,
+  }: {
+    fashionImages: any[];
+    fashionTexts: {title: string; subtitle: string}[];
+    scrollActiveScale: Animated.Value;
+    scrollY: Animated.Value;
+  }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const heroFadeAnim = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    if (fashionImages.length <= 1) return;
+    useEffect(() => {
+      if (fashionImages.length <= 1) return;
 
-    const interval = setInterval(() => {
-      Animated.timing(heroFadeAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }).start(() => {
-        setCurrentImageIndex(prev => (prev + 1) % fashionImages.length);
+      const interval = setInterval(() => {
         Animated.timing(heroFadeAnim, {
-          toValue: 1,
-          duration: 1200,
+          toValue: 0,
+          duration: 800,
           useNativeDriver: true,
-        }).start();
-      });
-    }, 8000);
+        }).start(() => {
+          setCurrentImageIndex(prev => (prev + 1) % fashionImages.length);
+          Animated.timing(heroFadeAnim, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: true,
+          }).start();
+        });
+      }, 8000);
 
-    return () => clearInterval(interval);
-  }, [fashionImages.length, heroFadeAnim]);
+      return () => clearInterval(interval);
+    }, [fashionImages.length, heroFadeAnim]);
 
-  return (
-    <Animated.View
-      style={{
-        overflow: 'hidden',
-        borderRadius: tokens.borderRadius.xxxl,
-        transform: [
-          {
-            translateY: scrollY.interpolate({
-              inputRange: [0, 100],
-              outputRange: [0, -10],
-              extrapolate: 'clamp',
-            }),
-          },
-          {
-            scale: scrollActiveScale,
-          },
-        ],
-      }}>
-      <View style={{width: '100%', height: 300, overflow: 'hidden'}}>
-        <Animated.Image
-          source={fashionImages[currentImageIndex]}
-          style={{
-            width: '100%',
-            height: '100%',
-            opacity: heroFadeAnim,
-          }}
-          resizeMode="cover"
-        />
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.15)',
-          }}
-        />
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            paddingHorizontal: moderateScale(tokens.spacing.md),
-            paddingBottom: moderateScale(tokens.spacing.lg),
-          }}>
-          <Text
+    return (
+      <Animated.View
+        style={{
+          overflow: 'hidden',
+          borderRadius: tokens.borderRadius.xxxl,
+          transform: [
+            {
+              translateY: scrollY.interpolate({
+                inputRange: [0, 100],
+                outputRange: [0, -10],
+                extrapolate: 'clamp',
+              }),
+            },
+            {
+              scale: scrollActiveScale,
+            },
+          ],
+        }}>
+        <View style={{width: '100%', height: 300, overflow: 'hidden'}}>
+          <Animated.Image
+            source={fashionImages[currentImageIndex]}
             style={{
-              fontSize: fontScale(tokens.fontSize['2.5xl']),
-              fontWeight: tokens.fontWeight.bold,
-              color: '#ffffff',
-              marginBottom: moderateScale(tokens.spacing.sm),
-              textShadowColor: 'rgba(0, 0, 0, 0.5)',
-              textShadowOffset: {width: 0, height: 2},
-              textShadowRadius: 4,
-            }}>
-            {fashionTexts[currentImageIndex % fashionTexts.length].title}
-          </Text>
-          <Text
+              width: '100%',
+              height: '100%',
+              opacity: heroFadeAnim,
+            }}
+            resizeMode="cover"
+          />
+          <View
             style={{
-              color: 'rgba(255, 255, 255, 1)',
-              fontSize: fontScale(tokens.fontSize.md),
-              fontWeight: tokens.fontWeight.semiBold,
-              lineHeight: 18,
-              textShadowColor: 'rgba(0, 0, 0, 0.4)',
-              textShadowOffset: {width: 0, height: 1},
-              textShadowRadius: 3,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.15)',
+            }}
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              paddingHorizontal: moderateScale(tokens.spacing.md),
+              paddingBottom: moderateScale(tokens.spacing.lg),
             }}>
-            {fashionTexts[currentImageIndex % fashionTexts.length].subtitle}
-          </Text>
+            <Text
+              style={{
+                fontSize: fontScale(tokens.fontSize['2.5xl']),
+                fontWeight: tokens.fontWeight.bold,
+                color: '#ffffff',
+                marginBottom: moderateScale(tokens.spacing.sm),
+                textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                textShadowOffset: {width: 0, height: 2},
+                textShadowRadius: 4,
+              }}>
+              {fashionTexts[currentImageIndex % fashionTexts.length].title}
+            </Text>
+            <Text
+              style={{
+                color: 'rgba(255, 255, 255, 1)',
+                fontSize: fontScale(tokens.fontSize.md),
+                fontWeight: tokens.fontWeight.semiBold,
+                lineHeight: 18,
+                textShadowColor: 'rgba(0, 0, 0, 0.4)',
+                textShadowOffset: {width: 0, height: 1},
+                textShadowRadius: 3,
+              }}>
+              {fashionTexts[currentImageIndex % fashionTexts.length].subtitle}
+            </Text>
+          </View>
         </View>
-      </View>
-    </Animated.View>
-  );
-});
+      </Animated.View>
+    );
+  },
+);
 
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -482,9 +486,15 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     savedRecommendationsModalVisible,
     setSavedRecommendationsModalVisible,
   ] = useState(false);
-  const [savedRecommendations, setSavedRecommendations] = useState<DiscoverProduct[]>([]);
-  const [fetchSavedRecommendations, setFetchSavedRecommendations] = useState<(() => void) | null>(null);
-  const [unsaveRecommendation, setUnsaveRecommendation] = useState<((productId: string) => void) | null>(null);
+  const [savedRecommendations, setSavedRecommendations] = useState<
+    DiscoverProduct[]
+  >([]);
+  const [fetchSavedRecommendations, setFetchSavedRecommendations] = useState<
+    (() => void) | null
+  >(null);
+  const [unsaveRecommendation, setUnsaveRecommendation] = useState<
+    ((productId: string) => void) | null
+  >(null);
   const [shopResults, setShopResults] = useState<ProductResult[]>([]);
 
   const [personalizedVisible, setPersonalizedVisible] = useState(false);
@@ -619,9 +629,17 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
   // 🎯 TanStack Query: Look memory, recreated looks, saved looks, shared looks
   // Note: hooks return stable empty arrays, no need for = [] defaults here
-  const {data: lookMemoryData, isLoading: loadingVibes} = useLookMemory(userId ?? '');
-  const {data: recreatedLooksData, isLoading: loadingCreations, refetch: refetchRecreatedLooks} = useRecreatedLooks(userId ?? '');
-  const {data: savedLooksData, refetch: refetchSavedLooks} = useSavedLooks(userId ?? '');
+  const {data: lookMemoryData, isLoading: loadingVibes} = useLookMemory(
+    userId ?? '',
+  );
+  const {
+    data: recreatedLooksData,
+    isLoading: loadingCreations,
+    refetch: refetchRecreatedLooks,
+  } = useRecreatedLooks(userId ?? '');
+  const {data: savedLooksData, refetch: refetchSavedLooks} = useSavedLooks(
+    userId ?? '',
+  );
   const {data: sharedLooksData} = useSharedLooks(userId ?? '');
 
   // TanStack Query mutations
@@ -995,7 +1013,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   }
 
   // 🧥 Recreate Look (uses TanStack Query mutation for saving)
-  const handleRecreateLook = async ({image_url, tags}: {image_url: string; tags?: string[]}) => {
+  const handleRecreateLook = async ({
+    image_url,
+    tags,
+  }: {
+    image_url: string;
+    tags?: string[];
+  }) => {
     try {
       const result = await recreateLook({user_id: userId, tags, image_url});
 
@@ -2059,7 +2083,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         onScroll={e => {
-                          inspiredScrollPos.current = e.nativeEvent.contentOffset.x;
+                          inspiredScrollPos.current =
+                            e.nativeEvent.contentOffset.x;
                         }}
                         scrollEventThrottle={16}
                         onLayout={() => {
@@ -2168,7 +2193,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         onScroll={e => {
-                          recreatedScrollPos.current = e.nativeEvent.contentOffset.x;
+                          recreatedScrollPos.current =
+                            e.nativeEvent.contentOffset.x;
                         }}
                         scrollEventThrottle={16}
                         onLayout={() => {
@@ -2605,8 +2631,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     backgroundColor: theme.colors.surface2,
                     paddingVertical: 14,
                     paddingHorizontal: 20,
-                    borderRadius: 14,
                     marginBottom: 12,
+                    borderRadius: 14,
+                    borderWidth: tokens.borderWidth.md,
+                    borderColor: theme.colors.muted,
                   }}>
                   <Icon
                     name="ios-share"
@@ -2634,6 +2662,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   style={{
                     paddingVertical: 12,
                     alignItems: 'center',
+                    borderRadius: 14,
+                    borderWidth: tokens.borderWidth.md,
+                    borderColor: theme.colors.muted,
                   }}>
                   <Text
                     style={{
@@ -2705,7 +2736,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     placeholderTextColor={theme.colors.muted}
                     style={{
                       backgroundColor: theme.colors.surface2,
-                      borderRadius: 12,
+                      borderRadius: 14,
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.muted,
                       padding: 14,
                       color: theme.colors.foreground,
                       fontSize: 15,
@@ -2730,7 +2763,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     multiline
                     style={{
                       backgroundColor: theme.colors.surface2,
-                      borderRadius: 12,
+                      borderRadius: 14,
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.muted,
                       padding: 14,
                       color: theme.colors.foreground,
                       fontSize: 15,
@@ -2756,7 +2791,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     placeholderTextColor={theme.colors.muted}
                     style={{
                       backgroundColor: theme.colors.surface2,
-                      borderRadius: 12,
+                      borderRadius: 14,
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.muted,
                       padding: 14,
                       color: theme.colors.foreground,
                       fontSize: 15,
@@ -2773,7 +2810,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         setCommunityShareModalVisible(false);
                         setPendingShareVibe(null);
                       }}
-                      style={{paddingHorizontal: 20, paddingVertical: 12}}>
+                      style={{
+                        paddingHorizontal: 20,
+                        paddingVertical: 12,
+                        borderRadius: 14,
+                        borderWidth: tokens.borderWidth.md,
+                        borderColor: theme.colors.muted,
+                      }}>
                       <Text style={{color: theme.colors.muted, fontSize: 16}}>
                         Cancel
                       </Text>
