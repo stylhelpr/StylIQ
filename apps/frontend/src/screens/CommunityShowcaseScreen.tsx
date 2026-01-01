@@ -2329,10 +2329,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 20,
-      backgroundColor: theme.colors.button1,
+      backgroundColor: theme.colors.muted,
     },
     postDetailFollowButtonFollowing: {
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      backgroundColor: theme.colors.button1,
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.4)',
     },

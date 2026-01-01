@@ -479,7 +479,7 @@ export default function VisualRecreateModal({
             }}>
             <View style={{flex: 1}}>
               <Text style={[globalStyles.sectionTitle, {marginTop: 8}]}>
-                RECREATE THIS LOOK
+                RECREATE THIS STYLE
               </Text>
             </View>
 
@@ -497,7 +497,7 @@ export default function VisualRecreateModal({
               <MaterialIcons
                 name="close"
                 size={20}
-                color={theme.colors.foreground}
+                color={theme.colors.background}
               />
             </TouchableOpacity>
           </View>
@@ -750,7 +750,7 @@ export default function VisualRecreateModal({
                         marginTop: lookName ? 4 : 8,
                         textAlign: 'center',
                       }}>
-                      Your Inspired Look
+                      Your Inspired Style
                     </Text>
                   </>
                 )}

@@ -1088,6 +1088,7 @@ export default function OnboardingScreen({navigate}: Props) {
 
   const [showFashionPicker, setShowFashionPicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  const [customFashionLevel, setCustomFashionLevel] = useState('');
 
   // New onboarding state
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
@@ -1197,6 +1198,12 @@ export default function OnboardingScreen({navigate}: Props) {
       for (const [k, v] of Object.entries(form)) {
         const trimmed = typeof v === 'string' ? v.trim() : v;
         if (trimmed) userPayload[k] = trimmed;
+      }
+      // Handle custom fashion level
+      if (userPayload.fashion_level === 'Other' && customFashionLevel.trim()) {
+        userPayload.fashion_level = customFashionLevel.trim();
+      } else if (userPayload.fashion_level === 'Other') {
+        delete userPayload.fashion_level;
       }
       if (userPayload.gender_presentation) {
         userPayload.gender_presentation = normalizeGender(
@@ -1367,7 +1374,9 @@ export default function OnboardingScreen({navigate}: Props) {
           ]}
           onPress={() => setShowFashionPicker(true)}>
           <Text style={[styles.selectorText, {color: theme.colors.muted}]}>
-            {form.fashion_level || 'Select fashion level'}
+            {form.fashion_level === 'Other' && customFashionLevel
+              ? customFashionLevel
+              : form.fashion_level || 'Select fashion level'}
           </Text>
         </TouchableOpacity>
 
@@ -1422,8 +1431,15 @@ export default function OnboardingScreen({navigate}: Props) {
             </View>
 
             <Picker
-              selectedValue={form.fashion_level}
-              onValueChange={val => handleChange('fashion_level', val)}
+              selectedValue={form.fashion_level === 'Other' || (form.fashion_level && !['Expert', 'Intermediate', 'Novice', ''].includes(form.fashion_level)) ? 'Other' : form.fashion_level}
+              onValueChange={val => {
+                if (val === 'Other') {
+                  handleChange('fashion_level', 'Other');
+                } else {
+                  handleChange('fashion_level', val);
+                  setCustomFashionLevel('');
+                }
+              }}
               itemStyle={{
                 color: theme.colors.foreground,
                 fontSize: 18,
@@ -1433,7 +1449,30 @@ export default function OnboardingScreen({navigate}: Props) {
               <Picker.Item label="Expert" value="Expert" />
               <Picker.Item label="Intermediate" value="Intermediate" />
               <Picker.Item label="Novice" value="Novice" />
+              <Picker.Item label="Other" value="Other" />
             </Picker>
+            {(form.fashion_level === 'Other' || (form.fashion_level && !['Expert', 'Intermediate', 'Novice', ''].includes(form.fashion_level))) && (
+              <View style={{paddingHorizontal: 16, paddingBottom: 16}}>
+                <TextInput
+                  style={{
+                    backgroundColor: theme.colors.surface3,
+                    borderRadius: 10,
+                    padding: 12,
+                    color: theme.colors.foreground,
+                    borderWidth: 1,
+                    borderColor: theme.colors.surfaceBorder,
+                  }}
+                  placeholder="Enter your style level"
+                  placeholderTextColor={theme.colors.muted}
+                  value={customFashionLevel}
+                  onChangeText={setCustomFashionLevel}
+                  maxLength={50}
+                />
+                <Text style={{fontSize: 12, color: theme.colors.muted, textAlign: 'right', marginTop: 4}}>
+                  {customFashionLevel.length}/50
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </Modal>

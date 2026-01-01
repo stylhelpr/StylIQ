@@ -192,8 +192,12 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     if (!userId) return;
     (async () => {
       try {
-        const res = await apiClient.get(`/style-profile/by-user-id/${userId}/brands`);
-        setFavoriteBrands(Array.isArray(res.data.brands) ? res.data.brands : []);
+        const res = await apiClient.get(
+          `/style-profile/by-user-id/${userId}/brands`,
+        );
+        setFavoriteBrands(
+          Array.isArray(res.data.brands) ? res.data.brands : [],
+        );
       } catch {
         setFavoriteBrands([]);
       }
@@ -540,7 +544,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
 
                 {userProfile?.fashion_level && (
                   <Text style={styles.bioText}>
-                    Fashion Level: {userProfile.fashion_level}
+                    Style Level: {userProfile.fashion_level}
                   </Text>
                 )}
                 {userProfile?.profession && (

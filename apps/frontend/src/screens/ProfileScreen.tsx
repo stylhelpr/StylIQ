@@ -105,7 +105,9 @@ export default function ProfileScreen({navigate}: Props) {
   >(null);
 
   // TanStack Query hooks for saved/shared looks
-  const {data: savedLooks = [], isLoading: loadingSaved} = useSavedLooks(userId || '');
+  const {data: savedLooks = [], isLoading: loadingSaved} = useSavedLooks(
+    userId || '',
+  );
 
   // Shared looks (community posts by user) - uses different structure than SharedLook type
   const {data: sharedLooks = []} = useQuery<any[]>({
@@ -560,7 +562,7 @@ export default function ProfileScreen({navigate}: Props) {
           </Text>
           {userProfile?.fashion_level && (
             <Text style={styles.bioText}>
-              Fashion Level: {userProfile.fashion_level}
+              Style Level: {userProfile.fashion_level}
             </Text>
           )}
           {userProfile?.profession && (

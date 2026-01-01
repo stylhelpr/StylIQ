@@ -538,7 +538,7 @@ export default function AllSavedLooksModal({
                     marginTop: 4,
                   },
                 ]}>
-                ALL SAVED LOOKS
+                ALL SAVED STYLES
               </Text>
             </View>
 
@@ -793,7 +793,7 @@ export default function AllSavedLooksModal({
                                 fontWeight: '500',
                                 fontSize: 12,
                               }}>
-                              Recreate Look
+                              Recreate Style
                             </Text>
                           </TouchableOpacity>
 

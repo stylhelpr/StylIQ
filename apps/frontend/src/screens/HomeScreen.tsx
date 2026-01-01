@@ -2033,7 +2033,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   marginLeft: moderateScale(tokens.spacing.md2),
                   marginRight: moderateScale(tokens.spacing.md2),
                 }}>
-                <Text style={globalStyles.sectionTitle}>Inspired Looks</Text>
+                <Text style={globalStyles.sectionTitle}>Inspired Styles</Text>
                 <Pressable
                   onPress={() => {
                     ReactNativeHapticFeedback.trigger('impactLight');
@@ -2047,12 +2047,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       display: 'flex',
                       marginTop: 2,
                     }}>
-                    See All Saved Looks
+                    See All Saved Styles
                   </Text>
                 </Pressable>
               </View>
 
-              {/* INSPIRED LOOKS SECTION */}
+              {/* INSPIRED STYLES SECTION */}
               {(savedLooks.length > 0 || true) && (
                 <CollapsibleSection
                   open={savedOpen}
@@ -2069,10 +2069,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       <View
                         style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
                         <Text style={globalStyles.missingDataMessage1}>
-                          No saved looks.
+                          No saved styles.
                         </Text>
                         <TooltipBubble
-                          message='You haven’t saved any looks yet. Tap the "Add Look" button below to add your
+                          message='You haven’t saved any styles yet. Tap the "Add Look" button below to add your
               favorite looks.'
                           position="top"
                         />
@@ -2166,7 +2166,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 
               {!loadingCreations && (
                 <CollapsibleSection
-                  title="Recreated Looks"
+                  title="Recreated Syles"
                   open={createdOpen}
                   onToggle={async newState => {
                     setCreatedOpen(newState);
@@ -2180,10 +2180,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       <View
                         style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
                         <Text style={globalStyles.missingDataMessage1}>
-                          No saved looks.
+                          No saved styles.
                         </Text>
                         <TooltipBubble
-                          message="You haven't recreated any looks yet. Upload an outfit photo to recreate a look with shopping links."
+                          message="You haven't recreated any styles yet. Upload an outfit photo to recreate a look with shopping links."
                           position="top"
                         />
                       </View>
@@ -2284,9 +2284,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </CollapsibleSection>
               )}
 
-              {/* SHARED LOOKS SECTION */}
+              {/* SHARED STYLES SECTION */}
               <CollapsibleSection
-                title="Shared Looks"
+                title="Shared Styles"
                 open={sharedOpen}
                 onToggle={async newState => {
                   setSharedOpen(newState);
@@ -2300,7 +2300,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     <View
                       style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
                       <Text style={globalStyles.missingDataMessage1}>
-                        No shared looks.
+                        No shared styles.
                       </Text>
                       <TooltipBubble
                         message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
@@ -2733,7 +2733,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <TextInput
                     value={communityName}
                     onChangeText={setCommunityName}
-                    placeholder="Give your look a name..."
+                    placeholder="Give your style a name..."
                     placeholderTextColor={theme.colors.muted}
                     style={{
                       backgroundColor: theme.colors.surface3,
@@ -2760,7 +2760,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <TextInput
                     value={communityDescription}
                     onChangeText={setCommunityDescription}
-                    placeholder="Tell the story behind this look..."
+                    placeholder="Tell the story behind this style..."
                     placeholderTextColor={theme.colors.muted}
                     multiline
                     style={{

@@ -100,6 +100,7 @@ export default function PersonalInformationScreen({navigate}: any) {
   const [profession, setProfession] = useState('');
   const [bio, setBio] = useState('');
   const [fashionLevel, setFashionLevel] = useState('');
+  const [customStyleLevel, setCustomStyleLevel] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialData, setInitialData] = useState<any>({});
@@ -182,7 +183,23 @@ export default function PersonalInformationScreen({navigate}: any) {
         setLastName(data?.last_name || '');
         setProfession(data?.profession || '');
         setBio(data?.bio || '');
-        setFashionLevel(data?.fashion_level || '');
+        const predefinedLevels = [
+          'Beginner',
+          'Intermediate',
+          'Advanced',
+          'Expert',
+        ];
+        const savedLevel = data?.fashion_level || '';
+        if (predefinedLevels.includes(savedLevel)) {
+          setFashionLevel(savedLevel);
+          setCustomStyleLevel('');
+        } else if (savedLevel) {
+          setFashionLevel('Other');
+          setCustomStyleLevel(savedLevel);
+        } else {
+          setFashionLevel('');
+          setCustomStyleLevel('');
+        }
 
         if (data?.profile_picture && data.profile_picture.trim() !== '') {
           await safeSetProfile(
@@ -285,14 +302,16 @@ export default function PersonalInformationScreen({navigate}: any) {
     }
   };
 
+  const effectiveFashionLevel =
+    fashionLevel === 'Other' ? customStyleLevel : fashionLevel;
   const hasChanges = Boolean(
     (firstName && firstName !== initialData.first_name) ||
-      (lastName && lastName !== initialData.last_name) ||
-      (profession && profession !== initialData.profession) ||
-      bio !== (initialData.bio || '') ||
-      (fashionLevel && fashionLevel !== initialData.fashion_level) ||
-      stripVersion(profilePicture) !==
-        stripVersion(initialData.profile_picture),
+    (lastName && lastName !== initialData.last_name) ||
+    (profession && profession !== initialData.profession) ||
+    bio !== (initialData.bio || '') ||
+    (effectiveFashionLevel &&
+      effectiveFashionLevel !== initialData.fashion_level) ||
+    stripVersion(profilePicture) !== stripVersion(initialData.profile_picture),
   );
 
   const handleSave = async () => {
@@ -311,8 +330,11 @@ export default function PersonalInformationScreen({navigate}: any) {
       if (profession && profession !== initialData.profession)
         dto.profession = profession;
       if (bio !== (initialData.bio || '')) dto.bio = bio;
-      if (fashionLevel && fashionLevel !== initialData.fashion_level)
-        dto.fashion_level = fashionLevel;
+      if (
+        effectiveFashionLevel &&
+        effectiveFashionLevel !== initialData.fashion_level
+      )
+        dto.fashion_level = effectiveFashionLevel;
 
       if (Object.keys(dto).length === 0) {
         navigate('Settings');
@@ -484,39 +506,76 @@ export default function PersonalInformationScreen({navigate}: any) {
         </Text>
 
         <Text style={[styles.label, {color: colors.foreground}]}>
-          Fashion Expertise
+          Style Level
         </Text>
         <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
-          {['Beginner', 'Intermediate', 'Advanced', 'Expert'].map(level => (
-            <AppleTouchFeedback
-              key={level}
-              onPress={() => setFashionLevel(level)}
-              hapticStyle="impactLight"
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                borderRadius: 20,
-                backgroundColor:
-                  fashionLevel === level
-                    ? theme.colors.button1
-                    : theme.colors.surface3,
-                borderWidth: 1,
-                borderColor:
-                  fashionLevel === level
-                    ? theme.colors.button1
-                    : theme.colors.surfaceBorder,
-              }}>
-              <Text
+          {['Beginner', 'Intermediate', 'Advanced', 'Expert', 'Other'].map(
+            level => (
+              <AppleTouchFeedback
+                key={level}
+                onPress={() => {
+                  setFashionLevel(level);
+                  if (level !== 'Other') {
+                    setCustomStyleLevel('');
+                  }
+                }}
+                hapticStyle="impactLight"
                 style={{
-                  color:
-                    fashionLevel === level ? '#fff' : theme.colors.foreground,
-                  fontWeight: fashionLevel === level ? '600' : '400',
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 20,
+                  backgroundColor:
+                    fashionLevel === level
+                      ? theme.colors.button1
+                      : theme.colors.surface3,
+                  borderWidth: 1,
+                  borderColor:
+                    fashionLevel === level
+                      ? theme.colors.button1
+                      : theme.colors.surfaceBorder,
                 }}>
-                {level}
-              </Text>
-            </AppleTouchFeedback>
-          ))}
+                <Text
+                  style={{
+                    color:
+                      fashionLevel === level ? '#fff' : theme.colors.foreground,
+                    fontWeight: fashionLevel === level ? '600' : '400',
+                  }}>
+                  {level}
+                </Text>
+              </AppleTouchFeedback>
+            ),
+          )}
         </View>
+        {fashionLevel === 'Other' && (
+          <>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  color: colors.foreground,
+                  backgroundColor: colors.surface3,
+                  borderColor: colors.surfaceBorder,
+                  marginTop: 12,
+                },
+              ]}
+              placeholder="Enter your style level"
+              placeholderTextColor={colors.muted}
+              value={customStyleLevel}
+              onChangeText={setCustomStyleLevel}
+              maxLength={50}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                color: colors.muted,
+                textAlign: 'right',
+                marginTop: -6,
+                marginBottom: 10,
+              }}>
+              {customStyleLevel.length}/50
+            </Text>
+          </>
+        )}
       </View>
 
       <View style={styles.buttonRow}>

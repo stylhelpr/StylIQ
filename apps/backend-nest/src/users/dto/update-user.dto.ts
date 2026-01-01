@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, ValidateIf, MaxLength } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -28,6 +28,7 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(50)
   fashion_level?: string;
 
   @IsOptional()
