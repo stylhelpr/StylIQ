@@ -8,6 +8,7 @@ import {
   Linking,
   Image,
 } from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
 import {useAuth0} from 'react-native-auth0';
 import jwtDecode from 'jwt-decode';
@@ -16,11 +17,14 @@ import {moderateScale, fontScale} from '../utils/scale';
 import {tokens} from '../styles/tokens/tokens';
 import {API_BASE_URL} from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {saveAuthCredentials, getCredentials, clearCredentials, AUTH0_AUDIENCE} from '../utils/auth';
+import {
+  saveAuthCredentials,
+  getCredentials,
+  clearCredentials,
+  AUTH0_AUDIENCE,
+} from '../utils/auth';
 import {useSetUUID} from '../context/UUIDContext';
 import {triggerHaptic} from '../utils/haptics';
-
-const windowHeight = Dimensions.get('window').height;
 
 type Props = {
   email: string;
@@ -39,6 +43,11 @@ export default function LoginScreen({
   const globalStyles = useGlobalStyles();
   const {authorize} = useAuth0();
   const setUUID = useSetUUID();
+  const insets = useSafeAreaInsets();
+
+  // On phones without a home indicator (like iPhone SE), add extra padding
+  // to push buttons up into the visible black area
+  const bottomPadding = insets.bottom > 0 ? 30 : 7;
 
   const styles = StyleSheet.create({
     background: {
@@ -73,7 +82,7 @@ export default function LoginScreen({
       alignItems: 'center',
     },
     logoText: {
-      fontSize: 65,
+      fontSize: 64,
       fontWeight: '900',
       color: '#fff',
       textShadowColor: 'rgba(0,0,0,0.8)',
@@ -91,7 +100,7 @@ export default function LoginScreen({
     },
     buttonContainer: {
       position: 'absolute',
-      bottom: 30,
+      bottom: bottomPadding,
       gap: 30,
       display: 'flex',
       justifyContent: 'space-between',
@@ -129,7 +138,7 @@ export default function LoginScreen({
     },
     termsContainer: {
       position: 'absolute',
-      bottom: 160,
+      bottom: bottomPadding + 130,
       paddingHorizontal: 20,
     },
     termsText: {

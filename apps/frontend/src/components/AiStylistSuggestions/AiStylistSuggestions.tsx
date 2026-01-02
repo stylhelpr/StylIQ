@@ -715,14 +715,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   ? moderateScale(tokens.spacing.xsm)
                   : moderateScale(tokens.spacing.xsm),
                 paddingHorizontal: isMD
-                  ? moderateScale(tokens.spacing.xs)
-                  : moderateScale(tokens.spacing.xsm),
+                  ? moderateScale(tokens.spacing.md2)
+                  : moderateScale(tokens.spacing.md2),
                 borderRadius: tokens.borderRadius.sm,
                 backgroundColor: theme.colors.button1,
                 // borderWidth: theme.borderWidth.sm,
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: isMD ? 170 : 170,
+                // minWidth: isMD ? 190 : 190,
                 borderColor: theme.colors.surfaceBorder,
                 // shadowColor: '#000',
                 // shadowOffset: {width: 0, height: 4},
