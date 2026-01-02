@@ -466,6 +466,15 @@ export class CreateWardrobeItemDto {
   @IsOptional()
   @IsString()
   constraints?: string; // ✅ single string
+
+  // Processed image (background removed)
+  @IsOptional()
+  @IsString()
+  processed_image_url?: string;
+
+  @IsOptional()
+  @IsString()
+  processed_gsutil_uri?: string;
 }
 
 export type UpdateWardrobeItemDto = Partial<CreateWardrobeItemDto>;

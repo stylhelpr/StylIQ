@@ -264,9 +264,14 @@ export default function PersonalInformationScreen({navigate}: any) {
       // ✅ Blob conversion that works everywhere
       const blob = await uriToBlob(localUri);
 
+      // Include x-goog-content-length-range header required by signed URL
+      const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB - must match backend
       const uploadRes = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: {'Content-Type': type},
+        headers: {
+          'Content-Type': type,
+          'x-goog-content-length-range': `0,${MAX_UPLOAD_BYTES}`,
+        },
         body: blob,
       });
 

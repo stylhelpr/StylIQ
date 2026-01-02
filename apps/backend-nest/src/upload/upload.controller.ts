@@ -89,7 +89,11 @@ export class UploadController {
 
     const results: any[] = [];
     for (const item of items) {
-      const res = await this.uploadService.saveWardrobeItem({ ...item, user_id: userId });
+      // Skip background removal for batch uploads - only single uploads get processing
+      const res = await this.uploadService.saveWardrobeItem(
+        { ...item, user_id: userId },
+        { skipBackgroundRemoval: true },
+      );
       results.push(res);
     }
     return { count: results.length, results };

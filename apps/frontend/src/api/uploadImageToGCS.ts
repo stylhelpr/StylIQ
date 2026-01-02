@@ -38,9 +38,14 @@ export async function uploadImageToGCS({
   const blob = await fileResp.blob();
 
   // 3) PUT directly to GCS signed URL with exact same Content-Type
+  // Include x-goog-content-length-range header required by signed URL
+  const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB - must match backend
   const putRes = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: {'Content-Type': contentType},
+    headers: {
+      'Content-Type': contentType,
+      'x-goog-content-length-range': `0,${MAX_UPLOAD_BYTES}`,
+    },
     body: blob,
   });
 

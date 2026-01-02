@@ -2194,7 +2194,9 @@ ${lockedLines}
       );
     }
 
-    add('dominant_hex', dto.dominant_hex);
+    // Ensure dominant_hex fits VARCHAR(7) - take first 7 chars if longer
+    const safeHex = dto.dominant_hex?.slice(0, 7);
+    add('dominant_hex', safeHex);
     add('palette_hex', dto.palette_hex);
     add('color_family', dto.color_family);
     add('color_temp', this.normalizeColorTemp(dto.color_temp));
@@ -2292,6 +2294,10 @@ ${lockedLines}
 
     // System
     add('constraints', dto.constraints);
+
+    // Processed image (background removed) - only set for single item uploads
+    add('processed_image_url', dto.processed_image_url);
+    add('processed_gsutil_uri', dto.processed_gsutil_uri);
 
     const sql = `
       INSERT INTO wardrobe_items (${cols.join(', ')})

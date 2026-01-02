@@ -6,7 +6,8 @@ import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import { WardrobeService } from '../wardrobe/wardrobe.service';
-import { getSecret, secretExists } from '../config/secrets';
+import { VertexService } from '../vertex/vertex.service';
+import { getSecret, getSecretJson, secretExists } from '../config/secrets';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
@@ -20,9 +21,16 @@ const ALLOWED_IMAGE_TYPES = new Set([
 // Maximum upload size: 5MB (enforced via signed URL)
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
+type GCPServiceAccount = {
+  project_id: string;
+  client_email: string;
+  private_key: string;
+  [key: string]: any;
+};
+
 @Injectable()
 export class UploadService {
-  private storage = new Storage();
+  private storage: Storage;
 
   private get bucketName(): string {
     return secretExists('GCS_BUCKET_NAME')
@@ -30,7 +38,20 @@ export class UploadService {
       : 'stylhelpr-prod-bucket';
   }
 
-  constructor(private readonly wardrobe: WardrobeService) {}
+  constructor(
+    private readonly wardrobe: WardrobeService,
+    private readonly vertex: VertexService,
+  ) {
+    // Initialize storage with credentials from secret
+    const keyFile = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    this.storage = new Storage({
+      projectId: keyFile.project_id,
+      credentials: {
+        client_email: keyFile.client_email,
+        private_key: keyFile.private_key,
+      },
+    });
+  }
 
   /**
    * Create a v4 signed URL for uploading a single object to GCS.
@@ -83,8 +104,17 @@ export class UploadService {
    * After client uploads the image, call this to create the wardrobe item.
    * This delegates to WardrobeService.createItem so embeddings + Pinecone indexing
    * are handled in one place.
+   *
+   * @param body - Item data including image_url, object_key, name, main_category
+   * @param options.skipBackgroundRemoval - If true, skip background removal (used for batch uploads)
+   *
+   * IMPORTANT: Background removal runs ONLY for single wardrobe item uploads.
+   * Batch uploads must pass skipBackgroundRemoval: true.
    */
-  async saveWardrobeItem(body: any) {
+  async saveWardrobeItem(
+    body: any,
+    options?: { skipBackgroundRemoval?: boolean },
+  ) {
     const {
       user_id,
       image_url,
@@ -110,6 +140,27 @@ export class UploadService {
 
     const gsutil_uri = `gs://${this.bucketName}/${object_key}`;
 
+    // Background removal: process garment image (non-blocking on failure)
+    // This runs ONLY for single wardrobe item uploads (not batch)
+    let processed_image_url: string | null = null;
+    let processed_gsutil_uri: string | null = null;
+
+    if (!options?.skipBackgroundRemoval) {
+      try {
+        const result = await this.vertex.removeBackground(gsutil_uri, user_id);
+        if (result) {
+          processed_image_url = result.processedPublicUrl;
+          processed_gsutil_uri = result.processedGcsUri;
+        }
+      } catch (err: any) {
+        // Non-blocking: log error and continue with original image
+        console.error(
+          '[UploadService] Background removal failed, continuing with original:',
+          err?.message || err,
+        );
+      }
+    }
+
     // Build the exact CreateWardrobeItemDto expected by WardrobeService
     const payload = {
       user_id,
@@ -124,6 +175,9 @@ export class UploadService {
       size,
       brand,
       tags: Array.isArray(tags) ? tags : [],
+      // Processed image URLs (null if background removal failed or skipped)
+      processed_image_url,
+      processed_gsutil_uri,
       // pass-through of any supported enrichment fields safely:
       ...rest,
     };

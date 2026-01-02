@@ -4,8 +4,10 @@
 import { Injectable } from '@nestjs/common';
 import { PredictionServiceClient, helpers } from '@google-cloud/aiplatform';
 import { VertexAI, SchemaType } from '@google-cloud/vertexai';
+import { Storage } from '@google-cloud/storage';
 import { withBackoff } from './vertex.util';
-import { getSecretJson } from '../config/secrets';
+import { getSecretJson, getSecret, secretExists } from '../config/secrets';
+import { v4 as uuidv4 } from 'uuid';
 
 const { toValue } = helpers;
 
@@ -546,6 +548,162 @@ export class VertexService {
     );
 
     return result.response;
+  }
+
+  // -------------------
+  // Background Removal (Imagen 3 via Predict API)
+  // Used ONLY for single wardrobe item uploads
+  // -------------------
+  private imagenModel = 'imagen-3.0-capability-001';
+
+  // Lazy-initialized storage client with credentials
+  private _storage: Storage | null = null;
+  private getStorage(): Storage {
+    if (!this._storage) {
+      const keyFile = getSecretJson<GCPServiceAccount>(
+        'GCP_SERVICE_ACCOUNT_JSON',
+      );
+      this._storage = new Storage({
+        projectId: keyFile.project_id,
+        credentials: {
+          client_email: keyFile.client_email,
+          private_key: keyFile.private_key,
+        },
+      });
+    }
+    return this._storage;
+  }
+
+  private get bucketName(): string {
+    return secretExists('GCS_BUCKET_NAME')
+      ? getSecret('GCS_BUCKET_NAME')
+      : 'stylhelpr-prod-bucket';
+  }
+
+  /**
+   * Remove background from a garment image using Imagen 3.
+   * Uses minimal, prompt-driven approach for stability.
+   *
+   * @param gcsUri - gs:// URI of the original image
+   * @param userId - User ID for organizing processed images
+   * @returns Processed image URLs or null on failure (non-blocking)
+   */
+  async removeBackground(
+    gcsUri: string,
+    userId: string,
+  ): Promise<{ processedGcsUri: string; processedPublicUrl: string } | null> {
+    if (!gcsUri?.startsWith('gs://')) {
+      console.error('[BackgroundRemoval] Invalid GCS URI:', gcsUri);
+      return null;
+    }
+
+    try {
+      // 1. Download original image from GCS
+      const storage = this.getStorage();
+      const bucket = storage.bucket(this.bucketName);
+      const objectPath = gcsUri.replace(`gs://${this.bucketName}/`, '');
+      const file = bucket.file(objectPath);
+
+      const [imageBuffer] = await file.download();
+      const base64Image = imageBuffer.toString('base64');
+
+      // 2. Call Imagen 3 with EDIT_MODE_BGSWAP and MASK_MODE_BACKGROUND
+      // This uses automatic background detection to remove/replace background
+      const endpoint = `projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.imagenModel}`;
+
+      const [response]: any = await this.withSemaphore(() =>
+        withBackoff(
+          () =>
+            this.client.predict({
+              endpoint,
+              instances: [
+                toValue({
+                  prompt: 'transparent background, no background, isolated garment on transparent',
+                  referenceImages: [
+                    {
+                      referenceType: 'REFERENCE_TYPE_RAW',
+                      referenceId: 1,
+                      referenceImage: {
+                        bytesBase64Encoded: base64Image,
+                      },
+                    },
+                    {
+                      referenceType: 'REFERENCE_TYPE_MASK',
+                      referenceId: 2,
+                      maskImageConfig: {
+                        maskMode: 'MASK_MODE_BACKGROUND',
+                        dilation: 0.03,
+                      },
+                    },
+                  ],
+                }) as any,
+              ],
+              parameters: toValue({
+                editMode: 'EDIT_MODE_BGSWAP',
+                editConfig: {
+                  baseSteps: 75,
+                },
+                sampleCount: 1,
+                outputOptions: {
+                  mimeType: 'image/png',
+                },
+              }) as any,
+            }),
+          'imagen:removeBackground',
+        ),
+      );
+
+      // 3. Extract the processed image from response
+      const predictions = response?.predictions;
+      if (!predictions || predictions.length === 0) {
+        console.error('[BackgroundRemoval] No predictions returned:', JSON.stringify(response, null, 2));
+        return null;
+      }
+
+      // Parse the response - predictions[0] contains bytesBase64Encoded
+      const prediction = predictions[0];
+      const processedBase64 =
+        prediction?.structValue?.fields?.bytesBase64Encoded?.stringValue;
+
+      if (!processedBase64) {
+        console.error('[BackgroundRemoval] No image data in response. Full prediction:', JSON.stringify(prediction, null, 2));
+        return null;
+      }
+
+      // 4. Upload processed image to GCS
+      const processedBuffer = Buffer.from(processedBase64, 'base64');
+      const fileId = uuidv4();
+      const originalFilename = objectPath.split('/').pop() || 'image';
+      const baseName = originalFilename.replace(/\.[^.]+$/, '');
+      const processedObjectKey = `processed/${userId}/transparent/${fileId}-${baseName}.png`;
+
+      const processedFile = bucket.file(processedObjectKey);
+      await processedFile.save(processedBuffer, {
+        contentType: 'image/png',
+        metadata: {
+          originalGcsUri: gcsUri,
+          processedAt: new Date().toISOString(),
+        },
+      });
+
+      const processedGcsUri = `gs://${this.bucketName}/${processedObjectKey}`;
+      const processedPublicUrl = `https://storage.googleapis.com/${this.bucketName}/${processedObjectKey}`;
+
+      console.log('[BackgroundRemoval] Success:', {
+        original: gcsUri,
+        processed: processedGcsUri,
+      });
+
+      return { processedGcsUri, processedPublicUrl };
+    } catch (error: any) {
+      // Non-blocking: log error and return null
+      console.error(
+        '[BackgroundRemoval] Failed for',
+        gcsUri,
+        error?.message || error,
+      );
+      return null;
+    }
   }
 }
 

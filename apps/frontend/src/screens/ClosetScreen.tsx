@@ -91,6 +91,7 @@ type WardrobeItem = {
   id: string;
   image_url: string;
   thumbnailUrl?: string;
+  processed_image_url?: string; // Background-removed transparent image
   name: string;
   color?: string;
   main_category?: MainCategory | string;
@@ -551,7 +552,9 @@ export default function ClosetScreen({navigate}: Props) {
       }
 
       const item = listItem.item!;
-      const imageUri = item.thumbnailUrl ?? item.image_url;
+      // Fallback: processed (transparent) > thumbnail > original
+      const imageUri =
+        item.processed_image_url ?? item.thumbnailUrl ?? item.image_url;
 
       return (
         <View style={styles.itemContainer}>
