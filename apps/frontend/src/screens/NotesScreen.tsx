@@ -25,6 +25,7 @@ import {
   useUpdateNote,
   SavedNote,
 } from '../hooks/useSavedNotes';
+import {useExportNotes} from '../hooks/useExportNotes';
 import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../context/ThemeContext';
@@ -327,6 +328,7 @@ export default function NotesScreen({navigate}: Props) {
   const {data: notes = [], isLoading, refetch} = useSavedNotes(userId || '');
   const deleteNoteMutation = useDeleteNote();
   const updateNoteMutation = useUpdateNote();
+  const {exportAllNotes} = useExportNotes();
 
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -525,21 +527,29 @@ export default function NotesScreen({navigate}: Props) {
     viewToggle: {
       width: 40,
       height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface,
+      borderRadius: 8,
+      backgroundColor: theme.colors.surface3,
       justifyContent: 'center',
       alignItems: 'center',
     },
     sortToggle: {
       width: 40,
       height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface3,
+      borderRadius: 8,
+      backgroundColor: theme.colors.surface,
       justifyContent: 'center',
       alignItems: 'center',
     },
     sortToggleActive: {
       backgroundColor: theme.colors.button1 + '20',
+    },
+    exportBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      backgroundColor: 'blue',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     searchContainer: {
       marginBottom: 20,
@@ -1371,6 +1381,17 @@ export default function NotesScreen({navigate}: Props) {
           </AppleTouchFeedback>
           <Text style={styles.title}>My Notes</Text>
           <View style={styles.headerActions}>
+            {notes.length > 0 && (
+              <Pressable
+                style={styles.exportBtn}
+                onPress={() => exportAllNotes(notes)}>
+                <MaterialIcons
+                  name="ios-share"
+                  size={20}
+                  color={colors.foreground}
+                />
+              </Pressable>
+            )}
             <Pressable
               style={[
                 styles.sortToggle,

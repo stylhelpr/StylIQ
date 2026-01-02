@@ -106,6 +106,8 @@ export function usePostById(postId: string, currentUserId?: string) {
 // ==================== LIKES ====================
 
 export function useLikePost() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({
       postId,
@@ -119,6 +121,9 @@ export function useLikePost() {
       } else {
         await apiClient.post(`${BASE}/posts/${postId}/like`, {});
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['community-posts']});
     },
   });
 }

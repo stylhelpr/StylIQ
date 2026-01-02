@@ -24,6 +24,7 @@ import {useUUID} from '../context/UUIDContext';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {uploadImageToGCS} from '../api/uploadImageToGCS';
 import {useUpdateNote, useDeleteNote, SavedNote} from '../hooks/useSavedNotes';
+import {useExportNotes} from '../hooks/useExportNotes';
 
 type Props = {
   navigate: (screen: any, params?: any) => void;
@@ -39,6 +40,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
   const note = params?.note;
   const updateNoteMutation = useUpdateNote();
   const deleteNoteMutation = useDeleteNote();
+  const {exportNote} = useExportNotes();
 
   const [title, setTitle] = useState(note?.title || '');
   const [url, setUrl] = useState(note?.url || '');
@@ -353,6 +355,14 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       color: theme.colors.primary,
       fontWeight: '500',
     },
+    exportBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      backgroundColor: 'blue',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     deleteBtn: {
       backgroundColor: theme.colors.surface,
       flexDirection: 'row',
@@ -360,13 +370,13 @@ export default function NoteDetailScreen({navigate, params}: Props) {
       alignItems: 'center',
       paddingHorizontal: 16,
       paddingVertical: 9,
-      borderRadius: 20,
+      borderRadius: 8,
       overflow: 'hidden',
     },
     saveBtn: {
       paddingHorizontal: 20,
       paddingVertical: 10,
-      borderRadius: 20,
+      borderRadius: 8,
       overflow: 'hidden',
     },
     saveBtnActive: {
@@ -582,6 +592,15 @@ export default function NoteDetailScreen({navigate, params}: Props) {
               <Text style={styles.backText}>Notes</Text>
             </Pressable>
             <View style={styles.headerRight}>
+              <Pressable
+                style={styles.exportBtn}
+                onPress={() => note && exportNote(note)}>
+                <MaterialIcons
+                  name="ios-share"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+              </Pressable>
               <Animated.View style={{transform: [{scale: deleteBtnScaleAnim}]}}>
                 <Pressable
                   style={styles.deleteBtn}
