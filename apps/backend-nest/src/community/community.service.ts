@@ -825,23 +825,28 @@ export class CommunityService implements OnModuleInit {
       `SELECT 1 FROM post_likes WHERE user_id = $1 AND post_id = $2`,
       [userId, postId],
     );
-    if (existing.rows.length > 0) {
-      return { message: 'Already liked' };
+    const alreadyLiked = existing.rows.length > 0;
+
+    if (!alreadyLiked) {
+      await pool.query(
+        `INSERT INTO post_likes (user_id, post_id)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id, post_id) DO NOTHING`,
+        [userId, postId],
+      );
     }
 
-    await pool.query(
-      `INSERT INTO post_likes (user_id, post_id)
-       VALUES ($1, $2)
-       ON CONFLICT (user_id, post_id) DO NOTHING`,
-      [userId, postId],
-    );
-
+    // Always sync likes_count with actual count
     await pool.query(
       `UPDATE community_posts
        SET likes_count = (SELECT COUNT(*) FROM post_likes WHERE post_id = $1)
        WHERE id = $1`,
       [postId],
     );
+
+    if (alreadyLiked) {
+      return { message: 'Already liked' };
+    }
 
     // Send push notification to post owner (don't notify yourself)
     try {

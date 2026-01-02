@@ -450,6 +450,40 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     [userLikedComments],
   );
 
+  // Get displayed like count for a post, accounting for local state changes
+  const getPostLikeCount = useCallback(
+    (post: CommunityPost) => {
+      const originallyLiked = post.is_liked_by_me;
+      const currentlyLiked = isPostLiked(post);
+      // If state changed, adjust the count
+      if (currentlyLiked && !originallyLiked) {
+        return post.likes_count + 1;
+      }
+      if (!currentlyLiked && originallyLiked) {
+        return Math.max(0, post.likes_count - 1);
+      }
+      return post.likes_count;
+    },
+    [isPostLiked],
+  );
+
+  // Get displayed like count for a comment, accounting for local state changes
+  const getCommentLikeCount = useCallback(
+    (comment: PostComment) => {
+      const originallyLiked = comment.is_liked_by_me;
+      const currentlyLiked = isCommentLiked(comment);
+      // If state changed, adjust the count
+      if (currentlyLiked && !originallyLiked) {
+        return comment.likes_count + 1;
+      }
+      if (!currentlyLiked && originallyLiked) {
+        return Math.max(0, comment.likes_count - 1);
+      }
+      return comment.likes_count;
+    },
+    [isCommentLiked],
+  );
+
   // Toggle like - store user's intent locally, fire API in background
   const toggleLike = useCallback(
     (post: CommunityPost) => {
@@ -1584,7 +1618,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
     const heroUserId = heroPost?.user_id;
     const heroTags = heroPost?.tags || mockPost.tags;
-    const heroLikes = heroPost?.likes_count ?? mockPost.likes;
+    const heroLikes = heroPost ? getPostLikeCount(heroPost) : mockPost.likes;
     const heroViews = heroPost?.views_count ?? mockPost.views ?? 0;
 
     return (
@@ -1755,6 +1789,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     handleTagTap,
     navigate,
     openPostDetailModal,
+    getPostLikeCount,
   ]);
 
   // Render API post card (works with CommunityPost type)
@@ -1919,7 +1954,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         color={liked ? '#FF4D6D' : '#fff'}
                       />
                       <Text style={styles.likeCount}>
-                        {liked ? post.likes_count + 1 : post.likes_count}
+                        {getPostLikeCount(post)}
                       </Text>
                     </AppleTouchFeedback>
                     <View style={styles.likeButton}>
@@ -1960,6 +1995,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     [
       isPostLiked,
+      getPostLikeCount,
       theme.colors.background,
       theme.colors.foreground,
       styles,
@@ -2133,6 +2169,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           keyExtractor={keyExtractor}
           getItemType={getItemType}
           overrideItemLayout={overrideItemLayout}
+          extraData={userLikedPosts}
           numColumns={NUM_COLUMNS}
           showsVerticalScrollIndicator={false}
           drawDistance={CARD_HEIGHT * 2}
@@ -2325,11 +2362,11 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                           }
                         />
                       </Pressable>
-                      {item.likes_count > 0 && (
+                      {getCommentLikeCount(item) > 0 && (
                         <Text style={styles.commentLikesCount}>
-                          {item.likes_count > 999
-                            ? `${(item.likes_count / 1000).toFixed(0)}K`
-                            : item.likes_count}
+                          {getCommentLikeCount(item) > 999
+                            ? `${(getCommentLikeCount(item) / 1000).toFixed(0)}K`
+                            : getCommentLikeCount(item)}
                         </Text>
                       )}
                     </View>
@@ -3061,9 +3098,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                           }
                         />
                         <Text style={styles.postDetailActionText}>
-                          {isPostLiked(detailPost)
-                            ? detailPost.likes_count + 1
-                            : detailPost.likes_count}
+                          {getPostLikeCount(detailPost)}
                         </Text>
                       </Pressable>
                       <Pressable

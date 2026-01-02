@@ -117,13 +117,18 @@ export function useLikePost() {
       isLiked: boolean;
     }) => {
       if (isLiked) {
-        await apiClient.delete(`${BASE}/posts/${postId}/like`);
+        const res = await apiClient.delete(`${BASE}/posts/${postId}/like`);
+        console.log('👎 Unlike response:', res.data);
       } else {
-        await apiClient.post(`${BASE}/posts/${postId}/like`, {});
+        const res = await apiClient.post(`${BASE}/posts/${postId}/like`, {});
+        console.log('👍 Like response:', res.data);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
+    },
+    onError: (error: any) => {
+      console.error('❌ Like mutation failed:', error?.response?.data || error?.message || error);
     },
   });
 }
