@@ -73,6 +73,18 @@ PODS:
     - hermes-engine/Pre-built (= 0.82.1)
   - hermes-engine/Pre-built (0.82.1)
   - JWTDecode (3.2.0)
+  - libwebp (1.5.0):
+    - libwebp/demux (= 1.5.0)
+    - libwebp/mux (= 1.5.0)
+    - libwebp/sharpyuv (= 1.5.0)
+    - libwebp/webp (= 1.5.0)
+  - libwebp/demux (1.5.0):
+    - libwebp/webp
+  - libwebp/mux (1.5.0):
+    - libwebp/demux
+  - libwebp/sharpyuv (1.5.0)
+  - libwebp/webp (1.5.0):
+    - libwebp/sharpyuv
   - LiquidGlass (0.5.0):
     - boost
     - DoubleConversion
@@ -3337,6 +3349,10 @@ PODS:
     - Yoga
   - RNDeviceInfo (14.1.1):
     - React-Core
+  - RNFastImage (8.6.3):
+    - React-Core
+    - SDWebImage (~> 5.11.1)
+    - SDWebImageWebPCoder (~> 0.8.4)
   - RNFBApp (21.14.0):
     - Firebase/CoreOnly (= 11.11.0)
     - React-Core
@@ -3696,6 +3712,12 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - SDWebImage (5.11.1):
+    - SDWebImage/Core (= 5.11.1)
+  - SDWebImage/Core (5.11.1)
+  - SDWebImageWebPCoder (0.8.5):
+    - libwebp (~> 1.0)
+    - SDWebImage/Core (~> 5.10)
   - SimpleKeychain (1.2.0)
   - SocketRocket (0.7.1)
   - TextToSpeech (4.1.1):
@@ -3823,6 +3845,7 @@ DEPENDENCIES:
   - "RNCPushNotificationIOS (from `../node_modules/@react-native-community/push-notification-ios`)"
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNDeviceInfo (from `../node_modules/react-native-device-info`)
+  - RNFastImage (from `../node_modules/react-native-fast-image`)
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBMessaging (from `../node_modules/@react-native-firebase/messaging`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
@@ -3849,10 +3872,13 @@ SPEC REPOS:
     - GoogleDataTransport
     - GoogleUtilities
     - JWTDecode
+    - libwebp
     - MMKV
     - MMKVCore
     - nanopb
     - PromisesObjC
+    - SDWebImage
+    - SDWebImageWebPCoder
     - SimpleKeychain
     - SocketRocket
 
@@ -4072,6 +4098,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/datetimepicker"
   RNDeviceInfo:
     :path: "../node_modules/react-native-device-info"
+  RNFastImage:
+    :path: "../node_modules/react-native-fast-image"
   RNFBApp:
     :path: "../node_modules/@react-native-firebase/app"
   RNFBMessaging:
@@ -4117,6 +4145,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   hermes-engine: 273e30e7fb618279934b0b95ffab60ecedb7acf5
   JWTDecode: 7dae24cb9bf9b608eae61e5081029ec169bb5527
+  libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   LiquidGlass: 455ec66013af8d97e1a37c926375364adb39dd03
   MMKV: c953dbaac0da392c24b005e763c03ce2638b4ed7
   MMKVCore: d078dce7d6586a888b2c2ef5343b6242678e3ee8
@@ -4219,6 +4248,7 @@ SPEC CHECKSUMS:
   RNCPushNotificationIOS: 6c4ca3388c7434e4a662b92e4dfeeee858e6f440
   RNDateTimePicker: 8247b87ac4e5225c54de856ff29b7f51538b80ad
   RNDeviceInfo: bcce8752b5043a623fe3c26789679b473f705d3c
+  RNFastImage: 462a183c4b0b6b26fdfd639e1ed6ba37536c3b87
   RNFBApp: 4105e54d9ca4a1c10893a032268470f670181110
   RNFBMessaging: 6857871d9dff8f26b0c325fc7d97ba69cb77d213
   RNGestureHandler: 67501c6d447027581aa1d8e5a7a3ea5a7f0a89ff
@@ -4228,6 +4258,8 @@ SPEC CHECKSUMS:
   RNSVG: 6765c72b6cc74f8e475fabcdc3040b934c786d9d
   RNVectorIcons: e355dd0998d6b9020e560922a66614eb9636501b
   RNWorklets: ab618bf7d1c7fd2cb793b9f0f39c3e29274b3ebf
+  SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
+  SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d
   SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   TextToSpeech: 89b239221ec378d213af422d14789a729705360b
