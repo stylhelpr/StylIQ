@@ -15,8 +15,6 @@ import {
   Dimensions,
   PanResponder,
   TouchableOpacity,
-  ScrollView,
-  Image,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -31,8 +29,10 @@ import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {moderateScale} from '../../utils/scale';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {TooltipBubble} from '../ToolTip/ToolTip1';
+import {FlashList} from '@shopify/flash-list';
+import FastImage from 'react-native-fast-image';
 
-const {height} = Dimensions.get('window');
+const {height, width} = Dimensions.get('window');
 
 interface SavedProduct {
   id: string;
@@ -72,21 +72,17 @@ export default function SavedRecommendationsModal({
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
 
-  // Track locally removed products to prevent reappearing from stale parent state
   const [locallyRemovedIds, setLocallyRemovedIds] = useState<Set<string>>(
     new Set(),
   );
 
-  // TanStack Query mutation for unsaving products
   const unsaveProductMutation = useUnsaveProduct();
 
-  // Filter out locally removed products
   const filteredProducts = useMemo(
     () => savedProducts.filter(p => !locallyRemovedIds.has(p.product_id)),
     [savedProducts, locallyRemovedIds],
   );
 
-  // Reset locally removed IDs when modal closes
   useLayoutEffect(() => {
     if (!visible) {
       setLocallyRemovedIds(new Set());
@@ -99,10 +95,13 @@ export default function SavedRecommendationsModal({
       backgroundColor: 'transparent',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      // paddingTop: tokens.spacing.sm,
     },
     backdrop: {
-      ...StyleSheet.absoluteFill,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       backgroundColor: 'rgba(0, 0, 0, 1)',
     },
     panel: {
@@ -131,19 +130,17 @@ export default function SavedRecommendationsModal({
     },
     gestureZone: {
       position: 'absolute',
-      top: 0, // ⬅️ extend from top of modal
-      height: 45, // ⬅️ tall gesture zone for easy swiping
+      top: 0,
+      height: 45,
       width: '100%',
-      zIndex: 99999, // ⬅️ lower than header
+      zIndex: 99999,
       backgroundColor: 'transparent',
-      // backgroundColor: 'red',
     },
     header: {
       marginTop: 16,
       alignItems: 'center',
       flexDirection: 'row',
       justifyContent: 'flex-start',
-      // paddingHorizontal: 16,
       borderBottomColor: 'rgba(255,255,255,0.08)',
       borderBottomWidth: StyleSheet.hairlineWidth,
       backgroundColor: theme.colors.background,
@@ -157,22 +154,10 @@ export default function SavedRecommendationsModal({
       textAlign: 'left',
       textTransform: 'uppercase',
     },
-    countBadge: {
-      backgroundColor: theme.colors.primary,
-      borderRadius: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-    },
-    countText: {
-      color: '#fff',
-      fontWeight: '600',
-      fontSize: 13,
-    },
   });
 
   useLayoutEffect(() => {
     if (visible) {
-      // Start off-screen and animate in
       translateY.setValue(height);
       Animated.spring(translateY, {
         toValue: 0,
@@ -181,25 +166,28 @@ export default function SavedRecommendationsModal({
         friction: 11,
       }).start();
     }
-  }, [visible]);
+  }, [visible, translateY]);
 
-  const handleClose = (afterClose?: () => void) => {
-    Animated.timing(translateY, {
-      toValue: height,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(({finished}) => {
-      if (finished) {
-        onClose();
-        setTimeout(() => {
-          translateY.setValue(0);
-          afterClose?.();
-        }, 100);
-      }
-    });
-  };
+  const handleClose = useCallback(
+    (afterClose?: () => void) => {
+      Animated.timing(translateY, {
+        toValue: height,
+        duration: 220,
+        useNativeDriver: true,
+      }).start(({finished}) => {
+        if (finished) {
+          onClose();
+          setTimeout(() => {
+            translateY.setValue(0);
+            afterClose?.();
+          }, 100);
+        }
+      });
+    },
+    [translateY, onClose],
+  );
 
-  const handleClosePress = () => handleClose();
+  const handleClosePress = useCallback(() => handleClose(), [handleClose]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -219,6 +207,35 @@ export default function SavedRecommendationsModal({
       },
     }),
   ).current;
+
+  const handleUnsave = useCallback(
+    (productId: string) => {
+      if (!userId) return;
+
+      ReactNativeHapticFeedback.trigger('impactLight', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+
+      setLocallyRemovedIds(prev => new Set(prev).add(productId));
+      onUnsave?.(productId);
+
+      unsaveProductMutation.mutate(
+        {userId, productId},
+        {
+          onError: error => {
+            console.error('Failed to unsave product:', error);
+            setLocallyRemovedIds(prev => {
+              const next = new Set(prev);
+              next.delete(productId);
+              return next;
+            });
+          },
+        },
+      );
+    },
+    [userId, onUnsave, unsaveProductMutation],
+  );
 
   const confirmUnsave = useCallback(
     (productId: string, productTitle?: string) => {
@@ -243,40 +260,7 @@ export default function SavedRecommendationsModal({
         ],
       );
     },
-    [],
-  );
-
-  const handleUnsave = useCallback(
-    (productId: string) => {
-      if (!userId) return;
-
-      ReactNativeHapticFeedback.trigger('impactLight', {
-        enableVibrateFallback: true,
-        ignoreAndroidSystemSettings: false,
-      });
-
-      // Immediately hide from local display (prevents reappearing from stale parent state)
-      setLocallyRemovedIds(prev => new Set(prev).add(productId));
-
-      // Also notify parent
-      onUnsave?.(productId);
-
-      unsaveProductMutation.mutate(
-        {userId, productId},
-        {
-          onError: error => {
-            console.error('Failed to unsave product:', error);
-            // Rollback: remove from locally removed set so it reappears
-            setLocallyRemovedIds(prev => {
-              const next = new Set(prev);
-              next.delete(productId);
-              return next;
-            });
-          },
-        },
-      );
-    },
-    [userId, onUnsave, unsaveProductMutation],
+    [handleUnsave],
   );
 
   const handleShop = useCallback(
@@ -286,11 +270,206 @@ export default function SavedRecommendationsModal({
         ignoreAndroidSystemSettings: false,
       });
       if (link && onOpenItem) {
-        // Open the reader on top - don't close this modal
         onOpenItem(link, title);
       }
     },
     [onOpenItem],
+  );
+
+  const numColumns = 2;
+  const itemWidth = (width - moderateScale(tokens.spacing.md) * 2 - 4) / 2;
+
+  const keyExtractor = useCallback(
+    (item: SavedProduct, index: number) =>
+      item.id?.toString() || `product-${index}`,
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({item: product}: {item: SavedProduct}) => {
+      const imageUri = product.image_url;
+
+      return (
+        <View
+          style={{
+            width: itemWidth,
+            marginBottom: tokens.spacing.nano,
+            marginHorizontal: 1,
+            backgroundColor: theme.colors.surface,
+            overflow: 'hidden',
+          }}>
+          <View
+            style={{
+              width: '100%',
+              aspectRatio: 3 / 4,
+              backgroundColor: theme.colors.surface,
+            }}>
+            {imageUri ? (
+              <FastImage
+                source={{
+                  uri: imageUri,
+                  priority: FastImage.priority.normal,
+                  cache: FastImage.cacheControl.immutable,
+                }}
+                style={{width: '100%', height: '100%'}}
+                resizeMode={FastImage.resizeMode.cover}
+              />
+            ) : (
+              <View
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: theme.colors.surface2,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                <MaterialIcons
+                  name="image"
+                  size={32}
+                  color={theme.colors.muted}
+                />
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                borderRadius: 16,
+                padding: 6,
+              }}
+              onPress={() => confirmUnsave(product.product_id, product.title)}
+              disabled={
+                unsaveProductMutation.isPending &&
+                unsaveProductMutation.variables?.productId === product.product_id
+              }>
+              {unsaveProductMutation.isPending &&
+              unsaveProductMutation.variables?.productId ===
+                product.product_id ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <MaterialIcons name="favorite" size={18} color="#ff4d6d" />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPressIn={() =>
+                ReactNativeHapticFeedback.trigger('impactLight', {
+                  enableVibrateFallback: true,
+                  ignoreAndroidSystemSettings: false,
+                })
+              }
+              onPress={() => handleShop(product.link, product.title)}
+              style={{
+                position: 'absolute',
+                bottom: 12,
+                left: 8,
+                right: 8,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                borderRadius: tokens.borderRadius.sm,
+                paddingVertical: 10,
+                borderColor: theme.colors.foreground,
+                borderWidth: tokens.borderWidth.hairline,
+              }}>
+              <Text
+                style={{
+                  textAlign: 'center',
+                  color: '#fff',
+                  fontWeight: '500',
+                  fontSize: 12,
+                }}>
+                Shop Now
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {product.brand && (
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                paddingHorizontal: 10,
+                paddingTop: 8,
+              }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontWeight: '700',
+                  fontSize: 12,
+                }}>
+                {product.brand}
+              </Text>
+            </View>
+          )}
+
+          <Text
+            style={{
+              paddingHorizontal: 12,
+              marginTop: 8,
+              color: theme.colors.foreground,
+              fontWeight: '400',
+              fontSize: 13,
+            }}
+            numberOfLines={2}>
+            {product.title}
+          </Text>
+
+          <Text
+            style={{
+              paddingHorizontal: 12,
+              marginTop: 4,
+              marginBottom: 10,
+              color: theme.colors.primary,
+              fontWeight: '600',
+              fontSize: 14,
+            }}>
+            {product.price_raw || (product.price ? `$${product.price}` : '')}
+          </Text>
+        </View>
+      );
+    },
+    [
+      theme,
+      itemWidth,
+      confirmUnsave,
+      handleShop,
+      unsaveProductMutation.isPending,
+      unsaveProductMutation.variables?.productId,
+    ],
+  );
+
+  const ListEmptyComponent = useCallback(
+    () => (
+      <View
+        style={{
+          width: '100%',
+          alignItems: 'center',
+          paddingTop: tokens.spacing.xl,
+        }}>
+        <MaterialIcons
+          name="favorite-border"
+          size={48}
+          color={theme.colors.muted}
+        />
+        <Text
+          style={[
+            globalStyles.missingDataMessage1,
+            {marginTop: tokens.spacing.md},
+          ]}>
+          No Saved Recommendations
+        </Text>
+        <View style={{marginTop: tokens.spacing.sm}}>
+          <TooltipBubble
+            message="Tap the heart on any recommendation to save it here."
+            position="bottom"
+          />
+        </View>
+      </View>
+    ),
+    [theme, globalStyles],
   );
 
   return (
@@ -312,7 +491,6 @@ export default function SavedRecommendationsModal({
               marginTop: insets.top,
             },
           ]}>
-          {/* Close button */}
           <TouchableOpacity
             style={styles.closeIcon}
             onPress={handleClosePress}
@@ -327,189 +505,24 @@ export default function SavedRecommendationsModal({
             style={styles.gestureZone}
           />
 
-          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Saved Recommendations</Text>
           </View>
 
-          {/* Content */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingTop: tokens.spacing.md,
-              paddingBottom: insets.bottom + 40,
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-            }}>
-            {/* Empty state */}
-            {filteredProducts.length === 0 && (
-              <View
-                style={{
-                  width: '100%',
-                  alignItems: 'center',
-                  paddingTop: tokens.spacing.xl,
-                }}>
-                <MaterialIcons
-                  name="favorite-border"
-                  size={48}
-                  color={theme.colors.muted}
-                />
-                <Text
-                  style={[
-                    globalStyles.missingDataMessage1,
-                    {marginTop: tokens.spacing.md},
-                  ]}>
-                  No Saved Recommendations
-                </Text>
-                <View style={{marginTop: tokens.spacing.sm}}>
-                  <TooltipBubble
-                    message="Tap the heart on any recommendation to save it here."
-                    position="bottom"
-                  />
-                </View>
-              </View>
-            )}
-
-            {/* Product Grid */}
-            {filteredProducts.map((product, index) => (
-              <Animatable.View
-                key={product.id || index}
-                animation="fadeInUp"
-                delay={index * 60}
-                useNativeDriver
-                style={{
-                  width: '49.5%',
-                  marginBottom: tokens.spacing.nano,
-                  backgroundColor: theme.colors.surface,
-                  overflow: 'hidden',
-                }}>
-                {/* Product Image */}
-                <View
-                  style={{
-                    width: '100%',
-                    aspectRatio: 3 / 4,
-                    backgroundColor: theme.colors.surface,
-                  }}>
-                  <Image
-                    source={{uri: product.image_url}}
-                    style={{width: '100%', height: '100%'}}
-                    resizeMode="cover"
-                  />
-
-                  {/* Heart overlay (to unsave) */}
-                  <TouchableOpacity
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      backgroundColor: 'rgba(0,0,0,0.5)',
-                      borderRadius: 16,
-                      padding: 6,
-                    }}
-                    onPress={() =>
-                      confirmUnsave(product.product_id, product.title)
-                    }
-                    disabled={
-                      unsaveProductMutation.isPending &&
-                      unsaveProductMutation.variables?.productId ===
-                        product.product_id
-                    }>
-                    {unsaveProductMutation.isPending &&
-                    unsaveProductMutation.variables?.productId ===
-                      product.product_id ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <MaterialIcons
-                        name="favorite"
-                        size={18}
-                        color="#ff4d6d"
-                      />
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Shop Now button overlay - transparent on image above site name */}
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPressIn={() =>
-                      ReactNativeHapticFeedback.trigger('impactLight', {
-                        enableVibrateFallback: true,
-                        ignoreAndroidSystemSettings: false,
-                      })
-                    }
-                    onPress={() => handleShop(product.link, product.title)}
-                    style={{
-                      position: 'absolute',
-                      bottom: 12,
-                      left: 8,
-                      right: 8,
-                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                      borderRadius: tokens.borderRadius.sm,
-                      paddingVertical: 10,
-                      borderColor: theme.colors.foreground,
-                      borderWidth: tokens.borderWidth.hairline,
-                    }}>
-                    <Text
-                      style={{
-                        textAlign: 'center',
-                        color: '#fff',
-                        fontWeight: '500',
-                        fontSize: 12,
-                      }}>
-                      Shop Now
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Brand/Source tag */}
-                {product.brand && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      paddingHorizontal: 10,
-                      paddingTop: 8,
-                    }}>
-                    <Text
-                      style={{
-                        color: theme.colors.foreground,
-                        fontWeight: '700',
-                        fontSize: 12,
-                      }}>
-                      {product.brand}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Product Title */}
-                <Text
-                  style={{
-                    paddingHorizontal: 12,
-                    marginTop: 8,
-                    color: theme.colors.foreground,
-                    fontWeight: '400',
-                    fontSize: 13,
-                  }}
-                  numberOfLines={2}>
-                  {product.title}
-                </Text>
-
-                {/* Price */}
-                <Text
-                  style={{
-                    paddingHorizontal: 12,
-                    marginTop: 4,
-                    marginBottom: 10,
-                    color: theme.colors.primary,
-                    fontWeight: '600',
-                    fontSize: 14,
-                  }}>
-                  {product.price_raw ||
-                    (product.price ? `$${product.price}` : '')}
-                </Text>
-              </Animatable.View>
-            ))}
-          </ScrollView>
+          <Animatable.View animation="fadeIn" duration={400} style={{flex: 1}}>
+            <FlashList
+              data={filteredProducts}
+              renderItem={renderItem}
+              keyExtractor={keyExtractor}
+              numColumns={numColumns}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingTop: tokens.spacing.md,
+                paddingBottom: insets.bottom + 40,
+              }}
+              ListEmptyComponent={ListEmptyComponent}
+            />
+          </Animatable.View>
         </Animated.View>
       </View>
     </Modal>
