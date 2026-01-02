@@ -6,6 +6,16 @@ import { getSecret, secretExists } from '../config/secrets';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
+// Allowed image MIME types for upload (security whitelist)
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+// Maximum upload size: 5MB (enforced via signed URL)
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
 @Injectable()
 export class ProfileUploadService {
   private storage = new Storage();
@@ -18,7 +28,8 @@ export class ProfileUploadService {
   }
 
   /**
-   * Generate a presigned URL to upload a profile photo directly to GCS
+   * Generate a presigned URL to upload a profile photo directly to GCS.
+   * Enforces MIME type whitelist and 5MB size limit.
    */
   async generateProfilePresignedUrl(
     userId: string,
@@ -27,6 +38,14 @@ export class ProfileUploadService {
   ) {
     if (!userId || !originalFilename) {
       throw new BadRequestException('userId and filename are required');
+    }
+
+    // Enforce MIME type whitelist
+    const normalizedType = (contentType || IMAGE_CT_FALLBACK).toLowerCase();
+    if (!ALLOWED_IMAGE_TYPES.has(normalizedType)) {
+      throw new BadRequestException(
+        `Invalid content type: ${contentType}. Allowed: image/jpeg, image/png, image/webp`,
+      );
     }
 
     const ext = path.extname(originalFilename) || '';
@@ -38,7 +57,10 @@ export class ProfileUploadService {
       version: 'v4',
       action: 'write',
       expires: Date.now() + 10 * 60 * 1000,
-      contentType,
+      contentType: normalizedType,
+      extensionHeaders: {
+        'x-goog-content-length-range': `0,${MAX_UPLOAD_BYTES}`,
+      },
     });
 
     const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${objectKey}`;

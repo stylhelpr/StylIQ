@@ -10,6 +10,16 @@ import { getSecret, secretExists } from '../config/secrets';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
+// Allowed image MIME types for upload (security whitelist)
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+// Maximum upload size: 5MB (enforced via signed URL)
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
 @Injectable()
 export class UploadService {
   private storage = new Storage();
@@ -24,6 +34,7 @@ export class UploadService {
 
   /**
    * Create a v4 signed URL for uploading a single object to GCS.
+   * Enforces MIME type whitelist and 5MB size limit.
    */
   async generatePresignedUrl(
     userId: string,
@@ -32,6 +43,14 @@ export class UploadService {
   ) {
     if (!userId || !originalFilename) {
       throw new BadRequestException('userId and filename are required');
+    }
+
+    // Enforce MIME type whitelist
+    const normalizedType = (contentType || IMAGE_CT_FALLBACK).toLowerCase();
+    if (!ALLOWED_IMAGE_TYPES.has(normalizedType)) {
+      throw new BadRequestException(
+        `Invalid content type: ${contentType}. Allowed: image/jpeg, image/png, image/webp`,
+      );
     }
 
     const folderPrefix = userId.slice(0, 2);
@@ -43,12 +62,15 @@ export class UploadService {
     const bucket = this.storage.bucket(this.bucketName);
     const file = bucket.file(objectKey);
 
-    // v4 signed URL
+    // v4 signed URL with size constraint
     const [uploadUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
       expires: Date.now() + 10 * 60 * 1000, // 10 min
-      contentType: contentType || IMAGE_CT_FALLBACK,
+      contentType: normalizedType,
+      extensionHeaders: {
+        'x-goog-content-length-range': `0,${MAX_UPLOAD_BYTES}`,
+      },
     });
 
     const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${objectKey}`;
