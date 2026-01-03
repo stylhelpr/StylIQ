@@ -684,14 +684,26 @@ export default function ItemDetailScreen({route, navigation}: Props) {
                 },
               ]}
               hapticStyle="impactMedium"
-              onPress={() => touchUpMutation.mutate()}
+              onPress={() => {
+                Alert.alert(
+                  'Touch Up Image',
+                  'This will enhance your wardrobe item by making it more presentable and cleaning the image up professionally. Proceed?',
+                  [
+                    {text: 'Cancel', style: 'cancel'},
+                    {
+                      text: 'Touch Up',
+                      onPress: () => touchUpMutation.mutate(),
+                    },
+                  ],
+                );
+              }}
               disabled={touchingUp}>
               <Text style={useGlobalStyles().buttonPrimaryText}>
                 {touchingUp ? 'Touching up...' : 'Touch up'}
               </Text>
             </AppleTouchFeedback>
 
-            <AppleTouchFeedback
+            {/* <AppleTouchFeedback
               style={[
                 useGlobalStyles().buttonPrimary,
                 {
@@ -717,7 +729,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
                 });
               }}>
               <Text style={useGlobalStyles().buttonPrimaryText}>Try On</Text>
-            </AppleTouchFeedback>
+            </AppleTouchFeedback> */}
           </View>
 
           <View style={{justifyContent: 'center', alignItems: 'center'}}>
