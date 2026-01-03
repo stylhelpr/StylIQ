@@ -3383,8 +3383,8 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 style={styles.saveMenuItemCheck}
               />
             </TouchableOpacity>
-            {/* Add to Wardrobe */}
-            <TouchableOpacity
+            {/* Add to Wardrobe - commented out: wardrobe is for owned items photographed from closet */}
+            {/* <TouchableOpacity
               style={styles.saveMenuItem}
               onPress={() => {
                 if (longPressedImageUrl) {
@@ -3402,7 +3402,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 color={theme.colors.foreground3}
                 style={styles.saveMenuItemCheck}
               />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             {/* Save to Inspired Looks */}
             <TouchableOpacity
               style={styles.saveMenuItem}
@@ -3410,11 +3410,15 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 if (longPressedImageUrl && userId) {
                   setShowImageSaveModal(false);
                   try {
+                    const accessToken = await getAccessToken();
                     const response = await fetch(
                       `${API_BASE_URL}/saved-looks`,
                       {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${accessToken}`,
+                        },
                         body: JSON.stringify({
                           user_id: userId,
                           image_url: longPressedImageUrl,

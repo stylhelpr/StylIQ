@@ -273,3 +273,51 @@ BEGIN
     ALTER TABLE saved_notes ADD COLUMN image_url TEXT;
   END IF;
 END $$;
+
+-- ========================
+-- SAVED LOOKS (Inspired Looks)
+-- ========================
+CREATE TABLE IF NOT EXISTS saved_looks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  image_url TEXT NOT NULL,
+  name TEXT,
+  gsutil_uri TEXT,
+  object_key TEXT,
+  original_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_looks_user ON saved_looks(user_id);
+
+-- Add GCS columns to saved_looks if they don't exist (for existing databases)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'saved_looks' AND column_name = 'gsutil_uri'
+  ) THEN
+    ALTER TABLE saved_looks ADD COLUMN gsutil_uri TEXT;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'saved_looks' AND column_name = 'object_key'
+  ) THEN
+    ALTER TABLE saved_looks ADD COLUMN object_key TEXT;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'saved_looks' AND column_name = 'original_url'
+  ) THEN
+    ALTER TABLE saved_looks ADD COLUMN original_url TEXT;
+  END IF;
+END $$;
