@@ -594,12 +594,12 @@ export default function NotesScreen({navigate}: Props) {
       fontWeight: '700',
     },
     statLabel: {
-      fontSize: 13,
+      fontSize: 16,
       color: theme.colors.buttonText1,
       marginTop: 4,
-      textTransform: 'uppercase',
+      // textTransform: 'uppercase',
       letterSpacing: 0.5,
-      fontWeight: '800',
+      fontWeight: '700',
     },
     sectionHeader: {
       flexDirection: 'row',

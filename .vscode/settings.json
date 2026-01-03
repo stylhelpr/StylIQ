@@ -1,5 +1,11 @@
 {
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "C_Cpp.errorSquiggles": "disabled"
+  "C_Cpp.errorSquiggles": "disabled",
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
 }

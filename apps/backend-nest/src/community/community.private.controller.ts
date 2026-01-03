@@ -14,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { AuthenticatedRequest } from '../auth/types/auth-user';
 import { CommunityService } from './community.service';
+import { CommunityRecommendationsService } from './community-recommendations.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -23,7 +24,10 @@ import { ReportPostDto } from './dto/report-post.dto';
 @Controller('community')
 @UseGuards(AuthGuard('jwt'))
 export class CommunityPrivateController {
-  constructor(private readonly service: CommunityService) {}
+  constructor(
+    private readonly service: CommunityService,
+    private readonly recommendations: CommunityRecommendationsService,
+  ) {}
 
   // ==================== POSTS ====================
 
@@ -235,6 +239,51 @@ export class CommunityPrivateController {
   ) {
     const actorId = req.user.userId;
     return this.service.getSuggestedUsers(actorId, parseInt(limit));
+  }
+
+  // ==================== RECOMMENDATIONS ====================
+
+  /**
+   * Get recommended posts for the "Recommended for You" carousel.
+   * Uses signal-based ranking: following, frequently visited, hashtags, keywords, recency, engagement.
+   * Returns 5-10 posts max, 1 per author.
+   */
+  @Get('posts/recommended')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async getRecommendedPosts(@Request() req: AuthenticatedRequest) {
+    const actorId = req.user.userId;
+    const posts = await this.recommendations.getRecommendedPosts(actorId);
+    return this.recommendations.formatPostsForResponse(posts, actorId);
+  }
+
+  /**
+   * Track a profile visit (for "frequently visited" signal).
+   * Called when viewing another user's profile.
+   */
+  @Post('users/:id/visit')
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
+  async trackProfileVisit(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') visitedId: string,
+  ) {
+    const actorId = req.user.userId;
+    await this.recommendations.trackProfileVisit(actorId, visitedId);
+    return { success: true };
+  }
+
+  /**
+   * Trigger update of user's hashtag and keyword preferences.
+   * Called after likes/saves to update signal preferences.
+   */
+  @Post('signals/refresh')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async refreshUserSignals(@Request() req: AuthenticatedRequest) {
+    const actorId = req.user.userId;
+    await Promise.all([
+      this.recommendations.updateHashtagPreferences(actorId),
+      this.recommendations.updateKeywordPreferences(actorId),
+    ]);
+    return { success: true };
   }
 
   // ==================== GDPR DELETE ====================

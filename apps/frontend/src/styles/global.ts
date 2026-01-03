@@ -217,7 +217,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     sectionScroll2: {
       // marginBottom: isTablet ? 22 : isLargePhone ? 8 : 8,
-      paddingLeft: isTablet ? 38 : isLargePhone ? 18 : isRegularPhone ? 18 : 18,
+      paddingLeft: isTablet ? 38 : isLargePhone ? 20 : isRegularPhone ? 18 : 18,
     },
 
     // ============================================================
@@ -429,10 +429,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: isTablet
         ? 10
         : isLargePhone
-          ? 10
+          ? 8
           : isRegularPhone
-            ? 10
-            : 10,
+            ? 8
+            : 8,
       textTransform: 'uppercase',
     },
     sectionTitle2: {

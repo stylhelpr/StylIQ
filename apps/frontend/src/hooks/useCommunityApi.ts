@@ -434,3 +434,51 @@ export function useDeleteUserData() {
     },
   });
 }
+
+// ==================== RECOMMENDATIONS ====================
+
+/**
+ * Fetch recommended posts for "Recommended for You" carousel.
+ * Uses signal-based ranking: following, frequently visited, hashtags, keywords, recency, engagement.
+ * Returns 5-10 posts max, 1 per author.
+ */
+export function useRecommendedPosts() {
+  return useQuery<CommunityPost[], Error>({
+    queryKey: ['community-recommended'],
+    queryFn: async () => {
+      const res = await apiClient.get(`${BASE}/posts/recommended`);
+      return res.data;
+    },
+    staleTime: 60000, // 1 minute
+  });
+}
+
+/**
+ * Track a profile visit for "frequently visited" signal.
+ * Call this when viewing another user's profile.
+ */
+export function useTrackProfileVisit() {
+  return useMutation({
+    mutationFn: async ({visitedId}: {visitedId: string}) => {
+      await apiClient.post(`${BASE}/users/${visitedId}/visit`, {});
+    },
+  });
+}
+
+/**
+ * Refresh user's hashtag and keyword preferences.
+ * Call this after likes/saves to update signal preferences.
+ */
+export function useRefreshUserSignals() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      await apiClient.post(`${BASE}/signals/refresh`, {});
+    },
+    onSuccess: () => {
+      // Invalidate recommendations to pick up new signals
+      queryClient.invalidateQueries({queryKey: ['community-recommended']});
+    },
+  });
+}

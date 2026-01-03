@@ -672,6 +672,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               marginTop: moderateScale(tokens.spacing.md2),
               opacity: 0.6,
               marginRight: moderateScale(tokens.spacing.md2),
+              marginBottom: -22
             }}>
             <Icon
               name="chevron-left"
@@ -698,52 +699,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
               marginTop: moderateScale(tokens.spacing.md1),
               width: '100%',
             }}>
-            {/* 💬 Ask a Styling Question */}
-            <AppleTouchFeedback
-              hapticStyle="impactLight"
-              onPress={() => navigate('AiStylistChatScreen')}
-              style={{
-                flex: isXS || isSM ? undefined : 1,
-                width: isXS || isSM ? '100%' : undefined,
-                marginLeft:
-                  isXS || isSM
-                    ? 0
-                    : isMD
-                      ? moderateScale(tokens.spacing.xxs)
-                      : moderateScale(tokens.spacing.xsm),
-                paddingVertical: isMD
-                  ? moderateScale(tokens.spacing.xsm)
-                  : moderateScale(tokens.spacing.xsm),
-                paddingHorizontal: isMD
-                  ? moderateScale(tokens.spacing.md2)
-                  : moderateScale(tokens.spacing.md2),
-                borderRadius: tokens.borderRadius.sm,
-                backgroundColor: theme.colors.button1,
-                // borderWidth: theme.borderWidth.sm,
-                alignItems: 'center',
-                justifyContent: 'center',
-                // minWidth: isMD ? 190 : 190,
-                borderColor: theme.colors.surfaceBorder,
-                // shadowColor: '#000',
-                // shadowOffset: {width: 0, height: 4},
-                // shadowOpacity: 0.4,
-                // shadowRadius: 5,
-                // elevation: 5,
-                // shadowColor: '#000',
-                // shadowOffset: {width: 8, height: 9},
-                // shadowOpacity: 0.4,
-                // shadowRadius: 5,
-                // elevation: 6,
-              }}>
-              <Text
-                style={{
-                  fontSize: fontScale(tokens.fontSize.sm),
-                  fontWeight: tokens.fontWeight.semiBold,
-                  color: theme.colors.buttonText1,
-                }}>
-                Ask Styling Questions
-              </Text>
-            </AppleTouchFeedback>
+     
           </View>
         </Animatable.View>
       </ScrollView>

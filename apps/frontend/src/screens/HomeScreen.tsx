@@ -38,6 +38,7 @@ import ReaderModal from '../components/FashionFeed/ReaderModal';
 import SavedRecommendationsModal from '../components/SavedRecommendationsModal/SavedRecommendationsModal';
 import {TooltipBubble} from '../components/ToolTip/ToolTip1';
 import AiStylistSuggestions from '../components/AiStylistSuggestions/AiStylistSuggestions';
+import RecommendedCarousel from '../components/RecommendedCarousel/RecommendedCarousel';
 import {Surface} from '../components/LinearGradientComponents/Surface';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // import SparkleIcon from '../assets/images/sparkle-icon.png';
@@ -254,6 +255,18 @@ const HeroCarousel = React.memo(
 const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  // 🎬 Entrance fade-in animation
+  const screenOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(screenOpacity, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+      easing: Easing.out(Easing.quad),
+    }).start();
+  }, [screenOpacity]);
+
   // 🎢 Scroll-active scale for weather & AI cards
   const scrollActiveScale = useRef(new Animated.Value(1)).current;
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -392,7 +405,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             onPress={toggle}
             style={{
               flexDirection: 'row',
-              justifyContent: 'space-between',
+              // justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: moderateScale(tokens.spacing.xs),
             }}>
@@ -402,7 +415,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 fontSize: fontScale(tokens.fontSize.lg),
                 fontWeight: tokens.fontWeight.bold,
                 // fontWeight: tokens.fontWeight.medium,
-                paddingLeft: moderateScale(tokens.spacing.md2),
+                paddingLeft: 16,
                 textTransform: 'uppercase',
               }}>
               {title}
@@ -1245,1469 +1258,1382 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   };
 
   return (
-    <LinearGradientWrapper>
-      <View style={{flex: 1, backgroundColor: theme.colors.background}}>
-        {/* Hidden share card for Recent Created/Shopped Looks */}
-        {shareVibe && (
-          <View style={{position: 'absolute', left: -9999, top: -9999}}>
-            <ViewShot
-              ref={shareVibeRef}
-              options={{format: 'png', quality: 0.95}}
-              style={{
-                width: SHARE_SIZE,
-                height: SHARE_SIZE + 80,
-                backgroundColor: '#000',
-              }}>
-              {/* Check if this is a 4-grid outfit or single image */}
-              {shareVibe.generated_outfit?.outfit?.length > 0 ||
-              shareVibe.generated_outfit?.owned?.length > 0 ? (
-                // 2x2 Grid layout for outfits with multiple items
-                <View style={{width: SHARE_SIZE, height: SHARE_SIZE}}>
-                  {(() => {
-                    const items =
-                      shareVibe.generated_outfit?.outfit ||
-                      shareVibe.generated_outfit?.owned ||
-                      [];
-                    const CELL = SHARE_SIZE / 2;
-                    return (
-                      <>
-                        {/* Row 1 */}
-                        <View style={{flexDirection: 'row', height: CELL}}>
-                          <View style={{width: CELL, height: CELL}}>
-                            {items[0]?.image && (
-                              <Image
-                                source={{uri: items[0].image}}
-                                style={{width: '100%', height: '100%'}}
-                                resizeMode="cover"
-                              />
-                            )}
-                          </View>
-                          <View style={{width: CELL, height: CELL}}>
-                            {items[1]?.image && (
-                              <Image
-                                source={{uri: items[1].image}}
-                                style={{width: '100%', height: '100%'}}
-                                resizeMode="cover"
-                              />
-                            )}
-                          </View>
-                        </View>
-                        {/* Row 2 */}
-                        <View style={{flexDirection: 'row', height: CELL}}>
-                          <View style={{width: CELL, height: CELL}}>
-                            {items[2]?.image && (
-                              <Image
-                                source={{uri: items[2].image}}
-                                style={{width: '100%', height: '100%'}}
-                                resizeMode="cover"
-                              />
-                            )}
-                          </View>
-                          <View
-                            style={{
-                              width: CELL,
-                              height: CELL,
-                              backgroundColor: '#000',
-                            }}>
-                            {items[3]?.image && (
-                              <Image
-                                source={{uri: items[3].image}}
-                                style={{width: '100%', height: '100%'}}
-                                resizeMode="cover"
-                              />
-                            )}
-                          </View>
-                        </View>
-                      </>
-                    );
-                  })()}
-                </View>
-              ) : (
-                // Single full-bleed image
-                <Image
-                  source={{
-                    uri: shareVibe.source_image_url || shareVibe.image_url,
-                  }}
-                  style={{width: SHARE_SIZE, height: SHARE_SIZE}}
-                  resizeMode="cover"
-                />
-              )}
-
-              {/* Center watermark with tinted overlay */}
-              <View
+    <Animated.View style={{flex: 1, opacity: screenOpacity}}>
+      <LinearGradientWrapper>
+        <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+          {/* Hidden share card for Recent Created/Shopped Looks */}
+          {shareVibe && (
+            <View style={{position: 'absolute', left: -9999, top: -9999}}>
+              <ViewShot
+                ref={shareVibeRef}
+                options={{format: 'png', quality: 0.95}}
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
                   width: SHARE_SIZE,
-                  height: SHARE_SIZE,
-                  justifyContent: 'center',
-                  alignItems: 'center',
+                  height: SHARE_SIZE + 80,
+                  backgroundColor: '#000',
                 }}>
+                {/* Check if this is a 4-grid outfit or single image */}
+                {shareVibe.generated_outfit?.outfit?.length > 0 ||
+                shareVibe.generated_outfit?.owned?.length > 0 ? (
+                  // 2x2 Grid layout for outfits with multiple items
+                  <View style={{width: SHARE_SIZE, height: SHARE_SIZE}}>
+                    {(() => {
+                      const items =
+                        shareVibe.generated_outfit?.outfit ||
+                        shareVibe.generated_outfit?.owned ||
+                        [];
+                      const CELL = SHARE_SIZE / 2;
+                      return (
+                        <>
+                          {/* Row 1 */}
+                          <View style={{flexDirection: 'row', height: CELL}}>
+                            <View style={{width: CELL, height: CELL}}>
+                              {items[0]?.image && (
+                                <Image
+                                  source={{uri: items[0].image}}
+                                  style={{width: '100%', height: '100%'}}
+                                  resizeMode="cover"
+                                />
+                              )}
+                            </View>
+                            <View style={{width: CELL, height: CELL}}>
+                              {items[1]?.image && (
+                                <Image
+                                  source={{uri: items[1].image}}
+                                  style={{width: '100%', height: '100%'}}
+                                  resizeMode="cover"
+                                />
+                              )}
+                            </View>
+                          </View>
+                          {/* Row 2 */}
+                          <View style={{flexDirection: 'row', height: CELL}}>
+                            <View style={{width: CELL, height: CELL}}>
+                              {items[2]?.image && (
+                                <Image
+                                  source={{uri: items[2].image}}
+                                  style={{width: '100%', height: '100%'}}
+                                  resizeMode="cover"
+                                />
+                              )}
+                            </View>
+                            <View
+                              style={{
+                                width: CELL,
+                                height: CELL,
+                                backgroundColor: '#000',
+                              }}>
+                              {items[3]?.image && (
+                                <Image
+                                  source={{uri: items[3].image}}
+                                  style={{width: '100%', height: '100%'}}
+                                  resizeMode="cover"
+                                />
+                              )}
+                            </View>
+                          </View>
+                        </>
+                      );
+                    })()}
+                  </View>
+                ) : (
+                  // Single full-bleed image
+                  <Image
+                    source={{
+                      uri: shareVibe.source_image_url || shareVibe.image_url,
+                    }}
+                    style={{width: SHARE_SIZE, height: SHARE_SIZE}}
+                    resizeMode="cover"
+                  />
+                )}
+
+                {/* Center watermark with tinted overlay */}
                 <View
                   style={{
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    paddingHorizontal: 32,
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: SHARE_SIZE,
+                    height: SHARE_SIZE,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                  <View
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      paddingHorizontal: 32,
+                      paddingVertical: 16,
+                      borderRadius: 40,
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(255,255,255,0.25)',
+                      shadowColor: '#000',
+                      shadowOffset: {width: 0, height: 4},
+                      shadowOpacity: 0.4,
+                      shadowRadius: 12,
+                    }}>
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontSize: 10,
+                        fontWeight: '500',
+                        letterSpacing: 0.5,
+                        textAlign: 'center',
+                        marginBottom: 4,
+                      }}>
+                      Created on
+                    </Text>
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontSize: 28,
+                        fontWeight: '800',
+                        letterSpacing: 1.5,
+                        textShadowColor: 'rgba(0,0,0,0.5)',
+                        textShadowOffset: {width: 0, height: 2},
+                        textShadowRadius: 4,
+                      }}>
+                      StylHelpr
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Bottom info panel */}
+                <View
+                  style={{
+                    height: 80,
+                    backgroundColor: 'rgba(144, 0, 255, 1)',
+                    paddingHorizontal: 20,
                     paddingVertical: 16,
-                    borderRadius: 40,
-                    borderWidth: 1.5,
-                    borderColor: 'rgba(255,255,255,0.25)',
-                    shadowColor: '#000',
-                    shadowOffset: {width: 0, height: 4},
-                    shadowOpacity: 0.4,
-                    shadowRadius: 12,
                   }}>
                   <Text
                     style={{
+                      fontSize: 18,
+                      fontWeight: '700',
                       color: '#fff',
-                      fontSize: 10,
-                      fontWeight: '500',
-                      letterSpacing: 0.5,
-                      textAlign: 'center',
-                      marginBottom: 4,
-                    }}>
-                    Created on
+                      marginBottom: 8,
+                    }}
+                    numberOfLines={1}>
+                    {shareVibe.name ||
+                      (shareVibe.tags &&
+                        shareVibe.tags.slice(0, 3).join(', ')) ||
+                      shareVibe.query_used ||
+                      'AI Look'}
                   </Text>
-                  <Text
+                  <View
                     style={{
-                      color: '#fff',
-                      fontSize: 28,
-                      fontWeight: '800',
-                      letterSpacing: 1.5,
-                      textShadowColor: 'rgba(0,0,0,0.5)',
-                      textShadowOffset: {width: 0, height: 2},
-                      textShadowRadius: 4,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                     }}>
-                    StylHelpr
-                  </Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                      {userPicture ? (
+                        <Image
+                          source={{uri: userPicture}}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            marginRight: 8,
+                          }}
+                        />
+                      ) : (
+                        <View
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            marginRight: 8,
+                            backgroundColor: '#000',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                          }}>
+                          <Text
+                            style={{
+                              color: '#fff',
+                              fontSize: 10,
+                              fontWeight: '700',
+                            }}>
+                            SH
+                          </Text>
+                        </View>
+                      )}
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: '500',
+                          color: '#fff',
+                        }}
+                        numberOfLines={1}>
+                        @
+                        {firstName && lastName
+                          ? `${firstName.toLowerCase()}${lastName.toLowerCase()}`
+                          : 'stylhelpr'}
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '400',
+                        color: 'rgba(255,255,255,0.8)',
+                      }}>
+                      {shareVibe.created_at
+                        ? new Date(shareVibe.created_at).toLocaleDateString()
+                        : new Date().toLocaleDateString()}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              </ViewShot>
+            </View>
+          )}
 
-              {/* Bottom info panel */}
-              <View
+          {/* <View style={{flex: 1}}> */}
+          <Animated.ScrollView
+            // 👇 this ensures content scrolls under header & nav
+            contentContainerStyle={[
+              globalStyles.container,
+              {
+                paddingTop: insets.top + HEADER_HEIGHT, // restore the "old" header space
+                paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT, // restore nav space
+                minHeight: '100%',
+              },
+            ]}
+            scrollEventThrottle={16}
+            onScroll={Animated.event(
+              [{nativeEvent: {contentOffset: {y: scrollY}}}],
+              {useNativeDriver: true},
+            )}
+            showsVerticalScrollIndicator={false}>
+            {/* Header Row: Greeting + Menu */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingHorizontal: moderateScale(tokens.spacing.md),
+                marginBottom: moderateScale(tokens.spacing.xxs),
+              }}>
+              <Animatable.Text
+                animation="fadeInLeft"
+                duration={500}
+                delay={150}
+                useNativeDriver
                 style={{
-                  height: 80,
-                  backgroundColor: 'rgba(144, 0, 255, 1)',
-                  paddingHorizontal: 20,
-                  paddingVertical: 16,
+                  flex: 1,
+                  fontSize: fontScale(tokens.fontSize.xl),
+                  fontWeight: tokens.fontWeight.bold,
+                  color: theme.colors.foreground,
+                }}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {firstName
+                  ? `Hi ${firstName}, ready to get styled today?`
+                  : 'i there, ready to get styled today?'}
+              </Animatable.Text>
+
+              <AppleTouchFeedback
+                onPress={() => navigate('Settings')}
+                hapticStyle="impactLight"
+                style={{
+                  padding: moderateScale(tokens.spacing.xxs),
+                  marginLeft: moderateScale(tokens.spacing.xsm),
                 }}>
-                <Text
+                <Icon name="tune" size={22} color={theme.colors.button1} />
+              </AppleTouchFeedback>
+            </View>
+
+            {/* Hero Carousel - Memoized to prevent re-renders from interval */}
+            <View style={globalStyles.section}>
+              <HeroCarousel
+                fashionImages={fashionImages}
+                fashionTexts={fashionTexts}
+                scrollActiveScale={scrollActiveScale}
+                scrollY={scrollY}
+              />
+            </View>
+
+            {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
+            {prefs.weather && (
+              <Animated.View
+                style={{
+                  transform: [{scale: scrollActiveScale}],
+                }}>
+                <Animatable.View
+                  animation="fadeInUp"
+                  duration={700}
+                  delay={200}
+                  useNativeDriver
+                  style={globalStyles.section}>
+                  {/* <Text style={globalStyles.sectionTitle}>Weather</Text> */}
+
+                  {weather && (
+                    <View
+                      style={[
+                        globalStyles.cardStyles5,
+                        {
+                          paddingVertical: moderateScale(tokens.spacing.md1),
+                          paddingHorizontal: moderateScale(tokens.spacing.md2),
+                        },
+                      ]}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}>
+                        {/* 🌤️ Left column — City, Condition, Icon */}
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            flex: 1,
+                          }}>
+                          <Animatable.View
+                            animation={{
+                              0: {
+                                opacity: 1,
+                                scale: 1,
+                                translateY: 0,
+                              },
+                              0.5: {
+                                opacity: 0.99,
+                                scale: 1.2,
+                                translateY: -2,
+                              },
+                              1: {
+                                opacity: 1,
+                                scale: 1,
+                                translateY: 0,
+                              },
+                            }}
+                            iterationCount="infinite"
+                            duration={2000}
+                            easing="ease-in-out"
+                            useNativeDriver
+                            style={{
+                              marginRight: moderateScale(tokens.spacing.xsm),
+                            }}>
+                            <Icon
+                              name={(() => {
+                                const condition =
+                                  weather.celsius.weather[0].main;
+                                if (condition === 'Rain') return 'umbrella';
+                                if (condition === 'Snow') return 'ac-unit';
+                                if (condition === 'Clouds') return 'wb-cloudy';
+                                if (condition === 'Clear') return 'wb-sunny';
+                                return 'wb-sunny';
+                              })()}
+                              size={36}
+                              color={theme.colors.foreground}
+                              style={{
+                                alignSelf: 'center',
+                              }}
+                            />
+                          </Animatable.View>
+                          <View>
+                            <Text
+                              style={[
+                                styles.weatherCity,
+                                {
+                                  fontSize: fontScale(tokens.fontSize.xl),
+                                  fontWeight: tokens.fontWeight.bold,
+                                },
+                              ]}>
+                              {weather.celsius.name}
+                            </Text>
+                            <Text
+                              style={{
+                                fontSize: fontScale(tokens.fontSize.base),
+                                color: theme.colors.foreground2,
+                                fontWeight: tokens.fontWeight.bold,
+                                textTransform: 'capitalize',
+                              }}>
+                              {weather.celsius.weather[0].description}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* 🌡️ Right column — Big Temp */}
+                        <View
+                          style={[
+                            styles.weatherTempContainer,
+                            {
+                              alignSelf: 'center',
+                            },
+                            // {
+                            //   shadowColor: '#000',
+                            //   shadowOffset: {width: 8, height: 10},
+                            //   shadowOpacity: 0.5,
+                            //   shadowRadius: 5,
+                            //   elevation: 6,
+                            // },
+                          ]}>
+                          <Text
+                            style={{
+                              fontSize: moderateScale(
+                                isXS
+                                  ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
+                                  : isSM
+                                    ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
+                                    : isMD
+                                      ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
+                                      : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
+                              ),
+                              fontWeight: tokens.fontWeight.extraBold,
+                              color: theme.colors.buttonText1,
+                            }}>
+                            {Math.round(weather.fahrenheit.main.temp)}°F
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
+                      <View>
+                        <Text
+                          style={{
+                            fontSize: fontScale(tokens.fontSize.md),
+                            color: theme.colors.foreground2,
+                            fontWeight: tokens.fontWeight.medium,
+                            marginLeft: 44,
+                            // marginLeft: 42,
+                          }}>
+                          {(() => {
+                            const temp = weather.fahrenheit.main.temp;
+                            const condition = weather.celsius.weather[0].main;
+
+                            if (temp < 25) return 'Brutally Cold';
+                            if (temp < 32) return condition === 'Snow';
+                            // ? 'Freezing & Snowy'
+                            // : 'Freezing';
+                            if (temp < 40)
+                              return condition === 'Clouds'
+                                ? 'Bitter & Overcast'
+                                : 'Bitter Cold';
+                            if (temp < 50)
+                              return condition === 'Rain'
+                                ? 'Cold & Wet'
+                                : 'Chilly';
+                            if (temp < 60)
+                              return condition === 'Clouds'
+                                ? 'Cool & Cloudy'
+                                : 'Crisp & Cool';
+                            if (temp < 70)
+                              return condition === 'Clear'
+                                ? ' Mild & Bright'
+                                : 'Mild';
+                            if (temp < 80)
+                              return condition === 'Clear'
+                                ? 'Warm & Clear'
+                                : 'Warm';
+                            if (temp < 90)
+                              return condition === 'Rain'
+                                ? 'Hot & Humid'
+                                : 'Hot';
+                            if (temp < 100) return 'Very Hot';
+                            return 'Extreme Heat';
+                          })()}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </Animatable.View>
+              </Animated.View>
+            )}
+
+            {/* AI SUGGESTS SECTION */}
+            {prefs.aiSuggestions &&
+              typeof weather?.fahrenheit?.main?.temp === 'number' && (
+                <Animated.View
                   style={{
-                    fontSize: 18,
-                    fontWeight: '700',
-                    color: '#fff',
-                    marginBottom: 8,
-                  }}
-                  numberOfLines={1}>
-                  {shareVibe.name ||
-                    (shareVibe.tags && shareVibe.tags.slice(0, 3).join(', ')) ||
-                    shareVibe.query_used ||
-                    'AI Look'}
-                </Text>
+                    transform: [{scale: scrollActiveScale}],
+                  }}>
+                  <AiStylistSuggestions
+                    theme={theme}
+                    weather={weather}
+                    globalStyles={globalStyles}
+                    navigate={navigate}
+                    wardrobe={wardrobe}
+                  />
+                </Animated.View>
+              )}
+
+            {/* Map Section — collapsible with animated height & fade */}
+            {prefs.locationMap && (
+              <Animatable.View
+                animation="fadeInUp"
+                delay={300}
+                duration={700}
+                useNativeDriver
+                style={[
+                  globalStyles.section,
+                  {
+                    marginBottom: mapOpen
+                      ? moderateScale(-20)
+                      : moderateScale(4), // collapse extra gap when closed
+                  },
+                ]}>
                 <View
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    {userPicture ? (
-                      <Image
-                        source={{uri: userPicture}}
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          marginRight: 8,
-                        }}
-                      />
-                    ) : (
-                      <View
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          marginRight: 8,
-                          backgroundColor: '#000',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}>
-                        <Text
-                          style={{
-                            color: '#fff',
-                            fontSize: 10,
-                            fontWeight: '700',
-                          }}>
-                          SH
-                        </Text>
-                      </View>
-                    )}
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: '500',
-                        color: '#fff',
-                      }}
-                      numberOfLines={1}>
-                      @
-                      {firstName && lastName
-                        ? `${firstName.toLowerCase()}${lastName.toLowerCase()}`
-                        : 'stylhelpr'}
-                    </Text>
-                  </View>
                   <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: '400',
-                      color: 'rgba(255,255,255,0.8)',
-                    }}>
-                    {shareVibe.created_at
-                      ? new Date(shareVibe.created_at).toLocaleDateString()
-                      : new Date().toLocaleDateString()}
+                    style={[
+                      globalStyles.sectionTitle,
+                      {paddingTop: moderateScale(tokens.spacing.nano)},
+                    ]}>
+                    Location
                   </Text>
+                  <AppleTouchFeedback
+                    hapticStyle="impactLight"
+                    onPress={toggleMap}
+                    style={{
+                      paddingHorizontal: moderateScale(tokens.spacing.xsm),
+                    }}>
+                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                      <Animated.View style={{transform: [{rotateZ}]}}>
+                        <Icon
+                          name="keyboard-arrow-down"
+                          size={30}
+                          color={theme.colors.foreground}
+                        />
+                      </Animated.View>
+                    </View>
+                  </AppleTouchFeedback>
                 </View>
-              </View>
-            </ViewShot>
-          </View>
-        )}
 
-        {/* <View style={{flex: 1}}> */}
-        <Animated.ScrollView
-          // 👇 this ensures content scrolls under header & nav
-          contentContainerStyle={[
-            globalStyles.container,
-            {
-              paddingTop: insets.top + HEADER_HEIGHT, // restore the "old" header space
-              paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT, // restore nav space
-              minHeight: '100%',
-            },
-          ]}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{nativeEvent: {contentOffset: {y: scrollY}}}],
-            {useNativeDriver: true},
-          )}
-          showsVerticalScrollIndicator={false}>
-          {/* Header Row: Greeting + Menu */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: moderateScale(tokens.spacing.md),
-              marginBottom: moderateScale(tokens.spacing.xxs),
-            }}>
-            <Animatable.Text
-              animation="fadeInLeft"
-              duration={500}
-              delay={150}
-              useNativeDriver
-              style={{
-                flex: 1,
-                fontSize: fontScale(tokens.fontSize.xl),
-                fontWeight: tokens.fontWeight.bold,
-                color: theme.colors.foreground,
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {firstName
-                ? `Hi ${firstName}, ready to get styled today?`
-                : 'i there, ready to get styled today?'}
-            </Animatable.Text>
-
-            <AppleTouchFeedback
-              onPress={() => navigate('Settings')}
-              hapticStyle="impactLight"
-              style={{
-                padding: moderateScale(tokens.spacing.xxs),
-                marginLeft: moderateScale(tokens.spacing.xsm),
-              }}>
-              <Icon name="tune" size={22} color={theme.colors.button1} />
-            </AppleTouchFeedback>
-          </View>
-
-          {/* Hero Carousel - Memoized to prevent re-renders from interval */}
-          <View style={globalStyles.section}>
-            <HeroCarousel
-              fashionImages={fashionImages}
-              fashionTexts={fashionTexts}
-              scrollActiveScale={scrollActiveScale}
-              scrollY={scrollY}
-            />
-          </View>
-
-          {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
-          {prefs.weather && (
-            <Animated.View
-              style={{
-                transform: [{scale: scrollActiveScale}],
-              }}>
-              <Animatable.View
-                animation="fadeInUp"
-                duration={700}
-                delay={200}
-                useNativeDriver
-                style={globalStyles.section}>
-                {/* <Text style={globalStyles.sectionTitle}>Weather</Text> */}
-
-                {weather && (
+                <Animated.View
+                  style={{
+                    height: mapHeight,
+                    opacity: mapOpacity,
+                    overflow: 'hidden',
+                  }}>
                   <View
                     style={[
-                      globalStyles.cardStyles5,
                       {
-                        paddingVertical: moderateScale(tokens.spacing.md1),
-                        paddingHorizontal: moderateScale(tokens.spacing.md2),
+                        borderWidth: tokens.borderWidth.hairline,
+                        borderColor: theme.colors.surfaceBorder,
+                        borderRadius: tokens.borderRadius['2xl'],
+                        overflow: 'hidden',
                       },
                     ]}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}>
-                      {/* 🌤️ Left column — City, Condition, Icon */}
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          flex: 1,
-                        }}>
-                        <Animatable.View
-                          animation={{
-                            0: {
-                              opacity: 1,
-                              scale: 1,
-                              translateY: 0,
-                            },
-                            0.5: {
-                              opacity: 0.99,
-                              scale: 1.2,
-                              translateY: -2,
-                            },
-                            1: {
-                              opacity: 1,
-                              scale: 1,
-                              translateY: 0,
-                            },
-                          }}
-                          iterationCount="infinite"
-                          duration={2000}
-                          easing="ease-in-out"
-                          useNativeDriver
-                          style={{
-                            marginRight: moderateScale(tokens.spacing.xsm),
-                          }}>
-                          <Icon
-                            name={(() => {
-                              const condition = weather.celsius.weather[0].main;
-                              if (condition === 'Rain') return 'umbrella';
-                              if (condition === 'Snow') return 'ac-unit';
-                              if (condition === 'Clouds') return 'wb-cloudy';
-                              if (condition === 'Clear') return 'wb-sunny';
-                              return 'wb-sunny';
-                            })()}
-                            size={36}
-                            color={theme.colors.foreground}
-                            style={{
-                              alignSelf: 'center',
-                            }}
-                          />
-                        </Animatable.View>
-                        <View>
-                          <Text
-                            style={[
-                              styles.weatherCity,
-                              {
-                                fontSize: fontScale(tokens.fontSize.xl),
-                                fontWeight: tokens.fontWeight.bold,
-                              },
-                            ]}>
-                            {weather.celsius.name}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: fontScale(tokens.fontSize.base),
-                              color: theme.colors.foreground2,
-                              fontWeight: tokens.fontWeight.bold,
-                              textTransform: 'capitalize',
-                            }}>
-                            {weather.celsius.weather[0].description}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* 🌡️ Right column — Big Temp */}
-                      <View
-                        style={[
-                          styles.weatherTempContainer,
-                          {
-                            alignSelf: 'center',
-                          },
-                          // {
-                          //   shadowColor: '#000',
-                          //   shadowOffset: {width: 8, height: 10},
-                          //   shadowOpacity: 0.5,
-                          //   shadowRadius: 5,
-                          //   elevation: 6,
-                          // },
-                        ]}>
-                        <Text
-                          style={{
-                            fontSize: moderateScale(
-                              isXS
-                                ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
-                                : isSM
-                                  ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
-                                  : isMD
-                                    ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
-                                    : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
-                            ),
-                            fontWeight: tokens.fontWeight.extraBold,
-                            color: theme.colors.buttonText1,
-                          }}>
-                          {Math.round(weather.fahrenheit.main.temp)}°F
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
-                    <View>
-                      <Text
-                        style={{
-                          fontSize: fontScale(tokens.fontSize.md),
-                          color: theme.colors.foreground2,
-                          fontWeight: tokens.fontWeight.medium,
-                          marginLeft: 44,
-                          // marginLeft: 42,
-                        }}>
-                        {(() => {
-                          const temp = weather.fahrenheit.main.temp;
-                          const condition = weather.celsius.weather[0].main;
-
-                          if (temp < 25) return 'Brutally Cold';
-                          if (temp < 32) return condition === 'Snow';
-                          // ? 'Freezing & Snowy'
-                          // : 'Freezing';
-                          if (temp < 40)
-                            return condition === 'Clouds'
-                              ? 'Bitter & Overcast'
-                              : 'Bitter Cold';
-                          if (temp < 50)
-                            return condition === 'Rain'
-                              ? 'Cold & Wet'
-                              : 'Chilly';
-                          if (temp < 60)
-                            return condition === 'Clouds'
-                              ? 'Cool & Cloudy'
-                              : 'Crisp & Cool';
-                          if (temp < 70)
-                            return condition === 'Clear'
-                              ? ' Mild & Bright'
-                              : 'Mild';
-                          if (temp < 80)
-                            return condition === 'Clear'
-                              ? 'Warm & Clear'
-                              : 'Warm';
-                          if (temp < 90)
-                            return condition === 'Rain' ? 'Hot & Humid' : 'Hot';
-                          if (temp < 100) return 'Very Hot';
-                          return 'Extreme Heat';
-                        })()}
-                      </Text>
-                    </View>
+                    {prefs.locationEnabled && (
+                      <LiveLocationMap
+                        height={
+                          MAP_BASE_HEIGHT - insets.bottom - moderateScale(10)
+                        }
+                        useCustomPin={false}
+                        postHeartbeat={false}
+                      />
+                    )}
                   </View>
-                )}
+                </Animated.View>
               </Animatable.View>
-            </Animated.View>
-          )}
-
-          {/* AI SUGGESTS SECTION */}
-          {prefs.aiSuggestions &&
-            typeof weather?.fahrenheit?.main?.temp === 'number' && (
-              <Animated.View
-                style={{
-                  transform: [{scale: scrollActiveScale}],
-                }}>
-                <AiStylistSuggestions
-                  theme={theme}
-                  weather={weather}
-                  globalStyles={globalStyles}
-                  navigate={navigate}
-                  wardrobe={wardrobe}
-                />
-              </Animated.View>
             )}
 
-          {/* Map Section — collapsible with animated height & fade */}
-          {prefs.locationMap && (
+            {/* Quick Access Section */}
+            {prefs.quickAccess && (
+              <Animatable.View
+                animation="fadeInUp"
+                delay={500}
+                duration={700}
+                useNativeDriver
+                style={globalStyles.centeredSection}>
+                <View style={globalStyles.section}>
+                  <Text style={globalStyles.sectionTitle}>Quick Access</Text>
+                  <View style={[globalStyles.centeredSection]}>
+                    <View
+                      style={[
+                        globalStyles.cardStyles1,
+                        {
+                          padding: moderateScale(tokens.spacing.md2),
+                          justifyContent: 'space-between',
+                          flexDirection: 'row',
+                          flexWrap: 'wrap',
+                          width: '100%',
+                        },
+                      ]}>
+                      {[
+                        {label: 'Style Me', screen: 'Outfit'},
+                        {label: 'Wardrobe', screen: 'Wardrobe'},
+                        {label: 'Add Clothes', screen: 'AddItem'},
+                        {label: 'Profile', screen: 'Profile'},
+                      ].map((btn, idx) => (
+                        <Animatable.View
+                          key={btn.screen}
+                          animation="zoomIn"
+                          delay={600 + idx * 100}
+                          duration={500}
+                          useNativeDriver
+                          style={{
+                            width: buttonWidth, // already computed responsively above
+                            marginBottom:
+                              idx < 2 ? moderateScale(tokens.spacing.md) : 0,
+                          }}>
+                          <AppleTouchFeedback
+                            style={[
+                              globalStyles.buttonPrimary,
+                              {
+                                width: '100%',
+                                justifyContent: 'center',
+                              },
+                            ]}
+                            hapticStyle="impactHeavy"
+                            onPress={() => navigate(btn.screen)}>
+                            <Text style={globalStyles.buttonPrimaryText}>
+                              {btn.label}
+                            </Text>
+                          </AppleTouchFeedback>
+                        </Animatable.View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </Animatable.View>
+            )}
+
+            {/* Share Button */}
             <Animatable.View
               animation="fadeInUp"
-              delay={300}
-              duration={700}
+              delay={180}
+              duration={500}
               useNativeDriver
-              style={[
-                globalStyles.section,
-                {
-                  marginBottom: mapOpen ? moderateScale(-20) : moderateScale(4), // collapse extra gap when closed
-                },
-              ]}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}>
-                <Text
-                  style={[
-                    globalStyles.sectionTitle,
-                    {paddingTop: moderateScale(tokens.spacing.nano)},
-                  ]}>
-                  Location
-                </Text>
+              style={{
+                paddingHorizontal: moderateScale(tokens.spacing.md),
+                marginTop: 6,
+                marginBottom: 22,
+                display: 'flex',
+                flexDirection: 'row',
+              }}>
+              <Animatable.View
+                animation={{
+                  0: {scale: 1},
+                  0.5: {scale: 1.02},
+                  1: {scale: 1},
+                }}
+                iterationCount="infinite"
+                duration={2500}
+                easing="ease-in-out"
+                useNativeDriver
+                style={{width: '45%', margin: 'auto'}}>
                 <AppleTouchFeedback
+                  onPress={() => navigate('Explore')}
                   hapticStyle="impactLight"
-                  onPress={toggleMap}
-                  style={{
-                    paddingHorizontal: moderateScale(tokens.spacing.xsm),
-                  }}>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Animated.View style={{transform: [{rotateZ}]}}>
-                      <Icon
-                        name="keyboard-arrow-down"
-                        size={30}
-                        color={theme.colors.foreground}
-                      />
-                    </Animated.View>
-                  </View>
-                </AppleTouchFeedback>
-              </View>
-
-              <Animated.View
-                style={{
-                  height: mapHeight,
-                  opacity: mapOpacity,
-                  overflow: 'hidden',
-                }}>
-                <View
                   style={[
+                    globalStyles.buttonPrimary,
                     {
-                      borderWidth: tokens.borderWidth.hairline,
-                      borderColor: theme.colors.surfaceBorder,
-                      borderRadius: tokens.borderRadius['2xl'],
-                      overflow: 'hidden',
+                      width: '100%',
+                      justifyContent: 'center',
+                      backgroundColor: theme.colors.button1,
+                      // backgroundColor: 'transparent',
+                      // borderWidth: tokens.borderWidth.hairline,
+                      // borderColor: theme.colors.foreground,
+                      borderRadius: tokens.borderRadius.sm,
+                      // borderRadius: tokens.borderRadius.xxxl,
                     },
                   ]}>
-                  {prefs.locationEnabled && (
-                    <LiveLocationMap
-                      height={
-                        MAP_BASE_HEIGHT - insets.bottom - moderateScale(10)
-                      }
-                      useCustomPin={false}
-                      postHeartbeat={false}
-                    />
-                  )}
-                </View>
-              </Animated.View>
-            </Animatable.View>
-          )}
-
-          {/* Quick Access Section */}
-          {prefs.quickAccess && (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={500}
-              duration={700}
-              useNativeDriver
-              style={globalStyles.centeredSection}>
-              <View style={globalStyles.section}>
-                <Text style={globalStyles.sectionTitle}>Quick Access</Text>
-                <View style={[globalStyles.centeredSection]}>
-                  <View
+                  <Text
                     style={[
-                      globalStyles.cardStyles1,
-                      {
-                        padding: moderateScale(tokens.spacing.md2),
-                        justifyContent: 'space-between',
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        width: '100%',
-                      },
+                      globalStyles.buttonPrimaryText,
+                      {textTransform: 'uppercase', fontWeight: '700'},
                     ]}>
-                    {[
-                      {label: 'Style Me', screen: 'Outfit'},
-                      {label: 'Wardrobe', screen: 'Wardrobe'},
-                      {label: 'Add Clothes', screen: 'AddItem'},
-                      {label: 'Profile', screen: 'Profile'},
-                    ].map((btn, idx) => (
-                      <Animatable.View
-                        key={btn.screen}
-                        animation="zoomIn"
-                        delay={600 + idx * 100}
-                        duration={500}
-                        useNativeDriver
-                        style={{
-                          width: buttonWidth, // already computed responsively above
-                          marginBottom:
-                            idx < 2 ? moderateScale(tokens.spacing.md) : 0,
-                        }}>
-                        <AppleTouchFeedback
-                          style={[
-                            globalStyles.buttonPrimary,
-                            {
-                              width: '100%',
-                              justifyContent: 'center',
-                            },
-                          ]}
-                          hapticStyle="impactHeavy"
-                          onPress={() => navigate(btn.screen)}>
-                          <Text style={globalStyles.buttonPrimaryText}>
-                            {btn.label}
-                          </Text>
-                        </AppleTouchFeedback>
-                      </Animatable.View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            </Animatable.View>
-          )}
+                    Fashion News
+                  </Text>
+                </AppleTouchFeedback>
+              </Animatable.View>
 
-          {/* Share Button */}
-          <Animatable.View
-            animation="fadeInUp"
-            delay={180}
-            duration={500}
-            useNativeDriver
-            style={{
-              paddingHorizontal: moderateScale(tokens.spacing.md),
-              marginTop: 6,
-              marginBottom: 22,
-              display: 'flex',
-              flexDirection: 'row',
-            }}>
-            <Animatable.View
-              animation={{
-                0: {scale: 1},
-                0.5: {scale: 1.02},
-                1: {scale: 1},
-              }}
-              iterationCount="infinite"
-              duration={2500}
-              easing="ease-in-out"
-              useNativeDriver
-              style={{width: '45%', margin: 'auto'}}>
-              <AppleTouchFeedback
-                onPress={() => navigate('Explore')}
-                hapticStyle="impactLight"
-                style={[
-                  globalStyles.buttonPrimary,
-                  {
-                    width: '100%',
-                    justifyContent: 'center',
-                    backgroundColor: theme.colors.button1,
-                    // backgroundColor: 'transparent',
-                    // borderWidth: tokens.borderWidth.hairline,
-                    // borderColor: theme.colors.foreground,
-                    borderRadius: tokens.borderRadius.sm,
-                    // borderRadius: tokens.borderRadius.xxxl,
-                  },
-                ]}>
-                <Text
+              <Animatable.View
+                animation={{
+                  0: {scale: 1},
+                  0.5: {scale: 1.02},
+                  1: {scale: 1},
+                }}
+                iterationCount="infinite"
+                duration={2500}
+                easing="ease-in-out"
+                useNativeDriver
+                style={{width: '45%', margin: 'auto'}}>
+                <AppleTouchFeedback
+                  onPress={() => navigate('VideoFeedScreen')}
+                  hapticStyle="impactLight"
                   style={[
-                    globalStyles.buttonPrimaryText,
-                    {textTransform: 'uppercase', fontWeight: '700'},
+                    globalStyles.buttonPrimary,
+                    {
+                      width: '100%',
+                      justifyContent: 'center',
+                      backgroundColor: theme.colors.button1,
+                      // backgroundColor: 'transparent',
+                      // borderWidth: tokens.borderWidth.hairline,
+                      // borderColor: theme.colors.foreground,
+                      borderRadius: tokens.borderRadius.sm,
+                      // borderRadius: tokens.borderRadius.xxxl,
+                      // marginTop: 20,
+                    },
                   ]}>
-                  Fashion News
-                </Text>
-              </AppleTouchFeedback>
+                  <Text
+                    style={[
+                      globalStyles.buttonPrimaryText,
+                      {textTransform: 'uppercase', fontWeight: '700'},
+                    ]}>
+                    Media Center
+                  </Text>
+                </AppleTouchFeedback>
+              </Animatable.View>
             </Animatable.View>
 
-            <Animatable.View
-              animation={{
-                0: {scale: 1},
-                0.5: {scale: 1.02},
-                1: {scale: 1},
-              }}
-              iterationCount="infinite"
-              duration={2500}
-              easing="ease-in-out"
-              useNativeDriver
-              style={{width: '45%', margin: 'auto'}}>
-              <AppleTouchFeedback
-                onPress={() => navigate('VideoFeedScreen')}
-                hapticStyle="impactLight"
-                style={[
-                  globalStyles.buttonPrimary,
-                  {
-                    width: '100%',
-                    justifyContent: 'center',
-                    backgroundColor: theme.colors.button1,
-                    // backgroundColor: 'transparent',
-                    // borderWidth: tokens.borderWidth.hairline,
-                    // borderColor: theme.colors.foreground,
-                    borderRadius: tokens.borderRadius.sm,
-                    // borderRadius: tokens.borderRadius.xxxl,
-                    // marginTop: 20,
-                  },
-                ]}>
-                <Text
-                  style={[
-                    globalStyles.buttonPrimaryText,
-                    {textTransform: 'uppercase', fontWeight: '700'},
-                  ]}>
-                  Media Center
+            {/* <FilamentPreview /> */}
+
+            {/* Top Fashion Stories / News Carousel */}
+            {prefs.topFashionStories && (
+              <Animatable.View
+                animation="fadeInUp"
+                delay={600}
+                duration={700}
+                useNativeDriver
+                style={globalStyles.sectionScroll}>
+                <Text style={[globalStyles.sectionTitle]}>
+                  Top Fashion Stories
                 </Text>
-              </AppleTouchFeedback>
-            </Animatable.View>
-          </Animatable.View>
+                <NewsCarousel onOpenArticle={openArticle} />
+              </Animatable.View>
+            )}
 
-          {/* <FilamentPreview /> */}
-
-          {/* Top Fashion Stories / News Carousel */}
-          {prefs.topFashionStories && (
+          {/* Recommended for You - Community Posts Carousel */}
             <Animatable.View
               animation="fadeInUp"
-              delay={600}
+              delay={250}
               duration={700}
               useNativeDriver
               style={globalStyles.sectionScroll}>
               <Text style={[globalStyles.sectionTitle]}>
-                Top Fashion Stories
+                Recommended Social Posts
               </Text>
-              <NewsCarousel onOpenArticle={openArticle} />
-            </Animatable.View>
-          )}
-
-          {/* Discover / Recommended Items */}
-          {prefs.recommendedItems && (
-            <Animatable.View
-              animation="fadeInUp"
-              delay={700}
-              duration={700}
-              useNativeDriver
-              style={globalStyles.sectionScroll}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginRight: moderateScale(tokens.spacing.md2),
-                }}>
-                <Text style={[globalStyles.sectionTitle]}>Recommendations</Text>
-                <Pressable
-                  onPress={() => {
-                    ReactNativeHapticFeedback.trigger('impactLight');
-                    setSavedRecommendationsModalVisible(true);
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: fontScale(tokens.fontSize.sm),
-                      color: theme.colors.foreground,
-                      fontWeight: tokens.fontWeight.bold,
-                      marginTop: -10,
-                    }}>
-                    See All Saved Recs
-                  </Text>
-                </Pressable>
-              </View>
-              <DiscoverCarousel
-                onOpenItem={openArticle}
-                savedModalVisible={savedRecommendationsModalVisible}
-                onCloseSavedModal={() =>
-                  setSavedRecommendationsModalVisible(false)
-                }
-                onSavedProductsChange={(products, fetchFn, unsaveFn) => {
-                  setSavedRecommendations(products);
-                  setFetchSavedRecommendations(() => fetchFn);
-                  setUnsaveRecommendation(() => unsaveFn);
+              <RecommendedCarousel
+                onOpenPost={(postId: string) => {
+                  navigate('CommunityShowcaseScreen', {initialPostId: postId});
                 }}
               />
             </Animatable.View>
-          )}
-          {prefs.inspiredLooks && (
-            <>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  marginLeft: moderateScale(tokens.spacing.md2),
-                  marginRight: moderateScale(tokens.spacing.md2),
-                }}>
-                <Text style={globalStyles.sectionTitle}>Inspired Styles</Text>
-                <Pressable
-                  onPress={() => {
-                    ReactNativeHapticFeedback.trigger('impactLight');
-                    setImageModalVisible(true);
-                  }}>
-                  <Text
-                    style={{
-                      fontSize: fontScale(tokens.fontSize.sm),
-                      color: theme.colors.foreground,
-                      fontWeight: tokens.fontWeight.bold,
-                      display: 'flex',
-                      marginTop: 2,
-                    }}>
-                    See All Saved Styles
-                  </Text>
-                </Pressable>
-              </View>
 
-              {/* INSPIRED STYLES SECTION */}
-              {(savedLooks.length > 0 || true) && (
-                <CollapsibleSection
-                  open={savedOpen}
-                  onToggle={async newState => {
-                    setSavedOpen(newState);
-                    await AsyncStorage.setItem(
-                      'savedLooksOpen',
-                      JSON.stringify(newState),
-                    );
-                  }}>
-                  <View
-                    style={[globalStyles.sectionScroll2, {marginBottom: 16}]}>
-                    {savedLooks.length === 0 ? (
-                      <View
-                        style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                        <Text style={globalStyles.missingDataMessage1}>
-                          No saved styles.
-                        </Text>
-                        <TooltipBubble
-                          message='You haven’t saved any styles yet. Tap the "Add Look" button below to add your
-              favorite looks.'
-                          position="top"
-                        />
-                      </View>
-                    ) : (
-                      <ScrollView
-                        ref={inspiredScrollRef}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={e => {
-                          inspiredScrollPos.current =
-                            e.nativeEvent.contentOffset.x;
-                        }}
-                        scrollEventThrottle={16}
-                        onLayout={() => {
-                          if (inspiredScrollPos.current > 0) {
-                            inspiredScrollRef.current?.scrollTo({
-                              x: inspiredScrollPos.current,
-                              animated: false,
-                            });
-                          }
-                        }}
-                        contentContainerStyle={{
-                          paddingRight: moderateScale(tokens.spacing.xs),
-                        }}>
-                        {savedLooks.map((look, index) => (
-                          <View key={look.id} style={globalStyles.outfitCard}>
-                            <ScalePressable
-                              onPress={() => {
-                                setSelectedLook(look);
-                                setPreviewVisible(true);
-                              }}
-                              style={{alignItems: 'center'}}>
-                              <View>
-                                <Image
-                                  source={{uri: look.image_url}}
-                                  style={[globalStyles.image8]}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                              {/* Share button - top right */}
-                              <TouchableOpacity
-                                onPress={() => handleShareVibe(look)}
-                                style={{
-                                  position: 'absolute',
-                                  top: 6,
-                                  right: 6,
-                                  backgroundColor: 'rgba(0,0,0,0.4)',
-                                  borderRadius: 20,
-                                  padding: 6,
-                                }}>
-                                <Icon
-                                  name="ios-share"
-                                  size={20}
-                                  color={theme.colors.buttonText1}
-                                />
-                              </TouchableOpacity>
-
-                              <Text
-                                style={[
-                                  globalStyles.cardSubLabel,
-                                  {marginTop: 4, textAlign: 'center'},
-                                ]}
-                                numberOfLines={1}>
-                                {look.name}
-                              </Text>
-                            </ScalePressable>
-                          </View>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </View>
-                </CollapsibleSection>
-              )}
-
-              {/* RECREATED CREATED VIBE SECTION*/}
-              {loadingCreations && (
-                <Animatable.View
-                  animation="fadeIn"
-                  duration={400}
-                  useNativeDriver
+            {/* Discover / Recommended Items */}
+            {prefs.recommendedItems && (
+              <Animatable.View
+                animation="fadeInUp"
+                delay={700}
+                duration={700}
+                useNativeDriver
+                style={globalStyles.sectionScroll}>
+                <View
                   style={{
-                    padding: moderateScale(tokens.spacing.md),
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                   }}>
-                  <Text style={{color: theme.colors.foreground2}}>
-                    Loading recent creations...
+                  <Text style={[globalStyles.sectionTitle, {}]}>
+                    Recommended Buys
                   </Text>
-                </Animatable.View>
-              )}
+                  <Pressable
+                    onPress={() => {
+                      ReactNativeHapticFeedback.trigger('impactLight');
+                      setSavedRecommendationsModalVisible(true);
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: fontScale(tokens.fontSize.sm),
+                        color: theme.colors.foreground,
+                        fontWeight: tokens.fontWeight.bold,
+                        marginTop: -5,
+                        marginRight: moderateScale(tokens.spacing.sm),         
+                      }}>
+                      See All Saved
+                    </Text>
+                  </Pressable>
+                </View>
+                <DiscoverCarousel
+                  onOpenItem={openArticle}
+                  savedModalVisible={savedRecommendationsModalVisible}
+                  onCloseSavedModal={() =>
+                    setSavedRecommendationsModalVisible(false)
+                  }
+                  onSavedProductsChange={(products, fetchFn, unsaveFn) => {
+                    setSavedRecommendations(products);
+                    setFetchSavedRecommendations(() => fetchFn);
+                    setUnsaveRecommendation(() => unsaveFn);
+                  }}
+                />
+              </Animatable.View>
+            )}
 
-              {!loadingCreations && (
+            {prefs.inspiredLooks && (
+              <>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginLeft: moderateScale(tokens.spacing.md2),
+                  
+                  }}>
+                  <Text style={globalStyles.sectionTitle}>Your Inspired Styles</Text>
+                  <Pressable
+                    onPress={() => {
+                      ReactNativeHapticFeedback.trigger('impactLight');
+                      setImageModalVisible(true);
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: fontScale(tokens.fontSize.sm),
+                        color: theme.colors.foreground,
+                        fontWeight: tokens.fontWeight.bold,
+                        display: 'flex',
+                        marginTop: 3,
+                          marginRight: moderateScale(tokens.spacing.sm),
+                      }}>
+                      See All Saved
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* INSPIRED STYLES SECTION */}
+                {(savedLooks.length > 0 || true) && (
+                  <CollapsibleSection
+                    open={savedOpen}
+                    onToggle={async newState => {
+                      setSavedOpen(newState);
+                      await AsyncStorage.setItem(
+                        'savedLooksOpen',
+                        JSON.stringify(newState),
+                      );
+                    }}>
+                    <View
+                      style={[globalStyles.sectionScroll2, {marginBottom: 16}]}>
+                      {savedLooks.length === 0 ? (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignSelf: 'flex-start',
+                          }}>
+                          <Text style={globalStyles.missingDataMessage1}>
+                            No saved styles.
+                          </Text>
+                          <TooltipBubble
+                            message='You haven’t saved any styles yet. Tap the "Add Look" button below to add your
+              favorite looks.'
+                            position="top"
+                          />
+                        </View>
+                      ) : (
+                        <ScrollView
+                          ref={inspiredScrollRef}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          onScroll={e => {
+                            inspiredScrollPos.current =
+                              e.nativeEvent.contentOffset.x;
+                          }}
+                          scrollEventThrottle={16}
+                          onLayout={() => {
+                            if (inspiredScrollPos.current > 0) {
+                              inspiredScrollRef.current?.scrollTo({
+                                x: inspiredScrollPos.current,
+                                animated: false,
+                              });
+                            }
+                          }}
+                          contentContainerStyle={{
+                            paddingRight: moderateScale(tokens.spacing.xs),
+                          }}>
+                          {savedLooks.map((look, index) => (
+                            <View key={look.id} style={globalStyles.outfitCard}>
+                              <ScalePressable
+                                onPress={() => {
+                                  setSelectedLook(look);
+                                  setPreviewVisible(true);
+                                }}
+                                style={{alignItems: 'center'}}>
+                                <View>
+                                  <Image
+                                    source={{uri: look.image_url}}
+                                    style={[globalStyles.image8]}
+                                    resizeMode="cover"
+                                  />
+                                </View>
+                                {/* Share button - top right */}
+                                <TouchableOpacity
+                                  onPress={() => handleShareVibe(look)}
+                                  style={{
+                                    position: 'absolute',
+                                    top: 6,
+                                    right: 6,
+                                    backgroundColor: 'rgba(0,0,0,0.4)',
+                                    borderRadius: 20,
+                                    padding: 6,
+                                  }}>
+                                  <Icon
+                                    name="ios-share"
+                                    size={20}
+                                    color={theme.colors.buttonText1}
+                                  />
+                                </TouchableOpacity>
+
+                                <Text
+                                  style={[
+                                    globalStyles.cardSubLabel,
+                                    {marginTop: 4, textAlign: 'center'},
+                                  ]}
+                                  numberOfLines={1}>
+                                  {look.name}
+                                </Text>
+                              </ScalePressable>
+                            </View>
+                          ))}
+                        </ScrollView>
+                      )}
+                    </View>
+                  </CollapsibleSection>
+                )}
+
+                {/* RECREATED CREATED VIBE SECTION*/}
+                {loadingCreations && (
+                  <Animatable.View
+                    animation="fadeIn"
+                    duration={400}
+                    useNativeDriver
+                    style={{
+                      padding: moderateScale(tokens.spacing.md),
+                      alignItems: 'center',
+                    }}>
+                    <Text style={{color: theme.colors.foreground2}}>
+                      Loading recent creations...
+                    </Text>
+                  </Animatable.View>
+                )}
+
+                {!loadingCreations && (
+                  <CollapsibleSection
+                    title="Your Recreated Syles"
+                    open={createdOpen}
+                    onToggle={async newState => {
+                      setCreatedOpen(newState);
+                      await AsyncStorage.setItem(
+                        'createdVibeOpen',
+                        JSON.stringify(newState),
+                      );
+                    }}>
+                    <View style={globalStyles.sectionScroll}>
+                      {recentCreations.length === 0 ? (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignSelf: 'flex-start',
+                          }}>
+                          <Text style={globalStyles.missingDataMessage1}>
+                            No saved styles.
+                          </Text>
+                          <TooltipBubble
+                            message="You haven't recreated any styles yet. Upload an outfit photo to recreate a look with shopping links."
+                            position="top"
+                          />
+                        </View>
+                      ) : (
+                        <ScrollView
+                          ref={recreatedScrollRef}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          onScroll={e => {
+                            recreatedScrollPos.current =
+                              e.nativeEvent.contentOffset.x;
+                          }}
+                          scrollEventThrottle={16}
+                          onLayout={() => {
+                            if (recreatedScrollPos.current > 0) {
+                              recreatedScrollRef.current?.scrollTo({
+                                x: recreatedScrollPos.current,
+                                animated: false,
+                              });
+                            }
+                          }}
+                          contentContainerStyle={{
+                            paddingRight: moderateScale(tokens.spacing.xs),
+                          }}>
+                          {recentCreations.map(c => (
+                            <View
+                              key={c.id}
+                              style={[
+                                globalStyles.outfitCard,
+                                globalStyles.image8,
+                                {height: 'auto', borderWidth: 0},
+                              ]}>
+                              <ScalePressable
+                                onPress={() => {
+                                  // Check if it's new pieces format or old outfit format
+                                  if (c.generated_outfit?.pieces) {
+                                    // New format - open VisualRecreateModal
+                                    openVisualRecreateModal({
+                                      pieces: c.generated_outfit.pieces,
+                                      source_image: c.source_image_url,
+                                      lookId: c.id,
+                                      lookName: c.name,
+                                    });
+                                  } else {
+                                    // Legacy format - use RecreatedLookScreen
+                                    navigate('RecreatedLook', {
+                                      data: c.generated_outfit,
+                                    });
+                                  }
+                                }}
+                                style={{alignItems: 'center', width: '100%'}}>
+                                <View>
+                                  <Image
+                                    source={{uri: c.source_image_url}}
+                                    style={[globalStyles.image8]}
+                                    resizeMode="cover"
+                                  />
+                                </View>
+                                {/* Share button - top right */}
+                                <TouchableOpacity
+                                  onPress={() => handleShareVibe(c)}
+                                  style={{
+                                    position: 'absolute',
+                                    top: 6,
+                                    right: 6,
+                                    backgroundColor: 'rgba(0,0,0,0.4)',
+                                    borderRadius: 20,
+                                    padding: 6,
+                                  }}>
+                                  <Icon
+                                    name="ios-share"
+                                    size={20}
+                                    color={theme.colors.buttonText1}
+                                  />
+                                </TouchableOpacity>
+
+                                <Text
+                                  numberOfLines={1}
+                                  ellipsizeMode="tail"
+                                  style={[
+                                    globalStyles.cardSubLabel,
+                                    {
+                                      marginTop: 4,
+                                      textAlign: 'center',
+                                      width: '100%',
+                                    },
+                                  ]}>
+                                  {c.name ||
+                                    (c.tags && c.tags.slice(0, 3).join(' ')) ||
+                                    'AI Look'}
+                                </Text>
+                              </ScalePressable>
+                            </View>
+                          ))}
+                        </ScrollView>
+                      )}
+                    </View>
+                  </CollapsibleSection>
+                )}
+
+                {/* SHARED STYLES SECTION */}
                 <CollapsibleSection
-                  title="Recreated Syles"
-                  open={createdOpen}
+                  title="Your Shared Styles"
+                  open={sharedOpen}
                   onToggle={async newState => {
-                    setCreatedOpen(newState);
+                    setSharedOpen(newState);
                     await AsyncStorage.setItem(
-                      'createdVibeOpen',
+                      'sharedLooksOpen',
                       JSON.stringify(newState),
                     );
                   }}>
                   <View style={globalStyles.sectionScroll}>
-                    {recentCreations.length === 0 ? (
+                    {sharedLooks.length === 0 ? (
                       <View
                         style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
                         <Text style={globalStyles.missingDataMessage1}>
-                          No saved styles.
+                          No shared styles.
                         </Text>
                         <TooltipBubble
-                          message="You haven't recreated any styles yet. Upload an outfit photo to recreate a look with shopping links."
+                          message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
                           position="top"
                         />
                       </View>
                     ) : (
                       <ScrollView
-                        ref={recreatedScrollRef}
+                        ref={sharedScrollRef}
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         onScroll={e => {
-                          recreatedScrollPos.current =
+                          sharedScrollPos.current =
                             e.nativeEvent.contentOffset.x;
                         }}
                         scrollEventThrottle={16}
                         onLayout={() => {
-                          if (recreatedScrollPos.current > 0) {
-                            recreatedScrollRef.current?.scrollTo({
-                              x: recreatedScrollPos.current,
+                          if (sharedScrollPos.current > 0) {
+                            sharedScrollRef.current?.scrollTo({
+                              x: sharedScrollPos.current,
                               animated: false,
                             });
                           }
                         }}
-                        contentContainerStyle={{
-                          paddingRight: moderateScale(tokens.spacing.xs),
-                        }}>
-                        {recentCreations.map(c => (
-                          <View
-                            key={c.id}
-                            style={[
-                              globalStyles.outfitCard,
-                              globalStyles.image8,
-                              {height: 'auto', borderWidth: 0},
-                            ]}>
-                            <ScalePressable
-                              onPress={() => {
-                                // Check if it's new pieces format or old outfit format
-                                if (c.generated_outfit?.pieces) {
-                                  // New format - open VisualRecreateModal
-                                  openVisualRecreateModal({
-                                    pieces: c.generated_outfit.pieces,
-                                    source_image: c.source_image_url,
-                                    lookId: c.id,
-                                    lookName: c.name,
-                                  });
-                                } else {
-                                  // Legacy format - use RecreatedLookScreen
-                                  navigate('RecreatedLook', {
-                                    data: c.generated_outfit,
-                                  });
-                                }
-                              }}
-                              style={{alignItems: 'center', width: '100%'}}>
-                              <View>
-                                <Image
-                                  source={{uri: c.source_image_url}}
-                                  style={[globalStyles.image8]}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                              {/* Share button - top right */}
-                              <TouchableOpacity
-                                onPress={() => handleShareVibe(c)}
+                        contentContainerStyle={{paddingRight: 8}}>
+                        {sharedLooks
+                          .filter(look => !hiddenSharedLooks.has(look.id))
+                          .map((look, index) => (
+                            <View
+                              key={look.id}
+                              style={[globalStyles.outfitCard]}>
+                              <Pressable
+                                onPress={() => {
+                                  // Could navigate to look detail or show preview
+                                }}
                                 style={{
-                                  position: 'absolute',
-                                  top: 6,
-                                  right: 6,
-                                  backgroundColor: 'rgba(0,0,0,0.4)',
-                                  borderRadius: 20,
-                                  padding: 6,
+                                  width: 130,
+                                  height: 130,
+                                  borderRadius: tokens.borderRadius.md,
+                                  overflow: 'hidden',
+                                  backgroundColor: '#000',
                                 }}>
-                                <Icon
-                                  name="ios-share"
-                                  size={20}
-                                  color={theme.colors.buttonText1}
-                                />
-                              </TouchableOpacity>
-
+                                {/* Card - single image or 2x2 grid */}
+                                <View>
+                                  {look.image_url ? (
+                                    // Single image post
+                                    <Image
+                                      source={{uri: look.image_url}}
+                                      style={{width: 130, height: 130}}
+                                      resizeMode="cover"
+                                    />
+                                  ) : (
+                                    // 2x2 Grid for multi-item posts
+                                    <>
+                                      <View
+                                        style={{
+                                          flexDirection: 'row',
+                                          height: 65,
+                                        }}>
+                                        <Image
+                                          source={{uri: look.top_image}}
+                                          style={{width: 65, height: 65}}
+                                          resizeMode="cover"
+                                        />
+                                        <Image
+                                          source={{uri: look.bottom_image}}
+                                          style={{width: 65, height: 65}}
+                                          resizeMode="cover"
+                                        />
+                                      </View>
+                                      <View
+                                        style={{
+                                          flexDirection: 'row',
+                                          height: 65,
+                                        }}>
+                                        <Image
+                                          source={{uri: look.shoes_image}}
+                                          style={{width: 65, height: 65}}
+                                          resizeMode="cover"
+                                        />
+                                        <View
+                                          style={{
+                                            width: 65,
+                                            height: 65,
+                                            backgroundColor: '#000',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                          }}>
+                                          <Text
+                                            style={{
+                                              color: '#fff',
+                                              fontSize: 8,
+                                              fontWeight: '800',
+                                              letterSpacing: 1,
+                                            }}>
+                                            StylHelpr
+                                          </Text>
+                                        </View>
+                                      </View>
+                                    </>
+                                  )}
+                                  {/* Hide button */}
+                                  <Pressable
+                                    onPress={() => {
+                                      Alert.alert(
+                                        'Remove Look',
+                                        'Are you sure you want to remove this shared look from your feed?',
+                                        [
+                                          {text: 'Cancel', style: 'cancel'},
+                                          {
+                                            text: 'Remove',
+                                            style: 'destructive',
+                                            onPress: () => {
+                                              setHiddenSharedLooks(prev =>
+                                                new Set(prev).add(look.id),
+                                              );
+                                            },
+                                          },
+                                        ],
+                                      );
+                                    }}
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: 4,
+                                      right: 4,
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: 10,
+                                      backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                    }}>
+                                    <Icon name="close" size={14} color="#fff" />
+                                  </Pressable>
+                                </View>
+                              </Pressable>
+                              {/* Look name - outside of the image container */}
                               <Text
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
                                 style={[
                                   globalStyles.cardSubLabel,
                                   {
-                                    marginTop: 4,
                                     textAlign: 'center',
-                                    width: '100%',
+                                    marginTop: 4,
+                                    width: 130,
                                   },
-                                ]}>
-                                {c.name ||
-                                  (c.tags && c.tags.slice(0, 3).join(' ')) ||
-                                  'AI Look'}
+                                ]}
+                                numberOfLines={1}>
+                                {look.name || 'Shared Look'}
                               </Text>
-                            </ScalePressable>
-                          </View>
-                        ))}
+                            </View>
+                          ))}
                       </ScrollView>
                     )}
                   </View>
                 </CollapsibleSection>
-              )}
-
-              {/* SHARED STYLES SECTION */}
-              <CollapsibleSection
-                title="Shared Styles"
-                open={sharedOpen}
-                onToggle={async newState => {
-                  setSharedOpen(newState);
-                  await AsyncStorage.setItem(
-                    'sharedLooksOpen',
-                    JSON.stringify(newState),
-                  );
-                }}>
-                <View style={globalStyles.sectionScroll}>
-                  {sharedLooks.length === 0 ? (
-                    <View
-                      style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                      <Text style={globalStyles.missingDataMessage1}>
-                        No shared styles.
-                      </Text>
-                      <TooltipBubble
-                        message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
-                        position="top"
-                      />
-                    </View>
-                  ) : (
-                    <ScrollView
-                      ref={sharedScrollRef}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      onScroll={e => {
-                        sharedScrollPos.current = e.nativeEvent.contentOffset.x;
-                      }}
-                      scrollEventThrottle={16}
-                      onLayout={() => {
-                        if (sharedScrollPos.current > 0) {
-                          sharedScrollRef.current?.scrollTo({
-                            x: sharedScrollPos.current,
-                            animated: false,
-                          });
-                        }
-                      }}
-                      contentContainerStyle={{paddingRight: 8}}>
-                      {sharedLooks
-                        .filter(look => !hiddenSharedLooks.has(look.id))
-                        .map((look, index) => (
-                          <View key={look.id} style={[globalStyles.outfitCard]}>
-                            <Pressable
-                              onPress={() => {
-                                // Could navigate to look detail or show preview
-                              }}
-                              style={{
-                                width: 130,
-                                height: 130,
-                                borderRadius: tokens.borderRadius.md,
-                                overflow: 'hidden',
-                                backgroundColor: '#000',
-                              }}>
-                              {/* Card - single image or 2x2 grid */}
-                              <View>
-                                {look.image_url ? (
-                                  // Single image post
-                                  <Image
-                                    source={{uri: look.image_url}}
-                                    style={{width: 130, height: 130}}
-                                    resizeMode="cover"
-                                  />
-                                ) : (
-                                  // 2x2 Grid for multi-item posts
-                                  <>
-                                    <View
-                                      style={{
-                                        flexDirection: 'row',
-                                        height: 65,
-                                      }}>
-                                      <Image
-                                        source={{uri: look.top_image}}
-                                        style={{width: 65, height: 65}}
-                                        resizeMode="cover"
-                                      />
-                                      <Image
-                                        source={{uri: look.bottom_image}}
-                                        style={{width: 65, height: 65}}
-                                        resizeMode="cover"
-                                      />
-                                    </View>
-                                    <View
-                                      style={{
-                                        flexDirection: 'row',
-                                        height: 65,
-                                      }}>
-                                      <Image
-                                        source={{uri: look.shoes_image}}
-                                        style={{width: 65, height: 65}}
-                                        resizeMode="cover"
-                                      />
-                                      <View
-                                        style={{
-                                          width: 65,
-                                          height: 65,
-                                          backgroundColor: '#000',
-                                          justifyContent: 'center',
-                                          alignItems: 'center',
-                                        }}>
-                                        <Text
-                                          style={{
-                                            color: '#fff',
-                                            fontSize: 8,
-                                            fontWeight: '800',
-                                            letterSpacing: 1,
-                                          }}>
-                                          StylHelpr
-                                        </Text>
-                                      </View>
-                                    </View>
-                                  </>
-                                )}
-                                {/* Hide button */}
-                                <Pressable
-                                  onPress={() => {
-                                    Alert.alert(
-                                      'Remove Look',
-                                      'Are you sure you want to remove this shared look from your feed?',
-                                      [
-                                        {text: 'Cancel', style: 'cancel'},
-                                        {
-                                          text: 'Remove',
-                                          style: 'destructive',
-                                          onPress: () => {
-                                            setHiddenSharedLooks(prev =>
-                                              new Set(prev).add(look.id),
-                                            );
-                                          },
-                                        },
-                                      ],
-                                    );
-                                  }}
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: 4,
-                                    right: 4,
-                                    width: 20,
-                                    height: 20,
-                                    borderRadius: 10,
-                                    backgroundColor: 'rgba(220, 38, 38, 0.9)',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                  }}>
-                                  <Icon name="close" size={14} color="#fff" />
-                                </Pressable>
-                              </View>
-                            </Pressable>
-                            {/* Look name - outside of the image container */}
-                            <Text
-                              style={[
-                                globalStyles.cardSubLabel,
-                                {textAlign: 'center', marginTop: 4, width: 130},
-                              ]}
-                              numberOfLines={1}>
-                              {look.name || 'Shared Look'}
-                            </Text>
-                          </View>
-                        ))}
-                    </ScrollView>
-                  )}
-                </View>
-              </CollapsibleSection>
-            </>
-          )}
-          <SaveLookModal
-            visible={saveModalVisible}
-            onClose={() => setSaveModalVisible(false)}
-          />
-          <SavedLookPreviewModal
-            visible={previewVisible}
-            look={selectedLook}
-            onClose={() => setPreviewVisible(false)}
-          />
-          <SavedRecommendationsModal
-            visible={savedRecommendationsModalVisible && !readerVisible}
-            onClose={() => setSavedRecommendationsModalVisible(false)}
-            savedProducts={savedRecommendations}
-            onOpenItem={openArticle}
-            onUnsave={productId => {
-              // Immediately remove from local state so it disappears from grid
-              setSavedRecommendations(prev =>
-                prev.filter(p => p.product_id !== productId),
-              );
-              // Also update carousel state
-              unsaveRecommendation?.(productId);
-            }}
-            onRefresh={() => {
-              fetchSavedRecommendations?.();
-            }}
-          />
-          <ReaderModal
-            visible={readerVisible}
-            url={readerUrl}
-            title={readerTitle}
-            onClose={() => setReaderVisible(false)}
-          />
-          <AllSavedLooksModal
-            visible={imageModalVisible}
-            onClose={() => setImageModalVisible(false)}
-            savedLooks={savedLooks}
-            recreateLook={handleRecreateLook}
-            openShopModal={handleShopModal}
-            shopResults={shopResults}
-            openPersonalizedShopModal={openPersonalizedShopModal}
-            openVisualRecreateModal={openVisualRecreateModal}
-            onSaveLook={fetchSavedLooks}
-            onRecreate={loadRecentCreations}
-          />
-          <ShopModal
-            visible={shopVisible}
-            onClose={() => setShopVisible(false)}
-            results={shopResults}
-          />
-          {/* <PersonalizedShopModal
+              </>
+            )}
+            <SaveLookModal
+              visible={saveModalVisible}
+              onClose={() => setSaveModalVisible(false)}
+            />
+            <SavedLookPreviewModal
+              visible={previewVisible}
+              look={selectedLook}
+              onClose={() => setPreviewVisible(false)}
+            />
+            <SavedRecommendationsModal
+              visible={savedRecommendationsModalVisible && !readerVisible}
+              onClose={() => setSavedRecommendationsModalVisible(false)}
+              savedProducts={savedRecommendations}
+              onOpenItem={openArticle}
+              onUnsave={productId => {
+                // Immediately remove from local state so it disappears from grid
+                setSavedRecommendations(prev =>
+                  prev.filter(p => p.product_id !== productId),
+                );
+                // Also update carousel state
+                unsaveRecommendation?.(productId);
+              }}
+              onRefresh={() => {
+                fetchSavedRecommendations?.();
+              }}
+            />
+            <ReaderModal
+              visible={readerVisible}
+              url={readerUrl}
+              title={readerTitle}
+              onClose={() => setReaderVisible(false)}
+            />
+            <AllSavedLooksModal
+              visible={imageModalVisible}
+              onClose={() => setImageModalVisible(false)}
+              savedLooks={savedLooks}
+              recreateLook={handleRecreateLook}
+              openShopModal={handleShopModal}
+              shopResults={shopResults}
+              openPersonalizedShopModal={openPersonalizedShopModal}
+              openVisualRecreateModal={openVisualRecreateModal}
+              onSaveLook={fetchSavedLooks}
+              onRecreate={loadRecentCreations}
+            />
+            <ShopModal
+              visible={shopVisible}
+              onClose={() => setShopVisible(false)}
+              results={shopResults}
+            />
+            {/* <PersonalizedShopModal
           visible={personalizedVisible}
           onClose={() => setPersonalizedVisible(false)}
           purchases={personalizedPurchases}
         /> */}
-          <PersonalizedShopModal
-            visible={personalizedVisible}
-            onClose={() => setPersonalizedVisible(false)}
-            purchases={
-              personalizedPurchases?.purchases ??
-              personalizedPurchases?.suggested_purchases ??
-              []
-            }
-            recreatedOutfit={
-              personalizedPurchases?.recreatedOutfit ??
-              personalizedPurchases?.recreated_outfit ??
-              []
-            }
-            styleNote={
-              personalizedPurchases?.styleNote ??
-              personalizedPurchases?.style_note ??
-              ''
-            }
-          />
-          <VisualRecreateModal
-            visible={visualRecreateVisible}
-            onClose={() => setVisualRecreateVisible(false)}
-            pieces={visualRecreateData?.pieces}
-            results={visualRecreateData?.results}
-            source_image={visualRecreateData?.source_image}
-            lookId={visualRecreateData?.lookId}
-            lookName={visualRecreateData?.lookName}
-            tags={visualRecreateData?.tags}
-            onDelete={handleDeleteRecreatedLook}
-            onRename={handleRenameRecreatedLook}
-            onSave={loadRecentCreations}
-          />
-          {showRecreatedModal && recreatedData && (
+            <PersonalizedShopModal
+              visible={personalizedVisible}
+              onClose={() => setPersonalizedVisible(false)}
+              purchases={
+                personalizedPurchases?.purchases ??
+                personalizedPurchases?.suggested_purchases ??
+                []
+              }
+              recreatedOutfit={
+                personalizedPurchases?.recreatedOutfit ??
+                personalizedPurchases?.recreated_outfit ??
+                []
+              }
+              styleNote={
+                personalizedPurchases?.styleNote ??
+                personalizedPurchases?.style_note ??
+                ''
+              }
+            />
+            <VisualRecreateModal
+              visible={visualRecreateVisible}
+              onClose={() => setVisualRecreateVisible(false)}
+              pieces={visualRecreateData?.pieces}
+              results={visualRecreateData?.results}
+              source_image={visualRecreateData?.source_image}
+              lookId={visualRecreateData?.lookId}
+              lookName={visualRecreateData?.lookName}
+              tags={visualRecreateData?.tags}
+              onDelete={handleDeleteRecreatedLook}
+              onRename={handleRenameRecreatedLook}
+              onSave={loadRecentCreations}
+            />
+            {showRecreatedModal && recreatedData && (
+              <Modal
+                visible={showRecreatedModal}
+                animationType="slide"
+                transparent={false}
+                presentationStyle="fullScreen"
+                statusBarTranslucent
+                onRequestClose={() => setShowRecreatedModal(false)}>
+                <RecreatedLookScreen
+                  route={{params: {data: recreatedData}}}
+                  navigation={{goBack: () => setShowRecreatedModal(false)}}
+                />
+              </Modal>
+            )}
+
+            {/* Share Options Modal */}
             <Modal
-              visible={showRecreatedModal}
-              animationType="slide"
-              transparent={false}
-              presentationStyle="fullScreen"
-              statusBarTranslucent
-              onRequestClose={() => setShowRecreatedModal(false)}>
-              <RecreatedLookScreen
-                route={{params: {data: recreatedData}}}
-                navigation={{goBack: () => setShowRecreatedModal(false)}}
-              />
-            </Modal>
-          )}
-
-          {/* Share Options Modal */}
-          <Modal
-            visible={shareOptionsVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setShareOptionsVisible(false)}>
-            <Pressable
-              style={{
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-              onPress={() => setShareOptionsVisible(false)}>
-              <BlurView
-                style={StyleSheet.absoluteFill}
-                blurType="dark"
-                blurAmount={20}
-                reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
-              />
-              <Animatable.View
-                animation="slideInUp"
-                duration={300}
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: 20,
-                  padding: 20,
-                  width: '85%',
-                  maxWidth: 340,
-                }}>
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '700',
-                    color: theme.colors.foreground,
-                    marginBottom: 20,
-                    textAlign: 'center',
-                  }}>
-                  Share Look
-                </Text>
-
-                {/* Share to Community */}
-                <AppleTouchFeedback
-                  hapticStyle="impactMedium"
-                  onPress={handleShareToCommunity}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.colors.button1,
-                    paddingVertical: 14,
-                    paddingHorizontal: 20,
-                    borderRadius: 14,
-                    marginBottom: 12,
-                  }}>
-                  <Icon
-                    name="groups"
-                    size={24}
-                    color={theme.colors.buttonText1}
-                  />
-                  <Text
-                    style={{
-                      color: theme.colors.buttonText1,
-                      fontSize: 16,
-                      fontWeight: '600',
-                      marginLeft: 12,
-                    }}>
-                    Share to Community
-                  </Text>
-                </AppleTouchFeedback>
-
-                {/* Share Externally */}
-                <AppleTouchFeedback
-                  hapticStyle="impactLight"
-                  onPress={handleShareExternal}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.colors.surface2,
-                    paddingVertical: 14,
-                    paddingHorizontal: 20,
-                    marginBottom: 12,
-                    borderRadius: 14,
-                    borderWidth: tokens.borderWidth.md,
-                    borderColor: theme.colors.muted,
-                  }}>
-                  <Icon
-                    name="ios-share"
-                    size={24}
-                    color={theme.colors.foreground}
-                  />
-                  <Text
-                    style={{
-                      color: theme.colors.foreground,
-                      fontSize: 16,
-                      fontWeight: '600',
-                      marginLeft: 12,
-                    }}>
-                    Share via...
-                  </Text>
-                </AppleTouchFeedback>
-
-                {/* Cancel */}
-                <AppleTouchFeedback
-                  hapticStyle="selection"
-                  onPress={() => {
-                    setShareOptionsVisible(false);
-                    setPendingShareVibe(null);
-                  }}
-                  style={{
-                    paddingVertical: 12,
-                    alignItems: 'center',
-                    borderRadius: 14,
-                    borderWidth: tokens.borderWidth.md,
-                    borderColor: theme.colors.muted,
-                  }}>
-                  <Text
-                    style={{
-                      color: theme.colors.muted,
-                      fontSize: 16,
-                    }}>
-                    Cancel
-                  </Text>
-                </AppleTouchFeedback>
-              </Animatable.View>
-            </Pressable>
-          </Modal>
-
-          {/* Community Share Modal */}
-          <Modal
-            visible={communityShareModalVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setCommunityShareModalVisible(false)}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{flex: 1}}>
+              visible={shareOptionsVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShareOptionsVisible(false)}>
               <Pressable
                 style={{
                   flex: 1,
                   justifyContent: 'center',
                   alignItems: 'center',
                 }}
-                onPress={() => setCommunityShareModalVisible(false)}>
+                onPress={() => setShareOptionsVisible(false)}>
                 <BlurView
                   style={StyleSheet.absoluteFill}
                   blurType="dark"
                   blurAmount={20}
                   reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
                 />
-                <Pressable
-                  onPress={e => e.stopPropagation()}
+                <Animatable.View
+                  animation="slideInUp"
+                  duration={300}
                   style={{
                     backgroundColor: theme.colors.surface,
                     borderRadius: 20,
-                    padding: 24,
-                    width: '90%',
-                    maxWidth: 360,
+                    padding: 20,
+                    width: '85%',
+                    maxWidth: 340,
                   }}>
                   <Text
                     style={{
@@ -2717,141 +2643,275 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       marginBottom: 20,
                       textAlign: 'center',
                     }}>
-                    Share to Community
+                    Share Look
                   </Text>
 
-                  {/* Name Input */}
-                  <Text
+                  {/* Share to Community */}
+                  <AppleTouchFeedback
+                    hapticStyle="impactMedium"
+                    onPress={handleShareToCommunity}
                     style={{
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: theme.colors.foreground2,
-                      marginBottom: 8,
-                    }}>
-                    Name
-                  </Text>
-                  <TextInput
-                    value={communityName}
-                    onChangeText={setCommunityName}
-                    placeholder="Give your style a name..."
-                    placeholderTextColor={theme.colors.muted}
-                    style={{
-                      backgroundColor: theme.colors.surface3,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: theme.colors.button1,
+                      paddingVertical: 14,
+                      paddingHorizontal: 20,
                       borderRadius: 14,
-                      borderWidth: tokens.borderWidth.md,
-                      borderColor: theme.colors.muted,
-                      padding: 14,
-                      color: theme.colors.foreground,
-                      fontSize: 15,
-                      marginBottom: 16,
-                    }}
-                  />
-
-                  {/* Story Input */}
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: theme.colors.foreground2,
-                      marginBottom: 8,
+                      marginBottom: 12,
                     }}>
-                    Story
-                  </Text>
-                  <TextInput
-                    value={communityDescription}
-                    onChangeText={setCommunityDescription}
-                    placeholder="Tell the story behind this style..."
-                    placeholderTextColor={theme.colors.muted}
-                    multiline
-                    style={{
-                      backgroundColor: theme.colors.surface3,
-                      borderRadius: 14,
-                      borderWidth: tokens.borderWidth.md,
-                      borderColor: theme.colors.muted,
-                      padding: 14,
-                      color: theme.colors.foreground,
-                      fontSize: 15,
-                      minHeight: 80,
-                      marginBottom: 16,
-                      textAlignVertical: 'top',
-                    }}
-                  />
-
-                  {/* Tags Input */}
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: '600',
-                      color: theme.colors.foreground2,
-                      marginBottom: 8,
-                    }}>
-                    Tags (comma-separated)
-                  </Text>
-                  <TextInput
-                    value={communityTags}
-                    onChangeText={setCommunityTags}
-                    placeholder="casual, summer, streetwear..."
-                    placeholderTextColor={theme.colors.muted}
-                    style={{
-                      backgroundColor: theme.colors.surface3,
-                      borderRadius: 14,
-                      borderWidth: tokens.borderWidth.md,
-                      borderColor: theme.colors.muted,
-                      padding: 14,
-                      color: theme.colors.foreground,
-                      fontSize: 15,
-                      marginBottom: 24,
-                    }}
-                  />
-
-                  {/* Action Buttons */}
-                  <View
-                    style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
-                    <AppleTouchFeedback
-                      hapticStyle="selection"
-                      onPress={() => {
-                        setCommunityShareModalVisible(false);
-                        setPendingShareVibe(null);
-                      }}
+                    <Icon
+                      name="groups"
+                      size={24}
+                      color={theme.colors.buttonText1}
+                    />
+                    <Text
                       style={{
-                        paddingHorizontal: 20,
-                        paddingVertical: 12,
+                        color: theme.colors.buttonText1,
+                        fontSize: 16,
+                        fontWeight: '600',
+                        marginLeft: 12,
+                      }}>
+                      Share to Community
+                    </Text>
+                  </AppleTouchFeedback>
+
+                  {/* Share Externally */}
+                  <AppleTouchFeedback
+                    hapticStyle="impactLight"
+                    onPress={handleShareExternal}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: theme.colors.surface2,
+                      paddingVertical: 14,
+                      paddingHorizontal: 20,
+                      marginBottom: 12,
+                      borderRadius: 14,
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.muted,
+                    }}>
+                    <Icon
+                      name="ios-share"
+                      size={24}
+                      color={theme.colors.foreground}
+                    />
+                    <Text
+                      style={{
+                        color: theme.colors.foreground,
+                        fontSize: 16,
+                        fontWeight: '600',
+                        marginLeft: 12,
+                      }}>
+                      Share via...
+                    </Text>
+                  </AppleTouchFeedback>
+
+                  {/* Cancel */}
+                  <AppleTouchFeedback
+                    hapticStyle="selection"
+                    onPress={() => {
+                      setShareOptionsVisible(false);
+                      setPendingShareVibe(null);
+                    }}
+                    style={{
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      borderRadius: 14,
+                      borderWidth: tokens.borderWidth.md,
+                      borderColor: theme.colors.muted,
+                    }}>
+                    <Text
+                      style={{
+                        color: theme.colors.muted,
+                        fontSize: 16,
+                      }}>
+                      Cancel
+                    </Text>
+                  </AppleTouchFeedback>
+                </Animatable.View>
+              </Pressable>
+            </Modal>
+
+            {/* Community Share Modal */}
+            <Modal
+              visible={communityShareModalVisible}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setCommunityShareModalVisible(false)}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{flex: 1}}>
+                <Pressable
+                  style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => setCommunityShareModalVisible(false)}>
+                  <BlurView
+                    style={StyleSheet.absoluteFill}
+                    blurType="dark"
+                    blurAmount={20}
+                    reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+                  />
+                  <Pressable
+                    onPress={e => e.stopPropagation()}
+                    style={{
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 20,
+                      padding: 24,
+                      width: '90%',
+                      maxWidth: 360,
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: '700',
+                        color: theme.colors.foreground,
+                        marginBottom: 20,
+                        textAlign: 'center',
+                      }}>
+                      Share to Community
+                    </Text>
+
+                    {/* Name Input */}
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: theme.colors.foreground2,
+                        marginBottom: 8,
+                      }}>
+                      Name
+                    </Text>
+                    <TextInput
+                      value={communityName}
+                      onChangeText={setCommunityName}
+                      placeholder="Give your style a name..."
+                      placeholderTextColor={theme.colors.muted}
+                      style={{
+                        backgroundColor: theme.colors.surface3,
                         borderRadius: 14,
                         borderWidth: tokens.borderWidth.md,
                         borderColor: theme.colors.muted,
-                      }}>
-                      <Text style={{color: theme.colors.muted, fontSize: 16}}>
-                        Cancel
-                      </Text>
-                    </AppleTouchFeedback>
+                        padding: 14,
+                        color: theme.colors.foreground,
+                        fontSize: 15,
+                        marginBottom: 16,
+                      }}
+                    />
 
-                    <AppleTouchFeedback
-                      hapticStyle="impactMedium"
-                      onPress={handleConfirmCommunityShare}
+                    {/* Story Input */}
+                    <Text
                       style={{
-                        backgroundColor: theme.colors.button1,
-                        paddingHorizontal: 24,
-                        paddingVertical: 12,
-                        borderRadius: 12,
-                        marginLeft: 12,
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: theme.colors.foreground2,
+                        marginBottom: 8,
                       }}>
-                      <Text
+                      Story
+                    </Text>
+                    <TextInput
+                      value={communityDescription}
+                      onChangeText={setCommunityDescription}
+                      placeholder="Tell the story behind this style..."
+                      placeholderTextColor={theme.colors.muted}
+                      multiline
+                      style={{
+                        backgroundColor: theme.colors.surface3,
+                        borderRadius: 14,
+                        borderWidth: tokens.borderWidth.md,
+                        borderColor: theme.colors.muted,
+                        padding: 14,
+                        color: theme.colors.foreground,
+                        fontSize: 15,
+                        minHeight: 80,
+                        marginBottom: 16,
+                        textAlignVertical: 'top',
+                      }}
+                    />
+
+                    {/* Tags Input */}
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: theme.colors.foreground2,
+                        marginBottom: 8,
+                      }}>
+                      Tags (comma-separated)
+                    </Text>
+                    <TextInput
+                      value={communityTags}
+                      onChangeText={setCommunityTags}
+                      placeholder="casual, summer, streetwear..."
+                      placeholderTextColor={theme.colors.muted}
+                      style={{
+                        backgroundColor: theme.colors.surface3,
+                        borderRadius: 14,
+                        borderWidth: tokens.borderWidth.md,
+                        borderColor: theme.colors.muted,
+                        padding: 14,
+                        color: theme.colors.foreground,
+                        fontSize: 15,
+                        marginBottom: 24,
+                      }}
+                    />
+
+                    {/* Action Buttons */}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'flex-end',
+                      }}>
+                      <AppleTouchFeedback
+                        hapticStyle="selection"
+                        onPress={() => {
+                          setCommunityShareModalVisible(false);
+                          setPendingShareVibe(null);
+                        }}
                         style={{
-                          color: theme.colors.buttonText1,
-                          fontSize: 16,
-                          fontWeight: '600',
+                          paddingHorizontal: 20,
+                          paddingVertical: 12,
+                          borderRadius: 14,
+                          borderWidth: tokens.borderWidth.md,
+                          borderColor: theme.colors.muted,
                         }}>
-                        {createPostMutation.isPending ? 'Sharing...' : 'Share'}
-                      </Text>
-                    </AppleTouchFeedback>
-                  </View>
+                        <Text style={{color: theme.colors.muted, fontSize: 16}}>
+                          Cancel
+                        </Text>
+                      </AppleTouchFeedback>
+
+                      <AppleTouchFeedback
+                        hapticStyle="impactMedium"
+                        onPress={handleConfirmCommunityShare}
+                        style={{
+                          backgroundColor: theme.colors.button1,
+                          paddingHorizontal: 24,
+                          paddingVertical: 12,
+                          borderRadius: 12,
+                          marginLeft: 12,
+                        }}>
+                        <Text
+                          style={{
+                            color: theme.colors.buttonText1,
+                            fontSize: 16,
+                            fontWeight: '600',
+                          }}>
+                          {createPostMutation.isPending
+                            ? 'Sharing...'
+                            : 'Share'}
+                        </Text>
+                      </AppleTouchFeedback>
+                    </View>
+                  </Pressable>
                 </Pressable>
-              </Pressable>
-            </KeyboardAvoidingView>
-          </Modal>
-        </Animated.ScrollView>
-      </View>
-    </LinearGradientWrapper>
+              </KeyboardAvoidingView>
+            </Modal>
+          </Animated.ScrollView>
+        </View>
+      </LinearGradientWrapper>
+    </Animated.View>
   );
 };
 
