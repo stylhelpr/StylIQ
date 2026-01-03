@@ -106,10 +106,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingBottom: isTablet
         ? 80
         : isLargePhone
-        ? 70
-        : isRegularPhone
-        ? 60
-        : 60,
+          ? 70
+          : isRegularPhone
+            ? 60
+            : 60,
       width: '100%',
       alignSelf: 'center',
       flexGrow: 1,
@@ -129,62 +129,62 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: isTablet
         ? 32
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 20
-        : 20,
+          ? 20
+          : isRegularPhone
+            ? 20
+            : 20,
       paddingHorizontal: isTablet
         ? 38
         : isLargePhone
-        ? 16
-        : isRegularPhone
-        ? 16
-        : 16,
+          ? 16
+          : isRegularPhone
+            ? 16
+            : 16,
     },
     section2: {
       marginBottom: isTablet
         ? 32
         : isLargePhone
-        ? 28
-        : isRegularPhone
-        ? 22
-        : 22,
+          ? 28
+          : isRegularPhone
+            ? 22
+            : 22,
     },
     section3: {
       paddingHorizontal: isTablet
         ? 38
         : isLargePhone
-        ? 26
-        : isRegularPhone
-        ? 26
-        : 26,
+          ? 26
+          : isRegularPhone
+            ? 26
+            : 26,
       marginTop: isTablet ? 26 : isLargePhone ? 22 : isRegularPhone ? 18 : 18,
       marginBottom: isTablet
         ? 26
         : isLargePhone
-        ? 22
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 22
+          : isRegularPhone
+            ? 18
+            : 18,
     },
     section4: {
       paddingHorizontal: isTablet
         ? 38
         : isLargePhone
-        ? 26
-        : isRegularPhone
-        ? 26
-        : 26,
+          ? 26
+          : isRegularPhone
+            ? 26
+            : 26,
     },
     section5: {
       width: '100%',
       maxWidth: isTablet
         ? 820
         : isLargePhone
-        ? 720
-        : isRegularPhone
-        ? 720
-        : 720,
+          ? 720
+          : isRegularPhone
+            ? 720
+            : 720,
       alignSelf: 'center',
       borderRadius: tokens.borderRadius.md,
     },
@@ -192,28 +192,28 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 38
         : isLargePhone
-        ? 16
-        : isRegularPhone
-        ? 16
-        : 16,
+          ? 16
+          : isRegularPhone
+            ? 16
+            : 16,
     },
     sectionScroll: {
       marginBottom: isTablet
         ? 36
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 20
-        : 20,
+          ? 20
+          : isRegularPhone
+            ? 20
+            : 20,
       paddingLeft: isTablet
         ? 38
         : isLargePhone
-        ? 18
-        : isRegularPhone
-        ? 18
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 18
+          : isRegularPhone
+            ? 18
+            : isRegularPhone
+              ? 18
+              : 18,
     },
     sectionScroll2: {
       // marginBottom: isTablet ? 22 : isLargePhone ? 8 : 8,
@@ -229,10 +229,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 38
         : isLargePhone
-        ? 18
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 18
+          : isRegularPhone
+            ? 18
+            : 18,
       // maxWidth: isTablet ? 820 : 720,
       alignSelf: 'center',
       borderRadius: tokens.borderRadius.md,
@@ -243,10 +243,10 @@ export const createGlobalStyles = (theme: Theme) =>
       maxWidth: isTablet
         ? 820
         : isLargePhone
-        ? 720
-        : isRegularPhone
-        ? 720
-        : 720,
+          ? 720
+          : isRegularPhone
+            ? 720
+            : 720,
       alignSelf: 'center',
       borderRadius: tokens.borderRadius.md,
     },
@@ -255,17 +255,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 38
         : isLargePhone
-        ? 18
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 18
+          : isRegularPhone
+            ? 18
+            : 18,
       maxWidth: isTablet
         ? 820
         : isLargePhone
-        ? 720
-        : isRegularPhone
-        ? 720
-        : 720,
+          ? 720
+          : isRegularPhone
+            ? 720
+            : 720,
       alignSelf: 'center',
       borderRadius: tokens.borderRadius.md,
     },
@@ -352,17 +352,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: isTablet
         ? 14
         : isLargePhone
-        ? 14
-        : isRegularPhone
-        ? 14
-        : 14,
+          ? 14
+          : isRegularPhone
+            ? 14
+            : 14,
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-        ? 16
-        : isRegularPhone
-        ? 16
-        : 16,
+          ? 16
+          : isRegularPhone
+            ? 16
+            : 16,
       // backgroundColor: theme.colors.surface,
       marginBottom: isTablet ? 8 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       // borderRadius: tokens.borderRadius.lg,
@@ -372,10 +372,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginHorizontal: isTablet
         ? 16
         : isLargePhone
-        ? 16
-        : isRegularPhone
-        ? 16
-        : 16,
+          ? 16
+          : isRegularPhone
+            ? 16
+            : 16,
       // elevation: 10,
       transform: [{scale: 1}],
     },
@@ -429,10 +429,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: isTablet
         ? 10
         : isLargePhone
-        ? 10
-        : isRegularPhone
-        ? 10
-        : 10,
+          ? 10
+          : isRegularPhone
+            ? 10
+            : 10,
       textTransform: 'uppercase',
     },
     sectionTitle2: {
@@ -474,20 +474,20 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: isTablet
         ? 26
         : isLargePhone
-        ? 22
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 22
+          : isRegularPhone
+            ? 18
+            : 18,
       backgroundColor: theme.colors.surface,
       borderRadius: tokens.borderRadius.xxl,
       paddingTop: isTablet ? 24 : isLargePhone ? 20 : isRegularPhone ? 16 : 16,
       paddingHorizontal: isTablet
         ? 24
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 16
-        : 16,
+          ? 20
+          : isRegularPhone
+            ? 16
+            : 16,
       paddingBottom: isTablet ? 12 : isLargePhone ? 10 : isRegularPhone ? 8 : 8,
     },
     title: {
@@ -497,10 +497,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: isTablet
         ? 14
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 10
-        : 10,
+          ? 12
+          : isRegularPhone
+            ? 10
+            : 10,
     },
     title2: {
       fontSize: font.xs,
@@ -509,10 +509,10 @@ export const createGlobalStyles = (theme: Theme) =>
       marginBottom: isTablet
         ? 14
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 10
-        : 10,
+          ? 12
+          : isRegularPhone
+            ? 10
+            : 10,
     },
     title3: {
       fontSize: font.xs,
@@ -573,10 +573,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 22
         : isLargePhone
-        ? 18
-        : isRegularPhone
-        ? 14
-        : 14,
+          ? 18
+          : isRegularPhone
+            ? 14
+            : 14,
     },
     menuSection1: {
       flexDirection: 'column',
@@ -584,17 +584,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 12
         : isLargePhone
-        ? 10
-        : isRegularPhone
-        ? 8
-        : 8,
+          ? 10
+          : isRegularPhone
+            ? 8
+            : 8,
       paddingVertical: isTablet
         ? 24
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 16
-        : 16,
+          ? 20
+          : isRegularPhone
+            ? 16
+            : 16,
     },
     menuSection2: {
       backgroundColor: theme.colors.surface,
@@ -602,17 +602,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 32
         : isLargePhone
-        ? 28
-        : isRegularPhone
-        ? 24
-        : 24,
+          ? 28
+          : isRegularPhone
+            ? 24
+            : 24,
       paddingVertical: isTablet
         ? 22
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 20
+          : isRegularPhone
+            ? 18
+            : 18,
     },
     menuSection3: {
       backgroundColor: theme.colors.surface,
@@ -620,10 +620,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 32
         : isLargePhone
-        ? 18
-        : isRegularPhone
-        ? 24
-        : 24,
+          ? 18
+          : isRegularPhone
+            ? 24
+            : 24,
     },
     menuLabel: {
       fontSize: font.lg,
@@ -638,36 +638,36 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: isTablet
         ? 10
         : isLargePhone
-        ? 8
-        : isRegularPhone
-        ? 8
-        : 8,
+          ? 8
+          : isRegularPhone
+            ? 8
+            : 8,
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 12
+          : isRegularPhone
+            ? 12
+            : 12,
     },
     labelContainer2: {
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 12
+          : isRegularPhone
+            ? 12
+            : 12,
     },
     labelContainer3: {
       paddingVertical: isTablet ? 8 : isLargePhone ? 6 : isRegularPhone ? 6 : 6,
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 12
+          : isRegularPhone
+            ? 12
+            : 12,
     },
     labelContainer4: {
       backgroundColor: 'red',
@@ -683,17 +683,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 22
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 20
+          : isRegularPhone
+            ? 18
+            : 18,
       paddingVertical: isTablet
         ? 10
         : isLargePhone
-        ? 9
-        : isRegularPhone
-        ? 8
-        : 8,
+          ? 9
+          : isRegularPhone
+            ? 8
+            : 8,
       borderRadius: 18,
       marginRight: isTablet ? 10 : isLargePhone ? 8 : isRegularPhone ? 6 : 6,
     },
@@ -701,17 +701,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 22
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 20
+          : isRegularPhone
+            ? 18
+            : 18,
       paddingVertical: isTablet
         ? 10
         : isLargePhone
-        ? 9
-        : isRegularPhone
-        ? 8
-        : 8,
+          ? 9
+          : isRegularPhone
+            ? 8
+            : 8,
       backgroundColor: theme.colors.pillDark2,
       borderRadius: 18,
       borderWidth: tokens.borderWidth.hairline,
@@ -723,17 +723,17 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 22
         : isLargePhone
-        ? 20
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 20
+          : isRegularPhone
+            ? 18
+            : 18,
       paddingVertical: isTablet
         ? 10
         : isLargePhone
-        ? 9
-        : isRegularPhone
-        ? 8
-        : 8,
+          ? 9
+          : isRegularPhone
+            ? 8
+            : 8,
       borderRadius: 18,
       marginRight: isTablet ? 10 : isLargePhone ? 8 : isRegularPhone ? 6 : 6,
       borderWidth: tokens.borderWidth.md,
@@ -792,25 +792,25 @@ export const createGlobalStyles = (theme: Theme) =>
       maxWidth: isTablet
         ? 300
         : isLargePhone
-        ? 270
-        : isRegularPhone
-        ? 270
-        : 270,
+          ? 270
+          : isRegularPhone
+            ? 270
+            : 270,
       paddingVertical: isTablet
         ? 18
         : isLargePhone
-        ? 16
-        : isRegularPhone
-        ? 14
-        : 14,
+          ? 16
+          : isRegularPhone
+            ? 14
+            : 14,
       borderRadius: tokens.borderRadius.md,
       marginBottom: isTablet
         ? 26
         : isLargePhone
-        ? 22
-        : isRegularPhone
-        ? 18
-        : 18,
+          ? 22
+          : isRegularPhone
+            ? 18
+            : 18,
       alignItems: 'center',
       backgroundColor: 'black',
     },
@@ -838,10 +838,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: isTablet
         ? 16
         : isLargePhone
-        ? 14
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 14
+          : isRegularPhone
+            ? 12
+            : 12,
       borderWidth: 1,
     },
     buttonPrimaryText: {
@@ -863,10 +863,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: isTablet
         ? 16
         : isLargePhone
-        ? 14
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 14
+          : isRegularPhone
+            ? 12
+            : 12,
       borderWidth: 1,
     },
     buttonSecondaryText: {
@@ -882,10 +882,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingVertical: isTablet
         ? 14
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 10
-        : 10,
+          ? 12
+          : isRegularPhone
+            ? 10
+            : 10,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -936,17 +936,17 @@ export const createGlobalStyles = (theme: Theme) =>
       borderTopLeftRadius: isTablet
         ? 16
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 12
+          : isRegularPhone
+            ? 12
+            : 12,
       borderTopRightRadius: isTablet
         ? 16
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 12
+          : isRegularPhone
+            ? 12
+            : 12,
       backgroundColor: theme.colors.surface,
     },
     image3: {
@@ -969,12 +969,12 @@ export const createGlobalStyles = (theme: Theme) =>
       height: isTablet
         ? 160
         : isLargePhone
-        ? 110
-        : isRegularPhone
-        ? 115
-        : isRegularPhone
-        ? 105
-        : 105,
+          ? 110
+          : isRegularPhone
+            ? 115
+            : isRegularPhone
+              ? 105
+              : 105,
       backgroundColor: theme.colors.surface,
       // borderRadius: tokens.borderRadius.sm,
       // borderBottomWidth: tokens.borderWidth.md,
@@ -1011,10 +1011,10 @@ export const createGlobalStyles = (theme: Theme) =>
       width: isTablet
         ? 189
         : isLargePhone
-        ? 189
-        : isRegularPhone
-        ? 166.5
-        : 166.5,
+          ? 189
+          : isRegularPhone
+            ? 166.5
+            : 166.5,
       borderRadius: tokens.borderRadius.lg,
       backgroundColor: theme.colors.surface,
       overflow: 'hidden',
@@ -1024,10 +1024,15 @@ export const createGlobalStyles = (theme: Theme) =>
     image10: {
       width: '100%',
       height: isTablet ? 160 : isLargePhone ? 165 : isRegularPhone ? 165 : 165,
-      backgroundColor: theme.colors.surface,
+      backgroundColor: 'white',
       // borderRadius: tokens.borderRadius.sm,
       borderBottomWidth: tokens.borderWidth.md,
       borderBottomColor: theme.colors.surfaceBorder,
+    },
+    image11: {
+      width: '100%',
+      height: isTablet ? 160 : isLargePhone ? 165 : isRegularPhone ? 165 : 165,
+      backgroundColor: 'white',
     },
     bgContainer1: {
       height: isTablet ? 260 : isLargePhone ? 305 : isRegularPhone ? 260 : 260,
@@ -1110,10 +1115,10 @@ export const createGlobalStyles = (theme: Theme) =>
       paddingHorizontal: isTablet
         ? 16
         : isLargePhone
-        ? 12
-        : isRegularPhone
-        ? 12
-        : 12,
+          ? 12
+          : isRegularPhone
+            ? 12
+            : 12,
       width: '100%',
     },
     promptInput: {
@@ -1151,10 +1156,10 @@ export const createGlobalStyles = (theme: Theme) =>
       maxWidth: isTablet
         ? 500
         : isLargePhone
-        ? 400
-        : isRegularPhone
-        ? 400
-        : 400,
+          ? 400
+          : isRegularPhone
+            ? 400
+            : 400,
     },
   });
 

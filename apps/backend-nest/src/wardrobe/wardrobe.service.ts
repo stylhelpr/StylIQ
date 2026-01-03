@@ -1953,6 +1953,8 @@ ${lockedLines}
       image: row.image_url,
       gsutilUri: row.gsutil_uri,
       objectKey: row.object_key,
+      processedImageUrl: row.processed_image_url,
+      processedGsutilUri: row.processed_gsutil_uri,
       aiTitle: row.ai_title,
       aiDescription: row.ai_description,
       aiKeyAttributes: row.ai_key_attributes,

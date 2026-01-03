@@ -6,6 +6,8 @@ export type WardrobeItem = {
   name: string;
   gsutilUri?: string; // ↔ gsutil_uri
   objectKey?: string; // ↔ object_key
+  processedImageUrl?: string; // ↔ processed_image_url
+  processedGsutilUri?: string; // ↔ processed_gsutil_uri
 
   aiTitle?: string; // ↔ ai_title
   aiDescription?: string; // ↔ ai_description

@@ -166,11 +166,11 @@ export default function ItemDetailScreen({route, navigation}: Props) {
     const _tags: string[] = Array.isArray(item.tags)
       ? item.tags
       : typeof (item.tags as any) === 'string'
-      ? (item.tags as any)
-          .split(',')
-          .map((t: string) => t.trim())
-          .filter(Boolean)
-      : [];
+        ? (item.tags as any)
+            .split(',')
+            .map((t: string) => t.trim())
+            .filter(Boolean)
+        : [];
     setTags(_tags.join(', '));
 
     setPattern(item.pattern ?? '');
@@ -180,12 +180,12 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       ps === 0
         ? '0'
         : ps === 1
-        ? '1'
-        : ps === 2
-        ? '2'
-        : typeof ps === 'string'
-        ? ps
-        : (ps ?? '').toString(),
+          ? '1'
+          : ps === 2
+            ? '2'
+            : typeof ps === 'string'
+              ? ps
+              : (ps ?? '').toString(),
     );
 
     setSeasonality(item.seasonality ?? '');
@@ -374,6 +374,8 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       height: 320,
       borderRadius: tokens.borderRadius.md,
       marginBottom: 20,
+      backgroundColor: 'white',
+      padding: 4,
     },
     input: {
       borderRadius: tokens.borderRadius.md,
@@ -427,276 +429,289 @@ export default function ItemDetailScreen({route, navigation}: Props) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{paddingBottom: 100}}>
-      <View
-        style={{
-          height: insets.top + 60, // ⬅️ 56 is about the old navbar height
-          backgroundColor: theme.colors.background, // same tone as old nav
-        }}
-      />
-      <View
-        style={[
-          useGlobalStyles().modalSection,
-          useGlobalStyles().cardStyles3,
-          {paddingVertical: 20},
-        ]}>
-        {item?.image_url && (
-          <Image source={{uri: item.image_url}} style={styles.image} />
+        <View
+          style={{
+            height: insets.top + 60, // ⬅️ 56 is about the old navbar height
+            backgroundColor: theme.colors.background, // same tone as old nav
+          }}
+        />
+        <View
+          style={[
+            useGlobalStyles().modalSection,
+            useGlobalStyles().cardStyles3,
+            {paddingVertical: 20},
+          ]}>
+          {(item?.processedImageUrl ||
+            item?.processed_image_url ||
+            item?.image_url) && (
+            <Image
+              source={{
+                uri:
+                  item.processedImageUrl ??
+                  item.processed_image_url ??
+                  item.image_url,
+              }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          )}
+
+          {/* Core */}
+          <Text style={useGlobalStyles().title}>Name</Text>
+          <TextInput value={name} onChangeText={setName} style={styles.input} />
+
+          <Text style={useGlobalStyles().title}>Category</Text>
+          <TextInput
+            value={category}
+            onChangeText={setCategory}
+            style={styles.input}
+            placeholder="e.g. Shirt, Pants, Shoes"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Subcategory</Text>
+          <TextInput
+            value={subcategory}
+            onChangeText={setSubcategory}
+            style={styles.input}
+            placeholder="e.g. Dress Shirt, Chinos"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Material</Text>
+          <TextInput
+            value={material}
+            onChangeText={setMaterial}
+            style={styles.input}
+            placeholder="e.g. Cotton, Wool, Linen"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Fit</Text>
+          <TextInput
+            value={fit}
+            onChangeText={setFit}
+            style={styles.input}
+            placeholder="e.g. Slim, Regular"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Size</Text>
+          <TextInput
+            value={size}
+            onChangeText={setSize}
+            style={styles.input}
+            placeholder="e.g. M, L, 32x32"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Brand</Text>
+          <TextInput
+            value={brand}
+            onChangeText={setBrand}
+            style={styles.input}
+            placeholder="e.g. Ferragamo"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Color</Text>
+          <TextInput
+            value={color}
+            onChangeText={setColor}
+            style={styles.input}
+            placeholder="e.g. Navy, White, Tan"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Tags</Text>
+          <TextInput
+            value={tags}
+            onChangeText={setTags}
+            style={styles.input}
+            placeholder="Comma separated: casual, spring, linen"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          {/* Enriched */}
+          <Text style={useGlobalStyles().title}>Pattern</Text>
+          <TextInput
+            value={pattern}
+            onChangeText={setPattern}
+            style={styles.input}
+            placeholder="e.g. Striped, Plaid"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Pattern Scale</Text>
+          <TextInput
+            value={patternScale}
+            onChangeText={setPatternScale}
+            style={styles.input}
+            placeholder="subtle / medium / bold or 0 / 1 / 2"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Seasonality</Text>
+          <TextInput
+            value={seasonality}
+            onChangeText={setSeasonality}
+            style={styles.input}
+            placeholder="SS, FW, or ALL_SEASON"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Layering</Text>
+          <TextInput
+            value={layering}
+            onChangeText={setLayering}
+            style={styles.input}
+            placeholder="BASE, MID, SHELL, ACCENT"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          {/* Derived (from AddItemScreen) */}
+          <Text style={useGlobalStyles().title}>Dress Code</Text>
+          <TextInput
+            value={dressCode}
+            onChangeText={setDressCode}
+            style={styles.input}
+            placeholder="UltraCasual, Casual, SmartCasual, BusinessCasual, Business, BlackTie"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Anchor Role</Text>
+          <TextInput
+            value={anchorRole}
+            onChangeText={setAnchorRole}
+            style={styles.input}
+            placeholder="Hero, Neutral, Connector"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Color Family</Text>
+          <TextInput
+            value={colorFamily}
+            onChangeText={setColorFamily}
+            style={styles.input}
+            placeholder="e.g. Navy, Black, White, Gray, Beige…"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <Text style={useGlobalStyles().title}>Occasion Tags</Text>
+          <TextInput
+            value={occasionTags}
+            onChangeText={setOccasionTags}
+            style={styles.input}
+            placeholder="Comma separated: Work, DateNight, Travel, Gym"
+            placeholderTextColor={theme.colors.muted}
+          />
+
+          <View style={styles.buttonRow}>
+            <AppleTouchFeedback
+              style={[useGlobalStyles().buttonPrimary, styles.buttonHalf]}
+              hapticStyle="impactMedium"
+              onPress={() => updateMutation.mutate()}>
+              <Text style={useGlobalStyles().buttonPrimaryText}>
+                Save Changes
+              </Text>
+            </AppleTouchFeedback>
+
+            <AppleTouchFeedback
+              style={[
+                useGlobalStyles().buttonPrimary,
+                styles.cancelButton,
+                styles.buttonHalf,
+              ]}
+              hapticStyle="impactLight"
+              onPress={() => navigation.goBack()}>
+              <Text style={useGlobalStyles().buttonPrimaryText}>Cancel</Text>
+            </AppleTouchFeedback>
+          </View>
+
+          <View style={{justifyContent: 'center', alignItems: 'center'}}>
+            <AppleTouchFeedback
+              style={[
+                useGlobalStyles().buttonPrimary,
+                {backgroundColor: 'red', marginTop: 16, width: 150},
+              ]}
+              hapticStyle="impactHeavy"
+              onPress={handleDelete}>
+              <Text style={useGlobalStyles().buttonPrimaryText}>
+                Delete Item
+              </Text>
+            </AppleTouchFeedback>
+          </View>
+        </View>
+        {saving && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 1100,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+            }}>
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                padding: 24,
+                borderRadius: 16,
+                alignItems: 'center',
+              }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginBottom: 12,
+                }}>
+                Saving your changes…
+              </Text>
+              <View style={{marginTop: 4}}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
+            </View>
+          </View>
         )}
-
-        {/* Core */}
-        <Text style={useGlobalStyles().title}>Name</Text>
-        <TextInput value={name} onChangeText={setName} style={styles.input} />
-
-        <Text style={useGlobalStyles().title}>Category</Text>
-        <TextInput
-          value={category}
-          onChangeText={setCategory}
-          style={styles.input}
-          placeholder="e.g. Shirt, Pants, Shoes"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Subcategory</Text>
-        <TextInput
-          value={subcategory}
-          onChangeText={setSubcategory}
-          style={styles.input}
-          placeholder="e.g. Dress Shirt, Chinos"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Material</Text>
-        <TextInput
-          value={material}
-          onChangeText={setMaterial}
-          style={styles.input}
-          placeholder="e.g. Cotton, Wool, Linen"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Fit</Text>
-        <TextInput
-          value={fit}
-          onChangeText={setFit}
-          style={styles.input}
-          placeholder="e.g. Slim, Regular"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Size</Text>
-        <TextInput
-          value={size}
-          onChangeText={setSize}
-          style={styles.input}
-          placeholder="e.g. M, L, 32x32"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Brand</Text>
-        <TextInput
-          value={brand}
-          onChangeText={setBrand}
-          style={styles.input}
-          placeholder="e.g. Ferragamo"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Color</Text>
-        <TextInput
-          value={color}
-          onChangeText={setColor}
-          style={styles.input}
-          placeholder="e.g. Navy, White, Tan"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Tags</Text>
-        <TextInput
-          value={tags}
-          onChangeText={setTags}
-          style={styles.input}
-          placeholder="Comma separated: casual, spring, linen"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        {/* Enriched */}
-        <Text style={useGlobalStyles().title}>Pattern</Text>
-        <TextInput
-          value={pattern}
-          onChangeText={setPattern}
-          style={styles.input}
-          placeholder="e.g. Striped, Plaid"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Pattern Scale</Text>
-        <TextInput
-          value={patternScale}
-          onChangeText={setPatternScale}
-          style={styles.input}
-          placeholder="subtle / medium / bold or 0 / 1 / 2"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Seasonality</Text>
-        <TextInput
-          value={seasonality}
-          onChangeText={setSeasonality}
-          style={styles.input}
-          placeholder="SS, FW, or ALL_SEASON"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Layering</Text>
-        <TextInput
-          value={layering}
-          onChangeText={setLayering}
-          style={styles.input}
-          placeholder="BASE, MID, SHELL, ACCENT"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        {/* Derived (from AddItemScreen) */}
-        <Text style={useGlobalStyles().title}>Dress Code</Text>
-        <TextInput
-          value={dressCode}
-          onChangeText={setDressCode}
-          style={styles.input}
-          placeholder="UltraCasual, Casual, SmartCasual, BusinessCasual, Business, BlackTie"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Anchor Role</Text>
-        <TextInput
-          value={anchorRole}
-          onChangeText={setAnchorRole}
-          style={styles.input}
-          placeholder="Hero, Neutral, Connector"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Color Family</Text>
-        <TextInput
-          value={colorFamily}
-          onChangeText={setColorFamily}
-          style={styles.input}
-          placeholder="e.g. Navy, Black, White, Gray, Beige…"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <Text style={useGlobalStyles().title}>Occasion Tags</Text>
-        <TextInput
-          value={occasionTags}
-          onChangeText={setOccasionTags}
-          style={styles.input}
-          placeholder="Comma separated: Work, DateNight, Travel, Gym"
-          placeholderTextColor={theme.colors.muted}
-        />
-
-        <View style={styles.buttonRow}>
-          <AppleTouchFeedback
-            style={[useGlobalStyles().buttonPrimary, styles.buttonHalf]}
-            hapticStyle="impactMedium"
-            onPress={() => updateMutation.mutate()}>
-            <Text style={useGlobalStyles().buttonPrimaryText}>
-              Save Changes
-            </Text>
-          </AppleTouchFeedback>
-
-          <AppleTouchFeedback
-            style={[
-              useGlobalStyles().buttonPrimary,
-              styles.cancelButton,
-              styles.buttonHalf,
-            ]}
-            hapticStyle="impactLight"
-            onPress={() => navigation.goBack()}>
-            <Text style={useGlobalStyles().buttonPrimaryText}>Cancel</Text>
-          </AppleTouchFeedback>
-        </View>
-
-        <View style={{justifyContent: 'center', alignItems: 'center'}}>
-          <AppleTouchFeedback
-            style={[
-              useGlobalStyles().buttonPrimary,
-              {backgroundColor: 'red', marginTop: 16, width: 150},
-            ]}
-            hapticStyle="impactHeavy"
-            onPress={handleDelete}>
-            <Text style={useGlobalStyles().buttonPrimaryText}>Delete Item</Text>
-          </AppleTouchFeedback>
-        </View>
-      </View>
-      {saving && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 1100,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}>
+        {deleting && (
           <View
             style={{
-              backgroundColor: theme.colors.surface,
-              padding: 24,
-              borderRadius: 16,
+              position: 'absolute',
+              top: 1100,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.45)',
               alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
             }}>
-            <Text
+            <View
               style={{
-                color: theme.colors.foreground,
-                fontSize: 16,
-                fontWeight: '600',
-                marginBottom: 12,
+                backgroundColor: theme.colors.surface,
+                padding: 24,
+                borderRadius: 16,
+                alignItems: 'center',
               }}>
-              Saving your changes…
-            </Text>
-            <View style={{marginTop: 4}}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginBottom: 12,
+                }}>
+                Deleting item…
+              </Text>
+              <View style={{marginTop: 4}}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
             </View>
           </View>
-        </View>
-      )}
-      {deleting && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 1100,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}>
-          <View
-            style={{
-              backgroundColor: theme.colors.surface,
-              padding: 24,
-              borderRadius: 16,
-              alignItems: 'center',
-            }}>
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontSize: 16,
-                fontWeight: '600',
-                marginBottom: 12,
-              }}>
-              Deleting item…
-            </Text>
-            <View style={{marginTop: 4}}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-          </View>
-        </View>
-      )}
+        )}
       </ScrollView>
     </Animated.View>
   );
