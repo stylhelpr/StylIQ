@@ -137,6 +137,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
   const [tags, setTags] = useState(''); // comma-separated UI
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [touchingUp, setTouchingUp] = useState(false);
 
   // Enriched
   const [pattern, setPattern] = useState('');
@@ -338,6 +339,38 @@ export default function ItemDetailScreen({route, navigation}: Props) {
     ]);
   };
 
+  const touchUpMutation = useMutation({
+    mutationFn: async () => {
+      setTouchingUp(true);
+      if (!item?.id) throw new Error('Missing item ID');
+      const accessToken = await getAccessToken();
+      const res = await fetch(`${API_BASE_URL}/wardrobe/${item.id}/touch-up`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(
+          `Touch-up failed ${res.status}: ${txt || res.statusText}`,
+        );
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      hSuccess();
+      setTouchingUp(false);
+      queryClient.invalidateQueries({queryKey: ['wardrobe']});
+      Alert.alert('Success', 'Image has been touched up successfully.');
+    },
+    onError: (err: any) => {
+      hError();
+      setTouchingUp(false);
+      Alert.alert('Error', err?.message || 'Failed to touch up image.');
+    },
+  });
+
   // const styles = StyleSheet.create({
   //   image: {
   //     width: '100%',
@@ -441,12 +474,16 @@ export default function ItemDetailScreen({route, navigation}: Props) {
             useGlobalStyles().cardStyles3,
             {paddingVertical: 20},
           ]}>
-          {(item?.processedImageUrl ||
+          {(item?.touchedUpImageUrl ||
+            item?.touched_up_image_url ||
+            item?.processedImageUrl ||
             item?.processed_image_url ||
             item?.image_url) && (
             <Image
               source={{
                 uri:
+                  item.touchedUpImageUrl ??
+                  item.touched_up_image_url ??
                   item.processedImageUrl ??
                   item.processed_image_url ??
                   item.image_url,
@@ -628,6 +665,61 @@ export default function ItemDetailScreen({route, navigation}: Props) {
             </AppleTouchFeedback>
           </View>
 
+          <View
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: 16,
+              flexDirection: 'row',
+              gap: 12,
+            }}>
+            <AppleTouchFeedback
+              style={[
+                useGlobalStyles().buttonPrimary,
+                {
+                  backgroundColor: theme.colors.background,
+                  borderWidth: tokens.borderWidth.md,
+                  borderColor: theme.colors.muted,
+                  width: 140,
+                },
+              ]}
+              hapticStyle="impactMedium"
+              onPress={() => touchUpMutation.mutate()}
+              disabled={touchingUp}>
+              <Text style={useGlobalStyles().buttonPrimaryText}>
+                {touchingUp ? 'Touching up...' : 'Touch up'}
+              </Text>
+            </AppleTouchFeedback>
+
+            <AppleTouchFeedback
+              style={[
+                useGlobalStyles().buttonPrimary,
+                {
+                  backgroundColor: theme.colors.primary,
+                  width: 140,
+                },
+              ]}
+              hapticStyle="impactMedium"
+              onPress={() => {
+                const imageUri =
+                  item?.touchedUpImageUrl ??
+                  item?.touched_up_image_url ??
+                  item?.processedImageUrl ??
+                  item?.processed_image_url ??
+                  item?.image_url;
+                navigation.navigate('TryOnOverlay', {
+                  outfit: {
+                    top: {
+                      name: item?.name || 'Item',
+                      imageUri: imageUri,
+                    },
+                  },
+                });
+              }}>
+              <Text style={useGlobalStyles().buttonPrimaryText}>Try On</Text>
+            </AppleTouchFeedback>
+          </View>
+
           <View style={{justifyContent: 'center', alignItems: 'center'}}>
             <AppleTouchFeedback
               style={[
@@ -642,6 +734,41 @@ export default function ItemDetailScreen({route, navigation}: Props) {
             </AppleTouchFeedback>
           </View>
         </View>
+        {touchingUp && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 1100,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+            }}>
+            <View
+              style={{
+                backgroundColor: theme.colors.surface,
+                padding: 24,
+                borderRadius: 16,
+                alignItems: 'center',
+              }}>
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginBottom: 12,
+                }}>
+                Touching up image...
+              </Text>
+              <View style={{marginTop: 4}}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+              </View>
+            </View>
+          </View>
+        )}
         {saving && (
           <View
             style={{

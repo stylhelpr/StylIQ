@@ -1,31 +1,23 @@
 import React from 'react';
+import {Image} from 'react-native';
 import TryOnOverlayScreen from './TryOnOverlayScreen';
 
-const mockOutfit = {
-  top: {
-    name: 'Red Tee',
-    imageUri:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/T-shirt_red.png/200px-T-shirt_red.png',
-  },
-  bottom: {
-    name: 'Jeans',
-    imageUri:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Jeans_for_men.jpg/200px-Jeans_for_men.jpg',
-  },
-  shoes: {
-    name: 'Sneakers',
-    imageUri:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Sneakers_icon.png/240px-Sneakers_icon.png',
-  },
-};
+import maleBody from '../assets/images/male-body-2.png';
+
+const DEFAULT_USER_PHOTO = Image.resolveAssetSource(maleBody).uri;
 
 export default function TryOnOverlayWrapperScreen({screenParams}: any) {
   const {outfit, userPhotoUri} = screenParams || {};
 
-  if (!outfit || !userPhotoUri) {
-    console.warn('TryOnOverlay missing outfit or userPhotoUri');
+  if (!outfit) {
+    console.warn('TryOnOverlay missing outfit');
     return null;
   }
 
-  return <TryOnOverlayScreen userPhotoUri={userPhotoUri} outfit={outfit} />;
+  return (
+    <TryOnOverlayScreen
+      userPhotoUri={userPhotoUri || DEFAULT_USER_PHOTO}
+      outfit={outfit}
+    />
+  );
 }

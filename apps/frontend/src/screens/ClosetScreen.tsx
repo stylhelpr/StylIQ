@@ -92,6 +92,7 @@ type WardrobeItem = {
   image_url: string;
   thumbnailUrl?: string;
   processedImageUrl?: string;
+  touchedUpImageUrl?: string;
   name: string;
   color?: string;
   main_category?: MainCategory | string;
@@ -554,7 +555,7 @@ export default function ClosetScreen({navigate}: Props) {
 
       const item = listItem.item!;
       const imageUri =
-        item.processedImageUrl ?? item.thumbnailUrl ?? item.image_url;
+        item.touchedUpImageUrl ?? item.processedImageUrl ?? item.thumbnailUrl ?? item.image_url;
 
       return (
         <View style={styles.itemContainer}>

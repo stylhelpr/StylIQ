@@ -261,6 +261,16 @@ export class WardrobeController {
     return result;
   }
 
+  @Post(':item_id/touch-up')
+  async touchUp(@Req() req, @Param('item_id') itemId: string) {
+    const userId = req.user.userId;
+    const result = await this.service.touchUpItem(itemId, userId);
+    if (!result) {
+      throw new NotFoundException('Wardrobe item not found or touch-up failed');
+    }
+    return result;
+  }
+
 }
 
 /////////////////////

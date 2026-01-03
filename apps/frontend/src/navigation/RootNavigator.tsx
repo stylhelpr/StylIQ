@@ -647,7 +647,7 @@ const RootNavigator = ({
         return (
           <ItemDetailScreen
             route={{params: screenParams}}
-            navigation={{goBack}}
+            navigation={{goBack, navigate}}
           />
         );
       case 'AddItem':

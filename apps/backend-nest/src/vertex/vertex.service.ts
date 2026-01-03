@@ -598,6 +598,99 @@ export class VertexService {
   // Garment Background Removal (Photoroom)
   // ONLY used by POST /api/upload/complete
   // -------------------
+  // Touch-up / Beautify image (Photoroom Edit API)
+  // Used by POST /wardrobe/:itemId/touch-up
+  // -------------------
+  async touchUpImage(
+    imageUrl: string,
+    userId: string,
+    originalObjectKey: string,
+  ): Promise<{ touchedUpGcsUri: string; touchedUpPublicUrl: string } | null> {
+    try {
+      const apiKey = secretExists('PHOTOROOM_API_KEY')
+        ? getSecret('PHOTOROOM_API_KEY')
+        : null;
+      if (!apiKey) {
+        console.error('[TouchUp] PHOTOROOM_API_KEY missing');
+        return null;
+      }
+
+      const form = new FormData();
+      form.append('imageUrl', imageUrl);
+      form.append('beautify.mode', 'ai.auto');
+      form.append('background.color', 'FFFFFF');
+      form.append('shadow.mode', 'ai.soft');
+
+      const formBuffer = form.getBuffer();
+      const formHeaders = form.getHeaders();
+
+      const res = await fetch('https://image-api.photoroom.com/v2/edit', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          ...formHeaders,
+        },
+        body: new Uint8Array(formBuffer),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error('[TouchUp] Photoroom error:', res.status, text);
+        return null;
+      }
+
+      const pngBuffer = Buffer.from(await res.arrayBuffer());
+
+      return this.uploadTouchedUpImage(pngBuffer, userId, originalObjectKey);
+    } catch (err) {
+      console.error('[TouchUp] failed:', err);
+      return null;
+    }
+  }
+
+  // -------------------
+  // Upload touched-up image to GCS
+  // -------------------
+  private async uploadTouchedUpImage(
+    imageBuffer: Buffer,
+    userId: string,
+    originalObjectKey: string,
+  ): Promise<{ touchedUpGcsUri: string; touchedUpPublicUrl: string }> {
+    const { Storage } = await import('@google-cloud/storage');
+    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    const storage = new Storage({
+      projectId: credentials.project_id,
+      credentials,
+    });
+
+    const bucketName = secretExists('GCS_BUCKET_NAME')
+      ? getSecret('GCS_BUCKET_NAME')
+      : 'stylhelpr-prod-bucket';
+
+    const filename = originalObjectKey.split('/').pop() || 'image.png';
+    const touchedUpObjectKey = `touched-up/${userId}/${Date.now()}-${filename.replace(
+      /\.[^.]+$/,
+      '.png',
+    )}`;
+
+    const bucket = storage.bucket(bucketName);
+    const file = bucket.file(touchedUpObjectKey);
+
+    await file.save(imageBuffer, {
+      contentType: 'image/png',
+      resumable: false,
+    });
+
+    const gcsUri = `gs://${bucketName}/${touchedUpObjectKey}`;
+    const publicUrl = `https://storage.googleapis.com/${bucketName}/${touchedUpObjectKey}`;
+
+    return {
+      touchedUpGcsUri: gcsUri,
+      touchedUpPublicUrl: publicUrl,
+    };
+  }
+
+  // -------------------
   async removeBackground(
     imageBuffer: Buffer,
     userId: string,

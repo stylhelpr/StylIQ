@@ -2564,6 +2564,59 @@ ${lockedLines}
     return result.rows[0];
   }
 
+  // TOUCH-UP (Beautify / Flat-lay enhancement)
+  async touchUpItem(itemId: string, userId: string) {
+    // 1. Fetch the item
+    const itemResult = await pool.query(
+      `SELECT * FROM wardrobe_items WHERE id = $1 AND user_id = $2`,
+      [itemId, userId],
+    );
+    if (itemResult.rowCount === 0) {
+      return null;
+    }
+    const item = itemResult.rows[0];
+
+    // 2. Get the processed image URL (or fall back to original)
+    const sourceImageUrl =
+      item.processed_image_url || item.image_url;
+    if (!sourceImageUrl) {
+      console.error('[TouchUp] No source image URL found for item:', itemId);
+      return null;
+    }
+
+    // 3. Call PhotoRoom touch-up API
+    const objectKey = item.gsutil_uri?.replace(/^gs:\/\/[^/]+\//, '') || `items/${userId}/${itemId}`;
+    const touchUpResult = await this.vertex.touchUpImage(
+      sourceImageUrl,
+      userId,
+      objectKey,
+    );
+
+    if (!touchUpResult) {
+      console.error('[TouchUp] PhotoRoom touch-up failed for item:', itemId);
+      return null;
+    }
+
+    // 4. Update DB with new touched_up_image_url
+    const updateResult = await pool.query(
+      `UPDATE wardrobe_items
+       SET touched_up_image_url = $1,
+           updated_at = now()
+       WHERE id = $2 AND user_id = $3
+       RETURNING *`,
+      [touchUpResult.touchedUpPublicUrl, itemId, userId],
+    );
+
+    if (updateResult.rowCount === 0) {
+      return null;
+    }
+
+    return {
+      message: 'Touch-up completed successfully',
+      item: this.toCamel(updateResult.rows[0]),
+    };
+  }
+
   // DELETE
   async deleteItem(dto: DeleteItemDto) {
     const { item_id, user_id, image_url } = dto;
