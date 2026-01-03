@@ -22,6 +22,15 @@ import {
   AnalyzeImageResponseDto,
 } from './dto/analyze-image.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Storage } from '@google-cloud/storage';
+import { getSecret, getSecretJson, secretExists } from '../config/secrets';
+
+type GCPServiceAccount = {
+  project_id: string;
+  client_email: string;
+  private_key: string;
+  [key: string]: any;
+};
 
 // ─────────────────────────────────────────────────────────────
 // Normalizer: coerce whatever the client sends into UserStyle
@@ -186,6 +195,7 @@ export class WardrobeController {
     dto: Partial<CreateWardrobeItemDto> & {
       image_url: string;
       gsutil_uri?: string;
+      object_key?: string;
       name?: string;
     },
   ) {
@@ -196,6 +206,45 @@ export class WardrobeController {
       { ...dto, user_id: req.user.userId } as any,
       draft,
     );
+
+    // --- Garment Segmentation (non-blocking) ---
+    if (dto.object_key) {
+      console.log('[GarmentSegmentation] start', { user_id: req.user.userId, object_key: dto.object_key });
+      try {
+        const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+        const storage = new Storage({
+          projectId: credentials.project_id,
+          credentials,
+        });
+        const bucketName = secretExists('GCS_BUCKET_NAME')
+          ? getSecret('GCS_BUCKET_NAME')
+          : 'stylhelpr-prod-bucket';
+
+        const bucket = storage.bucket(bucketName);
+        const file = bucket.file(dto.object_key);
+        const [imageBuffer] = await file.download();
+
+        const result = await this.vertex.removeBackground(
+          imageBuffer,
+          req.user.userId,
+          dto.object_key,
+        );
+
+        if (result) {
+          payload.processed_image_url = result.processedPublicUrl;
+          payload.processed_gsutil_uri = result.processedGcsUri;
+          console.log('[GarmentSegmentation] success', {
+            processed_object_key: result.processedGcsUri,
+          });
+        } else {
+          console.log('[GarmentSegmentation] skipped (no result returned)');
+        }
+      } catch (err) {
+        console.error('[GarmentSegmentation] failed', err);
+        // Non-blocking: continue without processed image
+      }
+    }
+
     return this.service.createItem(payload);
   }
 

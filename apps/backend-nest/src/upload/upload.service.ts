@@ -6,7 +6,8 @@ import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import { WardrobeService } from '../wardrobe/wardrobe.service';
-import { getSecret, secretExists } from '../config/secrets';
+import { VertexService } from '../vertex/vertex.service';
+import { getSecret, getSecretJson, secretExists } from '../config/secrets';
 
 const IMAGE_CT_FALLBACK = 'image/jpeg';
 
@@ -20,17 +21,33 @@ const ALLOWED_IMAGE_TYPES = new Set([
 // Maximum upload size: 5MB (enforced via signed URL)
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
+type GCPServiceAccount = {
+  project_id: string;
+  client_email: string;
+  private_key: string;
+  [key: string]: any;
+};
+
 @Injectable()
 export class UploadService {
-  private storage = new Storage();
+  private storage: Storage;
+
+  constructor(
+    private readonly wardrobe: WardrobeService,
+    private readonly vertex: VertexService,
+  ) {
+    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    this.storage = new Storage({
+      projectId: credentials.project_id,
+      credentials,
+    });
+  }
 
   private get bucketName(): string {
     return secretExists('GCS_BUCKET_NAME')
       ? getSecret('GCS_BUCKET_NAME')
       : 'stylhelpr-prod-bucket';
   }
-
-  constructor(private readonly wardrobe: WardrobeService) {}
 
   /**
    * Create a v4 signed URL for uploading a single object to GCS.
@@ -62,15 +79,12 @@ export class UploadService {
     const bucket = this.storage.bucket(this.bucketName);
     const file = bucket.file(objectKey);
 
-    // v4 signed URL with size constraint
+    // v4 signed URL
     const [uploadUrl] = await file.getSignedUrl({
       version: 'v4',
       action: 'write',
       expires: Date.now() + 10 * 60 * 1000, // 10 min
       contentType: normalizedType,
-      extensionHeaders: {
-        'x-goog-content-length-range': `0,${MAX_UPLOAD_BYTES}`,
-      },
     });
 
     const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${objectKey}`;
@@ -110,6 +124,38 @@ export class UploadService {
 
     const gsutil_uri = `gs://${this.bucketName}/${object_key}`;
 
+    // --- Garment Segmentation (non-blocking) ---
+    let processed_image_url: string | undefined;
+    let processed_gsutil_uri: string | undefined;
+
+    console.log('[GarmentSegmentation] start', { user_id, object_key });
+    try {
+      // Download original image from GCS
+      const bucket = this.storage.bucket(this.bucketName);
+      const file = bucket.file(object_key);
+      const [imageBuffer] = await file.download();
+
+      // Call background removal
+      const result = await this.vertex.removeBackground(
+        imageBuffer,
+        user_id,
+        object_key,
+      );
+
+      if (result) {
+        processed_image_url = result.processedPublicUrl;
+        processed_gsutil_uri = result.processedGcsUri;
+        console.log('[GarmentSegmentation] success', {
+          processed_object_key: result.processedGcsUri,
+        });
+      } else {
+        console.log('[GarmentSegmentation] skipped (no result returned)');
+      }
+    } catch (err) {
+      console.error('[GarmentSegmentation] failed', err);
+      // Non-blocking: continue without processed image
+    }
+
     // Build the exact CreateWardrobeItemDto expected by WardrobeService
     const payload = {
       user_id,
@@ -124,6 +170,8 @@ export class UploadService {
       size,
       brand,
       tags: Array.isArray(tags) ? tags : [],
+      processed_image_url,
+      processed_gsutil_uri,
       // pass-through of any supported enrichment fields safely:
       ...rest,
     };

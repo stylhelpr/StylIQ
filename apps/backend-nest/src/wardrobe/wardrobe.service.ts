@@ -2170,6 +2170,8 @@ ${lockedLines}
     add('brand', dto.brand);
     add('gsutil_uri', dto.gsutil_uri);
     add('object_key', dto.object_key);
+    add('processed_image_url', dto.processed_image_url);
+    add('processed_gsutil_uri', dto.processed_gsutil_uri);
     add('metadata', dto.metadata, 'json');
     add('width', dto.width);
     add('height', dto.height);

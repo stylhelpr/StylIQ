@@ -54,6 +54,14 @@ export class CreateWardrobeItemDto {
 
   @IsOptional()
   @IsString()
+  processed_image_url?: string;
+
+  @IsOptional()
+  @IsString()
+  processed_gsutil_uri?: string;
+
+  @IsOptional()
+  @IsString()
   ai_title?: string;
 
   @IsOptional()
