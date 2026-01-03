@@ -523,7 +523,8 @@ export default function ClosetScreen({navigate}: Props) {
     ({item: listItem}: {item: FlatListItem}) => {
       if (listItem.type === 'header') {
         return (
-          <View style={globalStyles.section}>
+          // <View style={globalStyles.section}>
+          <View style={{paddingHorizontal: 4, marginTop: 16}}>
             <Animated.Text
               style={[
                 globalStyles.sectionTitle5,
@@ -555,7 +556,10 @@ export default function ClosetScreen({navigate}: Props) {
 
       const item = listItem.item!;
       const imageUri =
-        item.touchedUpImageUrl ?? item.processedImageUrl ?? item.thumbnailUrl ?? item.image_url;
+        item.touchedUpImageUrl ??
+        item.processedImageUrl ??
+        item.thumbnailUrl ??
+        item.image_url;
 
       return (
         <View style={styles.itemContainer}>
@@ -583,6 +587,7 @@ export default function ClosetScreen({navigate}: Props) {
                 resizeMode={FastImage.resizeMode.contain}
               />
             </View>
+
             {/* Favorite */}
             <View
               style={{

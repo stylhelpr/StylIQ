@@ -309,15 +309,26 @@ const RootNavigator = ({
         if (user) {
           const onboarded = user?.onboarding_complete === true;
           await AsyncStorage.setItem('onboarding_complete', onboarded ? 'true' : 'false');
-          setCurrentScreen(onboarded ? 'Home' : 'Onboarding');
+          if (onboarded) {
+            setScreenParams({autoNavigateToHome: true});
+            setCurrentScreen('VideoFeedScreen');
+          } else {
+            setCurrentScreen('Onboarding');
+          }
           return;
         }
       }
       // Fallback to local storage if server fetch fails
       const onboarded = await AsyncStorage.getItem('onboarding_complete');
-      setCurrentScreen(onboarded === 'true' ? 'Home' : 'Onboarding');
+      if (onboarded === 'true') {
+        setScreenParams({autoNavigateToHome: true});
+        setCurrentScreen('VideoFeedScreen');
+      } else {
+        setCurrentScreen('Onboarding');
+      }
     } catch {
-      setCurrentScreen('Home');
+      setScreenParams({autoNavigateToHome: true});
+      setCurrentScreen('VideoFeedScreen');
     }
   };
 
@@ -632,7 +643,7 @@ const RootNavigator = ({
       case 'Onboarding':
         return <OnboardingScreen navigate={navigate} />;
       case 'VideoFeedScreen':
-        return <VideoFeedScreen navigate={navigate} />;
+        return <VideoFeedScreen navigate={navigate} autoNavigateToHome={screenParams?.autoNavigateToHome} />;
       case 'CommunityShowcaseScreen':
         return <CommunityShowcaseScreen navigate={navigate} />;
       case 'ChatScreen':

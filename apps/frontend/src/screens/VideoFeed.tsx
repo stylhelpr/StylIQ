@@ -53,6 +53,7 @@ interface VideoWrapperProps {
   pause: () => void;
   share: (videoURL: string) => void;
   pauseOverride: boolean;
+  onVideoReady?: () => void;
 }
 
 const VideoWrapper = ({
@@ -62,6 +63,7 @@ const VideoWrapper = ({
   pause,
   pauseOverride,
   share,
+  onVideoReady,
 }: VideoWrapperProps) => {
   const {index, item} = data;
   const videoRef = useRef<VideoRef>(null);
@@ -107,22 +109,31 @@ const VideoWrapper = ({
         resizeMode={ResizeMode.COVER}
         // paused={visibleIndex !== index || pauseOverride}
         repeat
+        onReadyForDisplay={() => {
+          if (index === 0 && onVideoReady) {
+            onVideoReady();
+          }
+        }}
       />
       <Pressable onPress={pause} style={styles.overlay} />
     </View>
   );
 };
 
-const AUTO_SCROLL_INTERVAL = 8000; // 7 seconds per video
-const SCROLL_ANIMATION_DURATION = 700; // 800ms for gradual scroll
+const AUTO_SCROLL_INTERVAL = 8000; // 8 seconds per video
+const SCROLL_ANIMATION_DURATION = 700; // 700ms for gradual scroll
+const LAUNCH_VIDEO_DURATION = 5000; // 6 seconds for intro video on app launch
 
 export default function VideoFeedScreen({
   navigate,
+  autoNavigateToHome,
 }: {
   navigate: (screen: string) => void;
+  autoNavigateToHome?: boolean;
 }) {
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [pauseOverride, setPauseOverride] = useState(false);
+  const [firstVideoReady, setFirstVideoReady] = useState(false);
   const flatListRef = useRef<FlatList<string>>(null);
   const autoScrollTimer = useRef<NodeJS.Timeout | null>(null);
   const scrollAnimation = useRef(new Animated.Value(0)).current;
@@ -150,6 +161,17 @@ export default function VideoFeedScreen({
       mass: 0.8,
     });
   }, []);
+
+  // Auto-navigate to Home after first video starts playing (only on app launch)
+  useEffect(() => {
+    if (!autoNavigateToHome || !firstVideoReady) return;
+
+    const autoNavTimer = setTimeout(() => {
+      navigate('Home');
+    }, LAUNCH_VIDEO_DURATION);
+
+    return () => clearTimeout(autoNavTimer);
+  }, [navigate, autoNavigateToHome, firstVideoReady]);
 
   const screenAnimatedStyle = useAnimatedStyle(() => ({
     opacity: screenOpacity.value,
@@ -370,6 +392,7 @@ export default function VideoFeedScreen({
             share={function (videoURL: string): void {
               throw new Error('Function not implemented.');
             }}
+            onVideoReady={() => setFirstVideoReady(true)}
           />
         )}
         ref={flatListRef}
