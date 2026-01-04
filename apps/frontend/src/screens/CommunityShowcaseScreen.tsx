@@ -35,6 +35,7 @@ import {useUUID} from '../context/UUIDContext';
 import {
   useCommunityPosts,
   useSearchPosts,
+  useSearchUsers,
   useSavedPosts,
   useLikePost,
   usePostComments,
@@ -258,6 +259,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
   } = useSavedPosts(userId);
 
   const {data: searchResults = []} = useSearchPosts(searchQuery, userId);
+  const {data: userSearchResults} = useSearchUsers(searchQuery);
 
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
@@ -535,7 +537,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       if (userId) {
         followMutation.mutate({
           targetUserId: post.user_id,
-          currentUserId: userId,
           isFollowing: currentlyFollowing,
         });
       }
@@ -653,12 +654,10 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       if (isBlocked) {
         unblockMutation.mutate({
           targetUserId: post.user_id,
-          currentUserId: userId,
         });
       } else {
         blockMutation.mutate({
           targetUserId: post.user_id,
-          currentUserId: userId,
         });
       }
     },
@@ -684,7 +683,6 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
 
       muteMutation.mutate({
         targetUserId: post.user_id,
-        currentUserId: userId,
         isMuted,
       });
     },
@@ -2160,6 +2158,66 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         </ScrollView>
       </View>
 
+      {/* People Search Results - Show when searching */}
+      {searchQuery.trim().length > 0 && userSearchResults?.users && userSearchResults.users.length > 0 && (
+        <View style={{paddingHorizontal: 12, marginBottom: 12}}>
+          <Text style={{
+            fontSize: 15,
+            fontWeight: '600',
+            color: theme.colors.foreground,
+            marginBottom: 10,
+          }}>
+            People
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{gap: 12}}>
+            {userSearchResults.users.slice(0, 10).map((user) => (
+              <AppleTouchFeedback
+                key={user.id}
+                hapticStyle="selection"
+                onPress={() => {
+                  h('selection');
+                  navigate('UserProfileScreen', {userId: user.id});
+                }}
+                style={{
+                  alignItems: 'center',
+                  width: 72,
+                }}>
+                <UserAvatar
+                  avatarUrl={user.profile_picture_url}
+                  userName={user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User'}
+                  size={56}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontSize: 12,
+                    color: theme.colors.foreground2,
+                    marginTop: 6,
+                    textAlign: 'center',
+                    width: 72,
+                  }}>
+                  {user.display_name?.trim() || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User'}
+                </Text>
+              </AppleTouchFeedback>
+            ))}
+          </ScrollView>
+          {searchResults.length > 0 && (
+            <Text style={{
+              fontSize: 15,
+              fontWeight: '600',
+              color: theme.colors.foreground,
+              marginTop: 16,
+              marginBottom: 4,
+            }}>
+              Posts
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Content - FlashList */}
       {displayedPosts.length > 0 || !isLoading ? (
         <FlashList
@@ -2169,7 +2227,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
           keyExtractor={keyExtractor}
           getItemType={getItemType}
           overrideItemLayout={overrideItemLayout}
-          extraData={userLikedPosts}
+          extraData={{userLikedPosts, userFollows, userSavedPosts}}
           numColumns={NUM_COLUMNS}
           showsVerticalScrollIndicator={false}
           drawDistance={CARD_HEIGHT * 2}

@@ -203,7 +203,7 @@ export class ConnectedAccountsController {
       );
 
       // Return HTML that redirects back to the app via deep linking
-      const deepLinkUrl = `styliq://oauth/callback/${platform}?success=true&userId=${userId}`;
+      const deepLinkUrl = `stylhelpr://oauth/callback/${platform}?success=true&userId=${userId}`;
 
       return {
         statusCode: 200,

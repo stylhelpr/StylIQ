@@ -281,7 +281,7 @@ export function validateImageUrl(url: string): {
  * Allowed URL schemes for deep-links.
  * Only these schemes can be opened via Linking.openURL from notifications.
  */
-const ALLOWED_DEEPLINK_SCHEMES = ['https:', 'styliq:'];
+const ALLOWED_DEEPLINK_SCHEMES = ['https:', 'stylhelpr:', 'styliq:'];
 
 /**
  * Allowed domains for https deep-links.
@@ -341,8 +341,8 @@ export function isValidDeepLink(url: string | undefined | null): boolean {
       return false;
     }
 
-    // For styliq: scheme, allow all (internal app navigation)
-    if (scheme === 'styliq:') {
+    // For stylhelpr: or styliq: scheme, allow all (internal app navigation)
+    if (scheme === 'stylhelpr:' || scheme === 'styliq:') {
       return true;
     }
 

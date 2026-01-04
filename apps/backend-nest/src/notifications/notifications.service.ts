@@ -129,9 +129,16 @@ export class NotificationsService {
       ON push_tokens (user_id, token);
     `);
 
+    // Delete any existing token for this user+platform
     await pool.query(
       `DELETE FROM push_tokens WHERE user_id=$1 AND platform=$2`,
       [user_id, platform],
+    );
+
+    // Also delete this token if it belongs to a different user (device switched accounts)
+    await pool.query(
+      `DELETE FROM push_tokens WHERE token=$1 AND user_id!=$2`,
+      [device_token, user_id],
     );
 
     const res = await pool.query(
@@ -438,6 +445,17 @@ export class NotificationsService {
       return { ok: true };
     } catch (e: any) {
       console.error('❌ FCM Messaging error:', e);
+
+      // Auto-cleanup invalid/expired tokens
+      const errorCode = e?.errorInfo?.code;
+      if (
+        errorCode === 'messaging/registration-token-not-registered' ||
+        errorCode === 'messaging/invalid-registration-token'
+      ) {
+        console.log('🗑️ Removing invalid FCM token:', token.slice(0, 20) + '...');
+        await pool.query('DELETE FROM push_tokens WHERE token = $1', [token]);
+      }
+
       const msg: string =
         e?.errorInfo?.message ||
         e?.message ||

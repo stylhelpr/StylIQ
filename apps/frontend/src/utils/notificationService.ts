@@ -59,11 +59,14 @@ let fgRegistered = false;
 // 🔥 Used to suppress duplicate banners
 let lastShownId: string | null = null;
 
-export const initializeNotifications = async (userId?: string) => {
+export const initializeNotifications = async (userId?: string, forceRegister?: boolean) => {
+  console.log('🔔 initializeNotifications called, userId:', userId ? userId.slice(0, 8) + '...' : '(none)', 'force:', forceRegister);
   try {
     const enabled = await AsyncStorage.getItem('notificationsEnabled');
-    if (enabled !== 'true') {
-      console.log('🔕 Notifications disabled. Skipping initialization.');
+    console.log('🔔 notificationsEnabled from AsyncStorage:', enabled);
+    // If forceRegister is true, skip the AsyncStorage check (used when toggling in settings)
+    if (!forceRegister && enabled !== 'true') {
+      console.log('🔕 Notifications disabled in AsyncStorage. Skipping initialization.');
       return;
     }
 
@@ -118,11 +121,16 @@ export const initializeNotifications = async (userId?: string) => {
       return;
     }
 
+    console.log('🔔 Requesting push permissions...');
     // 🔐 Request push permissions
-    await messaging().requestPermission();
+    const authStatus = await messaging().requestPermission();
+    console.log('🔔 Permission status:', authStatus);
+
     await messaging().registerDeviceForRemoteMessages();
+    console.log('🔔 Registered for remote messages');
 
     const fcmToken = await messaging().getToken();
+    console.log('🔔 FCM token obtained:', fcmToken ? fcmToken.slice(0, 20) + '...' : '(null)');
 
     // 🔍 Gather Firebase project metadata
     let senderId: string | undefined;
@@ -135,12 +143,20 @@ export const initializeNotifications = async (userId?: string) => {
 
     // 📡 Register token with backend
     if (fcmToken) {
-      await apiClient.post('/notifications/register', {
-        device_token: fcmToken,
-        platform: Platform.OS,
-        sender_id: senderId,
-        project_id: projectId,
-      });
+      console.log('🔔 Registering token with backend...');
+      try {
+        const response = await apiClient.post('/notifications/register', {
+          device_token: fcmToken,
+          platform: Platform.OS,
+          sender_id: senderId,
+          project_id: projectId,
+        });
+        console.log('✅ Token registered successfully:', response.status);
+      } catch (regError: any) {
+        console.error('❌ Token registration failed:', regError?.message || regError);
+      }
+    } else {
+      console.warn('⚠️ No FCM token obtained, cannot register');
     }
 
     // 🧹 Clean up any old listeners

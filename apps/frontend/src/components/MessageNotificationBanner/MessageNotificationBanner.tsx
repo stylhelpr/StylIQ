@@ -113,7 +113,7 @@ export default function MessageNotificationBanner({onTapNotification}: Props) {
         message: message.content,
         timestamp: message.created_at,
         category: 'message',
-        deeplink: `styliq://chat/${message.sender_id}`,
+        deeplink: `stylhelpr://chat/${message.sender_id}`,
         data: {
           senderId: message.sender_id,
           senderName: message.sender_name,
@@ -143,7 +143,7 @@ export default function MessageNotificationBanner({onTapNotification}: Props) {
         timestamp: notification.created_at,
         category: 'message',
         deeplink: notification.postId
-          ? `styliq://community/post/${notification.postId}`
+          ? `stylhelpr://community/post/${notification.postId}`
           : undefined,
         data: {
           type: notification.type,

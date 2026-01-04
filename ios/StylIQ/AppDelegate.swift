@@ -94,6 +94,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
   func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
   }
+
+  // MARK: - Deep Linking
+
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    // Forward deep links to React Native's Linking module
+    return RCTLinkingManager.application(app, open: url, options: options)
+  }
+
+  func application(
+    _ application: UIApplication,
+    continue userActivity: NSUserActivity,
+    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+    // Handle Universal Links
+    return RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {

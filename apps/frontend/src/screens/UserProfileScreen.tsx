@@ -151,13 +151,14 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
   const styleTags = styleProfile?.style_preferences || [];
 
   // Fetch wardrobe count
-  const {data: wardrobeItems = []} = useQuery<{id: string}[]>({
-    queryKey: ['publicWardrobe', userId],
+  const {data: wardrobeCount = 0} = useQuery({
+    queryKey: ['publicWardrobeCount', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/wardrobe?user_id=${userId}`);
-      if (!res.ok) return [];
-      return res.json();
+      const res = await fetch(`${API_BASE_URL}/wardrobe/count/${userId}`);
+      if (!res.ok) return 0;
+      const data = await res.json();
+      return data.count;
     },
   });
 
@@ -221,7 +222,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
     })();
   }, [userId]);
 
-  const totalItems = wardrobeItems.length;
+  const totalItems = wardrobeCount;
 
   // Initials fallback logic
   let initials = '';
@@ -819,6 +820,7 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
             <FlatList
               data={followListModal === 'followers' ? followers : following}
               keyExtractor={item => item.id}
+              extraData={followListModal === 'followers' ? followers : following}
               contentContainerStyle={{paddingBottom: insets.bottom + 20}}
               ListEmptyComponent={
                 <View style={{padding: 40, alignItems: 'center'}}>
@@ -919,7 +921,6 @@ export default function UserProfileScreen({navigate, route, goBack}: Props) {
                           h('impactLight');
                           followMutation.mutate({
                             targetUserId: item.id,
-                            currentUserId: currentUserId,
                             isFollowing: item.is_following || false,
                           });
                         }}

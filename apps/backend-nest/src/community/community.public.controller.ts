@@ -14,8 +14,9 @@ import { SkipAuth } from '../auth/skip-auth.decorator';
  * SECURITY: Never trust currentUserId from query params - it enables user impersonation.
  * If authenticated, use req.user.userId. If unauthenticated, disable personalization.
  */
-function resolveUserId(req: any, _queryUserId?: string): string | undefined {
-  return req?.user?.userId ?? undefined;
+function resolveUserId(req: any, queryUserId?: string): string | undefined {
+  // Use JWT userId if authenticated, otherwise fall back to query parameter
+  return req?.user?.userId ?? queryUserId ?? undefined;
 }
 
 @SkipAuth() // Public community feed - read-only, no user-specific data exposed
@@ -79,6 +80,21 @@ export class CommunityPublicController {
     @Query('currentUserId') currentUserId?: string,
   ) {
     return this.service.getComments(postId, resolveUserId(req, currentUserId));
+  }
+
+  // ==================== PUBLIC USER SEARCH ====================
+
+  @Get('users/search')
+  async searchUsers(
+    @Query('q') query: string,
+    @Query('limit') limit: string = '20',
+    @Query('offset') offset: string = '0',
+  ) {
+    return this.service.searchUsers(
+      query || '',
+      parseInt(limit),
+      parseInt(offset),
+    );
   }
 
   // ==================== PUBLIC USER PROFILE ====================

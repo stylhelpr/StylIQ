@@ -1005,13 +1005,16 @@ export class CommunityService implements OnModuleInit {
     content: string,
     commenterName?: string,
   ) {
+    console.log('📤 sendCommentNotification:', { postId, commenterId, commenterName });
     const postOwner = await pool.query(
       `SELECT user_id FROM community_posts WHERE id = $1`,
       [postId],
     );
     const ownerId = postOwner.rows[0]?.user_id;
+    console.log('📤 Post owner:', ownerId, '| Commenter:', commenterId, '| Notify:', ownerId && ownerId !== commenterId);
     if (ownerId && ownerId !== commenterId) {
       const title = `${commenterName || 'Someone'} commented`;
+      console.log('📤 Sending push to:', ownerId);
       this.notifications.sendPushToUser(ownerId, title, content, {
         type: 'comment',
         postId,
@@ -1354,6 +1357,57 @@ export class CommunityService implements OnModuleInit {
     }
 
     return { message: 'View tracked' };
+  }
+
+  // ==================== USER SEARCH ====================
+
+  /**
+   * Search users by first_name, last_name, or combined name.
+   * Supports prefix and partial (ILIKE) matching with stable ordering.
+   * Returns paginated results with hasMore indicator.
+   */
+  async searchUsers(query: string, limit: number = 20, offset: number = 0) {
+    if (!query || query.trim().length === 0) {
+      return { users: [], hasMore: false };
+    }
+
+    const trimmedQuery = query.trim();
+    const searchPattern = `%${trimmedQuery.toLowerCase()}%`;
+    const prefixPattern = `${trimmedQuery.toLowerCase()}%`;
+
+    // Fetch one extra to determine hasMore
+    const fetchLimit = limit + 1;
+
+    const res = await pool.query(
+      `SELECT
+        id,
+        first_name,
+        last_name,
+        COALESCE(first_name, '') || ' ' || COALESCE(last_name, '') as display_name,
+        profile_picture as profile_picture_url,
+        bio
+      FROM users
+      WHERE
+        LOWER(COALESCE(first_name, '')) LIKE $1
+        OR LOWER(COALESCE(last_name, '')) LIKE $1
+        OR LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE $1
+      ORDER BY
+        CASE
+          WHEN LOWER(COALESCE(first_name, '')) LIKE $2 THEN 0
+          WHEN LOWER(COALESCE(last_name, '')) LIKE $2 THEN 1
+          WHEN LOWER(COALESCE(first_name, '') || ' ' || COALESCE(last_name, '')) LIKE $2 THEN 2
+          ELSE 3
+        END,
+        first_name ASC NULLS LAST,
+        last_name ASC NULLS LAST
+      LIMIT $3 OFFSET $4`,
+      [searchPattern, prefixPattern, fetchLimit, offset],
+    );
+
+    const hasMore = res.rows.length > limit;
+    const users = hasMore ? res.rows.slice(0, limit) : res.rows;
+
+    return { users, hasMore };
   }
 
   // ==================== USER BIO ====================

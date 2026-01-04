@@ -791,8 +791,10 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   }, []);
 
   useEffect(() => {
-    initializeNotifications();
-  }, []);
+    if (userId) {
+      initializeNotifications(userId);
+    }
+  }, [userId]);
 
   // Saved looks now come from useSavedLooks TanStack Query hook above
   // Use refetchSavedLooks() to refresh the data

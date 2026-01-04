@@ -548,7 +548,8 @@ export default function ExploreScreen() {
         pushEnabled ? 'true' : 'false',
       );
       if (pushEnabled) {
-        await initializeNotifications(userId);
+        // Force register to ensure token is saved (bypasses AsyncStorage check)
+        await initializeNotifications(userId, true);
       }
     })();
   }, [userId, prefsLoaded, pushEnabled]);

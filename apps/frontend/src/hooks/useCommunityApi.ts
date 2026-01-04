@@ -51,6 +51,14 @@ export function useCommunityPosts(
       });
       if (currentUserId) params.set('currentUserId', currentUserId);
       const res = await apiClient.get(`${BASE}/posts?${params.toString()}`);
+      // Debug: log first post's follow status
+      if (res.data?.[0]) {
+        console.log('📡 First post status:', {
+          postId: res.data[0].id?.slice(0, 8),
+          author: res.data[0].user_id?.slice(0, 8),
+          is_following_author: res.data[0].is_following_author,
+        });
+      }
       return res.data;
     },
     staleTime: 30000,
@@ -117,18 +125,13 @@ export function useLikePost() {
       isLiked: boolean;
     }) => {
       if (isLiked) {
-        const res = await apiClient.delete(`${BASE}/posts/${postId}/like`);
-        console.log('👎 Unlike response:', res.data);
+        await apiClient.delete(`${BASE}/posts/${postId}/like`);
       } else {
-        const res = await apiClient.post(`${BASE}/posts/${postId}/like`, {});
-        console.log('👍 Like response:', res.data);
+        await apiClient.post(`${BASE}/posts/${postId}/like`, {});
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['community-posts']});
-    },
-    onError: (error: any) => {
-      console.error('❌ Like mutation failed:', error?.response?.data || error?.message || error);
     },
   });
 }
@@ -240,13 +243,22 @@ export function useFollowUser() {
       targetUserId: string;
       isFollowing: boolean;
     }) => {
-      if (isFollowing) {
-        await apiClient.delete(`${BASE}/users/${targetUserId}/follow`);
-      } else {
-        await apiClient.post(`${BASE}/users/${targetUserId}/follow`, {});
+      console.log('🔄 Follow mutation:', {targetUserId, isFollowing});
+      try {
+        if (isFollowing) {
+          const res = await apiClient.delete(`${BASE}/users/${targetUserId}/follow`);
+          console.log('👋 Unfollow response:', res.status, res.data);
+        } else {
+          const res = await apiClient.post(`${BASE}/users/${targetUserId}/follow`, {});
+          console.log('🤝 Follow response:', res.status, res.data);
+        }
+      } catch (err: any) {
+        console.error('❌ Follow API error:', err?.response?.status, err?.response?.data || err?.message);
+        throw err;
       }
     },
     onSuccess: () => {
+      console.log('✅ Follow mutation success, invalidating queries');
       queryClient.invalidateQueries({queryKey: ['community-posts']});
       queryClient.invalidateQueries({queryKey: ['community-user-profile']});
       queryClient.invalidateQueries({queryKey: ['community-followers']});
@@ -432,6 +444,47 @@ export function useDeleteUserData() {
     mutationFn: async ({userId}: {userId: string}) => {
       await apiClient.delete(`${BASE}/users/${userId}/data`);
     },
+  });
+}
+
+// ==================== USER SEARCH ====================
+
+export type SearchedUser = {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  display_name?: string;
+  profile_picture_url?: string;
+  bio?: string;
+};
+
+export type SearchUsersResponse = {
+  users: SearchedUser[];
+  hasMore: boolean;
+};
+
+/**
+ * Search for users by name (first, last, or display name).
+ * Supports debounced queries with prefix ranking.
+ */
+export function useSearchUsers(
+  query: string,
+  limit: number = 20,
+  offset: number = 0,
+) {
+  return useQuery<SearchUsersResponse, Error>({
+    queryKey: ['community-users-search', query, limit, offset],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        q: query,
+        limit: String(limit),
+        offset: String(offset),
+      });
+      const res = await apiClient.get(`${BASE}/users/search?${params.toString()}`);
+      return res.data;
+    },
+    enabled: query.trim().length > 0,
+    staleTime: 30000,
   });
 }
 

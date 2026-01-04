@@ -1,7 +1,8 @@
 import WeatherBus from './utils/WeatherBus';
 import React, {useState, useRef, useEffect} from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View, StyleSheet, Linking} from 'react-native';
 import {WebView} from 'react-native-webview';
+import {parseDeepLink, isAppDeepLink} from './utils/deepLinkRouter';
 import RootNavigator from './navigation/RootNavigator';
 import FloatingMicButton from './components/FloatingMicButton';
 import {VoiceOverlay} from './components/VoiceOverlay/VoiceOverlay';
@@ -75,6 +76,70 @@ const MainApp = () => {
   // 🗓️ Sync native iOS calendar on startup
   useEffect(() => {
     syncNativeCalendarToBackend();
+  }, []);
+
+  // 🔗 Deep Link Handling - cold start + background/foreground
+  useEffect(() => {
+    // Handle deep link navigation
+    const handleDeepLink = (url: string | null) => {
+      if (!url || !isAppDeepLink(url)) {
+        return;
+      }
+
+      console.log('[DeepLink] Handling URL:', url);
+      const target = parseDeepLink(url);
+
+      if (!target) {
+        console.log('[DeepLink] Unknown route, ignoring');
+        return;
+      }
+
+      console.log('[DeepLink] Navigating to:', target.screen, target.params);
+
+      // Use globalNavigate for navigation
+      switch (target.screen) {
+        case 'CommunityPostDetail':
+          // Navigate to community and then open post detail
+          globalNavigate('CommunityShowcaseScreen', {
+            openPostId: target.params.postId,
+          });
+          break;
+        case 'UserProfileScreen':
+          globalNavigate('UserProfileScreen', {userId: target.params.userId});
+          break;
+        case 'CommunityShowcaseScreen':
+          globalNavigate('CommunityShowcaseScreen', {
+            hashtag: target.params.hashtag,
+          });
+          break;
+        case 'ChatScreen':
+          globalNavigate('ChatScreen', {recipientId: target.params.recipientId});
+          break;
+        default:
+          console.log('[DeepLink] Unhandled screen:', (target as any).screen);
+      }
+    };
+
+    // Cold start: Check initial URL
+    Linking.getInitialURL()
+      .then(url => {
+        if (url) {
+          console.log('[DeepLink] Cold start URL:', url);
+          // Delay slightly to ensure navigation is ready
+          setTimeout(() => handleDeepLink(url), 500);
+        }
+      })
+      .catch(err => console.warn('[DeepLink] getInitialURL error:', err));
+
+    // Background/Foreground: Listen for URL events
+    const subscription = Linking.addEventListener('url', event => {
+      console.log('[DeepLink] URL event:', event.url);
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   // 🔁 Sync overlay with recognition
