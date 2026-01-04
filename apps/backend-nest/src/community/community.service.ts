@@ -488,12 +488,6 @@ export class CommunityService implements OnModuleInit {
       orderBy = 'ORDER BY cp.created_at DESC';
     } else if (filter === 'following' && currentUserId) {
       whereClause = `WHERE cp.user_id IN (SELECT following_id FROM user_follows WHERE follower_id = $3)`;
-      // Debug: check what follows exist for this user
-      const followsCheck = await pool.query(
-        'SELECT follower_id, following_id, created_at FROM user_follows WHERE follower_id = $1',
-        [currentUserId],
-      );
-      console.log('📊 User follows:', followsCheck.rows);
     }
 
     // Exclude posts from blocked/muted users for current user
