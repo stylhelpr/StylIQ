@@ -2222,9 +2222,9 @@ For general chat/greetings, return empty needs. For outfit suggestions, include 
             .join('\n');
 
           calendarContext = `\n\nCALENDAR EVENTS (${calendarRows.length} upcoming):\n${eventsList}`;
-          console.log(
-            `📅 Chat: Loaded ${calendarRows.length} upcoming calendar events`,
-          );
+          // console.log(
+          //   `📅 Chat: Loaded ${calendarRows.length} upcoming calendar events`,
+          // );
         }
       } catch (err: any) {
         console.warn(

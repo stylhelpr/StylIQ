@@ -57,16 +57,24 @@ export class DiscoverService {
   // ==================== MAIN ENTRY POINT ====================
 
   async getRecommended(userId: string): Promise<DiscoverProduct[]> {
-    this.log.log(`getRecommended called for userId: ${userId}`);
+    // this.log.log(`🛒 getRecommended called for userId: ${userId}`);
 
     // ALWAYS check cache first
     const cached = await this.getCachedProducts(userId);
     const cacheValid = await this.isCacheValid(userId);
 
-    // HARDLOCK: If cache is valid (within 7 days), return whatever we have. NO API CALLS. NO EXCEPTIONS.
-    if (cacheValid) {
-      this.log.log(`Returning ${cached.length} cached products for user ${userId} (weekly lock active - NO API CALLS)`);
+    // this.log.log(`🛒 Cache status: valid=${cacheValid}, cached count=${cached.length}`);
+
+    // HARDLOCK: If cache is valid (within 7 days) AND we have products, return them. NO API CALLS.
+    // If cache is "valid" but empty, we should still try to fetch.
+    if (cacheValid && cached.length > 0) {
+      // this.log.log(`🛒 Returning ${cached.length} cached products for user ${userId} (weekly lock active - NO API CALLS)`);
       return cached;
+    }
+
+    // If cache is valid but empty, log this unusual state
+    if (cacheValid && cached.length === 0) {
+      this.log.warn(`🛒 Cache marked valid but contains 0 products for user ${userId} - will attempt fetch`);
     }
 
     // Cache expired or never set - ONE fetch attempt, then lock for a week
@@ -150,9 +158,13 @@ export class DiscoverService {
          LIMIT $2`,
         [userId, TARGET_PRODUCTS],
       );
+      // this.log.log(`🛒 getCachedProducts query returned ${result.rows.length} rows`);
+      // if (result.rows.length > 0) {
+      //   this.log.log(`🛒 First cached product: ${JSON.stringify(result.rows[0])}`);
+      // }
       return result.rows;
     } catch (error) {
-      this.log.error(`getCachedProducts failed: ${error?.message}`);
+      // this.log.error(`🛒 getCachedProducts failed: ${error?.message}`);
       // Table might not exist yet - return empty
       return [];
     }

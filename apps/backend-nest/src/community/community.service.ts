@@ -1439,8 +1439,8 @@ export class CommunityService implements OnModuleInit {
         COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
         profile_picture as user_avatar,
         bio,
-        (SELECT COUNT(*) FROM user_follows WHERE following_id = $1) as followers_count,
-        (SELECT COUNT(*) FROM user_follows WHERE follower_id = $1) as following_count,
+        (SELECT COUNT(*) FROM user_follows uf JOIN users u ON u.id = uf.follower_id WHERE uf.following_id = $1) as followers_count,
+        (SELECT COUNT(*) FROM user_follows uf JOIN users u ON u.id = uf.following_id WHERE uf.follower_id = $1) as following_count,
         (SELECT COUNT(*) FROM community_posts WHERE user_id = $1) as posts_count
       FROM users WHERE id = $1`,
       [userId],

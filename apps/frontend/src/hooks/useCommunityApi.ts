@@ -272,6 +272,8 @@ export function useFollowUser() {
 // ==================== SAVES ====================
 
 export function useSavePost() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({
       postId,
@@ -285,6 +287,10 @@ export function useSavePost() {
       } else {
         await apiClient.post(`${BASE}/posts/${postId}/save`, {});
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['community-posts']});
+      queryClient.invalidateQueries({queryKey: ['community-saved']});
     },
   });
 }

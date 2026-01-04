@@ -294,8 +294,10 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
     (async () => {
       setLoading(true);
       try {
+        // console.log('🛒 DiscoverCarousel: fetching /discover/' + userId);
         const resp = await apiClient.get(`/discover/${encodeURIComponent(userId)}`);
         const data = resp.data;
+        // console.log('🛒 DiscoverCarousel: raw response length:', data?.length, 'first item:', data?.[0]);
         const items: Product[] = data
           .map((p: any) => ({
             id: String(p.id),
@@ -308,9 +310,11 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
             saved: p.saved || false,
           }))
           .filter((p: Product) => p.image_url?.startsWith('http'));
+        // console.log('🛒 DiscoverCarousel: filtered items count:', items.length);
         setRecommended(items);
         setError(null);
       } catch (e: any) {
+        // console.error('🛒 DiscoverCarousel: fetch error:', e.message, e.response?.status);
         setError(e.message || 'Failed to load');
       } finally {
         setLoading(false);
@@ -372,7 +376,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
         ) : (
           displayItems.map((item, i) => (
             <Animated.View
-              key={item.id}
+              key={item.product_id || item.id || `discover-${i}`}
               style={{
                 opacity: fadeAnims.current[i] || new Animated.Value(1),
                 transform: [
