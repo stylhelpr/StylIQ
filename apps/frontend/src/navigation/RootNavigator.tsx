@@ -645,7 +645,7 @@ const RootNavigator = ({
       case 'VideoFeedScreen':
         return <VideoFeedScreen navigate={navigate} autoNavigateToHome={screenParams?.autoNavigateToHome} />;
       case 'CommunityShowcaseScreen':
-        return <CommunityShowcaseScreen navigate={navigate} />;
+        return <CommunityShowcaseScreen navigate={navigate} initialPostId={screenParams?.initialPostId} />;
       case 'ChatScreen':
         return <ChatScreen navigate={navigate} route={screenParams} />;
       case 'MessagesScreen':

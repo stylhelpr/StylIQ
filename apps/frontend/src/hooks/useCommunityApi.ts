@@ -51,12 +51,14 @@ export function useCommunityPosts(
       });
       if (currentUserId) params.set('currentUserId', currentUserId);
       const res = await apiClient.get(`${BASE}/posts?${params.toString()}`);
-      // Debug: log first post's follow status
+      // Debug: log first post's follow status and images
       if (res.data?.[0]) {
         console.log('📡 First post status:', {
           postId: res.data[0].id?.slice(0, 8),
           author: res.data[0].user_id?.slice(0, 8),
           is_following_author: res.data[0].is_following_author,
+          image_url: res.data[0].image_url,
+          top_image: res.data[0].top_image,
         });
       }
       return res.data;

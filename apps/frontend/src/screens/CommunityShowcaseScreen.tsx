@@ -65,6 +65,7 @@ const NUM_COLUMNS = 2;
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
+  initialPostId?: string;
 };
 
 // Layout constants
@@ -223,7 +224,7 @@ const h = (
     ignoreAndroidSystemSettings: false,
   });
 
-export default function CommunityShowcaseScreen({navigate}: Props) {
+export default function CommunityShowcaseScreen({navigate, initialPostId}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const insets = useSafeAreaInsets();
@@ -249,14 +250,14 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     isLoading: isLoadingPosts,
     refetch: refetchPosts,
     isRefetching: isRefetchingPosts,
-  } = useCommunityPosts(userId, activeFilter);
+  } = useCommunityPosts(userId, activeFilter, 100);
 
   const {
     data: savedPosts = [],
     isLoading: isLoadingSaved,
     refetch: refetchSaved,
     isRefetching: isRefetchingSaved,
-  } = useSavedPosts(userId);
+  } = useSavedPosts(100);
 
   const {data: searchResults = []} = useSearchPosts(searchQuery, userId);
   const {data: userSearchResults} = useSearchUsers(searchQuery);
@@ -379,6 +380,19 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       setDetailPost(null);
     });
   }, [postDetailSlideAnim, postDetailOpacityAnim]);
+
+  // Open initial post modal if navigated with initialPostId
+  const initialPostOpenedRef = useRef(false);
+  useEffect(() => {
+    if (initialPostId && posts.length > 0 && !initialPostOpenedRef.current) {
+      const targetPost = posts.find((p: CommunityPost) => p.id === initialPostId);
+      if (targetPost) {
+        initialPostOpenedRef.current = true;
+        // Open immediately - no delay needed
+        openPostDetailModal(targetPost);
+      }
+    }
+  }, [initialPostId, posts, openPostDetailModal]);
 
   // Animated search toggle
   const toggleSearch = () => {
@@ -1611,7 +1625,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
         ? displayedPosts[currentImageIndex % displayedPosts.length]
         : null;
     const mockPost = MOCK_POSTS[currentImageIndex % MOCK_POSTS.length];
-    const heroImageUrl = heroPost?.image_url || mockPost.imageUrl;
+    const heroImageUrl = heroPost?.image_url || heroPost?.top_image || mockPost.imageUrl;
     const heroUserName = heroPost?.user_name || mockPost.userName;
     const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
     const heroUserId = heroPost?.user_id;
@@ -1797,8 +1811,8 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
       const cellSize = CARD_WIDTH / 2;
       const hasCompositeImages = post.top_image && post.bottom_image;
       const imageUri =
-        post.thumbnailUrl ??
         post.image_url ??
+        post.top_image ??
         (post as any).imageUrl ??
         (post as any).image;
 
@@ -3124,7 +3138,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                     // Single image
                     <FastImage
                       source={{
-                        uri: detailPost.image_url || '',
+                        uri: detailPost.image_url || detailPost.top_image || '',
                         priority: FastImage.priority.high,
                         cache: FastImage.cacheControl.immutable,
                       }}
