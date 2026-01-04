@@ -1212,22 +1212,24 @@ export const useShoppingStore = create<ShoppingState>()(
         currentTabId?: string | null;
         serverTimestamp: number;
       }) => {
-        // console.log('[ShoppingStore] applyServerSync called with:', {
-        //   bookmarks: data.bookmarks?.length || 0,
-        //   history: data.history?.length || 0,
-        //   collections: data.collections?.length || 0,
-        //   cartHistory: data.cartHistory?.length || 0,
-        //   tabs: data.tabs?.length || 0,
-        // });
+        console.log('[ShoppingStore] applyServerSync called with:', {
+          bookmarks: data.bookmarks?.length || 0,
+          history: data.history?.length || 0,
+          collections: data.collections?.length || 0,
+          cartHistory: data.cartHistory?.length || 0,
+          tabs: data.tabs?.length || 0,
+          historyUrls: data.history?.map(h => h.url),
+        });
 
         set(state => {
-          // console.log('[ShoppingStore] Current local state:', {
-          //   bookmarks: state.bookmarks?.length || 0,
-          //   history: state.history?.length || 0,
-          //   collections: state.collections?.length || 0,
-          //   cartHistory: state.cartHistory?.length || 0,
-          //   _historyClearedAt: state._historyClearedAt,
-          // });
+          console.log('[ShoppingStore] Current local state:', {
+            bookmarks: state.bookmarks?.length || 0,
+            history: state.history?.length || 0,
+            collections: state.collections?.length || 0,
+            cartHistory: state.cartHistory?.length || 0,
+            _historyClearedAt: state._historyClearedAt,
+            localHistoryUrls: state.history?.map(h => h.url),
+          });
 
           // Merge server data with local data, preferring local for conflicts
           // This prevents wiping local data when server is empty
@@ -1322,13 +1324,15 @@ export const useShoppingStore = create<ShoppingState>()(
               data.currentTabId ||
               (mergedTabs.length > 0 ? mergedTabs[0].id : null);
 
-          // console.log('[ShoppingStore] Merged result:', {
-          //   bookmarks: mergedBookmarks.length,
-          //   history: mergedHistory.length,
-          //   collections: mergedCollections.length,
-          //   cartHistory: mergedCartHistory.length,
-          //   tabs: mergedTabs.length,
-          // });
+          console.log('[ShoppingStore] Merged result:', {
+            bookmarks: mergedBookmarks.length,
+            history: mergedHistory.length,
+            collections: mergedCollections.length,
+            cartHistory: mergedCartHistory.length,
+            tabs: mergedTabs.length,
+            mergedHistoryUrls: mergedHistory.map(h => h.url),
+            mergedHistoryVisitCounts: mergedHistory.map(h => ({url: h.url, visitCount: h.visitCount})),
+          });
 
           return {
             bookmarks: mergedBookmarks,

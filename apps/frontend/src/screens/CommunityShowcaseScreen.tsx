@@ -1512,7 +1512,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
     },
     postDetailImage: {
       width: SCREEN_WIDTH - 4,
-      height: SCREEN_WIDTH - 4,
+      height: SCREEN_WIDTH * 1.25,
       borderRadius: 16,
     },
     postDetailCompositeContainer: {
@@ -3129,7 +3129,7 @@ export default function CommunityShowcaseScreen({navigate}: Props) {
                         cache: FastImage.cacheControl.immutable,
                       }}
                       style={styles.postDetailImage}
-                      resizeMode={FastImage.resizeMode.cover}
+                      resizeMode={FastImage.resizeMode.contain}
                     />
                   )}
                 </View>

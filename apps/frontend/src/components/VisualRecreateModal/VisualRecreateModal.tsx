@@ -509,6 +509,7 @@ export default function VisualRecreateModal({
               gap: 12,
               paddingHorizontal: 16,
             }}>
+              
             {/* Save Button */}
             {hasPieces && (
               <TouchableOpacity
