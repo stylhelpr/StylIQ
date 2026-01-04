@@ -403,11 +403,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: CARD_HEIGHT * 0.15,
-    backgroundColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: -100},
-    shadowOpacity: 0.3,
-    shadowRadius: 100,
+    // Shadow removed - LinearGradient doesn't support shadows efficiently
+    // The gradient itself provides the darkening effect
   },
   textContainer: {
     position: 'absolute',

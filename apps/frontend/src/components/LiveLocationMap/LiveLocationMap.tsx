@@ -36,7 +36,7 @@ export default function LiveLocationMap({
   const centerOn = useCallback(
     (pos: GeoPosition, isInitial = false) => {
       const {latitude, longitude} = pos.coords;
-      console.log('📍 Position fix:', latitude, longitude);
+      // console.log('📍 Position fix:', latitude, longitude);
 
       // For initial position or if user hasn't interacted, animate to default zoom
       if (isInitial || !userHasInteracted.current) {
@@ -66,29 +66,29 @@ export default function LiveLocationMap({
     let mounted = true;
 
     if (!enabled) {
-      console.log('🛑 Location tracking disabled — clearing all watchers');
+      // console.log('🛑 Location tracking disabled — clearing all watchers');
       if (watchIdRef.current != null) {
         Geolocation.clearWatch(watchIdRef.current);
-        console.log('🧹 Cleared watch ID:', watchIdRef.current);
+        // console.log('🧹 Cleared watch ID:', watchIdRef.current);
         watchIdRef.current = null;
       }
       Geolocation.stopObserving();
-      console.log('🧩 Observers stopped.');
+      // console.log('🧩 Observers stopped.');
       return;
     }
 
-    console.log('✅ Location tracking enabled — requesting permission');
+    // console.log('✅ Location tracking enabled — requesting permission');
     (async () => {
       const ok = await ensureLocationPermission();
       if (!ok || !mounted) {
-        console.log('⚠️ Permission denied or component unmounted early');
+        // console.log('⚠️ Permission denied or component unmounted early');
         return;
       }
 
       Geolocation.getCurrentPosition(
         pos => {
           if (!mounted) return;
-          console.log('📍 Initial position received');
+          // console.log('📍 Initial position received');
           centerOn(pos, true);
         },
         (err: GeoError) => console.warn('❌ getCurrentPosition error:', err),
@@ -98,11 +98,11 @@ export default function LiveLocationMap({
       watchIdRef.current = Geolocation.watchPosition(
         pos => {
           if (!mounted) return;
-          console.log(
-            '🛰️ watchPosition update:',
-            pos.coords.latitude,
-            pos.coords.longitude,
-          );
+          // console.log(
+          //   '🛰️ watchPosition update:',
+          //   pos.coords.latitude,
+          //   pos.coords.longitude,
+          // );
           centerOn(pos);
         },
         (err: GeoError) => console.warn('❌ watchPosition error:', err),
@@ -114,13 +114,13 @@ export default function LiveLocationMap({
           showsBackgroundLocationIndicator: false,
         },
       );
-      console.log('🎯 Geolocation watcher started, ID:', watchIdRef.current);
+      // console.log('🎯 Geolocation watcher started, ID:', watchIdRef.current);
     })();
 
     // optional: stop updates when app backgrounded
     const sub = AppState.addEventListener('change', state => {
       if (state !== 'active' && watchIdRef.current != null) {
-        console.log('📴 App backgrounded — stopping GPS updates');
+        // console.log('📴 App backgrounded — stopping GPS updates');
         Geolocation.clearWatch(watchIdRef.current);
         Geolocation.stopObserving();
         watchIdRef.current = null;
@@ -131,11 +131,11 @@ export default function LiveLocationMap({
     return () => {
       mounted = false;
       if (watchIdRef.current != null) {
-        console.log('🧹 Cleanup → clearing watcher ID:', watchIdRef.current);
+        // console.log('🧹 Cleanup → clearing watcher ID:', watchIdRef.current);
         Geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
-      console.log('🧩 Cleanup → stopping all observers.');
+      // console.log('🧩 Cleanup → stopping all observers.');
       Geolocation.stopObserving();
       sub.remove();
     };

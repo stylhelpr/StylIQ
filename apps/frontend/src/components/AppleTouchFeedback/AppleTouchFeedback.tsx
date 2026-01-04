@@ -1,5 +1,5 @@
 import React, {useRef} from 'react';
-import {Pressable, Animated, StyleProp, ViewStyle} from 'react-native';
+import {TouchableOpacity, Animated, StyleProp, ViewStyle} from 'react-native';
 import {triggerHaptic} from '../../utils/haptics';
 
 type Props = {
@@ -58,17 +58,17 @@ export default function AppleTouchFeedback({
   };
 
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={1}
       onPress={handlePress}
       onLongPress={disabled ? undefined : onLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}
-      style={{opacity: disabled ? 0.5 : 1}} // Visual feedback for disabled state
-    >
+      style={{opacity: disabled ? 0.5 : 1}}>
       <Animated.View style={[{transform: [{scale}]}, style]}>
         {children}
       </Animated.View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }

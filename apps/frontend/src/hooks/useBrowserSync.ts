@@ -40,7 +40,7 @@ export function useBrowserSync() {
   );
 
   const performSync = useCallback(async () => {
-    console.log('[useBrowserSync] performSync called');
+    // console.log('[useBrowserSync] performSync called');
     try {
       let credentials;
       try {
@@ -56,9 +56,9 @@ export function useBrowserSync() {
         return false;
       }
 
-      console.log('[useBrowserSync] Performing sync...');
+      // console.log('[useBrowserSync] Performing sync...');
       const result = await browserSyncService.sync(credentials.accessToken);
-      console.log('[useBrowserSync] Sync result:', result);
+      // console.log('[useBrowserSync] Sync result:', result);
       initialSyncSucceeded.current = result;
       return result;
     } catch (error) {

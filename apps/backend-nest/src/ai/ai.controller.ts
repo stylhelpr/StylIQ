@@ -217,28 +217,28 @@ export class AiController {
   @Post('recreate-outfit')
   async recreateOutfit(@Body() body: { imageUrl: string; gender?: string }) {
     const { imageUrl, gender } = body;
-    console.log('👗 [recreate-outfit] Starting outfit recreation for:', imageUrl);
+    // console.log('👗 [recreate-outfit] Starting outfit recreation for:', imageUrl);
 
     if (!imageUrl) throw new BadRequestException('Missing imageUrl');
 
     try {
       // Step 1: Use AI to analyze the image and identify each clothing piece
-      console.log('👗 [recreate-outfit] Step 1: Analyzing outfit with AI...');
+      // console.log('👗 [recreate-outfit] Step 1: Analyzing outfit with AI...');
       const outfitPieces = await this.service.analyzeOutfitPieces(imageUrl, gender);
-      console.log('👗 [recreate-outfit] Identified pieces:', outfitPieces);
+      // console.log('👗 [recreate-outfit] Identified pieces:', outfitPieces);
 
       if (!outfitPieces || outfitPieces.length === 0) {
         return { pieces: [], error: 'Could not identify outfit pieces' };
       }
 
       // Step 2: Search Google Shopping for each piece
-      console.log('👗 [recreate-outfit] Step 2: Searching for each piece...');
+      // console.log('👗 [recreate-outfit] Step 2: Searching for each piece...');
       const results = await Promise.all(
         outfitPieces.map(async (piece: any) => {
           // Build search query - prioritize brand/logo if available
           const brandPart = piece.brand ? `${piece.brand} ` : '';
           const searchQuery = `${brandPart}${piece.color || ''} ${piece.item} ${piece.style || ''}`.trim();
-          console.log(`👗 [recreate-outfit] Searching for: "${searchQuery}" (brand: ${piece.brand || 'none'})`);
+          // console.log(`👗 [recreate-outfit] Searching for: "${searchQuery}" (brand: ${piece.brand || 'none'})`);
 
           try {
             const products = await this.searchGoogleShopping(searchQuery, gender);
@@ -265,7 +265,7 @@ export class AiController {
         }),
       );
 
-      console.log('👗 [recreate-outfit] Complete! Found products for', results.filter(r => r.products.length > 0).length, 'pieces');
+      // console.log('👗 [recreate-outfit] Complete! Found products for', results.filter(r => r.products.length > 0).length, 'pieces');
 
       return {
         pieces: results,

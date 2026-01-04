@@ -60,7 +60,7 @@ export const loginWithAuth0 = async (): Promise<void> => {
  */
 export const getAccessToken = async (): Promise<string> => {
   const credentials = await getCredentials();
-  console.log('ACCESS TOKEN >>>', credentials.accessToken);
+  // console.log('ACCESS TOKEN >>>', credentials.accessToken);
   return credentials.accessToken;
 };
 

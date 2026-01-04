@@ -328,7 +328,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
   // Open post detail modal with animation
   const openPostDetailModal = useCallback(
     (post: CommunityPost) => {
-      h('impactLight');
+      // h('impactLight');
       setDetailPost(post);
       setPostDetailModalVisible(true);
       // Track view only if user consented to tracking
@@ -1632,6 +1632,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
     const heroTags = heroPost?.tags || mockPost.tags;
     const heroLikes = heroPost ? getPostLikeCount(heroPost) : mockPost.likes;
     const heroViews = heroPost?.views_count ?? mockPost.views ?? 0;
+    const heroName = heroPost?.name || heroPost?.description || 'Featured Look';
 
     return (
       <Pressable
@@ -1690,14 +1691,14 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
           }}>
           <Text
             style={{
-              fontSize: fontScale(tokens.fontSize.xl),
+              fontSize: fontScale(tokens.fontSize['3xl']),
               fontWeight: tokens.fontWeight.bold,
-              color: '#ffffff',
-              textShadowColor: 'rgba(0, 0, 0, 0.6)',
+              color: 'white',
+              textShadowColor: 'rgba(0, 0, 0, 1)',
               textShadowOffset: {width: 0, height: 1},
               textShadowRadius: 3,
             }}>
-            Featured Look
+            "{heroName}"
           </Text>
         </View>
 

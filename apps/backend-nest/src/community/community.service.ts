@@ -409,9 +409,9 @@ export class CommunityService implements OnModuleInit {
       const postEmbedding = embeddings[postId];
 
       if (!postEmbedding?.values || postEmbedding.values.length === 0) {
-        console.log(
-          `ℹ️ Post ${postId} has no embedding yet, skipping preference update`,
-        );
+        // console.log(
+        //   `ℹ️ Post ${postId} has no embedding yet, skipping preference update`,
+        // );
         return;
       }
 
@@ -455,9 +455,9 @@ export class CommunityService implements OnModuleInit {
         [userId, newVector, newCount],
       );
 
-      console.log(
-        `✅ Updated preference vector for user ${userId} (${newCount} interactions)`,
-      );
+      // console.log(
+      //   `✅ Updated preference vector for user ${userId} (${newCount} interactions)`,
+      // );
     } catch (err: any) {
       console.error(`⚠️ updateUserPreference error:`, err.message);
     }
@@ -941,13 +941,13 @@ export class CommunityService implements OnModuleInit {
     replyToId?: string,
     replyToUser?: string,
   ) {
-    console.log('📥 addComment called:', {
-      postId,
-      userId,
-      content,
-      replyToId,
-      replyToUser,
-    });
+    // console.log('📥 addComment called:', {
+    //   postId,
+    //   userId,
+    //   content,
+    //   replyToId,
+    //   replyToUser,
+    // });
 
     try {
       const res = await pool.query(
@@ -956,7 +956,7 @@ export class CommunityService implements OnModuleInit {
          RETURNING id, post_id, user_id, content, reply_to_id, reply_to_user, likes_count, created_at`,
         [postId, userId, content, replyToId || null, replyToUser || null],
       );
-      console.log('📥 Comment inserted:', res.rows[0]);
+      // console.log('📥 Comment inserted:', res.rows[0]);
 
       await pool.query(
         `UPDATE community_posts
@@ -1005,16 +1005,16 @@ export class CommunityService implements OnModuleInit {
     content: string,
     commenterName?: string,
   ) {
-    console.log('📤 sendCommentNotification:', { postId, commenterId, commenterName });
+    // console.log('📤 sendCommentNotification:', { postId, commenterId, commenterName });
     const postOwner = await pool.query(
       `SELECT user_id FROM community_posts WHERE id = $1`,
       [postId],
     );
     const ownerId = postOwner.rows[0]?.user_id;
-    console.log('📤 Post owner:', ownerId, '| Commenter:', commenterId, '| Notify:', ownerId && ownerId !== commenterId);
+    // console.log('📤 Post owner:', ownerId, '| Commenter:', commenterId, '| Notify:', ownerId && ownerId !== commenterId);
     if (ownerId && ownerId !== commenterId) {
       const title = `${commenterName || 'Someone'} commented`;
-      console.log('📤 Sending push to:', ownerId);
+      // console.log('📤 Sending push to:', ownerId);
       this.notifications.sendPushToUser(ownerId, title, content, {
         type: 'comment',
         postId,
@@ -1098,7 +1098,7 @@ export class CommunityService implements OnModuleInit {
   // ==================== FOLLOWS ====================
 
   async followUser(followerId: string, followingId: string) {
-    console.log('📥 followUser called:', { followerId, followingId });
+    // console.log('📥 followUser called:', { followerId, followingId });
     if (!followerId || !followingId) {
       throw new ForbiddenException('User IDs are required');
     }
@@ -1121,7 +1121,7 @@ export class CommunityService implements OnModuleInit {
        ON CONFLICT (follower_id, following_id) DO NOTHING`,
       [followerId, followingId],
     );
-    console.log('✅ Follow saved to database');
+    // console.log('✅ Follow saved to database');
 
     // Send push notification to the user being followed
     try {

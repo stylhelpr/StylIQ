@@ -332,7 +332,7 @@ export class AiService {
       brand?: string;
     }>
   > {
-    console.log('👗 [AI] analyzeOutfitPieces() called with', imageUrl);
+    // console.log('👗 [AI] analyzeOutfitPieces() called with', imageUrl);
     if (!imageUrl) throw new Error('Missing imageUrl');
 
     const genderContext = gender ? `The person appears to be ${gender}.` : '';
@@ -397,7 +397,7 @@ Return format:
       });
 
       const raw = completion.choices[0]?.message?.content;
-      console.log('👗 [AI] analyzeOutfitPieces() raw response:', raw);
+      // console.log('👗 [AI] analyzeOutfitPieces() raw response:', raw);
 
       if (!raw) throw new Error('Empty response from OpenAI');
 
@@ -426,7 +426,7 @@ Return format:
         pieces = arrayValue ? (arrayValue as any[]) : [];
       }
 
-      console.log('👗 [AI] analyzeOutfitPieces() found', pieces.length, 'pieces');
+      // console.log('👗 [AI] analyzeOutfitPieces() found', pieces.length, 'pieces');
       return pieces;
     } catch (err: any) {
       console.error('❌ [AI] analyzeOutfitPieces() failed:', err.message);
@@ -2097,9 +2097,9 @@ For general chat/greetings, return empty needs. For outfit suggestions, include 
         if (key in contextNeeds) (contextNeeds as any)[key] = true;
       });
 
-      console.log(
-        `🎯 Smart context: ${needs.length ? needs.join(', ') : 'minimal (chat only)'}`,
-      );
+      // console.log(
+    //     `🎯 Smart context: ${needs.length ? needs.join(', ') : 'minimal (chat only)'}`,
+    //   );
       // ✅ Force-enable weather context if location or weather was passed
       if (dto.lat || dto.lon || dto.weather) {
         contextNeeds.weather = true;
@@ -2165,7 +2165,7 @@ For general chat/greetings, return empty needs. For outfit suggestions, include 
       const cached = await redis.get<string>(cacheKey);
 
       if (cached) {
-        console.log(`🟢 Redis HIT for ${cacheKey}`);
+        // console.log(`🟢 Redis HIT for ${cacheKey}`);
         longTermSummary = cached;
       } else {
         console.log(`🔴 Redis MISS for ${cacheKey} — fetching from Postgres`);
@@ -2344,9 +2344,9 @@ For general chat/greetings, return empty needs. For outfit suggestions, include 
 - "works with your [fit] [COLOR] [ITEM]"
 NEVER make generic references. ALWAYS name the SPECIFIC pieces they own.`;
 
-          console.log(
-            `👔 Chat: Loaded ${wardrobeRows.length} wardrobe items from ${Object.keys(grouped).length} categories`,
-          );
+          // console.log(
+          //   `👔 Chat: Loaded ${wardrobeRows.length} wardrobe items from ${Object.keys(grouped).length} categories`,
+          // );
         }
       } catch (err: any) {
         console.warn('⚠️ failed to load wardrobe items for chat:', err.message);
@@ -2832,17 +2832,17 @@ At the end, return a short JSON block like:
     }
 
     // 4️⃣ Fetch Unsplash images
-    console.log('🖼️ Fetching Unsplash for terms:', searchTerms);
+    // console.log('🖼️ Fetching Unsplash for terms:', searchTerms);
     const images = await this.fetchUnsplash(searchTerms);
-    console.log('🖼️ Unsplash returned:', images?.length, 'images');
+    // console.log('🖼️ Unsplash returned:', images?.length, 'images');
 
     // 5️⃣ Build shoppable links
     const links = searchTerms.map((term) => ({
       label: `Shop ${term} on ASOS`,
       url: `https://www.asos.com/search/?q=${encodeURIComponent(term)}`,
     }));
-    console.log('🔗 Built', links?.length, 'shopping links');
-    console.log('✅ Chat response ready - images:', images?.length, 'links:', links?.length);
+    // console.log('🔗 Built', links?.length, 'shopping links');
+    // console.log('✅ Chat response ready - images:', images?.length, 'links:', links?.length);
 
     /* 🧠 --- SAVE ASSISTANT REPLY --- */
     try {

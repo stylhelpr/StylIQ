@@ -925,7 +925,7 @@ export default function ClosetScreen({navigate}: Props) {
                 zIndex: 9999,
               }}>
               <TouchableWithoutFeedback>
-                <>
+                <View>
                   {menuView === 'main' && (
                     <View style={styles.popover}>
                       <TouchableOpacity
@@ -1037,7 +1037,7 @@ export default function ClosetScreen({navigate}: Props) {
                       </ScrollView>
                     </Animated.View>
                   )}
-                </>
+                </View>
               </TouchableWithoutFeedback>
             </View>
           </TouchableWithoutFeedback>

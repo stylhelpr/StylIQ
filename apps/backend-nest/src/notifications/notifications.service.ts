@@ -292,10 +292,10 @@ export class NotificationsService {
     }
 
     const tokens = await this.findTokensForUser(user_id);
-    console.log(
-      '📦 found tokens',
-      tokens.map((t) => ({ token: t.token.slice(0, 24) + '…' })),
-    );
+    // console.log(
+    //   '📦 found tokens',
+    //   tokens.map((t) => ({ token: t.token.slice(0, 24) + '…' })),
+    // );
     if (!tokens.length) return { sent: 0, detail: [] };
 
     let sent = 0;

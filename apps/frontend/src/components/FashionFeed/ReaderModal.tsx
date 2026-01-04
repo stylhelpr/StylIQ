@@ -49,7 +49,7 @@ export default function ReaderModal({
   // Reset animation synchronously when modal opens
   useLayoutEffect(() => {
     if (visible) {
-      console.log('📖 ReaderModal visible - resetting translateY to 0');
+      // console.log('📖 ReaderModal visible - resetting translateY to 0');
       translateY.setValue(0);
       isClosingRef.current = false;
     }
@@ -57,7 +57,7 @@ export default function ReaderModal({
 
   // Also reset on modal show event (fires after animation completes)
   const handleOnShow = () => {
-    console.log('✅ Modal onShow fired - resetting translateY');
+    // console.log('✅ Modal onShow fired - resetting translateY');
     translateY.setValue(0);
   };
 
@@ -127,7 +127,7 @@ export default function ReaderModal({
   // ✅ Unified close logic for swipe & buttons
   const handleClose = () => {
     if (isClosingRef.current) return;
-    console.log('🚪 handleClose - instant close');
+    // console.log('🚪 handleClose - instant close');
     onClose();
   };
 
@@ -220,8 +220,8 @@ export default function ReaderModal({
               decelerationRate="normal"
               bounces={true}
               scrollEnabled={true}
-              onLoadStart={() => console.log('🌐 WebView load start')}
-              onLoadEnd={() => console.log('🌐 WebView load end')}
+              // onLoadStart={() => console.log('🌐 WebView load start')}
+              // onLoadEnd={() => console.log('🌐 WebView load end')}
             />
           </Animatable.View>
         </Animated.View>

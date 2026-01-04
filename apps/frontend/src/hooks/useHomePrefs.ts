@@ -54,9 +54,9 @@ export function useHomePrefs() {
     setPrefs(next);
     try {
       await AsyncStorage.setItem(KEY, JSON.stringify(next));
-      console.log(`💾 Updated pref: ${key} → ${value}`);
+      // console.log(`💾 Updated pref: ${key} → ${value}`);
     } catch (err) {
-      console.warn('⚠️ Failed to save prefs', err);
+      // console.warn('⚠️ Failed to save prefs', err);
     }
   };
 

@@ -41,7 +41,7 @@ export class FeedsCronService {
           });
         }
       } catch (e) {
-        this.log.warn(`⚠️ Feed error for ${src.name}: ${e.message || e}`);
+        // this.log.warn(`⚠️ Feed error for ${src.name}: ${e.message || e}`);
       }
     }
   }

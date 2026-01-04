@@ -422,20 +422,20 @@ export default function AiStylistChatScreen({navigate}: Props) {
 
   /** 📤 Send message (with fashion filter) */
   const send = useCallback(async () => {
-    console.log('📤 [AIChat] send() called');
+    // console.log('📤 [AIChat] send() called');
     const trimmed = input.trim();
     if (!trimmed || isTyping) {
-      console.log(
-        '📤 [AIChat] send() early return - trimmed:',
-        !!trimmed,
-        'isTyping:',
-        isTyping,
-      );
+      // console.log(
+      //   '📤 [AIChat] send() early return - trimmed:',
+      //   !!trimmed,
+      //   'isTyping:',
+      //   isTyping,
+      // );
       return;
     }
 
     const lower = trimmed.toLowerCase();
-    console.log('📤 [AIChat] Processing message:', lower.substring(0, 50));
+    // console.log('📤 [AIChat] Processing message:', lower.substring(0, 50));
 
     // 🌦️ Quick weather check - respond locally without hitting AI API
     const pureWeatherPhrases = [
@@ -807,14 +807,14 @@ export default function AiStylistChatScreen({navigate}: Props) {
     const hasCommonPhrase = commonPhrases.some(p => lower.includes(p));
     const isFashionRelated = hasFashionKeyword || hasCommonPhrase;
 
-    console.log('📤 [AIChat] Fashion check:', {
-      hasFashionKeyword,
-      hasCommonPhrase,
-      isFashionRelated,
-    });
+    // console.log('📤 [AIChat] Fashion check:', {
+    //   hasFashionKeyword,
+    //   hasCommonPhrase,
+    //   isFashionRelated,
+    // });
 
     if (!isFashionRelated) {
-      console.log('📤 [AIChat] Rejected - not fashion related');
+      // console.log('📤 [AIChat] Rejected - not fashion related');
       Alert.alert(
         'Styling Questions Only ✨',
         "I'm your personal stylist — I can only help with outfits, clothing advice, or fashion-related questions.",
@@ -822,7 +822,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
       return;
     }
 
-    console.log('📤 [AIChat] Passed fashion filter, proceeding to API call');
+    // console.log('📤 [AIChat] Passed fashion filter, proceeding to API call');
 
     setInput('');
     inputRef.current?.clear();
@@ -1652,11 +1652,11 @@ async function callAiChatAPI(
   if (coords) {
     payload.lat = coords.lat;
     payload.lon = coords.lon;
-    console.log('🌦️ Sending coords:', coords.lat, coords.lon);
+    // console.log('🌦️ Sending coords:', coords.lat, coords.lon);
   } else {
-    console.log('🌦️ No coords available');
+    // console.log('🌦️ No coords available');
   }
-  console.log('📡 calling:', `${API_BASE_URL}/ai/chat`);
+  // console.log('📡 calling:', `${API_BASE_URL}/ai/chat`);
 
   const headers: Record<string, string> = {'Content-Type': 'application/json'};
   if (accessToken) {

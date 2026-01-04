@@ -107,9 +107,9 @@ async function bootstrap() {
     const port = Number(process.env.PORT ?? 3001);
     await app.listen(port, '0.0.0.0');
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`API listening on http://localhost:${port} (prefix: /api)`);
-    }
+    // if (process.env.NODE_ENV !== 'production') {
+    //   console.log(`API listening on http://localhost:${port} (prefix: /api)`);
+    // }
 
     // ---- Background job: start AFTER the server is up ----
     const notifier = app.get(ScheduledOutfitNotifier);

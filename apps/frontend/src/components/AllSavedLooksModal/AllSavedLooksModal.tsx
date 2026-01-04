@@ -242,9 +242,9 @@ export default function AllSavedLooksModal({
         return;
       }
 
-      console.log('👗 Outfit Recreate triggered');
-      console.log('👗 Look object:', JSON.stringify(look, null, 2));
-      console.log('👗 Image URL being sent:', look.image_url);
+      // console.log('👗 Outfit Recreate triggered');
+      // console.log('👗 Look object:', JSON.stringify(look, null, 2));
+      // console.log('👗 Image URL being sent:', look.image_url);
       ReactNativeHapticFeedback.trigger('impactLight');
 
       if (!look.image_url) {
@@ -252,7 +252,7 @@ export default function AllSavedLooksModal({
         throw new Error('No image URL available for this saved look');
       }
 
-      console.log('👗 Calling API:', `${API_BASE_URL}/ai/recreate-outfit`);
+      // console.log('👗 Calling API:', `${API_BASE_URL}/ai/recreate-outfit`);
       const accessToken = await getAccessToken();
       const response = await fetch(`${API_BASE_URL}/ai/recreate-outfit`, {
         method: 'POST',
@@ -263,7 +263,7 @@ export default function AllSavedLooksModal({
         body: JSON.stringify({imageUrl: look.image_url}),
       });
 
-      console.log('👗 Response status:', response.status);
+      // console.log('👗 Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -274,8 +274,8 @@ export default function AllSavedLooksModal({
       }
 
       const data = await response.json();
-      console.log('👗 Outfit recreate result:', data);
-      console.log('👗 Found', data?.pieces?.length, 'outfit pieces');
+      // console.log('👗 Outfit recreate result:', data);
+      // console.log('👗 Found', data?.pieces?.length, 'outfit pieces');
 
       setSuccessState('recreate');
 
@@ -305,7 +305,7 @@ export default function AllSavedLooksModal({
         onClose();
       }
     } finally {
-      console.log('✅ [handleRecreatePress] Loading cleared');
+      // console.log('✅ [handleRecreatePress] Loading cleared');
       setLoading(false);
     }
   };

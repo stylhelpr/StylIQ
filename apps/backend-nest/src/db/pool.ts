@@ -64,11 +64,11 @@ function getPool(): Pool {
     poolInstance = new Pool(createPoolConfig());
 
     // Log connection status on startup (non-blocking)
-    poolInstance.on('connect', () => {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🔌 New PostgreSQL client connected');
-      }
-    });
+    // poolInstance.on('connect', () => {
+    //   if (process.env.NODE_ENV !== 'production') {
+    //     console.log('🔌 New PostgreSQL client connected');
+    //   }
+    // });
 
     poolInstance.on('error', (err) => {
       console.error('❌ Unexpected PostgreSQL pool error:', err);

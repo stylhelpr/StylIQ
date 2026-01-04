@@ -6,13 +6,12 @@ import {
   ScrollView,
   Animated,
   Easing,
-  Pressable,
+  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
-import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {useRecommendedPosts} from '../../hooks/useCommunityApi';
@@ -47,35 +46,13 @@ const ScalePressable = ({
   onPress: () => void;
   style?: any;
 }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.96,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 50,
-      bounciness: 4,
-    }).start();
-  };
-
   return (
-    <Pressable
+    <TouchableOpacity
+      activeOpacity={0.7}
       onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}>
-      <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
-        {children}
-      </Animated.View>
-    </Pressable>
+      style={style}>
+      {children}
+    </TouchableOpacity>
   );
 };
 
@@ -191,10 +168,10 @@ const RecommendedCarousel: React.FC<RecommendedCarouselProps> = ({
 
   const handlePress = useCallback(
     (postId: string) => {
-      ReactNativeHapticFeedback.trigger('impactLight', {
-        enableVibrateFallback: true,
-        ignoreAndroidSystemSettings: false,
-      });
+      // ReactNativeHapticFeedback.trigger('impactLight', {
+      //   enableVibrateFallback: true,
+      //   ignoreAndroidSystemSettings: false,
+      // });
       onOpenPost(postId);
     },
     [onOpenPost],

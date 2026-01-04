@@ -52,15 +52,15 @@ export function useCommunityPosts(
       if (currentUserId) params.set('currentUserId', currentUserId);
       const res = await apiClient.get(`${BASE}/posts?${params.toString()}`);
       // Debug: log first post's follow status and images
-      if (res.data?.[0]) {
-        console.log('📡 First post status:', {
-          postId: res.data[0].id?.slice(0, 8),
-          author: res.data[0].user_id?.slice(0, 8),
-          is_following_author: res.data[0].is_following_author,
-          image_url: res.data[0].image_url,
-          top_image: res.data[0].top_image,
-        });
-      }
+      // if (res.data?.[0]) {
+      //   console.log('📡 First post status:', {
+      //     postId: res.data[0].id?.slice(0, 8),
+      //     author: res.data[0].user_id?.slice(0, 8),
+      //     is_following_author: res.data[0].is_following_author,
+      //     image_url: res.data[0].image_url,
+      //     top_image: res.data[0].top_image,
+      //   });
+      // }
       return res.data;
     },
     staleTime: 30000,
@@ -245,22 +245,22 @@ export function useFollowUser() {
       targetUserId: string;
       isFollowing: boolean;
     }) => {
-      console.log('🔄 Follow mutation:', {targetUserId, isFollowing});
+      // console.log('🔄 Follow mutation:', {targetUserId, isFollowing});
       try {
         if (isFollowing) {
-          const res = await apiClient.delete(`${BASE}/users/${targetUserId}/follow`);
-          console.log('👋 Unfollow response:', res.status, res.data);
+          await apiClient.delete(`${BASE}/users/${targetUserId}/follow`);
+          // console.log('👋 Unfollow response:', res.status, res.data);
         } else {
-          const res = await apiClient.post(`${BASE}/users/${targetUserId}/follow`, {});
-          console.log('🤝 Follow response:', res.status, res.data);
+          await apiClient.post(`${BASE}/users/${targetUserId}/follow`, {});
+          // console.log('🤝 Follow response:', res.status, res.data);
         }
       } catch (err: any) {
-        console.error('❌ Follow API error:', err?.response?.status, err?.response?.data || err?.message);
+        // console.error('❌ Follow API error:', err?.response?.status, err?.response?.data || err?.message);
         throw err;
       }
     },
     onSuccess: () => {
-      console.log('✅ Follow mutation success, invalidating queries');
+      // console.log('✅ Follow mutation success, invalidating queries');
       queryClient.invalidateQueries({queryKey: ['community-posts']});
       queryClient.invalidateQueries({queryKey: ['community-user-profile']});
       queryClient.invalidateQueries({queryKey: ['community-followers']});

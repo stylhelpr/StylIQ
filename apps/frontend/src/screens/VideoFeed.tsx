@@ -345,8 +345,11 @@ export default function VideoFeedScreen({
   });
 
   useEffect(() => {
-    StatusBar.setTranslucent(true);
-    StatusBar.setBackgroundColor('transparent');
+    // setTranslucent and setBackgroundColor are Android-only
+    if (Platform.OS === 'android') {
+      StatusBar.setTranslucent(true);
+      StatusBar.setBackgroundColor('transparent');
+    }
     StatusBar.setBarStyle('light-content');
   }, []);
 

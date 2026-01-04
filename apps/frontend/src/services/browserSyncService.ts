@@ -608,10 +608,10 @@ class BrowserSyncService {
    * This is the main sync method to call on app open/background
    */
   async sync(accessToken: string): Promise<boolean> {
-    console.log('[BrowserSync] sync() called');
+    // console.log('[BrowserSync] sync() called');
     try {
       // First, push any local changes
-      console.log('[BrowserSync] Calling pushChanges...');
+      // console.log('[BrowserSync] Calling pushChanges...');
       await this.pushChanges(accessToken);
 
       // Then, pull updates from server
@@ -625,18 +625,18 @@ class BrowserSyncService {
         store.history.length === 0 &&
         store.collections.length === 0;
 
-      console.log('[BrowserSync] Sync decision:', {
-        lastSyncTimestamp: store.lastSyncTimestamp,
-        localDataEmpty,
-        willDoFullSync: !store.lastSyncTimestamp || localDataEmpty,
-        historyLength: store.history.length,
-      });
+      // console.log('[BrowserSync] Sync decision:', {
+      //   lastSyncTimestamp: store.lastSyncTimestamp,
+      //   localDataEmpty,
+      //   willDoFullSync: !store.lastSyncTimestamp || localDataEmpty,
+      //   historyLength: store.history.length,
+      // });
 
       if (!store.lastSyncTimestamp || localDataEmpty) {
-        console.log('[BrowserSync] Doing fullSync...');
+        // console.log('[BrowserSync] Doing fullSync...');
         await this.fullSync(accessToken);
       } else {
-        console.log('[BrowserSync] Doing deltaSync...');
+        // console.log('[BrowserSync] Doing deltaSync...');
         await this.deltaSync(accessToken);
       }
 
