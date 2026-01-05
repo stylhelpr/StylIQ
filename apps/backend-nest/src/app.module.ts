@@ -43,6 +43,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { SavedNotesModule } from './saved-notes/saved-notes.module';
 import { BrowserSyncModule } from './browser-sync/browser-sync.module';
 import { ShoppingModule } from './shopping/shopping.module';
+import { LearningModule } from './learning/learning.module';
 
 // ⬇️ Register the notifier so main.ts can app.get(ScheduledOutfitNotifier)
 import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.notifier';
@@ -110,6 +111,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
     SavedNotesModule,
     BrowserSyncModule,
     ShoppingModule,
+    LearningModule,
   ],
   controllers: [AppController],
   providers: [
