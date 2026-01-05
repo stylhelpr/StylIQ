@@ -13,12 +13,15 @@ import {
   fetchPostEmbeddings,
 } from './community-vectors';
 import { pool } from '../db/pool';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
 
 @Injectable()
 export class CommunityService implements OnModuleInit {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly vertex: VertexService,
+    private readonly learningEvents: LearningEventsService,
   ) {}
 
   async onModuleInit() {
@@ -828,6 +831,29 @@ export class CommunityService implements OnModuleInit {
          ON CONFLICT (user_id, post_id) DO NOTHING`,
         [userId, postId],
       );
+
+      // Emit POST_LIKED learning event (shadow mode - no behavior change)
+      if (LEARNING_FLAGS.EVENTS_ENABLED) {
+        pool
+          .query(`SELECT tags FROM community_posts WHERE id = $1`, [postId])
+          .then((res) => {
+            const tags: string[] = res.rows[0]?.tags || [];
+            this.learningEvents
+              .logEvent({
+                userId,
+                eventType: 'POST_LIKED',
+                entityType: 'post',
+                entityId: postId,
+                signalPolarity: 1,
+                signalWeight: 0.3,
+                extractedFeatures: { tags },
+                sourceFeature: 'community',
+                clientEventId: `post_liked:${userId}:${postId}`,
+              })
+              .catch(() => {});
+          })
+          .catch(() => {});
+      }
     }
 
     // Always sync likes_count with actual count

@@ -5,27 +5,34 @@
  * All learning features are OFF by default for safety.
  */
 
+import { secretExists, getSecret } from './secrets';
+
+function getFlag(name: string, defaultValue: boolean): boolean {
+  if (!secretExists(name)) return defaultValue;
+  return getSecret(name).toLowerCase() === 'true';
+}
+
 export const LEARNING_FLAGS = {
   /**
    * Enable event logging to user_learning_events table.
    * When false: no events are written, all logging calls are no-ops.
    * Default: false
    */
-  EVENTS_ENABLED: process.env.LEARNING_EVENTS_ENABLED === 'true',
+  EVENTS_ENABLED: getFlag('LEARNING_EVENTS_ENABLED', false),
 
   /**
    * Enable consumption of user_fashion_state in AI pipelines.
    * When false: AI components use existing logic only.
    * Default: false
    */
-  STATE_ENABLED: process.env.LEARNING_STATE_ENABLED === 'true',
+  STATE_ENABLED: getFlag('LEARNING_STATE_ENABLED', false),
 
   /**
    * Shadow mode: log what WOULD change without affecting output.
    * When true (and STATE_ENABLED=true): logs ranking changes but returns original results.
    * Default: true (safe mode)
    */
-  SHADOW_MODE: process.env.LEARNING_SHADOW_MODE !== 'false',
+  SHADOW_MODE: getFlag('LEARNING_SHADOW_MODE', true),
 };
 
 /**

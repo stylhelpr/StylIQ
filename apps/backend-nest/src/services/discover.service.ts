@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
 
 interface UserProfile {
   gender: string | null;
@@ -49,6 +51,8 @@ const TARGET_PRODUCTS = 10;
 @Injectable()
 export class DiscoverService {
   private readonly log = new Logger(DiscoverService.name);
+
+  constructor(private readonly learningEvents: LearningEventsService) {}
 
   private get serpApiKey(): string | undefined {
     return secretExists('SERPAPI_KEY') ? getSecret('SERPAPI_KEY') : undefined;
@@ -792,6 +796,26 @@ export class DiscoverService {
          WHERE user_id = $1 AND product_id = $2`,
         [userId, productId],
       );
+
+      // Emit PRODUCT_SAVED learning event (shadow mode - no behavior change)
+      if (LEARNING_FLAGS.EVENTS_ENABLED) {
+        this.learningEvents
+          .logEvent({
+            userId,
+            eventType: 'PRODUCT_SAVED',
+            entityType: 'product',
+            entityId: productId,
+            signalPolarity: 1,
+            signalWeight: 0.6,
+            extractedFeatures: {
+              brands: product.brand ? [product.brand] : [],
+              categories: product.category ? [product.category] : [],
+            },
+            sourceFeature: 'shopping',
+            clientEventId: `product_saved:${userId}:${productId}`,
+          })
+          .catch(() => {});
+      }
 
       this.log.log(`Product saved permanently: userId=${userId}, productId=${productId}`);
       return { success: true };
