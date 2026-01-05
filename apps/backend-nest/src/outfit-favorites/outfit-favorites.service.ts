@@ -2,9 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { AddFavoriteDto } from './dto/add-favorite.dto';
 import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
 import { pool } from '../db/pool';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
 
 @Injectable()
 export class OutfitFavoritesService {
+  constructor(private readonly learningEvents: LearningEventsService) {}
+
   async addFavorite(dto: AddFavoriteDto) {
     const { user_id, outfit_id, outfit_type } = dto;
 
@@ -24,7 +28,23 @@ export class OutfitFavoritesService {
         return { message: 'Already favorited' };
       }
 
-      // console.log('✅ Favorite added:', result.rows[0]);
+      // Emit OUTFIT_FAVORITED learning event
+      if (LEARNING_FLAGS.EVENTS_ENABLED) {
+        this.learningEvents
+          .logEvent({
+            userId: user_id,
+            eventType: 'OUTFIT_FAVORITED',
+            entityType: 'outfit',
+            entityId: outfit_id,
+            signalPolarity: 1,
+            signalWeight: 0.3,
+            extractedFeatures: {},
+            sourceFeature: 'outfits',
+            clientEventId: `outfit_favorited:${user_id}:${outfit_id}`,
+          })
+          .catch(() => {});
+      }
+
       return { message: 'Favorited' };
     } catch (err) {
       console.error('❌ addFavorite failed:', err);
@@ -50,6 +70,23 @@ export class OutfitFavoritesService {
     `,
       [user_id, outfit_id],
     );
+
+    // Emit OUTFIT_UNFAVORITED learning event
+    if (LEARNING_FLAGS.EVENTS_ENABLED) {
+      this.learningEvents
+        .logEvent({
+          userId: user_id,
+          eventType: 'OUTFIT_UNFAVORITED',
+          entityType: 'outfit',
+          entityId: outfit_id,
+          signalPolarity: -1,
+          signalWeight: 0.2,
+          extractedFeatures: {},
+          sourceFeature: 'outfits',
+          clientEventId: `outfit_unfavorited:${user_id}:${outfit_id}`,
+        })
+        .catch(() => {});
+    }
 
     return { message: 'Unfavorited' };
   }

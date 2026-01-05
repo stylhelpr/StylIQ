@@ -851,6 +851,23 @@ export class DiscoverService {
         return { success: false };
       }
 
+      // Emit PRODUCT_UNSAVED learning event (shadow mode - no behavior change)
+      if (LEARNING_FLAGS.EVENTS_ENABLED) {
+        this.learningEvents
+          .logEvent({
+            userId,
+            eventType: 'PRODUCT_UNSAVED',
+            entityType: 'product',
+            entityId: productId,
+            signalPolarity: -1,
+            signalWeight: 0.2,
+            extractedFeatures: {},
+            sourceFeature: 'shopping',
+            clientEventId: `product_unsaved:${userId}:${productId}`,
+          })
+          .catch(() => {});
+      }
+
       this.log.log(`Product deleted from saved: userId=${userId}, productId=${productId}`);
       return { success: true };
     } catch (error) {

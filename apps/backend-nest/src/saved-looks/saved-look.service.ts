@@ -9,6 +9,8 @@ import { CreateSavedLookDto } from './dto/create-saved-look.dto';
 import { UpdateSavedLookDto } from './dto/update-saved-look.dto';
 import { pool, safeQuery } from '../db/pool';
 import { getSecret, getSecretJson, secretExists } from '../config/secrets';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
 
 type GCPServiceAccount = {
   project_id: string;
@@ -21,7 +23,7 @@ type GCPServiceAccount = {
 export class SavedLookService {
   private storage: Storage;
 
-  constructor() {
+  constructor(private readonly learningEvents: LearningEventsService) {
     const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
     this.storage = new Storage({
       projectId: credentials.project_id,
@@ -75,10 +77,9 @@ export class SavedLookService {
       metadata: {
         cacheControl: 'public, max-age=31536000',
       },
+      // With uniform bucket-level access, public access is controlled at bucket level
+      // No need to call makePublic() - bucket IAM grants allUsers read access
     });
-
-    // Make the file publicly accessible
-    await file.makePublic();
 
     const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${objectKey}`;
     const gsutilUri = `gs://${this.bucketName}/${objectKey}`;
@@ -107,6 +108,7 @@ export class SavedLookService {
     }
 
     // Try to insert with new GCS columns, fall back to original schema if columns don't exist
+    let savedLook: any;
     try {
       const res = await pool.query(
         `INSERT INTO saved_looks (user_id, image_url, name, gsutil_uri, object_key, original_url)
@@ -114,7 +116,7 @@ export class SavedLookService {
          RETURNING *`,
         [user_id, gcsImageUrl, name ?? null, gsutilUri, objectKey, image_url],
       );
-      return res.rows[0];
+      savedLook = res.rows[0];
     } catch (err: any) {
       // If the columns don't exist yet, fall back to the original insert
       if (err.code === '42703') {
@@ -126,10 +128,30 @@ export class SavedLookService {
            RETURNING *`,
           [user_id, gcsImageUrl, name ?? null],
         );
-        return res.rows[0];
+        savedLook = res.rows[0];
+      } else {
+        throw err;
       }
-      throw err;
     }
+
+    // Emit LOOK_SAVED learning event (shadow mode - no behavior change)
+    if (LEARNING_FLAGS.EVENTS_ENABLED && savedLook?.id) {
+      this.learningEvents
+        .logEvent({
+          userId: user_id,
+          eventType: 'LOOK_SAVED',
+          entityType: 'look',
+          entityId: savedLook.id,
+          signalPolarity: 1,
+          signalWeight: 0.3,
+          extractedFeatures: {},
+          sourceFeature: 'looks',
+          clientEventId: `look_saved:${user_id}:${savedLook.id}`,
+        })
+        .catch(() => {});
+    }
+
+    return savedLook;
   }
 
   async getByUser(userId: string) {

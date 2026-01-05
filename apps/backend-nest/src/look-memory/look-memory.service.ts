@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { pool } from '../db/pool';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
 
 @Injectable()
 export class LookMemoryService {
   private pool = pool;
+
+  constructor(private readonly learningEvents: LearningEventsService) {}
 
   async createLookMemory(
     userId: string,
@@ -29,7 +33,28 @@ export class LookMemoryService {
         data.result_clicked || null,
       ];
       const result = await client.query(query, values);
-      return { success: true, id: result.rows[0].id };
+      const lookId = result.rows[0].id;
+
+      // Emit LOOK_SAVED learning event (shadow mode - no behavior change)
+      if (LEARNING_FLAGS.EVENTS_ENABLED) {
+        this.learningEvents
+          .logEvent({
+            userId,
+            eventType: 'LOOK_SAVED',
+            entityType: 'look',
+            entityId: lookId,
+            signalPolarity: 1,
+            signalWeight: 0.3,
+            extractedFeatures: {
+              tags: data.ai_tags || [],
+            },
+            sourceFeature: 'looks',
+            clientEventId: `look_saved:${userId}:${lookId}`,
+          })
+          .catch(() => {});
+      }
+
+      return { success: true, id: lookId };
     } catch (err) {
       console.error('[LookMemoryService] createLookMemory failed:', err);
       return { success: false, error: err.message };

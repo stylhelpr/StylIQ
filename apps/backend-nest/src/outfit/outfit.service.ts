@@ -3,9 +3,13 @@ import { SuggestOutfitDto } from './dto/suggest-outfit.dto';
 import { OutfitFeedbackDto } from './dto/outfit-feedback.dto';
 import { FavoriteOutfitDto } from './dto/favorite-outfit.dto';
 import { pool } from '../db/pool';
+import { LearningEventsService } from '../learning/learning-events.service';
+import { LEARNING_FLAGS } from '../config/feature-flags';
 
 @Injectable()
 export class OutfitService {
+  constructor(private readonly learningEvents: LearningEventsService) {}
+
   async suggestOutfit(dto: SuggestOutfitDto) {
     const {
       user_id,
@@ -134,6 +138,29 @@ export class OutfitService {
       RETURNING *`,
       [user_id, outfit_id, rating, notes],
     );
+
+    // Emit OUTFIT_RATED learning event (shadow mode - no behavior change)
+    if (LEARNING_FLAGS.EVENTS_ENABLED && rating != null) {
+      const isPositive = rating >= 4;
+      const isNegative = rating <= 2;
+
+      if (isPositive || isNegative) {
+        this.learningEvents
+          .logEvent({
+            userId: user_id,
+            eventType: isPositive ? 'OUTFIT_RATED_POSITIVE' : 'OUTFIT_RATED_NEGATIVE',
+            entityType: 'outfit',
+            entityId: outfit_id,
+            signalPolarity: isPositive ? 1 : -1,
+            signalWeight: 0.6,
+            extractedFeatures: {},
+            sourceFeature: 'outfits',
+            clientEventId: `outfit_rated:${user_id}:${outfit_id}:${rating}`,
+          })
+          .catch(() => {});
+      }
+    }
+
     return res.rows[0];
   }
 
@@ -349,6 +376,24 @@ export class OutfitService {
       `,
       [userId, outfitId],
     );
+
+    // Emit OUTFIT_WORN learning event
+    if (LEARNING_FLAGS.EVENTS_ENABLED) {
+      const today = new Date().toISOString().split('T')[0];
+      this.learningEvents
+        .logEvent({
+          userId,
+          eventType: 'OUTFIT_WORN',
+          entityType: 'outfit',
+          entityId: outfitId,
+          signalPolarity: 1,
+          signalWeight: 0.6,
+          extractedFeatures: {},
+          sourceFeature: 'calendar',
+          clientEventId: `outfit_worn:${userId}:${outfitId}:${today}`,
+        })
+        .catch(() => {});
+    }
 
     return rows[0];
   }

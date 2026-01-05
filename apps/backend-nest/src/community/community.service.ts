@@ -1201,6 +1201,29 @@ export class CommunityService implements OnModuleInit {
       [userId, postId],
     );
 
+    // Emit POST_SAVED learning event (shadow mode - no behavior change)
+    if (LEARNING_FLAGS.EVENTS_ENABLED) {
+      pool
+        .query(`SELECT tags FROM community_posts WHERE id = $1`, [postId])
+        .then((res) => {
+          const tags: string[] = res.rows[0]?.tags || [];
+          this.learningEvents
+            .logEvent({
+              userId,
+              eventType: 'POST_SAVED',
+              entityType: 'post',
+              entityId: postId,
+              signalPolarity: 1,
+              signalWeight: 0.5,
+              extractedFeatures: { tags },
+              sourceFeature: 'community',
+              clientEventId: `post_saved:${userId}:${postId}`,
+            })
+            .catch(() => {});
+        })
+        .catch(() => {});
+    }
+
     // Update user preference vector asynchronously (saves indicate strong interest)
     this.updateUserPreference(userId, postId).catch((err: any) => {
       console.error(
