@@ -880,33 +880,54 @@ export default function ClosetScreen({navigate}: Props) {
           </View>
         </View>
 
-        {/* Demo indicator banner */}
+        {/* Photo tips info bar - shown only while sample items are present */}
         {wardrobeState === 'demo' && (
           <View
             style={{
               backgroundColor: theme.colors.primary + '20',
-              paddingVertical: 10,
+              paddingVertical: 12,
               paddingHorizontal: 16,
               marginHorizontal: 16,
               marginBottom: 12,
               borderRadius: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
             }}>
-            <MaterialIcons
-              name="info-outline"
-              size={20}
-              color={theme.colors.primary}
-              style={{marginRight: 8}}
-            />
-            <Text
-              style={{
-                color: theme.colors.foreground,
-                fontSize: 14,
-                flex: 1,
-              }}>
-              These are sample items. Add your own wardrobe items below "+" to get started!
-            </Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
+              <MaterialIcons
+                name="info-outline"
+                size={18}
+                color={theme.colors.primary}
+                style={{marginRight: 6}}
+              />
+              <Text
+                style={{
+                  color: theme.colors.foreground,
+                  fontSize: 14,
+                  fontWeight: tokens.fontWeight.semiBold,
+                }}>
+                  This is the place to add your own individual wardrobe items
+             
+              </Text>
+            </View>
+            <View style={{paddingLeft: 4}}>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                How to photograph your clothes for best results:
+              </Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                {'\u2022'} Lay items flat on a plain background (preferably a plain white flat sheet)
+              </Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                {'\u2022'} Smooth wrinkles on all items and avoid shadows
+              </Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                {'\u2022'} Take photos of each item sepearatley and use good lighting for the photos
+              </Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                {'\u2022'} Show/Expose brand tags when possible
+              </Text>
+              <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                {'\u2022'} Add items one-by-one or in bulk — details are filled in automatically
+              </Text>
+            </View>
           </View>
         )}
 
