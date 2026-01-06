@@ -2114,13 +2114,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <Text style={[globalStyles.sectionTitle, {}]}>
                     Recommended Buys
                   </Text>
-                  <Pressable
+{/*                  <Pressable
                     onPress={() => {
                       ReactNativeHapticFeedback.trigger('impactLight');
                       setSavedRecommendationsModalVisible(true);
                     }}>
-                 */}
-                  </Pressable>
+                  </Pressable>*/}
                 </View>
                 <DiscoverCarousel
                   onOpenItem={openArticle}

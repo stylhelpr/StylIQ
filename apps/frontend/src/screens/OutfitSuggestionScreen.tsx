@@ -700,7 +700,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       />
       <View className="sectionTitle">
         <View style={globalStyles.sectionTitle}>
-          <Text style={globalStyles.header}> Style Me</Text>
+          <Text style={globalStyles.header}>AI Outfit</Text>
         </View>
 
         {/* Header */}
