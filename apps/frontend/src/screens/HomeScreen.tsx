@@ -536,6 +536,25 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [shoppedOpen, setShoppedOpen] = useState(true);
   const [sharedOpen, setSharedOpen] = useState(true);
 
+  // Demo carousel state - tracks if user has ever had real content
+  const [hasEverHadInspired, setHasEverHadInspired] = useState<boolean | null>(null);
+  const [hasEverHadRecreated, setHasEverHadRecreated] = useState<boolean | null>(null);
+  const [hasEverHadShared, setHasEverHadShared] = useState<boolean | null>(null);
+
+  // Demo carousel images (bundled assets)
+  const demoInspiredImages = [
+    require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+    require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+  ];
+  const demoRecreatedImages = [
+    require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
+    require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+  ];
+  const demoSharedImages = [
+    require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
+    require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+  ];
+
   // Carousel scroll refs - preserve position across re-renders
   const inspiredScrollRef = useRef<ScrollView>(null);
   const recreatedScrollRef = useRef<ScrollView>(null);
@@ -670,6 +689,67 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
     new Set(),
   );
+
+  // Load hasEverHadRealContent flags from AsyncStorage
+  useEffect(() => {
+    const loadDemoFlags = async () => {
+      try {
+        const [inspired, recreated, shared] = await Promise.all([
+          AsyncStorage.getItem('inspired_has_real'),
+          AsyncStorage.getItem('created_has_real'),
+          AsyncStorage.getItem('shared_has_real'),
+        ]);
+        setHasEverHadInspired(inspired === 'true');
+        setHasEverHadRecreated(recreated === 'true');
+        setHasEverHadShared(shared === 'true');
+      } catch (err) {
+        console.error('Failed to load demo flags:', err);
+        setHasEverHadInspired(false);
+        setHasEverHadRecreated(false);
+        setHasEverHadShared(false);
+      }
+    };
+    loadDemoFlags();
+  }, []);
+
+  // Update hasEverHadRealContent when real content appears
+  useEffect(() => {
+    if (savedLooks && savedLooks.length > 0 && hasEverHadInspired === false) {
+      setHasEverHadInspired(true);
+      AsyncStorage.setItem('inspired_has_real', 'true');
+    }
+  }, [savedLooks, hasEverHadInspired]);
+
+  useEffect(() => {
+    if (recentCreations && recentCreations.length > 0 && hasEverHadRecreated === false) {
+      setHasEverHadRecreated(true);
+      AsyncStorage.setItem('created_has_real', 'true');
+    }
+  }, [recentCreations, hasEverHadRecreated]);
+
+  useEffect(() => {
+    if (sharedLooks && sharedLooks.length > 0 && hasEverHadShared === false) {
+      setHasEverHadShared(true);
+      AsyncStorage.setItem('shared_has_real', 'true');
+    }
+  }, [sharedLooks, hasEverHadShared]);
+
+  // Compute carousel states: 'demo' | 'real' | 'empty-real'
+  const inspiredState = savedLooks && savedLooks.length > 0
+    ? 'real'
+    : hasEverHadInspired
+      ? 'empty-real'
+      : 'demo';
+  const recreatedState = recentCreations && recentCreations.length > 0
+    ? 'real'
+    : hasEverHadRecreated
+      ? 'empty-real'
+      : 'demo';
+  const sharedState = sharedLooks && sharedLooks.length > 0
+    ? 'real'
+    : hasEverHadShared
+      ? 'empty-real'
+      : 'demo';
 
   // Share composite state for Recent Created/Shopped Looks
   const shareVibeRef = useRef<ViewShot>(null);
@@ -2073,30 +2153,34 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     marginLeft: moderateScale(tokens.spacing.md2),
-                  
                   }}>
-                  <Text style={globalStyles.sectionTitle}>Your Inspired Styles</Text>
-                  <Pressable
-                    onPress={() => {
-                      ReactNativeHapticFeedback.trigger('impactLight');
-                      setImageModalVisible(true);
-                    }}>
-                    <Text
-                      style={{
-                        fontSize: fontScale(tokens.fontSize.sm),
-                        color: theme.colors.foreground,
-                        fontWeight: tokens.fontWeight.bold,
-                        display: 'flex',
-                        marginTop: 3,
-                          marginRight: moderateScale(tokens.spacing.sm),
+                  <View>
+                    <Text style={globalStyles.sectionTitle}>Your Inspired Styles</Text>
+                
+                  </View>
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <Pressable
+                      onPress={() => {
+                        ReactNativeHapticFeedback.trigger('impactLight');
+                        setImageModalVisible(true);
                       }}>
-                      See All Saved
-                    </Text>
-                  </Pressable>
+                      <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.sm),
+                          color: theme.colors.foreground,
+                          fontWeight: tokens.fontWeight.bold,
+                          marginTop: -5,
+                          marginRight: moderateScale(tokens.spacing.md),
+                        }}>
+                        See All Saved
+                      </Text>
+                    </Pressable>
+             
+                  </View>
                 </View>
 
                 {/* INSPIRED STYLES SECTION */}
-                {(savedLooks.length > 0 || true) && (
+                {inspiredState !== 'empty-real' && (
                   <CollapsibleSection
                     open={savedOpen}
                     onToggle={async newState => {
@@ -2108,21 +2192,29 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                     }}>
                     <View
                       style={[globalStyles.sectionScroll2, {marginBottom: 16}]}>
-                      {savedLooks.length === 0 ? (
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignSelf: 'flex-start',
+                      {inspiredState === 'demo' ? (
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={{
+                            paddingRight: moderateScale(tokens.spacing.xs),
                           }}>
-                          <Text style={globalStyles.missingDataMessage1}>
-                            No saved styles.
-                          </Text>
-                          <TooltipBubble
-                            message='You haven’t saved any styles yet. Tap the "Add Look" button below to add your
-              favorite looks.'
-                            position="top"
-                          />
-                        </View>
+                          {demoInspiredImages.map((img, index) => (
+                            <View key={`demo-inspired-${index}`} style={globalStyles.outfitCard}>
+                              <Pressable
+                                onPress={() => {
+                                  ReactNativeHapticFeedback.trigger('impactLight');
+                                }}
+                                style={{alignItems: 'center'}}>
+                                <Image
+                                  source={img}
+                                  style={[globalStyles.image8]}
+                                  resizeMode="cover"
+                                />
+                              </Pressable>
+                            </View>
+                          ))}
+                        </ScrollView>
                       ) : (
                         <ScrollView
                           ref={inspiredScrollRef}
@@ -2159,7 +2251,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     resizeMode="cover"
                                   />
                                 </View>
-                                {/* Share button - top right */}
                                 <TouchableOpacity
                                   onPress={() => handleShareVibe(look)}
                                   style={{
@@ -2190,11 +2281,22 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           ))}
                         </ScrollView>
                       )}
+                          {inspiredState === 'demo' && (
+                      <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.xs),
+                          color: theme.colors.foreground2,
+                          marginTop: 2,
+                        }}>
+                        Images you upload in 'See All Saved' or in the app appear here
+                      </Text>
+                    )}
                     </View>
+                    
                   </CollapsibleSection>
                 )}
 
-                {/* RECREATED CREATED VIBE SECTION*/}
+                {/* RECREATED STYLES SECTION */}
                 {loadingCreations && (
                   <Animatable.View
                     animation="fadeIn"
@@ -2211,300 +2313,387 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 )}
 
                 {!loadingCreations && (
+                  <>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        marginLeft: moderateScale(tokens.spacing.md2),
+                      }}>
+                      <View>
+                        <Text style={globalStyles.sectionTitle}>Your Recreated Styles</Text>
+              
+                      </View>
+                      <Pressable
+                        onPress={() => {
+                          ReactNativeHapticFeedback.trigger('impactLight');
+                          setVisualRecreateVisible(true);
+                        }}>
+                     
+                      </Pressable>
+                    </View>
+                    
+
+                    {recreatedState !== 'empty-real' && (
+                      <CollapsibleSection
+                        open={createdOpen}
+                        onToggle={async newState => {
+                          setCreatedOpen(newState);
+                          await AsyncStorage.setItem(
+                            'createdVibeOpen',
+                            JSON.stringify(newState),
+                          );
+                        }}>
+                        <View style={globalStyles.sectionScroll}>
+                          {recreatedState === 'demo' ? (
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              contentContainerStyle={{
+                                paddingRight: moderateScale(tokens.spacing.xs),
+                              }}>
+                              {demoRecreatedImages.map((img, index) => (
+                                <View
+                                  key={`demo-recreated-${index}`}
+                                  style={[
+                                    globalStyles.outfitCard,
+                                    globalStyles.image8,
+                                    {height: 'auto', borderWidth: 0},
+                                  ]}>
+                                  <Pressable
+                                    onPress={() => {
+                                      ReactNativeHapticFeedback.trigger('impactLight');
+                                    }}
+                                    style={{alignItems: 'center', width: '100%'}}>
+                                    <Image
+                                      source={img}
+                                      style={[globalStyles.image8]}
+                                      resizeMode="cover"
+                                    />
+                                  </Pressable>
+                                </View>
+                              ))}
+                            </ScrollView>
+                          ) : (
+                            <ScrollView
+                              ref={recreatedScrollRef}
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              onScroll={e => {
+                                recreatedScrollPos.current =
+                                  e.nativeEvent.contentOffset.x;
+                              }}
+                              scrollEventThrottle={16}
+                              onLayout={() => {
+                                if (recreatedScrollPos.current > 0) {
+                                  recreatedScrollRef.current?.scrollTo({
+                                    x: recreatedScrollPos.current,
+                                    animated: false,
+                                  });
+                                }
+                              }}
+                              contentContainerStyle={{
+                                paddingRight: moderateScale(tokens.spacing.xs),
+                              }}>
+                              {recentCreations.map(c => (
+                                <View
+                                  key={c.id}
+                                  style={[
+                                    globalStyles.outfitCard,
+                                    globalStyles.image8,
+                                    {height: 'auto', borderWidth: 0},
+                                  ]}>
+                                  <ScalePressable
+                                    onPress={() => {
+                                      if (c.generated_outfit?.pieces) {
+                                        openVisualRecreateModal({
+                                          pieces: c.generated_outfit.pieces,
+                                          source_image: c.source_image_url,
+                                          lookId: c.id,
+                                          lookName: c.name,
+                                        });
+                                      } else {
+                                        navigate('RecreatedLook', {
+                                          data: c.generated_outfit,
+                                        });
+                                      }
+                                    }}
+                                    style={{alignItems: 'center', width: '100%'}}>
+                                    <View>
+                                      <Image
+                                        source={{uri: c.source_image_url}}
+                                        style={[globalStyles.image8]}
+                                        resizeMode="cover"
+                                      />
+                                    </View>
+                                    <TouchableOpacity
+                                      onPress={() => handleShareVibe(c)}
+                                      style={{
+                                        position: 'absolute',
+                                        top: 6,
+                                        right: 6,
+                                        backgroundColor: 'rgba(0,0,0,0.4)',
+                                        borderRadius: 20,
+                                        padding: 6,
+                                      }}>
+                                      <Icon
+                                        name="ios-share"
+                                        size={20}
+                                        color={theme.colors.buttonText1}
+                                      />
+                                    </TouchableOpacity>
+
+                                    <Text
+                                      numberOfLines={1}
+                                      ellipsizeMode="tail"
+                                      style={[
+                                        globalStyles.cardSubLabel,
+                                        {
+                                          marginTop: 4,
+                                          textAlign: 'center',
+                                          width: '100%',
+                                        },
+                                      ]}>
+                                      {c.name ||
+                                        (c.tags && c.tags.slice(0, 3).join(' ')) ||
+                                        'AI Look'}
+                                    </Text>
+                                  </ScalePressable>
+                                </View>
+                              ))}
+                            </ScrollView>
+                          )}
+                           <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.xs),
+                          color: theme.colors.foreground2,
+                          marginTop: 2,
+                        }}>
+                        Looks recreated inside 'See All Saved' appear here
+                      </Text>
+                        </View>
+
+                      </CollapsibleSection>
+                    )}
+                  </>
+                )}
+
+                {/* SHARED STYLES SECTION */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    marginLeft: moderateScale(tokens.spacing.md2),
+                  }}>
+                  <View>
+                    <Text style={globalStyles.sectionTitle}>Your Shared Styles</Text>
+                 
+                  </View>
+                  {sharedState === 'demo' && (
+                    <Pressable
+                      onPress={() => {
+                        ReactNativeHapticFeedback.trigger('impactLight');
+                        setShareOptionsVisible(true);
+                      }}>
+                    </Pressable>
+                  )}
+                </View>
+
+                {sharedState !== 'empty-real' && (
                   <CollapsibleSection
-                    title="Your Recreated Syles"
-                    open={createdOpen}
+                    open={sharedOpen}
                     onToggle={async newState => {
-                      setCreatedOpen(newState);
+                      setSharedOpen(newState);
                       await AsyncStorage.setItem(
-                        'createdVibeOpen',
+                        'sharedLooksOpen',
                         JSON.stringify(newState),
                       );
                     }}>
                     <View style={globalStyles.sectionScroll}>
-                      {recentCreations.length === 0 ? (
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignSelf: 'flex-start',
-                          }}>
-                          <Text style={globalStyles.missingDataMessage1}>
-                            No saved styles.
-                          </Text>
-                          <TooltipBubble
-                            message="You haven't recreated any styles yet. Upload an outfit photo to recreate a look with shopping links."
-                            position="top"
-                          />
-                        </View>
-                      ) : (
+                      {sharedState === 'demo' ? (
                         <ScrollView
-                          ref={recreatedScrollRef}
                           horizontal
                           showsHorizontalScrollIndicator={false}
-                          onScroll={e => {
-                            recreatedScrollPos.current =
-                              e.nativeEvent.contentOffset.x;
-                          }}
-                          scrollEventThrottle={16}
-                          onLayout={() => {
-                            if (recreatedScrollPos.current > 0) {
-                              recreatedScrollRef.current?.scrollTo({
-                                x: recreatedScrollPos.current,
-                                animated: false,
-                              });
-                            }
-                          }}
-                          contentContainerStyle={{
-                            paddingRight: moderateScale(tokens.spacing.xs),
-                          }}>
-                          {recentCreations.map(c => (
+                          contentContainerStyle={{paddingRight: 8}}>
+                          {demoSharedImages.map((img, index) => (
                             <View
-                              key={c.id}
-                              style={[
-                                globalStyles.outfitCard,
-                                globalStyles.image8,
-                                {height: 'auto', borderWidth: 0},
-                              ]}>
-                              <ScalePressable
-                                onPress={() => {
-                                  // Check if it's new pieces format or old outfit format
-                                  if (c.generated_outfit?.pieces) {
-                                    // New format - open VisualRecreateModal
-                                    openVisualRecreateModal({
-                                      pieces: c.generated_outfit.pieces,
-                                      source_image: c.source_image_url,
-                                      lookId: c.id,
-                                      lookName: c.name,
-                                    });
-                                  } else {
-                                    // Legacy format - use RecreatedLookScreen
-                                    navigate('RecreatedLook', {
-                                      data: c.generated_outfit,
-                                    });
-                                  }
-                                }}
-                                style={{alignItems: 'center', width: '100%'}}>
-                                <View>
-                                  <Image
-                                    source={{uri: c.source_image_url}}
-                                    style={[globalStyles.image8]}
-                                    resizeMode="cover"
-                                  />
-                                </View>
-                                {/* Share button - top right */}
-                                <TouchableOpacity
-                                  onPress={() => handleShareVibe(c)}
-                                  style={{
-                                    position: 'absolute',
-                                    top: 6,
-                                    right: 6,
-                                    backgroundColor: 'rgba(0,0,0,0.4)',
-                                    borderRadius: 20,
-                                    padding: 6,
-                                  }}>
-                                  <Icon
-                                    name="ios-share"
-                                    size={20}
-                                    color={theme.colors.buttonText1}
-                                  />
-                                </TouchableOpacity>
-
-                                <Text
-                                  numberOfLines={1}
-                                  ellipsizeMode="tail"
-                                  style={[
-                                    globalStyles.cardSubLabel,
-                                    {
-                                      marginTop: 4,
-                                      textAlign: 'center',
-                                      width: '100%',
-                                    },
-                                  ]}>
-                                  {c.name ||
-                                    (c.tags && c.tags.slice(0, 3).join(' ')) ||
-                                    'AI Look'}
-                                </Text>
-                              </ScalePressable>
-                            </View>
-                          ))}
-                        </ScrollView>
-                      )}
-                    </View>
-                  </CollapsibleSection>
-                )}
-
-                {/* SHARED STYLES SECTION */}
-                <CollapsibleSection
-                  title="Your Shared Styles"
-                  open={sharedOpen}
-                  onToggle={async newState => {
-                    setSharedOpen(newState);
-                    await AsyncStorage.setItem(
-                      'sharedLooksOpen',
-                      JSON.stringify(newState),
-                    );
-                  }}>
-                  <View style={globalStyles.sectionScroll}>
-                    {sharedLooks.length === 0 ? (
-                      <View
-                        style={{flexDirection: 'row', alignSelf: 'flex-start'}}>
-                        <Text style={globalStyles.missingDataMessage1}>
-                          No shared styles.
-                        </Text>
-                        <TooltipBubble
-                          message="You haven't shared any looks yet. Share an outfit from the home screen to see it here."
-                          position="top"
-                        />
-                      </View>
-                    ) : (
-                      <ScrollView
-                        ref={sharedScrollRef}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={e => {
-                          sharedScrollPos.current =
-                            e.nativeEvent.contentOffset.x;
-                        }}
-                        scrollEventThrottle={16}
-                        onLayout={() => {
-                          if (sharedScrollPos.current > 0) {
-                            sharedScrollRef.current?.scrollTo({
-                              x: sharedScrollPos.current,
-                              animated: false,
-                            });
-                          }
-                        }}
-                        contentContainerStyle={{paddingRight: 8}}>
-                        {sharedLooks
-                          .filter(look => !hiddenSharedLooks.has(look.id))
-                          .map((look, index) => (
-                            <View
-                              key={look.id}
+                              key={`demo-shared-${index}`}
                               style={[globalStyles.outfitCard]}>
                               <Pressable
                                 onPress={() => {
-                                  // Could navigate to look detail or show preview
+                                  ReactNativeHapticFeedback.trigger('impactLight');
                                 }}
                                 style={{
                                   width: 130,
                                   height: 130,
                                   borderRadius: tokens.borderRadius.md,
                                   overflow: 'hidden',
-                                  backgroundColor: '#000',
                                 }}>
-                                {/* Card - single image or 2x2 grid */}
-                                <View>
-                                  {look.image_url ? (
-                                    // Single image post
-                                    <Image
-                                      source={{uri: look.image_url}}
-                                      style={{width: 130, height: 130}}
-                                      resizeMode="cover"
-                                    />
-                                  ) : (
-                                    // 2x2 Grid for multi-item posts
-                                    <>
-                                      <View
-                                        style={{
-                                          flexDirection: 'row',
-                                          height: 65,
-                                        }}>
-                                        <Image
-                                          source={{uri: look.top_image}}
-                                          style={{width: 65, height: 65}}
-                                          resizeMode="cover"
-                                        />
-                                        <Image
-                                          source={{uri: look.bottom_image}}
-                                          style={{width: 65, height: 65}}
-                                          resizeMode="cover"
-                                        />
-                                      </View>
-                                      <View
-                                        style={{
-                                          flexDirection: 'row',
-                                          height: 65,
-                                        }}>
-                                        <Image
-                                          source={{uri: look.shoes_image}}
-                                          style={{width: 65, height: 65}}
-                                          resizeMode="cover"
-                                        />
-                                        <View
-                                          style={{
-                                            width: 65,
-                                            height: 65,
-                                            backgroundColor: '#000',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                          }}>
-                                          <Text
-                                            style={{
-                                              color: '#fff',
-                                              fontSize: 8,
-                                              fontWeight: '800',
-                                              letterSpacing: 1,
-                                            }}>
-                                            StylHelpr
-                                          </Text>
-                                        </View>
-                                      </View>
-                                    </>
-                                  )}
-                                  {/* Hide button */}
-                                  <Pressable
-                                    onPress={() => {
-                                      Alert.alert(
-                                        'Remove Look',
-                                        'Are you sure you want to remove this shared look from your feed?',
-                                        [
-                                          {text: 'Cancel', style: 'cancel'},
-                                          {
-                                            text: 'Remove',
-                                            style: 'destructive',
-                                            onPress: () => {
-                                              setHiddenSharedLooks(prev =>
-                                                new Set(prev).add(look.id),
-                                              );
-                                            },
-                                          },
-                                        ],
-                                      );
-                                    }}
-                                    style={{
-                                      position: 'absolute',
-                                      bottom: 4,
-                                      right: 4,
-                                      width: 20,
-                                      height: 20,
-                                      borderRadius: 10,
-                                      backgroundColor: 'rgba(220, 38, 38, 0.9)',
-                                      justifyContent: 'center',
-                                      alignItems: 'center',
-                                    }}>
-                                    <Icon name="close" size={14} color="#fff" />
-                                  </Pressable>
-                                </View>
+                                <Image
+                                  source={img}
+                                  style={{width: 130, height: 130}}
+                                  resizeMode="cover"
+                                />
                               </Pressable>
-                              {/* Look name - outside of the image container */}
-                              <Text
-                                style={[
-                                  globalStyles.cardSubLabel,
-                                  {
-                                    textAlign: 'center',
-                                    marginTop: 4,
-                                    width: 130,
-                                  },
-                                ]}
-                                numberOfLines={1}>
-                                {look.name || 'Shared Look'}
-                              </Text>
                             </View>
                           ))}
-                      </ScrollView>
+                        </ScrollView>
+                      ) : (
+                        <ScrollView
+                          ref={sharedScrollRef}
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          onScroll={e => {
+                            sharedScrollPos.current =
+                              e.nativeEvent.contentOffset.x;
+                          }}
+                          scrollEventThrottle={16}
+                          onLayout={() => {
+                            if (sharedScrollPos.current > 0) {
+                              sharedScrollRef.current?.scrollTo({
+                                x: sharedScrollPos.current,
+                                animated: false,
+                              });
+                            }
+                          }}
+                          contentContainerStyle={{paddingRight: 8}}>
+                          {sharedLooks
+                            .filter(look => !hiddenSharedLooks.has(look.id))
+                            .map((look: any) => (
+                              <View
+                                key={look.id}
+                                style={[globalStyles.outfitCard]}>
+                                <Pressable
+                                  onPress={() => {
+                                    // Could navigate to look detail or show preview
+                                  }}
+                                  style={{
+                                    width: 130,
+                                    height: 130,
+                                    borderRadius: tokens.borderRadius.md,
+                                    overflow: 'hidden',
+                                    backgroundColor: '#000',
+                                  }}>
+                                  <View>
+                                    {look.image_url ? (
+                                      <Image
+                                        source={{uri: look.image_url}}
+                                        style={{width: 130, height: 130}}
+                                        resizeMode="cover"
+                                      />
+                                    ) : (
+                                      <>
+                                        <View
+                                          style={{
+                                            flexDirection: 'row',
+                                            height: 65,
+                                          }}>
+                                          <Image
+                                            source={{uri: look.top_image}}
+                                            style={{width: 65, height: 65}}
+                                            resizeMode="cover"
+                                          />
+                                          <Image
+                                            source={{uri: look.bottom_image}}
+                                            style={{width: 65, height: 65}}
+                                            resizeMode="cover"
+                                          />
+                                        </View>
+                                        <View
+                                          style={{
+                                            flexDirection: 'row',
+                                            height: 65,
+                                          }}>
+                                          <Image
+                                            source={{uri: look.shoes_image}}
+                                            style={{width: 65, height: 65}}
+                                            resizeMode="cover"
+                                          />
+                                          <View
+                                            style={{
+                                              width: 65,
+                                              height: 65,
+                                              backgroundColor: '#000',
+                                              justifyContent: 'center',
+                                              alignItems: 'center',
+                                            }}>
+                                            <Text
+                                              style={{
+                                                color: '#fff',
+                                                fontSize: 8,
+                                                fontWeight: '800',
+                                                letterSpacing: 1,
+                                              }}>
+                                              StylHelpr
+                                            </Text>
+                                          </View>
+                                        </View>
+                                      </>
+                                    )}
+                                    <Pressable
+                                      onPress={() => {
+                                        Alert.alert(
+                                          'Remove Look',
+                                          'Are you sure you want to remove this shared look from your feed?',
+                                          [
+                                            {text: 'Cancel', style: 'cancel'},
+                                            {
+                                              text: 'Remove',
+                                              style: 'destructive',
+                                              onPress: () => {
+                                                setHiddenSharedLooks(prev =>
+                                                  new Set(prev).add(look.id),
+                                                );
+                                              },
+                                            },
+                                          ],
+                                        );
+                                      }}
+                                      style={{
+                                        position: 'absolute',
+                                        bottom: 4,
+                                        right: 4,
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 10,
+                                        backgroundColor: 'rgba(220, 38, 38, 0.9)',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                      }}>
+                                      <Icon name="close" size={14} color="#fff" />
+                                    </Pressable>
+                                  </View>
+                                </Pressable>
+                                <Text
+                                  style={[
+                                    globalStyles.cardSubLabel,
+                                    {
+                                      textAlign: 'center',
+                                      marginTop: 4,
+                                      width: 130,
+                                    },
+                                  ]}
+                                  numberOfLines={1}>
+                                  {look.name || 'Shared Look'}
+                                </Text>
+                              </View>
+                            ))}
+                        </ScrollView>
+                      )}
+                         {sharedState === 'demo' && (
+                      <Text
+                        style={{
+                          fontSize: fontScale(tokens.fontSize.xs),
+                          color: theme.colors.foreground2,
+                          marginTop: 2,
+                        }}>
+                        Images you share with the Community appear here
+                      </Text>
                     )}
-                  </View>
-                </CollapsibleSection>
+                    </View>
+                    
+                  </CollapsibleSection>
+                )}
               </>
             )}
             <SaveLookModal
