@@ -2119,16 +2119,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       ReactNativeHapticFeedback.trigger('impactLight');
                       setSavedRecommendationsModalVisible(true);
                     }}>
-                    <Text
-                      style={{
-                        fontSize: fontScale(tokens.fontSize.sm),
-                        color: theme.colors.foreground,
-                        fontWeight: tokens.fontWeight.bold,
-                        marginTop: -5,
-                        marginRight: moderateScale(tokens.spacing.sm),         
-                      }}>
-                      See All Saved
-                    </Text>
+                 */}
                   </Pressable>
                 </View>
                 <DiscoverCarousel

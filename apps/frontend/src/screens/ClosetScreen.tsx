@@ -16,6 +16,7 @@ import {
   NativeScrollEvent,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
 import {useAppTheme} from '../context/ThemeContext';
@@ -188,6 +189,45 @@ export default function ClosetScreen({navigate}: Props) {
 
   const submenuOpacity = useRef(new Animated.Value(0)).current;
 
+  // Demo wardrobe state - tracks if user has ever had real wardrobe items
+  const [hasEverHadWardrobe, setHasEverHadWardrobe] = useState<boolean | null>(
+    null,
+  );
+
+  // Demo wardrobe items (bundled assets)
+  const demoWardrobeItems: WardrobeItem[] = [
+    {
+      id: 'demo-top-1',
+      image_url: Image.resolveAssetSource(
+        require('../assets/images/top-sweater1.png'),
+      ).uri,
+      name: 'Cable Knit Sweater',
+      main_category: 'Tops',
+      subcategory: 'Sweaters',
+      color: 'Orange',
+    },
+    {
+      id: 'demo-bottom-1',
+      image_url: Image.resolveAssetSource(
+        require('../assets/images/bottoms-jeans1.png'),
+      ).uri,
+      name: 'Classic Blue Jeans',
+      main_category: 'Bottoms',
+      subcategory: 'Jeans',
+      color: 'Blue',
+    },
+    {
+      id: 'demo-shoe-1',
+      image_url: Image.resolveAssetSource(
+        require('../assets/images/shoes-loafers1.jpg'),
+      ).uri,
+      name: 'Black Leather Loafers',
+      main_category: 'Shoes',
+      subcategory: 'Loafers',
+      color: 'Black',
+    },
+  ];
+
   useEffect(() => {
     Animated.sequence([
       Animated.timing(screenFade, {
@@ -212,6 +252,20 @@ export default function ClosetScreen({navigate}: Props) {
     }).start();
   }, []);
 
+  // Load hasEverHadWardrobe flag from AsyncStorage
+  useEffect(() => {
+    const loadDemoFlag = async () => {
+      try {
+        const hasWardrobe = await AsyncStorage.getItem('wardrobe_has_real');
+        setHasEverHadWardrobe(hasWardrobe === 'true');
+      } catch (err) {
+        console.error('Failed to load wardrobe demo flag:', err);
+        setHasEverHadWardrobe(false);
+      }
+    };
+    loadDemoFlag();
+  }, []);
+
   const {data: wardrobe = [], isLoading} = useQuery({
     queryKey: ['wardrobe', userId],
     queryFn: async () => {
@@ -221,6 +275,26 @@ export default function ClosetScreen({navigate}: Props) {
     enabled: !!userId,
     staleTime: 30000,
   });
+
+  // Update hasEverHadWardrobe when real content appears
+  useEffect(() => {
+    if (wardrobe && wardrobe.length > 0 && hasEverHadWardrobe === false) {
+      setHasEverHadWardrobe(true);
+      AsyncStorage.setItem('wardrobe_has_real', 'true');
+    }
+  }, [wardrobe, hasEverHadWardrobe]);
+
+  // Compute wardrobe state: 'demo' | 'real' | 'empty-real'
+  const wardrobeState =
+    wardrobe && wardrobe.length > 0
+      ? 'real'
+      : hasEverHadWardrobe
+        ? 'empty-real'
+        : 'demo';
+
+  // Use demo items when in demo state, otherwise use real wardrobe
+  const displayWardrobe =
+    wardrobeState === 'demo' ? demoWardrobeItems : wardrobe;
 
   const hSelect = () =>
     ReactNativeHapticFeedback.trigger('selection', {
@@ -294,7 +368,7 @@ export default function ClosetScreen({navigate}: Props) {
   });
 
   const filtered = useMemo(() => {
-    return (wardrobe as WardrobeItem[])
+    return (displayWardrobe as WardrobeItem[])
       .map(item => {
         const inferred = getInferredCategory(item.name);
         const effectiveMain: MainCategory | undefined =
@@ -312,7 +386,7 @@ export default function ClosetScreen({navigate}: Props) {
           return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
         return 0;
       });
-  }, [wardrobe, selectedCategory, sortOption]);
+  }, [displayWardrobe, selectedCategory, sortOption]);
 
   // Flatten categorized items for FlashList
   const flatListData = useMemo(() => {
@@ -555,6 +629,7 @@ export default function ClosetScreen({navigate}: Props) {
       }
 
       const item = listItem.item!;
+      const isDemo = item.id.startsWith('demo-');
       const imageUri =
         item.touchedUpImageUrl ??
         item.processedImageUrl ??
@@ -565,12 +640,21 @@ export default function ClosetScreen({navigate}: Props) {
         <View style={styles.itemContainer}>
           <ScalePressable
             style={globalStyles.outfitCard4}
-            onPress={() => navigate('ItemDetail', {itemId: item.id, item})}
+            onPress={() => {
+              if (isDemo) {
+                // For demo items, navigate to AddItem to encourage adding real items
+                navigate('AddItem');
+              } else {
+                navigate('ItemDetail', {itemId: item.id, item});
+              }
+            }}
             onLongPress={() => {
-              setEditedName(item.name ?? '');
-              setEditedColor(item.color ?? '');
-              setSelectedItemToEdit(item);
-              setShowEditModal(true);
+              if (!isDemo) {
+                setEditedName(item.name ?? '');
+                setEditedColor(item.color ?? '');
+                setSelectedItemToEdit(item);
+                setShowEditModal(true);
+              }
             }}>
             <View
               style={{
@@ -588,30 +672,55 @@ export default function ClosetScreen({navigate}: Props) {
               />
             </View>
 
-            {/* Favorite */}
-            <View
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                zIndex: 10,
-                padding: 4,
-              }}>
-              <AppleTouchFeedback
-                hapticStyle="impactLight"
-                onPress={() =>
-                  favoriteMutation.mutate({
-                    id: item.id,
-                    favorite: !item.favorite,
-                  })
-                }>
-                <MaterialIcons
-                  name="favorite"
-                  size={28}
-                  color={item.favorite ? 'red' : theme.colors.inputBorder}
-                />
-              </AppleTouchFeedback>
-            </View>
+            {/* Favorite - hide for demo items */}
+            {!isDemo && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  padding: 4,
+                }}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() =>
+                    favoriteMutation.mutate({
+                      id: item.id,
+                      favorite: !item.favorite,
+                    })
+                  }>
+                  <MaterialIcons
+                    name="favorite"
+                    size={28}
+                    color={item.favorite ? 'red' : theme.colors.inputBorder}
+                  />
+                </AppleTouchFeedback>
+              </View>
+            )}
+
+            {/* Demo badge */}
+            {isDemo && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  backgroundColor: theme.colors.primary,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}>
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontSize: 11,
+                    fontWeight: tokens.fontWeight.semiBold,
+                  }}>
+                  Sample
+                </Text>
+              </View>
+            )}
 
             {/* Labels */}
             <View style={globalStyles.labelContainer}>
@@ -626,40 +735,42 @@ export default function ClosetScreen({navigate}: Props) {
               </Text>
             </View>
 
-            {/* Try On */}
-            <AppleTouchFeedback
-              hapticStyle="impactLight"
-              onPress={() =>
-                navigate('TryOnOverlay', {
-                  outfit: {
-                    top: {
-                      name: item.name,
-                      imageUri: item.image_url,
+            {/* Try On - hide for demo items */}
+            {!isDemo && (
+              <AppleTouchFeedback
+                hapticStyle="impactLight"
+                onPress={() =>
+                  navigate('TryOnOverlay', {
+                    outfit: {
+                      top: {
+                        name: item.name,
+                        imageUri: item.image_url,
+                      },
                     },
-                  },
-                  userPhotoUri: Image.resolveAssetSource(
-                    require('../assets/images/full-body-temp1.png'),
-                  ).uri,
-                })
-              }
-              style={{
-                position: 'absolute',
-                top: 10,
-                left: 8,
-                backgroundColor: 'black',
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: 8,
-              }}>
-              <Text
+                    userPhotoUri: Image.resolveAssetSource(
+                      require('../assets/images/full-body-temp1.png'),
+                    ).uri,
+                  })
+                }
                 style={{
-                  color: theme.colors.foreground,
-                  fontSize: 14,
-                  fontWeight: tokens.fontWeight.medium,
+                  position: 'absolute',
+                  top: 10,
+                  left: 8,
+                  backgroundColor: 'black',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 8,
                 }}>
-                Try On
-              </Text>
-            </AppleTouchFeedback>
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    fontSize: 14,
+                    fontWeight: tokens.fontWeight.medium,
+                  }}>
+                  Try On
+                </Text>
+              </AppleTouchFeedback>
+            )}
           </ScalePressable>
         </View>
       );
@@ -671,6 +782,7 @@ export default function ClosetScreen({navigate}: Props) {
       navigate,
       favoriteMutation,
       styles.itemContainer,
+      wardrobeState,
     ],
   );
 
@@ -768,8 +880,38 @@ export default function ClosetScreen({navigate}: Props) {
           </View>
         </View>
 
-        {/* Empty state */}
-        {!isLoading && wardrobe.length === 0 && (
+        {/* Demo indicator banner */}
+        {wardrobeState === 'demo' && (
+          <View
+            style={{
+              backgroundColor: theme.colors.primary + '20',
+              paddingVertical: 10,
+              paddingHorizontal: 16,
+              marginHorizontal: 16,
+              marginBottom: 12,
+              borderRadius: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <MaterialIcons
+              name="info-outline"
+              size={20}
+              color={theme.colors.primary}
+              style={{marginRight: 8}}
+            />
+            <Text
+              style={{
+                color: theme.colors.foreground,
+                fontSize: 14,
+                flex: 1,
+              }}>
+              These are sample items. Add your own wardrobe items below "+" to get started!
+            </Text>
+          </View>
+        )}
+
+        {/* Empty state - only show when user had items before but now has none */}
+        {!isLoading && wardrobeState === 'empty-real' && (
           <View style={{flexDirection: 'row', alignSelf: 'center'}}>
             <Text style={globalStyles.missingDataMessage1}>
               No wardrobe items found.
