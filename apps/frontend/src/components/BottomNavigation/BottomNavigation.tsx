@@ -202,7 +202,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
               <TabButton
                 icon="group"
-                label="Community"
+                label="COMMUNITY"
                 onPress={() =>
                   current !== 'CommunityShowcaseScreen' &&
                   navigate('CommunityShowcaseScreen')
@@ -211,7 +211,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
               <TabButton
                 icon="auto-awesome"
-                label="STYLE ME"
+                label="AI OUTFIT"
                 onPress={() => current !== 'Outfit' && navigate('Outfit')}
                 isActive={current === 'Outfit'}
               />

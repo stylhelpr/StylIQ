@@ -428,6 +428,8 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   alignSelf: 'stretch',
                   justifyContent: 'center',
                   alignItems: 'center',
+                  borderWidth: tokens.borderWidth.lg,
+                  borderColor: theme.colors.buttonText1,
                 },
               ]}>
               <Text
@@ -435,7 +437,7 @@ export default function ShoppingDashboardScreen({navigate}: Props) {
                   color: theme.colors.buttonText1,
                   fontWeight: tokens.fontWeight.semiBold,
                 }}>
-                Start Browsing
+                Start Shopping
               </Text>
             </AppleTouchFeedback>
           </View>

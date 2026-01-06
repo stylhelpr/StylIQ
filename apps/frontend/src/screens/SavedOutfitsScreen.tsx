@@ -380,6 +380,59 @@ export default function SavedOutfitsScreen() {
     OutfitOccasion | undefined
   >(undefined);
 
+  // Demo outfit state - tracks if user has ever had real saved outfits
+  const [hasEverHadOutfits, setHasEverHadOutfits] = useState<boolean | null>(
+    null,
+  );
+
+  // Demo outfit items (using bundled wardrobe assets)
+  const demoOutfits: SavedOutfit[] = [
+    {
+      id: 'demo-outfit-1',
+      name: 'Upscale Style 1',
+      type: 'custom',
+      top: {
+        id: 'demo-top',
+        name: 'Cable Knit Sweater',
+        image: Image.resolveAssetSource(
+          require('../assets/images/top-sweater1.png'),
+        ).uri,
+      },
+      bottom: {
+        id: 'demo-bottom',
+        name: 'Classic Blue Jeans',
+        image: Image.resolveAssetSource(
+          require('../assets/images/bottoms-jeans1.png'),
+        ).uri,
+      },
+      shoes: {
+        id: 'demo-shoes',
+        name: 'Black Leather Loafers',
+        image: Image.resolveAssetSource(
+          require('../assets/images/shoes-loafers1.jpg'),
+        ).uri,
+      },
+      createdAt: new Date().toISOString(),
+      occasion: 'DateNight',
+      favorited: true,
+      tags: [],
+    },
+  ];
+
+  // Load hasEverHadOutfits flag from AsyncStorage
+  useEffect(() => {
+    const loadDemoFlag = async () => {
+      try {
+        const hasOutfits = await AsyncStorage.getItem('saved_outfits_has_real');
+        setHasEverHadOutfits(hasOutfits === 'true');
+      } catch (err) {
+        console.error('Failed to load saved outfits demo flag:', err);
+        setHasEverHadOutfits(false);
+      }
+    };
+    loadDemoFlag();
+  }, []);
+
   // Occasion filter state (null = "All")
   const [occasionFilter, setOccasionFilter] = useState<OutfitOccasion | null>(
     null,
@@ -405,6 +458,30 @@ export default function SavedOutfitsScreen() {
     isLoading: outfitsLoading,
     refetch: refetchOutfits,
   } = useOutfitsQuery(userId, favorites);
+
+  // Update hasEverHadOutfits when real content appears
+  useEffect(() => {
+    if (
+      combinedOutfits &&
+      combinedOutfits.length > 0 &&
+      hasEverHadOutfits === false
+    ) {
+      setHasEverHadOutfits(true);
+      AsyncStorage.setItem('saved_outfits_has_real', 'true');
+    }
+  }, [combinedOutfits, hasEverHadOutfits]);
+
+  // Compute outfits state: 'demo' | 'real' | 'empty-real'
+  const outfitsState =
+    combinedOutfits && combinedOutfits.length > 0
+      ? 'real'
+      : hasEverHadOutfits
+        ? 'empty-real'
+        : 'demo';
+
+  // Use demo outfits when in demo state, otherwise use real outfits
+  const displayOutfits =
+    outfitsState === 'demo' ? demoOutfits : combinedOutfits;
 
   // TanStack Query: Mutations
   const updateOutfitMutation = useUpdateOutfit();
@@ -824,8 +901,8 @@ export default function SavedOutfitsScreen() {
   // Filter by occasion first, then sort
   const sortedOutfits = useMemo(() => {
     const filteredOutfits = occasionFilter
-      ? combinedOutfits.filter(o => o.occasion === occasionFilter)
-      : combinedOutfits;
+      ? displayOutfits.filter(o => o.occasion === occasionFilter)
+      : displayOutfits;
 
     return [...filteredOutfits].sort((a, b) => {
       switch (sortType) {
@@ -844,7 +921,7 @@ export default function SavedOutfitsScreen() {
           );
       }
     });
-  }, [combinedOutfits, occasionFilter, sortType]);
+  }, [displayOutfits, occasionFilter, sortType]);
 
   // Handle scroll for bottom nav hide/show
   const handleScroll = useCallback(
@@ -863,6 +940,310 @@ export default function SavedOutfitsScreen() {
   // Memoized render item for FlashList
   const renderOutfitItem = useCallback(
     ({item: outfit, index}: {item: SavedOutfit; index: number}) => {
+      const isDemo = outfit.id.startsWith('demo-');
+
+      // For demo items, render matching the real card layout exactly
+      if (isDemo) {
+        return (
+          <View style={{paddingHorizontal: 6}}>
+            <View style={[globalStyles.cardStyles1, {marginBottom: 12}]}>
+              {/* 🧵 Outfit Header Row */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                <View style={{flex: 1, marginRight: 12}}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}>
+                    <Text
+                      style={[
+                        globalStyles.titleBold,
+                        {
+                          fontSize: 20,
+                          color: theme.colors.foreground,
+                          flex: 1,
+                        },
+                      ]}>
+                      {outfit.name?.trim() || 'Unnamed Outfit'}
+                    </Text>
+                  </View>
+
+                  {/* Date info */}
+                  <View style={{marginTop: 6}}>
+                    <Text
+                      style={[
+                        styles.timestamp,
+                        {
+                          fontSize: 13,
+                          fontWeight: '600',
+                          color: theme.colors.foreground2,
+                        },
+                      ]}>
+                      Planned for Oct 5 at 10:14 AM
+                    </Text>
+                    <Text
+                      style={[
+                        styles.timestamp,
+                        {
+                          fontSize: 12,
+                          color: theme.colors.muted,
+                        },
+                      ]}>
+                      Saved Sep 18, 2025
+                    </Text>
+                  </View>
+                </View>
+
+                {/* ✏️ & ❤️ & 📤 Buttons (visual only) */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  {/* ✏️ Edit */}
+                  <View
+                    style={{
+                      padding: 8,
+                      borderRadius: 14,
+                      backgroundColor:
+                        theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                      marginRight: 6,
+                    }}>
+                    <MaterialIcons
+                      name="edit"
+                      size={20}
+                      color={theme.colors.foreground}
+                    />
+                  </View>
+
+                  {/* ❤️ Favorite */}
+                  <View
+                    style={{
+                      padding: 8,
+                      borderRadius: 14,
+                      backgroundColor:
+                        theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                    }}>
+                    <MaterialIcons name="favorite" size={20} color="red" />
+                  </View>
+
+                  {/* 📤 Share */}
+                  <View
+                    style={{
+                      padding: 8,
+                      borderRadius: 14,
+                      backgroundColor:
+                        theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                      marginLeft: 6,
+                    }}>
+                    <MaterialIcons
+                      name="ios-share"
+                      size={20}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* 👕 Outfit Images */}
+              <View style={styles.imageRow}>
+                {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                  i?.image ? (
+                    <FastImage
+                      key={i.id}
+                      source={{
+                        uri: i.image,
+                        priority: FastImage.priority.normal,
+                        cache: FastImage.cacheControl.immutable,
+                      }}
+                      style={[
+                        globalStyles.image1,
+                        {
+                          marginRight: 2,
+                          borderRadius: 8,
+                          marginBottom: 8,
+                          marginTop: -6,
+                        },
+                      ]}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
+                  ) : null,
+                )}
+              </View>
+
+              {/* Worn count & Occasion chip row */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}>
+                {/* Left 50% - Worn button & count */}
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                  <View
+                    style={{
+                      paddingVertical: 4.5,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                      backgroundColor:
+                        theme.colors.button1 ?? 'rgba(43,43,43,1)',
+                    }}>
+                    <MaterialIcons
+                      name="checkroom"
+                      size={22}
+                      color={theme.colors.buttonText1}
+                    />
+                  </View>
+
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: theme.colors.surface,
+                      paddingHorizontal: 9,
+                      borderRadius: 12,
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: '700',
+                        color: theme.colors.foreground,
+                      }}>
+                      Worn:11 x{' '}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Right 50% - Occasion Chip */}
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                  }}>
+                  {outfit.occasion && OCCASION_CONFIG[outfit.occasion] && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: OCCASION_CONFIG[outfit.occasion].color,
+                        paddingHorizontal: 14,
+                        paddingVertical: 9,
+                        borderRadius: 50,
+                      }}>
+                      <MaterialIcons
+                        name={OCCASION_CONFIG[outfit.occasion].icon as any}
+                        size={14}
+                        color={theme.colors.foreground}
+                        style={{marginRight: 5}}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: theme.colors.foreground,
+                        }}>
+                        {OCCASION_CONFIG[outfit.occasion].label}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* Schedule & Cancel buttons */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-start',
+                  flexWrap: 'wrap',
+                  marginTop: 8,
+                }}>
+                <View
+                  style={{
+                    backgroundColor: theme.colors.button1,
+                    borderRadius: 8,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                    marginRight: 10,
+                  }}>
+                  <Text
+                    style={{
+                      color: theme.colors.buttonText1,
+                      fontWeight: '600',
+                      fontSize: 13,
+                    }}>
+                    Schedule This Outfit
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8.5,
+                    paddingHorizontal: 14,
+                    borderRadius: 8,
+                    backgroundColor:
+                      theme.colors.surface3 ?? 'rgba(43,43,43,1)',
+                  }}>
+                  <Text
+                    style={{
+                      color: theme.colors.foreground,
+                      fontWeight: '600',
+                      fontSize: 13,
+                    }}>
+                    Cancel Schedule
+                  </Text>
+                </View>
+              </View>
+
+              {/* Tags */}
+              {(outfit.tags || []).length > 0 && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    marginTop: 8,
+                  }}>
+                  {outfit.tags?.map(tag => (
+                    <View
+                      key={tag}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        backgroundColor:
+                          theme.colors.input2 ?? 'rgba(43,43,43,1)',
+                        borderRadius: 16,
+                        marginRight: 6,
+                        marginBottom: 6,
+                      }}>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.foreground,
+                        }}>
+                        #{tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        );
+      }
+
       return (
         <SwipeableCard
           key={outfit.id}
@@ -1293,6 +1674,7 @@ export default function SavedOutfitsScreen() {
       toggleFavorite,
       markWornMutation,
       unmarkWornMutation,
+      outfitsState,
     ],
   );
 
@@ -1640,14 +2022,14 @@ export default function SavedOutfitsScreen() {
                 color:
                   occasionFilter === null ? 'white' : theme.colors.foreground,
               }}>
-              All ({combinedOutfits.length})
+              All ({displayOutfits.length})
             </Text>
           </TouchableOpacity>
 
           {/* Occasion chips */}
           {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(occasion => {
             const config = OCCASION_CONFIG[occasion];
-            const count = combinedOutfits.filter(
+            const count = displayOutfits.filter(
               o => o.occasion === occasion,
             ).length;
             if (count === 0) return null;
@@ -1691,9 +2073,40 @@ export default function SavedOutfitsScreen() {
         </ScrollView>
       </View>
 
+      {/* Demo indicator banner */}
+      {outfitsState === 'demo' && (
+        <View
+          style={{
+            backgroundColor: theme.colors.primary + '20',
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            borderRadius: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+          <MaterialIcons
+            name="info-outline"
+            size={20}
+            color={theme.colors.primary}
+            style={{marginRight: 8}}
+          />
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontSize: 14,
+              flex: 1,
+            }}>
+            This is a sample outfit. Build your own in Wardrobe or have AI Outfit create one!
+          </Text>
+        </View>
+      )}
+
       {/* 🪩 Virtualized FlashList */}
       <View style={{flex: 1, width: '100%'}}>
-        {sortedOutfits.length === 0 ? (
+        {/* Empty state - only show when user had outfits before but now has none */}
+        {outfitsState === 'empty-real' && sortedOutfits.length === 0 ? (
           <View
             style={{
               flexDirection: 'row',
@@ -1708,7 +2121,7 @@ export default function SavedOutfitsScreen() {
               position="top"
             />
           </View>
-        ) : (
+        ) : sortedOutfits.length > 0 ? (
           <FlashList
             ref={flashListRef}
             data={sortedOutfits}
@@ -1724,7 +2137,7 @@ export default function SavedOutfitsScreen() {
               paddingHorizontal: 10,
             }}
           />
-        )}
+        ) : null}
       </View>
 
       {/* 📝 Edit Outfit Modal */}
