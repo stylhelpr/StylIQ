@@ -83,8 +83,8 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const {trackingConsent, setTrackingConsent, deleteAllAnalyticsData} =
     useShoppingStore();
 
-  // Auth0 for access token
-  const {getCredentials} = useAuth0();
+  // Auth0 for access token and logout
+  const {getCredentials, clearSession} = useAuth0();
 
   // GDPR server-side deletion mutation
   const deleteUserDataMutation = useDeleteUserData();
@@ -265,19 +265,55 @@ export default function SettingsScreen({navigate, goBack}: Props) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Your Data?',
-      'This will permanently delete all local wardrobe and style data. This cannot be undone.',
+      'Delete Your Account?',
+      'This will permanently delete your account and all associated data including your wardrobe, style profile, and preferences. This action cannot be undone.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Delete',
+          text: 'Delete Account',
           style: 'destructive',
           onPress: async () => {
-            await AsyncStorage.clear();
-            const Notifier = PushNotification as any;
-            Notifier.cancelAllLocalNotifications?.();
-            setNotificationsEnabled(false);
-            Alert.alert('Your data has been deleted.');
+            try {
+              const token = await getAccessToken(getCredentials);
+              if (!token) {
+                Alert.alert('Error', 'Unable to authenticate. Please try again.');
+                return;
+              }
+
+              const res = await fetch(`${API_BASE_URL}/users/me`, {
+                method: 'DELETE',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              if (!res.ok) {
+                throw new Error(`Failed to delete account: ${res.status}`);
+              }
+
+              // Clear local data
+              await AsyncStorage.clear();
+              const Notifier = PushNotification as any;
+              Notifier.cancelAllLocalNotifications?.();
+              setNotificationsEnabled(false);
+
+              // Log out from Auth0
+              await clearSession();
+
+              // Navigate to login screen
+              navigate('Login');
+
+              Alert.alert(
+                'Account Deleted',
+                'Your account and all data have been permanently deleted.',
+              );
+            } catch (error) {
+              console.error('Error deleting account:', error);
+              Alert.alert(
+                'Error',
+                'Failed to delete your account. Please try again later.',
+              );
+            }
           },
         },
       ],
@@ -839,10 +875,22 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                     onPress={handleDeleteAccount}
                     hapticStyle="impactLight"
                     style={[globalStyles.menuSection1]}>
-                    <Text
-                      style={[globalStyles.menuLabel, {color: colors.error}]}>
-                      Delete My Data
-                    </Text>
+                    <View>
+                      <Text
+                        style={[globalStyles.menuLabel, {color: colors.error}]}>
+                        Delete My Account
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.foreground3,
+                          marginTop: 10,
+                          marginLeft: 10,
+                        }}>
+                        Permanently deletes your account and all data including
+                        wardrobe, style profile, and preferences.
+                      </Text>
+                    </View>
                   </AppleTouchFeedback>
                 </View>
               </View>

@@ -1219,7 +1219,7 @@ export default function OnboardingScreen({navigate}: Props) {
       );
 
       if (id && token) {
-        await fetch(`${API_BASE_URL}/users/${id}`, {
+        await fetch(`${API_BASE_URL}/users/me`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1282,7 +1282,7 @@ export default function OnboardingScreen({navigate}: Props) {
         if (Object.keys(prefsJsonb).length > 0)
           styleProfilePayload.prefs_jsonb = prefsJsonb;
 
-        await fetch(`${API_BASE_URL}/style-profile/${user?.sub}`, {
+        await fetch(`${API_BASE_URL}/style-profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
