@@ -547,12 +547,12 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
   ];
   const demoRecreatedImages = [
-    require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
-    require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+    require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+    require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
   ];
   const demoSharedImages = [
-    require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
     require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+    require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
   ];
 
   // Carousel scroll refs - preserve position across re-renders
@@ -2687,7 +2687,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           color: theme.colors.foreground2,
                           marginTop: 2,
                         }}>
-                        Images you share with the Community appear here
+                        Images you share with the Community Socials appear here
                       </Text>
                     )}
                     </View>
