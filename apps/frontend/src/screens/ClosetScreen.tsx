@@ -706,14 +706,14 @@ export default function ClosetScreen({navigate}: Props) {
                   position: 'absolute',
                   top: 8,
                   right: 8,
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: 'black',
                   paddingHorizontal: 8,
                   paddingVertical: 3,
                   borderRadius: 6,
                 }}>
                 <Text
                   style={{
-                    color: '#fff',
+                    color: 'white',
                     fontSize: 11,
                     fontWeight: tokens.fontWeight.semiBold,
                   }}>
@@ -978,8 +978,11 @@ export default function ClosetScreen({navigate}: Props) {
                   height: 50,
                   borderRadius: 26,
                   borderWidth: 1,
-                  borderColor: theme.colors.foreground,
-                  backgroundColor: 'rgba(54, 54, 54, 0.44)',
+                  borderColor: theme.colors.buttonText1,
+                  backgroundColor:
+                    btn.icon === 'add'
+                      ? theme.colors.button1
+                      : 'rgba(54, 54, 54, 0.44)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>

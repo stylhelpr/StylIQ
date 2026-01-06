@@ -2677,7 +2677,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           color: theme.colors.foreground2,
                           marginTop: 2,
                         }}>
-                        Images you share with the Community Socials appear here
+                        Images you share with the Community appear here
                       </Text>
                     )}
                     </View>

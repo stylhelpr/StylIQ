@@ -2098,7 +2098,7 @@ export default function SavedOutfitsScreen() {
               fontSize: 14,
               flex: 1,
             }}>
-            This is a sample outfit. Build your own in Wardrobe or have AI Outfit create one!
+            This is a sample outfit card. Build your own in Wardrobe or have AI Outfit create one and save it!
           </Text>
         </View>
       )}

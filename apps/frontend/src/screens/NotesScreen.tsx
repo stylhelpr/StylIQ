@@ -1499,7 +1499,7 @@ export default function NotesScreen({navigate}: Props) {
             <Text style={styles.emptyText}>
               {searchQuery
                 ? 'Try a different search term'
-                : 'Tap the + button to create your first note\nor save URLs from the browser'}
+                : 'Tap the "+" button to create your first note\nor save text from the Web Browser'}
             </Text>
           </Animated.View>
         ) : (

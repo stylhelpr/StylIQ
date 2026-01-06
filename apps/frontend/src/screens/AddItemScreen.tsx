@@ -416,7 +416,7 @@ export default function AddItemScreen({
 
       if (failed === 0) {
         hSuccess();
-        navigate('Closet');
+        navigate('Wardrobe');
       } else {
         hWarn();
         Alert.alert(
@@ -499,7 +499,7 @@ export default function AddItemScreen({
         object_key: objectKey,
       });
 
-      navigate('Closet');
+      navigate('Wardrobe');
     } catch (e: any) {
       console.error('[AI] one-tap error', e?.message || e);
       Alert.alert('One-tap failed', e?.message || 'See console for details.');
@@ -510,7 +510,7 @@ export default function AddItemScreen({
     if (goBack) {
       goBack();
     } else {
-      navigate('Closet');
+      navigate('Wardrobe');
     }
   };
 
