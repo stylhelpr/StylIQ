@@ -459,7 +459,7 @@ export default function SavedRecommendationsModal({
             globalStyles.missingDataMessage1,
             {marginTop: tokens.spacing.md},
           ]}>
-          No Saved Recommendations
+          No Saved Recommendations. Like a recommendation in the Home screento save it here!
         </Text>
         <View style={{marginTop: tokens.spacing.sm}}>
           <TooltipBubble
@@ -506,7 +506,7 @@ export default function SavedRecommendationsModal({
           />
 
           <View style={styles.header}>
-            <Text style={styles.title}>Saved Recommendations</Text>
+            <Text style={styles.title}>Saved Recommended Buys</Text>
           </View>
 
           <Animatable.View animation="fadeIn" duration={400} style={{flex: 1}}>

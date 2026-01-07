@@ -27,12 +27,14 @@ type Props = {
   navigate: (screen: Screen) => void;
   showSettings?: boolean;
   scrollY?: Animated.Value;
+  currentScreen?: Screen;
 };
 
 export default function GlobalHeader({
   navigate,
   showSettings = false,
   scrollY,
+  currentScreen,
 }: Props) {
   const {theme} = useAppTheme();
   const setUUID = useSetUUID();
@@ -226,28 +228,40 @@ export default function GlobalHeader({
               name: 'styla-avatar',
               action: () => navigate('AiStylistChatScreen'),
               isStyla: true,
+              targetScreen: 'AiStylistChatScreen' as Screen,
             },
 
             {
               name: 'language',
               action: () => navigate('ShoppingDashboard'),
+              targetScreen: 'ShoppingDashboard' as Screen,
             },
             {
               name: 'notifications-none',
               action: () => navigate('Notifications'),
+              targetScreen: 'Notifications' as Screen,
             },
             {
               name: 'menu',
               action: () => setMenuOpen(prev => !prev),
+              targetScreen: null as Screen | null,
+              isMenu: true,
             },
-          ].map((icon, idx) => (
+          ].map((icon, idx) => {
+            const isActive = menuOpen
+              ? icon.isMenu
+              : (icon.targetScreen && currentScreen === icon.targetScreen);
+            return (
             <AppleTouchFeedback
               key={idx}
               hapticStyle="impactLight"
               onPress={icon.action}>
               {isLiquidGlassSupported && !isiOS25OrLower ? (
                 <LiquidGlassView
-                  style={styles.glassButton}
+                  style={[
+                    styles.glassButton,
+                    icon.isStyla && {borderWidth: 2, borderColor: isActive ? theme.colors.button1 : 'transparent'},
+                  ]}
                   effect="clear"
                   tintColor={getTintColor()}
                   colorScheme={theme.mode === 'light' ? 'light' : 'dark'}>
@@ -265,7 +279,7 @@ export default function GlobalHeader({
                     <MaterialIcons
                       name={icon.name}
                       size={22}
-                      color={theme.colors.buttonText1}
+                      color={isActive ? theme.colors.button1 : theme.colors.buttonText1}
                     />
                   )}
                 </LiquidGlassView>
@@ -276,12 +290,12 @@ export default function GlobalHeader({
                     styles.glassButton,
                     {
                       backgroundColor: 'rgba(0, 0, 0, 0.48)',
-                      borderColor: theme.colors.muted,
                       shadowColor: '#000',
                       shadowOpacity: 0.15,
                       shadowRadius: 4,
                       shadowOffset: {width: 0, height: 2},
                     },
+                    icon.isStyla && {borderWidth: 2, borderColor: isActive ? theme.colors.button1 : 'transparent'},
                   ]}>
                   {icon.isStyla ? (
                     <Image
@@ -297,13 +311,14 @@ export default function GlobalHeader({
                     <MaterialIcons
                       name={icon.name}
                       size={22}
-                      color={theme.colors.buttonText1}
+                      color={isActive ? theme.colors.button1 : theme.colors.buttonText1}
                     />
                   )}
                 </View>
               )}
             </AppleTouchFeedback>
-          ))}
+          );
+          })}
 
           {menuOpen && (
             <>

@@ -2074,7 +2074,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 useNativeDriver
                 style={globalStyles.sectionScroll}>
                 <Text style={[globalStyles.sectionTitle]}>
-                  Top Fashion Stories
+                  Top Fashion News
                 </Text>
                 <NewsCarousel onOpenArticle={openArticle} />
               </Animatable.View>
@@ -2088,7 +2088,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               useNativeDriver
               style={globalStyles.sectionScroll}>
               <Text style={[globalStyles.sectionTitle]}>
-                Recommended Social Posts
+                Recommended Community Posts
               </Text>
               <RecommendedCarousel
                 onOpenPost={(postId: string) => {
@@ -2114,12 +2114,22 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   <Text style={[globalStyles.sectionTitle, {}]}>
                     Recommended Buys
                   </Text>
-{/*                  <Pressable
+                    <Pressable
                     onPress={() => {
                       ReactNativeHapticFeedback.trigger('impactLight');
                       setSavedRecommendationsModalVisible(true);
                     }}>
-                  </Pressable>*/}
+                    <Text
+                      style={{
+                        fontSize: fontScale(tokens.fontSize.sm),
+                        color: theme.colors.foreground,
+                        fontWeight: tokens.fontWeight.bold,
+                        marginTop: -5,
+                        marginRight: moderateScale(tokens.spacing.sm),         
+                      }}>
+                      See Saved Recs
+                    </Text>
+                  </Pressable>
                 </View>
                 <DiscoverCarousel
                   onOpenItem={openArticle}
@@ -2201,6 +2211,25 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   style={[globalStyles.image8]}
                                   resizeMode="cover"
                                 />
+                                <View
+                                  style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    backgroundColor: 'black',
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                    borderRadius: 6,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      color: 'white',
+                                      fontSize: 11,
+                                      fontWeight: tokens.fontWeight.semiBold,
+                                    }}>
+                                    Sample
+                                  </Text>
+                                </View>
                               </Pressable>
                             </View>
                           ))}
@@ -2278,7 +2307,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           color: theme.colors.foreground2,
                           marginTop: 2,
                         }}>
-                        Images you upload in 'See All Saved' or in the app appear here
+                        Inspiring images you upload in 'See All Saved' app appear here
                       </Text>
                     )}
                     </View>
@@ -2360,6 +2389,25 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                       style={[globalStyles.image8]}
                                       resizeMode="cover"
                                     />
+                                    <View
+                                      style={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        backgroundColor: 'black',
+                                        paddingHorizontal: 8,
+                                        paddingVertical: 3,
+                                        borderRadius: 6,
+                                      }}>
+                                      <Text
+                                        style={{
+                                          color: 'white',
+                                          fontSize: 11,
+                                          fontWeight: tokens.fontWeight.semiBold,
+                                        }}>
+                                        Sample
+                                      </Text>
+                                    </View>
                                   </Pressable>
                                 </View>
                               ))}
@@ -2453,14 +2501,16 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               ))}
                             </ScrollView>
                           )}
-                           <Text
-                        style={{
-                          fontSize: fontScale(tokens.fontSize.xs),
-                          color: theme.colors.foreground2,
-                          marginTop: 2,
-                        }}>
-                        Looks recreated inside 'See All Saved' appear here
-                      </Text>
+                          {recreatedState === 'demo' && (
+                            <Text
+                              style={{
+                                fontSize: fontScale(tokens.fontSize.xs),
+                                color: theme.colors.foreground2,
+                                marginTop: 2,
+                              }}>
+                              Looks recreated inside 'See All Saved' appear here
+                            </Text>
+                          )}
                         </View>
 
                       </CollapsibleSection>
@@ -2524,6 +2574,25 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                   style={{width: 130, height: 130}}
                                   resizeMode="cover"
                                 />
+                                <View
+                                  style={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    backgroundColor: 'black',
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                    borderRadius: 6,
+                                  }}>
+                                  <Text
+                                    style={{
+                                      color: 'white',
+                                      fontSize: 11,
+                                      fontWeight: tokens.fontWeight.semiBold,
+                                    }}>
+                                    Sample
+                                  </Text>
+                                </View>
                               </Pressable>
                             </View>
                           ))}

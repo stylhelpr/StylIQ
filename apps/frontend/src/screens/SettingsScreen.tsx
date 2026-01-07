@@ -537,12 +537,12 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   {(
                     [
                       ['weather', 'Weather'],
-                      ['aiSuggestions', 'Suggestions'],
+                      ['aiSuggestions', 'AI-Suggestions'],
                       ['locationMap', 'Location'],
                       ['quickAccess', 'Quick Access'],
-                      ['topFashionStories', 'Top Stories'],
-                      ['recommendedItems', 'Recommended'],
-                      ['inspiredLooks', 'Inspired Looks'],
+                      ['topFashionStories', 'Top Fashion News'],
+                      ['recommendedItems', 'Recommended Buys'],
+                      ['inspiredLooks', 'Your Inspired Styles'],
                     ] as const
                   ).map(([key, label], idx, arr) => (
                     <View

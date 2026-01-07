@@ -967,12 +967,8 @@ export default function ClosetScreen({navigate}: Props) {
         <>
           {/* Floating Mini FABs */}
           {[
-            {icon: 'search', onPress: () => navigate('Search'), offset: 3},
-            {
-              icon: 'qr-code-scanner',
-              onPress: () => navigate('BarcodeScannerScreen'),
-              offset: 2,
-            },
+            {icon: 'center-focus-weak', onPress: () => navigate('BarcodeScannerScreen'), offset: 3},
+            {icon: 'search', onPress: () => navigate('Search'), offset: 2},
             {icon: 'add', onPress: () => navigate('AddItem'), offset: 1},
           ].map((btn, index) => (
             <Animated.View
@@ -1018,9 +1014,31 @@ export default function ClosetScreen({navigate}: Props) {
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}>
+                  {btn.icon === 'add' && (
+                    <Text
+                      style={{
+                        color: theme.colors.foreground,
+                        fontSize: 9,
+                        fontWeight: tokens.fontWeight.semiBold,
+                        marginBottom: -2,
+                      }}>
+                      Add
+                    </Text>
+                  )}
+                  {btn.icon === 'center-focus-weak' && (
+                    <Text
+                      style={{
+                        color: theme.colors.foreground,
+                        fontSize: 9,
+                        fontWeight: tokens.fontWeight.semiBold,
+                        marginBottom: -2,
+                      }}>
+                      Scan
+                    </Text>
+                  )}
                   <MaterialIcons
                     name={btn.icon}
-                    size={26}
+                    size={btn.icon === 'add' || btn.icon === 'center-focus-weak' ? 20 : 26}
                     color={theme.colors.foreground}
                   />
                 </Pressable>

@@ -1017,6 +1017,12 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       alignItems: 'center',
       justifyContent: 'space-between',
     },
+    headerSubtitle: {
+      fontSize: fontScale(14),
+      fontWeight: '500',
+      color: theme.colors.secondary,
+      marginTop: moderateScale(4),
+    },
     gridContainer: {
       paddingHorizontal: moderateScale(tokens.spacing.nano),
       paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT + 20,
@@ -2072,7 +2078,8 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={{alignItems: 'flex-start', flex: 1}}>
-            <Text style={globalStyles.sectionTitle}>Community Share</Text>
+            <Text style={[globalStyles.header, {color: theme.colors.primary, marginBottom: 0, paddingLeft: 0}]}>Community Share</Text>
+            <Text style={styles.headerSubtitle}>Looks shared by the community</Text>
           </View>
           <Pressable
             onPress={() => {

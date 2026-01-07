@@ -721,8 +721,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               color: theme.colors.foreground,
               fontWeight: tokens.fontWeight.medium,
             }}>
-            "Let's create an outfit! - Just tell me what you want and press
-            Create Outfit"
+            Outfits are assembled from your personal uploaded wardrobe items. Just tell me what kind of look you 
+            want and press "Create Outfit"
           </Animatable.Text>
         </View>
 
@@ -754,7 +754,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     },
                   ]}>
                   <TextInput
-                    placeholder="What kind of an outfit are you looking for?"
+                    placeholder="Describe the look you want here..."
                     placeholderTextColor={theme.colors.muted}
                     multiline
                     scrollEnabled={false}

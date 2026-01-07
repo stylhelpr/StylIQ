@@ -690,7 +690,8 @@ const RootNavigator = ({
       <LayoutWrapper
         navigate={navigate}
         hideHeader={screensWithNoHeader.includes(currentScreen)}
-        showSettings={screensWithSettings.includes(currentScreen)}>
+        showSettings={screensWithSettings.includes(currentScreen)}
+        currentScreen={currentScreen}>
         <SwipeBackHandler
           onSwipeBack={goBack}
           enabled={true}>

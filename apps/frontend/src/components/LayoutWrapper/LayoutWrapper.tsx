@@ -50,6 +50,7 @@ type Props = {
   navigate?: (screen: Screen) => void;
   showSettings?: boolean;
   hideHeader?: boolean;
+  currentScreen?: Screen;
 };
 
 export default function LayoutWrapper({
@@ -57,11 +58,12 @@ export default function LayoutWrapper({
   navigate,
   showSettings,
   hideHeader,
+  currentScreen,
 }: Props) {
   return (
     <View style={styles.wrapper}>
       {navigate && !hideHeader && (
-        <GlobalHeader navigate={navigate} showSettings={showSettings} />
+        <GlobalHeader navigate={navigate} showSettings={showSettings} currentScreen={currentScreen} />
       )}
       {children}
     </View>

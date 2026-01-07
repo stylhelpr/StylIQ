@@ -290,7 +290,7 @@ export default function OutfitHistoryScreen({navigate}: Props) {
             duration={600}
             useNativeDriver
             style={styles.title}>
-            Outfit History
+            Worn Outfit History
           </Animatable.Text>
           <Animatable.View
             animation="fadeIn"

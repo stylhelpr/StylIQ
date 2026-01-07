@@ -967,11 +967,26 @@ export default function SavedOutfitsScreen() {
                         {
                           fontSize: 20,
                           color: theme.colors.foreground,
-                          flex: 1,
                         },
                       ]}>
                       {outfit.name?.trim() || 'Unnamed Outfit'}
                     </Text>
+                    <View
+                      style={{
+                        backgroundColor: 'black',
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 6,
+                      }}>
+                      <Text
+                        style={{
+                          color: 'white',
+                          fontSize: 11,
+                          fontWeight: tokens.fontWeight.semiBold,
+                        }}>
+                        Sample
+                      </Text>
+                    </View>
                   </View>
 
                   {/* Date info */}
@@ -1240,6 +1255,15 @@ export default function SavedOutfitsScreen() {
                 </View>
               )}
             </View>
+            <Text
+              style={{
+                fontSize: 12,
+                color: theme.colors.foreground2,
+               
+                textAlign: 'center',
+              }}>
+              Saved outfit cards will appear here ^
+            </Text>
           </View>
         );
       }
@@ -2098,7 +2122,7 @@ export default function SavedOutfitsScreen() {
               fontSize: 14,
               flex: 1,
             }}>
-            This is a sample outfit card. Build your own in Wardrobe or have AI Outfit create one and save it!
+            This is a sample outfit card. Build your own outfits in "Wardrobe" or have "AI Outfit" create one and save them!
           </Text>
         </View>
       )}

@@ -455,7 +455,7 @@ export default function OutfitBuilderScreen({navigate}: Props) {
           {wardrobe.length === 0 ? (
             <View style={{padding: 16}}>
               <Text style={{color: theme.colors.muted}}>
-                No wardrobe items yet.
+                No wardrobe items yet. Add items on the Wardrobe screen to get started!
               </Text>
             </View>
           ) : (

@@ -275,6 +275,20 @@ export default function BarcodeScannerScreen({
           </AppleTouchFeedback>
         </View>
 
+        <Text
+          style={{
+            fontSize: 15,
+            color: theme.colors.secondary,
+            textAlign: 'center',
+            position: 'absolute',
+            top: 185,
+            left: 0,
+            right: 0,
+            zIndex: 1,
+          }}>
+          Take a good clear, up close photo of the clothing's barcode.
+        </Text>
+
         {/* 📸 Camera */}
         <Camera
           ref={cameraRef}
