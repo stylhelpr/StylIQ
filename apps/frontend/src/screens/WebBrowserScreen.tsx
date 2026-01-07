@@ -57,6 +57,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {KeychainAuthBridge} from '../native/KeychainAuthBridge';
 import {shouldShareCookiesForUrl} from '../utils/keychainCookiePolicy';
 import {generateKeychainAutoFillScript} from '../utils/keychainAutoFillScript';
+import {useBrowserOnboarding} from '../hooks/useBrowserOnboarding';
+import {BrowserOnboardingModal} from '../components/BrowserOnboardingModal/BrowserOnboardingModal';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -76,6 +78,11 @@ export default function WebBrowserScreen({navigate, route}: Props) {
   const {theme} = useAppTheme();
   const insets = useSafeAreaInsets();
   const userId = useUUID();
+  const {
+    showModal: showBrowserOnboarding,
+    isLoading: isOnboardingLoading,
+    dismissModal: dismissBrowserOnboarding,
+  } = useBrowserOnboarding();
   // Debug: Log only on actual mount, not every render
   useEffect(() => {
     // console.log('WebBrowserScreen mounted, userId:', userId);
@@ -2568,7 +2575,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             lastNavScrollY.current = y;
           }}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.landingTitle}>Start Shopping Quick Sites</Text>
+          <Text style={styles.landingTitle}>Quick Sites Shortcuts</Text>
           <View style={styles.shoppingGrid}>
             {quickShopSites.map(site => (
               <TouchableOpacity
@@ -3353,56 +3360,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             style={styles.saveMenuContent}>
             <View style={styles.saveMenuHandle} />
             <Text style={styles.saveMenuTitle}>Save Image</Text>
-            {/* Save to Photos */}
-            <TouchableOpacity
-              style={styles.saveMenuItem}
-              onPress={async () => {
-                if (longPressedImageUrl) {
-                  setShowImageSaveModal(false);
-                  try {
-                    await ImageSaverModule.saveImageFromUrl(
-                      longPressedImageUrl,
-                    );
-                    triggerHaptic('notificationSuccess');
-                  } catch (error) {
-                    console.log('Image save error:', error);
-                    triggerHaptic('notificationError');
-                  }
-                } else {
-                  setShowImageSaveModal(false);
-                }
-              }}>
-              <View style={styles.saveMenuItemIcon}>
-                <MaterialIcons name="photo-library" size={22} color="#10b981" />
-              </View>
-              <Text style={styles.saveMenuItemText}>Save to Photos</Text>
-              <MaterialIcons
-                name="arrow-forward-ios"
-                size={16}
-                color={theme.colors.foreground3}
-                style={styles.saveMenuItemCheck}
-              />
-            </TouchableOpacity>
-            {/* Add to Wardrobe - commented out: wardrobe is for owned items photographed from closet */}
-            {/* <TouchableOpacity
-              style={styles.saveMenuItem}
-              onPress={() => {
-                if (longPressedImageUrl) {
-                  navigate('AddItem', {imageUrl: longPressedImageUrl});
-                }
-                setShowImageSaveModal(false);
-              }}>
-              <View style={styles.saveMenuItemIcon}>
-                <MaterialIcons name="checkroom" size={22} color="#8b5cf6" />
-              </View>
-              <Text style={styles.saveMenuItemText}>Add to Wardrobe</Text>
-              <MaterialIcons
-                name="arrow-forward-ios"
-                size={16}
-                color={theme.colors.foreground3}
-                style={styles.saveMenuItemCheck}
-              />
-            </TouchableOpacity> */}
+
             {/* Save to Inspired Looks */}
             <TouchableOpacity
               style={styles.saveMenuItem}
@@ -3464,8 +3422,39 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 <MaterialIcons name="auto-awesome" size={22} color="#f59e0b" />
               </View>
               <Text style={styles.saveMenuItemText}>
-                Save to Inspired Looks
+                Save to Inspired Styles
               </Text>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={16}
+                color={theme.colors.foreground3}
+                style={styles.saveMenuItemCheck}
+              />
+            </TouchableOpacity>
+
+                        {/* Save to Photos */}
+            <TouchableOpacity
+              style={styles.saveMenuItem}
+              onPress={async () => {
+                if (longPressedImageUrl) {
+                  setShowImageSaveModal(false);
+                  try {
+                    await ImageSaverModule.saveImageFromUrl(
+                      longPressedImageUrl,
+                    );
+                    triggerHaptic('notificationSuccess');
+                  } catch (error) {
+                    console.log('Image save error:', error);
+                    triggerHaptic('notificationError');
+                  }
+                } else {
+                  setShowImageSaveModal(false);
+                }
+              }}>
+              <View style={styles.saveMenuItemIcon}>
+                <MaterialIcons name="photo-library" size={22} color="#10b981" />
+              </View>
+              <Text style={styles.saveMenuItemText}>Save to Photos</Text>
               <MaterialIcons
                 name="arrow-forward-ios"
                 size={16}
@@ -3994,6 +3983,14 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         onAccept={handleConsentAccept}
         onDecline={handleConsentDecline}
       />
+
+      {/* Browser Onboarding Modal - First time only */}
+      {!isOnboardingLoading && (
+        <BrowserOnboardingModal
+          visible={showBrowserOnboarding}
+          onDismiss={dismissBrowserOnboarding}
+        />
+      )}
 
       {/* Add Quick Shop Site Modal */}
       <Modal

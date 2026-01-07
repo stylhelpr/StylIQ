@@ -2307,7 +2307,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           color: theme.colors.foreground2,
                           marginTop: 2,
                         }}>
-                        Inspiring images you upload in 'See All Saved' app appear here
+                        Inspiring images you upload in 'See All Saved' appear here
                       </Text>
                     )}
                     </View>
@@ -2746,7 +2746,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                           color: theme.colors.foreground2,
                           marginTop: 2,
                         }}>
-                        Images you share with the Community appear here
+                        Images you share from the app with the Community appear here
                       </Text>
                     )}
                     </View>

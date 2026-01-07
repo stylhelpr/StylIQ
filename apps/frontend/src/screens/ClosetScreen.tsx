@@ -919,13 +919,16 @@ export default function ClosetScreen({navigate}: Props) {
                 {'\u2022'} Smooth wrinkles on all items and avoid shadows
               </Text>
               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
-                {'\u2022'} Take photos of each item sepearatley and use good lighting for the photos
+                {'\u2022'} Take pictures of each item separately using good lighting and close up
               </Text>
               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
-                {'\u2022'} Show/Expose brand tags when possible
+                {'\u2022'} Show/Expose tags on clothes when possible for best descriptions
+              </Text>
+                <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+                {'\u2022'} Start adding your wardrobe items by tapping the '+' button
               </Text>
               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
-                {'\u2022'} Add items one-by-one or in bulk — details are filled in automatically
+                {'\u2022'} Add items one-by-one or in bulk — wardrobe data is filled in automatically for you
               </Text>
             </View>
           </View>

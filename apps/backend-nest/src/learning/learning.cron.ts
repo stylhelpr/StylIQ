@@ -30,9 +30,8 @@ export class LearningCronService {
       return;
     }
 
-    // Prevent overlapping runs
+    // Prevent overlapping runs (silently skip)
     if (this.isRunning) {
-      this.logger.warn('[LearningCron] Skipping run - previous job still running');
       return;
     }
 
