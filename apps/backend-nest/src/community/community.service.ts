@@ -871,7 +871,7 @@ export class CommunityService implements OnModuleInit {
     // Send push notification to post owner (don't notify yourself)
     try {
       const postOwner = await pool.query(
-        `SELECT cp.user_id, COALESCE(u.first_name, 'Someone') as liker_name
+        `SELECT cp.user_id, cp.name, COALESCE(u.first_name, 'Someone') as liker_name
          FROM community_posts cp
          LEFT JOIN users u ON u.id = $2
          WHERE cp.id = $1`,
@@ -879,9 +879,12 @@ export class CommunityService implements OnModuleInit {
       );
       const ownerId = postOwner.rows[0]?.user_id;
       const likerName = postOwner.rows[0]?.liker_name || 'Someone';
+      const postName = postOwner.rows[0]?.name;
       if (ownerId && ownerId !== userId) {
         const title = 'New Like';
-        const message = `${likerName} liked your post`;
+        const message = postName
+          ? `${likerName} liked your post "${postName.slice(0, 50)}${postName.length > 50 ? '...' : ''}"`
+          : `${likerName} liked your post`;
         this.notifications.sendPushToUser(ownerId, title, message, {
           type: 'like',
           postId,
@@ -1025,16 +1028,16 @@ export class CommunityService implements OnModuleInit {
     content: string,
     commenterName?: string,
   ) {
-    // console.log('📤 sendCommentNotification:', { postId, commenterId, commenterName });
     const postOwner = await pool.query(
-      `SELECT user_id FROM community_posts WHERE id = $1`,
+      `SELECT user_id, name FROM community_posts WHERE id = $1`,
       [postId],
     );
     const ownerId = postOwner.rows[0]?.user_id;
-    // console.log('📤 Post owner:', ownerId, '| Commenter:', commenterId, '| Notify:', ownerId && ownerId !== commenterId);
+    const postName = postOwner.rows[0]?.name;
     if (ownerId && ownerId !== commenterId) {
-      const title = `${commenterName || 'Someone'} commented`;
-      // console.log('📤 Sending push to:', ownerId);
+      const title = postName
+        ? `${commenterName || 'Someone'} commented on "${postName.slice(0, 30)}${postName.length > 30 ? '...' : ''}"`
+        : `${commenterName || 'Someone'} commented`;
       this.notifications.sendPushToUser(ownerId, title, content, {
         type: 'comment',
         postId,
