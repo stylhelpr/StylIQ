@@ -21,10 +21,10 @@ export function BrowserOnboardingModal({visible, onDismiss}: Props) {
         <View
           style={[styles.container, {backgroundColor: theme.colors.surface}]}>
           <Text style={[styles.title, {color: theme.colors.foreground}]}>
-            Save What Inspires You
+            Save Images That Inspire You
           </Text>
           <Text style={[styles.body, {color: theme.colors.foreground2}]}>
-            Long press any image to add it to your collection.
+            Long press any image while in the Web Browser to add it to Your Inspired Styles or your Camera Roll. (Screenshots work as well). You can also save any urls or text you want to save in your notes.
           </Text>
           <Pressable
             style={[styles.button, {backgroundColor: theme.colors.button1}]}

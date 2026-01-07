@@ -1630,7 +1630,40 @@ export const useShoppingStore = create<ShoppingState>()(
     {
       name: 'shopping-store',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (version < 2) {
+          // Reset quickShopSites to new defaults
+          return {
+            ...persistedState,
+            quickShopSites: [
+              {id: '1', name: 'Google', url: 'https://www.google.com'},
+              {id: '2', name: 'Louis Vuitton', url: 'https://us.louisvuitton.com'},
+              {id: '3', name: 'Versace', url: 'https://www.versace.com'},
+              {id: '4', name: 'Gucci', url: 'https://www.gucci.com'},
+              {id: '5', name: 'Chanel', url: 'https://www.chanel.com'},
+              {id: '6', name: 'Amazon', url: 'https://www.amazon.com'},
+              {id: '7', name: 'ASOS', url: 'https://www.asos.com'},
+              {id: '8', name: 'Zara', url: 'https://www.zara.com'},
+              {id: '9', name: 'H&M', url: 'https://www.hm.com'},
+              {id: '10', name: 'Farfetch', url: 'https://www.farfetch.com'},
+              {id: '11', name: 'Nordstrom', url: 'https://www.nordstrom.com'},
+              {id: '12', name: 'Prada', url: 'https://www.prada.com'},
+              {id: '13', name: 'Neiman Marcus', url: 'https://www.neimanmarcus.com'},
+              {id: '14', name: 'Saks Fifth Avenue', url: 'https://www.saksfifthavenue.com'},
+              {id: '15', name: 'The Real Real', url: 'https://www.therealreal.com'},
+              {id: '16', name: 'Hermès', url: 'https://www.hermes.com'},
+              {id: '17', name: "Bloomingdale's", url: 'https://www.bloomingdales.com'},
+              {id: '18', name: 'Burberry', url: 'https://us.burberry.com'},
+              {id: '19', name: 'SSENSE', url: 'https://www.ssense.com'},
+              {id: '20', name: 'Bergdorf Goodman', url: 'https://www.bergdorfgoodman.com'},
+              {id: '21', name: 'Gilt', url: 'https://www.gilt.com'},
+              {id: '22', name: 'Rue La La', url: 'https://www.ruelala.com'},
+            ],
+          };
+        }
+        return persistedState;
+      },
       partialize: state => ({
         bookmarks: state.bookmarks,
         history: state.history,
