@@ -441,7 +441,7 @@ export class NotificationsService {
       const alertMsg = this.buildAlertMessage(token, payload);
       const id1 = await admin.messaging().send(alertMsg);
 
-      console.log('✅ FCM sent (alert):', { id1 });
+      // console.log('✅ FCM sent (alert):', { id1 });
       return { ok: true };
     } catch (e: any) {
       console.error('❌ FCM Messaging error:', e);

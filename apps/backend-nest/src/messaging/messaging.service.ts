@@ -1,5 +1,6 @@
 import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { MessagingGateway } from './messaging.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { pool } from '../db/pool';
 
 @Injectable()
@@ -7,6 +8,7 @@ export class MessagingService {
   constructor(
     @Inject(forwardRef(() => MessagingGateway))
     private readonly gateway: MessagingGateway,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async onModuleInit() {
@@ -76,6 +78,31 @@ export class MessagingService {
 
     // Emit via WebSocket for real-time delivery
     this.gateway.emitNewMessage(recipientId, senderId, enrichedMessage);
+
+    // Send push notification to recipient
+    const senderName = enrichedMessage.sender_name || 'Someone';
+    const truncatedContent = content.length > 100 ? content.slice(0, 100) + '...' : content;
+    const title = 'New Direct Message';
+    const notificationMessage = `${senderName}: ${truncatedContent}`;
+
+    this.notifications.sendPushToUser(
+      recipientId,
+      title,
+      notificationMessage,
+      { type: 'direct_message', senderId },
+    ).catch(() => {});
+
+    // Save to notifications inbox so it appears in the Notifications screen
+    this.notifications.saveInboxItem({
+      id: message.id,
+      user_id: recipientId,
+      title,
+      message: notificationMessage,
+      timestamp: new Date().toISOString(),
+      category: 'message',
+      data: { type: 'direct_message', senderId, senderName, senderAvatar: enrichedMessage.sender_avatar },
+      read: false,
+    }).catch(() => {});
 
     return enrichedMessage;
   }

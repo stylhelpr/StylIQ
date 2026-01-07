@@ -2590,7 +2590,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                           color={theme.colors.foreground}
                         />
                       </View>
-                      <Text style={styles.actionText}>Send Message</Text>
+                      <Text style={styles.actionText}>Send Direct Message</Text>
                       <MaterialIcons
                         name="chevron-right"
                         size={20}
