@@ -525,8 +525,15 @@ export default function NotificationsScreen({
                                     case 'message':
                                       // Check if it's a community notification (like, comment, follow)
                                       const notifType = n.data?.type;
-                                      if (notifType === 'like' || notifType === 'comment' || notifType === 'follow') {
-                                        // Navigate to CommunityShowcaseScreen for community notifications
+                                      if (notifType === 'like' || notifType === 'comment') {
+                                        // Navigate to CommunityShowcaseScreen with the specific post
+                                        navigate('CommunityShowcaseScreen', {
+                                          initialPostId: n.data?.postId,
+                                        });
+                                        return;
+                                      }
+                                      if (notifType === 'follow') {
+                                        // Navigate to CommunityShowcaseScreen for follow notifications
                                         navigate('CommunityShowcaseScreen');
                                         return;
                                       }
