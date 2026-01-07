@@ -459,7 +459,7 @@ export default function SavedRecommendationsModal({
             globalStyles.missingDataMessage1,
             {marginTop: tokens.spacing.md},
           ]}>
-          No Saved Recommendations. Like a recommendation in the Home screento save it here!
+          No saved recommended buys. Like a recommended buy in the Home screen to save it here!
         </Text>
         <View style={{marginTop: tokens.spacing.sm}}>
           <TooltipBubble
