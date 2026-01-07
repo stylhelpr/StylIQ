@@ -90,7 +90,7 @@ export default function LoginScreen({
       textShadowRadius: 6,
     },
     subtitle: {
-      fontSize: 17,
+      fontSize: 16,
       fontWeight: '500',
       marginTop: 4,
       color: '#fff',
@@ -329,8 +329,8 @@ export default function LoginScreen({
       <View style={styles.container}>
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>StylHelpr</Text>
-          <Text style={styles.subtitle}>
-            Your personal AI fashion concierge
+          <Text style={styles.subtitle} numberOfLines={1} adjustsFontSizeToFit>
+            A fashion intelligence platform centered on you
           </Text>
         </View>
 

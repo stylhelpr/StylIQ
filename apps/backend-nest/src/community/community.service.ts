@@ -1149,26 +1149,32 @@ export class CommunityService implements OnModuleInit {
     // Send push notification to the user being followed
     try {
       const followerInfo = await pool.query(
-        `SELECT COALESCE(first_name, 'Someone') as follower_name FROM users WHERE id = $1`,
+        `SELECT COALESCE(first_name, 'Someone') as follower_name, COALESCE(profile_picture, '') as follower_avatar FROM users WHERE id = $1`,
         [followerId],
       );
       const followerName = followerInfo.rows[0]?.follower_name || 'Someone';
+      const followerAvatar = followerInfo.rows[0]?.follower_avatar || '';
       const title = 'New Follower';
       const message = `${followerName} started following you`;
-      this.notifications.sendPushToUser(followingId, title, message, {
+      const notificationId = `follow-${followerId}-${followingId}-${Date.now()}`;
+      const notificationData = {
         type: 'follow',
-        followerId,
+        senderId: followerId,
+        senderName: followerName,
+        senderAvatar: followerAvatar,
         category: 'message',
-      });
+        notificationId, // Include ID so frontend uses the same ID
+      };
+      this.notifications.sendPushToUser(followingId, title, message, notificationData);
       // Save to inbox for Community Messages section
       this.notifications.saveInboxItem({
-        id: `follow-${followerId}-${followingId}-${Date.now()}`,
+        id: notificationId,
         user_id: followingId,
         title,
         message,
         timestamp: new Date().toISOString(),
         category: 'message',
-        data: { type: 'follow', followerId },
+        data: notificationData,
       });
     } catch (e) {
       console.error('Failed to send follow notification:', e);

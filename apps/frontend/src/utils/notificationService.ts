@@ -23,9 +23,12 @@ type InboxItem = {
 
 // ✅ Helper: Map FCM → InboxItem
 function mapMessage(msg: FirebaseMessagingTypes.RemoteMessage): InboxItem {
-  const id =
-    msg.messageId ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const data = msg.data as Record<string, string> | undefined;
+  // Use notificationId from data if available (ensures same ID as backend inbox)
+  const id =
+    data?.notificationId ??
+    msg.messageId ??
+    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const title = msg.notification?.title ?? data?.title ?? undefined;
   const message =
     msg.notification?.body ?? data?.body ?? data?.message ?? '';

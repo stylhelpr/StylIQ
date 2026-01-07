@@ -533,8 +533,12 @@ export default function NotificationsScreen({
                                         return;
                                       }
                                       if (notifType === 'follow') {
-                                        // Navigate to CommunityShowcaseScreen for follow notifications
-                                        navigate('CommunityShowcaseScreen');
+                                        // Navigate to the follower's UserProfile
+                                        navigate('UserProfileScreen', {
+                                          userId: n.data?.senderId || '',
+                                          userName: n.data?.senderName || 'User',
+                                          userAvatar: n.data?.senderAvatar || '',
+                                        });
                                         return;
                                       }
                                       // Navigate to ChatScreen with sender info from notification data

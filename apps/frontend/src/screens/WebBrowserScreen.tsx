@@ -2824,7 +2824,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           {inputValue.length > 0 && (
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => setInputValue('')}>
+              onPress={() => {
+                triggerHaptic('impactLight');
+                setInputValue('');
+              }}>
               <MaterialIcons
                 name="close"
                 size={18}
@@ -2837,7 +2840,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
           {currentTab?.url && (
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => webRef.current?.reload()}>
+              onPress={() => {
+                triggerHaptic('impactLight');
+                webRef.current?.reload();
+              }}>
               <MaterialIcons
                 name="refresh"
                 size={22}
@@ -2918,6 +2924,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={() => {
+                  triggerHaptic('impactLight');
                   if (currentTab) {
                     const url = navigateTabBack(currentTab.id);
                     if (url) {
@@ -2942,6 +2949,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={() => {
+                  triggerHaptic('impactLight');
                   if (currentTab) {
                     const url = navigateTabForward(currentTab.id);
                     if (url) {
@@ -3025,6 +3033,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={() => {
+                  triggerHaptic('impactLight');
                   if (currentTab) {
                     const url = navigateTabBack(currentTab.id);
                     if (url) {
@@ -3049,6 +3058,7 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
               <TouchableOpacity
                 style={styles.bottomNavItem}
                 onPress={() => {
+                  triggerHaptic('impactLight');
                   if (currentTab) {
                     const url = navigateTabForward(currentTab.id);
                     if (url) {
@@ -3174,7 +3184,10 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
                 </Text>
                 <TouchableOpacity
                   style={styles.tabsHeaderButton}
-                  onPress={closeTabsView}>
+                  onPress={() => {
+                    triggerHaptic('impactLight');
+                    closeTabsView();
+                  }}>
                   <Text style={styles.tabsHeaderButtonText}>Done</Text>
                 </TouchableOpacity>
               </View>
