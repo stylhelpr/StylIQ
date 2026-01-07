@@ -1,5 +1,6 @@
 // utils/auth.ts
 import Auth0, {Credentials} from 'react-native-auth0';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AUTH0_DOMAIN = 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
 const AUTH0_CLIENT_ID = '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
@@ -70,6 +71,8 @@ export const getAccessToken = async (): Promise<string> => {
 export const logout = async (): Promise<void> => {
   await auth0.webAuth.clearSession({federated: true});
   await auth0.credentialsManager.clearCredentials();
+  // Clear cached user ID to prevent stale data on next login
+  await AsyncStorage.removeItem('user_id');
 };
 
 /**

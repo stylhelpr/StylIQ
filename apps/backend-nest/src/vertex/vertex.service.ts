@@ -187,22 +187,33 @@ export class VertexService {
   }
 
   constructor() {
-    // Predict API client for embeddings
-    this.client = new PredictionServiceClient();
-
-    // Load project ID from service account JSON secret
-    const keyFile = getSecretJson<GCPServiceAccount>(
+    // Load service account credentials from secrets
+    const credentials = getSecretJson<GCPServiceAccount>(
       'GCP_SERVICE_ACCOUNT_JSON',
     );
-    this.projectId = keyFile.project_id;
-
-    // Region - config (not a secret)
+    this.projectId = credentials.project_id;
     this.location = process.env.GCP_REGION || 'us-central1';
 
-    // Generative API client
+    // Predict API client for embeddings - with explicit credentials
+    this.client = new PredictionServiceClient({
+      projectId: this.projectId,
+      credentials: {
+        client_email: credentials.client_email,
+        private_key: credentials.private_key,
+      },
+    });
+
+    // Generative API client - with explicit credentials
     this.vertexAI = new VertexAI({
       project: this.projectId,
       location: this.location,
+      googleAuthOptions: {
+        projectId: this.projectId,
+        credentials: {
+          client_email: credentials.client_email,
+          private_key: credentials.private_key,
+        },
+      },
     });
   }
 

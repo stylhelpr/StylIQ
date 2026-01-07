@@ -28,7 +28,6 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
   const [uuid, setUUIDState] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasToken, setHasToken] = useState(false);
-  const [storedId, setStoredId] = useState<string | null>(null);
 
   // Wrapper that also persists to AsyncStorage
   const setUUID = useCallback((id: string | null) => {
@@ -44,7 +43,6 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
       const stored = await AsyncStorage.getItem('user_id');
       if (stored) {
         setUUIDState(stored);
-        setStoredId(stored);
       }
 
       try {
@@ -74,7 +72,8 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
       const serverId = data?.id ?? data?.uuid ?? null;
       if (serverId) {
         const serverIdStr = String(serverId);
-        if (serverIdStr !== storedId) {
+        // Always update to server ID (handles account switching)
+        if (serverIdStr !== uuid) {
           setUUIDState(serverIdStr);
           AsyncStorage.setItem('user_id', serverIdStr).catch(() => {});
         }
@@ -89,7 +88,7 @@ export const UUIDProvider = ({children}: UUIDProviderProps) => {
       );
       setIsInitialized(true);
     }
-  }, [hasToken, isSuccess, isError, data, error, storedId]);
+  }, [hasToken, isSuccess, isError, data, error, uuid]);
 
   return (
     <UUIDContext.Provider value={{uuid, setUUID, isInitialized}}>

@@ -2078,8 +2078,9 @@ ${climateNote}
           {
             role: 'system',
             content: `Classify what data is needed to answer this fashion/style question. Return JSON only.
-Categories: styleProfile (body type, colors, preferences), wardrobe (clothes owned), calendar (events), savedLooks, feedback (outfit ratings), wearHistory (recently worn), scheduledOutfits, favorites, customOutfits, itemPrefs (liked/disliked items), lookMemories (style exploration), notifications, weather.
-For general chat/greetings, return empty needs. For outfit suggestions, include styleProfile+wardrobe+weather. Be minimal.`,
+Categories: styleProfile (body type, colors, preferences), wardrobe (clothes owned, inventory, items count), calendar (events), savedLooks, feedback (outfit ratings), wearHistory (recently worn), scheduledOutfits, favorites, customOutfits, itemPrefs (liked/disliked items), lookMemories (style exploration), notifications, weather.
+For general chat/greetings, return empty needs. For outfit suggestions, include styleProfile+wardrobe+weather.
+IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my wardrobe", "closet", "inventory", or item counts MUST include wardrobe.`,
           },
           {
             role: 'user',
