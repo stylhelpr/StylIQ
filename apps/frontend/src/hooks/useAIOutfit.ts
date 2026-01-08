@@ -85,7 +85,12 @@ export function useAIOutfit(userId?: string) {
   const generate = useCallback(
     async (
       query: string,
-      opts?: {topK?: number; styleProfile?: any; useFeedback?: boolean},
+      opts?: {
+        topK?: number;
+        styleProfile?: any;
+        useFeedback?: boolean;
+        useFastMode?: boolean;
+      },
     ) => {
       if (!userId) return;
       setLoading(true);
@@ -95,7 +100,8 @@ export function useAIOutfit(userId?: string) {
           user_id: userId,
           query,
           topK: opts?.topK ?? 25,
-          useFeedback: opts?.useFeedback ?? true, // 👈 always included
+          useFeedback: opts?.useFeedback ?? true,
+          useFastMode: opts?.useFastMode ?? true, // 🚀 Use fast mode by default
         };
 
         const mappedStyle = mapStyleProfileToUserStyle(opts?.styleProfile);

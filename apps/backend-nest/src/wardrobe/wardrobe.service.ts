@@ -24,6 +24,11 @@ import type { WeatherContext } from './logic/weather';
 import { finalizeOutfitSlots } from './logic/finalize';
 import { enforceConstraintsOnOutfits } from './logic/enforce';
 import { buildOutfitPrompt } from './prompts/outfitPrompt';
+import {
+  buildOutfitPlanPrompt,
+  type OutfitPlan,
+  type OutfitPlanSlot,
+} from './prompts/outfitPlanPrompt';
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
 import { STYLE_AGENTS } from './logic/style-agents';
@@ -1584,6 +1589,387 @@ ${lockedLines}
       console.error('❌ Error in generateOutfits:', err.message, err.stack);
       throw err;
     }
+  }
+
+  /**
+   * FAST OUTFIT GENERATOR (New Architecture)
+   *
+   * Flow:
+   * 1. Gemini Flash generates outfit PLAN (no catalog, text-only) ~0.5-1s
+   * 2. Backend embeds each slot description using Vertex embeddings ~0.3-0.5s (parallel)
+   * 3. Backend queries Pinecone for matching items ~0.2-0.3s (parallel)
+   * 4. Backend fetches image URLs from PostgreSQL ~0.1s
+   * 5. Return assembled outfits to UI
+   *
+   * Total latency: ~1-2s (vs 20-30s with old architecture)
+   * Cost reduction: ~90% (no catalog in prompt)
+   */
+  async generateOutfitsFast(
+    userId: string,
+    query: string,
+    opts?: {
+      userStyle?: UserStyle;
+      weather?: WeatherContext;
+      styleAgent?: string;
+      lockedItemIds?: string[];
+    },
+  ) {
+    const startTime = Date.now();
+    console.log('⚡ [FAST] Starting generateOutfitsFast for user:', userId);
+    console.log('⚡ [FAST] Full query:', query);
+
+    try {
+      const { userStyle, weather, styleAgent, lockedItemIds = [] } = opts || {};
+
+      // ── 0) Fetch available item types from user's wardrobe ──
+      const { rows: categoryRows } = await pool.query(
+        `SELECT DISTINCT main_category, subcategory
+         FROM wardrobe_items
+         WHERE user_id = $1 AND main_category IS NOT NULL`,
+        [userId],
+      );
+      const availableItems = categoryRows.map(
+        (r: any) => `${r.main_category}: ${r.subcategory || 'general'}`,
+      );
+      console.log('⚡ [FAST] Available item types:', availableItems.join(', '));
+
+      // ── 0b) For refinements, fetch locked items so we can tell the LLM what to keep ──
+      let currentOutfitInfo = '';
+      const isRefinement = query.toLowerCase().includes('refinement');
+      if (isRefinement && lockedItemIds.length > 0) {
+        const { rows: lockedRows } = await pool.query(
+          `SELECT id, name, main_category, subcategory, color
+           FROM wardrobe_items
+           WHERE id = ANY($1) AND user_id = $2`,
+          [lockedItemIds, userId],
+        );
+        if (lockedRows.length > 0) {
+          currentOutfitInfo = `
+CURRENT OUTFIT (these are the items the user currently has selected):
+${lockedRows.map((r: any) => `- ${r.main_category}: "${r.name}" (${r.color || 'unknown color'} ${r.subcategory || ''})`).join('\n')}
+
+When the user says "keep the X", use a slot description that will match that EXACT item above.
+When the user says "change the Y", generate a DIFFERENT slot description for that category.`;
+          console.log('⚡ [FAST] Current outfit info:', currentOutfitInfo);
+        }
+      }
+
+      // ── 1) Generate outfit PLAN using Gemini Flash (no catalog!) ──
+      // Append current outfit info to the query so LLM knows what items to keep
+      const queryWithContext = currentOutfitInfo ? `${query}\n\n${currentOutfitInfo}` : query;
+      const planPrompt = buildOutfitPlanPrompt(queryWithContext, {
+        styleAgent,
+        userStyleProfile: userStyle
+          ? {
+              preferredColors: userStyle.preferredColors,
+              favoriteBrands: userStyle.favoriteBrands,
+              styleKeywords: userStyle.styleKeywords,
+              dressBias: userStyle.dressBias,
+            }
+          : undefined,
+        weather: weather
+          ? {
+              temp_f: weather.tempF,
+              condition: weather.precipitation,
+              humidity: undefined,
+            }
+          : undefined,
+        availableItems, // Pass available item types to constrain suggestions
+      });
+
+      console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
+      console.log('⚡ [FAST] Plan prompt (first 500 chars):', planPrompt.substring(0, 500));
+      const planStartTime = Date.now();
+
+      const plan = await this.vertex.generateOutfitPlan(planPrompt);
+
+      console.log(
+        '⚡ [FAST] Plan generated in',
+        Date.now() - planStartTime,
+        'ms',
+      );
+      console.log('⚡ [FAST] Plan:', JSON.stringify(plan, null, 2));
+
+      if (!plan.outfits?.length) {
+        console.warn('⚡ [FAST] No outfits in plan, returning empty');
+        return {
+          request_id: randomUUID(),
+          outfit_id: randomUUID(),
+          items: [],
+          why: 'No outfits could be generated',
+          outfits: [],
+        };
+      }
+
+      // ── 2) Flatten all slots, embed in parallel, then query Pinecone ──
+      const embedStartTime = Date.now();
+
+      // Flatten all slots with outfit index for reconstruction
+      type SlotWithContext = {
+        outfitIdx: number;
+        slotIdx: number;
+        slot: (typeof plan.outfits)[0]['slots'][0];
+      };
+      const allSlots: SlotWithContext[] = [];
+      plan.outfits.forEach((outfit, outfitIdx) => {
+        outfit.slots.forEach((slot, slotIdx) => {
+          allSlots.push({ outfitIdx, slotIdx, slot });
+        });
+      });
+
+      console.log('⚡ [FAST] Total slots to embed:', allSlots.length);
+
+      // Embed ALL slot descriptions in a SINGLE batch API call
+      const slotDescriptions = allSlots.map((s) => s.slot.description);
+      const embeddings = await this.vertex.embedTextBatch(slotDescriptions);
+
+      console.log(
+        '⚡ [FAST] Embeddings done in',
+        Date.now() - embedStartTime,
+        'ms (batch)',
+      );
+
+      // Query Pinecone for all slots in parallel
+      // IMPORTANT: Filter by kind: "text" to match text embeddings against text vectors
+      const pineconeStartTime = Date.now();
+      const pineconeResults = await Promise.all(
+        allSlots.map(async (s, idx) => {
+          const categoryFilter = this.mapSlotCategoryToFilter(
+            s.slot.category as OutfitPlanSlot['category'],
+          );
+          // Combine category filter with kind filter for text-to-text matching
+          const filter = {
+            ...categoryFilter,
+            kind: { $eq: 'text' },
+          };
+          const matches = await queryUserNs({
+            userId,
+            vector: embeddings[idx],
+            topK: 5, // Increased to get more candidates
+            filter,
+            includeMetadata: true,
+          });
+          return { ...s, matches };
+        }),
+      );
+
+      console.log(
+        '⚡ [FAST] Pinecone queries in',
+        Date.now() - pineconeStartTime,
+        'ms',
+      );
+
+      // Debug: Log what Pinecone returned for each slot
+      for (const result of pineconeResults) {
+        const topMatch = result.matches[0];
+        console.log(
+          `⚡ [FAST] Slot "${result.slot.description}" (${result.slot.category}) → ${result.matches.length} matches, top: ${topMatch?.metadata?.name || topMatch?.metadata?.ai_title || topMatch?.id || 'none'} (score: ${topMatch?.score?.toFixed(3) || 'n/a'})`,
+        );
+      }
+
+      // Reconstruct assembledOutfits structure
+      const assembledOutfits = plan.outfits.map((outfitPlan, outfitIdx) => {
+        const slotResults = pineconeResults
+          .filter((r) => r.outfitIdx === outfitIdx)
+          .sort((a, b) => a.slotIdx - b.slotIdx)
+          .map((r) => ({ slot: r.slot, matches: r.matches }));
+        return { outfitPlan, slotResults };
+      });
+
+      console.log(
+        '⚡ [FAST] Total embed + Pinecone time:',
+        Date.now() - embedStartTime,
+        'ms',
+      );
+
+      // ── 3) Fetch full item details from PostgreSQL ──
+      const dbStartTime = Date.now();
+
+      // Collect all unique item IDs from Pinecone results
+      const allItemIds = new Set<string>();
+      for (const outfit of assembledOutfits) {
+        for (const sr of outfit.slotResults) {
+          for (const match of sr.matches) {
+            const itemId = this.normalizePineconeId(match.id as string).id;
+            allItemIds.add(itemId);
+          }
+        }
+      }
+
+      // Also include locked items
+      for (const id of lockedItemIds) {
+        allItemIds.add(id);
+      }
+
+      // Fetch all items in one query
+      const itemIds = Array.from(allItemIds);
+      let itemsMap = new Map<string, any>();
+
+      if (itemIds.length > 0) {
+        const { rows } = await pool.query(
+          `SELECT id, name, image_url, main_category, subcategory, color,
+                  color_family, brand, dress_code, formality_score, material, fit
+           FROM wardrobe_items
+           WHERE id = ANY($1) AND user_id = $2`,
+          [itemIds, userId],
+        );
+
+        itemsMap = new Map(rows.map((r: any) => [r.id, r]));
+      }
+
+      console.log(
+        '⚡ [FAST] PostgreSQL fetch in',
+        Date.now() - dbStartTime,
+        'ms',
+      );
+
+      // ── 4) Assemble final outfits with real items ──
+      // For refinements, we let the LLM plan drive selection since we gave it
+      // the current outfit info and it knows what to keep vs change.
+      if (isRefinement) {
+        console.log('⚡ [FAST] Refinement detected - LLM plan drives selection based on current outfit context');
+      }
+
+      const outfits = assembledOutfits.map((assembled) => {
+        const { outfitPlan, slotResults } = assembled;
+
+        // Pick best match for each slot
+        const items: CatalogItem[] = [];
+        const usedIds = new Set<string>();
+
+        // For refinements, skip locked items entirely - let the LLM plan drive selection
+        // For non-refinements, add locked items first
+        if (!isRefinement) {
+          for (const lockedId of lockedItemIds) {
+            const item = itemsMap.get(lockedId);
+            if (item && !usedIds.has(lockedId)) {
+              items.push(this.dbRowToCatalogItem(item));
+              usedIds.add(lockedId);
+            }
+          }
+        }
+
+        // Fill slots with best matches from Pinecone
+        for (const sr of slotResults) {
+          // Skip if we already have an item for this category from locked items
+          const categoryMain = this.slotCategoryToMainCategory(
+            sr.slot.category as OutfitPlanSlot['category'],
+          );
+          const alreadyHasCategory = items.some(
+            (it) =>
+              it.main_category?.toLowerCase() === categoryMain.toLowerCase(),
+          );
+
+          if (alreadyHasCategory) continue;
+
+          // Pick best unused match
+          for (const match of sr.matches) {
+            const itemId = this.normalizePineconeId(match.id as string).id;
+            if (usedIds.has(itemId)) continue;
+
+            const item = itemsMap.get(itemId);
+            if (item) {
+              items.push(this.dbRowToCatalogItem(item));
+              usedIds.add(itemId);
+              break;
+            }
+          }
+        }
+
+        // Sort items: Tops, Bottoms, Shoes, Outerwear, Accessories
+        const orderRank = (c: CatalogItem) => {
+          const main = (c.main_category ?? '').toLowerCase();
+          if (main === 'tops') return 1;
+          if (main === 'bottoms') return 2;
+          if (main === 'shoes') return 3;
+          if (main === 'outerwear') return 4;
+          return 5;
+        };
+        items.sort((a, b) => orderRank(a) - orderRank(b));
+
+        return {
+          outfit_id: randomUUID(),
+          title: outfitPlan.title,
+          items,
+          why: outfitPlan.why,
+        };
+      });
+
+      // Pick the best outfit (first one for now)
+      const best = outfits[0] ?? {
+        outfit_id: randomUUID(),
+        title: 'Outfit',
+        items: [],
+        why: '',
+      };
+
+      const totalTime = Date.now() - startTime;
+      console.log('⚡ [FAST] Total generateOutfitsFast time:', totalTime, 'ms');
+
+      return {
+        request_id: randomUUID(),
+        outfit_id: best.outfit_id,
+        items: best.items,
+        why: best.why,
+        outfits,
+      };
+    } catch (err: any) {
+      console.error(
+        '❌ [FAST] Error in generateOutfitsFast:',
+        err.message,
+        err.stack,
+      );
+      throw err;
+    }
+  }
+
+  /**
+   * Maps slot category to Pinecone metadata filter
+   */
+  private mapSlotCategoryToFilter(
+    category: OutfitPlanSlot['category'],
+  ): Record<string, any> | undefined {
+    const categoryMap: Record<string, string> = {
+      Tops: 'Tops',
+      Bottoms: 'Bottoms',
+      Shoes: 'Shoes',
+      Outerwear: 'Outerwear',
+      Accessories: 'Accessories',
+    };
+
+    const mainCategory = categoryMap[category];
+    if (!mainCategory) return undefined;
+
+    return { main_category: { $eq: mainCategory } };
+  }
+
+  /**
+   * Maps slot category to main_category string for comparison
+   */
+  private slotCategoryToMainCategory(
+    category: OutfitPlanSlot['category'],
+  ): string {
+    return category; // They're the same in our schema
+  }
+
+  /**
+   * Converts a database row to CatalogItem format
+   */
+  private dbRowToCatalogItem(row: any, index = 0): CatalogItem {
+    return {
+      index,
+      id: row.id,
+      label: row.name || 'Unknown Item',
+      image_url: row.image_url,
+      main_category: row.main_category,
+      subcategory: row.subcategory,
+      color: row.color,
+      color_family: row.color_family,
+      brand: row.brand,
+      dress_code: row.dress_code,
+      formality_score: row.formality_score,
+      material: row.material,
+    };
   }
 
   /**

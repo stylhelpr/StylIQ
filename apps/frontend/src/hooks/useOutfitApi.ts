@@ -65,7 +65,8 @@ export type GenerateOptions = {
   styleAgent?: string | null;
   sessionId?: string;
   refinementPrompt?: string;
-  lockedItemIds?: string[]; // 👈 NEW
+  lockedItemIds?: string[];
+  useFastMode?: boolean; // 🚀 Use fast architecture (Flash + backend retrieval)
 };
 
 function resolveUri(u?: string) {
@@ -159,6 +160,7 @@ export function useOutfitApi(userId?: string) {
           topK: opts?.topK ?? 20,
           useWeather: opts?.useWeather ?? true,
           weather: opts?.weather,
+          useFastMode: opts?.useFastMode ?? true, // 🚀 Use fast mode by default
         };
 
         if (opts?.styleAgent) {

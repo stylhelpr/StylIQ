@@ -4,6 +4,7 @@
 import { Injectable } from '@nestjs/common';
 import { PredictionServiceClient, helpers } from '@google-cloud/aiplatform';
 import { VertexAI, SchemaType } from '@google-cloud/vertexai';
+import { GoogleAuth } from 'google-auth-library';
 import { withBackoff } from './vertex.util';
 import { getSecret, getSecretJson, secretExists } from '../config/secrets';
 import * as FormData from 'form-data';
@@ -152,6 +153,7 @@ export class VertexService {
   private projectId: string;
   private location: string;
   private vertexAI: VertexAI; // Generative API (Gemini)
+  private googleAuth: GoogleAuth; // For REST API calls
 
   // Model names - defaults, can be overridden via config secrets if needed
   private textModel = 'gemini-embedding-001';
@@ -161,7 +163,7 @@ export class VertexService {
 
   // 🔒 simple in-process semaphore to cap concurrent Vertex calls
   private static inflight = 0;
-  private static readonly MAX_CONCURRENT = 5;
+  private static readonly MAX_CONCURRENT = 15; // Increased for parallel embedding
 
   private async withSemaphore<T>(fn: () => Promise<T>): Promise<T> {
     while (VertexService.inflight >= VertexService.MAX_CONCURRENT) {
@@ -215,6 +217,15 @@ export class VertexService {
         },
       },
     });
+
+    // GoogleAuth for REST API calls (true parallel embedding)
+    this.googleAuth = new GoogleAuth({
+      credentials: {
+        client_email: credentials.client_email,
+        private_key: credentials.private_key,
+      },
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
   }
 
   // -------------------
@@ -244,6 +255,57 @@ export class VertexService {
     }
 
     return values.map((v: any) => v.numberValue!);
+  }
+
+  // -------------------
+  // Batch Text Embeddings (REST API for true parallelism)
+  // gRPC client serializes requests; REST + fetch runs truly parallel
+  // -------------------
+  async embedTextBatch(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) return [];
+
+    // Get access token once for all requests
+    const accessToken = await this.googleAuth.getAccessToken();
+
+    // Fire ALL embedding requests in parallel via REST API
+    const promises = texts.map((text) =>
+      this.embedTextRest(text, accessToken as string),
+    );
+    return Promise.all(promises);
+  }
+
+  // REST-based embedding for true parallel execution
+  private async embedTextRest(
+    text: string,
+    accessToken: string,
+  ): Promise<number[]> {
+    const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.textModel}:predict`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        instances: [{ content: text }],
+        parameters: { outputDimensionality: 512 },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Vertex embedding REST error: ${response.status} ${errText}`);
+    }
+
+    const data = await response.json();
+    const values = data?.predictions?.[0]?.embeddings?.values;
+
+    if (!values || values.length === 0) {
+      throw new Error('No text embedding returned from Vertex AI REST');
+    }
+
+    return values;
   }
 
   // -------------------
@@ -544,6 +606,7 @@ export class VertexService {
 
   // -------------------
   // Outfit Generation (Gemini Pro via Generative API)
+  // DEPRECATED: Use generateOutfitPlan() for new architecture
   // -------------------
   async generateReasonedOutfit(prompt: string): Promise<any> {
     const model = this.vertexAI.getGenerativeModel({
@@ -560,6 +623,49 @@ export class VertexService {
     );
 
     return result.response;
+  }
+
+  // -------------------
+  // Outfit Plan Generation (Gemini Flash - text-only, no catalog)
+  // Returns slot descriptions for backend to query Pinecone
+  // Uses gemini-2.0-flash for speed (no thinking overhead)
+  // -------------------
+  async generateOutfitPlan(prompt: string): Promise<{
+    outfits: Array<{
+      title: string;
+      slots: Array<{
+        category: string;
+        description: string;
+        formality?: number;
+      }>;
+      why: string;
+    }>;
+  }> {
+    // Use 2.0-flash for speed - no thinking overhead, ~1s response
+    const model = this.vertexAI.getGenerativeModel({
+      model: 'gemini-2.0-flash', // Faster than 2.5-flash (no thinking)
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
+    });
+
+    const result = await this.withSemaphore(() =>
+      withBackoff(() => model.generateContent(prompt), 'gemini:flash:plan'),
+    );
+
+    const text =
+      result.response?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+    console.log('⚡ Gemini Flash outfit plan:', text);
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error('Failed to parse outfit plan JSON:', text);
+      return { outfits: [] };
+    }
   }
 
   // -------------------
