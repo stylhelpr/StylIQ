@@ -19,6 +19,7 @@ import {
   Modal,
   Easing,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -992,13 +993,21 @@ export default function AiStylistChatScreen({navigate}: Props) {
           )}
 
           {/* 💬 Bubble */}
-          <Animatable.View
-            animation="zoomIn"
-            delay={idx * 90 + 80}
-            duration={420}
-            easing="ease-out-cubic"
-            style={bubble.bubble}>
-            <Text style={bubble.text}>{m.text}</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onLongPress={() => {
+              Clipboard.setString(m.text);
+              h('notificationSuccess');
+              Alert.alert('Copied', 'Message copied to clipboard');
+            }}
+            delayLongPress={400}>
+            <Animatable.View
+              animation="zoomIn"
+              delay={idx * 90 + 80}
+              duration={420}
+              easing="ease-out-cubic"
+              style={bubble.bubble}>
+              <Text style={bubble.text}>{m.text}</Text>
             <Text style={bubble.time}>
               {dayjs(m.createdAt).format('h:mm A')}
             </Text>
@@ -1061,7 +1070,8 @@ export default function AiStylistChatScreen({navigate}: Props) {
                 ))}
               </View>
             )}
-          </Animatable.View>
+            </Animatable.View>
+          </TouchableOpacity>
 
           {/* 👤 User avatar */}
           {isUser && (

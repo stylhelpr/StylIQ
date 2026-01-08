@@ -146,6 +146,12 @@ export function useOutfitsQuery(
       const scheduledData: ScheduledOutfitData[] = scheduledRes.data || [];
       const wornCounts: Record<string, number> = wornCountsRes.data || {};
 
+      console.log('📦 useOutfitsQuery fetched:', {
+        aiCount: aiData.length,
+        customCount: customData.length,
+        customData: JSON.stringify(customData, null, 2),
+      });
+
       // Build schedule map
       const scheduleMap: Record<string, string> = {};
       for (const s of scheduledData) {

@@ -77,7 +77,7 @@ export async function querySimilarPosts(params: {
 export async function deletePostEmbedding(postId: string) {
   const ns = index.namespace(COMMUNITY_NAMESPACE);
   await ns.deleteMany([postId]);
-  console.log(`🗑️ Deleted community post ${postId} from Pinecone`);
+  // console.log(`🗑️ Deleted community post ${postId} from Pinecone`);
 }
 
 /**

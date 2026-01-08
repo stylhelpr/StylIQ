@@ -38,6 +38,7 @@ import {API_BASE_URL} from '../config/api';
 import {getAccessToken} from '../utils/auth';
 import ReaderModal from '../components/FashionFeed/ReaderModal';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useQueryClient} from '@tanstack/react-query';
 
 // Auth & style profile
 import {useAuth0} from 'react-native-auth0';
@@ -75,6 +76,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const {styleProfile} = useStyleProfile(user?.sub || '');
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+  const queryClient = useQueryClient();
 
   const insets = useSafeAreaInsets();
 
@@ -155,7 +157,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   ];
 
   // Backend hook
-  const {current, loading, error, regenerate} = useOutfitApi(userId);
+  const {current, loading, error, regenerate, clear} = useOutfitApi(userId);
 
   // Voice input
   const handleVoiceStart = async () => {
@@ -635,7 +637,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       style={[
         styles.cardOverlay,
         globalStyles.cardStyles3,
-        {backgroundColor: theme.colors.surface3},
+        {backgroundColor: 'white'},
       ]}>
       <Image
         source={
@@ -931,6 +933,23 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       <Text style={globalStyles.buttonPrimaryText}>Save</Text>
                     </TouchableOpacity>
                   </View>
+
+                  {/* All Done button */}
+                  <TouchableOpacity
+                    style={[
+                      globalStyles.buttonSecondary,
+                      {
+                        marginTop: 16,
+                        width: '100%',
+                        maxWidth: 400,
+                        alignSelf: 'center',
+                      },
+                    ]}
+                    onPress={clear}>
+                    <Text style={globalStyles.buttonSecondaryText}>
+                      All Done
+                    </Text>
+                  </TouchableOpacity>
                 </>
               )}
 
@@ -1156,13 +1175,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       },
                     );
                     if (!response.ok) {
+                      const errorText = await response.text();
+                      console.error('Save outfit failed:', response.status, errorText);
                       throw new Error(
                         `Failed to save outfit: ${response.status}`,
                       );
                     }
                     await response.json();
+                    // Invalidate saved-outfits cache so SavedOutfitsScreen refreshes
+                    queryClient.invalidateQueries({queryKey: ['saved-outfits', userId]});
                   } catch (err) {
-                    // Error saving outfit silently
+                    console.error('Error saving outfit:', err);
                   } finally {
                     setShowNameModal(false);
                     setPendingSaveOutfit(null);

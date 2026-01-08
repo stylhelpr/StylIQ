@@ -221,7 +221,7 @@ export async function upsertItemNs({
 export async function deleteItemNs(userId: string, itemId: string) {
   const ns = index.namespace(userId);
   await ns.deleteMany([`${itemId}:image`, `${itemId}:text`]);
-  console.log(`🗑️ Deleted vectors for ${itemId} in namespace ${userId}`);
+  // console.log(`🗑️ Deleted vectors for ${itemId} in namespace ${userId}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -487,7 +487,7 @@ export async function forceMetadataUpdate(
 // export async function deleteItemNs(userId: string, itemId: string) {
 //   const ns = index.namespace(userId);
 //   await ns.deleteMany([`${itemId}:image`, `${itemId}:text`]);
-//   console.log(`🗑️ Deleted vectors for ${itemId} in namespace ${userId}`);
+//   // console.log(`🗑️ Deleted vectors for ${itemId} in namespace ${userId}`);
 // }
 
 // /**
@@ -627,7 +627,7 @@ export async function forceMetadataUpdate(
 // export async function deleteItemNs(userId: string, itemId: string) {
 //   const ns = index.namespace(userId);
 //   await ns.deleteMany([`${itemId}:image`, `${itemId}:text`]);
-//   console.log(`🗑️ Deleted vectors for ${itemId} in namespace ${userId}`);
+//   // console.log(`🗑️ Deleted vectors for ${itemId} in namespace ${userId}`);
 // }
 
 // /**

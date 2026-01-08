@@ -179,7 +179,7 @@ export class CalendarService {
       [dto.user_id, dto.event_id],
     );
 
-    console.log(`🗑️ Deleted event ${dto.event_id} for user ${dto.user_id}`);
+    // console.log(`🗑️ Deleted event ${dto.event_id} for user ${dto.user_id}`);
     return { ok: true, deleted: rowCount === 1 };
   }
 }

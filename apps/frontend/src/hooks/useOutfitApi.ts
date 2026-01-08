@@ -245,6 +245,11 @@ export function useOutfitApi(userId?: string) {
   const selectNext = () =>
     setSelected(s => Math.min(s + 1, Math.max(0, outfits.length - 1)));
   const selectPrev = () => setSelected(s => Math.max(s - 1, 0));
+  const clear = useCallback(() => {
+    setOutfits([]);
+    setSelected(0);
+    setErr(null);
+  }, []);
 
   return {
     outfits,
@@ -256,6 +261,7 @@ export function useOutfitApi(userId?: string) {
     regenerate,
     selectNext,
     selectPrev,
+    clear,
   };
 }
 

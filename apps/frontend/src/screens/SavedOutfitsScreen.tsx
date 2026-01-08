@@ -483,6 +483,13 @@ export default function SavedOutfitsScreen() {
   const displayOutfits =
     outfitsState === 'demo' ? demoOutfits : combinedOutfits;
 
+  console.log('🎨 SavedOutfits render:', {
+    outfitsState,
+    combinedOutfitsCount: combinedOutfits?.length,
+    displayOutfitsCount: displayOutfits?.length,
+    hasEverHadOutfits,
+  });
+
   // TanStack Query: Mutations
   const updateOutfitMutation = useUpdateOutfit();
   const deleteOutfitMutation = useDeleteOutfit();
@@ -922,6 +929,12 @@ export default function SavedOutfitsScreen() {
       }
     });
   }, [displayOutfits, occasionFilter, sortType]);
+
+  console.log('🎨 sortedOutfits:', {
+    sortedCount: sortedOutfits?.length,
+    occasionFilter,
+    sortType,
+  });
 
   // Handle scroll for bottom nav hide/show
   const handleScroll = useCallback(

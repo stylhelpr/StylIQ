@@ -36,8 +36,8 @@ export class UsersService {
 
     try {
       const res = await pool.query(
-        `INSERT INTO users (auth0_sub, first_name, last_name, email, profile_picture, created_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())
+        `INSERT INTO users (auth0_sub, first_name, last_name, email, profile_picture, created_at, learning_consent, learning_consent_ts)
+         VALUES ($1, $2, $3, $4, $5, NOW(), true, NOW())
          RETURNING *`,
         [auth0_sub, first_name, last_name, email, cleanedProfilePicture],
       );

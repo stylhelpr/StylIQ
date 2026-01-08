@@ -315,7 +315,7 @@ export class NotificationsService {
           await pool.query(`DELETE FROM push_tokens WHERE token = $1`, [
             t.token,
           ]);
-          console.log('🗑️ Deleted stale FCM token:', t.token.slice(0, 24) + '…');
+          // console.log('🗑️ Deleted stale FCM token:', t.token.slice(0, 24) + '…');
         }
       }
       detail.push({ token: t.token, ok: res.ok, err: res.error });
