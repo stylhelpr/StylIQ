@@ -631,14 +631,24 @@ export class VertexService {
   // Uses gemini-2.0-flash for speed (no thinking overhead)
   // -------------------
   async generateOutfitPlan(prompt: string): Promise<{
-    outfits: Array<{
+    // New format: single outfit
+    outfit?: {
       title: string;
       slots: Array<{
         category: string;
         description: string;
         formality?: number;
       }>;
-      why: string;
+    };
+    // Old format: array of outfits (backwards compatibility)
+    outfits?: Array<{
+      title: string;
+      slots: Array<{
+        category: string;
+        description: string;
+        formality?: number;
+      }>;
+      why?: string;
     }>;
   }> {
     // Use 2.0-flash for speed - no thinking overhead, ~1s response

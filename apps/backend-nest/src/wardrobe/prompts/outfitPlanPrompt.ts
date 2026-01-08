@@ -1,8 +1,6 @@
 // apps/backend-nest/src/wardrobe/prompts/outfitPlanPrompt.ts
-// Lightweight plan-only prompt for new architecture
-// NO catalog, NO items, NO images - just slot descriptions for backend retrieval
-
-import { STYLE_AGENTS } from '../logic/style-agents';
+// STATELESS, DETERMINISTIC outfit planning engine
+// NO personal preferences, NO learning, NO bias - pure constraints-based logic
 
 export type OutfitPlanSlot = {
   category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
@@ -13,121 +11,136 @@ export type OutfitPlanSlot = {
 export type OutfitPlan = {
   title: string;
   slots: OutfitPlanSlot[];
-  why: string;
 };
 
 export type OutfitPlanResponse = {
-  outfits: OutfitPlan[];
+  outfit: OutfitPlan;
 };
+
+// Derive formality from query keywords
+function deriveFormality(query: string): number {
+  const q = query.toLowerCase();
+  if (/\b(formal|business|interview|wedding|gala|black.?tie)\b/.test(q)) return 9;
+  if (/\b(smart.?casual|business.?casual|dinner|date|upscale)\b/.test(q)) return 7;
+  if (/\b(casual|everyday|relaxed|weekend|brunch)\b/.test(q)) return 4;
+  if (/\b(gym|workout|athletic|exercise|training)\b/.test(q)) return 2;
+  if (/\b(lounge|home|sleep|pajama)\b/.test(q)) return 1;
+  return 5; // default middle
+}
+
+// Derive occasion from query
+function deriveOccasion(query: string): string | null {
+  const q = query.toLowerCase();
+  if (/\b(work|office|meeting|interview)\b/.test(q)) return 'work';
+  if (/\b(date|dinner|restaurant)\b/.test(q)) return 'date';
+  if (/\b(wedding|formal|gala)\b/.test(q)) return 'formal event';
+  if (/\b(gym|workout|exercise|training)\b/.test(q)) return 'athletic';
+  if (/\b(weekend|casual|everyday|errand)\b/.test(q)) return 'casual';
+  if (/\b(party|club|night.?out)\b/.test(q)) return 'nightlife';
+  if (/\b(beach|pool|vacation)\b/.test(q)) return 'vacation';
+  return null;
+}
+
+// Derive season from query or weather
+function deriveSeason(query: string, weather?: { temp_f?: number }): string | null {
+  const q = query.toLowerCase();
+  if (/\b(winter|cold|freezing|snow)\b/.test(q)) return 'winter';
+  if (/\b(summer|hot|warm|beach)\b/.test(q)) return 'summer';
+  if (/\b(spring|mild)\b/.test(q)) return 'spring';
+  if (/\b(fall|autumn|cool)\b/.test(q)) return 'fall';
+
+  // Derive from temperature if provided
+  if (weather?.temp_f !== undefined) {
+    if (weather.temp_f < 40) return 'winter';
+    if (weather.temp_f < 60) return 'fall';
+    if (weather.temp_f < 75) return 'spring';
+    return 'summer';
+  }
+  return null;
+}
+
+// Derive weather condition
+function deriveWeather(query: string, weather?: { temp_f?: number; condition?: string }): string | null {
+  if (weather?.condition) return weather.condition;
+  const q = query.toLowerCase();
+  if (/\b(rain|rainy|wet)\b/.test(q)) return 'rainy';
+  if (/\b(snow|snowy|snowing)\b/.test(q)) return 'snowy';
+  if (/\b(hot|sunny|warm)\b/.test(q)) return 'warm';
+  if (/\b(cold|freezing|chilly)\b/.test(q)) return 'cold';
+  return null;
+}
 
 export function buildOutfitPlanPrompt(
   userQuery: string,
   options?: {
-    styleAgent?: string;
-    userStyleProfile?: {
-      preferredColors?: string[];
-      favoriteBrands?: string[];
-      styleKeywords?: string[];
-      dressBias?: string;
-    };
+    styleAgent?: string; // ignored - no personalization
+    userStyleProfile?: unknown; // ignored - no personalization
     weather?: {
       temp_f?: number;
       condition?: string;
       humidity?: number;
     };
-    availableItems?: string[]; // e.g., ["Tops: t-shirt", "Bottoms: jeans", "Shoes: sneakers"]
+    availableItems?: string[];
+    currentOutfitContext?: string; // For refinements
   },
 ): string {
-  const { styleAgent, userStyleProfile, weather, availableItems } =
-    options || {};
+  const { weather, availableItems, currentOutfitContext } = options || {};
 
-  const s = (userQuery || '').toLowerCase();
-  const gymIntent = /\b(gym|work ?out|workout|training|exercise)\b/.test(s);
-  const upscaleIntent =
-    /\b(upscale|smart\s*casual|business|formal|dressy|rooftop)\b/.test(s);
-  const casualIntent = /\b(casual|relaxed|chill|laid\s*back)\b/.test(s);
+  // Derive constraints from query
+  const formality = deriveFormality(userQuery);
+  const occasion = deriveOccasion(userQuery);
+  const season = deriveSeason(userQuery, weather);
+  const weatherCondition = deriveWeather(userQuery, weather);
 
-  let styleContextLine = '';
+  // Build constraints object
+  const constraints: Record<string, unknown> = {
+    formality,
+  };
+  if (occasion) constraints.occasion = occasion;
+  if (weatherCondition) constraints.weather = weatherCondition;
+  if (season) constraints.season = season;
 
-  if (styleAgent && STYLE_AGENTS[styleAgent]) {
-    const a = STYLE_AGENTS[styleAgent];
-    styleContextLine = `
-STYLE AGENT: "${a.name}"
-- Preferred colors: ${a.preferredColors?.join(', ') || 'n/a'}
-- Favorite brands: ${a.favoriteBrands?.join(', ') || 'n/a'}
-- Dress bias: ${a.dressBias || 'n/a'}
-- Style keywords: ${a.styleKeywords?.join(', ') || 'n/a'}
-    `.trim();
-  } else if (userStyleProfile) {
-    styleContextLine = `
-USER STYLE PROFILE:
-- Preferred colors: ${userStyleProfile.preferredColors?.join(', ') || 'n/a'}
-- Favorite brands: ${userStyleProfile.favoriteBrands?.join(', ') || 'n/a'}
-- Style keywords: ${userStyleProfile.styleKeywords?.join(', ') || 'n/a'}
-- Dress bias: ${userStyleProfile.dressBias || 'n/a'}
-    `.trim();
-  }
-
-  let weatherLine = '';
-  if (weather?.temp_f !== undefined) {
-    weatherLine = `WEATHER: ${weather.temp_f}°F, ${weather.condition || 'clear'}${weather.humidity ? `, ${weather.humidity}% humidity` : ''}`;
-  }
-
-  // Build available items constraint
-  let availableItemsLine = '';
+  // Build available items constraint (for wardrobe filtering)
+  let availableItemsConstraint = '';
   if (availableItems?.length) {
-    availableItemsLine = `
-AVAILABLE IN WARDROBE (ONLY suggest items from these types):
-${availableItems.join('\n')}
-
-⚠️ CRITICAL: You MUST ONLY suggest items that match the types listed above. Do NOT suggest slides, sandals, swim trunks, or any item type not in the wardrobe.`;
+    availableItemsConstraint = `
+WARDROBE CONSTRAINT (only use item types from this list):
+${availableItems.join(', ')}`;
   }
 
-  return `
-You are a world-class personal stylist. Generate an outfit PLAN based on the user's request.
+  // Build current outfit context for refinements
+  let refinementContext = '';
+  if (currentOutfitContext) {
+    refinementContext = `
+${currentOutfitContext}`;
+  }
 
-USER REQUEST: "${userQuery || 'casual everyday outfit'}"
-${styleContextLine}
-${weatherLine}
-${availableItemsLine}
-INTENT: ${JSON.stringify({ gymIntent, upscaleIntent, casualIntent })}
+  return `SYSTEM: Stateless outfit planning engine. Generate ONE outfit. No commentary.
 
-RULES:
-1. Generate 2-3 outfit plans
-2. Each outfit MUST have slots for: Tops, Bottoms, Shoes
-3. Outerwear and Accessories are optional
-4. Each slot description should be specific enough to search a wardrobe (e.g., "navy chinos" not just "pants")
-5. Include formality score (1-10) for each slot to help matching
-6. Reflect user style preferences in your choices
-7. ONLY suggest item types that exist in the user's wardrobe (see AVAILABLE IN WARDROBE above)
-
-SLOT CATEGORIES (use exactly these):
-- Tops: shirts, t-shirts, polos, sweaters, blouses
-- Bottoms: pants, jeans, chinos, shorts, skirts
-- Shoes: sneakers, loafers, boots, heels, sandals
-- Outerwear: jackets, blazers, coats, cardigans
-- Accessories: belts, watches, bags, scarves, hats
-
-INTENT GUARDRAILS:
-- gymIntent: athletic wear, sneakers, performance fabrics
-- upscaleIntent: dressier items, no hoodies/athletic wear
-- casualIntent: relaxed fits, comfortable materials
-
-OUTPUT FORMAT (STRICT - use exactly this structure):
+INPUT:
 {
-  "outfits": [
-    {
-      "title": "Outfit Name",
-      "slots": [
-        {"category": "Tops", "description": "specific item description", "formality": 5},
-        {"category": "Bottoms", "description": "specific item description", "formality": 5},
-        {"category": "Shoes", "description": "specific item description", "formality": 5}
-      ],
-      "why": "Brief reason for this outfit"
-    }
-  ]
+  "request": "${userQuery}",
+  "constraints": ${JSON.stringify(constraints)}
+}
+${availableItemsConstraint}${refinementContext}
+
+OUTPUT (JSON only):
+{
+  "outfit": {
+    "title": "string",
+    "slots": [
+      {"category": "Tops", "description": "generic item", "formality": N},
+      {"category": "Bottoms", "description": "generic item", "formality": N},
+      {"category": "Shoes", "description": "generic item", "formality": N}
+    ]
+  }
 }
 
-Return ONLY valid JSON. No markdown, no code fences, no explanation.
-`.trim();
+RULES:
+- ONE outfit only
+- Slots: Tops, Bottoms, Shoes required. Outerwear, Accessories optional.
+- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
+- No brands, no specific items, no images
+- Formality 1-10 per slot
+- JSON only, no extra text`;
 }

@@ -1619,7 +1619,7 @@ ${lockedLines}
     console.log('⚡ [FAST] Full query:', query);
 
     try {
-      const { userStyle, weather, styleAgent, lockedItemIds = [] } = opts || {};
+      const { weather, lockedItemIds = [] } = opts || {};
 
       // ── 0) Fetch available item types from user's wardrobe ──
       const { rows: categoryRows } = await pool.query(
@@ -1654,27 +1654,16 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
         }
       }
 
-      // ── 1) Generate outfit PLAN using Gemini Flash (no catalog!) ──
-      // Append current outfit info to the query so LLM knows what items to keep
-      const queryWithContext = currentOutfitInfo ? `${query}\n\n${currentOutfitInfo}` : query;
-      const planPrompt = buildOutfitPlanPrompt(queryWithContext, {
-        styleAgent,
-        userStyleProfile: userStyle
-          ? {
-              preferredColors: userStyle.preferredColors,
-              favoriteBrands: userStyle.favoriteBrands,
-              styleKeywords: userStyle.styleKeywords,
-              dressBias: userStyle.dressBias,
-            }
-          : undefined,
+      // ── 1) Generate outfit PLAN using Gemini Flash (stateless, deterministic) ──
+      const planPrompt = buildOutfitPlanPrompt(query, {
         weather: weather
           ? {
               temp_f: weather.tempF,
               condition: weather.precipitation,
-              humidity: undefined,
             }
           : undefined,
-        availableItems, // Pass available item types to constrain suggestions
+        availableItems,
+        currentOutfitContext: currentOutfitInfo || undefined,
       });
 
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
@@ -1690,7 +1679,12 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
       );
       console.log('⚡ [FAST] Plan:', JSON.stringify(plan, null, 2));
 
-      if (!plan.outfits?.length) {
+      // Handle both new format (single outfit) and old format (outfits array)
+      const outfitsArray = plan.outfit
+        ? [plan.outfit]
+        : plan.outfits || [];
+
+      if (!outfitsArray.length) {
         console.warn('⚡ [FAST] No outfits in plan, returning empty');
         return {
           request_id: randomUUID(),
@@ -1708,11 +1702,11 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
       type SlotWithContext = {
         outfitIdx: number;
         slotIdx: number;
-        slot: (typeof plan.outfits)[0]['slots'][0];
+        slot: { category: string; description: string; formality?: number };
       };
       const allSlots: SlotWithContext[] = [];
-      plan.outfits.forEach((outfit, outfitIdx) => {
-        outfit.slots.forEach((slot, slotIdx) => {
+      outfitsArray.forEach((outfit, outfitIdx) => {
+        outfit.slots.forEach((slot: any, slotIdx: number) => {
           allSlots.push({ outfitIdx, slotIdx, slot });
         });
       });
@@ -1768,7 +1762,7 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
       }
 
       // Reconstruct assembledOutfits structure
-      const assembledOutfits = plan.outfits.map((outfitPlan, outfitIdx) => {
+      const assembledOutfits = outfitsArray.map((outfitPlan, outfitIdx) => {
         const slotResults = pineconeResults
           .filter((r) => r.outfitIdx === outfitIdx)
           .sort((a, b) => a.slotIdx - b.slotIdx)
@@ -1889,9 +1883,9 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
 
         return {
           outfit_id: randomUUID(),
-          title: outfitPlan.title,
+          title: outfitPlan.title || 'Outfit',
           items,
-          why: outfitPlan.why,
+          why: (outfitPlan as any).why || '',
         };
       });
 
