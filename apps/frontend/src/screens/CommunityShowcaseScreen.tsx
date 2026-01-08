@@ -1340,9 +1340,11 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       fontWeight: tokens.fontWeight.semiBold,
     },
     commentLikeContainer: {
+      flexDirection: 'row',
       alignItems: 'center',
       marginLeft: 12,
       paddingTop: 4,
+      gap: 12,
     },
     replyingToContainer: {
       flexDirection: 'row',
@@ -2420,8 +2422,23 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                       </Pressable>
                     </View>
 
-                    {/* Like Button + Count on Right */}
+                    {/* Like Button + Count + Delete on Right */}
                     <View style={styles.commentLikeContainer}>
+                      {/* Delete button - only for own comments */}
+                      {item.user_id === userId && (
+                        <Pressable
+                          onPress={() =>
+                            activePostId &&
+                            handleDeleteComment(activePostId, item.id)
+                          }
+                          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                          <MaterialIcons
+                            name="delete-outline"
+                            size={18}
+                            color={theme.colors.muted}
+                          />
+                        </Pressable>
+                      )}
                       <Pressable
                         onPress={() =>
                           activePostId &&
