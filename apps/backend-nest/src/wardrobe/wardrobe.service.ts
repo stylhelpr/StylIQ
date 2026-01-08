@@ -1633,28 +1633,109 @@ ${lockedLines}
       );
       console.log('⚡ [FAST] Available item types:', availableItems.join(', '));
 
-      // ── 0b) For refinements, fetch locked items so we can tell the LLM what to keep ──
-      let currentOutfitInfo = '';
+      // ── 0b) For refinements, determine which SLOTS to keep vs change ──
+      // CRITICAL: LLM NEVER receives item names, only slot-level actions
+      // Parse user's refinement prompt to detect EXPLICIT change requests
       const isRefinement = query.toLowerCase().includes('refinement');
+      let refinementAction: { keep_slots: string[]; change_slots: string[] } | undefined;
+      let lockedItemsByCategory = new Map<string, string>(); // category -> itemId
+
       if (isRefinement && lockedItemIds.length > 0) {
+        // Fetch locked items to determine their categories ONLY (not to pass names to LLM)
         const { rows: lockedRows } = await pool.query(
-          `SELECT id, name, main_category, subcategory, color
+          `SELECT id, main_category
            FROM wardrobe_items
            WHERE id = ANY($1) AND user_id = $2`,
           [lockedItemIds, userId],
         );
-        if (lockedRows.length > 0) {
-          currentOutfitInfo = `
-CURRENT OUTFIT (these are the items the user currently has selected):
-${lockedRows.map((r: any) => `- ${r.main_category}: "${r.name}" (${r.color || 'unknown color'} ${r.subcategory || ''})`).join('\n')}
 
-When the user says "keep the X", use a slot description that will match that EXACT item above.
-When the user says "change the Y", generate a DIFFERENT slot description for that category.`;
-          console.log('⚡ [FAST] Current outfit info:', currentOutfitInfo);
+        // Build category -> itemId map for ALL locked items
+        const lockedCategories: string[] = [];
+        for (const row of lockedRows as any[]) {
+          const cat = row.main_category;
+          if (cat) {
+            lockedCategories.push(cat);
+            lockedItemsByCategory.set(cat.toLowerCase(), row.id);
+          }
         }
+
+        // Parse refinement prompt to detect which categories user wants to CHANGE
+        // CRITICAL: Only parse the REFINEMENT portion, not the original query
+        // Extract just the user's refinement text from within quotes
+        const refinementMatch = query.match(/IMPORTANT REFINEMENT:.*?"([^"]+)"/i);
+        const refinementText = refinementMatch ? refinementMatch[1].toLowerCase() : '';
+
+        console.log('⚡ [FAST] Parsing refinement text only:', refinementText);
+
+        const categoryKeywords: Record<string, string[]> = {
+          tops: ['shirt', 'top', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'cardigan'],
+          bottoms: ['pants', 'jeans', 'shorts', 'trousers', 'bottom', 'skirt', 'chinos'],
+          shoes: ['shoes', 'sneakers', 'boots', 'loafers', 'sandals', 'heels', 'footwear'],
+          outerwear: ['jacket', 'coat', 'blazer', 'outerwear', 'windbreaker', 'puffer'],
+          accessories: ['belt', 'accessory', 'accessories', 'watch', 'hat', 'scarf', 'bag'],
+        };
+
+        // Detect categories mentioned with explicit "change" intent
+        // More precise patterns - require change verb directly before category
+        const changeIntentPatterns = [
+          /(?:change|different|switch|swap|new|another)\s+(?:the\s+)?(\w+)/gi,
+          /(?:give\s+me|want|need)\s+(?:a\s+|some\s+)?(?:different\s+)?(?:\w+\s+)?(\w+)/gi,
+        ];
+
+        const explicitlyChangeCategories: string[] = [];
+
+        // Only parse if we have refinement text (not the original query!)
+        if (refinementText) {
+          for (const pattern of changeIntentPatterns) {
+            let match;
+            while ((match = pattern.exec(refinementText)) !== null) {
+              const word = match[1]?.toLowerCase()?.trim();
+              if (!word) continue;
+
+              // Find which category this word belongs to
+              for (const [cat, keywords] of Object.entries(categoryKeywords)) {
+                if (keywords.some((kw) => word.includes(kw) || kw.includes(word))) {
+                  const normalizedCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+                  if (!explicitlyChangeCategories.includes(normalizedCat)) {
+                    explicitlyChangeCategories.push(normalizedCat);
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        console.log('⚡ [FAST] Refinement - detected explicit change intent for:', explicitlyChangeCategories);
+
+        // Keep slots = locked categories MINUS explicitly changed ones
+        const keepCategories = lockedCategories.filter(
+          (c) => !explicitlyChangeCategories.map((e) => e.toLowerCase()).includes(c.toLowerCase()),
+        );
+
+        // Remove explicitly changed categories from lockedItemsByCategory
+        for (const changeCat of explicitlyChangeCategories) {
+          lockedItemsByCategory.delete(changeCat.toLowerCase());
+        }
+
+        // All standard categories
+        const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+
+        // Change slots = categories NOT being kept
+        const changeCategories = allCategories.filter(
+          (c) => !keepCategories.map((k) => k.toLowerCase()).includes(c.toLowerCase()),
+        );
+
+        refinementAction = {
+          keep_slots: keepCategories,
+          change_slots: changeCategories,
+        };
+
+        console.log('⚡ [FAST] Refinement - keep slots:', keepCategories, 'change slots:', changeCategories);
+        console.log('⚡ [FAST] Refinement - NO item names sent to LLM (slot-level only)');
       }
 
       // ── 1) Generate outfit PLAN using Gemini Flash (stateless, deterministic) ──
+      // CRITICAL: refinementAction contains ONLY slot categories, NEVER item names
       const planPrompt = buildOutfitPlanPrompt(query, {
         weather: weather
           ? {
@@ -1663,7 +1744,7 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
             }
           : undefined,
         availableItems,
-        currentOutfitContext: currentOutfitInfo || undefined,
+        refinementAction, // Slot-level only - NO item names ever sent to LLM
       });
 
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
@@ -1818,10 +1899,11 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
       );
 
       // ── 4) Assemble final outfits with real items ──
-      // For refinements, we let the LLM plan drive selection since we gave it
-      // the current outfit info and it knows what to keep vs change.
+      // For refinements: backend handles kept items directly (no LLM involvement with item names)
+      // LLM only provides generic descriptions for CHANGED slots
       if (isRefinement) {
-        console.log('⚡ [FAST] Refinement detected - LLM plan drives selection based on current outfit context');
+        console.log('⚡ [FAST] Refinement - backend directly uses locked items for kept slots');
+        console.log('⚡ [FAST] Refinement - LLM only generated descriptions for changed slots');
       }
 
       const outfits = assembledOutfits.map((assembled) => {
@@ -1831,9 +1913,20 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
         const items: CatalogItem[] = [];
         const usedIds = new Set<string>();
 
-        // For refinements, skip locked items entirely - let the LLM plan drive selection
-        // For non-refinements, add locked items first
-        if (!isRefinement) {
+        // For refinements: directly add locked items for KEPT slots (backend-only, no LLM)
+        // For non-refinements: add all locked items first
+        if (isRefinement && lockedItemsByCategory.size > 0) {
+          // Add kept items directly from locked items map
+          for (const [category, itemId] of lockedItemsByCategory) {
+            const item = itemsMap.get(itemId);
+            if (item && !usedIds.has(itemId)) {
+              items.push(this.dbRowToCatalogItem(item));
+              usedIds.add(itemId);
+              console.log(`⚡ [FAST] Kept ${category} slot: ${item.name} (backend-direct, no LLM)`);
+            }
+          }
+        } else if (!isRefinement) {
+          // Non-refinement: add all locked items
           for (const lockedId of lockedItemIds) {
             const item = itemsMap.get(lockedId);
             if (item && !usedIds.has(lockedId)) {
@@ -1843,9 +1936,9 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
           }
         }
 
-        // Fill slots with best matches from Pinecone
+        // Fill CHANGED slots with best matches from Pinecone (based on LLM's generic descriptions)
         for (const sr of slotResults) {
-          // Skip if we already have an item for this category from locked items
+          // Skip if we already have an item for this category (from kept slots)
           const categoryMain = this.slotCategoryToMainCategory(
             sr.slot.category as OutfitPlanSlot['category'],
           );
@@ -1856,7 +1949,7 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
 
           if (alreadyHasCategory) continue;
 
-          // Pick best unused match
+          // Pick best unused match from Pinecone results
           for (const match of sr.matches) {
             const itemId = this.normalizePineconeId(match.id as string).id;
             if (usedIds.has(itemId)) continue;
@@ -1865,6 +1958,9 @@ When the user says "change the Y", generate a DIFFERENT slot description for tha
             if (item) {
               items.push(this.dbRowToCatalogItem(item));
               usedIds.add(itemId);
+              if (isRefinement) {
+                console.log(`⚡ [FAST] Changed ${categoryMain} slot: ${item.name} (from LLM description: "${sr.slot.description}")`);
+              }
               break;
             }
           }

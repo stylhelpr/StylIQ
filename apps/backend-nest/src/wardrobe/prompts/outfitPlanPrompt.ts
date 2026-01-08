@@ -70,6 +70,12 @@ function deriveWeather(query: string, weather?: { temp_f?: number; condition?: s
   return null;
 }
 
+// Refinement action types - slot-level only, NO item names
+export type RefinementAction = {
+  keep_slots: string[]; // Categories to keep (e.g., ["Tops", "Shoes"])
+  change_slots: string[]; // Categories to change (e.g., ["Bottoms"])
+};
+
 export function buildOutfitPlanPrompt(
   userQuery: string,
   options?: {
@@ -81,10 +87,10 @@ export function buildOutfitPlanPrompt(
       humidity?: number;
     };
     availableItems?: string[];
-    currentOutfitContext?: string; // For refinements
+    refinementAction?: RefinementAction; // Slot-level only - NO item names ever
   },
 ): string {
-  const { weather, availableItems, currentOutfitContext } = options || {};
+  const { weather, availableItems, refinementAction } = options || {};
 
   // Derive constraints from query
   const formality = deriveFormality(userQuery);
@@ -108,11 +114,14 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Build current outfit context for refinements
-  let refinementContext = '';
-  if (currentOutfitContext) {
-    refinementContext = `
-${currentOutfitContext}`;
+  // Build refinement instruction - SLOT-LEVEL ONLY, NO ITEM NAMES
+  let refinementInstruction = '';
+  if (refinementAction && refinementAction.change_slots.length > 0) {
+    refinementInstruction = `
+REFINEMENT MODE:
+- SKIP these categories (already selected, do not include in output): ${refinementAction.keep_slots.join(', ')}
+- GENERATE NEW descriptions ONLY for: ${refinementAction.change_slots.join(', ')}
+- Output ONLY the slots that need to change`;
   }
 
   return `SYSTEM: Stateless outfit planning engine. Generate ONE outfit. No commentary.
@@ -122,7 +131,7 @@ INPUT:
   "request": "${userQuery}",
   "constraints": ${JSON.stringify(constraints)}
 }
-${availableItemsConstraint}${refinementContext}
+${availableItemsConstraint}${refinementInstruction}
 
 OUTPUT (JSON only):
 {
@@ -140,7 +149,7 @@ RULES:
 - ONE outfit only
 - Slots: Tops, Bottoms, Shoes required. Outerwear, Accessories optional.
 - Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
-- No brands, no specific items, no images
+- No brands, no specific items, no images, no item names
 - Formality 1-10 per slot
 - JSON only, no extra text`;
 }
