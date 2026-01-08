@@ -82,7 +82,7 @@ export default function LoginScreen({
       alignItems: 'center',
     },
     logoText: {
-      fontSize: 64,
+      fontSize: 58,
       fontWeight: '900',
       color: '#fff',
       textShadowColor: 'rgba(0,0,0,0.8)',
@@ -328,7 +328,7 @@ export default function LoginScreen({
 
       <View style={styles.container}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>StylHelpr</Text>
+          <Text style={styles.logoText} numberOfLines={1} adjustsFontSizeToFit>STYLHELPR</Text>
           <Text style={styles.subtitle} numberOfLines={1} adjustsFontSizeToFit>
             A fashion intelligence platform centered on you
           </Text>

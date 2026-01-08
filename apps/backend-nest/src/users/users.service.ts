@@ -43,7 +43,7 @@ export class UsersService {
       );
 
       // Log only user ID, never PII (email, name)
-      console.log('🟢 USER CREATED:', res.rows[0]?.id);
+      // console.log('🟢 USER CREATED:', res.rows[0]?.id);
       return res.rows[0];
     } catch (error) {
       // Log error type only, not user data

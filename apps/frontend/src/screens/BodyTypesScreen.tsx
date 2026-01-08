@@ -22,13 +22,11 @@ const h = (type: string) =>
   });
 
 const bodyTypes = [
-  'Ectomorph',
-  'Mesomorph',
-  'Endomorph',
   'Inverted Triangle',
+  'Triangle (Pear)',
   'Rectangle',
-  'Oval',
-  'Triangle',
+  'Oval (Apple)',
+  'Hourglass',
 ];
 
 export default function BodyTypeScreen({navigate}: Props) {

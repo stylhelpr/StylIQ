@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Modal,
   TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 
 import * as Animatable from 'react-native-animatable';
@@ -28,6 +29,7 @@ import {getAccessToken} from '../utils/auth';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {getData} from 'country-list';
+import {Chip} from '../components/Chip/Chip';
 
 type Props = {navigate: (screen: string, params?: any) => void};
 
@@ -1146,6 +1148,10 @@ export default function OnboardingScreen({navigate}: Props) {
     shoe: {size: null, fit: null},
   });
 
+  // State for favorite brands
+  const [favoriteBrands, setFavoriteBrands] = useState<string[]>([]);
+  const [newBrandInput, setNewBrandInput] = useState('');
+
   // Navigation helper
   const goToSlide = (slideIndex: number) => {
     flatListRef.current?.scrollToIndex({
@@ -1273,6 +1279,8 @@ export default function OnboardingScreen({navigate}: Props) {
           styleProfilePayload.fit_preferences = selectedShoppingPriorities;
         if (selectedPersonalityTraits.length > 0)
           styleProfilePayload.personality_traits = selectedPersonalityTraits;
+        if (favoriteBrands.length > 0)
+          styleProfilePayload.preferred_brands = favoriteBrands;
 
         const prefsJsonb: Record<string, any> = {};
         if (selectedClothingTypes.length > 0)
@@ -1298,7 +1306,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // 👇 NEW: go to the LAST CARD (GetStarted)
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 21,
+          index: 22,
           animated: true,
         });
       });
@@ -1308,7 +1316,7 @@ export default function OnboardingScreen({navigate}: Props) {
       // still go to last card even if the request fails
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
-          index: 21,
+          index: 22,
           animated: true,
         });
       });
@@ -1324,15 +1332,21 @@ export default function OnboardingScreen({navigate}: Props) {
   // OLD FORM SLIDE
   // ------------------------
   const OldFormSlide = (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      style={[styles.formContainer, {backgroundColor: theme.colors.surface}]}>
-      <Animatable.View
+    <View style={{flex: 1, backgroundColor: theme.colors.surface}}>
+      <TouchableOpacity
+        style={{position: 'absolute', top: 60, left: 20, zIndex: 10, padding: 8}}
+        onPress={goToPrevSlide}>
+        <Text style={styles.backButtonText}>‹</Text>
+      </TouchableOpacity>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        style={[styles.formContainer, {backgroundColor: theme.colors.surface}]}>
+        <Animatable.View
         animation="fadeInUp"
         duration={600}
         style={[styles.card, {backgroundColor: theme.colors.surface}]}>
         <Text style={[styles.title, {color: theme.colors.button1}]}>
-          Welcome to StylHelpr
+          Personal Information
         </Text>
 
         <Text style={styles.label}>First Name</Text>
@@ -1510,6 +1524,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </View>
       </Modal>
     </ScrollView>
+    </View>
   );
 
   // ------------------------
@@ -1934,7 +1949,7 @@ export default function OnboardingScreen({navigate}: Props) {
           </TouchableOpacity>
         </View>
         <View style={styles.onboardingContent}>
-          <Text style={styles.onboardingTitle}>Where do you live?</Text>
+          <Text style={styles.onboardingTitle}>What country do you reside in</Text>
           <TouchableOpacity
             style={styles.countrySelector}
             onPress={() => setShowCountryPicker(true)}>
@@ -2044,15 +2059,104 @@ export default function OnboardingScreen({navigate}: Props) {
     </View>
   );
 
+  // Slide: Favorite Brands
+  const handleAddBrand = () => {
+    const trimmed = newBrandInput.trim();
+    if (!trimmed) return;
+    const exists = favoriteBrands.some(
+      b => b.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (exists) {
+      setNewBrandInput('');
+      return;
+    }
+    setFavoriteBrands([...favoriteBrands, trimmed]);
+    setNewBrandInput('');
+  };
+
+  const removeBrand = (brand: string) => {
+    setFavoriteBrands(favoriteBrands.filter(b => b !== brand));
+  };
+
+  const FavoriteBrandsSlideElement = (
+    <View style={styles.onboardingContainer}>
+      <View style={styles.onboardingHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={goToPrevSlide}>
+          <Text style={styles.backButtonText}>‹</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.skipButton} onPress={goToNextSlide}>
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        style={styles.onboardingContent}
+        contentContainerStyle={{paddingBottom: 20}}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+        <Text style={styles.onboardingTitle}>What are your favorite brands?</Text>
+        <Text style={{color: theme.colors.muted, fontSize: 14, marginBottom: 16, textAlign: 'center'}}>
+          Enter a brand name and press Enter
+        </Text>
+        <TextInput
+          placeholder="Add a brand"
+          placeholderTextColor={theme.colors.muted}
+          style={{
+            borderWidth: 1,
+            borderColor: theme.colors.inputBorder,
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 16,
+            backgroundColor: theme.colors.input2,
+            color: theme.colors.foreground,
+            width: '100%',
+            marginBottom: 8,
+          }}
+          value={newBrandInput}
+          onChangeText={setNewBrandInput}
+          onSubmitEditing={handleAddBrand}
+          blurOnSubmit={false}
+          returnKeyType="done"
+        />
+        <TouchableOpacity
+          onPress={handleAddBrand}
+          style={{
+            alignSelf: 'center',
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            marginBottom: 16,
+          }}>
+          <Text style={{color: theme.colors.primary, fontSize: 15, fontWeight: '600'}}>
+            + Add More
+          </Text>
+        </TouchableOpacity>
+        <View style={globalStyles.pillContainer}>
+          {favoriteBrands.length === 0 && (
+            <Text style={{color: theme.colors.muted, marginBottom: 8}}>
+              No brands yet — add one above.
+            </Text>
+          )}
+          {favoriteBrands.map(brand => (
+            <Chip
+              key={brand}
+              label={brand}
+              selected={true}
+              onPress={() => removeBrand(brand)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+      <View style={styles.bottomButtonContainer}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={goToNextSlide}>
+          <Text style={styles.primaryButtonText}>Next</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   // Slide 6: Hair Color selection
-  const hairColors = [
-    {name: 'Black', color: '#1C1C1C'},
-    {name: 'Brown', color: '#4A3728'},
-    {name: 'Blonde', color: '#D4A574'},
-    {name: 'Red', color: '#8B2500'},
-    {name: 'Gray', color: '#808080'},
-    {name: 'Other', color: null},
-  ];
+  const hairColorOptions = ['Black', 'Brown', 'Blonde', 'Red', 'Gray', 'White', 'Dyed', 'Other'];
   const HairColorSlide = () => (
     <View style={styles.onboardingContainer}>
       <View style={styles.onboardingHeader}>
@@ -2064,56 +2168,26 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
       </View>
       <View style={styles.onboardingContent}>
-        <Text style={styles.onboardingTitle}>What is your hair color?</Text>
-        {hairColors.map(item => (
-          <TouchableOpacity
-            key={item.name}
-            style={styles.colorOptionRow}
-            onPress={() => {
-              setSelectedHairColor(item.name);
-              setTimeout(goToNextSlide, 300);
-            }}>
-            {item.color ? (
-              <View
-                style={[styles.colorSwatch, {backgroundColor: item.color}]}
-              />
-            ) : (
-              <View style={styles.colorSwatchOther}>
-                <Text style={{fontSize: 18}}>?</Text>
-              </View>
-            )}
-            <Text
-              style={
-                selectedHairColor === item.name
-                  ? styles.optionTextSelected
-                  : styles.optionText
-              }>
-              {item.name}
-            </Text>
-            <View style={{flex: 1}} />
-            <Text
-              style={
-                selectedHairColor === item.name
-                  ? styles.checkmarkSelected
-                  : styles.checkmark
-              }>
-              ✓
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.onboardingTitle}>What color is your hair?</Text>
+        <View style={globalStyles.pillContainer}>
+          {hairColorOptions.map(color => (
+            <Chip
+              key={color}
+              label={color}
+              selected={selectedHairColor === color}
+              onPress={() => {
+                setSelectedHairColor(color);
+                setTimeout(goToNextSlide, 300);
+              }}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
 
   // Slide 11: Eye Color selection
-  const eyeColors = [
-    {name: 'Brown', color: '#5D4037'},
-    {name: 'Blue', color: '#1976D2'},
-    {name: 'Green', color: '#388E3C'},
-    {name: 'Hazel', color: '#8D6E63'},
-    {name: 'Gray', color: '#78909C'},
-    {name: 'Other', color: null},
-  ];
+  const eyeColorOptions = ['Brown', 'Blue', 'Green', 'Hazel', 'Gray', 'Amber', 'Other'];
   const EyeColorSlide = () => (
     <View style={styles.onboardingContainer}>
       <View style={styles.onboardingHeader}>
@@ -2125,56 +2199,32 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
       </View>
       <View style={styles.onboardingContent}>
-        <Text style={styles.onboardingTitle}>What is your eye color?</Text>
-        {eyeColors.map(item => (
-          <TouchableOpacity
-            key={item.name}
-            style={styles.colorOptionRow}
-            onPress={() => {
-              setSelectedEyeColor(item.name);
-              setTimeout(goToNextSlide, 300);
-            }}>
-            {item.color ? (
-              <View
-                style={[styles.colorSwatch, {backgroundColor: item.color}]}
-              />
-            ) : (
-              <View style={styles.colorSwatchOther}>
-                <Text style={{fontSize: 18}}>?</Text>
-              </View>
-            )}
-            <Text
-              style={
-                selectedEyeColor === item.name
-                  ? styles.optionTextSelected
-                  : styles.optionText
-              }>
-              {item.name}
-            </Text>
-            <View style={{flex: 1}} />
-            <Text
-              style={
-                selectedEyeColor === item.name
-                  ? styles.checkmarkSelected
-                  : styles.checkmark
-              }>
-              ✓
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.onboardingTitle}>What color are your eyes?</Text>
+        <View style={globalStyles.pillContainer}>
+          {eyeColorOptions.map(color => (
+            <Chip
+              key={color}
+              label={color}
+              selected={selectedEyeColor === color}
+              onPress={() => {
+                setSelectedEyeColor(color);
+                setTimeout(goToNextSlide, 300);
+              }}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
 
   // Slide 12: Body Type selection (matches BodyTypesScreen options)
   const bodyTypes = [
-    {name: 'Ectomorph', emoji: '🧍'},
-    {name: 'Mesomorph', emoji: '💪'},
-    {name: 'Endomorph', emoji: '🧑'},
-    {name: 'Inverted Triangle', emoji: '🔺'},
-    {name: 'Rectangle', emoji: '▬'},
-    {name: 'Oval', emoji: '⬭'},
-    {name: 'Triangle', emoji: '🔻'},
+
+    {name: 'Inverted Triangle', emoji: '🔻'},
+    {name: 'Triangle (Pear)', emoji:  '🔺'},
+    {name: 'Rectangle', emoji: '▭'},
+    {name: 'Oval (Apple)', emoji: '⬭'},
+    {name: 'Hourglass', emoji: '⏳'},
   ];
   const BodyTypeSlide = () => (
     <View style={styles.onboardingContainer}>
@@ -2187,7 +2237,7 @@ export default function OnboardingScreen({navigate}: Props) {
         </TouchableOpacity>
       </View>
       <View style={styles.onboardingContent}>
-        <Text style={styles.onboardingTitle}>What is your body type?</Text>
+        <Text style={styles.onboardingTitle}>What body type do you have?</Text>
         <View style={styles.bodyTypeGrid}>
           {bodyTypes.map(item => (
             <TouchableOpacity
@@ -2406,10 +2456,10 @@ export default function OnboardingScreen({navigate}: Props) {
           <Text style={styles.inputLabel}>{weightUnit}</Text>
         </View>
 
-        <Text style={styles.inputNote}>
+        {/* <Text style={styles.inputNote}>
           This helps us provide more accurate style recommendations for your
           body type.
-        </Text>
+        </Text> */}
 
         <TouchableOpacity
           style={styles.fillLaterButton}
@@ -2465,7 +2515,7 @@ export default function OnboardingScreen({navigate}: Props) {
           style={styles.onboardingContent}
           showsVerticalScrollIndicator={false}>
           <Text style={styles.onboardingTitle}>
-            What are your go-to styles?
+            What is your style?
           </Text>
           <Text style={[styles.inputNote, {marginBottom: 20}]}>
             Select all that apply
@@ -3142,6 +3192,11 @@ export default function OnboardingScreen({navigate}: Props) {
     {
       key: '16',
       element: <BodyTypeSlide />,
+    },
+    // Screen 16.25 - Favorite Brands
+    {
+      key: '16.25',
+      element: FavoriteBrandsSlideElement,
     },
     // Screen 16.5 - Personality Traits
     {

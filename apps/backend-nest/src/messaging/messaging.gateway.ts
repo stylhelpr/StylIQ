@@ -86,10 +86,10 @@ export class MessagingGateway
     },
   ) {
     // Debug: Log all connected users
-    console.log(`📊 Connected users:`, Array.from(this.userSockets.keys()));
-    console.log(`📊 Recipient ${recipientId} online:`, this.isUserOnline(recipientId));
-    console.log(`📊 Sender ${senderId} online:`, this.isUserOnline(senderId));
-    console.log(`📊 Recipient sockets:`, this.userSockets.get(recipientId) || 'none');
+    // console.log(`📊 Connected users:`, Array.from(this.userSockets.keys()));
+    // console.log(`📊 Recipient ${recipientId} online:`, this.isUserOnline(recipientId));
+    // console.log(`📊 Sender ${senderId} online:`, this.isUserOnline(senderId));
+    // console.log(`📊 Recipient sockets:`, this.userSockets.get(recipientId) || 'none');
 
     // Emit to all sockets of the recipient
     this.server.to(`user:${recipientId}`).emit('new_message', message);
@@ -97,7 +97,7 @@ export class MessagingGateway
     // Also emit to sender's other devices (for multi-device sync)
     this.server.to(`user:${senderId}`).emit('message_sent', message);
 
-    console.log(`📨 Emitted message from ${senderId} to ${recipientId}`);
+    // console.log(`📨 Emitted message from ${senderId} to ${recipientId}`);
   }
 
   // Typing indicator

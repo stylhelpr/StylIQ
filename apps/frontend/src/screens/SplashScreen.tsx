@@ -46,7 +46,7 @@ export default function SplashScreen({onReady}: Props) {
   return (
     <Animated.View style={[styles.container, {opacity: screenFade}]}>
       <Animated.View style={[styles.content, {opacity: logoFade}]}>
-        <Text style={styles.logo}>StylHelpr</Text>
+        <Text style={styles.logo} numberOfLines={1} adjustsFontSizeToFit>STYLHELPR</Text>
       </Animated.View>
 
       {/* Hidden video preloader */}
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    fontSize: 65,
+    fontSize: 58,
     fontWeight: '900',
     color: '#fff',
   },
