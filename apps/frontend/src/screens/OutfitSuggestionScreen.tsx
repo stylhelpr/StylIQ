@@ -589,7 +589,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     },
     cardOverlay: {
       width: '100%',
-      height: 325,
+      height: 318,
       borderRadius: tokens.borderRadius.md,
       overflow: 'hidden',
       marginBottom: 16,
@@ -636,7 +636,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       activeOpacity={0.9}
       style={[
         styles.cardOverlay,
-        globalStyles.cardStyles3,
         {backgroundColor: 'white'},
       ]}>
       <Image
