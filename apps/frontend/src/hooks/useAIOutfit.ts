@@ -101,7 +101,7 @@ export function useAIOutfit(userId?: string) {
           query,
           topK: opts?.topK ?? 25,
           useFeedback: opts?.useFeedback ?? true,
-          useFastMode: opts?.useFastMode ?? true, // 🚀 Use fast mode by default
+          useFastMode: opts?.useFastMode ?? true,
         };
 
         const mappedStyle = mapStyleProfileToUserStyle(opts?.styleProfile);

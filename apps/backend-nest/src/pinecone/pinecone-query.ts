@@ -21,19 +21,32 @@ export async function queryUserNs(params: {
 }) {
   const { userId, vector, topK = 20, filter, includeMetadata = true } = params;
 
-  // Each user gets their own namespace in Pinecone so items don't overlap
-  const ns = index.namespace(userId);
+  try {
+    // Each user gets their own namespace in Pinecone so items don't overlap
+    const ns = index.namespace(userId);
 
-  // Run Pinecone query
-  const res = await ns.query({
-    vector,
-    topK,
-    filter,
-    includeMetadata,
-  });
+    // Run Pinecone query
+    const res = await ns.query({
+      vector,
+      topK,
+      filter,
+      includeMetadata,
+    });
 
-  // Always return an array (avoid null/undefined)
-  return res.matches || [];
+    // Always return an array (avoid null/undefined)
+    return res.matches || [];
+  } catch (err: any) {
+    console.error('❌ Pinecone queryUserNs error:', err.message);
+    console.error('❌ Pinecone error details:', {
+      userId,
+      topK,
+      filter: JSON.stringify(filter),
+      vectorLength: vector?.length,
+      errorName: err.name,
+      errorStack: err.stack?.split('\n').slice(0, 3).join('\n'),
+    });
+    throw err;
+  }
 }
 
 /**
