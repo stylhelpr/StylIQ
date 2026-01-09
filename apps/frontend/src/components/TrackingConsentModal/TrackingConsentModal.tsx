@@ -134,7 +134,7 @@ export default function TrackingConsentModal({
           <Text style={styles.title}>Personalize Your Experience</Text>
 
           <Text style={styles.description}>
-            Allow StylIQ to collect browsing analytics to give you better
+            Allow StylHelpr to collect browsing analytics to give you better
             shopping recommendations?
           </Text>
 

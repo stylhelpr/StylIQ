@@ -50,7 +50,7 @@ export function useExportNotes() {
       })}`,
     );
     parts.push('');
-    parts.push('— Exported from StylIQ');
+    parts.push('— Exported from StylHelpr');
 
     return parts.join('\n');
   };
@@ -61,18 +61,18 @@ export function useExportNotes() {
   const formatAllNotesAsText = (notes: SavedNote[]): string => {
     if (notes.length === 0) return '';
 
-    const header = `StylIQ Notes Export\n${notes.length} note${notes.length === 1 ? '' : 's'}\nExported on ${new Date().toLocaleDateString('en-US', {
+    const header = `StylHelpr Notes Export\n${notes.length} note${notes.length === 1 ? '' : 's'}\nExported on ${new Date().toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
     })}\n\n${'─'.repeat(30)}\n\n`;
 
     const formattedNotes = notes.map((note, index) => {
-      const noteText = formatNoteAsText(note).replace('— Exported from StylIQ', '');
+      const noteText = formatNoteAsText(note).replace('— Exported from StylHelpr', '');
       return `[${index + 1}/${notes.length}]\n${noteText}`;
     });
 
-    return header + formattedNotes.join(`\n${'─'.repeat(30)}\n\n`) + '\n— Exported from StylIQ';
+    return header + formattedNotes.join(`\n${'─'.repeat(30)}\n\n`) + '\n— Exported from StylHelpr';
   };
 
   /**
@@ -87,10 +87,10 @@ export function useExportNotes() {
       const result = await Share.share(
         {
           message: textContent,
-          title: note.title || 'StylIQ Note',
+          title: note.title || 'StylHelpr Note',
         },
         {
-          subject: note.title || 'StylIQ Note',
+          subject: note.title || 'StylHelpr Note',
         },
       );
 
@@ -124,10 +124,10 @@ export function useExportNotes() {
       const result = await Share.share(
         {
           message: textContent,
-          title: `StylIQ Notes (${notes.length})`,
+          title: `StylHelpr Notes (${notes.length})`,
         },
         {
-          subject: `StylIQ Notes Export - ${notes.length} notes`,
+          subject: `StylHelpr Notes Export - ${notes.length} notes`,
         },
       );
 

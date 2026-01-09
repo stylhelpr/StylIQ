@@ -922,7 +922,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
         ? imageUrl
         : undefined;
       await Share.share({
-        message: `Check out this outfit on StylIQ! ${post.description || ''}`,
+        message: `Check out this outfit on StylHelpr! ${post.description || ''}`,
         url: safeUrl,
       });
     } catch (error) {
@@ -2607,7 +2607,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                           color={theme.colors.foreground}
                         />
                       </View>
-                      <Text style={styles.actionText}>Send Direct Message</Text>
+                      <Text style={styles.actionText}>Direct Message</Text>
                       <MaterialIcons
                         name="chevron-right"
                         size={20}

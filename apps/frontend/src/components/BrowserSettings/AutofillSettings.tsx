@@ -286,7 +286,7 @@ export default function AutofillSettings({visible, onClose}: Props) {
         <ScrollView style={styles.content}>
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
-              StylIQ never stores your passwords. All password management is handled securely by iOS via iCloud Keychain. Tap any login field and select "Passwords" from the keyboard to autofill saved credentials.
+              StylHelpr never stores your passwords. All password management is handled securely by iOS via iCloud Keychain. Tap any login field and select "Passwords" from the keyboard to autofill saved credentials.
             </Text>
           </View>
 

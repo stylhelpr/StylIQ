@@ -30,7 +30,7 @@ export default function AddReminderButton() {
           endDate: end.toISOString(),
           alarms: [{date: 0}], // Alert at start time
           notes: 'Pair outfit with brown Ferragamo loafers.',
-          description: 'Your outfit reminder from StylIQ.',
+          description: 'Your outfit reminder from StylHelpr.',
         },
       );
 

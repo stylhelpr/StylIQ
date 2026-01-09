@@ -351,15 +351,21 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
   }, [currentTabId]);
 
   // Tracking Consent Prompt - show styled modal when user first opens browser
+  // Wait for browser onboarding to complete first to avoid modal conflicts
   useEffect(() => {
-    if (_hasHydrated && trackingConsent === 'pending') {
+    if (
+      _hasHydrated &&
+      trackingConsent === 'pending' &&
+      !isOnboardingLoading &&
+      !showBrowserOnboarding
+    ) {
       // Small delay to let screen render first
       const timer = setTimeout(() => {
         setShowConsentModal(true);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [_hasHydrated, trackingConsent]);
+  }, [_hasHydrated, trackingConsent, isOnboardingLoading, showBrowserOnboarding]);
 
   const handleConsentAccept = useCallback(() => {
     setTrackingConsent('accepted');

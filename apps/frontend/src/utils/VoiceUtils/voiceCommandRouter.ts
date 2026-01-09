@@ -491,7 +491,7 @@ export const routeVoiceCommand = async (
           `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
           {
             headers: {
-              'User-Agent': 'StylIQ-App/1.0',
+              'User-Agent': 'StylHelpr-App/1.0',
             },
           },
         );

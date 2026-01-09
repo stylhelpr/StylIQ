@@ -516,7 +516,7 @@ export class CommunityService implements OnModuleInit {
         cp.views_count,
         cp.is_demo,
         cp.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         ${currentUserId ? `EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $3) as is_liked_by_me` : 'false as is_liked_by_me'},
         ${currentUserId ? `EXISTS(SELECT 1 FROM saved_posts WHERE post_id = cp.id AND user_id = $3) as is_saved_by_me` : 'false as is_saved_by_me'},
@@ -625,7 +625,7 @@ export class CommunityService implements OnModuleInit {
         cp.views_count,
         cp.is_demo,
         cp.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $2) as is_liked_by_me,
         EXISTS(SELECT 1 FROM saved_posts WHERE post_id = cp.id AND user_id = $2) as is_saved_by_me,
@@ -665,7 +665,7 @@ export class CommunityService implements OnModuleInit {
     const sqlQuery = currentUserId
       ? `SELECT
           ${postColumns},
-          COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+          COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
           COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
           EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $3) as is_liked_by_me,
           EXISTS(SELECT 1 FROM saved_posts WHERE post_id = cp.id AND user_id = $3) as is_saved_by_me,
@@ -679,7 +679,7 @@ export class CommunityService implements OnModuleInit {
         LIMIT $4`
       : `SELECT
           ${postColumns},
-          COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+          COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
           COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
           false as is_liked_by_me,
           false as is_saved_by_me,
@@ -718,7 +718,7 @@ export class CommunityService implements OnModuleInit {
         cp.views_count,
         cp.is_demo,
         cp.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         ${currentUserId ? `EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $2) as is_liked_by_me` : 'false as is_liked_by_me'},
         ${currentUserId ? `EXISTS(SELECT 1 FROM saved_posts WHERE post_id = cp.id AND user_id = $2) as is_saved_by_me` : 'false as is_saved_by_me'}
@@ -945,7 +945,7 @@ export class CommunityService implements OnModuleInit {
         pc.reply_to_user,
         pc.likes_count,
         pc.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || pc.user_id) as user_avatar,
         ${currentUserId ? `EXISTS(SELECT 1 FROM comment_likes WHERE comment_id = pc.id AND user_id = $2) as is_liked_by_me` : 'false as is_liked_by_me'}
       FROM post_comments pc
@@ -991,7 +991,7 @@ export class CommunityService implements OnModuleInit {
       // Get user info for response
       const userRes = await pool.query(
         `SELECT
-          COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
+          COALESCE(first_name, 'StylHelpr') || ' ' || COALESCE(last_name, 'User') as user_name,
           COALESCE(first_name, 'Someone') as commenter_first_name,
           COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1) as user_avatar
         FROM users WHERE id = $1::uuid`,
@@ -1271,7 +1271,7 @@ export class CommunityService implements OnModuleInit {
         cp.views_count,
         cp.is_demo,
         cp.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar,
         EXISTS(SELECT 1 FROM post_likes WHERE post_id = cp.id AND user_id = $1) as is_liked_by_me,
         true as is_saved_by_me
@@ -1308,7 +1308,7 @@ export class CommunityService implements OnModuleInit {
         cp.views_count,
         cp.is_demo,
         cp.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar
       FROM community_posts cp
       LEFT JOIN users u ON cp.user_id = u.id
@@ -1488,7 +1488,7 @@ export class CommunityService implements OnModuleInit {
     const userRes = await pool.query(
       `SELECT
         id,
-        COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as user_name,
+        COALESCE(first_name, 'StylHelpr') || ' ' || COALESCE(last_name, 'User') as user_name,
         profile_picture as user_avatar,
         bio,
         (SELECT COUNT(*) FROM user_follows uf JOIN users u ON u.id = uf.follower_id WHERE uf.following_id = $1) as followers_count,
@@ -1532,7 +1532,7 @@ export class CommunityService implements OnModuleInit {
     const res = await pool.query(
       `SELECT
         u.id,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         u.profile_picture as user_avatar,
         u.bio,
         uf.created_at as followed_at
@@ -1566,7 +1566,7 @@ export class CommunityService implements OnModuleInit {
     const res = await pool.query(
       `SELECT
         u.id,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         u.profile_picture as user_avatar,
         u.bio,
         uf.created_at as followed_at
@@ -1608,7 +1608,7 @@ export class CommunityService implements OnModuleInit {
     const mutualRes = await pool.query(
       `SELECT
         u.id,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         u.profile_picture as user_avatar,
         u.bio,
         COUNT(DISTINCT f2.follower_id) as mutual_count,
@@ -1637,7 +1637,7 @@ export class CommunityService implements OnModuleInit {
       const popularRes = await pool.query(
         `SELECT
           u.id,
-          COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+          COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
           u.profile_picture as user_avatar,
           u.bio,
           0 as mutual_count,

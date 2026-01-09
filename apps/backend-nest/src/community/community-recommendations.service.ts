@@ -423,7 +423,7 @@ export class CommunityRecommendationsService implements OnModuleInit {
         cp.likes_count,
         cp.views_count,
         cp.created_at,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || cp.user_id) as user_avatar
       FROM community_posts cp
       LEFT JOIN users u ON u.id = cp.user_id
