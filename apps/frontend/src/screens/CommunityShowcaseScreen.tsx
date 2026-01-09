@@ -2404,7 +2404,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                         </Text>
                       </View>
 
-                      {/* Comment text with @mention */}
+                      {/* Comment text with @mention/ */}
                       <Text style={styles.commentText}>
                         {item.reply_to_user && (
                           <Text style={styles.commentMention}>
