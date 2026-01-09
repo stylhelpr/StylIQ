@@ -267,7 +267,7 @@ export class ConnectedAccountsController {
                 <div class="success">✓</div>
                 <h1>${platform.charAt(0).toUpperCase() + platform.slice(1)} Connected!</h1>
                 <p>Your account has been successfully connected.</p>
-                <p>Returning to StylIQ...</p>
+                <p>Returning to StylHelpr...</p>
                 <a href="${deepLinkUrl}">Click here if not automatically redirected</a>
               </div>
               <script>

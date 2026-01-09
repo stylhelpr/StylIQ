@@ -64,7 +64,7 @@ export class MessagingService {
     // Get sender info for the real-time message
     const senderInfo = await pool.query(
       `SELECT
-        COALESCE(first_name, 'StylIQ') || ' ' || COALESCE(last_name, 'User') as sender_name,
+        COALESCE(first_name, 'StylHelpr') || ' ' || COALESCE(last_name, 'User') as sender_name,
         COALESCE(profile_picture, 'https://i.pravatar.cc/100?u=' || $1::text) as sender_avatar
        FROM users WHERE id = $1::uuid`,
       [senderId]
@@ -72,7 +72,7 @@ export class MessagingService {
 
     const enrichedMessage = {
       ...message,
-      sender_name: senderInfo.rows[0]?.sender_name || 'StylIQ User',
+      sender_name: senderInfo.rows[0]?.sender_name || 'StylHelpr User',
       sender_avatar: senderInfo.rows[0]?.sender_avatar || `https://i.pravatar.cc/100?u=${senderId}`,
     };
 
@@ -112,7 +112,7 @@ export class MessagingService {
     let query = `
       SELECT
         dm.*,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as sender_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as sender_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || dm.sender_id) as sender_avatar
       FROM direct_messages dm
       LEFT JOIN users u ON dm.sender_id = u.id
@@ -148,7 +148,7 @@ export class MessagingService {
     const res = await pool.query(
       `SELECT
         dm.*,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as sender_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as sender_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' || dm.sender_id) as sender_avatar
       FROM direct_messages dm
       LEFT JOIN users u ON dm.sender_id = u.id
@@ -180,7 +180,7 @@ export class MessagingService {
           WHEN dm.sender_id = $1 THEN dm.recipient_id
           ELSE dm.sender_id
         END as other_user_id,
-        COALESCE(u.first_name, 'StylIQ') || ' ' || COALESCE(u.last_name, 'User') as other_user_name,
+        COALESCE(u.first_name, 'StylHelpr') || ' ' || COALESCE(u.last_name, 'User') as other_user_name,
         COALESCE(u.profile_picture, 'https://i.pravatar.cc/100?u=' ||
           CASE WHEN dm.sender_id = $1 THEN dm.recipient_id ELSE dm.sender_id END
         ) as other_user_avatar,

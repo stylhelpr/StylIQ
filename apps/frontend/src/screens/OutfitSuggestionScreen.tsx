@@ -732,6 +732,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             <ScrollView
               onScroll={handleScroll}
               scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 marginTop: 8,
                 paddingBottom: 40,
