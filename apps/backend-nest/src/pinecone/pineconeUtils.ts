@@ -1,5 +1,5 @@
 import { Pinecone, Index } from '@pinecone-database/pinecone';
-import { getSecret } from '../config/secrets';
+import { getSecret, secretExists } from '../config/secrets';
 
 let pineconeClient: Pinecone | null = null;
 let pineconeIndex: Index | null = null;
@@ -15,7 +15,10 @@ function getPineconeClient(): Pinecone {
 
 function getPineconeIndex(): Index {
   if (!pineconeIndex) {
-    pineconeIndex = getPineconeClient().Index(getSecret('PINECONE_INDEX'));
+    const indexName = getSecret('PINECONE_INDEX');
+    // Use PINECONE_HOST if available to skip describeIndex control plane call
+    const host = secretExists('PINECONE_HOST') ? getSecret('PINECONE_HOST') : undefined;
+    pineconeIndex = getPineconeClient().Index(indexName, host);
   }
   return pineconeIndex;
 }
