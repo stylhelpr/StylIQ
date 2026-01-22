@@ -57,6 +57,9 @@ export function useLogout({navigate}: LogoutOptions) {
       console.log('[useLogout] Non-persisted stores reset');
 
       // 2. Clear React Query cache
+      // CRITICAL: Remove auth profile query to prevent stale user data on next login
+      // This ensures the next user's login will fetch fresh data from /auth/profile
+      queryClient.removeQueries({queryKey: ['auth', 'profile']});
       queryClient.clear();
 
       // 3. Clear session-related AsyncStorage keys (NOT user data)

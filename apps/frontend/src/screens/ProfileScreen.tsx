@@ -145,8 +145,10 @@ export default function ProfileScreen({navigate}: Props) {
     if (!userId) return;
     (async () => {
       const cached = await AsyncStorage.getItem(STORAGE_KEY(userId));
-      if (cached) {
-        // console.log('[PROFILE] Cached profile pic found:', cached);
+      console.log('[ProfileScreen] Cached profile pic:', cached ? cached.substring(0, 100) : 'NONE');
+      // Skip Google default profile pictures - they show the wrong initials
+      // when the user has changed their name in the app
+      if (cached && !cached.includes('googleusercontent.com')) {
         setProfilePicture(cached);
       }
     })();
@@ -159,12 +161,19 @@ export default function ProfileScreen({navigate}: Props) {
     enabled: !!userId,
     queryKey: ['userProfile', userId],
     queryFn: async () => {
+      console.log('[ProfileScreen] Fetching /users/me for userId:', userId);
       const token = await getAccessToken();
       const res = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {Authorization: `Bearer ${token}`},
       });
       if (!res.ok) throw new Error('Failed to fetch user profile');
-      return res.json();
+      const data = await res.json();
+      console.log('[ProfileScreen] /users/me returned:', {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+      });
+      return data;
     },
     staleTime: 60000, // 1 minute
   });
@@ -224,16 +233,16 @@ export default function ProfileScreen({navigate}: Props) {
       userProfileRaw.profile_picture &&
       userProfileRaw.profile_picture.trim() !== ''
     ) {
-      // console.log(
-      //   '[PROFILE] Using backend profile picture:',
-      //   userProfileRaw.profile_picture,
-      // );
-      setProfilePicture(userProfileRaw.profile_picture);
+      // Skip Google default profile pictures - they show the wrong initials/avatar
+      // when the user has changed their name in the app
+      const pic = userProfileRaw.profile_picture;
+      if (pic.includes('googleusercontent.com')) {
+        console.log('[ProfileScreen] Skipping Google profile picture, will use initials');
+        return;
+      }
+      setProfilePicture(pic);
       if (userId) {
-        AsyncStorage.setItem(
-          STORAGE_KEY(userId),
-          userProfileRaw.profile_picture,
-        ).catch(() => {});
+        AsyncStorage.setItem(STORAGE_KEY(userId), pic).catch(() => {});
       }
     }
   }, [userProfileRaw, userId]);
@@ -291,6 +300,14 @@ export default function ProfileScreen({navigate}: Props) {
   // ─────────────────────────────────────────────────────────────────────────────
   // Initials fallback logic
   // ─────────────────────────────────────────────────────────────────────────────
+  // DEBUG: Log what profile data we have
+  console.log('[ProfileScreen] userProfile:', {
+    userId,
+    first_name: userProfile?.first_name,
+    last_name: userProfile?.last_name,
+    email: userProfile?.email,
+  });
+
   let initials = '';
   if (userProfile?.first_name || userProfile?.last_name) {
     const f = (userProfile?.first_name?.trim?.()[0] || '').toUpperCase();
@@ -303,6 +320,9 @@ export default function ProfileScreen({navigate}: Props) {
     const l = (parts[1]?.[0] || '').toUpperCase();
     initials = f + l || local.slice(0, 2).toUpperCase();
   }
+
+  // DEBUG: Log the computed initials
+  console.log('[ProfileScreen] INITIALS:', initials, '| profilePicture:', profilePicture ? 'HAS_IMAGE' : 'NO_IMAGE');
 
   // cache-busted URI so the newest image shows immediately
   const profileUri =

@@ -92,10 +92,13 @@ export class AuthController {
   async getProfile(@Req() req: Request) {
     const userId = (req.user as any)?.userId;
     if (!userId) {
+      console.error('[/auth/profile] Missing userId in token - JWT validation should have failed');
       return { error: 'Missing userId in token' };
     }
 
     // userId is already the internal UUID from jwt.strategy.ts
+    // This ID was resolved STRICTLY from auth0_sub - no email fallback, no caching
+    console.log('[/auth/profile] Returning userId:', userId);
     return { uuid: userId };
   }
 }

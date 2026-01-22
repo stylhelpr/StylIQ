@@ -154,12 +154,35 @@ export function hasActiveUser(): boolean {
   return cachedActiveUserId !== null;
 }
 
+/**
+ * CRITICAL: Clear the in-memory cache ONLY (not AsyncStorage)
+ *
+ * This MUST be called when we have a JWT token and need to validate with server.
+ * During the validation window, getActiveUserIdSync() will return null,
+ * preventing any storage operations from using a stale (wrong) user ID.
+ *
+ * The proper flow is:
+ * 1. App starts, initializeActiveUser() populates cache from AsyncStorage
+ * 2. If we have a JWT token, call clearCacheForValidation() immediately
+ * 3. getActiveUserIdSync() now returns null - storage ops are blocked
+ * 4. Server validates JWT and returns the REAL user ID
+ * 5. setActiveUserId() is called with server-provided ID, cache is repopulated
+ *
+ * This ensures the cached user ID is NEVER stale during the critical validation window.
+ */
+export function clearCacheForValidation(): void {
+  const previousUser = cachedActiveUserId;
+  cachedActiveUserId = null;
+  console.log(`[ActiveUserManager] Cache cleared for validation (was: ${previousUser})`);
+}
+
 export default {
   initialize: initializeActiveUser,
   getActiveUserId,
   getActiveUserIdSync,
   setActiveUserId,
   clearActiveUser,
+  clearCacheForValidation,
   subscribeToUserChanges,
   removeAccountFromDevice,
   hasActiveUser,

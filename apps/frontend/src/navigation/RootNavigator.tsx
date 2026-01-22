@@ -95,7 +95,7 @@ import {
   getCredentialsWithBiometrics,
   hasStoredCredentials,
 } from '../utils/auth';
-import {useSetUUID} from '../context/UUIDContext';
+import {useSetUUID, useUUID, useUUIDInitialized} from '../context/UUIDContext';
 import jwtDecode from 'jwt-decode';
 import {API_BASE_URL} from '../config/api';
 import {fetchUserData} from '../hooks/useUserData';
@@ -213,6 +213,8 @@ const RootNavigator = ({
 
   const {theme} = useAppTheme();
   const setUUID = useSetUUID();
+  const contextUUID = useUUID();
+  const isUUIDInitialized = useUUIDInitialized();
 
   useEffect(() => {
     if (registerNavigate) {
@@ -295,14 +297,43 @@ const RootNavigator = ({
 
   const routeAfterLogin = async () => {
     try {
-      const [[, logged], [, userId]] = await AsyncStorage.multiGet([
-        'auth_logged_in',
-        'user_id',
-      ]);
+      const logged = await AsyncStorage.getItem('auth_logged_in');
       if (logged !== 'true') {
         setCurrentScreen('Login');
         return;
       }
+
+      // CRITICAL: Use UUID from context - it's derived from /auth/profile which validates JWT
+      // DO NOT use AsyncStorage.getItem('user_id') directly - that's a stale cache
+      // The contextUUID is set by UUIDContext after server validates auth0_sub
+      const userId = contextUUID;
+
+      console.log('[routeAfterLogin] Using context UUID:', userId);
+
+      // If UUID not yet initialized by context, wait briefly or use context value
+      // This handles the race condition where routeAfterLogin is called before UUIDContext finishes
+      if (!userId && !isUUIDInitialized) {
+        console.log('[routeAfterLogin] Waiting for UUIDContext to initialize...');
+        // Context will set UUID after /auth/profile returns
+        // For now, check if we at least have a cached value as temporary fallback
+        const cachedUserId = await AsyncStorage.getItem('user_id');
+        if (cachedUserId) {
+          console.log('[routeAfterLogin] Using cached user_id temporarily:', cachedUserId);
+          const user = await fetchUserData(cachedUserId);
+          if (user) {
+            const onboarded = user?.onboarding_complete === true;
+            await AsyncStorage.setItem('onboarding_complete', onboarded ? 'true' : 'false');
+            if (onboarded) {
+              setScreenParams({autoNavigateToHome: true});
+              setCurrentScreen('VideoFeedScreen');
+            } else {
+              setCurrentScreen('Onboarding');
+            }
+            return;
+          }
+        }
+      }
+
       // Fetch fresh onboarding status from server (cached via TanStack Query)
       if (userId) {
         const user = await fetchUserData(userId);

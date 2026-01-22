@@ -25,6 +25,7 @@ import {
 } from '../utils/auth';
 import {useSetUUID} from '../context/UUIDContext';
 import {triggerHaptic} from '../utils/haptics';
+import {queryClient} from '../lib/queryClient';
 
 type Props = {
   email: string;
@@ -41,7 +42,7 @@ export default function LoginScreen({
 }: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
-  const {authorize} = useAuth0();
+  const {authorize, clearSession} = useAuth0();
   const setUUID = useSetUUID();
   const insets = useSafeAreaInsets();
 
@@ -168,18 +169,17 @@ export default function LoginScreen({
         redirectUrl,
         audience: AUTH0_AUDIENCE,
         scope: 'openid profile email offline_access',
-        additionalParameters: {prompt: 'login'},
+        additionalParameters: {
+          prompt: 'login', // Force fresh login
+        },
       });
+
+      const idToken = credentials?.idToken;
+      if (!idToken) throw new Error('Missing idToken');
 
       if (credentials) {
         await saveAuthCredentials(credentials);
       }
-      let idToken = credentials?.idToken;
-      if (!idToken) {
-        const fresh = await getCredentials();
-        idToken = fresh?.idToken;
-      }
-      if (!idToken) throw new Error('Missing idToken');
 
       const decoded: any = jwtDecode(idToken);
       const auth0_sub = decoded.sub;
@@ -221,6 +221,10 @@ export default function LoginScreen({
 
       if (user?.id) {
         setUUID(String(user.id));
+        // CRITICAL: Clear ALL React Query cache after setting new user
+        // This ensures profile queries fetch fresh data for the NEW user
+        // and don't return stale cached data from a previous user session
+        queryClient.clear();
       }
 
       // Small delay to ensure UUID state propagates through context before navigation
@@ -306,6 +310,9 @@ export default function LoginScreen({
 
       if (user?.id) {
         setUUID(String(user.id));
+        // CRITICAL: Clear ALL React Query cache after setting new user
+        // This ensures profile queries fetch fresh data for the NEW user
+        queryClient.clear();
       }
 
       await new Promise(resolve => setTimeout(resolve, 100));
