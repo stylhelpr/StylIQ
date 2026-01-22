@@ -447,12 +447,12 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   // MULTI-ACCOUNT: Remove this account from device (preserves server data)
   const handleRemoveAccountFromDevice = () => {
     Alert.alert(
-      'Remove Account from Device?',
-      'This will sign you out and remove all your local data from this device. Your account and data on our servers will NOT be deleted. You can sign back in anytime to restore your data.',
+      'Reset User Data?',
+      'This will sign you out and clear all your local data. Your account will NOT be deleted. You can sign back in anytime.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Remove from Device',
+          text: 'Reset',
           style: 'destructive',
           onPress: async () => {
             if (!userId) {
@@ -898,23 +898,13 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   </AppleTouchFeedback>
 
                   <AppleTouchFeedback
-                    onPress={resetApp}
-                    hapticStyle="impactLight"
-                    style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-                    <Text
-                      style={[globalStyles.menuLabel, {color: colors.error}]}>
-                      Reset App Data
-                    </Text>
-                  </AppleTouchFeedback>
-
-                  <AppleTouchFeedback
                     onPress={handleRemoveAccountFromDevice}
                     hapticStyle="impactLight"
                     style={[globalStyles.menuSection1, globalStyles.hrLine]}>
                     <View>
                       <Text
                         style={[globalStyles.menuLabel, {color: colors.warning || colors.error}]}>
-                        Remove Account from Device
+                        Reset User Data
                       </Text>
                       <Text
                         style={{
