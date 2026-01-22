@@ -1,5 +1,7 @@
 // utils/notificationInbox.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// MULTI-ACCOUNT: All notification inbox operations are user-scoped
+
+import {UserScopedStorage} from '../storage/userScopedStorage';
 import {apiClient} from '../lib/apiClient';
 
 export type AppNotification = {
@@ -13,7 +15,7 @@ export type AppNotification = {
   read?: boolean;
 };
 
-const INBOX_KEY = 'notifications';
+const INBOX_KEY = 'notificationInbox';
 const cap = 200;
 
 // 🔔 Simple subscriber system for live updates
@@ -30,37 +32,51 @@ function notifySubscribers() {
   subscribers.forEach(fn => fn());
 }
 
-export async function loadInbox(userId?: string): Promise<AppNotification[]> {
-  // First load from local storage
-  const raw = await AsyncStorage.getItem(INBOX_KEY);
+/**
+ * Load inbox from user-scoped storage and merge with backend
+ */
+export async function loadInbox(userId: string): Promise<AppNotification[]> {
+  if (!userId) {
+    console.warn('[notificationInbox] loadInbox called without userId');
+    return [];
+  }
+
+  // First load from user-scoped local storage
+  const raw = await UserScopedStorage.getItem(userId, INBOX_KEY);
   const local: AppNotification[] = raw ? JSON.parse(raw) : [];
 
-  // If we have a userId, also fetch from backend and merge
-  if (userId) {
-    try {
-      const res = await apiClient.get('/notifications/inbox');
-      const remote: AppNotification[] = res.data;
-      // Merge: combine remote + local, dedupe by id
-      const merged = [...remote, ...local];
-      const seen = new Set<string>();
-      const deduped = merged.filter(n => {
-        const key = n.id || `${n.title}-${n.message}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      // Save merged list locally
-      await AsyncStorage.setItem(INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
-      return deduped;
-    } catch (err) {
-      console.warn('⚠️ Failed to fetch notifications from backend:', err);
-    }
+  // Also fetch from backend and merge
+  try {
+    const res = await apiClient.get('/notifications/inbox');
+    const remote: AppNotification[] = res.data;
+    // Merge: combine remote + local, dedupe by id
+    const merged = [...remote, ...local];
+    const seen = new Set<string>();
+    const deduped = merged.filter(n => {
+      const key = n.id || `${n.title}-${n.message}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    // Save merged list locally (user-scoped)
+    await UserScopedStorage.setItem(userId, INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
+    return deduped;
+  } catch (err) {
+    console.warn('⚠️ Failed to fetch notifications from backend:', err);
   }
 
   return local;
 }
 
-export async function saveInbox(list: AppNotification[]) {
+/**
+ * Save inbox to user-scoped storage
+ */
+export async function saveInbox(userId: string, list: AppNotification[]) {
+  if (!userId) {
+    console.warn('[notificationInbox] saveInbox called without userId');
+    return;
+  }
+
   // ✅ Deduplicate before saving
   const seen = new Set<string>();
   const deduped = list.filter(n => {
@@ -70,15 +86,20 @@ export async function saveInbox(list: AppNotification[]) {
     return true;
   });
 
-  await AsyncStorage.setItem(INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
+  await UserScopedStorage.setItem(userId, INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
   notifySubscribers(); // 🔥 Notify listeners whenever inbox changes
 }
 
 /**
- * ✅ Adds a notification to the local inbox (AsyncStorage)
+ * ✅ Adds a notification to the local inbox (user-scoped)
  * ✅ And also mirrors it to your backend (optional best practice)
  */
-export async function addToInbox(n: AppNotification & {user_id?: string}) {
+export async function addToInbox(userId: string, n: AppNotification & {user_id?: string}) {
+  if (!userId) {
+    console.warn('[notificationInbox] addToInbox called without userId');
+    return;
+  }
+
   console.log('📥 addToInbox called with:', {
     id: n.id,
     title: n.title,
@@ -86,7 +107,7 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
     dataType: n.data?.type,
   });
 
-  const list = await loadInbox();
+  const list = await loadInbox(userId);
   console.log('📋 Current inbox count:', list.length);
 
   // ✅ Skip duplicates locally
@@ -99,7 +120,7 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
   }
 
   const next = [n, ...list].slice(0, cap);
-  await saveInbox(next);
+  await saveInbox(userId, next);
   console.log('✅ Notification saved! New inbox count:', next.length);
 
   // 🆕 Mirror notification to backend (non-breaking optional best practice)
@@ -114,6 +135,11 @@ export async function addToInbox(n: AppNotification & {user_id?: string}) {
 }
 
 export async function markRead(userId: string, id: string) {
+  if (!userId) {
+    console.warn('[notificationInbox] markRead called without userId');
+    return;
+  }
+
   // First mark as read in backend
   try {
     await apiClient.post('/notifications/mark-read', {id});
@@ -124,10 +150,15 @@ export async function markRead(userId: string, id: string) {
   // Then update local storage
   const list = await loadInbox(userId);
   const updated = list.map(n => (n.id === id ? {...n, read: true} : n));
-  await saveInbox(updated);
+  await saveInbox(userId, updated);
 }
 
 export async function markAllRead(userId: string) {
+  if (!userId) {
+    console.warn('[notificationInbox] markAllRead called without userId');
+    return;
+  }
+
   // First mark all as read in backend (await it!)
   try {
     await apiClient.post('/notifications/mark-all-read', {});
@@ -138,10 +169,15 @@ export async function markAllRead(userId: string) {
 
   // Then update local storage
   const list = await loadInbox(userId);
-  await saveInbox(list.map(n => ({...n, read: true})));
+  await saveInbox(userId, list.map(n => ({...n, read: true})));
 }
 
 export async function clearAll(userId: string) {
+  if (!userId) {
+    console.warn('[notificationInbox] clearAll called without userId');
+    return;
+  }
+
   // First clear from backend
   try {
     await apiClient.post('/notifications/clear-all', {});
@@ -150,91 +186,7 @@ export async function clearAll(userId: string) {
     console.warn('⚠️ Failed to clear all in backend:', err);
   }
 
-  // Then clear local storage
-  await AsyncStorage.removeItem(INBOX_KEY);
+  // Then clear local storage (user-scoped)
+  await UserScopedStorage.removeItem(userId, INBOX_KEY);
   notifySubscribers();
 }
-
-////////////////////
-
-// // utils/notificationInbox.ts
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// export type AppNotification = {
-//   id: string;
-//   title?: string;
-//   message: string;
-//   timestamp: string;
-//   category?: 'news' | 'outfit' | 'weather' | 'care' | 'other';
-//   deeplink?: string;
-//   data?: Record<string, string>;
-//   read?: boolean;
-// };
-
-// const INBOX_KEY = 'notifications';
-// const cap = 200;
-
-// // 🔔 Simple subscriber system for live updates
-// let subscribers: (() => void)[] = [];
-
-// export function subscribeInboxChange(cb: () => void) {
-//   subscribers.push(cb);
-//   return () => {
-//     subscribers = subscribers.filter(fn => fn !== cb);
-//   };
-// }
-
-// function notifySubscribers() {
-//   subscribers.forEach(fn => fn());
-// }
-
-// export async function loadInbox(): Promise<AppNotification[]> {
-//   const raw = await AsyncStorage.getItem(INBOX_KEY);
-//   return raw ? JSON.parse(raw) : [];
-// }
-
-// export async function saveInbox(list: AppNotification[]) {
-//   // ✅ Deduplicate before saving
-//   const seen = new Set<string>();
-//   const deduped = list.filter(n => {
-//     const key = n.id || `${n.title}-${n.message}`;
-//     if (seen.has(key)) return false;
-//     seen.add(key);
-//     return true;
-//   });
-
-//   await AsyncStorage.setItem(INBOX_KEY, JSON.stringify(deduped.slice(0, cap)));
-//   notifySubscribers(); // 🔥 Notify listeners whenever inbox changes
-// }
-
-// export async function addToInbox(n: AppNotification) {
-//   const list = await loadInbox();
-
-//   // ✅ Skip duplicates
-//   const duplicate = list.find(
-//     x => x.id === n.id || (x.title === n.title && x.message === n.message),
-//   );
-//   if (duplicate) {
-//     console.log('⚠️ Skipping duplicate notification:', n.id || n.title);
-//     return;
-//   }
-
-//   const next = [n, ...list].slice(0, cap);
-//   await saveInbox(next);
-// }
-
-// export async function markRead(userId: string, id: string) {
-//   const list = await loadInbox();
-//   const updated = list.map(n => (n.id === id ? {...n, read: true} : n));
-//   await saveInbox(updated);
-// }
-
-// export async function markAllRead() {
-//   const list = await loadInbox();
-//   await saveInbox(list.map(n => ({...n, read: true})));
-// }
-
-// export async function clearAll() {
-//   await AsyncStorage.removeItem(INBOX_KEY);
-//   notifySubscribers(); // ✅ Also notify listeners here
-// }

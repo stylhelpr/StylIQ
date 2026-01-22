@@ -790,7 +790,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     setReaderVisible(true);
   };
 
-  const {prefs, ready} = useHomePrefs();
+  const {prefs, ready} = useHomePrefs(userId);
 
   useEffect(() => {
     const restoreSectionsState = async () => {

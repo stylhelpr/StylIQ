@@ -12,16 +12,12 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useAppTheme} from '../../context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {Screen} from '../../navigation/types';
 import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
 import {fontScale, moderateScale} from '../../utils/scale';
 import {tokens} from '../../styles/tokens/tokens';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
-import {useSetUUID} from '../../context/UUIDContext';
-import {queryClient} from '../../lib/queryClient';
-import {useMeasurementStore} from '../../../../../store/measurementStore';
-import {useShoppingStore} from '../../../../../store/shoppingStore';
+import {useLogout} from '../../hooks/useLogout';
 
 type Props = {
   navigate: (screen: Screen) => void;
@@ -37,38 +33,11 @@ export default function GlobalHeader({
   currentScreen,
 }: Props) {
   const {theme} = useAppTheme();
-  const setUUID = useSetUUID();
-  const resetMeasurements = useMeasurementStore(state => state.reset);
-  const resetShopping = useShoppingStore(state => state.resetForLogout);
+  // MULTI-ACCOUNT: Use centralized logout hook that properly handles user-scoped data
+  const handleLogout = useLogout({navigate});
   const [menuOpen, setMenuOpen] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-10)).current;
-
-  const handleLogout = async () => {
-    try {
-      // NOTE: We intentionally do NOT call clearSession() here
-      // This preserves Auth0 credentials in Keychain for Face ID login
-      // clearSession() would destroy the credentials and require password login again
-
-      // Clear session-related AsyncStorage keys
-      // NOTE: We keep 'onboarding_complete' so Face ID login skips onboarding
-      await AsyncStorage.multiRemove([
-        'auth_logged_in',
-        'user_id',
-        'style_profile',
-      ]);
-      // Reset UUID context
-      setUUID(null);
-      // Clear React Query cache (wardrobe, outfits, etc.)
-      queryClient.clear();
-      // Reset Zustand stores
-      resetMeasurements();
-      resetShopping();
-      navigate('Login');
-    } catch (e) {
-      console.error('Logout failed:', e);
-    }
-  };
 
   // 🔹 Dropdown animation
   useEffect(() => {

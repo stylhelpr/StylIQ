@@ -1,5 +1,8 @@
-import {useEffect, useState, useCallback} from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// hooks/useHomePrefs.ts
+// MULTI-ACCOUNT: Home preferences are user-scoped
+
+import {useEffect, useState, useCallback, useRef} from 'react';
+import {UserScopedStorage} from '../storage/userScopedStorage';
 
 export type HomePrefs = {
   weather: boolean;
@@ -25,40 +28,59 @@ const DEFAULT_PREFS: HomePrefs = {
   locationEnabled: true,
 };
 
-export function useHomePrefs() {
+/**
+ * User-scoped home preferences hook
+ * @param userId - The current user's ID (required for user-scoped storage)
+ */
+export function useHomePrefs(userId: string | null) {
   const [prefs, setPrefs] = useState<HomePrefs>(DEFAULT_PREFS);
   const [ready, setReady] = useState(false);
+  const currentUserIdRef = useRef<string | null>(null);
 
-  // ✅ Helper to load prefs from storage
+  // Helper to load prefs from user-scoped storage
   const loadPrefs = useCallback(async () => {
+    if (!userId) {
+      setPrefs(DEFAULT_PREFS);
+      setReady(true);
+      return;
+    }
+
     try {
-      const json = await AsyncStorage.getItem(KEY);
+      const json = await UserScopedStorage.getItem(userId, KEY);
       const parsed = json ? JSON.parse(json) : {};
       const merged = {...DEFAULT_PREFS, ...parsed};
       setPrefs(merged);
     } catch (err) {
-      // Failed to load prefs
+      console.warn('[useHomePrefs] Failed to load prefs:', err);
     } finally {
       setReady(true);
     }
-  }, []);
+  }, [userId]);
 
-  // ✅ Run once on mount
+  // Reload when userId changes
   useEffect(() => {
-    loadPrefs();
-  }, [loadPrefs]);
+    if (currentUserIdRef.current !== userId) {
+      currentUserIdRef.current = userId;
+      setReady(false);
+      loadPrefs();
+    }
+  }, [userId, loadPrefs]);
 
-  // ✅ Update and persist instantly
-  const setVisible = async (key: keyof HomePrefs, value: boolean) => {
+  // Update and persist instantly (user-scoped)
+  const setVisible = useCallback(async (key: keyof HomePrefs, value: boolean) => {
+    if (!userId) {
+      console.warn('[useHomePrefs] Cannot save prefs without userId');
+      return;
+    }
+
     const next = {...prefs, [key]: value};
     setPrefs(next);
     try {
-      await AsyncStorage.setItem(KEY, JSON.stringify(next));
-      // console.log(`💾 Updated pref: ${key} → ${value}`);
+      await UserScopedStorage.setItem(userId, KEY, JSON.stringify(next));
     } catch (err) {
-      // console.warn('⚠️ Failed to save prefs', err);
+      console.warn('[useHomePrefs] Failed to save prefs:', err);
     }
-  };
+  }, [userId, prefs]);
 
   return {prefs, ready, setVisible, reloadPrefs: loadPrefs};
 }
