@@ -1816,6 +1816,18 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 theme={theme}
               />
             </View>
+
+                   {/* Section title under hero */}
+            {/* <Text
+              style={{
+                fontSize: fontScale(tokens.fontSize.sm),
+                fontWeight: tokens.fontWeight.medium,
+                color: theme.colors.foreground2,
+                paddingHorizontal: moderateScale(tokens.spacing.md),
+                marginBottom: moderateScale(tokens.spacing.xs),
+              }}>
+              Style Inspiration
+            </Text> */}
             
             {/* Header Row: Greeting + Menu */}
             <View
@@ -2045,6 +2057,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 </Animatable.View>
               </Animated.View>
             )}
+
+     
 
             {/* AI SUGGESTS SECTION */}
             {prefs.aiSuggestions &&
@@ -2282,7 +2296,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       globalStyles.buttonPrimaryText,
                       {textTransform: 'uppercase', fontWeight: '700'},
                     ]}>
-                    Media Center
+                    Media Inspo
                   </Text>
                 </AppleTouchFeedback>
               </Animatable.View>

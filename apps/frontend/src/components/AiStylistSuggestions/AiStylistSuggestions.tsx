@@ -9,6 +9,7 @@ import {
   ScrollView,
   Pressable,
   Image,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
@@ -32,6 +33,7 @@ import {DynamicIsland} from '../../native/dynamicIsland';
 import {getAccessToken} from '../../utils/auth';
 import {useUUID, useUUIDInitialized} from '../../context/UUIDContext';
 import {fetchWardrobeItems} from '../../hooks/useWardrobeItems';
+import {useQueryClient} from '@tanstack/react-query';
 
 type Props = {
   weather: any;
@@ -68,6 +70,7 @@ type OutfitSuggestion = {
 };
 
 type AiSuggestionResponseV2 = {
+  weatherSummary?: string;
   outfits: OutfitSuggestion[];
 };
 
@@ -84,6 +87,9 @@ const AI_SUGGESTION_STORAGE_KEY = 'aiStylist_lastSuggestion';
 
 // ✅ Persistent expanded state key
 const AI_SUGGESTION_EXPANDED_KEY = 'aiStylist_isExpanded';
+
+// ✅ Persistent active outfit index key
+const AI_ACTIVE_OUTFIT_INDEX_KEY = 'aiStylist_activeOutfitIndex';
 
 const AiStylistSuggestions: React.FC<Props> = ({
   weather,
@@ -113,42 +119,43 @@ const AiStylistSuggestions: React.FC<Props> = ({
   // Visual outfit state
   const [activeOutfitIndex, setActiveOutfitIndex] = useState(0);
   const [showTweakSheet, setShowTweakSheet] = useState(false);
+  const [swappingCategory, setSwappingCategory] = useState<string | null>(null); // Track which category is being swapped
+  const [isSaving, setIsSaving] = useState(false); // Track outfit saving state
 
+  const queryClient = useQueryClient();
   const lastSuggestionRef = useRef<string | null>(null);
   const lastNotifyTimeRef = useRef<number>(0);
   const lastFetchTimeRef = useRef<number>(0);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasRefetchedForRealWardrobe = useRef(false);
   const fetchSuggestionRef = useRef<((trigger: string) => void) | null>(null);
+  const swapSingleItemRef = useRef<((category: string, keepIds: string[]) => void) | null>(null);
 
   // Fetch real wardrobe when component mounts and UUID is available
+  // IMPORTANT: Do NOT clear cache here - only update wardrobe reference
   useEffect(() => {
-    console.warn('[AiStylist] UUID check:', contextUUID, 'initialized:', isUUIDInitialized);
     if (contextUUID && isUUIDInitialized) {
-      console.warn('[AiStylist] Fetching real wardrobe...');
       fetchWardrobeItems(contextUUID)
         .then(items => {
-          console.warn('[AiStylist] Got', items?.length, 'items');
-          if (items?.[0]) {
-            console.warn('[AiStylist] First item image:', items[0].image);
-          }
           if (items && items.length > 0) {
             setRealWardrobe(items);
-            // Clear cached suggestion so it refetches with real wardrobe
-            AsyncStorage.removeItem(AI_SUGGESTION_STORAGE_KEY);
-            setAiData(null);
-            console.warn('[AiStylist] Real wardrobe loaded, cleared cache!');
+            // Do NOT clear cache on every mount - preserve existing suggestions
           }
         })
         .catch(err => console.error('[AiStylist] Fetch failed:', err));
     }
   }, [contextUUID, isUUIDInitialized]);
 
-  // Refetch AI suggestion when real wardrobe is loaded (one-time)
+  // Fetch AI suggestion when real wardrobe is loaded AND no cached data exists (one-time)
   useEffect(() => {
-    if (realWardrobe.length > 0 && !hasRefetchedForRealWardrobe.current && weather?.fahrenheit?.main?.temp) {
+    const shouldFetch =
+      realWardrobe.length > 0 &&
+      !hasRefetchedForRealWardrobe.current &&
+      weather?.fahrenheit?.main?.temp &&
+      !aiData; // Only fetch if we don't already have data
+
+    if (shouldFetch) {
       hasRefetchedForRealWardrobe.current = true;
-      console.warn('[AiStylist] Real wardrobe loaded, triggering refetch...');
       // Delay slightly to ensure fetchSuggestion ref is set
       setTimeout(() => {
         if (fetchSuggestionRef.current) {
@@ -156,7 +163,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         }
       }, 100);
     }
-  }, [realWardrobe, weather]);
+  }, [realWardrobe, weather, aiData]);
 
   const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
   const toggleExpanded = () => setIsExpanded(prev => !prev);
@@ -203,46 +210,57 @@ const AiStylistSuggestions: React.FC<Props> = ({
         gap: moderateScale(tokens.spacing.sm),
         flexDirection: 'row',
       }}>
-      {items.slice(0, 5).map(item => (
-        <View
-          key={item.id}
-          style={{
-            width: 70,
-            height: 70,
-            borderRadius: tokens.borderRadius.md,
-            overflow: 'hidden',
-            borderWidth: theme.borderWidth.hairline,
-            borderColor: theme.colors.surfaceBorder,
-            backgroundColor: theme.colors.surface2,
-          }}>
-          <Image
-            source={{uri: item.imageUrl}}
-            style={{width: '100%', height: '100%'}}
-            resizeMode="cover"
-          />
+      {items.slice(0, 5).map(item => {
+        const isSwapping = swappingCategory === item.category;
+        return (
           <View
+            key={item.id}
             style={{
-              position: 'absolute',
-              bottom: 2,
-              left: 2,
-              right: 2,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              borderRadius: 4,
-              paddingVertical: 1,
-              paddingHorizontal: 3,
+              width: 70,
+              height: 70,
+              borderRadius: tokens.borderRadius.md,
+              overflow: 'hidden',
+              borderWidth: isSwapping ? 2 : theme.borderWidth.hairline,
+              borderColor: isSwapping ? theme.colors.button1 : theme.colors.surfaceBorder,
+              backgroundColor: theme.colors.surface2,
             }}>
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: fontScale(tokens.fontSize.xxs),
-                textAlign: 'center',
-              }}
-              numberOfLines={1}>
-              {item.name}
-            </Text>
+            {isSwapping ? (
+              <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                <ActivityIndicator size="small" color={theme.colors.button1} />
+              </View>
+            ) : (
+              <>
+                <Image
+                  source={{uri: item.imageUrl}}
+                  style={{width: '100%', height: '100%'}}
+                  resizeMode="cover"
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: 2,
+                    left: 2,
+                    right: 2,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    borderRadius: 4,
+                    paddingVertical: 1,
+                    paddingHorizontal: 3,
+                  }}>
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontSize: fontScale(tokens.fontSize.xxs),
+                      textAlign: 'center',
+                    }}
+                    numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
-        </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 
@@ -280,9 +298,74 @@ const AiStylistSuggestions: React.FC<Props> = ({
     );
   };
 
+  // Save outfit to Saved Outfits (custom-outfits endpoint)
+  const handleSaveOutfit = async () => {
+    const currentOutfit = getCurrentOutfit();
+    if (!currentOutfit || !contextUUID) {
+      Alert.alert('Error', 'Unable to save outfit. Please try again.');
+      return;
+    }
+
+    // Extract item IDs by category from the outfit
+    const items = currentOutfit.items || [];
+    const topItem = items.find(i => i.category === 'top');
+    const bottomItem = items.find(i => i.category === 'bottom');
+    const shoesItem = items.find(i => i.category === 'shoes');
+
+    if (!topItem && !bottomItem && !shoesItem) {
+      Alert.alert('Error', 'No items found in this outfit.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const accessToken = await getAccessToken();
+      const response = await fetch(`${API_BASE_URL}/custom-outfits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          user_id: contextUUID,
+          name: currentOutfit.summary || 'AI Stylist Suggestion',
+          top_id: topItem?.id ?? null,
+          bottom_id: bottomItem?.id ?? null,
+          shoes_id: shoesItem?.id ?? null,
+          accessory_ids: items
+            .filter(i => i.category === 'accessory' || i.category === 'outerwear')
+            .map(i => i.id),
+          metadata: {
+            source: 'ai_stylist',
+            rank: currentOutfit.rank,
+          },
+          notes: currentOutfit.reasoning || '',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Save outfit failed:', response.status, errorText);
+        throw new Error(`Failed to save outfit: ${response.status}`);
+      }
+
+      // Invalidate saved-outfits cache so SavedOutfitsScreen refreshes
+      queryClient.invalidateQueries({queryKey: ['saved-outfits', contextUUID]});
+
+      Alert.alert('Saved!', 'Outfit added to your Saved Outfits.', [
+        {text: 'View Saved', onPress: () => navigate('SavedOutfits', {})},
+        {text: 'OK'},
+      ]);
+    } catch (err) {
+      console.error('Error saving outfit:', err);
+      Alert.alert('Error', 'Failed to save outfit. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Action buttons: Wear this, Next, Tweak
   const ActionButtons = () => {
-    const currentOutfit = getCurrentOutfit();
     const totalOutfits = isVisualFormat(aiData) ? aiData.outfits.length : 0;
 
     return (
@@ -292,31 +375,29 @@ const AiStylistSuggestions: React.FC<Props> = ({
           marginTop: moderateScale(tokens.spacing.sm),
           gap: moderateScale(tokens.spacing.xs),
         }}>
-        {/* Wear this - Primary */}
+        {/* Wear this - Primary (saves outfit) */}
         <TouchableOpacity
-          onPress={() =>
-            navigate('Outfit', {
-              from: 'AiStylistSuggestions',
-              preselectedItems: currentOutfit?.items,
-              seedPrompt: currentOutfit?.summary,
-              autogenerate: true,
-            })
-          }
+          onPress={handleSaveOutfit}
+          disabled={isSaving}
           style={{
             flex: 2,
-            backgroundColor: theme.colors.button1,
+            backgroundColor: isSaving ? theme.colors.muted : theme.colors.button1,
             paddingVertical: moderateScale(tokens.spacing.sm),
-            borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
           }}>
-          <Text
-            style={{
-              color: '#fff',
-              fontWeight: tokens.fontWeight.semiBold,
-              fontSize: fontScale(tokens.fontSize.md),
-            }}>
-            Wear this
-          </Text>
+          {isSaving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text
+              style={{
+                color: '#fff',
+                fontWeight: tokens.fontWeight.semiBold,
+                fontSize: fontScale(tokens.fontSize.md),
+              }}>
+              Wear/Save this
+            </Text>
+          )}
         </TouchableOpacity>
 
         {/* Next option */}
@@ -328,7 +409,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             flex: 1,
             backgroundColor: theme.colors.surface2,
             paddingVertical: moderateScale(tokens.spacing.sm),
-            borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
             borderWidth: theme.borderWidth.hairline,
             borderColor: theme.colors.muted,
@@ -348,7 +429,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={{
             paddingHorizontal: moderateScale(tokens.spacing.md),
             paddingVertical: moderateScale(tokens.spacing.sm),
-            borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.borderRadius.sm,
             alignItems: 'center',
             borderWidth: theme.borderWidth.hairline,
             borderColor: theme.colors.muted,
@@ -361,13 +442,29 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
   // Tweak constraint sheet overlay
   const TweakSheet = () => {
-    const constraints = [
+    const styleConstraints = [
       {label: 'More casual', value: 'more casual'},
       {label: 'More formal', value: 'more formal'},
       {label: 'Warmer layers', value: 'warmer layers'},
       {label: 'Cooler outfit', value: 'lighter, cooler'},
       {label: 'Different colors', value: 'different color palette'},
     ];
+
+    // Get current outfit items for swap options
+    const currentOutfit = getCurrentOutfit();
+    const currentItems = currentOutfit?.items || [];
+
+    // Category labels for display
+    const categoryLabels: Record<string, string> = {
+      top: 'Top',
+      bottom: 'Bottom',
+      outerwear: 'Outerwear',
+      shoes: 'Shoes',
+      accessory: 'Accessory',
+    };
+
+    // Get unique categories from current outfit for swap buttons
+    const swappableCategories = [...new Set(currentItems.map(item => item.category))];
 
     if (!showTweakSheet) return null;
 
@@ -400,9 +497,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             bottom: 0,
             left: 0,
             right: 0,
+            marginHorizontal: 16,
             backgroundColor: theme.colors.surface,
-            borderTopLeftRadius: tokens.borderRadius.xl,
-            borderTopRightRadius: tokens.borderRadius.xl,
+            borderRadius: tokens.borderRadius.xl,
+            borderColor: theme.colors.muted,
+            borderWidth: tokens.borderWidth.hairline,
+            // borderTopLeftRadius: tokens.borderRadius.xl,
+            // borderTopRightRadius: tokens.borderRadius.xl,
             padding: moderateScale(tokens.spacing.md),
             paddingBottom: moderateScale(tokens.spacing.xl),
             shadowColor: '#000',
@@ -411,18 +512,62 @@ const AiStylistSuggestions: React.FC<Props> = ({
             shadowRadius: 12,
             elevation: 20,
           }}>
+          {/* Single-Piece Swaps Section */}
+          {swappableCategories.length > 0 && (
+            <>
+              <Text
+                style={{
+                  fontSize: fontScale(tokens.fontSize.lg),
+                  fontWeight: tokens.fontWeight.bold,
+                  color: theme.colors.foreground,
+                  marginBottom: moderateScale(tokens.spacing.xs),
+                }}>
+                Swap one piece
+              </Text>
+              <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: moderateScale(tokens.spacing.md)}}>
+                {swappableCategories.map(category => (
+                  <TouchableOpacity
+                    key={category}
+                    onPress={() => {
+                      // Keep modal open - user closes it manually
+                      setSwappingCategory(category); // Show spinner on this item only
+                      // Send swap request with current outfit context
+                      const keepIds = currentItems
+                        .filter(item => item.category !== category)
+                        .map(item => item.id);
+                      swapSingleItemRef.current?.(category, keepIds);
+                    }}
+                    style={{
+                      backgroundColor: theme.colors.button1,
+                      paddingHorizontal: moderateScale(tokens.spacing.md),
+                      paddingVertical: moderateScale(tokens.spacing.sm),
+                      borderRadius: tokens.borderRadius.md,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}>
+                    <Icon name="swap-horiz" size={16} color="#fff" />
+                    <Text style={{color: '#fff', fontWeight: tokens.fontWeight.semiBold}}>
+                      {categoryLabels[category] || category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* Style Adjustments Section */}
           <Text
             style={{
-              fontSize: fontScale(tokens.fontSize.lg),
-              fontWeight: tokens.fontWeight.bold,
-              color: theme.colors.foreground,
-              marginBottom: moderateScale(tokens.spacing.sm),
+              fontSize: fontScale(tokens.fontSize.md),
+              fontWeight: tokens.fontWeight.semiBold,
+              color: theme.colors.foreground2,
+              marginBottom: moderateScale(tokens.spacing.xs),
             }}>
-            Adjust this outfit
+            Adjust style
           </Text>
-
           <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
-            {constraints.map(c => (
+            {styleConstraints.map(c => (
               <TouchableOpacity
                 key={c.value}
                 onPress={() => {
@@ -487,6 +632,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         wardrobe,
         preferences,
         format: 'visual', // Request new visual format
+        mode: isAutoMode ? 'auto' : 'manual', // Mode affects phrasing
         ...(constraint && {constraint}), // Add tweak constraint if provided
       };
 
@@ -578,6 +724,67 @@ const AiStylistSuggestions: React.FC<Props> = ({
   // Set ref so useEffect can call fetchSuggestion
   fetchSuggestionRef.current = fetchSuggestion;
 
+  /** 🔄 Swap single item - keeps UI visible, only shows spinner on swapped category */
+  const swapSingleItem = async (category: string, keepIds: string[]) => {
+    if (!weather?.fahrenheit?.main?.temp) {
+      setSwappingCategory(null);
+      return;
+    }
+
+    try {
+      // Don't set loading - keep current UI visible
+      // swappingCategory is already set by caller
+
+      let accessToken: string | null = null;
+      try {
+        accessToken = await getAccessToken();
+      } catch {
+        setSwappingCategory(null);
+        return;
+      }
+
+      const payload = {
+        user: userName,
+        weather,
+        wardrobe,
+        preferences,
+        format: 'visual',
+        mode: isAutoMode ? 'auto' : 'manual', // Mode affects phrasing
+        constraint: `swap ${category} only, keep these items: ${keepIds.join(', ')}`,
+      };
+
+      const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Failed to swap item');
+      const data: AiSuggestionData = await res.json();
+
+      // Update UI with new data
+      setAiData(data);
+      setActiveOutfitIndex(0);
+
+      // Persist
+      requestAnimationFrame(async () => {
+        try {
+          await AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify(data));
+        } catch {}
+      });
+    } catch (err) {
+      console.error('Swap failed:', err);
+    } finally {
+      setSwappingCategory(null); // Clear spinner
+    }
+  };
+
+  // Set ref so TweakSheet can call swapSingleItem
+  swapSingleItemRef.current = swapSingleItem;
+
   /** 📍 Fallback suggestion */
   const fallbackSuggestion = () => {
     const temp = weather?.fahrenheit?.main?.temp;
@@ -635,18 +842,30 @@ const AiStylistSuggestions: React.FC<Props> = ({
     })();
   }, []);
 
-  /** ✅ Restore last saved AI suggestion on mount */
+  /** ✅ Restore last saved AI suggestion AND active outfit index on mount */
   useEffect(() => {
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(AI_SUGGESTION_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
+        const [savedSuggestion, savedIndex] = await Promise.all([
+          AsyncStorage.getItem(AI_SUGGESTION_STORAGE_KEY),
+          AsyncStorage.getItem(AI_ACTIVE_OUTFIT_INDEX_KEY),
+        ]);
+
+        if (savedSuggestion) {
+          const parsed = JSON.parse(savedSuggestion);
           setAiData(parsed);
 
           // restore refs for cooldown checks
           if (parsed?.suggestion) {
             lastSuggestionRef.current = parsed.suggestion;
+          }
+        }
+
+        // Restore active outfit index
+        if (savedIndex !== null) {
+          const idx = parseInt(savedIndex, 10);
+          if (!isNaN(idx) && idx >= 0) {
+            setActiveOutfitIndex(idx);
           }
         }
       } catch (err) {
@@ -699,6 +918,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
       isExpanded.toString(),
     ).catch(e => console.warn('⚠️ Failed to save expanded state', e));
   }, [isExpanded]);
+
+  /** 💾 Save active outfit index whenever it changes */
+  useEffect(() => {
+    AsyncStorage.setItem(
+      AI_ACTIVE_OUTFIT_INDEX_KEY,
+      activeOutfitIndex.toString(),
+    ).catch(e => console.warn('⚠️ Failed to save active outfit index', e));
+  }, [activeOutfitIndex]);
 
   /** 📡 Auto-fetch on mount if auto mode (respect saved data + cooldown) */
   useEffect(() => {
@@ -785,9 +1012,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
           style={[
             globalStyles.cardStyles5,
             {
-              backgroundColor: theme.colors.surface,
+              // backgroundColor: theme.colors.surface,
               // borderWidth: theme.borderWidth.hairline,
-              // borderColor: theme.colors.surfaceBorder,
+              // borderColor: theme.colors.button1,
               // padding: moderateScale(tokens.spacing.md1),
             },
           ]}>
@@ -828,7 +1055,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 textTransform: 'uppercase',
               }}>
-              Styla's Suggestions
+              Styla's Outfit Suggestions
             </Text>
 
             {/* Status dot: pulsing green when Auto, grey outline when Manual */}
@@ -867,7 +1094,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
 
           {/* 🧠 Manual / Auto Switch */}
-          <View
+          {/* <View
             style={{
               flexDirection: 'row',
               justifyContent: 'space-between',
@@ -892,9 +1119,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
               }}
               ios_backgroundColor={theme.colors.muted}
             />
-          </View>
+          </View> */}
 
-          {/* 💬 Suggestion Card (swipe zone) */}
+          {/* 💬 Suggestion Card ( c zone) */}
           <SwipeableCard
             onSwipeLeft={() => fetchSuggestion('manual')}
             onSwipeRight={() => {
@@ -927,6 +1154,19 @@ const AiStylistSuggestions: React.FC<Props> = ({
             {/* ✨ NEW: Visual outfit format */}
             {!loading && aiData && isVisualFormat(aiData) && (
               <>
+                {/* Weather Summary - one line */}
+                {aiData.weatherSummary && (
+                  <Text
+                    style={{
+                      fontSize: fontScale(tokens.fontSize.xs),
+                      color: theme.colors.foreground2,
+                      marginBottom: moderateScale(tokens.spacing.xs),
+                      paddingHorizontal: moderateScale(tokens.spacing.xxs),
+                    }}>
+                    {aiData.weatherSummary}
+                  </Text>
+                )}
+
                 {/* Rank Badge */}
                 {getCurrentOutfit() && (
                   <RankBadge rank={getCurrentOutfit()!.rank} />
@@ -1180,7 +1420,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 fontSize: fontScale(tokens.fontSize.md),
               }}>
-              Swipe card above for new suggestion
+              Swipe card above for 3 new suggestions
             </Text>
           </View>
 

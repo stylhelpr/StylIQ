@@ -25,7 +25,7 @@ const DEFAULT_PREFS: HomePrefs = {
   topFashionStories: true,
   recommendedItems: true,
   inspiredLooks: true,
-  locationEnabled: true,
+  locationEnabled: false,
 };
 
 /**
