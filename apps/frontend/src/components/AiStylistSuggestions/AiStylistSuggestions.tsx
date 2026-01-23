@@ -39,6 +39,7 @@ type Props = {
   preferences?: any;
 };
 
+// Legacy text-based response type (backward compatibility)
 export type AiSuggestionResponse = {
   suggestion: string;
   insight?: string;
@@ -47,6 +48,29 @@ export type AiSuggestionResponse = {
   lifecycleForecast?: string;
   styleTrajectory?: string;
 };
+
+// New visual outfit types
+type OutfitItem = {
+  id: string;
+  name: string;
+  imageUrl: string;
+  category: 'top' | 'bottom' | 'outerwear' | 'shoes' | 'accessory';
+};
+
+type OutfitSuggestion = {
+  id: string;
+  rank: 1 | 2 | 3;
+  summary: string;
+  items: OutfitItem[];
+  reasoning?: string;
+};
+
+type AiSuggestionResponseV2 = {
+  outfits: OutfitSuggestion[];
+};
+
+// Union type for handling both formats
+type AiSuggestionData = AiSuggestionResponse | AiSuggestionResponseV2;
 
 // 🕐 Cooldown windows
 const NOTIFICATION_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h notification interval
@@ -71,10 +95,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
   const containerRef = useRef<View>(null);
 
-  const [aiData, setAiData] = useState<AiSuggestionResponse | null>(null);
+  const [aiData, setAiData] = useState<AiSuggestionData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAutoMode, setIsAutoMode] = useState(false);
+
+  // Visual outfit state
+  const [activeOutfitIndex, setActiveOutfitIndex] = useState(0);
+  const [showTweakSheet, setShowTweakSheet] = useState(false);
 
   const lastSuggestionRef = useRef<string | null>(null);
   const lastNotifyTimeRef = useRef<number>(0);
@@ -92,10 +120,302 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
   const scrollRef = useRef<ScrollView>(null);
 
-  const fetchSuggestion = async (_trigger: string = 'manual') => {
+  // Type guard to check if response is new visual format
+  const isVisualFormat = (
+    data: AiSuggestionData | null,
+  ): data is AiSuggestionResponseV2 => {
+    return data !== null && 'outfits' in data && Array.isArray(data.outfits);
+  };
+
+  // Type guard to check if response is legacy text format
+  const isTextFormat = (
+    data: AiSuggestionData | null,
+  ): data is AiSuggestionResponse => {
+    return data !== null && 'suggestion' in data;
+  };
+
+  // Get current outfit from visual format
+  const getCurrentOutfit = (): OutfitSuggestion | null => {
+    if (!aiData || !isVisualFormat(aiData)) return null;
+    return aiData.outfits[activeOutfitIndex] || null;
+  };
+
+  // ============================================
+  // Visual Outfit Components (inline)
+  // ============================================
+
+  // Outfit image strip - horizontal scroll of item thumbnails
+  const OutfitStrip = ({items}: {items: OutfitItem[]}) => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: moderateScale(tokens.spacing.xs),
+        gap: moderateScale(tokens.spacing.sm),
+        flexDirection: 'row',
+      }}>
+      {items.slice(0, 5).map(item => (
+        <View
+          key={item.id}
+          style={{
+            width: 70,
+            height: 70,
+            borderRadius: tokens.borderRadius.md,
+            overflow: 'hidden',
+            borderWidth: theme.borderWidth.hairline,
+            borderColor: theme.colors.surfaceBorder,
+            backgroundColor: theme.colors.surface2,
+          }}>
+          <Image
+            source={{uri: item.imageUrl}}
+            style={{width: '100%', height: '100%'}}
+            resizeMode="cover"
+          />
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 2,
+              left: 2,
+              right: 2,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: 4,
+              paddingVertical: 1,
+              paddingHorizontal: 3,
+            }}>
+            <Text
+              style={{
+                color: '#fff',
+                fontSize: fontScale(tokens.fontSize.xxs),
+                textAlign: 'center',
+              }}
+              numberOfLines={1}>
+              {item.name}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
+  // Rank badge showing "1st Pick", "2nd Pick", etc.
+  const RankBadge = ({rank}: {rank: 1 | 2 | 3}) => {
+    const labels: Record<1 | 2 | 3, string> = {
+      1: '1st Pick',
+      2: '2nd Pick',
+      3: '3rd Pick',
+    };
+    const colors: Record<1 | 2 | 3, string> = {
+      1: theme.colors.button1,
+      2: theme.colors.foreground2,
+      3: theme.colors.muted,
+    };
+    return (
+      <View
+        style={{
+          backgroundColor: colors[rank],
+          paddingHorizontal: moderateScale(tokens.spacing.xs),
+          paddingVertical: 2,
+          borderRadius: tokens.borderRadius.sm,
+          alignSelf: 'flex-start',
+          marginBottom: moderateScale(tokens.spacing.xs),
+        }}>
+        <Text
+          style={{
+            color: rank === 1 ? '#fff' : theme.colors.foreground,
+            fontSize: fontScale(tokens.fontSize.xxs),
+            fontWeight: tokens.fontWeight.semiBold,
+          }}>
+          {labels[rank]}
+        </Text>
+      </View>
+    );
+  };
+
+  // Action buttons: Wear this, Next, Tweak
+  const ActionButtons = () => {
+    const currentOutfit = getCurrentOutfit();
+    const totalOutfits = isVisualFormat(aiData) ? aiData.outfits.length : 0;
+
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+          marginTop: moderateScale(tokens.spacing.sm),
+          gap: moderateScale(tokens.spacing.xs),
+        }}>
+        {/* Wear this - Primary */}
+        <TouchableOpacity
+          onPress={() =>
+            navigate('Outfit', {
+              from: 'AiStylistSuggestions',
+              preselectedItems: currentOutfit?.items,
+              seedPrompt: currentOutfit?.summary,
+              autogenerate: true,
+            })
+          }
+          style={{
+            flex: 2,
+            backgroundColor: theme.colors.button1,
+            paddingVertical: moderateScale(tokens.spacing.sm),
+            borderRadius: tokens.borderRadius.md,
+            alignItems: 'center',
+          }}>
+          <Text
+            style={{
+              color: '#fff',
+              fontWeight: tokens.fontWeight.semiBold,
+              fontSize: fontScale(tokens.fontSize.md),
+            }}>
+            Wear this
+          </Text>
+        </TouchableOpacity>
+
+        {/* Next option */}
+        <TouchableOpacity
+          onPress={() =>
+            setActiveOutfitIndex(prev => (prev + 1) % totalOutfits)
+          }
+          style={{
+            flex: 1,
+            backgroundColor: theme.colors.surface2,
+            paddingVertical: moderateScale(tokens.spacing.sm),
+            borderRadius: tokens.borderRadius.md,
+            alignItems: 'center',
+            borderWidth: theme.borderWidth.hairline,
+            borderColor: theme.colors.muted,
+          }}>
+          <Text
+            style={{
+              color: theme.colors.foreground,
+              fontSize: fontScale(tokens.fontSize.sm),
+            }}>
+            Next
+          </Text>
+        </TouchableOpacity>
+
+        {/* Tweak */}
+        <TouchableOpacity
+          onPress={() => setShowTweakSheet(true)}
+          style={{
+            paddingHorizontal: moderateScale(tokens.spacing.md),
+            paddingVertical: moderateScale(tokens.spacing.sm),
+            borderRadius: tokens.borderRadius.md,
+            alignItems: 'center',
+            borderWidth: theme.borderWidth.hairline,
+            borderColor: theme.colors.muted,
+          }}>
+          <Icon name="tune" size={20} color={theme.colors.foreground2} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // Tweak constraint sheet overlay
+  const TweakSheet = () => {
+    const constraints = [
+      {label: 'More casual', value: 'more casual'},
+      {label: 'More formal', value: 'more formal'},
+      {label: 'Warmer layers', value: 'warmer layers'},
+      {label: 'Cooler outfit', value: 'lighter, cooler'},
+      {label: 'Different colors', value: 'different color palette'},
+    ];
+
+    if (!showTweakSheet) return null;
+
+    return (
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+        }}>
+        {/* Backdrop */}
+        <Pressable
+          onPress={() => setShowTweakSheet(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+          }}
+        />
+        {/* Sheet */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: theme.colors.surface,
+            borderTopLeftRadius: tokens.borderRadius.xl,
+            borderTopRightRadius: tokens.borderRadius.xl,
+            padding: moderateScale(tokens.spacing.md),
+            paddingBottom: moderateScale(tokens.spacing.xl),
+            shadowColor: '#000',
+            shadowOffset: {width: 0, height: -2},
+            shadowOpacity: 0.2,
+            shadowRadius: 12,
+            elevation: 20,
+          }}>
+          <Text
+            style={{
+              fontSize: fontScale(tokens.fontSize.lg),
+              fontWeight: tokens.fontWeight.bold,
+              color: theme.colors.foreground,
+              marginBottom: moderateScale(tokens.spacing.sm),
+            }}>
+            Adjust this outfit
+          </Text>
+
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: 8}}>
+            {constraints.map(c => (
+              <TouchableOpacity
+                key={c.value}
+                onPress={() => {
+                  setShowTweakSheet(false);
+                  fetchSuggestion('tweak', c.value);
+                }}
+                style={{
+                  backgroundColor: theme.colors.surface2,
+                  paddingHorizontal: moderateScale(tokens.spacing.sm),
+                  paddingVertical: moderateScale(tokens.spacing.xs),
+                  borderRadius: tokens.borderRadius.md,
+                  borderWidth: theme.borderWidth.hairline,
+                  borderColor: theme.colors.muted,
+                }}>
+                <Text style={{color: theme.colors.foreground}}>{c.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setShowTweakSheet(false)}
+            style={{
+              marginTop: moderateScale(tokens.spacing.md),
+              alignItems: 'center',
+            }}>
+            <Text style={{color: theme.colors.foreground2}}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const fetchSuggestion = async (
+    _trigger: string = 'manual',
+    constraint?: string,
+  ) => {
     if (!weather?.fahrenheit?.main?.temp) {
       return;
     }
+
+    // Reset outfit index on new fetch
+    setActiveOutfitIndex(0);
 
     try {
       setLoading(true);
@@ -112,7 +432,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
         return;
       }
 
-      const payload = {user: userName, weather, wardrobe, preferences};
+      const payload = {
+        user: userName,
+        weather,
+        wardrobe,
+        preferences,
+        format: 'visual', // Request new visual format
+        ...(constraint && {constraint}), // Add tweak constraint if provided
+      };
 
       const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
         method: 'POST',
@@ -124,7 +451,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       });
 
       if (!res.ok) throw new Error('Failed to fetch suggestion');
-      const data: AiSuggestionResponse = await res.json();
+      const data: AiSuggestionData = await res.json();
 
       // 1️⃣ Update UI immediately
       setAiData(data);
@@ -142,15 +469,19 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
         // 3️⃣ Guaranteed repaint tick (forces text paint but keeps data stable)
         setTimeout(() => {
-          setAiData(prev => ({...prev}));
+          setAiData(prev => (prev ? {...prev} : null));
         }, 25);
       });
 
       // 4️⃣ Notifications + cooldown
       const now = Date.now();
+      // Get summary text for notification (works for both formats)
+      const summaryText = isVisualFormat(data)
+        ? data.outfits[0]?.summary || 'New outfit suggestions ready'
+        : data.suggestion;
       const significantChange =
         lastSuggestionRef.current &&
-        data.suggestion.slice(0, 60) !== lastSuggestionRef.current.slice(0, 60);
+        summaryText.slice(0, 60) !== lastSuggestionRef.current.slice(0, 60);
 
       if (
         significantChange &&
@@ -158,7 +489,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
       ) {
         PushNotification.localNotification({
           title: '✨ New Style Suggestion Ready',
-          message: data.suggestion,
+          message: summaryText,
           channelId: 'ai-suggestions',
         });
         lastNotifyTimeRef.current = now;
@@ -170,7 +501,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             if (diEnabled) {
               await DynamicIsland.start(
                 '✨ New Style Suggestion',
-                data.suggestion,
+                summaryText,
               );
               // Auto-dismiss after 15 seconds
               setTimeout(async () => {
@@ -183,7 +514,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
         })();
       }
 
-      lastSuggestionRef.current = data.suggestion;
+      lastSuggestionRef.current = summaryText;
       lastFetchTimeRef.current = now;
 
       // 5️⃣ Persist fetch time
@@ -317,7 +648,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
     ).catch(e => console.warn('⚠️ Failed to save expanded state', e));
   }, [isExpanded]);
 
-  /** 📡 Auto-fetch on mount if auto mode */
   /** 📡 Auto-fetch on mount if auto mode (respect saved data + cooldown) */
   useEffect(() => {
     if (!isAutoMode) return;
@@ -330,13 +660,24 @@ const AiStylistSuggestions: React.FC<Props> = ({
         const saved = await AsyncStorage.getItem(AI_SUGGESTION_STORAGE_KEY);
         const parsed = saved ? JSON.parse(saved) : null;
 
+        // Check if we have valid cached data (works for both formats)
+        const hasValidCache =
+          (parsed?.suggestion && isTextFormat(parsed)) ||
+          (parsed?.outfits && isVisualFormat(parsed));
+
         // ✅  Only fetch if nothing saved OR cooldown expired
-        if (!parsed?.suggestion || cooldownPassed) {
+        if (!hasValidCache || cooldownPassed) {
           fetchSuggestion('initial');
           lastFetchTimeRef.current = now;
         } else {
           setAiData(parsed);
-          lastSuggestionRef.current = parsed.suggestion;
+          // Update ref with summary text for both formats
+          const summaryText = isVisualFormat(parsed)
+            ? parsed.outfits[0]?.summary
+            : parsed.suggestion;
+          if (summaryText) {
+            lastSuggestionRef.current = summaryText;
+          }
         }
       } catch (err) {
         console.warn('⚠️ Failed to check auto mode cache', err);
@@ -504,13 +845,18 @@ const AiStylistSuggestions: React.FC<Props> = ({
           {/* 💬 Suggestion Card (swipe zone) */}
           <SwipeableCard
             onSwipeLeft={() => fetchSuggestion('manual')}
-            onSwipeRight={() =>
+            onSwipeRight={() => {
+              const currentOutfit = getCurrentOutfit();
               navigate('Outfit', {
                 from: 'AiStylistSuggestions',
-                seedPrompt: aiData?.suggestion || fallbackSuggestion(),
+                seedPrompt:
+                  currentOutfit?.summary ||
+                  (isTextFormat(aiData) ? aiData?.suggestion : null) ||
+                  fallbackSuggestion(),
+                preselectedItems: currentOutfit?.items,
                 autogenerate: true,
-              })
-            }
+              });
+            }}
             deleteThreshold={0.08}
             style={{
               backgroundColor: theme.colors.surface2,
@@ -526,15 +872,101 @@ const AiStylistSuggestions: React.FC<Props> = ({
               />
             )}
 
-            {!loading && (
+            {/* ✨ NEW: Visual outfit format */}
+            {!loading && aiData && isVisualFormat(aiData) && (
+              <>
+                {/* Rank Badge */}
+                {getCurrentOutfit() && (
+                  <RankBadge rank={getCurrentOutfit()!.rank} />
+                )}
+
+                {/* Visual Outfit Strip - IMAGES FIRST */}
+                <OutfitStrip items={getCurrentOutfit()?.items || []} />
+
+                {/* One-line summary */}
+                <Text
+                  style={{
+                    fontSize: fontScale(tokens.fontSize.md),
+                    fontWeight: tokens.fontWeight.semiBold,
+                    color: theme.colors.foreground,
+                    lineHeight: 22,
+                    marginTop: moderateScale(tokens.spacing.sm),
+                    marginBottom: moderateScale(tokens.spacing.xs),
+                    paddingHorizontal: moderateScale(tokens.spacing.xxs),
+                  }}>
+                  {getCurrentOutfit()?.summary || 'Perfect for today'}
+                </Text>
+
+                {/* Action Buttons */}
+                <ActionButtons />
+
+                {/* Expandable reasoning */}
+                {getCurrentOutfit()?.reasoning && (
+                  <Animatable.View
+                    animation="fadeIn"
+                    duration={250}
+                    style={{
+                      overflow: 'hidden',
+                      maxHeight: isExpanded ? 500 : 0,
+                      marginTop: moderateScale(tokens.spacing.sm),
+                    }}>
+                    <Text
+                      style={{
+                        fontSize: fontScale(tokens.fontSize.sm),
+                        color: theme.colors.foreground2,
+                        fontStyle: 'italic',
+                        lineHeight: 18,
+                        paddingHorizontal: moderateScale(tokens.spacing.xxs),
+                      }}>
+                      {getCurrentOutfit()?.reasoning}
+                    </Text>
+                  </Animatable.View>
+                )}
+
+                {/* Collapse/Expand toggle for reasoning */}
+                {getCurrentOutfit()?.reasoning && (
+                  <Pressable
+                    onPress={toggleExpanded}
+                    style={{
+                      alignItems: 'center',
+                      paddingVertical: moderateScale(tokens.spacing.xsm),
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                    }}>
+                    <Text
+                      style={{
+                        color: theme.colors.button1,
+                        fontSize: fontScale(tokens.fontSize.base),
+                        marginRight: moderateScale(tokens.spacing.xxs),
+                      }}>
+                      {isExpanded ? 'Hide details' : 'Why this outfit?'}
+                    </Text>
+                    <Animatable.View
+                      duration={250}
+                      style={{
+                        transform: [{rotate: isExpanded ? '180deg' : '0deg'}],
+                      }}>
+                      <Icon
+                        name="expand-more"
+                        size={24}
+                        color={theme.colors.button1}
+                      />
+                    </Animatable.View>
+                  </Pressable>
+                )}
+              </>
+            )}
+
+            {/* 📝 LEGACY: Text-based format (backward compatibility) */}
+            {!loading && aiData && isTextFormat(aiData) && (
               <>
                 <Animatable.View
-                  key={aiData?.suggestion?.slice(0, 60) || 'empty'}
+                  key={aiData.suggestion?.slice(0, 60) || 'empty'}
                   animation="fadeIn"
                   duration={250}
                   useNativeDriver
                   style={{
-                    opacity: 1, // keep visible
+                    opacity: 1,
                     overflow: 'hidden',
                     maxHeight: isExpanded ? 1000 : 150,
                   }}>
@@ -547,12 +979,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       marginBottom: moderateScale(tokens.spacing.md),
                       paddingHorizontal: moderateScale(tokens.spacing.xxs),
                     }}>
-                    {error
-                      ? fallbackSuggestion()
-                      : aiData?.suggestion || fallbackSuggestion()}
+                    {error ? fallbackSuggestion() : aiData.suggestion}
                   </Text>
 
-                  {aiData?.insight && (
+                  {aiData.insight && (
                     <Animatable.Text
                       animation="fadeIn"
                       delay={300}
@@ -568,7 +998,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     </Animatable.Text>
                   )}
 
-                  {aiData?.tomorrow && (
+                  {aiData.tomorrow && (
                     <Animatable.Text
                       animation="fadeInUp"
                       delay={400}
@@ -583,7 +1013,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     </Animatable.Text>
                   )}
 
-                  {aiData?.seasonalForecast && (
+                  {aiData.seasonalForecast && (
                     <Animatable.Text
                       animation="fadeInUp"
                       delay={500}
@@ -598,7 +1028,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     </Animatable.Text>
                   )}
 
-                  {aiData?.lifecycleForecast && (
+                  {aiData.lifecycleForecast && (
                     <Animatable.Text
                       animation="fadeInUp"
                       delay={600}
@@ -613,7 +1043,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     </Animatable.Text>
                   )}
 
-                  {aiData?.styleTrajectory && (
+                  {aiData.styleTrajectory && (
                     <Animatable.Text
                       animation="fadeInUp"
                       delay={700}
@@ -629,7 +1059,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   )}
                 </Animatable.View>
 
-                {/* 👇 Collapse / Expand toggle */}
+                {/* Collapse / Expand toggle for text format */}
                 <Pressable
                   onPress={toggleExpanded}
                   style={{
@@ -641,8 +1071,6 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   <Text
                     style={{
                       color: theme.colors.button1,
-                      // fontWeight: tokens.fontWeight.semiBold,
-                      // fontSize: fontScale(tokens.fontSize.md),
                       fontSize: fontScale(tokens.fontSize.base),
                       marginRight: moderateScale(tokens.spacing.xxs),
                     }}>
@@ -661,6 +1089,21 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   </Animatable.View>
                 </Pressable>
               </>
+            )}
+
+            {/* Fallback when no data */}
+            {!loading && !aiData && (
+              <Text
+                style={{
+                  fontSize: fontScale(tokens.fontSize.md),
+                  fontWeight: tokens.fontWeight.semiBold,
+                  color: theme.colors.foreground,
+                  lineHeight: 22,
+                  marginBottom: moderateScale(tokens.spacing.md),
+                  paddingHorizontal: moderateScale(tokens.spacing.xxs),
+                }}>
+                {fallbackSuggestion()}
+              </Text>
             )}
           </SwipeableCard>
 
@@ -703,11 +1146,727 @@ const AiStylistSuggestions: React.FC<Props> = ({
           </View>
         </Animatable.View>
       </ScrollView>
+
+      {/* 🎛️ Tweak Sheet Overlay - at SafeAreaView level for proper positioning */}
+      <TweakSheet />
     </SafeAreaView>
   );
 };
 
 export default AiStylistSuggestions;
+
+////////////////////////
+
+// import React, {useEffect, useState, useRef} from 'react';
+// import {
+//   View,
+//   Text,
+//   TouchableOpacity,
+//   ActivityIndicator,
+//   AppState,
+//   Switch,
+//   ScrollView,
+//   Pressable,
+//   Image,
+// } from 'react-native';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import * as Animatable from 'react-native-animatable';
+// import AppleTouchFeedback from '../AppleTouchFeedback/AppleTouchFeedback';
+// import {API_BASE_URL} from '../../config/api';
+// import PushNotification from 'react-native-push-notification';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {useGlobalStyles} from '../../styles/useGlobalStyles';
+// import {tokens} from '../../styles/tokens/tokens';
+// import {useAppTheme} from '../../context/ThemeContext';
+// import SwipeableCard from '../../components/SwipeableCard/SwipeableCard';
+// import {fontScale, moderateScale} from '../../utils/scale';
+// import MascotAssistant from '../../components/MascotAssistant/MascotAssistant';
+// import {useResponsive} from '../../hooks/useResponsive';
+// import {useWindowDimensions} from 'react-native';
+// import {index} from '../../../../backend-nest/dist/pinecone/pineconeUtils';
+// import {useAiSuggestionVoiceCommands} from '../../utils/VoiceUtils/VoiceContext';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {findNodeHandle, UIManager} from 'react-native';
+// import {DynamicIsland} from '../../native/dynamicIsland';
+// import {getAccessToken} from '../../utils/auth';
+
+// type Props = {
+//   weather: any;
+//   navigate: (screen: string, params?: any) => void;
+//   userName?: string;
+//   wardrobe?: any[];
+//   preferences?: any;
+// };
+
+// export type AiSuggestionResponse = {
+//   suggestion: string;
+//   insight?: string;
+//   tomorrow?: string;
+//   seasonalForecast?: string;
+//   lifecycleForecast?: string;
+//   styleTrajectory?: string;
+// };
+
+// // 🕐 Cooldown windows
+// const NOTIFICATION_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h notification interval
+// const FETCH_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2h re-fetch cooldown
+// const STORAGE_KEY = 'aiStylistAutoMode';
+
+// // ✅ ADD — persistent suggestion key
+// const AI_SUGGESTION_STORAGE_KEY = 'aiStylist_lastSuggestion';
+
+// // ✅ Persistent expanded state key
+// const AI_SUGGESTION_EXPANDED_KEY = 'aiStylist_isExpanded';
+
+// const AiStylistSuggestions: React.FC<Props> = ({
+//   weather,
+//   navigate,
+//   userName = 'You',
+//   wardrobe = [],
+//   preferences = {},
+// }) => {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+
+//   const containerRef = useRef<View>(null);
+
+//   const [aiData, setAiData] = useState<AiSuggestionResponse | null>(null);
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+//   const [isAutoMode, setIsAutoMode] = useState(false);
+
+//   const lastSuggestionRef = useRef<string | null>(null);
+//   const lastNotifyTimeRef = useRef<number>(0);
+//   const lastFetchTimeRef = useRef<number>(0);
+//   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+//   const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
+//   const toggleExpanded = () => setIsExpanded(prev => !prev);
+
+//   const {width, isXS, isSM, isMD} = useResponsive();
+
+//   // inside AiStylistSuggestions component
+//   const {width: screenWidth} = useWindowDimensions();
+//   const isCompact = screenWidth <= 390; // iPhone SE / 13 mini breakpoint
+
+//   const scrollRef = useRef<ScrollView>(null);
+
+//   const fetchSuggestion = async (_trigger: string = 'manual') => {
+//     if (!weather?.fahrenheit?.main?.temp) {
+//       return;
+//     }
+
+//     try {
+//       setLoading(true);
+//       setError(null);
+
+//       // Get auth token for authenticated API call
+//       let accessToken: string | null = null;
+//       try {
+//         accessToken = await getAccessToken();
+//       } catch {
+//         // If no token, user is not authenticated
+//         setError('Please log in to get AI suggestions.');
+//         setLoading(false);
+//         return;
+//       }
+
+//       const payload = {user: userName, weather, wardrobe, preferences};
+
+//       const res = await fetch(`${API_BASE_URL}/ai/suggest`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           Authorization: `Bearer ${accessToken}`,
+//         },
+//         body: JSON.stringify(payload),
+//       });
+
+//       if (!res.ok) throw new Error('Failed to fetch suggestion');
+//       const data: AiSuggestionResponse = await res.json();
+
+//       // 1️⃣ Update UI immediately
+//       setAiData(data);
+
+//       // 2️⃣ Persist suggestion AFTER render commit
+//       requestAnimationFrame(async () => {
+//         try {
+//           await AsyncStorage.setItem(
+//             AI_SUGGESTION_STORAGE_KEY,
+//             JSON.stringify(data),
+//           );
+//         } catch (err) {
+//           // Failed to save AI suggestion
+//         }
+
+//         // 3️⃣ Guaranteed repaint tick (forces text paint but keeps data stable)
+//         setTimeout(() => {
+//           setAiData(prev => ({...prev}));
+//         }, 25);
+//       });
+
+//       // 4️⃣ Notifications + cooldown
+//       const now = Date.now();
+//       const significantChange =
+//         lastSuggestionRef.current &&
+//         data.suggestion.slice(0, 60) !== lastSuggestionRef.current.slice(0, 60);
+
+//       if (
+//         significantChange &&
+//         now - lastNotifyTimeRef.current > NOTIFICATION_COOLDOWN_MS
+//       ) {
+//         PushNotification.localNotification({
+//           title: '✨ New Style Suggestion Ready',
+//           message: data.suggestion,
+//           channelId: 'ai-suggestions',
+//         });
+//         lastNotifyTimeRef.current = now;
+
+//         // 🏝️ Show in Dynamic Island
+//         (async () => {
+//           try {
+//             const diEnabled = await DynamicIsland.isEnabled();
+//             if (diEnabled) {
+//               await DynamicIsland.start(
+//                 '✨ New Style Suggestion',
+//                 data.suggestion,
+//               );
+//               // Auto-dismiss after 15 seconds
+//               setTimeout(async () => {
+//                 try {
+//                   await DynamicIsland.end();
+//                 } catch {}
+//               }, 15000);
+//             }
+//           } catch {}
+//         })();
+//       }
+
+//       lastSuggestionRef.current = data.suggestion;
+//       lastFetchTimeRef.current = now;
+
+//       // 5️⃣ Persist fetch time
+//       await AsyncStorage.setItem('aiStylist_lastFetchTime', String(now));
+//     } catch (err) {
+//       setError('Unable to load AI suggestions right now.');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   /** 📍 Fallback suggestion */
+//   const fallbackSuggestion = () => {
+//     const temp = weather?.fahrenheit?.main?.temp;
+//     const condition = weather?.celsius?.weather?.[0]?.main;
+
+//     if (!temp)
+//       return 'Tap "Generate Suggestions" to get style guidance tailored to today’s weather.';
+
+//     let base = '';
+//     if (temp < 40)
+//       base =
+//         'Very cold — focus on insulating layers, weather-resistant outerwear, and warm accessories.';
+//     else if (temp < 50)
+//       base =
+//         'Chilly — add mid-weight layers like knitwear or light outer layers.';
+//     else if (temp < 65)
+//       base =
+//         'Mild — lightweight layers and versatile pieces will keep you ready.';
+//     else if (temp < 80)
+//       base =
+//         'Warm — breathable fabrics and relaxed outfits will help you stay cool.';
+//     else if (temp < 90) base = 'Hot — keep it ultra-light, airy, and minimal.';
+//     else
+//       base =
+//         'Scorching — prioritize ventilation, loose fits, and sun-protective materials.';
+
+//     let extra = '';
+//     if (condition === 'Rain')
+//       extra = ' ☔ Waterproof layers will keep you dry.';
+//     if (condition === 'Snow')
+//       extra = ' ❄️ Choose insulated footwear and outerwear.';
+//     if (condition === 'Clear')
+//       extra = ' 😎 Sunglasses add both comfort and style.';
+//     if (condition === 'Clouds')
+//       extra = ' ☁️ Neutral tones and flexible layering pieces will work well.';
+
+//     return `${base}${extra}`;
+//   };
+
+//   /** 📊 Load saved auto-mode preference */
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const saved = await AsyncStorage.getItem(STORAGE_KEY);
+//         if (saved === null) {
+//           setIsAutoMode(false);
+//           await AsyncStorage.setItem(STORAGE_KEY, 'false');
+//         } else {
+//           setIsAutoMode(saved === 'true');
+//         }
+//       } catch (e) {
+//         console.warn('⚠️ Failed to load auto mode setting', e);
+//         setIsAutoMode(false);
+//       }
+//     })();
+//   }, []);
+
+//   /** ✅ Restore last saved AI suggestion on mount */
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const saved = await AsyncStorage.getItem(AI_SUGGESTION_STORAGE_KEY);
+//         if (saved) {
+//           const parsed = JSON.parse(saved);
+//           setAiData(parsed);
+
+//           // restore refs for cooldown checks
+//           if (parsed?.suggestion) {
+//             lastSuggestionRef.current = parsed.suggestion;
+//           }
+//         }
+//       } catch (err) {
+//         console.warn('⚠️ Failed to load saved AI suggestion', err);
+//       }
+//     })();
+//   }, []);
+
+//   /** ✅ Restore last fetch timestamp */
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const stored = await AsyncStorage.getItem('aiStylist_lastFetchTime');
+//         if (stored) lastFetchTimeRef.current = Number(stored);
+//       } catch (err) {
+//         console.warn('⚠️ Failed to load last fetch time', err);
+//       }
+//     })();
+//   }, []);
+
+//   /** ✅ Load expanded state from persistent storage */
+//   useEffect(() => {
+//     (async () => {
+//       try {
+//         const saved = await AsyncStorage.getItem(AI_SUGGESTION_EXPANDED_KEY);
+//         if (saved === null) {
+//           setIsExpanded(true);
+//           await AsyncStorage.setItem(AI_SUGGESTION_EXPANDED_KEY, 'true');
+//         } else {
+//           setIsExpanded(saved === 'true');
+//         }
+//       } catch (err) {
+//         console.warn('⚠️ Failed to load expanded state', err);
+//         setIsExpanded(true);
+//       }
+//     })();
+//   }, []);
+
+//   /** 💾 Save auto-mode preference */
+//   useEffect(() => {
+//     AsyncStorage.setItem(STORAGE_KEY, isAutoMode.toString()).catch(e =>
+//       console.warn('⚠️ Failed to save auto mode setting', e),
+//     );
+//   }, [isAutoMode]);
+
+//   /** 💾 Save expanded state whenever it changes */
+//   useEffect(() => {
+//     AsyncStorage.setItem(
+//       AI_SUGGESTION_EXPANDED_KEY,
+//       isExpanded.toString(),
+//     ).catch(e => console.warn('⚠️ Failed to save expanded state', e));
+//   }, [isExpanded]);
+
+//   /** 📡 Auto-fetch on mount if auto mode */
+//   /** 📡 Auto-fetch on mount if auto mode (respect saved data + cooldown) */
+//   useEffect(() => {
+//     if (!isAutoMode) return;
+
+//     const runAutoCheck = async () => {
+//       const now = Date.now();
+//       const cooldownPassed = now - lastFetchTimeRef.current > FETCH_COOLDOWN_MS;
+
+//       try {
+//         const saved = await AsyncStorage.getItem(AI_SUGGESTION_STORAGE_KEY);
+//         const parsed = saved ? JSON.parse(saved) : null;
+
+//         // ✅  Only fetch if nothing saved OR cooldown expired
+//         if (!parsed?.suggestion || cooldownPassed) {
+//           fetchSuggestion('initial');
+//           lastFetchTimeRef.current = now;
+//         } else {
+//           setAiData(parsed);
+//           lastSuggestionRef.current = parsed.suggestion;
+//         }
+//       } catch (err) {
+//         console.warn('⚠️ Failed to check auto mode cache', err);
+//         fetchSuggestion('initial');
+//         lastFetchTimeRef.current = now;
+//       }
+//     };
+
+//     runAutoCheck();
+//   }, [isAutoMode]);
+
+//   /** 🔁 Auto-refresh every 4h */
+//   useEffect(() => {
+//     if (isAutoMode) {
+//       refreshTimerRef.current = setInterval(() => {
+//         fetchSuggestion('scheduled');
+//       }, NOTIFICATION_COOLDOWN_MS);
+//     }
+//     return () =>
+//       refreshTimerRef.current && clearInterval(refreshTimerRef.current);
+//   }, [isAutoMode]);
+
+//   /** 🔄 Refresh when app resumes */
+//   useEffect(() => {
+//     const subscription = AppState.addEventListener('change', state => {
+//       if (isAutoMode && state === 'active') {
+//         const now = Date.now();
+//         if (now - lastFetchTimeRef.current > FETCH_COOLDOWN_MS) {
+//           fetchSuggestion('resume');
+//           lastFetchTimeRef.current = now;
+//         }
+//       }
+//     });
+//     return () => subscription.remove();
+//   }, [isAutoMode]);
+
+//   return (
+//     <SafeAreaView
+//       edges={['left', 'right']} // ✅ disables top & bottom padding
+//       style={{flex: 1}}>
+//       {/* <Text style={[globalStyles.sectionTitle, {paddingHorizontal: 22}]}>
+//         Suggestions
+//       </Text> */}
+//       <ScrollView
+//         ref={containerRef}
+//         showsVerticalScrollIndicator={false}
+//         contentContainerStyle={[globalStyles.section, {marginTop: 6}]}>
+//         <Animatable.View
+//           animation="fadeInUp"
+//           delay={200}
+//           duration={700}
+//           useNativeDriver
+//           style={[
+//             globalStyles.cardStyles5,
+//             {
+//               backgroundColor: theme.colors.surface,
+//               // borderWidth: theme.borderWidth.hairline,
+//               // borderColor: theme.colors.surfaceBorder,
+//               // padding: moderateScale(tokens.spacing.md1),
+//             },
+//           ]}>
+//           {/* 🧠 Header */}
+//           <View
+//             style={{
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//               marginBottom: moderateScale(tokens.spacing.xsm),
+//             }}>
+//             <View
+//               style={{
+//                 width: 40,
+//                 height: 40,
+//                 borderRadius: 13,
+//                 overflow: 'hidden',
+//                 borderWidth: 1,
+//                 borderColor: theme.colors.surfaceBorder,
+//                 marginRight: moderateScale(tokens.spacing.xs),
+//               }}>
+//               <Image
+//                 source={require('../../assets/images/Styla1.png')}
+//                 style={{
+//                   width: '100%',
+//                   height: '100%',
+//                   borderRadius: 13,
+//                   resizeMode: 'cover',
+//                 }}
+//               />
+//             </View>
+
+//             <Text
+//               numberOfLines={1}
+//               style={{
+//                 flex: 1,
+//                 fontSize: fontScale(tokens.fontSize.lg),
+//                 fontWeight: tokens.fontWeight.bold,
+//                 color: theme.colors.foreground,
+//                 textTransform: 'uppercase',
+//               }}>
+//               Styla's Suggestions
+//             </Text>
+
+//             {/* Status dot: pulsing green when Auto, grey outline when Manual */}
+//             {isAutoMode ? (
+//               <Animatable.View
+//                 animation={{
+//                   0: {scale: 1, opacity: 0.7},
+//                   0.5: {scale: 1.3, opacity: 1},
+//                   1: {scale: 1, opacity: 0.7},
+//                 }}
+//                 iterationCount="infinite"
+//                 duration={1500}
+//                 easing="ease-in-out"
+//                 useNativeDriver
+//                 style={{
+//                   width: 8,
+//                   height: 8,
+//                   borderRadius: 4,
+//                   backgroundColor: '#34C759',
+//                   marginLeft: moderateScale(tokens.spacing.xs),
+//                 }}
+//               />
+//             ) : (
+//               <View
+//                 style={{
+//                   width: 8,
+//                   height: 8,
+//                   borderRadius: 4,
+//                   borderWidth: 1.5,
+//                   borderColor: theme.colors.muted,
+//                   backgroundColor: 'transparent',
+//                   marginLeft: moderateScale(tokens.spacing.xs),
+//                 }}
+//               />
+//             )}
+//           </View>
+
+//           {/* 🧠 Manual / Auto Switch */}
+//           <View
+//             style={{
+//               flexDirection: 'row',
+//               justifyContent: 'space-between',
+//               alignItems: 'center',
+//               marginBottom: moderateScale(tokens.spacing.sm2),
+//             }}>
+//             <Text
+//               style={{
+//                 color: theme.colors.foreground2,
+//                 // fontSize: fontScale(tokens.fontSize.sm),
+//                 fontSize: fontScale(tokens.fontSize.base),
+//                 marginTop: moderateScale(tokens.spacing.nano),
+//               }}>
+//               {isAutoMode ? 'Mode: Automatic' : 'Mode: Manual'}
+//             </Text>
+//             <Switch
+//               value={isAutoMode}
+//               onValueChange={setIsAutoMode}
+//               trackColor={{
+//                 false: theme.colors.muted,
+//                 true: theme.colors.button1,
+//               }}
+//               ios_backgroundColor={theme.colors.muted}
+//             />
+//           </View>
+
+//           {/* 💬 Suggestion Card (swipe zone) */}
+//           <SwipeableCard
+//             onSwipeLeft={() => fetchSuggestion('manual')}
+//             onSwipeRight={() =>
+//               navigate('Outfit', {
+//                 from: 'AiStylistSuggestions',
+//                 seedPrompt: aiData?.suggestion || fallbackSuggestion(),
+//                 autogenerate: true,
+//               })
+//             }
+//             deleteThreshold={0.08}
+//             style={{
+//               backgroundColor: theme.colors.surface2,
+//               borderRadius: tokens.borderRadius.xl,
+//               borderWidth: theme.borderWidth.hairline,
+//               borderColor: theme.colors.muted,
+//               padding: moderateScale(tokens.spacing.sm),
+//             }}>
+//             {loading && (
+//               <ActivityIndicator
+//                 color={theme.colors.button1}
+//                 style={{marginVertical: moderateScale(tokens.spacing.md2)}}
+//               />
+//             )}
+
+//             {!loading && (
+//               <>
+//                 <Animatable.View
+//                   key={aiData?.suggestion?.slice(0, 60) || 'empty'}
+//                   animation="fadeIn"
+//                   duration={250}
+//                   useNativeDriver
+//                   style={{
+//                     opacity: 1, // keep visible
+//                     overflow: 'hidden',
+//                     maxHeight: isExpanded ? 1000 : 150,
+//                   }}>
+//                   <Text
+//                     style={{
+//                       fontSize: fontScale(tokens.fontSize.md),
+//                       fontWeight: tokens.fontWeight.semiBold,
+//                       color: theme.colors.foreground,
+//                       lineHeight: 22,
+//                       marginBottom: moderateScale(tokens.spacing.md),
+//                       paddingHorizontal: moderateScale(tokens.spacing.xxs),
+//                     }}>
+//                     {error
+//                       ? fallbackSuggestion()
+//                       : aiData?.suggestion || fallbackSuggestion()}
+//                   </Text>
+
+//                   {aiData?.insight && (
+//                     <Animatable.Text
+//                       animation="fadeIn"
+//                       delay={300}
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.md),
+//                         color: theme.colors.foreground2,
+//                         fontStyle: 'italic',
+//                         marginBottom: moderateScale(tokens.spacing.sm2),
+//                         lineHeight: 20,
+//                         marginHorizontal: moderateScale(tokens.spacing.md),
+//                       }}>
+//                       {aiData.insight}
+//                     </Animatable.Text>
+//                   )}
+
+//                   {aiData?.tomorrow && (
+//                     <Animatable.Text
+//                       animation="fadeInUp"
+//                       delay={400}
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.md),
+//                         color: theme.colors.foreground2,
+//                         marginBottom: moderateScale(tokens.spacing.md1),
+//                         lineHeight: 20,
+//                         marginHorizontal: moderateScale(tokens.spacing.md),
+//                       }}>
+//                       Tomorrow: {aiData.tomorrow}
+//                     </Animatable.Text>
+//                   )}
+
+//                   {aiData?.seasonalForecast && (
+//                     <Animatable.Text
+//                       animation="fadeInUp"
+//                       delay={500}
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.md),
+//                         color: theme.colors.foreground2,
+//                         marginBottom: moderateScale(tokens.spacing.md1),
+//                         lineHeight: 20,
+//                         marginHorizontal: moderateScale(tokens.spacing.md),
+//                       }}>
+//                       {aiData.seasonalForecast}
+//                     </Animatable.Text>
+//                   )}
+
+//                   {aiData?.lifecycleForecast && (
+//                     <Animatable.Text
+//                       animation="fadeInUp"
+//                       delay={600}
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.md),
+//                         color: theme.colors.foreground2,
+//                         marginBottom: moderateScale(tokens.spacing.md1),
+//                         lineHeight: 20,
+//                         marginHorizontal: moderateScale(tokens.spacing.md),
+//                       }}>
+//                       {aiData.lifecycleForecast}
+//                     </Animatable.Text>
+//                   )}
+
+//                   {aiData?.styleTrajectory && (
+//                     <Animatable.Text
+//                       animation="fadeInUp"
+//                       delay={700}
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.md),
+//                         color: theme.colors.foreground2,
+//                         marginBottom: moderateScale(tokens.spacing.md1),
+//                         lineHeight: 20,
+//                         marginHorizontal: moderateScale(tokens.spacing.md),
+//                       }}>
+//                       {aiData.styleTrajectory}
+//                     </Animatable.Text>
+//                   )}
+//                 </Animatable.View>
+
+//                 {/* 👇 Collapse / Expand toggle */}
+//                 <Pressable
+//                   onPress={toggleExpanded}
+//                   style={{
+//                     alignItems: 'center',
+//                     paddingVertical: moderateScale(tokens.spacing.xsm),
+//                     flexDirection: 'row',
+//                     justifyContent: 'center',
+//                   }}>
+//                   <Text
+//                     style={{
+//                       color: theme.colors.button1,
+//                       // fontWeight: tokens.fontWeight.semiBold,
+//                       // fontSize: fontScale(tokens.fontSize.md),
+//                       fontSize: fontScale(tokens.fontSize.base),
+//                       marginRight: moderateScale(tokens.spacing.xxs),
+//                     }}>
+//                     {isExpanded ? 'Show Less' : 'Show More'}
+//                   </Text>
+//                   <Animatable.View
+//                     duration={250}
+//                     style={{
+//                       transform: [{rotate: isExpanded ? '180deg' : '0deg'}],
+//                     }}>
+//                     <Icon
+//                       name="expand-more"
+//                       size={24}
+//                       color={theme.colors.button1}
+//                     />
+//                   </Animatable.View>
+//                 </Pressable>
+//               </>
+//             )}
+//           </SwipeableCard>
+
+//           {/* 🧭 Subtle swipe hint */}
+//           <View
+//             style={{
+//               flexDirection: 'row',
+//               justifyContent: 'center',
+//               marginTop: moderateScale(tokens.spacing.md2),
+//               opacity: 0.6,
+//               marginRight: moderateScale(tokens.spacing.md2),
+//               marginBottom: -22
+//             }}>
+//             <Icon
+//               name="chevron-left"
+//               size={35}
+//               color={theme.colors.foreground}
+//               style={{marginTop: -7.5}}
+//             />
+//             <Text
+//               style={{
+//                 color: theme.colors.foreground,
+//                 fontSize: fontScale(tokens.fontSize.md),
+//               }}>
+//               Swipe card above for new suggestion
+//             </Text>
+//           </View>
+
+//           {/* 🔁 Secondary CTAs (with AppleTouchFeedback + haptics + responsive layout) */}
+//           <View
+//             style={{
+//               flexDirection:
+//                 isXS || isSM || width < 380 ? 'column' : isMD ? 'row' : 'row', // regular + large phones use row
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               marginTop: moderateScale(tokens.spacing.md1),
+//               width: '100%',
+//             }}>
+     
+//           </View>
+//         </Animatable.View>
+//       </ScrollView>
+//     </SafeAreaView>
+//   );
+// };
+
+// export default AiStylistSuggestions;
 
 ///////////////////
 

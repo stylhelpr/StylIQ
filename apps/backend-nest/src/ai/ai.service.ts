@@ -2981,9 +2981,18 @@ Write a concise, 150-word updated summary focusing on their taste, preferences, 
     weather?: any;
     wardrobe?: any[];
     preferences?: Record<string, any>;
+    format?: 'text' | 'visual';
+    constraint?: string;
   }) {
-    const { user, weather, wardrobe, preferences } = body;
+    const { user, weather, wardrobe, preferences, format = 'text', constraint } = body;
 
+    // If visual format requested and wardrobe has items with images
+    const hasWardrobeWithImages = wardrobe?.some((item) => item.image_url || item.image);
+    if (format === 'visual' && hasWardrobeWithImages && wardrobe) {
+      return this.suggestVisualOutfits(user, weather, wardrobe, preferences, constraint);
+    }
+
+    // Original text-based suggestion logic
     const temp = weather?.fahrenheit?.main?.temp;
     const tempDesc = temp
       ? `${temp}°F and ${temp < 60 ? 'cool' : temp > 85 ? 'warm' : 'mild'} weather`
@@ -3044,6 +3053,151 @@ Preferences: ${JSON.stringify(preferences || {})}
     }
 
     return parsed;
+  }
+
+  /** 👗 Suggest visual outfit combinations with images */
+  private async suggestVisualOutfits(
+    user: string | undefined,
+    weather: any,
+    wardrobe: any[],
+    preferences: Record<string, any> | undefined,
+    constraint?: string,
+  ) {
+    const temp = weather?.fahrenheit?.main?.temp;
+    const tempDesc = temp
+      ? `${temp}°F and ${temp < 60 ? 'cool' : temp > 85 ? 'warm' : 'mild'} weather`
+      : 'unknown temperature';
+
+    // Build wardrobe summary with IDs for AI to reference
+    const wardrobeSummary = wardrobe
+      .filter((item) => item.image_url || item.image)
+      .slice(0, 50) // Limit to prevent token overflow
+      .map((item) => ({
+        id: item.id,
+        name: item.name || item.ai_title || 'Unnamed item',
+        category: item.main_category || item.category || 'unknown',
+        color: item.color || item.dominant_hex || 'unknown',
+        style: item.style_descriptors?.join(', ') || '',
+      }));
+
+    const systemPrompt = `
+You are a luxury personal stylist creating complete outfit recommendations.
+Your goal is to select specific items from the user's wardrobe to create cohesive, stylish outfits.
+
+IMPORTANT RULES:
+1. Only use item IDs from the provided wardrobe list
+2. Create exactly 3 outfit options, ranked by recommendation
+3. Each outfit should have 3-5 items (top, bottom, shoes minimum)
+4. Consider weather, occasion, and style preferences
+5. The rank 1 outfit should be your strongest recommendation
+${constraint ? `6. CONSTRAINT: The user wants: "${constraint}" - adjust selections accordingly` : ''}
+
+Output must be valid JSON with this exact structure:
+{
+  "outfits": [
+    {
+      "id": "outfit-1",
+      "rank": 1,
+      "summary": "One-line description of the outfit vibe (max 80 chars)",
+      "reasoning": "Brief explanation of why this works for today (2-3 sentences)",
+      "itemIds": ["item-id-1", "item-id-2", "item-id-3", "item-id-4"]
+    },
+    {
+      "id": "outfit-2",
+      "rank": 2,
+      "summary": "...",
+      "reasoning": "...",
+      "itemIds": ["..."]
+    },
+    {
+      "id": "outfit-3",
+      "rank": 3,
+      "summary": "...",
+      "reasoning": "...",
+      "itemIds": ["..."]
+    }
+  ]
+}
+`;
+
+    const userPrompt = `
+Client: ${user || 'The user'}
+Weather: ${tempDesc}
+Preferences: ${JSON.stringify(preferences || {})}
+
+Available wardrobe items:
+${JSON.stringify(wardrobeSummary, null, 2)}
+`;
+
+    const completion = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) throw new Error('No visual suggestion response received from model.');
+
+    let parsed: {
+      outfits: Array<{
+        id: string;
+        rank: 1 | 2 | 3;
+        summary: string;
+        reasoning?: string;
+        itemIds: string[];
+      }>;
+    };
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      console.error('❌ Failed to parse visual AI JSON:', raw);
+      throw new Error('AI response was not valid JSON.');
+    }
+
+    // Map item IDs back to full wardrobe items with images
+    const wardrobeMap = new Map(wardrobe.map((item) => [item.id, item]));
+
+    const outfitsWithItems = parsed.outfits.map((outfit) => ({
+      id: outfit.id,
+      rank: outfit.rank,
+      summary: outfit.summary,
+      reasoning: outfit.reasoning,
+      items: outfit.itemIds
+        .map((itemId) => {
+          const item = wardrobeMap.get(itemId);
+          if (!item) return null;
+          return {
+            id: item.id,
+            name: item.name || item.ai_title || 'Item',
+            imageUrl: item.image_url || item.image,
+            category: this.mapToCategory(item.main_category || item.category),
+          };
+        })
+        .filter(Boolean),
+    }));
+
+    return { outfits: outfitsWithItems };
+  }
+
+  /** Map backend category to frontend category type */
+  private mapToCategory(
+    category: string,
+  ): 'top' | 'bottom' | 'outerwear' | 'shoes' | 'accessory' {
+    const normalized = (category || '').toLowerCase();
+    if (normalized.includes('top') || normalized.includes('shirt') || normalized.includes('blouse'))
+      return 'top';
+    if (normalized.includes('bottom') || normalized.includes('pant') || normalized.includes('skirt'))
+      return 'bottom';
+    if (normalized.includes('outer') || normalized.includes('jacket') || normalized.includes('coat'))
+      return 'outerwear';
+    if (normalized.includes('shoe') || normalized.includes('boot') || normalized.includes('sneaker'))
+      return 'shoes';
+    return 'accessory';
   }
 
   /* ------------------------------------------------------------
