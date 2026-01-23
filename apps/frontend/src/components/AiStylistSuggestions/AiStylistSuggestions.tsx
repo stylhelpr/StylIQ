@@ -30,6 +30,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {findNodeHandle, UIManager} from 'react-native';
 import {DynamicIsland} from '../../native/dynamicIsland';
 import {getAccessToken} from '../../utils/auth';
+import {useUUID, useUUIDInitialized} from '../../context/UUIDContext';
+import {fetchWardrobeItems} from '../../hooks/useWardrobeItems';
 
 type Props = {
   weather: any;
@@ -87,11 +89,19 @@ const AiStylistSuggestions: React.FC<Props> = ({
   weather,
   navigate,
   userName = 'You',
-  wardrobe = [],
+  wardrobe: propWardrobe = [],
   preferences = {},
 }) => {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
+
+  // Fetch real wardrobe directly via UUID context
+  const contextUUID = useUUID();
+  const isUUIDInitialized = useUUIDInitialized();
+  const [realWardrobe, setRealWardrobe] = useState<any[]>([]);
+
+  // Use real wardrobe if fetched, otherwise fall back to prop
+  const wardrobe = realWardrobe.length > 0 ? realWardrobe : propWardrobe;
 
   const containerRef = useRef<View>(null);
 
@@ -108,6 +118,45 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const lastNotifyTimeRef = useRef<number>(0);
   const lastFetchTimeRef = useRef<number>(0);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasRefetchedForRealWardrobe = useRef(false);
+  const fetchSuggestionRef = useRef<((trigger: string) => void) | null>(null);
+
+  // Fetch real wardrobe when component mounts and UUID is available
+  useEffect(() => {
+    console.warn('[AiStylist] UUID check:', contextUUID, 'initialized:', isUUIDInitialized);
+    if (contextUUID && isUUIDInitialized) {
+      console.warn('[AiStylist] Fetching real wardrobe...');
+      fetchWardrobeItems(contextUUID)
+        .then(items => {
+          console.warn('[AiStylist] Got', items?.length, 'items');
+          if (items?.[0]) {
+            console.warn('[AiStylist] First item image:', items[0].image);
+          }
+          if (items && items.length > 0) {
+            setRealWardrobe(items);
+            // Clear cached suggestion so it refetches with real wardrobe
+            AsyncStorage.removeItem(AI_SUGGESTION_STORAGE_KEY);
+            setAiData(null);
+            console.warn('[AiStylist] Real wardrobe loaded, cleared cache!');
+          }
+        })
+        .catch(err => console.error('[AiStylist] Fetch failed:', err));
+    }
+  }, [contextUUID, isUUIDInitialized]);
+
+  // Refetch AI suggestion when real wardrobe is loaded (one-time)
+  useEffect(() => {
+    if (realWardrobe.length > 0 && !hasRefetchedForRealWardrobe.current && weather?.fahrenheit?.main?.temp) {
+      hasRefetchedForRealWardrobe.current = true;
+      console.warn('[AiStylist] Real wardrobe loaded, triggering refetch...');
+      // Delay slightly to ensure fetchSuggestion ref is set
+      setTimeout(() => {
+        if (fetchSuggestionRef.current) {
+          fetchSuggestionRef.current('realWardrobe');
+        }
+      }, 100);
+    }
+  }, [realWardrobe, weather]);
 
   const [isExpanded, setIsExpanded] = useState(true); // Default to expanded
   const toggleExpanded = () => setIsExpanded(prev => !prev);
@@ -525,6 +574,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
       setLoading(false);
     }
   };
+
+  // Set ref so useEffect can call fetchSuggestion
+  fetchSuggestionRef.current = fetchSuggestion;
 
   /** 📍 Fallback suggestion */
   const fallbackSuggestion = () => {

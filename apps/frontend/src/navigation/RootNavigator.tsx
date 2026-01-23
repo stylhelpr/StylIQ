@@ -85,7 +85,8 @@ import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
 
 import {useAppTheme} from '../context/ThemeContext';
 import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
-import {WardrobeItem} from '../hooks/useOutfitSuggestion';
+import {WardrobeItem} from '../types/wardrobe';
+import {fetchWardrobeItems} from '../hooks/useWardrobeItems';
 import SwipeBackHandler from '../components/Gestures/SwipeBackHandler';
 
 import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
@@ -226,6 +227,26 @@ const RootNavigator = ({
   useEffect(() => {
     onScreenChange?.(currentScreen);
   }, [currentScreen]);
+
+  // Fetch real wardrobe when user is authenticated
+  useEffect(() => {
+    console.warn('[WARDROBE] useEffect TRIGGERED - contextUUID:', contextUUID, 'isUUIDInitialized:', isUUIDInitialized);
+    if (contextUUID && isUUIDInitialized) {
+      console.warn('[WARDROBE] Fetching real wardrobe for user:', contextUUID);
+      fetchWardrobeItems(contextUUID)
+        .then(items => {
+          console.warn('[WARDROBE] API response:', items?.length, 'items');
+          if (items?.[0]) {
+            console.warn('[WARDROBE] First item image:', items[0].image);
+          }
+          if (items && items.length > 0) {
+            setWardrobe(items);
+            console.warn(`[WARDROBE] ✅ Loaded ${items.length} real wardrobe items`);
+          }
+        })
+        .catch(err => console.error('[WARDROBE] ❌ Failed to fetch:', err));
+    }
+  }, [contextUUID, isUUIDInitialized]);
 
   const styles = StyleSheet.create({
     container: {

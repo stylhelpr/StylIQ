@@ -2,12 +2,9 @@
 import {useQuery} from '@tanstack/react-query';
 import apiClient from '../lib/apiClient';
 
-export async function fetchWardrobeItems(userId: string) {
-  if (!userId || !/^[0-9a-fA-F\-]{36}$/.test(userId)) {
-    throw new Error(`❌ Invalid or missing UUID: ${userId}`);
-  }
-
-  const res = await apiClient.get(`/wardrobe/${userId}`);
+export async function fetchWardrobeItems(userId?: string) {
+  // Backend now uses JWT auth - userId param kept for cache key compatibility
+  const res = await apiClient.get('/wardrobe');
   return res.data;
 }
 
