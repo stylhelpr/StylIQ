@@ -701,7 +701,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       />
       <View className="sectionTitle">
         <View style={globalStyles.sectionTitle}>
-          <Text style={globalStyles.header}>AI Outfit</Text>
+          <Text style={globalStyles.header}>AI Outfit Studio</Text>
         </View>
 
         {/* Header */}
@@ -723,7 +723,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               fontWeight: tokens.fontWeight.medium,
             }}>
             Outfits are assembled from your personal uploaded wardrobe items. Just tell me what kind of look you 
-            want and press "Create Outfit"
+            want and press "Generate Ideas"
           </Animatable.Text>
         </View>
 

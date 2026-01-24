@@ -201,6 +201,26 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 isActive={current === 'Home'}
               />
               <TabButton
+                icon="auto-awesome"
+                label="AI OUTFIT"
+                onPress={() => current !== 'Outfit' && navigate('Outfit')}
+                isActive={current === 'Outfit'}
+              />
+                 <TabButton
+                icon="style"
+                label="WARDROBE"
+                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+                isActive={current === 'Wardrobe'}
+              />
+                 <TabButton
+                icon="checkroom"
+                label="OUTFITS"
+                onPress={() =>
+                  current !== 'SavedOutfits' && navigate('SavedOutfits')
+                }
+                isActive={current === 'SavedOutfits'}
+              />
+              <TabButton
                 icon="group"
                 label="COMMUNITY"
                 onPress={() =>
@@ -209,26 +229,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 }
                 isActive={current === 'CommunityShowcaseScreen'}
               />
-              <TabButton
-                icon="auto-awesome"
-                label="AI OUTFIT"
-                onPress={() => current !== 'Outfit' && navigate('Outfit')}
-                isActive={current === 'Outfit'}
-              />
-              <TabButton
-                icon="style"
-                label="WARDROBE"
-                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
-                isActive={current === 'Wardrobe'}
-              />
-              <TabButton
-                icon="checkroom"
-                label="OUTFITS"
-                onPress={() =>
-                  current !== 'SavedOutfits' && navigate('SavedOutfits')
-                }
-                isActive={current === 'SavedOutfits'}
-              />
+           
             </LiquidGlassView>
           </Animated.View>
         ) : (

@@ -460,7 +460,7 @@ export default function OutfitTuningControls({
               testID="generate-outfit-button">
               <Text
                 style={[globalStyles.buttonPrimaryText, {fontWeight: '700'}]}>
-                {isGenerating ? 'Generating…' : 'Create Outfit'}
+                {isGenerating ? 'Generating…' : 'Generate Ideas'}
               </Text>
             </TouchableOpacity>
           </Animatable.View>
@@ -545,7 +545,7 @@ export default function OutfitTuningControls({
               accessibilityState={{disabled: isGenerating}}
               testID="refine-outfit-button">
               <Text style={S.ctaText}>
-                {isGenerating ? 'Refining…' : 'Update Outfit'}
+                {isGenerating ? 'Refining…' : 'Refine Outfit'}
               </Text>
             </TouchableOpacity>
           </View>
