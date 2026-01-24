@@ -299,6 +299,7 @@ const HeroCarousel = React.memo(
       ? communityPosts[currentImageIndex % communityPosts.length]
       : null;
     const mockPost = MOCK_HERO_POSTS[currentImageIndex % MOCK_HERO_POSTS.length];
+    const isComposite = heroPost?.top_image && heroPost?.bottom_image;
     const heroImageUrl = heroPost?.image_url || heroPost?.top_image || mockPost.imageUrl;
     const heroUserName = heroPost?.user_name || mockPost.userName;
     const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
@@ -312,7 +313,7 @@ const HeroCarousel = React.memo(
       <Pressable
         onPress={() => {
           if (heroPost) {
-            navigate('CommunityShowcase', {initialPostId: heroPost.id});
+            navigate('CommunityShowcaseScreen', {initialPostId: heroPost.id});
           }
         }}
         style={{
@@ -322,29 +323,66 @@ const HeroCarousel = React.memo(
           borderRadius: tokens.borderRadius.lg,
         }}>
         <Animated.View
+          pointerEvents="none"
           style={{
             width: '100%',
             height: '100%',
             borderRadius: tokens.borderRadius.lg,
             opacity: heroFadeAnim,
           }}>
-          <FastImage
-            source={{
-              uri: heroImageUrl,
-              priority: FastImage.priority.high,
-              cache: FastImage.cacheControl.immutable,
-            }}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: tokens.borderRadius.lg,
-            }}
-            resizeMode={FastImage.resizeMode.cover}
-          />
+          {isComposite && heroPost ? (
+            // 2x2 Grid for composite outfits
+            <View style={{flex: 1, flexDirection: 'column', borderRadius: tokens.borderRadius.lg, overflow: 'hidden'}}>
+              <View style={{flex: 1, flexDirection: 'row'}}>
+                <FastImage
+                  source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                  style={{flex: 1}}
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+                <FastImage
+                  source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                  style={{flex: 1}}
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+              </View>
+              <View style={{flex: 1, flexDirection: 'row'}}>
+                {heroPost.shoes_image ? (
+                  <FastImage
+                    source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                    style={{flex: 1}}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+                {heroPost.accessory_image ? (
+                  <FastImage
+                    source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                    style={{flex: 1}}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+              </View>
+            </View>
+          ) : (
+            // Single image
+            <FastImage
+              source={{
+                uri: heroImageUrl,
+                priority: FastImage.priority.high,
+                cache: FastImage.cacheControl.immutable,
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: tokens.borderRadius.lg,
+              }}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+          )}
         </Animated.View>
 
         {/* Light tinted overlay for better text visibility */}
         <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
             top: 0,
@@ -358,6 +396,7 @@ const HeroCarousel = React.memo(
 
         {/* Title in upper left corner */}
         <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
             top: moderateScale(tokens.spacing.md),
@@ -2058,8 +2097,6 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
               </Animated.View>
             )}
 
-     
-
             {/* AI SUGGESTS SECTION */}
             {prefs.aiSuggestions &&
               typeof weather?.fahrenheit?.main?.temp === 'number' && (
@@ -2320,7 +2357,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
             )}
 
           {/* Recommended for You - Community Posts Carousel */}
-            <Animatable.View
+            {/* <Animatable.View
               animation="fadeInUp"
               delay={250}
               duration={700}
@@ -2334,7 +2371,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   navigate('CommunityShowcaseScreen', {initialPostId: postId});
                 }}
               />
-            </Animatable.View>
+            </Animatable.View> */}
 
             {/* Discover / Recommended Items */}
             {prefs.recommendedItems && (

@@ -335,7 +335,8 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.md,
     },
     cardStyles5: {
-      padding: isTablet ? 20 : isLargePhone ? 18 : isRegularPhone ? 14 : 14,
+      paddingVertical: isTablet ? 20 : isLargePhone ? 18 : isRegularPhone ? 14 : 14,
+      paddingHorizontal: isTablet ? 20 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xxxl,

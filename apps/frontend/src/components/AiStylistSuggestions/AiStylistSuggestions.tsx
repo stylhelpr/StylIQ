@@ -206,8 +206,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{
-        paddingHorizontal: moderateScale(tokens.spacing.xs),
-        gap: moderateScale(tokens.spacing.sm),
+        // paddingHorizontal: moderateScale(tokens.spacing.xs),
+        gap: moderateScale(tokens.spacing.xs),
         flexDirection: 'row',
       }}>
       {items.slice(0, 5).map(item => {
@@ -216,8 +216,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
           <View
             key={item.id}
             style={{
-              width: 70,
-              height: 70,
+              width: 85,
+              height: 85,
               borderRadius: tokens.borderRadius.md,
               overflow: 'hidden',
               borderWidth: isSwapping ? 2 : theme.borderWidth.hairline,
