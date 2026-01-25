@@ -24,7 +24,7 @@ import Voice from '@react-native-voice/voice';
 import {useWindowDimensions} from 'react-native';
 
 const h = (type: string) =>
-  ReactNativeHapticFeedback.trigger(type, {
+  ReactNativeHapticFeedback.trigger(type as any, {
     enableVibrateFallback: true,
     ignoreAndroidSystemSettings: false,
   });
@@ -77,6 +77,8 @@ type Props = {
   canGenerate?: boolean; // default true if omitted
   // ⬇️ NEW — control visibility of Refine UI
   showRefine?: boolean; // default true
+  // Content to render between refine input and button (e.g. adjustment chips)
+  adjustmentContent?: React.ReactNode;
 };
 
 /** Minimal slider with NO external packages */
@@ -207,6 +209,7 @@ export default function OutfitTuningControls({
   onRefine,
   canGenerate = true,
   showRefine = true,
+  adjustmentContent,
 }: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -273,11 +276,6 @@ export default function OutfitTuningControls({
       position: 'relative',
       zIndex: 9999,
       elevation: 9999,
-    },
-    card: {
-      padding: 12,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface,
     },
     pillTextPrimary: {color: '#fff', fontWeight: '600', fontSize: 13},
     // refineInputContainer: {
@@ -432,42 +430,15 @@ export default function OutfitTuningControls({
       : 'Rainy'
     : 'Off';
 
+  // Don't render anything until outfit exists (v2 uses separate entry UI)
+  if (!showRefine) {
+    return null;
+  }
+
   return (
     <View style={S.container}>
-      {/* Swap between Create and Update UI */}
-      {!showRefine ? (
-        // ---------- CREATE OUTFIT ----------
-        <View
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-          <Animatable.View
-            animation="fadeInUp"
-            delay={100}
-            duration={800}
-            easing="ease-out-back"
-            useNativeDriver>
-            <TouchableOpacity
-              style={[globalStyles.buttonPrimary, {width: 140, marginTop: 12}]}
-              onPress={() => {
-                h('impactMedium');
-                onRegenerate();
-              }}
-              disabled={isGenDisabled}
-              accessibilityState={{disabled: isGenDisabled}}
-              testID="generate-outfit-button">
-              <Text
-                style={[globalStyles.buttonPrimaryText, {fontWeight: '700'}]}>
-                {isGenerating ? 'Generating…' : 'Generate Ideas'}
-              </Text>
-            </TouchableOpacity>
-          </Animatable.View>
-        </View>
-      ) : (
-        // ---------- UPDATE OUTFIT ----------
-        <>
+      {/* ---------- UPDATE OUTFIT ---------- */}
+      <>
           <View style={{alignItems: 'center', paddingHorizontal: 16}}>
             <View
               style={[
@@ -525,6 +496,9 @@ export default function OutfitTuningControls({
             </View>
           </View>
 
+          {/* Adjustment content slot (e.g. adjustment chips) */}
+          {adjustmentContent}
+
           <View
             style={{
               display: 'flex',
@@ -550,7 +524,6 @@ export default function OutfitTuningControls({
             </TouchableOpacity>
           </View>
         </>
-      )}
 
       {/* EVERYTHING BELOW THE CTA IS NOW COLLAPSIBLE */}
       {showExtras && (

@@ -38,10 +38,13 @@ const CATEGORY_TABS = [
 type WardrobeItem = {
   id: string;
   image_url?: string;
+  image?: string; // API may return either image or image_url
   name?: string;
   label?: string;
   main_category?: string;
+  mainCategory?: string; // API may return either snake_case or camelCase
   subcategory?: string;
+  subCategory?: string;
   color?: string;
 };
 
@@ -49,6 +52,7 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onSelectItem: (item: WardrobeItem) => void;
+  defaultCategory?: string; // Pre-select a category (e.g., "Tops" for swap mode)
 };
 
 function resolveUri(u?: string): string {
@@ -63,21 +67,31 @@ export default function WardrobePickerModal({
   visible,
   onClose,
   onSelectItem,
+  defaultCategory,
 }: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const userId = useUUID();
 
   const {data: wardrobe, isLoading} = useWardrobeItems(userId || '');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory || 'All');
+
+  // Reset to default category when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      setSelectedCategory(defaultCategory || 'All');
+    }
+  }, [visible, defaultCategory]);
 
   // Filter wardrobe by category
   const filteredItems = useMemo(() => {
     if (!wardrobe || !Array.isArray(wardrobe)) return [];
     if (selectedCategory === 'All') return wardrobe;
     return wardrobe.filter(
-      (item: WardrobeItem) =>
-        item.main_category?.toLowerCase() === selectedCategory.toLowerCase(),
+      (item: WardrobeItem) => {
+        const category = item.main_category || item.mainCategory;
+        return category?.toLowerCase() === selectedCategory.toLowerCase();
+      },
     );
   }, [wardrobe, selectedCategory]);
 
@@ -225,7 +239,7 @@ export default function WardrobePickerModal({
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.categoryTabs}>
+            style={[styles.categoryTabs, {minHeight: 57, maxHeight: 58, backgroundColor: 'red'}]}>
             {CATEGORY_TABS.map(tab => (
               <TouchableOpacity
                 key={tab.value}
@@ -273,7 +287,7 @@ export default function WardrobePickerModal({
           ) : (
             <ScrollView contentContainerStyle={styles.grid}>
               {filteredItems.map((item: WardrobeItem) => {
-                const uri = resolveUri(item.image_url);
+                const uri = resolveUri(item.image_url || item.image);
                 return (
                   <TouchableOpacity
                     key={item.id}

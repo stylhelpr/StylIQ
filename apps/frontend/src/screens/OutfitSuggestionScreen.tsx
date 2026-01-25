@@ -57,6 +57,14 @@ import {getCurrentLocation, fetchWeather} from '../utils/travelWeather';
 // AI Outfit v2 components
 import GuidedRefinementChips from '../components/GuidedRefinementChips/GuidedRefinementChips';
 import WardrobePickerModal from '../components/WardrobePickerModal/WardrobePickerModal';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// Haptic feedback helper
+const h = (type: string) =>
+  ReactNativeHapticFeedback.trigger(type as any, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
 
 type Props = {navigate: (screen: string, params?: any) => void};
 
@@ -154,7 +162,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   // ──────────────────────────────────────────────────────────────
   const [showWardrobePicker, setShowWardrobePicker] = useState(false);
   const [lockedItem, setLockedItem] = useState<WardrobeItem | null>(null);
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [selectedMoodLabel, setSelectedMoodLabel] = useState<string | null>(null);
+  const [selectedMoodPrompt, setSelectedMoodPrompt] = useState<string | null>(null);
+  const [outfitPrompt, setOutfitPrompt] = useState<string>('');
+  const [buildAroundPrompt, setBuildAroundPrompt] = useState<string>('');
+  // Swap item mode: track which section is being swapped (null = start from piece mode)
+  const [swapSection, setSwapSection] = useState<'top' | 'bottom' | 'shoes' | null>(null);
 
   const isDisabled = !top || !bottom || !shoes;
 
@@ -533,13 +546,30 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
   // "Create Outfit" - Initial generation with NEW session (uses legacy builtQuery)
   const handleV2Generate = () => {
-    if (!userId) return;
+    console.log('[handleV2Generate] Called! userId:', userId);
+    if (!userId) {
+      console.log('[handleV2Generate] No userId, returning early');
+      return;
+    }
+
+    // Debug: Log locked item info
+    if (lockedItem) {
+      console.log('[handleV2Generate] Locked item:', {
+        id: lockedItem.id,
+        name: lockedItem.name,
+        category: (lockedItem as any).mainCategory || (lockedItem as any).main_category,
+        fullItem: lockedItem,
+      });
+    }
+
+    // Clear any existing outfit first to allow fresh generation
+    clear();
 
     // Create NEW session for initial generation
     const newSessionId = uuid.v4() as string;
     setSessionId(newSessionId);
-    setLockedItem(null);
-    setSelectedMood(null);
+    // Keep lockedItem if user selected one via "Start from a Piece"
+    // Keep selectedMoodLabel/Prompt - don't reset it, so user's mood selection persists
 
     const wxToSend = useWeather
       ? weather === 'auto'
@@ -554,8 +584,31 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
     const useStyle = useStylePrefs && weights.styleWeight > 0;
 
+    // If user selected a locked item, build query around it with buildAroundPrompt
+    // Handle both snake_case and camelCase property names from API (cast to any for flexibility)
+    const li = lockedItem as any;
+    const lockedItemCategory = lockedItem
+      ? (li.subCategory || li.subcategory || li.mainCategory || li.main_category || li.name || 'item')
+      : '';
+    const queryToUse = lockedItem
+      ? `outfit built around my ${lockedItemCategory}${buildAroundPrompt ? `: ${buildAroundPrompt}` : ''}`
+      : builtQuery;
+
     // Use existing builtQuery logic (legacy behavior preservation)
-    regenerate(builtQuery, {
+    // If user selected a mood before generating, incorporate it
+    // For locked items, use buildAroundPrompt; otherwise use outfitPrompt
+    const promptParts = lockedItem
+      ? [selectedMoodPrompt, buildAroundPrompt].filter(Boolean)
+      : [selectedMoodPrompt, outfitPrompt].filter(Boolean);
+
+    const lockedIds = lockedItem ? [lockedItem.id] : undefined;
+    console.log('[handleV2Generate] Calling regenerate with:', {
+      query: queryToUse,
+      lockedItemIds: lockedIds,
+      refinementPrompt: promptParts.join(' ') || undefined,
+    });
+
+    regenerate(queryToUse, {
       topK: 25,
       useWeather,
       sessionId: newSessionId,
@@ -566,49 +619,109 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       weights,
       useFeedback,
       styleAgent,
+      // Include selected mood and freeform prompt as context if present
+      refinementPrompt: promptParts.join(' ') || undefined,
+      // Include locked item if user started from a piece
+      lockedItemIds: lockedIds,
     });
   };
 
-  // "Start from a Piece" - Initial generation with locked item (NEW session)
+  // "Start from a Piece" - Just select the item, don't generate yet
   const handleStartFromPiece = (item: any) => {
-    if (!userId) return;
-
-    // Create NEW session for initial generation
-    const newSessionId = uuid.v4() as string;
-    setSessionId(newSessionId);
-    setLockedItem(item);
-    setSelectedMood(null);
-    setShowWardrobePicker(false);
-
-    const itemDesc = item.subcategory || item.main_category || item.name || 'item';
-    const queryWithItem = `outfit built around my ${itemDesc}`;
-
-    const wxToSend = useWeather
-      ? weather === 'auto'
-        ? liveWeatherCtx ?? {
-            tempF: 68,
-            precipitation: 'none' as const,
-            windMph: 5,
-            locationName: 'Local' as const,
-          }
-        : chipWeatherContext
-      : undefined;
-
-    const useStyle = useStylePrefs && weights.styleWeight > 0;
-
-    regenerate(queryWithItem, {
-      topK: 25,
-      useWeather,
-      sessionId: newSessionId,
-      weather: wxToSend,
-      styleProfile: useStyle ? styleProfile : undefined,
-      useStyle,
-      // @ts-ignore
-      weights,
-      useFeedback,
-      styleAgent,
-      lockedItemIds: [item.id],
+    console.log('[handleStartFromPiece] Selected item:', {
+      id: item.id,
+      name: item.name,
+      category: item.mainCategory || item.main_category,
+      fullItem: item,
     });
+    // Just set the locked item and close modal - user will tap "Create Outfit" to generate
+    setLockedItem(item);
+    setShowWardrobePicker(false);
+    setSwapSection(null);
+  };
+
+  // Handle wardrobe item selection (both "start from piece" and "swap" modes)
+  const handleWardrobeItemSelect = (item: any) => {
+    // Handle both snake_case and camelCase properties
+    const itemCategory = item.subCategory || item.subcategory || item.mainCategory || item.main_category || item.name || 'item';
+
+    if (swapSection && sessionId) {
+      // Swap mode: update the specific outfit slot with the new item
+      h('impactMedium');
+
+      // Get current outfit items to lock the ones we're NOT swapping
+      const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
+        ? (current as any).outfits[0].items
+        : Array.isArray((current as any)?.items)
+        ? (current as any).items
+        : [];
+
+      // Map swapSection to main category for filtering
+      const swapCategoryMap: Record<string, string> = {
+        'top': 'tops',
+        'bottom': 'bottoms',
+        'shoes': 'shoes',
+      };
+      const swapCategory = swapCategoryMap[swapSection] || swapSection;
+
+      // Get IDs of items we want to KEEP (everything except the swapped section)
+      const itemsToKeep = rawItems
+        .filter((it: any) => {
+          const cat = (it?.mainCategory || it?.main_category || '').toLowerCase();
+          return cat !== swapCategory;
+        })
+        .map((it: any) => it?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
+      // Lock the items we're keeping PLUS the new item
+      const allLockedIds = [...itemsToKeep, item.id];
+
+      // Build swap prompt
+      const swapPrompt = `Replace ONLY the ${swapSection} with this specific ${itemCategory}. Keep all other items exactly the same.`;
+
+      // Close modal and reset swap state BEFORE triggering refinement
+      setShowWardrobePicker(false);
+      setSwapSection(null);
+
+      // Get weather context
+      const wxToSend = useWeather
+        ? weather === 'auto'
+          ? liveWeatherCtx ?? {
+              tempF: 68,
+              precipitation: 'none' as const,
+              windMph: 5,
+              locationName: 'Local' as const,
+            }
+          : chipWeatherContext
+        : undefined;
+
+      const useStyle = useStylePrefs && weights.styleWeight > 0;
+
+      // Trigger refinement with ALL relevant items locked
+      regenerate(builtQuery, {
+        topK: 25,
+        useWeather,
+        sessionId, // Reuse existing session
+        weather: wxToSend,
+        styleProfile: useStyle ? styleProfile : undefined,
+        useStyle,
+        // @ts-ignore
+        weights,
+        useFeedback,
+        styleAgent,
+        refinementPrompt: swapPrompt,
+        // Lock the items we're keeping + the new item
+        lockedItemIds: allLockedIds,
+      });
+    } else if (swapSection && !sessionId) {
+      // Swap mode but no session - shouldn't happen, but handle gracefully
+      console.warn('[Swap] No session ID available for swap');
+      setShowWardrobePicker(false);
+      setSwapSection(null);
+    } else {
+      // Start from piece mode
+      handleStartFromPiece(item);
+    }
   };
 
   // Guided Refinement - REUSES existing session (CRITICAL for session continuity)
@@ -616,20 +729,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     // CRITICAL: Must have existing session - no refinement without it
     if (!userId || !sessionId) return;
 
-    // Get currently displayed items for context
-    const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
-      ? (current as any).outfits[0].items
-      : Array.isArray((current as any)?.items)
-      ? (current as any).items
-      : [];
-
-    const lockedIds = rawItems
-      .map((it: any) => it?.id)
-      .filter(
-        (id: any): id is string => typeof id === 'string' && id.length > 0,
-      );
-
     // REUSE existing sessionId - this is non-negotiable
+    // NOTE: Do NOT lock items here - the refinement prompt should guide the AI
+    // on what to change. Locking all items prevents any changes from happening.
     regenerate(builtQuery, {
       topK: 25,
       sessionId, // REUSE - critical for session continuity
@@ -641,7 +743,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       weights,
       useFeedback,
       styleAgent,
-      lockedItemIds: lockedIds,
+      // No lockedItemIds - allow AI to make changes based on refinement prompt
     });
   };
 
@@ -763,6 +865,16 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     // AI Outfit v2: Check if this item is the locked item
     const isLocked = lockedItem && item?.id === lockedItem.id;
 
+    // Map section to wardrobe category
+    const getCategoryForSection = (s: 'top' | 'bottom' | 'shoes') => {
+      switch (s) {
+        case 'top': return 'Tops';
+        case 'bottom': return 'Bottoms';
+        case 'shoes': return 'Shoes';
+        default: return 'All';
+      }
+    };
+
     return (
       <TouchableOpacity
         onPress={() => setVisibleModal(section)}
@@ -806,6 +918,33 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             }}>
             <MaterialIcons name="lock" size={16} color="#fff" />
           </View>
+        )}
+        {/* Swap out Item button - hide for locked items */}
+        {!isLocked && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              h('impactLight');
+              setSwapSection(section);
+              setShowWardrobePicker(true);
+            }}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              borderRadius: 16,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+            <MaterialIcons name="swap-horiz" size={16} color="#fff" />
+            <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
+              Swap
+            </Text>
+          </TouchableOpacity>
         )}
         <View style={styles.overlay}>
           <View style={globalStyles.labelContainer2}>
@@ -874,7 +1013,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         </View>
 
         {/* Header */}
-        <View
+        {/* <View
           style={{
             justifyContent: 'center',
             paddingHorizontal: moderateScale(tokens.spacing.xxl),
@@ -894,7 +1033,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             Outfits are assembled from your personal uploaded wardrobe items. Just tell me what kind of look you 
             want and press "Generate Ideas"
           </Animatable.Text>
-        </View>
+        </View> */}
 
         <View style={[globalStyles.section]}>
           <View style={globalStyles.centeredSection}>
@@ -919,40 +1058,138 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     paddingHorizontal: 20,
                     marginBottom: 20,
                   }}>
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      color: theme.colors.muted,
-                      textAlign: 'center',
-                      marginBottom: 24,
-                      lineHeight: 22,
-                    }}>
-                    Let's put something together — we can tweak it.
-                  </Text>
+      
 
-                  {/* Primary CTA: Create Outfit */}
+                  {/* Mood chips and prompt input visible from entry state - hide when piece selected */}
+                  {!lockedItem && (
+                    <GuidedRefinementChips
+                      onSelectMood={(refinementPrompt, label) => {
+                        // Empty strings mean deselection (toggle off)
+                        setSelectedMoodLabel(label || null);
+                        setSelectedMoodPrompt(refinementPrompt || null);
+                      }}
+                      onSelectAdjustment={() => {}}
+                      disabled={loading}
+                      selectedMoodLabel={selectedMoodLabel}
+                      showAdjustments={false}
+                      promptValue={outfitPrompt}
+                      onPromptChange={setOutfitPrompt}
+                      promptPlaceholder="e.g. casual brunch, work meeting, date night..."
+                    />
+                  )}
+
+                  {/* Start from a Piece button - show only when no piece selected */}
+                  {!lockedItem && (
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonSecondary,
+                        {width: 200, marginTop: 16},
+                      ]}
+                      onPress={() => setShowWardrobePicker(true)}
+                      disabled={loading}>
+                      <Text style={globalStyles.buttonSecondaryText}>
+                        Start from a Piece
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Show locked item section when piece is selected */}
+                  {lockedItem && (
+                    <View style={{
+                      alignItems: 'center',
+                      marginTop: 16,
+                      width: '100%',
+                    }}>
+                      {/* Thumbnail with close button */}
+                      <View style={{
+                        position: 'relative',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        borderWidth: 2,
+                        borderColor: theme.colors.primary,
+                      }}>
+                        <Image
+                          source={{
+                            uri: lockedItem.image?.startsWith('http')
+                              ? lockedItem.image
+                              : `${API_BASE_URL}/${lockedItem.image?.replace(/^\/+/, '')}`,
+                          }}
+                          style={{
+                            width: 100,
+                            height: 100,
+                            backgroundColor: '#fff',
+                          }}
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                          onPress={() => {
+                            setLockedItem(null);
+                            setBuildAroundPrompt('');
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            borderRadius: 12,
+                            padding: 4,
+                          }}>
+                          <MaterialIcons name="close" size={16} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={{
+                        fontSize: 12,
+                        color: theme.colors.foreground,
+                        marginTop: 6,
+                        marginBottom: 12,
+                      }}>
+                        {lockedItem.name || lockedItem.subCategory || lockedItem.mainCategory || 'Selected item'}
+                      </Text>
+
+                      {/* "How do you want to build around this item?" freeform input */}
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '500',
+                        color: theme.colors.muted,
+                        marginBottom: 8,
+                      }}>
+                        How do you want to build around this item?
+                      </Text>
+                      <TextInput
+                        style={{
+                          backgroundColor: theme.colors.surface,
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: theme.colors.surfaceBorder,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          fontSize: 15,
+                          color: theme.colors.foreground,
+                          minHeight: 44,
+                          width: '100%',
+                        }}
+                        value={buildAroundPrompt}
+                        onChangeText={setBuildAroundPrompt}
+                        placeholder="e.g. smart casual for dinner, keep it relaxed..."
+                        placeholderTextColor={theme.colors.muted}
+                        editable={!loading}
+                        multiline
+                        numberOfLines={2}
+                      />
+
+                    </View>
+                  )}
+
+                  {/* Primary CTA: Create Outfit - always at bottom */}
                   <TouchableOpacity
                     style={[
                       globalStyles.buttonPrimary,
-                      {width: 200, marginBottom: 12},
+                      {width: 200, marginTop: 20},
                     ]}
                     onPress={handleV2Generate}
                     disabled={loading}>
                     <Text style={globalStyles.buttonPrimaryText}>
-                      {loading ? 'Creating…' : 'Create Outfit'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Secondary CTA: Start from a Piece */}
-                  <TouchableOpacity
-                    style={[
-                      globalStyles.buttonSecondary,
-                      {width: 200},
-                    ]}
-                    onPress={() => setShowWardrobePicker(true)}
-                    disabled={loading}>
-                    <Text style={globalStyles.buttonSecondaryText}>
-                      Start from a Piece
+                      {loading ? 'Creating…' : 'CREATE OUTFIT'}
                     </Text>
                   </TouchableOpacity>
                 </Animatable.View>
@@ -961,11 +1198,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               {/* Controls */}
               <OutfitTuningControls
                 weather={weather}
-                occasion={occasion}
-                style={style}
                 onChangeWeather={v => setWeather(v as any)}
-                onChangeOccasion={setOccasion}
-                onChangeStyle={setStyle}
                 useWeather={useWeather}
                 onToggleWeather={setUseWeather}
                 useStylePrefs={useStylePrefs}
@@ -981,6 +1214,23 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 isGenerating={loading || liveWxLoading}
                 canGenerate={canGenerate}
                 showRefine={hasOutfit}
+                adjustmentContent={hasOutfit ? (
+                  <GuidedRefinementChips
+                    onSelectMood={(refinementPrompt, label) => {
+                      // Empty strings mean deselection (toggle off)
+                      setSelectedMoodLabel(label || null);
+                      setSelectedMoodPrompt(refinementPrompt || null);
+                      if (refinementPrompt) {
+                        handleGuidedRefinement(refinementPrompt);
+                      }
+                    }}
+                    onSelectAdjustment={handleGuidedRefinement}
+                    disabled={loading}
+                    selectedMoodLabel={selectedMoodLabel}
+                    showMoods={false}
+                    showPrompt={false}
+                  />
+                ) : undefined}
               />
 
               {/* Live weather note */}
@@ -1008,17 +1258,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   {renderCard('Top', top, 'top')}
                   {renderCard('Bottom', bottom, 'bottom')}
                   {renderCard('Shoes', shoes, 'shoes')}
-
-                  {/* AI Outfit v2: Guided Refinement Section */}
-                  <GuidedRefinementChips
-                    onSelectMood={(refinementPrompt) => {
-                      setSelectedMood(refinementPrompt);
-                      handleGuidedRefinement(refinementPrompt);
-                    }}
-                    onSelectAdjustment={handleGuidedRefinement}
-                    disabled={loading}
-                    selectedMood={selectedMood}
-                  />
 
                   {/* CTAs */}
                   <View
@@ -1110,7 +1349,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       onPress={handleV2Generate}
                       disabled={loading}>
                       <Text style={globalStyles.buttonPrimaryText}>
-                        {loading ? 'Creating…' : 'New Outfit'}
+                        {loading ? 'Creating…' : 'Remix Outfit'}
                       </Text>
                     </TouchableOpacity>
 
@@ -1123,7 +1362,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       onPress={() => {
                         clear();
                         setLockedItem(null);
-                        setSelectedMood(null);
+                        setSelectedMoodLabel(null);
+                        setSelectedMoodPrompt(null);
+                        setOutfitPrompt('');
                         setSessionId(null);
                       }}>
                       <Text style={globalStyles.buttonSecondaryText}>
@@ -1390,8 +1631,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       {/* AI Outfit v2: Wardrobe Picker Modal */}
       <WardrobePickerModal
         visible={showWardrobePicker}
-        onClose={() => setShowWardrobePicker(false)}
-        onSelectItem={handleStartFromPiece}
+        onClose={() => {
+          setShowWardrobePicker(false);
+          setSwapSection(null);
+        }}
+        onSelectItem={handleWardrobeItemSelect}
+        defaultCategory={
+          swapSection === 'top' ? 'Tops' :
+          swapSection === 'bottom' ? 'Bottoms' :
+          swapSection === 'shoes' ? 'Shoes' :
+          undefined
+        }
       />
     </View>
   );

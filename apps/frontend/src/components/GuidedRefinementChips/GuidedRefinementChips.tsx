@@ -1,7 +1,6 @@
-import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
+import React from 'react';
+import {View, Text, TouchableOpacity, StyleSheet, TextInput} from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
-import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
@@ -11,37 +10,72 @@ const h = (type: string) =>
     ignoreAndroidSystemSettings: false,
   });
 
-// Mood chips - bias the outfit slightly, change 1-2 items max
+// Mood chips - bias the outfit based on vibe/energy
 const MOOD_CHIPS = [
+  {
+    label: 'Low-key',
+    refinementPrompt:
+      'Adjust this outfit for a low-key, understated vibe. Change at most 1-2 items.',
+  },
   {
     label: 'Comfy',
     refinementPrompt:
-      'Slightly adjust this outfit to be more comfortable and relaxed, keeping the overall look intact. Change at most 1-2 items.',
+      'Adjust this outfit to be more comfortable and relaxed. Change at most 1-2 items.',
   },
   {
-    label: 'Busy',
+    label: 'Confident',
     refinementPrompt:
-      'Make minor adjustments for a busy day while keeping the core outfit concept. Change at most 1-2 items.',
+      'Adjust this outfit to feel more confident and self-assured. Change at most 1-2 items.',
   },
   {
-    label: 'Low-effort',
+    label: 'Boss energy',
     refinementPrompt:
-      'Simplify 1-2 pieces for minimal effort while maintaining the look. Keep the overall silhouette.',
+      'Adjust this outfit for powerful boss energy. Change at most 1-2 items.',
   },
   {
-    label: 'Put-together',
+    label: 'Playful',
     refinementPrompt:
-      'Refine 1-2 pieces to look more put-together. Preserve the core outfit concept.',
+      'Adjust this outfit for a playful, fun vibe. Change at most 1-2 items.',
   },
   {
-    label: 'Polished',
+    label: 'Creative',
     refinementPrompt:
-      'Polish this outfit slightly, change at most 1-2 items. Keep the overall look intact.',
+      'Adjust this outfit for a creative, artistic vibe. Change at most 1-2 items.',
   },
   {
-    label: 'Casual',
+    label: 'Feminine',
     refinementPrompt:
-      'Make this slightly more casual, changing minimal pieces. Preserve the outfit silhouette.',
+      'Adjust this outfit for a more feminine aesthetic. Change at most 1-2 items.',
+  },
+  {
+    label: 'Masculine',
+    refinementPrompt:
+      'Adjust this outfit for a more masculine aesthetic. Change at most 1-2 items.',
+  },
+  {
+    label: 'Gender Neutral',
+    refinementPrompt:
+      'Adjust this outfit for a gender-neutral aesthetic. Change at most 1-2 items.',
+  },
+  {
+    label: 'Cool',
+    refinementPrompt:
+      'Adjust this outfit for a cool, effortless vibe. Change at most 1-2 items.',
+  },
+  {
+    label: 'Minimal',
+    refinementPrompt:
+      'Adjust this outfit for a minimal, clean aesthetic. Change at most 1-2 items.',
+  },
+  {
+    label: 'Easygoing',
+    refinementPrompt:
+      'Adjust this outfit for an easygoing, relaxed feel. Change at most 1-2 items.',
+  },
+  {
+    label: 'Practical',
+    refinementPrompt:
+      'Adjust this outfit for practicality and functionality. Change at most 1-2 items.',
   },
 ];
 
@@ -53,47 +87,76 @@ const ADJUSTMENT_CHIPS = [
       'Make this slightly more casual, change 1-2 pieces max. Keep the core outfit.',
   },
   {
-    label: 'More relaxed fit',
-    refinementPrompt:
-      'Swap 1 piece for a more relaxed fit option. Keep the overall style.',
-  },
-  {
-    label: 'Dress this up',
+    label: 'Dress it up',
     refinementPrompt:
       'Elevate 1-2 pieces to dress this up. Maintain the outfit concept.',
   },
   {
-    label: 'Different colors',
+    label: 'More polished',
+    refinementPrompt:
+      'Make this look more polished and put-together, change 1-2 pieces max.',
+  },
+  {
+    label: 'Relaxed fit',
+    refinementPrompt:
+      'Swap 1-2 pieces for more relaxed fit options. Keep the overall style.',
+  },
+  {
+    label: 'More fitted',
+    refinementPrompt:
+      'Swap 1-2 pieces for more fitted/tailored options. Keep the overall style.',
+  },
+  {
+    label: 'More flowy',
+    refinementPrompt:
+      'Swap 1-2 pieces for more flowy/loose options. Keep the overall style.',
+  },
+  {
+    label: 'Try different colors',
     refinementPrompt:
       'Try different colors on 1-2 pieces. Keep the silhouette and formality.',
   },
   {
-    label: 'Warmer layers',
+    label: 'Add warmth',
     refinementPrompt:
       'Add or swap 1 piece for warmth. Preserve the outfit style.',
   },
   {
-    label: 'Cooler outfit',
+    label: 'Make it lighter',
     refinementPrompt:
-      'Swap 1 piece for cooler weather. Keep the overall look.',
+      'Swap 1-2 pieces for lighter/cooler weather options. Keep the overall look.',
   },
 ];
 
 type Props = {
-  onSelectMood: (refinementPrompt: string) => void;
+  onSelectMood: (refinementPrompt: string, label: string) => void;
   onSelectAdjustment: (refinementPrompt: string) => void;
   disabled?: boolean;
-  selectedMood?: string | null;
+  selectedMoodLabel?: string | null;
+  showMoods?: boolean;
+  showAdjustments?: boolean;
+  // Freeform prompt input
+  showPrompt?: boolean;
+  promptValue?: string;
+  onPromptChange?: (text: string) => void;
+  promptPlaceholder?: string;
+  promptLabel?: string | null; // null or empty to hide label
 };
 
 export default function GuidedRefinementChips({
   onSelectMood,
   onSelectAdjustment,
   disabled = false,
-  selectedMood = null,
+  selectedMoodLabel = null,
+  showMoods = true,
+  showAdjustments = true,
+  showPrompt = true,
+  promptValue = '',
+  onPromptChange,
+  promptPlaceholder = 'Describe the outfit you want...',
+  promptLabel = 'What kind of outfit do you want?',
 }: Props) {
   const {theme} = useAppTheme();
-  const globalStyles = useGlobalStyles();
 
   const styles = StyleSheet.create({
     container: {
@@ -136,6 +199,18 @@ export default function GuidedRefinementChips({
     chipTextSelected: {
       color: theme.colors.background,
     },
+    promptInput: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceBorder,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: theme.colors.foreground,
+      minHeight: 44,
+      marginTop: 4,
+    },
   });
 
   const renderChip = (
@@ -167,23 +242,54 @@ export default function GuidedRefinementChips({
 
   return (
     <View style={styles.container}>
-      {/* Mood Section */}
-      <Text style={styles.sectionTitle}>How are you feeling today?</Text>
-      <View style={styles.chipsRow}>
-        {MOOD_CHIPS.map(chip =>
-          renderChip(chip, selectedMood === chip.label, () =>
-            onSelectMood(chip.refinementPrompt),
-          ),
-        )}
-      </View>
+      {/* Freeform Prompt Input */}
+      {showPrompt && (
+        <>
+          {promptLabel ? (
+            <Text style={styles.sectionTitle}>{promptLabel}</Text>
+          ) : null}
+          <TextInput
+            style={styles.promptInput}
+            value={promptValue}
+            onChangeText={onPromptChange}
+            placeholder={promptPlaceholder}
+            placeholderTextColor={theme.colors.muted}
+            editable={!disabled}
+            multiline
+            numberOfLines={2}
+          />
+        </>
+      )}
 
-      {/* Adjustment Section */}
-      <Text style={styles.sectionTitle}>Adjust this look</Text>
-      <View style={styles.chipsRow}>
-        {ADJUSTMENT_CHIPS.map(chip =>
-          renderChip(chip, false, () => onSelectAdjustment(chip.refinementPrompt)),
-        )}
-      </View>
+      {/* Mood Section */}
+      {showMoods && (
+        <>
+          <Text style={styles.sectionTitle}>How are you feeling today? (Optional)</Text>
+          <View style={styles.chipsRow}>
+            {MOOD_CHIPS.map(chip => {
+              const isSelected = selectedMoodLabel === chip.label;
+              return renderChip(chip, isSelected, () =>
+                // Toggle: deselect if already selected, otherwise select
+                isSelected
+                  ? onSelectMood('', '')
+                  : onSelectMood(chip.refinementPrompt, chip.label),
+              );
+            })}
+          </View>
+        </>
+      )}
+
+      {/* Adjustment Section - only show after outfit exists */}
+      {showAdjustments && (
+        <>
+          <Text style={styles.sectionTitle}>Refine Outfit (Optional Choices)</Text>
+          <View style={styles.chipsRow}>
+            {ADJUSTMENT_CHIPS.map(chip =>
+              renderChip(chip, false, () => onSelectAdjustment(chip.refinementPrompt)),
+            )}
+          </View>
+        </>
+      )}
     </View>
   );
 }
