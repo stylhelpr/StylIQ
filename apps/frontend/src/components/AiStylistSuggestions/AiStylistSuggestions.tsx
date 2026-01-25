@@ -1055,7 +1055,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 textTransform: 'uppercase',
               }}>
-              Styla's Outfit Suggestions
+             Styla - What to Wear Today
             </Text>
 
             {/* Status dot: pulsing green when Auto, grey outline when Manual */}

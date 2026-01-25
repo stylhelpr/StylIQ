@@ -699,9 +699,27 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           backgroundColor: theme.colors.background, // same tone as old nav
         }}
       />
-      <View className="sectionTitle">
-        <View style={globalStyles.sectionTitle}>
-          <Text style={globalStyles.header}>AI Outfit Studio</Text>
+      
+      <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingLeft: moderateScale(tokens.spacing.sm),
+            marginBottom: 10
+          }}>
+          <Image
+            source={require('../assets/images/Styla1.png')}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              marginRight: 8,
+              borderWidth: 1,
+              borderColor: theme.colors.surfaceBorder,
+            }}
+            resizeMode="cover"
+          />
+          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla - Outfit Studio</Text>
         </View>
 
         {/* Header */}
@@ -720,7 +738,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               textAlign: 'center',
               fontSize: fontScale(tokens.fontSize.md),
               color: theme.colors.foreground,
-              fontWeight: tokens.fontWeight.medium,
+              fontWeight: tokens.fontWeight.normal,
             }}>
             Outfits are assembled from your personal uploaded wardrobe items. Just tell me what kind of look you 
             want and press "Generate Ideas"
@@ -1195,7 +1213,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             />
           </View>
         </View>
-      </View>
 
       <ReaderModal
         visible={!!shopReaderUrl}
@@ -1209,6 +1226,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     </View>
   );
 }
+
 
 ///////////////////////////
 
