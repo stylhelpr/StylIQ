@@ -54,6 +54,10 @@ import {
 // Weather utils
 import {getCurrentLocation, fetchWeather} from '../utils/travelWeather';
 
+// AI Outfit v2 components
+import GuidedRefinementChips from '../components/GuidedRefinementChips/GuidedRefinementChips';
+import WardrobePickerModal from '../components/WardrobePickerModal/WardrobePickerModal';
+
 type Props = {navigate: (screen: string, params?: any) => void};
 
 type Weights = {
@@ -144,6 +148,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     tags: [] as string[],
     reason: '',
   });
+
+  // ──────────────────────────────────────────────────────────────
+  // AI Outfit v2 State
+  // ──────────────────────────────────────────────────────────────
+  const [showWardrobePicker, setShowWardrobePicker] = useState(false);
+  const [lockedItem, setLockedItem] = useState<WardrobeItem | null>(null);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
 
   const isDisabled = !top || !bottom || !shoes;
 
@@ -517,6 +528,124 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   };
 
   // ──────────────────────────────────────────────────────────────
+  // AI Outfit v2 Handlers
+  // ──────────────────────────────────────────────────────────────
+
+  // "Create Outfit" - Initial generation with NEW session (uses legacy builtQuery)
+  const handleV2Generate = () => {
+    if (!userId) return;
+
+    // Create NEW session for initial generation
+    const newSessionId = uuid.v4() as string;
+    setSessionId(newSessionId);
+    setLockedItem(null);
+    setSelectedMood(null);
+
+    const wxToSend = useWeather
+      ? weather === 'auto'
+        ? liveWeatherCtx ?? {
+            tempF: 68,
+            precipitation: 'none' as const,
+            windMph: 5,
+            locationName: 'Local' as const,
+          }
+        : chipWeatherContext
+      : undefined;
+
+    const useStyle = useStylePrefs && weights.styleWeight > 0;
+
+    // Use existing builtQuery logic (legacy behavior preservation)
+    regenerate(builtQuery, {
+      topK: 25,
+      useWeather,
+      sessionId: newSessionId,
+      weather: wxToSend,
+      styleProfile: useStyle ? styleProfile : undefined,
+      useStyle,
+      // @ts-ignore
+      weights,
+      useFeedback,
+      styleAgent,
+    });
+  };
+
+  // "Start from a Piece" - Initial generation with locked item (NEW session)
+  const handleStartFromPiece = (item: any) => {
+    if (!userId) return;
+
+    // Create NEW session for initial generation
+    const newSessionId = uuid.v4() as string;
+    setSessionId(newSessionId);
+    setLockedItem(item);
+    setSelectedMood(null);
+    setShowWardrobePicker(false);
+
+    const itemDesc = item.subcategory || item.main_category || item.name || 'item';
+    const queryWithItem = `outfit built around my ${itemDesc}`;
+
+    const wxToSend = useWeather
+      ? weather === 'auto'
+        ? liveWeatherCtx ?? {
+            tempF: 68,
+            precipitation: 'none' as const,
+            windMph: 5,
+            locationName: 'Local' as const,
+          }
+        : chipWeatherContext
+      : undefined;
+
+    const useStyle = useStylePrefs && weights.styleWeight > 0;
+
+    regenerate(queryWithItem, {
+      topK: 25,
+      useWeather,
+      sessionId: newSessionId,
+      weather: wxToSend,
+      styleProfile: useStyle ? styleProfile : undefined,
+      useStyle,
+      // @ts-ignore
+      weights,
+      useFeedback,
+      styleAgent,
+      lockedItemIds: [item.id],
+    });
+  };
+
+  // Guided Refinement - REUSES existing session (CRITICAL for session continuity)
+  const handleGuidedRefinement = (refinementPrompt: string) => {
+    // CRITICAL: Must have existing session - no refinement without it
+    if (!userId || !sessionId) return;
+
+    // Get currently displayed items for context
+    const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
+      ? (current as any).outfits[0].items
+      : Array.isArray((current as any)?.items)
+      ? (current as any).items
+      : [];
+
+    const lockedIds = rawItems
+      .map((it: any) => it?.id)
+      .filter(
+        (id: any): id is string => typeof id === 'string' && id.length > 0,
+      );
+
+    // REUSE existing sessionId - this is non-negotiable
+    regenerate(builtQuery, {
+      topK: 25,
+      sessionId, // REUSE - critical for session continuity
+      refinementPrompt,
+      useWeather,
+      weather: useWeather ? chipWeatherContext : undefined,
+      styleProfile: useStylePrefs ? styleProfile : undefined,
+      useStyle: useStylePrefs,
+      weights,
+      useFeedback,
+      styleAgent,
+      lockedItemIds: lockedIds,
+    });
+  };
+
+  // ──────────────────────────────────────────────────────────────
   // Extract cards
   // ──────────────────────────────────────────────────────────────
   const topApi =
@@ -630,45 +759,67 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     label: string,
     item: WardrobeItem | undefined,
     section: 'top' | 'bottom' | 'shoes',
-  ) => (
-    <TouchableOpacity
-      onPress={() => setVisibleModal(section)}
-      activeOpacity={0.9}
-      style={[
-        styles.cardOverlay,
-        {backgroundColor: 'white'},
-      ]}>
-      <Image
-        source={
-          item?.image
-            ? {uri: item.image}
-            : {uri: 'https://via.placeholder.com/300x200?text=No+Image'}
-        }
-        style={styles.cardImage}
-      />
-      <View
+  ) => {
+    // AI Outfit v2: Check if this item is the locked item
+    const isLocked = lockedItem && item?.id === lockedItem.id;
+
+    return (
+      <TouchableOpacity
+        onPress={() => setVisibleModal(section)}
+        activeOpacity={0.9}
         style={[
-          styles.categoryPill,
-          {backgroundColor: theme.colors.background},
+          styles.cardOverlay,
+          {backgroundColor: 'white'},
+          isLocked && {borderWidth: 2, borderColor: theme.colors.primary},
         ]}>
-        <Text
+        <Image
+          source={
+            item?.image
+              ? {uri: item.image}
+              : {uri: 'https://via.placeholder.com/300x200?text=No+Image'}
+          }
+          style={styles.cardImage}
+        />
+        <View
           style={[
-            globalStyles.label,
-            {paddingHorizontal: 8, paddingVertical: 4, fontSize: 16},
+            styles.categoryPill,
+            {backgroundColor: theme.colors.background},
           ]}>
-          {label}
-        </Text>
-      </View>
-      <View style={styles.overlay}>
-        <View style={globalStyles.labelContainer2}>
-          <Text style={styles.itemName}>
-            {item?.name ?? `No ${label} selected`}
+          <Text
+            style={[
+              globalStyles.label,
+              {paddingHorizontal: 8, paddingVertical: 4, fontSize: 16},
+            ]}>
+            {label}
           </Text>
-          <Text style={styles.whyText}>Why this {label}?</Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        {/* AI Outfit v2: Locked item indicator */}
+        {isLocked && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              backgroundColor: theme.colors.primary,
+              borderRadius: 12,
+              padding: 4,
+            }}>
+            <MaterialIcons name="lock" size={16} color="#fff" />
+          </View>
+        )}
+        <View style={styles.overlay}>
+          <View style={globalStyles.labelContainer2}>
+            <Text style={styles.itemName}>
+              {item?.name ?? `No ${label} selected`}
+            </Text>
+            <Text style={styles.whyText}>
+              {isLocked ? 'You chose this piece' : `Why this ${label}?`}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // Loading
   if (loading) {
@@ -756,80 +907,55 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 paddingBottom: 40,
                 alignItems: 'center',
               }}>
-              {/* Prompt input with mic - hide when refine input is shown */}
+              {/* AI Outfit v2 Entry State */}
               {!hasOutfit && (
-                <View
-                  style={[
-                    globalStyles.promptRow,
-                    {
-                      minHeight: 45,
-                      marginBottom: 12,
-                      paddingHorizontal: 14,
-                      borderWidth: tokens.borderWidth.xl,
-                      borderColor: theme.colors.surfaceBorder,
-                      backgroundColor: theme.colors.surface3,
-                      borderRadius: 20,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    },
-                  ]}>
-                  <TextInput
-                    placeholder="Describe the look you want here..."
-                    placeholderTextColor={theme.colors.muted}
-                    multiline
-                    scrollEnabled={false}
+                <Animatable.View
+                  animation="fadeInUp"
+                  duration={600}
+                  easing="ease-out-cubic"
+                  style={{
+                    alignItems: 'center',
+                    width: '100%',
+                    paddingHorizontal: 20,
+                    marginBottom: 20,
+                  }}>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: theme.colors.muted,
+                      textAlign: 'center',
+                      marginBottom: 24,
+                      lineHeight: 22,
+                    }}>
+                    Let's put something together — we can tweak it.
+                  </Text>
+
+                  {/* Primary CTA: Create Outfit */}
+                  <TouchableOpacity
                     style={[
-                      globalStyles.promptInput,
-                      {
-                        color: theme.colors.foreground,
-                        flex: 1,
-                        minHeight: 42,
-                        paddingTop: 10,
-                        paddingBottom: 10,
-                        textAlignVertical: 'top',
-                      },
+                      globalStyles.buttonPrimary,
+                      {width: 200, marginBottom: 12},
                     ]}
-                    value={lastSpeech}
-                    onChangeText={setLastSpeech}
-                  />
-
-                  {/* ✅ Clear Button - one tap fix */}
-                  {lastSpeech.length > 0 && (
-                    <TouchableOpacity
-                      onPress={async () => {
-                        try {
-                          // ✅ Stop any ongoing recognition
-                          await Voice.stop();
-                          // ✅ Cancel to flush partial results
-                          await Voice.cancel();
-                        } catch (e) {
-                          console.warn('Voice stop/cancel error', e);
-                        }
-
-                        // ✅ Clear after a short delay to avoid ghost text from final callbacks
-                        setTimeout(() => {
-                          setLastSpeech('');
-                        }, 100);
-                      }}
-                      style={{paddingHorizontal: 8}}>
-                      <MaterialIcons
-                        name="close"
-                        size={22}
-                        color={theme.colors.foreground2}
-                      />
-                    </TouchableOpacity>
-                  )}
-
-                  {/* 🎙️ Mic Button */}
-                  <TouchableOpacity onPress={handleVoiceStart}>
-                    <MaterialIcons
-                      name="keyboard-voice"
-                      size={22}
-                      color={theme.colors.foreground}
-                      style={{marginRight: 6}}
-                    />
+                    onPress={handleV2Generate}
+                    disabled={loading}>
+                    <Text style={globalStyles.buttonPrimaryText}>
+                      {loading ? 'Creating…' : 'Create Outfit'}
+                    </Text>
                   </TouchableOpacity>
-                </View>
+
+                  {/* Secondary CTA: Start from a Piece */}
+                  <TouchableOpacity
+                    style={[
+                      globalStyles.buttonSecondary,
+                      {width: 200},
+                    ]}
+                    onPress={() => setShowWardrobePicker(true)}
+                    disabled={loading}>
+                    <Text style={globalStyles.buttonSecondaryText}>
+                      Start from a Piece
+                    </Text>
+                  </TouchableOpacity>
+                </Animatable.View>
               )}
 
               {/* Controls */}
@@ -882,6 +1008,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   {renderCard('Top', top, 'top')}
                   {renderCard('Bottom', bottom, 'bottom')}
                   {renderCard('Shoes', shoes, 'shoes')}
+
+                  {/* AI Outfit v2: Guided Refinement Section */}
+                  <GuidedRefinementChips
+                    onSelectMood={(refinementPrompt) => {
+                      setSelectedMood(refinementPrompt);
+                      handleGuidedRefinement(refinementPrompt);
+                    }}
+                    onSelectAdjustment={handleGuidedRefinement}
+                    disabled={loading}
+                    selectedMood={selectedMood}
+                  />
 
                   {/* CTAs */}
                   <View
@@ -952,22 +1089,48 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     </TouchableOpacity>
                   </View>
 
-                  {/* All Done button */}
-                  <TouchableOpacity
-                    style={[
-                      globalStyles.buttonSecondary,
-                      {
-                        marginTop: 16,
-                        width: '100%',
-                        maxWidth: 400,
-                        alignSelf: 'center',
-                      },
-                    ]}
-                    onPress={clear}>
-                    <Text style={globalStyles.buttonSecondaryText}>
-                      All Done
-                    </Text>
-                  </TouchableOpacity>
+                  {/* AI Outfit v2: New Outfit & All Done buttons */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      maxWidth: 400,
+                      alignSelf: 'center',
+                      marginTop: 16,
+                      gap: 12,
+                    }}>
+                    {/* New Outfit - creates fresh session */}
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonPrimary,
+                        {flex: 1},
+                      ]}
+                      onPress={handleV2Generate}
+                      disabled={loading}>
+                      <Text style={globalStyles.buttonPrimaryText}>
+                        {loading ? 'Creating…' : 'New Outfit'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* All Done - clears and returns to entry */}
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonSecondary,
+                        {flex: 1},
+                      ]}
+                      onPress={() => {
+                        clear();
+                        setLockedItem(null);
+                        setSelectedMood(null);
+                        setSessionId(null);
+                      }}>
+                      <Text style={globalStyles.buttonSecondaryText}>
+                        All Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </>
               )}
 
@@ -1222,6 +1385,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           setShopReaderUrl(null);
           setShopReaderTitle(null);
         }}
+      />
+
+      {/* AI Outfit v2: Wardrobe Picker Modal */}
+      <WardrobePickerModal
+        visible={showWardrobePicker}
+        onClose={() => setShowWardrobePicker(false)}
+        onSelectItem={handleStartFromPiece}
       />
     </View>
   );
