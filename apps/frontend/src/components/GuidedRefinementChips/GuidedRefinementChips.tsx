@@ -1,8 +1,9 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, TextInput} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type, {
@@ -139,6 +140,7 @@ type Props = {
   showPrompt?: boolean;
   promptValue?: string;
   onPromptChange?: (text: string) => void;
+  onVoiceStart?: () => void;
   promptPlaceholder?: string;
   promptLabel?: string | null; // null or empty to hide label
 };
@@ -153,6 +155,7 @@ export default function GuidedRefinementChips({
   showPrompt = true,
   promptValue = '',
   onPromptChange,
+  onVoiceStart,
   promptPlaceholder = 'Describe the outfit you want...',
   promptLabel = 'What kind of outfit do you want?',
 }: Props) {
@@ -161,20 +164,23 @@ export default function GuidedRefinementChips({
   const styles = StyleSheet.create({
     container: {
       width: '100%',
-      paddingHorizontal: 8,
-      marginTop: 16,
+      // paddingHorizontal: 8,
     },
     sectionTitle: {
       fontSize: 14,
       fontWeight: '500',
       color: theme.colors.muted,
-      marginBottom: 10,
-      marginTop: 8,
+      marginBottom: 4,
     },
     chipsRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
       gap: 8,
+      paddingRight: 16,
+    },
+    chipsScrollView: {
+      marginTop: 4,
+      marginHorizontal: -8,
+      paddingLeft: 8,
     },
     chip: {
       paddingHorizontal: 14,
@@ -199,17 +205,23 @@ export default function GuidedRefinementChips({
     chipTextSelected: {
       color: theme.colors.background,
     },
-    promptInput: {
+    promptInputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
+      marginTop: 4,
+      paddingRight: 4,
+    },
+    promptInput: {
+      flex: 1,
       paddingHorizontal: 16,
       paddingVertical: 12,
       fontSize: 15,
       color: theme.colors.foreground,
       minHeight: 44,
-      marginTop: 4,
     },
   });
 
@@ -248,24 +260,52 @@ export default function GuidedRefinementChips({
           {promptLabel ? (
             <Text style={styles.sectionTitle}>{promptLabel}</Text>
           ) : null}
-          <TextInput
-            style={styles.promptInput}
-            value={promptValue}
-            onChangeText={onPromptChange}
-            placeholder={promptPlaceholder}
-            placeholderTextColor={theme.colors.muted}
-            editable={!disabled}
-            multiline
-            numberOfLines={2}
-          />
+          <View style={styles.promptInputRow}>
+            <TextInput
+              style={styles.promptInput}
+              value={promptValue}
+              onChangeText={onPromptChange}
+              placeholder={promptPlaceholder}
+              placeholderTextColor={theme.colors.muted}
+              editable={!disabled}
+              multiline
+            />
+            {/* X Clear Button */}
+            {promptValue && promptValue.length > 0 && (
+              <TouchableOpacity
+                onPress={() => onPromptChange?.('')}
+                style={{paddingHorizontal: 8}}>
+                <MaterialIcons
+                  name="close"
+                  size={22}
+                  color={theme.colors.foreground2}
+                />
+              </TouchableOpacity>
+            )}
+            {/* Mic Button */}
+            <TouchableOpacity
+              onPress={onVoiceStart}
+              disabled={disabled}
+              style={{paddingHorizontal: 8}}>
+              <MaterialIcons
+                name="keyboard-voice"
+                size={22}
+                color={theme.colors.foreground}
+              />
+            </TouchableOpacity>
+          </View>
         </>
       )}
 
       {/* Mood Section */}
       {showMoods && (
         <>
-          <Text style={styles.sectionTitle}>How are you feeling today? (Optional)</Text>
-          <View style={styles.chipsRow}>
+          <Text style={[styles.sectionTitle, {marginTop: 16}]}>How are you feeling today? (Optional)</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipsScrollView}
+            contentContainerStyle={styles.chipsRow}>
             {MOOD_CHIPS.map(chip => {
               const isSelected = selectedMoodLabel === chip.label;
               return renderChip(chip, isSelected, () =>
@@ -275,7 +315,7 @@ export default function GuidedRefinementChips({
                   : onSelectMood(chip.refinementPrompt, chip.label),
               );
             })}
-          </View>
+          </ScrollView>
         </>
       )}
 
@@ -283,11 +323,15 @@ export default function GuidedRefinementChips({
       {showAdjustments && (
         <>
           <Text style={styles.sectionTitle}>Refine Outfit (Optional Choices)</Text>
-          <View style={styles.chipsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipsScrollView}
+            contentContainerStyle={styles.chipsRow}>
             {ADJUSTMENT_CHIPS.map(chip =>
               renderChip(chip, false, () => onSelectAdjustment(chip.refinementPrompt)),
             )}
-          </View>
+          </ScrollView>
         </>
       )}
     </View>

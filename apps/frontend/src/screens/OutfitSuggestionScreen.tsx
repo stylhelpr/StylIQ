@@ -318,6 +318,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     Voice.onSpeechResults = e => {
       const speech = e.value?.[0]?.toLowerCase() ?? '';
       setLastSpeech(speech);
+      setOutfitPrompt(speech); // Also update the prompt input field
 
       if (
         speech.includes('hot') ||
@@ -1025,7 +1026,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             }}
             resizeMode="cover"
           />
-          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla - Outfit Studio</Text>
+          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla - AI Outfit Studio</Text>
         </View>
 
         {/* Header */}
@@ -1090,7 +1091,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       showAdjustments={false}
                       promptValue={outfitPrompt}
                       onPromptChange={setOutfitPrompt}
-                      promptPlaceholder="e.g. casual brunch, work meeting, date night..."
+                      onVoiceStart={handleVoiceStart}
+                      promptPlaceholder="e.g. casual brunch, work meeting etc..."
                     />
                   )}
 
