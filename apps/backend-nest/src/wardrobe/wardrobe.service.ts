@@ -33,6 +33,19 @@ import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
 import { STYLE_AGENTS } from './logic/style-agents';
 
+// NEW: Quality Gate for outfit scoring and enforcement
+import {
+  scoreOutfit,
+  checkQualityGate,
+  createFallbackOutfit,
+  createQualityLog,
+  getRegenerationHint,
+  buildDeterministicSafeOutfit,
+  QUALITY_THRESHOLDS,
+  type QualityContext,
+  type QualityLogEntry,
+} from './logic/qualityGate';
+
 // NEW: feedback filters
 import {
   applyFeedbackFilters,
@@ -1985,8 +1998,141 @@ ${lockedLines}
         };
       });
 
-      // Pick the best outfit (first one for now)
-      const best = outfits[0] ?? {
+      // ─────────────────────────────────────────────────────────────────
+      // QUALITY GATE: Score and validate ALL outfits (including Pick #1)
+      // ─────────────────────────────────────────────────────────────────
+      const qualityLogs: QualityLogEntry[] = [];
+      const ql = query.toLowerCase();
+
+      // Extended context detection for all golden test scenarios
+      const qualityContext: QualityContext = {
+        query,
+        targetFormality: this.deriveFormality(query), // Derive from query
+        weather: opts?.weather ? {
+          tempF: opts.weather.tempF,
+          precipitation: opts.weather.precipitation as 'none' | 'rain' | 'snow' | undefined,
+          windMph: opts.weather.windMph,
+        } : undefined,
+        userStyle: opts?.userStyle ? {
+          preferredColors: opts.userStyle.preferredColors,
+          avoidColors: opts.userStyle.avoidColors,
+          avoidSubcategories: opts.userStyle.avoidSubcategories,
+          dressBias: opts.userStyle.dressBias,
+        } : undefined,
+        // Activity/occasion signals - COMPREHENSIVE detection
+        isGym: /\b(gym|work\s?out|workout|training|exercise|hiit|running|fitness)\b/i.test(ql),
+        isBeach: /\b(beach|pool|swim|resort|vacation|cruise)\b/i.test(ql),
+        isFormal: /\b(formal|black\s*tie|white\s*tie|gala|tuxedo|evening)\b/i.test(ql),
+        isWedding: /\b(wedding|ceremony|reception|bridal)\b/i.test(ql),
+        isFuneral: /\b(funeral|memorial|wake|mourning)\b/i.test(ql),
+        isReligious: /\b(church|mosque|temple|synagogue|religious|service|mass|worship)\b/i.test(ql),
+        isInterview: /\b(interview|job\s*interview|meeting|presentation|pitch)\b/i.test(ql),
+        isProfessional: /\b(work|office|business|professional|corporate|client)\b/i.test(ql),
+        isCasual: /\b(casual|errand|everyday|relaxed|weekend|lazy)\b/i.test(ql),
+        isNetworking: /\b(networking|conference|summit|seminar|trade\s*show)\b/i.test(ql),
+        requiresModesty: /\b(modest|conservative|covered|traditional)\b/i.test(ql),
+      };
+
+      // ─────────────────────────────────────────────────────────────────
+      // SCORE AND GATE ALL OUTFITS (Pick #1, #2, #3)
+      // Pick #1 has stricter requirements (MIN_AVERAGE_PICK1: 4.5)
+      // Process Pick #1 first so it can be used as fallback for #2/#3
+      // ─────────────────────────────────────────────────────────────────
+
+      // Collect all catalog items for deterministic fallback (BLOCKER 1 FIX)
+      const allCatalogItems: CatalogItem[] = Array.from(itemsMap.values()).map(
+        (row: any, idx: number) => this.dbRowToCatalogItem(row, idx)
+      );
+
+      // Step 1: Process Pick #1 first (needed as fallback source for #2/#3)
+      let gatedPick1: typeof outfits[0];
+      if (outfits.length > 0) {
+        const outfit = outfits[0];
+        const result = checkQualityGate(outfit, qualityContext, 1);
+
+        if (result.passed) {
+          qualityLogs.push(createQualityLog(1, outfit, result, 'accepted', 1));
+          console.log(`✅ [QUALITY] Pick #1 PASSED:`, {
+            average: result.scores.average.toFixed(2),
+            lowest: result.scores.lowestScore,
+            reasonCodes: result.reasonCodes.length > 0 ? result.reasonCodes : 'none',
+          });
+          gatedPick1 = outfit;
+        } else {
+          // ─────────────────────────────────────────────────────────────────
+          // BLOCKER 1 FIX: NEVER reuse failed items
+          // Build deterministic safe outfit from catalog instead
+          // ─────────────────────────────────────────────────────────────────
+          console.log(`⚠️ [QUALITY] Pick #1 FAILED:`, result.failureReason);
+          console.log(`   Reason codes:`, result.reasonCodes.join(', '));
+          console.log(`🚨 [QUALITY] Pick #1 CRITICAL FAIL - building deterministic safe outfit`);
+
+          // Build fresh outfit from catalog - NEVER copy failed items
+          const safeOutfit = buildDeterministicSafeOutfit(
+            allCatalogItems,
+            qualityContext,
+            randomUUID(),
+          );
+
+          gatedPick1 = safeOutfit as typeof outfits[0];
+          qualityLogs.push(createQualityLog(1, outfit, result, 'replaced_with_fallback', 1));
+
+          // Verify the safe outfit actually passes (defense in depth)
+          const verifyResult = checkQualityGate(gatedPick1, qualityContext, 1);
+          if (!verifyResult.passed) {
+            console.log(`⚠️ [QUALITY] Safe outfit still failed:`, verifyResult.failureReason);
+            console.log(`   This indicates catalog lacks appropriate items for context`);
+          } else {
+            console.log(`✅ [QUALITY] Deterministic safe outfit VERIFIED`);
+          }
+        }
+      } else {
+        // No outfits at all - build from catalog
+        console.log(`🚨 [QUALITY] No outfits generated - building from catalog`);
+        gatedPick1 = buildDeterministicSafeOutfit(
+          allCatalogItems,
+          qualityContext,
+          randomUUID(),
+        ) as typeof outfits[0];
+      }
+
+      // Step 2: Process Pick #2 and #3, using gatedPick1 as fallback source
+      const gatedOutfits = [gatedPick1];
+
+      for (let idx = 1; idx < outfits.length && idx < 3; idx++) {
+        const outfit = outfits[idx];
+        const pickNumber = (idx + 1) as 2 | 3;
+        const result = checkQualityGate(outfit, qualityContext, pickNumber);
+
+        if (result.passed) {
+          qualityLogs.push(createQualityLog(pickNumber, outfit, result, 'accepted', 1));
+          console.log(`✅ [QUALITY] Pick #${pickNumber} PASSED:`, {
+            average: result.scores.average.toFixed(2),
+            lowest: result.scores.lowestScore,
+            reasonCodes: result.reasonCodes.length > 0 ? result.reasonCodes : 'none',
+          });
+          gatedOutfits.push(outfit);
+        } else {
+          // Quality gate failed - use gatedPick1 as fallback source
+          console.log(`⚠️ [QUALITY] Pick #${pickNumber} FAILED:`, result.failureReason);
+          console.log(`   Reason codes:`, result.reasonCodes.join(', '));
+          console.log(`   Using fallback based on Pick #1`);
+
+          const fallback = createFallbackOutfit(gatedPick1 as any, pickNumber, randomUUID());
+          qualityLogs.push(createQualityLog(pickNumber, outfit, result, 'replaced_with_fallback', 1));
+          gatedOutfits.push(fallback as typeof gatedPick1);
+        }
+      }
+
+      // Log quality summary (no PII)
+      console.log('📊 [QUALITY] Summary:', {
+        totalOutfits: gatedOutfits.length,
+        accepted: qualityLogs.filter(l => l.action === 'accepted').length,
+        replaced: qualityLogs.filter(l => l.action === 'replaced_with_fallback').length,
+      });
+
+      // Pick the best outfit (first one)
+      const best = gatedOutfits[0] ?? {
         outfit_id: randomUUID(),
         title: 'Outfit',
         items: [],
@@ -2001,7 +2147,7 @@ ${lockedLines}
         outfit_id: best.outfit_id,
         items: best.items,
         why: best.why,
-        outfits,
+        outfits: gatedOutfits,
       };
     } catch (err: any) {
       console.error(
@@ -2011,6 +2157,20 @@ ${lockedLines}
       );
       throw err;
     }
+  }
+
+  /**
+   * Derives formality level (1-10) from query keywords
+   * Used by quality gate for context-aware scoring
+   */
+  private deriveFormality(query: string): number {
+    const q = query.toLowerCase();
+    if (/\b(formal|business|interview|wedding|gala|black.?tie|funeral|memorial)\b/.test(q)) return 9;
+    if (/\b(smart.?casual|business.?casual|dinner|date|upscale|church|religious)\b/.test(q)) return 7;
+    if (/\b(casual|everyday|relaxed|weekend|brunch|errand)\b/.test(q)) return 4;
+    if (/\b(gym|workout|athletic|exercise|training|running)\b/.test(q)) return 2;
+    if (/\b(lounge|home|sleep|pajama)\b/.test(q)) return 1;
+    return 5; // default middle
   }
 
   /**
