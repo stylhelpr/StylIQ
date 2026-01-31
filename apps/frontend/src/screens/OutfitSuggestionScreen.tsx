@@ -181,7 +181,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   ];
 
   // Backend hook
-  const {current, loading, error, regenerate, clear} = useOutfitApi(userId);
+  const {current, loading, error, regenerate, clear, outfits, selected, setSelected} = useOutfitApi(userId);
 
   // Voice input
   const handleVoiceStart = async () => {
@@ -750,6 +750,22 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   // ──────────────────────────────────────────────────────────────
   // Extract cards
   // ──────────────────────────────────────────────────────────────
+
+  // Helper to extract preview items from any outfit
+  const getOutfitPreview = (outfit: any) => {
+    if (!outfit) return null;
+    const items = outfit?.items || [];
+    const topItem = pickFirstByCategory(items, 'Tops') ?? pickFirstByCategory(items, 'Outerwear');
+    const bottomItem = pickFirstByCategory(items, 'Bottoms');
+    const shoesItem = pickFirstByCategory(items, 'Shoes');
+    return {
+      title: outfit?.title || 'Outfit',
+      top: apiItemToUI(topItem),
+      bottom: apiItemToUI(bottomItem),
+      shoes: apiItemToUI(shoesItem),
+    };
+  };
+
   const topApi =
     pickFirstByCategory(current?.items, 'Tops') ??
     pickFirstByCategory(current?.items, 'Outerwear');
@@ -1250,6 +1266,84 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       } mph`
                     : 'Fetching local weather…'}
                 </Text>
+              )}
+
+              {/* Outfit Selector - shows when multiple outfits available */}
+              {hasOutfit && outfits.length > 1 && (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: 16,
+                  paddingHorizontal: 16,
+                }}>
+                  {outfits.slice(0, 3).map((outfit, index) => {
+                    const preview = getOutfitPreview(outfit);
+                    const isSelected = index === selected;
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => setSelected(index)}
+                        style={{
+                          flex: 1,
+                          maxWidth: 110,
+                          padding: 8,
+                          borderRadius: 12,
+                          backgroundColor: isSelected
+                            ? theme.colors.primary + '20'
+                            : theme.colors.surface2,
+                          borderWidth: 2,
+                          borderColor: isSelected
+                            ? theme.colors.primary
+                            : 'transparent',
+                        }}>
+                        {/* Mini preview images */}
+                        <View style={{
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                          marginBottom: 6,
+                        }}>
+                          {[preview?.top, preview?.bottom, preview?.shoes]
+                            .filter(Boolean)
+                            .slice(0, 3)
+                            .map((item, i) => (
+                              <Image
+                                key={i}
+                                source={{uri: item?.image}}
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 6,
+                                  marginHorizontal: 1,
+                                  backgroundColor: theme.colors.surface3,
+                                }}
+                              />
+                            ))}
+                        </View>
+                        {/* Pick label */}
+                        <Text style={{
+                          fontSize: 11,
+                          fontWeight: isSelected ? '700' : '500',
+                          color: isSelected
+                            ? theme.colors.primary
+                            : theme.colors.foreground,
+                          textAlign: 'center',
+                        }} numberOfLines={1}>
+                          {index === 0 ? 'Pick #1' : index === 1 ? 'Pick #2' : 'Pick #3'}
+                        </Text>
+                        <Text style={{
+                          fontSize: 9,
+                          color: theme.colors.muted,
+                          textAlign: 'center',
+                          marginTop: 2,
+                        }} numberOfLines={1}>
+                          {index === 0 ? 'Safe' : index === 1 ? 'Different' : 'Wildcard'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               )}
 
               {/* Outfit cards */}

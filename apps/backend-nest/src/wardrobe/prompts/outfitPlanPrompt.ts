@@ -14,7 +14,7 @@ export type OutfitPlan = {
 };
 
 export type OutfitPlanResponse = {
-  outfit: OutfitPlan;
+  outfits: OutfitPlan[];
 };
 
 // Derive formality from query keywords
@@ -124,7 +124,7 @@ REFINEMENT MODE:
 - Output ONLY the slots that need to change`;
   }
 
-  return `SYSTEM: Stateless outfit planning engine. Generate ONE outfit. No commentary.
+  return `SYSTEM: Stateless outfit planning engine. Generate exactly 3 ranked outfits. No commentary.
 
 INPUT:
 {
@@ -135,21 +135,65 @@ ${availableItemsConstraint}${refinementInstruction}
 
 OUTPUT (JSON only):
 {
-  "outfit": {
-    "title": "string",
-    "slots": [
-      {"category": "Tops", "description": "generic item", "formality": N},
-      {"category": "Bottoms", "description": "generic item", "formality": N},
-      {"category": "Shoes", "description": "generic item", "formality": N}
-    ]
-  }
+  "outfits": [
+    {
+      "title": "Pick #1: [Safe/Classic choice]",
+      "slots": [
+        {"category": "Tops", "description": "generic item", "formality": N},
+        {"category": "Bottoms", "description": "generic item", "formality": N},
+        {"category": "Shoes", "description": "generic item", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #2: [Different vibe]",
+      "slots": [...]
+    },
+    {
+      "title": "Pick #3: [Wildcard/Bold choice]",
+      "slots": [...]
+    }
+  ]
 }
 
 RULES:
-- ONE outfit only
-- Slots: Tops, Bottoms, Shoes required. Outerwear, Accessories optional.
+- Exactly 3 outfits: #1 safe, #2 different vibe, #3 controlled wildcard
+- Each outfit: Tops, Bottoms, Shoes required. Outerwear, Accessories optional.
 - Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
 - No brands, no specific items, no images, no item names
 - Formality 1-10 per slot
-- JSON only, no extra text`;
+- JSON only, no extra text
+
+QUALITY OVERRIDE (applies to all picks):
+- Do NOT introduce changes that reduce overall outfit coherence, appropriateness, or quality
+- If a variation would weaken the outfit, keep the stronger original element
+- Never force a change just to appear different
+- Prioritize contextual fit, balance, and good judgment over variation
+- A strong Pick #1 repeated is better than a weak Pick #2 or Pick #3
+
+PICK #2 DIFFERENT VIBE CONSTRAINTS (critical):
+- MUST stay in the same formality band as Pick #1 (±1 level max)
+- MUST reuse at least 2 core pieces from Pick #1
+- MAY change only 1–2 elements (e.g., shoes, outerwear, color palette, OR silhouette)
+- MUST respect mood, activity, and comfort signals from the request
+- Must feel like "another way to wear this outfit," not a new aesthetic
+- Do NOT switch aesthetic category (preppy stays preppy, streetwear stays streetwear)
+- Do NOT introduce incompatible pieces (e.g., athletic shoes with tailored pants)
+- Do NOT ignore practicality or comfort constraints
+
+VARIATION DISTRIBUTION (critical):
+- Avoid concentrating changes in a single category (e.g., only changing shoes)
+- Ensure variation is distributed across major garment groups (tops, bottoms, shoes)
+- Maintain visual and functional coherence across all picks
+- Do not rely on minor pieces (accessories, outerwear) for primary differentiation
+
+PICK #3 WILDCARD CONSTRAINTS (critical):
+- MUST remain appropriate for the user's activity and weather
+- MUST respect the user's style profile and preferences
+- MUST reuse at least 2 pieces from Pick #1 or Pick #2
+- MAY introduce only ONE experimental element (color, silhouette, texture, OR accessory)
+- MUST be realistically wearable today (no costume, no theme shifts)
+- Do NOT change the overall aesthetic category (casual stays casual, formal stays formal)
+- Do NOT introduce incompatible formality levels (e.g., sneakers with suit)
+- Do NOT ignore comfort or practicality constraints
+- Think "edge of comfort zone" not "completely different person"`;
 }
