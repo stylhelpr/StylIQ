@@ -8,6 +8,12 @@ import { Express } from 'express';
 import { redis } from '../utils/redisClient';
 import { pool } from '../db/pool';
 import { getSecret, secretExists } from '../config/secrets';
+import {
+  checkQualityGate,
+  buildDeterministicSafeOutfit,
+  type QualityContext,
+  type GeneratedOutfit,
+} from '../wardrobe/logic/qualityGate';
 
 // 🧥 Basic capsule wardrobe templates
 const CAPSULES = {
@@ -3474,6 +3480,7 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Map item IDs back to full wardrobe items with images
     const wardrobeMap = new Map(wardrobe.map((item) => [item.id, item]));
 
+    // Build enriched outfits with full metadata for quality gate
     const outfitsWithItems = parsed.outfits.map((outfit) => ({
       id: outfit.id,
       rank: outfit.rank,
@@ -3484,16 +3491,163 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           const item = wardrobeMap.get(itemId);
           if (!item) return null;
           return {
+            // UI fields (preserved in response)
             id: item.id,
             name: item.name || item.ai_title || 'Item',
             imageUrl: item.image_url || item.image,
             category: this.mapToCategory(item.main_category || item.category),
+            // Quality gate fields (internal, stripped before return)
+            main_category: item.main_category,
+            subcategory: item.subcategory,
+            color: item.color,
+            color_family: item.color_family,
+            formality_score: item.formality_score,
+            shoe_style: item.shoe_style,
+            dress_code: item.dress_code,
+            label: item.name || item.ai_title,
           };
         })
         .filter(Boolean),
     }));
 
-    return { weatherSummary, outfits: outfitsWithItems };
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🛡️ QUALITY GATE ENFORCEMENT (Always On - No Bypass)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // Build quality context from request parameters
+    const ql = (constraint || '').toLowerCase();
+    const qualityContext: QualityContext = {
+      query: constraint || 'casual everyday',
+      targetFormality: this.deriveFormality(constraint || ''),
+      weather: temp ? { tempF: temp } : undefined,
+      userStyle: preferences ? {
+        preferredColors: preferences.preferredColors,
+        avoidColors: preferences.avoidColors,
+        avoidSubcategories: preferences.avoidSubcategories,
+      } : undefined,
+      isGym: /\b(gym|workout|training|exercise)\b/i.test(ql),
+      isBeach: /\b(beach|pool|swim)\b/i.test(ql),
+      isFormal: /\b(formal|black.?tie|gala|tuxedo)\b/i.test(ql),
+      isWedding: /\b(wedding|ceremony|reception)\b/i.test(ql),
+      isFuneral: /\b(funeral|memorial|wake)\b/i.test(ql),
+      isReligious: /\b(church|mosque|temple|synagogue|service)\b/i.test(ql),
+      isInterview: /\b(interview|meeting|presentation)\b/i.test(ql),
+      isProfessional: /\b(work|office|business|professional)\b/i.test(ql),
+      isCasual: /\b(casual|everyday|relaxed|weekend)\b/i.test(ql),
+    };
+
+    // Build catalog for fallback generation
+    const catalogItems = wardrobe
+      .filter((item) => item.image_url || item.image)
+      .map((item) => ({
+        id: item.id,
+        label: item.name || item.ai_title || 'Item',
+        image_url: item.image_url || item.image,
+        main_category: item.main_category,
+        subcategory: item.subcategory,
+        color: item.color,
+        color_family: item.color_family,
+        formality_score: item.formality_score ?? 5,
+        shoe_style: item.shoe_style,
+        dress_code: item.dress_code,
+      }));
+
+    // Apply quality gate to all outfits
+    const gatedOutfits: any[] = [];
+    let gatedPick1: any = null;
+
+    for (let idx = 0; idx < Math.min(outfitsWithItems.length, 3); idx++) {
+      const outfit = outfitsWithItems[idx];
+      const pickNumber = (idx + 1) as 1 | 2 | 3;
+
+      // Convert to quality gate format (cast to remove null from type)
+      const gateInput: GeneratedOutfit = {
+        outfit_id: outfit.id,
+        title: outfit.summary,
+        items: outfit.items as any[],
+        why: outfit.reasoning,
+      };
+
+      const result = checkQualityGate(gateInput, qualityContext, pickNumber);
+
+      if (result.passed) {
+        console.log(`✅ [HOME GATE] Pick #${pickNumber} PASSED (avg: ${result.scores.average.toFixed(2)})`);
+        if (pickNumber === 1) gatedPick1 = outfit;
+        gatedOutfits.push(outfit);
+      } else {
+        console.warn(`⚠️ [HOME GATE] Pick #${pickNumber} FAILED:`, result.failureReason);
+        console.warn(`   Reason codes:`, result.reasonCodes.join(', '));
+
+        if (pickNumber === 1) {
+          // Build deterministic safe outfit for Pick #1
+          console.log(`🚨 [HOME GATE] Building deterministic fallback for Pick #1`);
+          const safeOutfit = buildDeterministicSafeOutfit(
+            catalogItems,
+            qualityContext,
+            `safe-${Date.now()}`,
+          );
+
+          gatedPick1 = {
+            id: safeOutfit.outfit_id,
+            rank: 1,
+            summary: safeOutfit.title,
+            reasoning: safeOutfit.why,
+            items: safeOutfit.items.map((i: any) => ({
+              id: i.id,
+              name: i.label || i.name || 'Item',
+              imageUrl: i.image_url || '',
+              category: this.mapToCategory(i.main_category || ''),
+              main_category: i.main_category,
+              subcategory: i.subcategory,
+              color: i.color,
+              color_family: i.color_family,
+              formality_score: i.formality_score,
+              shoe_style: i.shoe_style,
+              dress_code: i.dress_code,
+              label: i.label,
+            })),
+          };
+          gatedOutfits.push(gatedPick1);
+        } else {
+          // Use gatedPick1 as fallback for Pick #2/#3
+          if (gatedPick1) {
+            console.log(`   Using Pick #1 as fallback for Pick #${pickNumber}`);
+            gatedOutfits.push({
+              ...gatedPick1,
+              id: `fallback-${pickNumber}`,
+              rank: pickNumber,
+            });
+          }
+        }
+      }
+    }
+
+    // Ensure we have 3 outfits (pad with Pick #1 if needed)
+    while (gatedOutfits.length < 3 && gatedPick1) {
+      const rank = (gatedOutfits.length + 1) as 2 | 3;
+      gatedOutfits.push({
+        ...gatedPick1,
+        id: `fallback-${rank}`,
+        rank,
+      });
+    }
+
+    // Strip internal fields before returning to frontend
+    const finalOutfits = gatedOutfits.map((o) => ({
+      id: o.id,
+      rank: o.rank,
+      summary: o.summary,
+      reasoning: o.reasoning,
+      items: o.items.map((i: any) => ({
+        id: i.id,
+        name: i.name,
+        imageUrl: i.imageUrl,
+        category: i.category,
+      })),
+    }));
+
+    console.log(`📊 [HOME GATE] Summary: ${gatedOutfits.length} outfits gated, all safe`);
+    return { weatherSummary, outfits: finalOutfits };
   }
 
   /** Generate concise weather summary for UI (one line max) */
@@ -3536,6 +3690,16 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     if (normalized.includes('shoe') || normalized.includes('boot') || normalized.includes('sneaker'))
       return 'shoes';
     return 'accessory';
+  }
+
+  /** Derive formality level (1-10) from query keywords for quality gate */
+  private deriveFormality(query: string): number {
+    const q = query.toLowerCase();
+    if (/\b(formal|business|interview|wedding|gala|funeral|memorial)\b/.test(q)) return 9;
+    if (/\b(smart.?casual|business.?casual|dinner|date|church|religious)\b/.test(q)) return 7;
+    if (/\b(casual|everyday|relaxed|weekend|brunch)\b/.test(q)) return 4;
+    if (/\b(gym|workout|athletic|exercise)\b/.test(q)) return 2;
+    return 5; // default middle
   }
 
   /* ------------------------------------------------------------
