@@ -158,6 +158,9 @@ export default function ClosetScreen({navigate}: Props) {
   const [swipeActive, setSwipeActive] = useState(false);
   const scrollEnabled = !swipeActive;
 
+  // Build outfit mode - when true, tapping an item opens OutfitCanvas with that item
+  const [buildMode, setBuildMode] = useState(false);
+
   // Sync scroll position with global nav for bottom nav hide/show
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -645,6 +648,10 @@ export default function ClosetScreen({navigate}: Props) {
               if (isDemo) {
                 // For demo items, navigate to AddItem to encourage adding real items
                 navigate('AddItem');
+              } else if (buildMode) {
+                // Build mode: open canvas with this item
+                setBuildMode(false);
+                navigate('OutfitCanvas', {initialItem: item});
               } else {
                 navigate('ItemDetail', {itemId: item.id, item});
               }
@@ -851,9 +858,19 @@ export default function ClosetScreen({navigate}: Props) {
                   },
                 ]}
                 hapticStyle="impactMedium"
-                onPress={() => navigate('OutfitBuilder')}>
+                onPress={() => {
+                  if (buildMode) {
+                    setBuildMode(false);
+                  } else {
+                    setBuildMode(true);
+                    ReactNativeHapticFeedback.trigger('notificationSuccess', {
+                      enableVibrateFallback: true,
+                      ignoreAndroidSystemSettings: false,
+                    });
+                  }
+                }}>
                 <Text style={globalStyles.buttonPrimaryText}>
-                  + Build An Outfit
+                  {buildMode ? 'Cancel Build' : '+ Build An Outfit'}
                 </Text>
               </AppleTouchFeedback>
             </View>
@@ -880,6 +897,36 @@ export default function ClosetScreen({navigate}: Props) {
             </AppleTouchFeedback>
           </View>
         </View>
+
+        {/* Build mode indicator banner */}
+        {buildMode && (
+          <View
+            style={{
+              backgroundColor: theme.colors.primary,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              marginHorizontal: ITEM_SPACING,
+              marginBottom: 8,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <MaterialIcons name="touch-app" size={22} color="white" />
+            <Text
+              style={{
+                color: 'white',
+                fontSize: 14,
+                fontWeight: '600',
+                marginLeft: 10,
+                flex: 1,
+              }}>
+              Tap an item to start building your outfit
+            </Text>
+            <TouchableOpacity onPress={() => setBuildMode(false)}>
+              <MaterialIcons name="close" size={22} color="white" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Photo tips info bar - shown only while sample items are present */}
         {wardrobeState === 'demo' && (

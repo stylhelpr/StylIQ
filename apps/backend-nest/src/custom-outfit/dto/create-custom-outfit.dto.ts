@@ -31,6 +31,20 @@ export class CreateCustomOutfitDto {
   metadata?: Record<string, any>; // jsonb can hold any JSON object
 
   @IsOptional()
+  @IsObject()
+  canvas_data?: {
+    version: number;
+    placedItems: Array<{
+      id: string;
+      wardrobeItemId: string;
+      x: number;
+      y: number;
+      scale: number;
+      zIndex: number;
+    }>;
+  };
+
+  @IsOptional()
   @IsString()
   notes?: string;
 

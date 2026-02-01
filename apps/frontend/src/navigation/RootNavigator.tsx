@@ -34,6 +34,7 @@ import ShoppingHabitScreen from '../screens/ShoppingHabitScreen';
 import SkinToneScreen from '../screens/SkinToneScreen';
 import StyleIconsScreen from '../screens/StyleIconsScreen';
 import OutfitBuilderScreen from '../screens/OutfitBuilderScreen';
+import OutfitCanvasScreen from '../screens/OutfitCanvasScreen';
 import SavedOutfitsScreen from '../screens/SavedOutfitsScreen';
 import {useSavedOutfits} from '../hooks/useSavedOutfits';
 import TryOnOverlayWrapperScreen from '../screens/TryOnOverlayWrapperScreen';
@@ -142,6 +143,7 @@ type Screen =
   | 'Outfit'
   | 'Search'
   | 'OutfitBuilder'
+  | 'OutfitCanvas'
   | 'SavedOutfits'
   | 'TryOnOverlay'
   | 'Notifications'
@@ -555,6 +557,13 @@ const RootNavigator = ({
             wardrobe={wardrobe}
             navigate={navigate}
             saveOutfit={saveOutfit}
+          />
+        );
+      case 'OutfitCanvas':
+        return (
+          <OutfitCanvasScreen
+            navigate={navigate}
+            initialItem={screenParams?.initialItem}
           />
         );
       case 'SavedOutfits':
