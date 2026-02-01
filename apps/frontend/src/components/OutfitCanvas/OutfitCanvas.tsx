@@ -1,5 +1,5 @@
 import React, {useState, useCallback} from 'react';
-import {View, StyleSheet, LayoutChangeEvent} from 'react-native';
+import {StyleSheet, LayoutChangeEvent, Pressable} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {useAppTheme} from '../../context/ThemeContext';
 import CanvasItem, {CanvasItemData} from './CanvasItem';
@@ -9,6 +9,7 @@ type Props = {
   placedItems: CanvasItemData[];
   selectedItemId: string | null;
   onSelectItem: (id: string) => void;
+  onDeselectItem: () => void;
   onUpdateItem: (id: string, updates: Partial<CanvasItemData>) => void;
   onBringToFront: (id: string) => void;
   onSendToBack: (id: string) => void;
@@ -19,6 +20,7 @@ export default function OutfitCanvas({
   placedItems,
   selectedItemId,
   onSelectItem,
+  onDeselectItem,
   onUpdateItem,
   onBringToFront,
   onSendToBack,
@@ -85,8 +87,6 @@ export default function OutfitCanvas({
     container: {
       flex: 1,
       backgroundColor: theme.colors.surface,
-      borderRadius: 16,
-      overflow: 'hidden',
     },
     canvas: {
       flex: 1,
@@ -99,7 +99,7 @@ export default function OutfitCanvas({
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <View style={styles.canvas} onLayout={handleLayout}>
+      <Pressable style={styles.canvas} onLayout={handleLayout} onPress={onDeselectItem}>
         {canvasDimensions.width > 0 &&
           canvasDimensions.height > 0 &&
           sortedItems.map(item => (
@@ -116,7 +116,7 @@ export default function OutfitCanvas({
               onLongPress={() => handleLongPress(item.id)}
             />
           ))}
-      </View>
+      </Pressable>
 
       <ItemContextMenu
         visible={contextMenuVisible}

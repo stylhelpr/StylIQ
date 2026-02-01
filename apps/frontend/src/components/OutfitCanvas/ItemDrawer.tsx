@@ -12,8 +12,9 @@ import FastImage from 'react-native-fast-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
   runOnJS,
+  Easing,
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {useAppTheme} from '../../context/ThemeContext';
@@ -25,7 +26,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
-const DRAWER_COLLAPSED_HEIGHT = 180;
+const DRAWER_COLLAPSED_HEIGHT = 75;
 const DRAWER_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.5;
 const ITEM_SIZE = 80;
 
@@ -119,13 +120,14 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
   }, [wardrobe, selectedCategory]);
 
   // Resolve image URL - prioritize processed/touched-up versions
+  // Use || instead of ?? to treat empty strings as falsy
   const resolveUri = useCallback((item: WardrobeItem) => {
     // Same priority as ClosetScreen: touchedUp > processed > thumbnail > image_url
     const u =
-      item.touchedUpImageUrl ??
-      item.processedImageUrl ??
-      item.thumbnailUrl ??
-      item.image_url ??
+      item.touchedUpImageUrl ||
+      item.processedImageUrl ||
+      item.thumbnailUrl ||
+      item.image_url ||
       item.image;
     if (!u) return '';
     if (/^https?:\/\//i.test(u)) return u;
@@ -160,9 +162,9 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
     });
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
-    drawerHeight.value = withSpring(
+    drawerHeight.value = withTiming(
       newExpanded ? DRAWER_EXPANDED_HEIGHT : DRAWER_COLLAPSED_HEIGHT,
-      {damping: 20, stiffness: 150},
+      {duration: 250, easing: Easing.out(Easing.cubic)},
     );
   }, [isExpanded, drawerHeight]);
 
@@ -191,9 +193,9 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
         drawerHeight.value > (DRAWER_COLLAPSED_HEIGHT + DRAWER_EXPANDED_HEIGHT) / 2;
       isExpandedShared.value = shouldExpand;
       runOnJS(setIsExpanded)(shouldExpand);
-      drawerHeight.value = withSpring(
+      drawerHeight.value = withTiming(
         shouldExpand ? DRAWER_EXPANDED_HEIGHT : DRAWER_COLLAPSED_HEIGHT,
-        {damping: 20, stiffness: 150},
+        {duration: 250, easing: Easing.out(Easing.cubic)},
       );
     });
 

@@ -202,7 +202,7 @@ export default function SavedOutfitsScreen() {
     imageRow: {
       flexDirection: 'row',
       justifyContent: 'flex-start',
-      marginTop: 12,
+      // marginTop: 12,
       gap: 12,
     },
 
@@ -1079,29 +1079,74 @@ export default function SavedOutfitsScreen() {
                 </View>
               </View>
 
-              {/* 👕 Outfit Images */}
+              {/* 👕 Outfit Images - canvas outfits show snapshot + grid, legacy shows row */}
               <View style={styles.imageRow}>
-                {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
-                  i?.image ? (
-                    <FastImage
-                      key={i.id}
-                      source={{
-                        uri: i.image,
-                        priority: FastImage.priority.normal,
-                        cache: FastImage.cacheControl.immutable,
-                      }}
-                      style={[
-                        globalStyles.image1,
-                        {
-                          marginRight: 2,
+                {outfit.thumbnailUrl ? (
+                  <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+                    {/* Left: Canvas snapshot */}
+                    <View style={{
+                      width: 130,
+                      height: 170,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      backgroundColor: theme.colors.surface,
+                    }}>
+                      <FastImage
+                        source={{
+                          uri: outfit.thumbnailUrl,
+                          priority: FastImage.priority.normal,
+                          cache: FastImage.cacheControl.web,
+                        }}
+                        style={{
+                          width: 130,
+                          height: 170,
                           borderRadius: 8,
-                          marginBottom: 8,
-                          marginTop: -6,
-                        },
-                      ]}
-                      resizeMode={FastImage.resizeMode.cover}
-                    />
-                  ) : null,
+                        }}
+                        resizeMode={FastImage.resizeMode.contain}
+                      />
+                    </View>
+                    {/* Right: 4x3 Grid of individual items */}
+                    <View style={{marginLeft: 12, flexDirection: 'row', flexWrap: 'wrap', width: 164, gap: 4}}>
+                      {(outfit.allItems || [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map((item, index) => {
+                        console.log(`🖼️ Grid item ${item?.id}: ${item?.image?.substring(0, 80)}`);
+                        return item?.image ? (
+                          <FastImage
+                            key={item.id || index}
+                            source={{
+                              uri: item.image,
+                              priority: FastImage.priority.normal,
+                              cache: FastImage.cacheControl.web,
+                            }}
+                            style={{width: 38, height: 38, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.muted}}
+                            resizeMode={FastImage.resizeMode.contain}
+                          />
+                        ) : null;
+                      })}
+                    </View>
+                  </View>
+                ) : (
+                  [outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                    i?.image ? (
+                      <FastImage
+                        key={i.id}
+                        source={{
+                          uri: i.image,
+                          priority: FastImage.priority.normal,
+                          cache: FastImage.cacheControl.web,
+                        }}
+                        style={[
+                          globalStyles.image1,
+                          {
+                            marginRight: 2,
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            marginTop: -6,
+                          },
+                        ]}
+                        resizeMode={FastImage.resizeMode.contain}
+                      />
+                    ) : null,
+                  )
                 )}
               </View>
 
@@ -1459,29 +1504,77 @@ export default function SavedOutfitsScreen() {
                   </View>
                 </View>
 
-                {/* 👕 Outfit Images - Using FastImage */}
+                {/* 👕 Outfit Images - canvas outfits show snapshot + grid, legacy shows row */}
                 <View style={styles.imageRow}>
-                  {[outfit.top, outfit.bottom, outfit.shoes].map(i =>
-                    i?.image ? (
-                      <FastImage
-                        key={i.id}
-                        source={{
-                          uri: i.image,
-                          priority: FastImage.priority.normal,
-                          cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={[
-                          globalStyles.image1,
-                          {
-                            marginRight: 2,
+                  {outfit.thumbnailUrl ? (
+                    <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+                      {/* Left: Canvas snapshot */}
+                      <View style={{
+                        width: 130,
+                        height: 170,
+                        overflow: 'hidden',
+                        backgroundColor: theme.colors.surface,
+                        // borderColor: theme.colors.muted,
+                        // borderRadius: 8,
+                        // borderWidth: 1,
+                        marginBottom: 4
+                      }}>
+                        <FastImage
+                          source={{
+                            uri: outfit.thumbnailUrl,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.web,
+                          }}
+                          style={{
+                            width: 130,
+                            height: 170,
                             borderRadius: 8,
-                            marginBottom: 8,
-                            marginTop: -6,
-                          },
-                        ]}
-                        resizeMode={FastImage.resizeMode.cover}
-                      />
-                    ) : null,
+                          }}
+                          resizeMode={FastImage.resizeMode.contain}
+                        />
+                      </View>
+                      {/* Right: 4x3 Grid of individual items */}
+                      <View style={{marginLeft: 12, flexDirection: 'row', flexWrap: 'wrap', width: 250, gap: 4}}>
+                        {(outfit.allItems || [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map((item, index) => {
+                          console.log(`🖼️ Grid item (2) ${item?.id}: ${item?.image?.substring(0, 80)}`);
+                          return item?.image ? (
+                            <FastImage
+                              key={item.id || index}
+                              source={{
+                                uri: item.image,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.web,
+                              }}
+                              style={{width: 55, height: 55, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.muted}}
+                              resizeMode={FastImage.resizeMode.contain}
+                            />
+                          ) : null;
+                        })}
+                      </View>
+                    </View>
+                  ) : (
+                    [outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                      i?.image ? (
+                        <FastImage
+                          key={i.id}
+                          source={{
+                            uri: i.image,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.web,
+                          }}
+                          style={[
+                            globalStyles.image1,
+                            {
+                              marginRight: 2,
+                              borderRadius: 8,
+                              marginBottom: 8,
+                              marginTop: -6,
+                            },
+                          ]}
+                          resizeMode={FastImage.resizeMode.contain}
+                        />
+                      ) : null,
+                    )
                   )}
                 </View>
 
@@ -2879,11 +2972,7 @@ export default function SavedOutfitsScreen() {
               </Animatable.Text>
 
               {/* Outfit Images - Using FastImage */}
-              {[
-                fullScreenOutfit?.top,
-                fullScreenOutfit?.bottom,
-                fullScreenOutfit?.shoes,
-              ].map(
+              {(fullScreenOutfit?.allItems || [fullScreenOutfit?.top, fullScreenOutfit?.bottom, fullScreenOutfit?.shoes].filter(Boolean)).map(
                 (i, idx) =>
                   i?.image && (
                     <Animatable.View
@@ -2900,7 +2989,7 @@ export default function SavedOutfitsScreen() {
                         source={{
                           uri: i.image,
                           priority: FastImage.priority.high,
-                          cache: FastImage.cacheControl.immutable,
+                          cache: FastImage.cacheControl.web,
                         }}
                         style={{
                           width: '100%',
@@ -2909,7 +2998,7 @@ export default function SavedOutfitsScreen() {
                           borderWidth: tokens.borderWidth.hairline,
                           borderColor: theme.colors.muted,
                         }}
-                        resizeMode={FastImage.resizeMode.cover}
+                        resizeMode={FastImage.resizeMode.contain}
                       />
                     </Animatable.View>
                   ),

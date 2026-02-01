@@ -2619,6 +2619,7 @@ ${lockedLines}
       objectKey: row.object_key,
       processedImageUrl: row.processed_image_url,
       processedGsutilUri: row.processed_gsutil_uri,
+      touchedUpImageUrl: row.touched_up_image_url,
       aiTitle: row.ai_title,
       aiDescription: row.ai_description,
       aiKeyAttributes: row.ai_key_attributes,

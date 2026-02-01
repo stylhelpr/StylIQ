@@ -51,6 +51,10 @@ export class CreateCustomOutfitDto {
   @IsOptional()
   @IsNumber()
   rating?: number;
+
+  @IsOptional()
+  @IsString()
+  thumbnail_url?: string;
 }
 
 ////////////////

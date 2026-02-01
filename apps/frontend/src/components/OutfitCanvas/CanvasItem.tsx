@@ -48,8 +48,9 @@ export default function CanvasItem({
   onLongPress,
 }: Props) {
   // Convert normalized position to pixel position
-  const initialX = item.x * canvasWidth - (BASE_ITEM_SIZE * item.scale) / 2;
-  const initialY = item.y * canvasHeight - (BASE_ITEM_SIZE * item.scale) / 2;
+  const itemSize = BASE_ITEM_SIZE * item.scale;
+  const initialX = item.x * canvasWidth - itemSize / 2;
+  const initialY = item.y * canvasHeight - itemSize / 2;
 
   // Shared values for animations
   const translateX = useSharedValue(initialX);
@@ -121,7 +122,6 @@ export default function CanvasItem({
     .onEnd(() => {
       savedScale.value = scale.value;
       runOnJS(handleScaleChange)(scale.value);
-      // Recalculate position after scale change to keep item centered
       runOnJS(handlePositionChange)(
         translateX.value,
         translateY.value,

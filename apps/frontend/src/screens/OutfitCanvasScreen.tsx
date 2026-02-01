@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useMemo, useRef} from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import ViewShot from 'react-native-view-shot';
 import {useAppTheme} from '../context/ThemeContext';
 import {useUUID} from '../context/UUIDContext';
 import {API_BASE_URL} from '../config/api';
@@ -45,15 +46,17 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
   const userId = useUUID();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const canvasRef = useRef<ViewShot>(null);
 
   // Get best image URL from wardrobe item (prefer processed versions)
+  // Use || instead of ?? to treat empty strings as falsy
   const getItemImageUrl = (item: WardrobeItem): string => {
     return (
-      item.touchedUpImageUrl ??
-      item.processedImageUrl ??
-      item.thumbnailUrl ??
-      item.image_url ??
-      item.image ??
+      item.touchedUpImageUrl ||
+      item.processedImageUrl ||
+      item.thumbnailUrl ||
+      item.image_url ||
+      item.image ||
       ''
     );
   };
@@ -94,10 +97,75 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     return `${base}/${path}`;
   }
 
+  // Capture and upload canvas snapshot
+  const captureAndUploadSnapshot = async (): Promise<string | null> => {
+    try {
+      if (!canvasRef.current?.capture) {
+        console.log('Snapshot ref not available for capture');
+        return null;
+      }
+
+      // Capture the tightly-cropped snapshot
+      const uri = await canvasRef.current.capture();
+      if (!uri) {
+        console.log('Failed to capture canvas');
+        return null;
+      }
+
+      const accessToken = await getAccessToken();
+      const filename = `outfit-snapshot-${Date.now()}.png`;
+
+      // Get presigned URL for upload
+      const presignRes = await fetch(
+        `${API_BASE_URL}/upload/presign?filename=${encodeURIComponent(filename)}&contentType=image/png`,
+        {
+          headers: {Authorization: `Bearer ${accessToken}`},
+        },
+      );
+
+      if (!presignRes.ok) {
+        console.error('Failed to get presigned URL');
+        return null;
+      }
+
+      const {uploadUrl, publicUrl} = await presignRes.json();
+
+      // Read the captured image as blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Upload to GCS using presigned URL
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {'Content-Type': 'image/png'},
+        body: blob,
+      });
+
+      if (!uploadRes.ok) {
+        console.error('Failed to upload snapshot to GCS');
+        return null;
+      }
+
+      console.log('Canvas snapshot uploaded:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      console.error('Error capturing/uploading snapshot:', error);
+      return null;
+    }
+  };
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (payload: {name: string}) => {
       const accessToken = await getAccessToken();
+
+      // Deselect item before capturing to hide blue border
+      setSelectedItemId(null);
+      // Wait for UI to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Capture canvas snapshot
+      const snapshotUrl = await captureAndUploadSnapshot();
 
       // Build canvas_data for API
       const canvasData = {
@@ -122,8 +190,8 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
           user_id: userId,
           name: payload.name,
           canvas_data: canvasData,
-          // Also set thumbnail from first item
-          thumbnail_url: placedItems[0]?.imageUrl || '',
+          // Use snapshot URL if available, otherwise fall back to first item image
+          thumbnail_url: snapshotUrl || placedItems[0]?.imageUrl || '',
         }),
       });
 
@@ -139,7 +207,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({user_id: userId, outfit_id: newOutfit.outfit?.id || newOutfit.id}),
+        body: JSON.stringify({user_id: userId, outfit_id: newOutfit.outfit?.id || newOutfit.id, outfit_type: 'custom'}),
       }).catch(() => {});
 
       // Invalidate caches
@@ -281,6 +349,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+       marginTop: 50
     },
     header: {
       flexDirection: 'row',
@@ -288,7 +357,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       justifyContent: 'space-between',
       paddingHorizontal: 16,
       paddingTop: insets.top > 0 ? 8 : 16,
-      paddingBottom: 12,
+      paddingBottom: 6,
       backgroundColor: theme.colors.background,
     },
     backButton: {
@@ -303,50 +372,27 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       fontSize: 17,
       fontWeight: '600',
       color: theme.colors.foreground,
+    
     },
-    headerSpacer: {
-      width: 40,
+    saveButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: theme.colors.button1,
+    },
+    saveButtonDisabled: {
+      opacity: 0.4,
+    },
+    saveButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.colors.buttonText1,
+    },
+    saveButtonTextDisabled: {
+      opacity: 0.6,
     },
     canvasContainer: {
       flex: 1,
-      margin: 16,
-      marginBottom: 0,
-    },
-    floatingSaveButton: {
-      position: 'absolute',
-      right: 20,
-      bottom: 200,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.colors.button1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {width: 0, height: 4},
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    floatingSaveButtonDisabled: {
-      opacity: 0.5,
-    },
-    itemCount: {
-      position: 'absolute',
-      top: -4,
-      right: -4,
-      backgroundColor: theme.colors.primary || '#007AFF',
-      borderRadius: 10,
-      minWidth: 20,
-      height: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: 6,
-    },
-    itemCountText: {
-      color: 'white',
-      fontSize: 12,
-      fontWeight: '600',
     },
   });
 
@@ -367,45 +413,45 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
 
         <Text style={styles.headerTitle}>Build Outfit</Text>
 
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            placedItems.length === 0 && styles.saveButtonDisabled,
+          ]}
+          onPress={handleSavePress}
+          activeOpacity={0.7}
+          disabled={placedItems.length === 0}>
+          <Text
+            style={[
+              styles.saveButtonText,
+              placedItems.length === 0 && styles.saveButtonTextDisabled,
+            ]}>
+            Save Outfit
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Canvas */}
       <View style={styles.canvasContainer}>
-        <OutfitCanvas
-          placedItems={placedItems}
-          selectedItemId={selectedItemId}
-          onSelectItem={setSelectedItemId}
-          onUpdateItem={handleUpdateItem}
-          onBringToFront={handleBringToFront}
-          onSendToBack={handleSendToBack}
-          onRemoveItem={handleRemoveItem}
-        />
+        <ViewShot
+          ref={canvasRef}
+          options={{format: 'png', quality: 0.9}}
+          style={{flex: 1}}>
+          <OutfitCanvas
+            placedItems={placedItems}
+            selectedItemId={selectedItemId}
+            onSelectItem={setSelectedItemId}
+            onDeselectItem={() => setSelectedItemId(null)}
+            onUpdateItem={handleUpdateItem}
+            onBringToFront={handleBringToFront}
+            onSendToBack={handleSendToBack}
+            onRemoveItem={handleRemoveItem}
+          />
+        </ViewShot>
       </View>
 
       {/* Item Drawer */}
       <ItemDrawer onAddItem={handleAddItem} placedItemIds={placedItemIds} />
-
-      {/* Floating Save Button */}
-      <TouchableOpacity
-        style={[
-          styles.floatingSaveButton,
-          placedItems.length === 0 && styles.floatingSaveButtonDisabled,
-        ]}
-        onPress={handleSavePress}
-        activeOpacity={0.8}
-        disabled={placedItems.length === 0}>
-        <MaterialIcons
-          name="check"
-          size={28}
-          color={theme.colors.buttonText1}
-        />
-        {placedItems.length > 0 && (
-          <View style={styles.itemCount}>
-            <Text style={styles.itemCountText}>{placedItems.length}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
 
       {/* Modals */}
       <SaveOutfitModal

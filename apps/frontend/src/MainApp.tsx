@@ -211,7 +211,7 @@ const MainApp = () => {
       <MessageNotificationBanner onTapNotification={handleTapMessageNotification} />
       <WeatherOverlay />
       <LocationOverlay />
-      {activeScreen !== 'Splash' && activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && activeScreen !== 'Login' && activeScreen !== 'Onboarding' && (
+      {activeScreen !== 'Splash' && activeScreen !== 'VideoFeedScreen' && activeScreen !== 'WebBrowser' && activeScreen !== 'ImageCarouselScreen' && activeScreen !== 'Login' && activeScreen !== 'Onboarding' && activeScreen !== 'OutfitCanvas' && (
         <FloatingMicButton navigate={globalNavigate} />
       )}
       <WeatherPromptOverlay
