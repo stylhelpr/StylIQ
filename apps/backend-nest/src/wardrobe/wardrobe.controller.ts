@@ -322,6 +322,16 @@ export class WardrobeController {
     return result;
   }
 
+  @Post(':item_id/remove-background')
+  async removeBackground(@Req() req, @Param('item_id') itemId: string) {
+    const userId = req.user.userId;
+    const result = await this.service.removeBackgroundItem(itemId, userId);
+    if (!result) {
+      throw new NotFoundException('Wardrobe item not found or background removal failed');
+    }
+    return result;
+  }
+
 }
 
 /////////////////////

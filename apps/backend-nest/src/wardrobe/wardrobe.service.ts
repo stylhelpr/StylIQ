@@ -3281,6 +3281,68 @@ ${lockedLines}
     };
   }
 
+  // REMOVE BACKGROUND (Re-process background removal for existing item)
+  async removeBackgroundItem(itemId: string, userId: string) {
+    // 1. Fetch the item
+    const itemResult = await pool.query(
+      `SELECT * FROM wardrobe_items WHERE id = $1 AND user_id = $2`,
+      [itemId, userId],
+    );
+    if (itemResult.rowCount === 0) {
+      return null;
+    }
+    const item = itemResult.rows[0];
+
+    // 2. Get the original image URL
+    const sourceImageUrl = item.image_url;
+    if (!sourceImageUrl) {
+      console.error('[RemoveBackground] No source image URL found for item:', itemId);
+      return null;
+    }
+
+    // 3. Download the image and call removeBackground
+    const objectKey = item.gsutil_uri?.replace(/^gs:\/\/[^/]+\//, '') || `items/${userId}/${itemId}`;
+
+    // Fetch the image buffer from the URL
+    const response = await fetch(sourceImageUrl);
+    if (!response.ok) {
+      console.error('[RemoveBackground] Failed to fetch source image:', sourceImageUrl);
+      return null;
+    }
+    const imageBuffer = Buffer.from(await response.arrayBuffer());
+
+    const removeResult = await this.vertex.removeBackground(
+      imageBuffer,
+      userId,
+      objectKey,
+    );
+
+    if (!removeResult) {
+      console.error('[RemoveBackground] PhotoRoom remove-background failed for item:', itemId);
+      return null;
+    }
+
+    // 4. Update DB with new processed_image_url
+    const updateResult = await pool.query(
+      `UPDATE wardrobe_items
+       SET processed_image_url = $1,
+           processed_gsutil_uri = $2,
+           updated_at = now()
+       WHERE id = $3 AND user_id = $4
+       RETURNING *`,
+      [removeResult.processedPublicUrl, removeResult.processedGcsUri, itemId, userId],
+    );
+
+    if (updateResult.rowCount === 0) {
+      return null;
+    }
+
+    return {
+      message: 'Background removal completed successfully',
+      item: this.toCamel(updateResult.rows[0]),
+    };
+  }
+
   // DELETE
   async deleteItem(dto: DeleteItemDto) {
     const { item_id, user_id, image_url } = dto;
