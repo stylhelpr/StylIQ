@@ -133,9 +133,10 @@ const ADJUSTMENT_CHIPS = [
 
 type Props = {
   onSelectMood: (refinementPrompt: string, label: string) => void;
-  onSelectAdjustment: (refinementPrompt: string) => void;
+  onSelectAdjustment: (refinementPrompt: string, label: string) => void;
   disabled?: boolean;
   selectedMoodLabel?: string | null;
+  selectedAdjustmentLabel?: string | null;
   showMoods?: boolean;
   showAdjustments?: boolean;
   // Freeform prompt input
@@ -151,6 +152,7 @@ export default function GuidedRefinementChips({
   onSelectAdjustment,
   disabled = false,
   selectedMoodLabel = null,
+  selectedAdjustmentLabel = null,
   showMoods = true,
   showAdjustments = true,
   showPrompt = true,
@@ -344,9 +346,15 @@ export default function GuidedRefinementChips({
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.moodChipsScroll}>
-            {ADJUSTMENT_CHIPS.map(chip =>
-              renderChip(chip, false, () => onSelectAdjustment(chip.refinementPrompt)),
-            )}
+            {ADJUSTMENT_CHIPS.map(chip => {
+              const isSelected = selectedAdjustmentLabel === chip.label;
+              return renderChip(chip, isSelected, () =>
+                // Toggle: deselect if already selected, otherwise select
+                isSelected
+                  ? onSelectAdjustment('', '')
+                  : onSelectAdjustment(chip.refinementPrompt, chip.label),
+              );
+            })}
           </ScrollView>
         </>
       )}

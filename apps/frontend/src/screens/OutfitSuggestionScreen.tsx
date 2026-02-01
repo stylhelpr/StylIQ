@@ -167,6 +167,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const [lockedItem, setLockedItem] = useState<WardrobeItem | null>(null);
   const [selectedMoodLabel, setSelectedMoodLabel] = useState<string | null>(null);
   const [selectedMoodPrompt, setSelectedMoodPrompt] = useState<string | null>(null);
+  const [selectedAdjustmentLabel, setSelectedAdjustmentLabel] = useState<string | null>(null);
+  const [selectedAdjustmentPrompt, setSelectedAdjustmentPrompt] = useState<string | null>(null);
   const [outfitPrompt, setOutfitPrompt] = useState<string>('');
   const [buildAroundPrompt, setBuildAroundPrompt] = useState<string>('');
   // Swap item mode: track which section is being swapped (null = start from piece mode)
@@ -581,6 +583,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     clear();
     // Reset refinement state for new outfit generation
     setHasRefined(false);
+    setSelectedAdjustmentLabel(null);
+    setSelectedAdjustmentPrompt(null);
 
     // Create NEW session for initial generation
     const newSessionId = uuid.v4() as string;
@@ -739,41 +743,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       // Start from piece mode
       handleStartFromPiece(item);
     }
-  };
-
-  // Guided Refinement - REUSES existing session (CRITICAL for session continuity)
-  const handleGuidedRefinement = (refinementPrompt: string) => {
-    // CRITICAL: Must have existing session - no refinement without it
-    if (!userId || !sessionId) return;
-
-    // Get currently displayed items to pass as context
-    const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
-      ? (current as any).outfits[0].items
-      : Array.isArray((current as any)?.items)
-      ? (current as any).items
-      : [];
-
-    const lockedIds = rawItems
-      .map((it: any) => it?.id)
-      .filter(
-        (id: any): id is string => typeof id === 'string' && id.length > 0,
-      );
-
-    // REUSE existing sessionId - this is non-negotiable
-    regenerate(builtQuery, {
-      topK: 25,
-      sessionId, // REUSE - critical for session continuity
-      refinementPrompt,
-      useWeather,
-      weather: useWeather ? chipWeatherContext : undefined,
-      styleProfile: useStylePrefs ? styleProfile : undefined,
-      useStyle: useStylePrefs,
-      weights,
-      useFeedback,
-      styleAgent,
-      // Pass current items as context - AI will interpret refinement prompt to decide what to change
-      lockedItemIds: lockedIds,
-    });
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -964,8 +933,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             <MaterialIcons name="lock" size={16} color="#fff" />
           </View>
         )}
-        {/* Swap out Item button - hide for locked items */}
-        {!isLocked && (
+        {/* Swap out Item button - hide for locked items and until outfit is selected */}
+        {!isLocked && hasRefined && (
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
@@ -1112,9 +1081,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         setSelectedMoodLabel(label || null);
                         setSelectedMoodPrompt(refinementPrompt || null);
                       }}
-                      onSelectAdjustment={() => {}}
+                      onSelectAdjustment={(refinementPrompt, label) => {
+                        setSelectedAdjustmentLabel(label || null);
+                        setSelectedAdjustmentPrompt(refinementPrompt || null);
+                      }}
                       disabled={loading}
                       selectedMoodLabel={selectedMoodLabel}
+                      selectedAdjustmentLabel={selectedAdjustmentLabel}
                       showAdjustments={false}
                       promptValue={outfitPrompt}
                       onPromptChange={setOutfitPrompt}
@@ -1293,23 +1266,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 isGenerating={loading || liveWxLoading}
                 canGenerate={canGenerate}
                 showRefine={hasOutfit && hasRefined}
-                adjustmentContent={hasOutfit && hasRefined ? (
-                  <GuidedRefinementChips
-                    onSelectMood={(refinementPrompt, label) => {
-                      // Empty strings mean deselection (toggle off)
-                      setSelectedMoodLabel(label || null);
-                      setSelectedMoodPrompt(refinementPrompt || null);
-                      if (refinementPrompt) {
-                        handleGuidedRefinement(refinementPrompt);
-                      }
-                    }}
-                    onSelectAdjustment={handleGuidedRefinement}
-                    disabled={loading}
-                    selectedMoodLabel={selectedMoodLabel}
-                    showMoods={false}
-                    showPrompt={false}
-                  />
-                ) : undefined}
               />
 
               {/* Live weather note */}
@@ -1342,7 +1298,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     textAlign: 'left',
                     marginBottom: 12,
                   }}>
-                    Select which outfit you'd like to continue with
+                    Select which outfit you'd like and click Continue
                   </Text>
                   <View style={{
                     flexDirection: 'row',
@@ -1562,6 +1518,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         setLockedItem(null);
                         setSelectedMoodLabel(null);
                         setSelectedMoodPrompt(null);
+                        setSelectedAdjustmentLabel(null);
+                        setSelectedAdjustmentPrompt(null);
                         setOutfitPrompt('');
                         setSessionId(null);
                         setHasRefined(false);

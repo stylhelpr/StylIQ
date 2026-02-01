@@ -80,6 +80,10 @@ type Props = {
   showRefine?: boolean; // default true
   // Content to render between refine input and button (e.g. adjustment chips)
   adjustmentContent?: React.ReactNode;
+  // Selected adjustment prompt from chips (will be combined with refine text)
+  selectedAdjustmentPrompt?: string | null;
+  // Callback to clear adjustment selection after refining
+  onClearAdjustment?: () => void;
 };
 
 /** Minimal slider with NO external packages */
@@ -211,6 +215,8 @@ export default function OutfitTuningControls({
   canGenerate = true,
   showRefine = true,
   adjustmentContent,
+  selectedAdjustmentPrompt,
+  onClearAdjustment,
 }: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
@@ -319,7 +325,6 @@ export default function OutfitTuningControls({
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: '#ff8c00',
-      opacity: isGenerating ? 0.7 : 1,
       marginTop: 12,
       marginBottom: 12,
       width: 150,
@@ -516,17 +521,25 @@ export default function OutfitTuningControls({
               alignItems: 'center',
             }}>
             <TouchableOpacity
-              style={S.refineCta}
+              style={[S.refineCta, {opacity: isGenerating || (!refineText.trim() && !selectedAdjustmentPrompt) ? 0.5 : 1}]}
               onPress={() => {
-                if (onRefine && refineText.trim()) {
+                // Combine user text input with selected adjustment chip
+                const combinedPrompt = [
+                  refineText.trim(),
+                  selectedAdjustmentPrompt,
+                ].filter(Boolean).join('. ');
+
+                if (onRefine && combinedPrompt) {
                   h('impactLight');
-                  onRefine(refineText.trim());
+                  onRefine(combinedPrompt);
                   setRefineText('');
                   setIsListening(false);
+                  // Clear the selected adjustment chip
+                  onClearAdjustment?.();
                 }
               }}
-              disabled={isGenerating}
-              accessibilityState={{disabled: isGenerating}}
+              disabled={isGenerating || (!refineText.trim() && !selectedAdjustmentPrompt)}
+              accessibilityState={{disabled: isGenerating || (!refineText.trim() && !selectedAdjustmentPrompt)}}
               testID="refine-outfit-button">
               <Text style={S.ctaText}>
                 {isGenerating ? 'Refining…' : 'Refine Outfit'}
