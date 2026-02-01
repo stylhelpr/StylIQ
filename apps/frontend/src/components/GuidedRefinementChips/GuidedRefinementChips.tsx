@@ -326,7 +326,7 @@ export default function GuidedRefinementChips({
             {MOOD_CHIPS.map(chip => {
               const isSelected = selectedMoodLabel === chip.label;
               return renderChip(chip, isSelected, () =>
-                // Toggle: deselect if already selected, otherwise select
+                /// Toggle: deselect if already selected, otherwise select
                 isSelected
                   ? onSelectMood('', '')
                   : onSelectMood(chip.refinementPrompt, chip.label),
