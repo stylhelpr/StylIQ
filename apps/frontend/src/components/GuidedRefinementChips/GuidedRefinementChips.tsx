@@ -184,7 +184,7 @@ export default function GuidedRefinementChips({
     sectionTitle: {
       fontSize: 14,
       fontWeight: '500',
-      color: theme.colors.muted,
+      color: theme.colors.foreground,
       marginBottom: 6,
     },
     chipsRow: {
@@ -339,7 +339,7 @@ export default function GuidedRefinementChips({
       {/* Adjustment Section - only show after outfit exists */}
       {showAdjustments && (
         <>
-          <Text style={styles.sectionTitle}>Refine Outfit (Optional Choices)</Text>
+          <Text style={styles.sectionTitle}>(Optional additional choices)</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

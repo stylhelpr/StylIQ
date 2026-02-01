@@ -1014,9 +1014,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           {justifyContent: 'center', alignItems: 'center'},
         ]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{marginTop: 12, color: theme.colors.foreground}}>
+        {/* <Text style={{marginTop: 12, color: theme.colors.foreground}}>
           Styling your look…
-        </Text>
+        </Text> */}
       </View>
     );
   }
@@ -1100,7 +1100,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   style={{
                     alignItems: 'center',
                     width: '100%',
-                    paddingHorizontal: 20,
                     marginBottom: 20,
                   }}>
       
@@ -1340,9 +1339,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     fontSize: 16,
                     fontWeight: '600',
                     color: theme.colors.foreground,
-                    textAlign: 'center',
+                    textAlign: 'left',
                     marginBottom: 12,
-                    paddingHorizontal: 16,
                   }}>
                     Select which outfit you'd like to continue with
                   </Text>

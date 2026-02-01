@@ -22,6 +22,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import * as Animatable from 'react-native-animatable';
 import Voice from '@react-native-voice/voice';
 import {useWindowDimensions} from 'react-native';
+import {VoiceTarget} from '../../utils/VoiceUtils/voiceTarget';
 
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type as any, {
@@ -216,7 +217,7 @@ export default function OutfitTuningControls({
   const role = useAuthRole();
 
   const S = StyleSheet.create({
-    container: {width: '100%', paddingHorizontal: 20, gap: 12},
+    container: {width: '100%', gap: 12},
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -300,8 +301,7 @@ export default function OutfitTuningControls({
     },
 
     refineInput: {
-      paddingHorizontal: 0,
-      paddingVertical: 12,
+      paddingHorizontal: 0,      paddingVertical: 12,
 
       color: theme.colors.foreground,
       fontSize: 16,
@@ -337,6 +337,13 @@ export default function OutfitTuningControls({
 
   // voice state
   const [isListening, setIsListening] = useState(false);
+
+  // Set VoiceTarget for floating mic button when refine input is shown
+  useEffect(() => {
+    if (showRefine) {
+      VoiceTarget.set(setRefineText, 'refineText');
+    }
+  }, [showRefine]);
 
   useEffect(() => {
     Voice.onSpeechResults = e => {
@@ -439,22 +446,25 @@ export default function OutfitTuningControls({
     <View style={S.container}>
       {/* ---------- UPDATE OUTFIT ---------- */}
       <>
-          <View style={{alignItems: 'center', paddingHorizontal: 16}}>
+          <View style={{alignItems: 'left'}}>
+              <Text style={{color: theme.colors.foreground, fontWeight: 600, marginBottom: 6}}>
+                Want to tweak this outfit?
+              </Text>
             <View
               style={[
                 globalStyles.promptRow,
                 {
                   minHeight: 45,
-                  marginTop: 12,
                   paddingHorizontal: 14,
                   borderWidth: tokens.borderWidth.xl,
                   borderColor: theme.colors.surfaceBorder,
                   backgroundColor: theme.colors.surface3,
                   borderRadius: 30,
-                  width: Math.min(width * 0.9, 460),
+                  // width: Math.min(width * 0.9, 460),
                   alignSelf: 'center',
                 },
               ]}>
+       
               <TextInput
                 multiline
                 scrollEnabled={false}
