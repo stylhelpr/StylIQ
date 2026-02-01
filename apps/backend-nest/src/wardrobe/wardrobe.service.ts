@@ -26,8 +26,10 @@ import { enforceConstraintsOnOutfits } from './logic/enforce';
 import { buildOutfitPrompt } from './prompts/outfitPrompt';
 import {
   buildOutfitPlanPrompt,
+  buildStartWithItemPrompt,
   type OutfitPlan,
   type OutfitPlanSlot,
+  type CenterpieceItem,
 } from './prompts/outfitPlanPrompt';
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
@@ -1734,18 +1736,81 @@ ${lockedLines}
         console.log('⚡ [FAST] Refinement - NO item names sent to LLM (slot-level only)');
       }
 
+      // ── 0c) PATH #2: Detect "Start with Item" case ──
+      // This is an ISOLATED path - when user starts with a specific item
+      // CRITICAL: This ONLY applies when lockedItemIds present AND NOT refinement
+      const isStartWithItem = lockedItemIds.length > 0 && !isRefinement;
+      let centerpieceItem: CenterpieceItem | null = null;
+      let centerpieceDbItem: any = null;
+
+      if (isStartWithItem) {
+        console.log('⚡ [FAST] PATH #2: Start with Item detected');
+        console.log('⚡ [FAST] PATH #2: Centerpiece item ID:', lockedItemIds[0]);
+
+        // Fetch the centerpiece item details from database
+        const { rows: centerpieceRows } = await pool.query(
+          `SELECT id, name, main_category, subcategory, color, color_family,
+                  formality_score, dress_code, material, fit, image_url
+           FROM wardrobe_items
+           WHERE id = $1 AND user_id = $2`,
+          [lockedItemIds[0], userId],
+        );
+
+        if (centerpieceRows.length > 0) {
+          centerpieceDbItem = centerpieceRows[0];
+          const cp = centerpieceDbItem;
+
+          // Build centerpiece description for LLM
+          const descParts = [
+            cp.color || cp.color_family,
+            cp.subcategory || cp.name,
+            cp.material,
+          ].filter(Boolean);
+
+          centerpieceItem = {
+            category: cp.main_category as CenterpieceItem['category'],
+            description: descParts.join(' ') || cp.name || 'item',
+            color: cp.color || cp.color_family,
+            formality: cp.formality_score,
+            style: cp.dress_code,
+          };
+
+          console.log('⚡ [FAST] PATH #2: Centerpiece item:', JSON.stringify(centerpieceItem, null, 2));
+        } else {
+          console.warn('⚡ [FAST] PATH #2: Centerpiece item not found in database');
+        }
+      }
+
       // ── 1) Generate outfit PLAN using Gemini Flash (stateless, deterministic) ──
-      // CRITICAL: refinementAction contains ONLY slot categories, NEVER item names
-      const planPrompt = buildOutfitPlanPrompt(query, {
-        weather: weather
-          ? {
-              temp_f: weather.tempF,
-              condition: weather.precipitation,
-            }
-          : undefined,
-        availableItems,
-        refinementAction, // Slot-level only - NO item names ever sent to LLM
-      });
+      // CRITICAL: Use different prompt for PATH #2 (Start with Item) vs PATH #1 (standard)
+      let planPrompt: string;
+
+      if (isStartWithItem && centerpieceItem) {
+        // PATH #2: Use specialized prompt that builds outfits AROUND the centerpiece
+        console.log('⚡ [FAST] PATH #2: Using buildStartWithItemPrompt');
+        planPrompt = buildStartWithItemPrompt(query, centerpieceItem, {
+          weather: weather
+            ? {
+                temp_f: weather.tempF,
+                condition: weather.precipitation,
+              }
+            : undefined,
+          availableItems,
+        });
+      } else {
+        // PATH #1: Standard prompt (unchanged behavior)
+        // CRITICAL: refinementAction contains ONLY slot categories, NEVER item names
+        planPrompt = buildOutfitPlanPrompt(query, {
+          weather: weather
+            ? {
+                temp_f: weather.tempF,
+                condition: weather.precipitation,
+              }
+            : undefined,
+          availableItems,
+          refinementAction, // Slot-level only - NO item names ever sent to LLM
+        });
+      }
 
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
       console.log('⚡ [FAST] Plan prompt (first 500 chars):', planPrompt.substring(0, 500));
@@ -1899,23 +1964,34 @@ ${lockedLines}
       );
 
       // ── 4) Assemble final outfits with real items ──
-      // For refinements: backend handles kept items directly (no LLM involvement with item names)
-      // LLM only provides generic descriptions for CHANGED slots
-      if (isRefinement) {
+      // PATH #1 (standard): LLM generates all slots, we match with Pinecone
+      // PATH #2 (start with item): Centerpiece is FIRST in every outfit, LLM generated complementary slots
+      // Refinement: backend handles kept items directly (no LLM involvement with item names)
+      if (isStartWithItem && centerpieceDbItem) {
+        console.log('⚡ [FAST] PATH #2: Assembling outfits with centerpiece:', centerpieceDbItem.name);
+        console.log('⚡ [FAST] PATH #2: Centerpiece category:', centerpieceDbItem.main_category);
+      } else if (isRefinement) {
         console.log('⚡ [FAST] Refinement - backend directly uses locked items for kept slots');
         console.log('⚡ [FAST] Refinement - LLM only generated descriptions for changed slots');
       }
 
-      const outfits = assembledOutfits.map((assembled) => {
+      const outfits = assembledOutfits.map((assembled, outfitIdx) => {
         const { outfitPlan, slotResults } = assembled;
 
         // Pick best match for each slot
         const items: CatalogItem[] = [];
         const usedIds = new Set<string>();
 
-        // For refinements: directly add locked items for KEPT slots (backend-only, no LLM)
-        // For non-refinements: add all locked items first
-        if (isRefinement && lockedItemsByCategory.size > 0) {
+        // ── PATH #2: Start with Item - Add centerpiece FIRST ──
+        // The centerpiece is the foundation of ALL 3 outfits
+        if (isStartWithItem && centerpieceDbItem) {
+          const centerpieceId = centerpieceDbItem.id;
+          items.push(this.dbRowToCatalogItem(centerpieceDbItem));
+          usedIds.add(centerpieceId);
+          console.log(`⚡ [FAST] PATH #2: Outfit ${outfitIdx + 1} - Centerpiece: ${centerpieceDbItem.name} (${centerpieceDbItem.main_category})`);
+        }
+        // ── Refinement: Add locked items for KEPT slots ──
+        else if (isRefinement && lockedItemsByCategory.size > 0) {
           // Add kept items directly from locked items map
           for (const [category, itemId] of lockedItemsByCategory) {
             const item = itemsMap.get(itemId);
@@ -1925,8 +2001,9 @@ ${lockedLines}
               console.log(`⚡ [FAST] Kept ${category} slot: ${item.name} (backend-direct, no LLM)`);
             }
           }
-        } else if (!isRefinement) {
-          // Non-refinement: add all locked items
+        }
+        // ── PATH #1: Standard - add locked items if any (legacy behavior) ──
+        else if (!isRefinement && !isStartWithItem) {
           for (const lockedId of lockedItemIds) {
             const item = itemsMap.get(lockedId);
             if (item && !usedIds.has(lockedId)) {
@@ -1947,7 +2024,12 @@ ${lockedLines}
               it.main_category?.toLowerCase() === categoryMain.toLowerCase(),
           );
 
-          if (alreadyHasCategory) continue;
+          if (alreadyHasCategory) {
+            if (isStartWithItem) {
+              console.log(`⚡ [FAST] PATH #2: Skipping ${categoryMain} slot (centerpiece already fills this category)`);
+            }
+            continue;
+          }
 
           // Pick best unused match from Pinecone results
           for (const match of sr.matches) {
@@ -1960,6 +2042,8 @@ ${lockedLines}
               usedIds.add(itemId);
               if (isRefinement) {
                 console.log(`⚡ [FAST] Changed ${categoryMain} slot: ${item.name} (from LLM description: "${sr.slot.description}")`);
+              } else if (isStartWithItem) {
+                console.log(`⚡ [FAST] PATH #2: Complementary ${categoryMain}: ${item.name} (matched: "${sr.slot.description}")`);
               }
               break;
             }

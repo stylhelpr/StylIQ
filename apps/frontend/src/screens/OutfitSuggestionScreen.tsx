@@ -1242,10 +1242,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       style={[
                         globalStyles.buttonPrimary,
                         {width: 160},
-                        (loading || (!outfitPrompt.trim() && !selectedMoodLabel)) && {opacity: 0.5},
+                        (loading || (!outfitPrompt.trim() && !selectedMoodLabel && !lockedItem)) && {opacity: 0.5},
                       ]}
                       onPress={handleV2Generate}
-                      disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel)}>
+                      disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel && !lockedItem)}>
                       <Text style={globalStyles.buttonPrimaryText}>
                         {loading ? 'Creating…' : 'Create 3 Outfits'}
                       </Text>

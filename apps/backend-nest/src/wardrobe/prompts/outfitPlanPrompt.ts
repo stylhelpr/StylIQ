@@ -197,3 +197,146 @@ PICK #3 WILDCARD CONSTRAINTS (critical):
 - Do NOT ignore comfort or practicality constraints
 - Think "edge of comfort zone" not "completely different person"`;
 }
+
+/**
+ * START WITH ITEM PROMPT - PATH #2 ONLY
+ * =====================================
+ * This is an ISOLATED prompt builder for the "Start with 1 Item" flow.
+ * It instructs the LLM to build ALL 3 outfits AROUND a specific centerpiece item.
+ *
+ * CRITICAL CONSTRAINTS:
+ * - The centerpiece item MUST appear in ALL 3 outfits
+ * - The LLM must NOT generate a slot for the centerpiece's category
+ * - All outfits must be DESIGNED around the centerpiece, not have it appended
+ */
+export type CenterpieceItem = {
+  category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+  description: string; // e.g., "navy blue chinos", "white leather sneakers"
+  color?: string;
+  formality?: number;
+  style?: string; // e.g., "casual", "preppy", "streetwear"
+};
+
+export function buildStartWithItemPrompt(
+  userQuery: string,
+  centerpieceItem: CenterpieceItem,
+  options?: {
+    weather?: {
+      temp_f?: number;
+      condition?: string;
+      humidity?: number;
+    };
+    availableItems?: string[];
+  },
+): string {
+  const { weather, availableItems } = options || {};
+
+  // Derive constraints from query
+  const formality = deriveFormality(userQuery);
+  const occasion = deriveOccasion(userQuery);
+  const season = deriveSeason(userQuery, weather);
+  const weatherCondition = deriveWeather(userQuery, weather);
+
+  // Build constraints object
+  const constraints: Record<string, unknown> = {
+    formality,
+  };
+  if (occasion) constraints.occasion = occasion;
+  if (weatherCondition) constraints.weather = weatherCondition;
+  if (season) constraints.season = season;
+
+  // Build available items constraint (for wardrobe filtering)
+  let availableItemsConstraint = '';
+  if (availableItems?.length) {
+    availableItemsConstraint = `
+WARDROBE CONSTRAINT (only use item types from this list):
+${availableItems.join(', ')}`;
+  }
+
+  // Determine which categories to generate (exclude centerpiece category)
+  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const categoriesToGenerate = allCategories.filter(
+    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+  );
+
+  // Build centerpiece description
+  const centerpieceDesc = [
+    centerpieceItem.color,
+    centerpieceItem.description,
+    centerpieceItem.style ? `(${centerpieceItem.style} style)` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return `SYSTEM: Stateless outfit planning engine - START WITH ITEM MODE. Generate exactly 3 ranked outfits built AROUND a specific centerpiece item. No commentary.
+
+CENTERPIECE ITEM (MUST be in ALL 3 outfits):
+{
+  "category": "${centerpieceItem.category}",
+  "description": "${centerpieceDesc}",
+  "formality": ${centerpieceItem.formality ?? formality}
+}
+
+INPUT:
+{
+  "request": "${userQuery}",
+  "constraints": ${JSON.stringify(constraints)}
+}
+${availableItemsConstraint}
+
+CRITICAL RULES:
+1. The centerpiece ${centerpieceItem.category} is ALREADY SELECTED - do NOT generate a slot for ${centerpieceItem.category}
+2. ALL 3 outfits must be designed to COMPLEMENT the centerpiece item
+3. Match formality, color palette, and aesthetic to work WITH the centerpiece
+4. Only generate slots for: ${categoriesToGenerate.join(', ')}
+
+OUTPUT (JSON only):
+{
+  "outfits": [
+    {
+      "title": "Pick #1: [Safe/Classic pairing for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "${categoriesToGenerate[0]}", "description": "item that complements centerpiece", "formality": N},
+        {"category": "${categoriesToGenerate[1]}", "description": "item that complements centerpiece", "formality": N}
+        // Include Outerwear/Accessories only if appropriate
+      ]
+    },
+    {
+      "title": "Pick #2: [Different vibe with the ${centerpieceItem.category}]",
+      "slots": [...]
+    },
+    {
+      "title": "Pick #3: [Creative pairing for the ${centerpieceItem.category}]",
+      "slots": [...]
+    }
+  ]
+}
+
+RULES:
+- Exactly 3 outfits, all featuring the same centerpiece ${centerpieceItem.category}
+- DO NOT include a slot for ${centerpieceItem.category} (already selected)
+- Each outfit needs: slots for categories EXCEPT ${centerpieceItem.category}
+- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
+- All items must COMPLEMENT the centerpiece: ${centerpieceDesc}
+- Match colors, formality, and aesthetic to work with the centerpiece
+- No brands, no specific items, no images, no item names
+- Formality 1-10 per slot (match centerpiece formality: ${centerpieceItem.formality ?? formality})
+- JSON only, no extra text
+
+QUALITY OVERRIDE (applies to all picks):
+- Every item must look GOOD with the centerpiece ${centerpieceItem.category}
+- Do NOT suggest items that clash with the centerpiece's color or style
+- Prioritize cohesive outfits over forced variety
+- All 3 outfits should be genuinely wearable with the centerpiece
+
+PICK #2 DIFFERENT VIBE CONSTRAINTS:
+- MUST stay in the same formality band as Pick #1 (±1 level max)
+- MUST change 1-2 items to create a different vibe
+- MUST still complement the centerpiece ${centerpieceItem.category}
+
+PICK #3 CREATIVE CONSTRAINTS:
+- MAY introduce one experimental element
+- MUST still work with the centerpiece ${centerpieceItem.category}
+- MUST be realistically wearable
+- Think "creative pairing" not "incompatible styling"`;
+}
