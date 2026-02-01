@@ -1095,21 +1095,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     />
                   )}
 
-                  {/* Start from a Piece button - show only when no piece selected */}
-                  {!lockedItem && (
-                    <TouchableOpacity
-                      style={[
-                        globalStyles.buttonSecondary,
-                        {width: 200, marginTop: 16},
-                      ]}
-                      onPress={() => setShowWardrobePicker(true)}
-                      disabled={loading}>
-                      <Text style={globalStyles.buttonSecondaryText}>
-                        Start from a Piece
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
                   {/* Show locked item section when piece is selected */}
                   {lockedItem && (
                     <View style={{
@@ -1231,19 +1216,41 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     </View>
                   )}
 
-                  {/* Primary CTA: Create Outfit - always at bottom */}
-                  <TouchableOpacity
-                    style={[
-                      globalStyles.buttonPrimary,
-                      {width: 200, marginTop: 20},
-                      (loading || (!outfitPrompt.trim() && !selectedMoodLabel)) && {opacity: 0.5},
-                    ]}
-                    onPress={handleV2Generate}
-                    disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel)}>
-                    <Text style={globalStyles.buttonPrimaryText}>
-                      {loading ? 'Creating…' : 'CREATE 3 OUTFITS'}
-                    </Text>
-                  </TouchableOpacity>
+                  {/* Primary CTAs: Create Outfit & Start from a Piece */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 12,
+                      marginTop: 20,
+                    }}>
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonPrimary,
+                        {width: 160},
+                        (loading || (!outfitPrompt.trim() && !selectedMoodLabel)) && {opacity: 0.5},
+                      ]}
+                      onPress={handleV2Generate}
+                      disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel)}>
+                      <Text style={globalStyles.buttonPrimaryText}>
+                        {loading ? 'Creating…' : 'Create 3 Outfits'}
+                      </Text>
+                    </TouchableOpacity>
+                    {!lockedItem && (
+                      <TouchableOpacity
+                        style={[
+                          globalStyles.buttonSecondary,
+                          {width: 160},
+                        ]}
+                        onPress={() => setShowWardrobePicker(true)}
+                        disabled={loading}>
+                        <Text style={globalStyles.buttonSecondaryText}>
+                          Start with 1 Item
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </Animatable.View>
               )}
 
@@ -1381,25 +1388,55 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 </>
               )}
 
-              {/* Continue button - shown on selection screen (before refinement) */}
+              {/* Continue & Start Over buttons - shown on selection screen (before refinement) */}
               {hasOutfit && outfits.length > 1 && !hasRefined && (
-                <TouchableOpacity
-                  style={[
-                    globalStyles.buttonPrimary,
-                    {
-                      width: 200,
-                      marginTop: 8,
-                      marginBottom: 16,
-                    },
-                  ]}
-                  onPress={() => {
-                    h('impactMedium');
-                    setHasRefined(true);
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginTop: 8,
+                    marginBottom: 16,
                   }}>
-                  <Text style={globalStyles.buttonPrimaryText}>
-                    Continue
-                  </Text>
-                </TouchableOpacity>
+               
+                  <TouchableOpacity
+                    style={[
+                      globalStyles.buttonPrimary,
+                      {width: 140},
+                    ]}
+                    onPress={() => {
+                      h('impactMedium');
+                      setHasRefined(true);
+                    }}>
+                    <Text style={globalStyles.buttonPrimaryText}>
+                      Continue
+                    </Text>
+                  </TouchableOpacity>
+                     <TouchableOpacity
+                    style={[
+                      globalStyles.buttonSecondary,
+                      {width: 140},
+                    ]}
+                    onPress={() => {
+                      h('impactLight');
+                      clear();
+                      setLockedItem(null);
+                      setSelectedMoodLabel(null);
+                      setSelectedMoodPrompt(null);
+                      setSelectedAdjustmentLabel(null);
+                      setSelectedAdjustmentPrompt(null);
+                      setOutfitPrompt('');
+                      setSessionId(null);
+                      setHasRefined(false);
+                      // Reset voice target to outfit prompt input
+                      VoiceTarget.set(setOutfitPrompt, 'outfitPrompt');
+                    }}>
+                    <Text style={globalStyles.buttonSecondaryText}>
+                      Start Over
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               )}
 
               {/* Outfit cards */}
