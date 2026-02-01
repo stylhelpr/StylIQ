@@ -1074,10 +1074,14 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       
 
                   {/* Mood chips and prompt input visible from entry state - hide when piece selected */}
+                  {/* Mutually exclusive: user can EITHER type a prompt OR select a mood chip, not both */}
                   {!lockedItem && (
                     <GuidedRefinementChips
                       onSelectMood={(refinementPrompt, label) => {
-                        // Empty strings mean deselection (toggle off)
+                        // When selecting a chip, clear any typed prompt (mutually exclusive)
+                        if (label) {
+                          setOutfitPrompt('');
+                        }
                         setSelectedMoodLabel(label || null);
                         setSelectedMoodPrompt(refinementPrompt || null);
                       }}
@@ -1086,11 +1090,20 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         setSelectedAdjustmentPrompt(refinementPrompt || null);
                       }}
                       disabled={loading}
+                      moodChipsDisabled={!!outfitPrompt.trim()}
+                      promptInputDisabled={!!selectedMoodLabel}
                       selectedMoodLabel={selectedMoodLabel}
                       selectedAdjustmentLabel={selectedAdjustmentLabel}
                       showAdjustments={false}
                       promptValue={outfitPrompt}
-                      onPromptChange={setOutfitPrompt}
+                      onPromptChange={(text) => {
+                        // When typing a prompt, clear any selected mood chip (mutually exclusive)
+                        if (text.trim()) {
+                          setSelectedMoodLabel(null);
+                          setSelectedMoodPrompt(null);
+                        }
+                        setOutfitPrompt(text);
+                      }}
                       promptPlaceholder="e.g. brunch, work, etc..."
                     />
                   )}

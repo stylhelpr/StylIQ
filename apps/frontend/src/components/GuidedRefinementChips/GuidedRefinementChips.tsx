@@ -18,67 +18,67 @@ const MOOD_CHIPS = [
   {
     label: 'Low-key',
     refinementPrompt:
-      'Adjust this outfit for a low-key, understated vibe. Change at most 1-2 items.',
+      'Create an outfit with a low-key, understated vibe. Keep it simple and effortless.',
   },
   {
     label: 'Comfy',
     refinementPrompt:
-      'Adjust this outfit to be more comfortable and relaxed. Change at most 1-2 items.',
+      'Create a comfortable and relaxed outfit. Prioritize comfort and ease of wear.',
   },
   {
     label: 'Confident',
     refinementPrompt:
-      'Adjust this outfit to feel more confident and self-assured. Change at most 1-2 items.',
+      'Create an outfit that feels confident and self-assured. Make it bold and empowering.',
   },
   {
     label: 'Boss energy',
     refinementPrompt:
-      'Adjust this outfit for powerful boss energy. Change at most 1-2 items.',
+      'Create an outfit with powerful boss energy. Make it sharp and commanding.',
   },
   {
     label: 'Playful',
     refinementPrompt:
-      'Adjust this outfit for a playful, fun vibe. Change at most 1-2 items.',
+      'Create an outfit with a playful, fun vibe. Keep it light and expressive.',
   },
   {
     label: 'Creative',
     refinementPrompt:
-      'Adjust this outfit for a creative, artistic vibe. Change at most 1-2 items.',
+      'Create an outfit with a creative, artistic vibe. Be expressive and unique.',
   },
   {
     label: 'Feminine',
     refinementPrompt:
-      'Adjust this outfit for a more feminine aesthetic. Change at most 1-2 items.',
+      'Create an outfit with a feminine aesthetic. Embrace elegance and softness.',
   },
   {
     label: 'Masculine',
     refinementPrompt:
-      'Adjust this outfit for a more masculine aesthetic. Change at most 1-2 items.',
+      'Create an outfit with a masculine aesthetic. Keep it strong and structured.',
   },
   {
     label: 'Gender Neutral',
     refinementPrompt:
-      'Adjust this outfit for a gender-neutral aesthetic. Change at most 1-2 items.',
+      'Create an outfit with a gender-neutral aesthetic. Keep it balanced and versatile.',
   },
   {
     label: 'Cool',
     refinementPrompt:
-      'Adjust this outfit for a cool, effortless vibe. Change at most 1-2 items.',
+      'Create an outfit with a cool, effortless vibe. Make it look naturally stylish.',
   },
   {
     label: 'Minimal',
     refinementPrompt:
-      'Adjust this outfit for a minimal, clean aesthetic. Change at most 1-2 items.',
+      'Create an outfit with a minimal, clean aesthetic. Less is more.',
   },
   {
     label: 'Easygoing',
     refinementPrompt:
-      'Adjust this outfit for an easygoing, relaxed feel. Change at most 1-2 items.',
+      'Create an outfit with an easygoing, relaxed feel. Keep it casual and approachable.',
   },
   {
     label: 'Practical',
     refinementPrompt:
-      'Adjust this outfit for practicality and functionality. Change at most 1-2 items.',
+      'Create a practical and functional outfit. Prioritize utility and wearability.',
   },
 ];
 
@@ -135,6 +135,8 @@ type Props = {
   onSelectMood: (refinementPrompt: string, label: string) => void;
   onSelectAdjustment: (refinementPrompt: string, label: string) => void;
   disabled?: boolean;
+  moodChipsDisabled?: boolean; // Disable only mood chips (not prompt input)
+  promptInputDisabled?: boolean; // Visually disable prompt input (greyed out)
   selectedMoodLabel?: string | null;
   selectedAdjustmentLabel?: string | null;
   showMoods?: boolean;
@@ -151,6 +153,8 @@ export default function GuidedRefinementChips({
   onSelectMood,
   onSelectAdjustment,
   disabled = false,
+  moodChipsDisabled = false,
+  promptInputDisabled = false,
   selectedMoodLabel = null,
   selectedAdjustmentLabel = null,
   showMoods = true,
@@ -159,7 +163,7 @@ export default function GuidedRefinementChips({
   promptValue = '',
   onPromptChange,
   promptPlaceholder = 'Describe the outfit you want...',
-  promptLabel = 'What kind of outfit do you want?',
+  promptLabel = 'Describe the type of outfit you want',
 }: Props) {
   const {theme} = useAppTheme();
   const {isRecording, startVoiceCommand} = useVoiceControl();
@@ -249,24 +253,25 @@ export default function GuidedRefinementChips({
     chip: {label: string; refinementPrompt: string},
     isSelected: boolean,
     onPress: () => void,
+    chipDisabled: boolean = disabled,
   ) => (
     <TouchableOpacity
       key={chip.label}
       onPress={() => {
-        if (!disabled) {
+        if (!chipDisabled) {
           h('impactLight');
           onPress();
         }
       }}
-      disabled={disabled}
+      disabled={chipDisabled}
       activeOpacity={0.7}
       style={[
         styles.chip,
         isSelected && styles.chipSelected,
-        disabled && styles.chipDisabled,
+        chipDisabled && styles.chipDisabled,
       ]}>
       <Text
-        style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+        style={[styles.chipText, isSelected && styles.chipTextSelected, chipDisabled && {opacity: 0.35}]}>
         {chip.label}
       </Text>
     </TouchableOpacity>
@@ -278,16 +283,16 @@ export default function GuidedRefinementChips({
       {showPrompt && (
         <>
           {promptLabel ? (
-            <Text style={styles.sectionTitle}>{promptLabel}</Text>
+            <Text style={[styles.sectionTitle, promptInputDisabled && {opacity: 0.35}]}>{promptLabel}</Text>
           ) : null}
-          <View style={styles.promptInputContainer}>
+          <View style={[styles.promptInputContainer, promptInputDisabled && {opacity: 0.35}]}>
             <TextInput
               style={styles.promptInput}
               value={promptValue}
               onChangeText={onPromptChange}
               placeholder={promptPlaceholder}
               placeholderTextColor={theme.colors.muted}
-              editable={!disabled}
+              editable={!disabled && !promptInputDisabled}
               multiline
               numberOfLines={2}
             />
@@ -320,18 +325,23 @@ export default function GuidedRefinementChips({
       {/* Mood Section */}
       {showMoods && (
         <>
-          <Text style={[styles.sectionTitle, {marginTop: 12}]}>How are you feeling today? (Optional)</Text>
+          <Text style={[styles.sectionTitle, {textAlign: 'center',marginTop: 12}]}>(Or choose a mood)</Text>
+          <Text style={[styles.sectionTitle, {marginTop: 10}, (disabled || moodChipsDisabled) && {opacity: 0.35}]}>Pick how you are feeling today</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.moodChipsScroll}>
             {MOOD_CHIPS.map(chip => {
               const isSelected = selectedMoodLabel === chip.label;
-              return renderChip(chip, isSelected, () =>
-                /// Toggle: deselect if already selected, otherwise select
-                isSelected
-                  ? onSelectMood('', '')
-                  : onSelectMood(chip.refinementPrompt, chip.label),
+              return renderChip(
+                chip,
+                isSelected,
+                () =>
+                  // Toggle: deselect if already selected, otherwise select
+                  isSelected
+                    ? onSelectMood('', '')
+                    : onSelectMood(chip.refinementPrompt, chip.label),
+                disabled || moodChipsDisabled,
               );
             })}
           </ScrollView>
