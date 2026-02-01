@@ -1226,6 +1226,27 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         </TouchableOpacity>
                       </View>
 
+                      {/* PATH #2: Mood chips for Start with 1 Item */}
+                      {/* Mutually exclusive: user can EITHER type buildAroundPrompt OR select a mood chip */}
+                      <GuidedRefinementChips
+                        onSelectMood={(refinementPrompt, label) => {
+                          // When selecting a chip, clear any typed prompt (mutually exclusive)
+                          if (label) {
+                            setBuildAroundPrompt('');
+                          }
+                          setSelectedMoodLabel(label || null);
+                          setSelectedMoodPrompt(refinementPrompt || null);
+                        }}
+                        onSelectAdjustment={() => {}}
+                        disabled={loading}
+                        moodChipsDisabled={!!buildAroundPrompt.trim()}
+                        selectedMoodLabel={selectedMoodLabel}
+                        selectedAdjustmentLabel={null}
+                        showAdjustments={false}
+                        showPrompt={false}
+                        showMoods={true}
+                      />
+
                     </View>
                   )}
 

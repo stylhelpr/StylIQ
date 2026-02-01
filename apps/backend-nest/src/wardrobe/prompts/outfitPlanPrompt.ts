@@ -340,3 +340,339 @@ PICK #3 CREATIVE CONSTRAINTS:
 - MUST be realistically wearable
 - Think "creative pairing" not "incompatible styling"`;
 }
+
+/**
+ * START WITH ITEM PROMPT V2 - PATH #2 ONLY (EXTENDED)
+ * ====================================================
+ * This is an ISOLATED prompt builder for the "Start with 1 Item" flow.
+ * V2 adds explicit support for mood chips and freeform text prompts.
+ *
+ * CRITICAL CONSTRAINTS:
+ * - The centerpiece item MUST appear in ALL 3 outfits
+ * - The LLM must NOT generate a slot for the centerpiece's category
+ * - All outfits must be DESIGNED around the centerpiece, not have it appended
+ * - Mood chips and freeform prompts are incorporated as styling intent
+ *
+ * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
+ * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
+ */
+export type StartWithItemInputV2 = {
+  centerpieceItem: CenterpieceItem;
+  moodPrompts?: string[]; // e.g., ["Create an outfit with a confident vibe..."]
+  freeformPrompt?: string; // User's typed/spoken intent
+  weather?: {
+    temp_f?: number;
+    condition?: string;
+    humidity?: number;
+  };
+  availableItems?: string[];
+};
+
+export function buildStartWithItemPromptV2(input: StartWithItemInputV2): string {
+  const { centerpieceItem, moodPrompts, freeformPrompt, weather, availableItems } = input;
+
+  // Build combined styling intent from mood + freeform prompt
+  const stylingIntentParts: string[] = [];
+
+  if (moodPrompts && moodPrompts.length > 0) {
+    // Extract mood keywords from mood prompts
+    const moodKeywords = moodPrompts
+      .map((p) => {
+        // Extract the mood descriptor (e.g., "confident", "low-key", "playful")
+        const match = p.match(/with (?:a |an )?(\w+(?:[- ]\w+)?)/i);
+        return match ? match[1] : '';
+      })
+      .filter(Boolean);
+
+    if (moodKeywords.length > 0) {
+      stylingIntentParts.push(`Mood: ${moodKeywords.join(', ')}`);
+    }
+  }
+
+  if (freeformPrompt && freeformPrompt.trim()) {
+    stylingIntentParts.push(`User request: ${freeformPrompt.trim()}`);
+  }
+
+  const stylingIntent =
+    stylingIntentParts.length > 0
+      ? stylingIntentParts.join('. ')
+      : 'Create a versatile, well-coordinated outfit';
+
+  // Derive constraints (using local copies of helper functions to avoid coupling)
+  const formality = deriveFormality(stylingIntent);
+  const occasion = deriveOccasion(stylingIntent);
+  const season = deriveSeason(stylingIntent, weather);
+  const weatherCondition = deriveWeather(stylingIntent, weather);
+
+  // Build constraints object
+  const constraints: Record<string, unknown> = {
+    formality: centerpieceItem.formality ?? formality,
+  };
+  if (occasion) constraints.occasion = occasion;
+  if (weatherCondition) constraints.weather = weatherCondition;
+  if (season) constraints.season = season;
+
+  // Build available items constraint
+  let availableItemsConstraint = '';
+  if (availableItems?.length) {
+    availableItemsConstraint = `
+WARDROBE CONSTRAINT (only use item types from this list):
+${availableItems.join(', ')}`;
+  }
+
+  // Determine which categories to generate (exclude centerpiece category)
+  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const categoriesToGenerate = allCategories.filter(
+    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+  );
+
+  // Build centerpiece description
+  const centerpieceDesc = [
+    centerpieceItem.color,
+    centerpieceItem.description,
+    centerpieceItem.style ? `(${centerpieceItem.style} style)` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Build mood instruction if moods selected
+  let moodInstruction = '';
+  if (moodPrompts && moodPrompts.length > 0) {
+    moodInstruction = `
+STYLING MOOD (apply to ALL 3 outfits):
+${moodPrompts.join('\n')}`;
+  }
+
+  // Build user intent instruction if provided
+  let userIntentInstruction = '';
+  if (freeformPrompt && freeformPrompt.trim()) {
+    userIntentInstruction = `
+USER'S SPECIFIC REQUEST:
+"${freeformPrompt.trim()}"
+You MUST incorporate this request into ALL 3 outfits while maintaining the centerpiece.`;
+  }
+
+  return `SYSTEM: Stateless outfit planning engine - START WITH ITEM MODE V2. Generate exactly 3 ranked outfits built AROUND a specific centerpiece item, incorporating mood and user intent. No commentary.
+
+CENTERPIECE ITEM (MUST be in ALL 3 outfits - NON-NEGOTIABLE):
+{
+  "category": "${centerpieceItem.category}",
+  "description": "${centerpieceDesc}",
+  "formality": ${centerpieceItem.formality ?? formality}
+}
+${moodInstruction}${userIntentInstruction}
+
+INPUT:
+{
+  "styling_intent": "${stylingIntent}",
+  "constraints": ${JSON.stringify(constraints)}
+}
+${availableItemsConstraint}
+
+CRITICAL RULES:
+1. The centerpiece ${centerpieceItem.category} is ALREADY SELECTED - do NOT generate a slot for ${centerpieceItem.category}
+2. ALL 3 outfits must be designed to COMPLEMENT the centerpiece item
+3. Match formality, color palette, and aesthetic to work WITH the centerpiece
+4. Only generate slots for: ${categoriesToGenerate.join(', ')}
+5. Apply the mood/intent to ALL items selected${moodPrompts?.length ? '\n6. Each outfit must reflect the specified mood(s): ' + moodPrompts.map((p) => p.match(/with (?:a |an )?(\w+)/i)?.[1]).filter(Boolean).join(', ') : ''}
+
+COMPOSITION REQUIREMENT (MANDATORY):
+Each outfit MUST contain:
+- The locked centerpiece (${centerpieceItem.category}) - already selected
+- AT LEAST 2 complementary wardrobe items from DIFFERENT categories
+- Forming a COMPLETE, wearable look (minimum 3 items total per outfit)
+
+Do NOT generate:
+- Single-item complements (centerpiece + 1 item only)
+- Accessory-only fills (centerpiece + accessory only)
+- Under-filled combinations
+
+OUTPUT (JSON only):
+{
+  "outfits": [
+    {
+      "title": "Pick #1: [Safe/Classic pairing for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "${categoriesToGenerate[0]}", "description": "item that complements centerpiece and mood", "formality": N},
+        {"category": "${categoriesToGenerate[1]}", "description": "item that complements centerpiece and mood", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #2: [Different vibe with the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "...", "description": "...", "formality": N},
+        {"category": "...", "description": "...", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #3: [Creative pairing for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "...", "description": "...", "formality": N},
+        {"category": "...", "description": "...", "formality": N}
+      ]
+    }
+  ]
+}
+
+RULES:
+- Exactly 3 outfits, all featuring the same centerpiece ${centerpieceItem.category}
+- DO NOT include a slot for ${centerpieceItem.category} (already selected)
+- Each outfit MUST have AT LEAST 2 slots (2 complementary items + centerpiece = 3+ total)
+- Each slot category must be DISTINCT (no duplicate categories)
+- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
+- All items must COMPLEMENT the centerpiece: ${centerpieceDesc}
+- Match colors, formality, and aesthetic to work with the centerpiece
+- Apply mood/intent styling to item descriptions
+- No brands, no specific items, no images, no item names
+- Formality 1-10 per slot (match centerpiece formality: ${centerpieceItem.formality ?? formality})
+- JSON only, no extra text
+
+QUALITY OVERRIDE (applies to all picks):
+- Every item must look GOOD with the centerpiece ${centerpieceItem.category}
+- Do NOT suggest items that clash with the centerpiece's color or style
+- Prioritize cohesive outfits over forced variety
+- All 3 outfits should be genuinely wearable with the centerpiece
+- Mood/intent should enhance, not override, outfit coherence
+
+PICK #2 DIFFERENT VIBE CONSTRAINTS:
+- MUST stay in the same formality band as Pick #1 (±1 level max)
+- MUST change 1-2 items to create a different vibe
+- MUST still complement the centerpiece ${centerpieceItem.category}
+- MUST still reflect the mood/intent
+
+PICK #3 CREATIVE CONSTRAINTS:
+- MAY introduce one experimental element
+- MUST still work with the centerpiece ${centerpieceItem.category}
+- MUST still reflect the mood/intent
+- MUST be realistically wearable
+- Think "creative pairing" not "incompatible styling"`;
+}
+
+/**
+ * PATH #2 COMPOSITION VALIDATOR
+ * =============================
+ * Validates that a PATH #2 outfit meets composition requirements:
+ * - At least 3 items total (centerpiece + 2 complementary)
+ * - Centerpiece is present
+ * - At least 2 non-centerpiece items
+ * - No duplicate categories
+ * - All items have valid structure
+ *
+ * THIS IS ISOLATED FROM PATH #1. Do not use for PATH #1 validation.
+ */
+export type CompositionValidationResult = {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+};
+
+export type OutfitForValidation = {
+  outfit_id: string;
+  title: string;
+  items: Array<{
+    id: string;
+    main_category?: string;
+    [key: string]: any;
+  }>;
+};
+
+export function validateStartWithItemComposition(
+  outfit: OutfitForValidation,
+  centerpieceId: string,
+  centerpieceCategory: string,
+  outfitIndex: number,
+): CompositionValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Rule 1: Minimum 3 items
+  if (outfit.items.length < 3) {
+    errors.push(
+      `Outfit ${outfitIndex + 1} has only ${outfit.items.length} items (minimum 3 required)`,
+    );
+  }
+
+  // Rule 2: Centerpiece must be present
+  const hasCenterpiece = outfit.items.some((item) => item.id === centerpieceId);
+  if (!hasCenterpiece) {
+    errors.push(`Outfit ${outfitIndex + 1} is missing the centerpiece item`);
+  }
+
+  // Rule 3: At least 2 non-centerpiece items
+  const nonCenterpieceItems = outfit.items.filter((item) => item.id !== centerpieceId);
+  if (nonCenterpieceItems.length < 2) {
+    errors.push(
+      `Outfit ${outfitIndex + 1} has only ${nonCenterpieceItems.length} complementary items (minimum 2 required)`,
+    );
+  }
+
+  // Rule 4: No duplicate categories
+  const categories = outfit.items.map((item) => item.main_category?.toLowerCase());
+  const categorySet = new Set(categories.filter(Boolean));
+  if (categorySet.size < categories.filter(Boolean).length) {
+    errors.push(`Outfit ${outfitIndex + 1} has duplicate categories`);
+  }
+
+  // Rule 5: Check for accessory-only fills (centerpiece + only accessories)
+  const nonAccessoryNonCenterpiece = nonCenterpieceItems.filter(
+    (item) => item.main_category?.toLowerCase() !== 'accessories',
+  );
+  if (nonCenterpieceItems.length >= 2 && nonAccessoryNonCenterpiece.length === 0) {
+    errors.push(
+      `Outfit ${outfitIndex + 1} only has accessories as complementary items (need at least one core garment)`,
+    );
+  }
+
+  // Rule 6: All items must have an ID
+  const itemsWithoutId = outfit.items.filter((item) => !item.id);
+  if (itemsWithoutId.length > 0) {
+    errors.push(`Outfit ${outfitIndex + 1} has ${itemsWithoutId.length} items without IDs`);
+  }
+
+  // Warnings (non-fatal)
+  if (outfit.items.length === 3) {
+    warnings.push(`Outfit ${outfitIndex + 1} has minimum items (3) - consider adding more variety`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validates all outfits in a PATH #2 response
+ * Returns aggregated validation result
+ */
+export function validateStartWithItemResponse(
+  outfits: OutfitForValidation[],
+  centerpieceId: string,
+  centerpieceCategory: string,
+): CompositionValidationResult {
+  const allErrors: string[] = [];
+  const allWarnings: string[] = [];
+
+  // Must have exactly 3 outfits
+  if (outfits.length !== 3) {
+    allErrors.push(`Expected 3 outfits, got ${outfits.length}`);
+  }
+
+  // Validate each outfit
+  for (let i = 0; i < outfits.length; i++) {
+    const result = validateStartWithItemComposition(
+      outfits[i],
+      centerpieceId,
+      centerpieceCategory,
+      i,
+    );
+    allErrors.push(...result.errors);
+    allWarnings.push(...result.warnings);
+  }
+
+  return {
+    valid: allErrors.length === 0,
+    errors: allErrors,
+    warnings: allWarnings,
+  };
+}

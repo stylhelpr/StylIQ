@@ -27,9 +27,12 @@ import { buildOutfitPrompt } from './prompts/outfitPrompt';
 import {
   buildOutfitPlanPrompt,
   buildStartWithItemPrompt,
+  buildStartWithItemPromptV2,
+  validateStartWithItemResponse,
   type OutfitPlan,
   type OutfitPlanSlot,
   type CenterpieceItem,
+  type StartWithItemInputV2,
 } from './prompts/outfitPlanPrompt';
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
@@ -1786,9 +1789,47 @@ ${lockedLines}
       let planPrompt: string;
 
       if (isStartWithItem && centerpieceItem) {
-        // PATH #2: Use specialized prompt that builds outfits AROUND the centerpiece
-        console.log('⚡ [FAST] PATH #2: Using buildStartWithItemPrompt');
-        planPrompt = buildStartWithItemPrompt(query, centerpieceItem, {
+        // PATH #2: Use specialized V2 prompt that builds outfits AROUND the centerpiece
+        // V2 explicitly handles mood chips and freeform prompts as structured inputs
+        console.log('⚡ [FAST] PATH #2: Using buildStartWithItemPromptV2');
+
+        // Extract mood prompts and freeform prompt from the query string
+        // Format: "outfit built around my X. IMPORTANT REFINEMENT: User specifically requested: "mood. prompt". You MUST..."
+        let extractedMoods: string[] = [];
+        let extractedFreeform: string | undefined;
+
+        const refinementMatch = query.match(/IMPORTANT REFINEMENT:.*?"([^"]+)"/i);
+        if (refinementMatch && refinementMatch[1]) {
+          const refinementText = refinementMatch[1];
+          console.log('⚡ [FAST] PATH #2: Extracted refinement text:', refinementText);
+
+          // Split by period to separate mood prompts from freeform prompt
+          // Mood prompts typically start with "Create an outfit with..."
+          const parts = refinementText.split(/\.\s+/).filter(Boolean);
+
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed.toLowerCase().startsWith('create an outfit') ||
+                trimmed.toLowerCase().startsWith('create a ')) {
+              // This is a mood prompt
+              extractedMoods.push(trimmed);
+            } else if (trimmed.length > 0) {
+              // This is freeform user input
+              extractedFreeform = extractedFreeform
+                ? `${extractedFreeform}. ${trimmed}`
+                : trimmed;
+            }
+          }
+        }
+
+        console.log('⚡ [FAST] PATH #2: Extracted moods:', extractedMoods);
+        console.log('⚡ [FAST] PATH #2: Extracted freeform:', extractedFreeform);
+
+        // Build V2 input with structured mood/prompt data
+        const v2Input: StartWithItemInputV2 = {
+          centerpieceItem,
+          moodPrompts: extractedMoods.length > 0 ? extractedMoods : undefined,
+          freeformPrompt: extractedFreeform,
           weather: weather
             ? {
                 temp_f: weather.tempF,
@@ -1796,7 +1837,9 @@ ${lockedLines}
               }
             : undefined,
           availableItems,
-        });
+        };
+
+        planPrompt = buildStartWithItemPromptV2(v2Input);
       } else {
         // PATH #1: Standard prompt (unchanged behavior)
         // CRITICAL: refinementAction contains ONLY slot categories, NEVER item names
@@ -2068,6 +2111,41 @@ ${lockedLines}
           why: (outfitPlan as any).why || '',
         };
       });
+
+      // ── 5) PATH #2 POST-PARSE VALIDATION ──
+      // CRITICAL: Enforce centerpiece + composition constraints - fail closed on violation
+      if (isStartWithItem && centerpieceDbItem) {
+        const centerpieceId = centerpieceDbItem.id;
+        const centerpieceCategory = centerpieceDbItem.main_category?.toLowerCase() || '';
+
+        console.log('⚡ [FAST] PATH #2: Running composition validation...');
+
+        // Use the dedicated PATH #2 validator for comprehensive checks
+        const validationResult = validateStartWithItemResponse(
+          outfits as any,
+          centerpieceId,
+          centerpieceCategory,
+        );
+
+        // Log warnings (non-fatal)
+        for (const warning of validationResult.warnings) {
+          console.warn(`⚠️ [FAST] PATH #2 WARNING: ${warning}`);
+        }
+
+        // Fail closed on any validation errors
+        if (!validationResult.valid) {
+          for (const error of validationResult.errors) {
+            console.error(`❌ [FAST] PATH #2 VALIDATION FAILED: ${error}`);
+          }
+          throw new Error(
+            `PATH #2 composition validation failed: ${validationResult.errors.join('; ')}`,
+          );
+        }
+
+        console.log('✅ [FAST] PATH #2: Composition validation PASSED');
+        console.log(`✅ [FAST] PATH #2: Centerpiece ${centerpieceDbItem.name} present in all 3 outfits`);
+        console.log(`✅ [FAST] PATH #2: Each outfit has ${outfits[0]?.items?.length || 0}+ items`);
+      }
 
       // Pick the best outfit (first one for now)
       const best = outfits[0] ?? {
