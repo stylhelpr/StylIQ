@@ -651,3 +651,600 @@ describe('PATH #2: Composition Validator', () => {
     });
   });
 });
+
+// ============================================================================
+// PATH #2 INTENT MODE EXCLUSIVITY TESTS (V3)
+// ============================================================================
+
+import {
+  normalizeStartWithItemIntent,
+  buildStartWithItemPromptV3,
+  validateStartWithItemIntentMode,
+  MutualExclusionError,
+  type RawStartWithItemInput,
+  type NormalizedStartWithItemInput,
+} from './outfitPlanPrompt';
+
+describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
+  const baseCenterpiece = {
+    category: 'Bottoms' as const,
+    description: 'navy chinos',
+  };
+
+  describe('normalizeStartWithItemIntent', () => {
+    it('should REJECT mood + freeform together (MUTUAL EXCLUSION)', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        moodPrompts: ['Create an outfit with a confident vibe.'],
+        freeformPrompt: 'date night rooftop dinner',
+      };
+
+      expect(() => normalizeStartWithItemIntent(input)).toThrow(MutualExclusionError);
+      expect(() => normalizeStartWithItemIntent(input)).toThrow(
+        'MUTUAL_EXCLUSION_ERROR',
+      );
+    });
+
+    it('should ACCEPT mood-only input', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        moodPrompts: ['Create an outfit with a confident vibe.'],
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.intentMode).toBe('mood');
+      expect(result.moods).toEqual(['Create an outfit with a confident vibe.']);
+      expect(result.freeformPrompt).toBeNull();
+    });
+
+    it('should ACCEPT freeform-only input', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        freeformPrompt: 'date night rooftop dinner',
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.intentMode).toBe('freeform');
+      expect(result.freeformPrompt).toBe('date night rooftop dinner');
+      expect(result.moods).toBeNull();
+    });
+
+    it('should ACCEPT neutral input (neither mood nor freeform)', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.intentMode).toBe('neutral');
+      expect(result.moods).toBeNull();
+      expect(result.freeformPrompt).toBeNull();
+    });
+
+    it('should treat empty freeform as neutral', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        freeformPrompt: '   ', // whitespace only
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.intentMode).toBe('neutral');
+    });
+
+    it('should treat empty moods array as neutral', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        moodPrompts: [],
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.intentMode).toBe('neutral');
+    });
+
+    it('should trim freeform prompt', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        freeformPrompt: '  casual friday look  ',
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.freeformPrompt).toBe('casual friday look');
+    });
+
+    it('should preserve weather and availableItems', () => {
+      const input: RawStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        freeformPrompt: 'casual look',
+        weather: { temp_f: 72, condition: 'sunny' },
+        availableItems: ['shirt', 'pants', 'shoes'],
+      };
+
+      const result = normalizeStartWithItemIntent(input);
+
+      expect(result.weather).toEqual({ temp_f: 72, condition: 'sunny' });
+      expect(result.availableItems).toEqual(['shirt', 'pants', 'shoes']);
+    });
+  });
+
+  describe('validateStartWithItemIntentMode', () => {
+    it('should VALIDATE consistent mood input', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a playful vibe.'],
+        freeformPrompt: null,
+      };
+
+      const result = validateStartWithItemIntentMode(input);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.intentMode).toBe('mood');
+    });
+
+    it('should VALIDATE consistent freeform input', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'business casual meeting',
+      };
+
+      const result = validateStartWithItemIntentMode(input);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.intentMode).toBe('freeform');
+    });
+
+    it('should VALIDATE consistent neutral input', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'neutral',
+        moods: null,
+        freeformPrompt: null,
+      };
+
+      const result = validateStartWithItemIntentMode(input);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should REJECT mood mode with freeform present', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a confident vibe.'],
+        freeformPrompt: 'should not be here', // Invalid!
+      };
+
+      const result = validateStartWithItemIntentMode(input);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes('freeformPrompt is present'))).toBe(
+        true,
+      );
+    });
+
+    it('should REJECT freeform mode with moods present', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: ['Should not be here'], // Invalid!
+        freeformPrompt: 'date night',
+      };
+
+      const result = validateStartWithItemIntentMode(input);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes('moods are present'))).toBe(true);
+    });
+  });
+
+  describe('buildStartWithItemPromptV3', () => {
+    it('should include INTENT MODE label in prompt', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a confident vibe.'],
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).toContain('INTENT MODE: MOOD CHIPS');
+    });
+
+    it('should include EXCLUSIVE MODE marker for mood mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a playful vibe.'],
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).toContain('EXCLUSIVE MODE');
+      expect(prompt).toContain('Do NOT incorporate any text prompt');
+    });
+
+    it('should include EXCLUSIVE MODE marker for freeform mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'rooftop dinner date',
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).toContain('INTENT MODE: VOICE/TEXT PROMPT');
+      expect(prompt).toContain('EXCLUSIVE MODE');
+      expect(prompt).toContain('rooftop dinner date');
+      expect(prompt).toContain('Do NOT add mood interpretations');
+    });
+
+    it('should use neutral default for neutral mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'neutral',
+        moods: null,
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).toContain('INTENT MODE: NEUTRAL');
+      expect(prompt).toContain('versatile, well-coordinated');
+    });
+
+    it('should NOT include mood section in freeform mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'casual friday',
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).not.toContain('STYLING MOOD');
+    });
+
+    it('should NOT include freeform section in mood mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a minimal vibe.'],
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).not.toContain("USER'S SPECIFIC REQUEST (EXCLUSIVE MODE)");
+    });
+
+    it('should still enforce composition requirements in all modes', () => {
+      const moodInput: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a confident vibe.'],
+        freeformPrompt: null,
+      };
+
+      const freeformInput: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'business meeting',
+      };
+
+      const neutralInput: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'neutral',
+        moods: null,
+        freeformPrompt: null,
+      };
+
+      for (const input of [moodInput, freeformInput, neutralInput]) {
+        const prompt = buildStartWithItemPromptV3(input);
+        expect(prompt).toContain('COMPOSITION REQUIREMENT (MANDATORY)');
+        expect(prompt).toContain('AT LEAST 2 complementary wardrobe items');
+      }
+    });
+
+    it('should still exclude centerpiece category from generated slots', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: {
+          category: 'Shoes',
+          description: 'white sneakers',
+        },
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'casual look',
+      };
+
+      const prompt = buildStartWithItemPromptV3(input);
+
+      expect(prompt).toContain('do NOT generate a slot for Shoes');
+      expect(prompt).toContain('Only generate slots for: Tops, Bottoms, Outerwear, Accessories');
+    });
+  });
+
+  describe('Regression: PATH #1 unchanged', () => {
+    it('PATH #1 prompt structure remains identical', () => {
+      const prompt = buildOutfitPlanPrompt('casual weekend outfit');
+
+      // These are PATH #1 specific markers that should NOT change
+      expect(prompt).toContain('SYSTEM: Stateless outfit planning engine');
+      expect(prompt).toContain('Pick #1: [Safe/Classic choice]');
+      expect(prompt).toContain('Pick #2: [Different vibe]');
+      expect(prompt).toContain('Pick #3: [Wildcard/Bold choice]');
+      expect(prompt).not.toContain('INTENT MODE');
+      expect(prompt).not.toContain('CENTERPIECE');
+    });
+  });
+});
+
+// ============================================================================
+// PATH #2 CENTERPIECE-FIRST ENFORCEMENT TESTS (V4)
+// ============================================================================
+
+import { buildStartWithItemPromptV4 } from './outfitPlanPrompt';
+
+describe('PATH #2: Centerpiece-First Enforcement (V4)', () => {
+  const baseCenterpiece = {
+    category: 'Bottoms' as const,
+    description: 'navy chinos',
+  };
+
+  describe('HARD SYSTEM DIRECTIVE', () => {
+    it('should include HARD SYSTEM DIRECTIVE section', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'date night rooftop dinner',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('HARD SYSTEM DIRECTIVE (NON-NEGOTIABLE)');
+      expect(prompt).toContain('LOCKED CENTERPIECE');
+    });
+
+    it('should explicitly state centerpiece CANNOT be omitted', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'fancy party',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('Omitted from any outfit');
+      expect(prompt).toContain('Replaced with another item');
+      expect(prompt).toContain('Overridden by any user request');
+    });
+
+    it('should state centerpiece WINS over conflicting user requests', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'I want a dress instead',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('CENTERPIECE WINS');
+    });
+  });
+
+  describe('FREEFORM MODE BOUNDARY', () => {
+    it('should include FORBIDDEN INTERPRETATIONS section in freeform mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'something completely different',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('FORBIDDEN INTERPRETATIONS');
+      expect(prompt).toContain('Build a completely different outfit');
+      expect(prompt).toContain('Ignore the centerpiece');
+    });
+
+    it('should include CORRECT INTERPRETATION section in freeform mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'business meeting',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('CORRECT INTERPRETATION');
+      expect(prompt).toContain('Style the locked');
+    });
+
+    it('should describe user text as MODIFIER not replacement', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'casual friday',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('STYLING MODIFIER');
+      expect(prompt).toContain('does NOT replace the centerpiece');
+      expect(prompt).toContain('does NOT redefine the outfit core');
+    });
+
+    it('should frame user request as "How should I style THIS item?"', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: {
+          category: 'Shoes',
+          description: 'white sneakers',
+        },
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'gym workout',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('How should I style THIS Shoes');
+    });
+  });
+
+  describe('MOOD MODE with centerpiece-first', () => {
+    it('should describe moods as MODIFIERS to the centerpiece', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a confident vibe.'],
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('STYLING MODIFIER');
+      expect(prompt).toContain('apply to items AROUND the locked centerpiece');
+      expect(prompt).toContain('They do NOT replace or override the centerpiece');
+    });
+
+    it('should still include LOCKED CENTERPIECE section in mood mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'mood',
+        moods: ['Create an outfit with a playful vibe.'],
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('LOCKED CENTERPIECE');
+      expect(prompt).toContain('HARD SYSTEM DIRECTIVE');
+    });
+  });
+
+  describe('NEUTRAL MODE with centerpiece-first', () => {
+    it('should still enforce centerpiece in neutral mode', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'neutral',
+        moods: null,
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('LOCKED CENTERPIECE');
+      expect(prompt).toContain('HARD SYSTEM DIRECTIVE');
+      expect(prompt).toContain('balanced, versatile outfits around the locked centerpiece');
+    });
+  });
+
+  describe('Composition requirements preserved', () => {
+    it('should still enforce composition requirements in V4', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'beach day',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('COMPOSITION REQUIREMENT (MANDATORY)');
+      expect(prompt).toContain('AT LEAST 2 complementary wardrobe items');
+      expect(prompt).toContain('minimum 3 items total per outfit');
+    });
+
+    it('should still exclude centerpiece category from generated slots', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: {
+          category: 'Tops',
+          description: 'white button-down shirt',
+        },
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'office meeting',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('do NOT generate a slot for Tops');
+      expect(prompt).toContain('Only generate slots for: Bottoms, Shoes, Outerwear, Accessories');
+    });
+  });
+
+  describe('V4 vs V3 differences', () => {
+    it('V4 should use LOCKED terminology throughout', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'cocktail party',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      // Count occurrences of "LOCKED" - should be multiple
+      const lockedCount = (prompt.match(/LOCKED/g) || []).length;
+      expect(lockedCount).toBeGreaterThan(5);
+    });
+
+    it('V4 should include PRIMARY CONSTRAINT language', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'freeform',
+        moods: null,
+        freeformPrompt: 'weekend brunch',
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('PRIMARY CONSTRAINT');
+    });
+
+    it('V4 should use V4 version marker', () => {
+      const input: NormalizedStartWithItemInput = {
+        centerpieceItem: baseCenterpiece,
+        intentMode: 'neutral',
+        moods: null,
+        freeformPrompt: null,
+      };
+
+      const prompt = buildStartWithItemPromptV4(input);
+
+      expect(prompt).toContain('START WITH ITEM MODE V4');
+      expect(prompt).toContain('CENTERPIECE-FIRST');
+    });
+  });
+
+  describe('Regression: PATH #1 still unchanged', () => {
+    it('PATH #1 prompt should not contain V4 markers', () => {
+      const prompt = buildOutfitPlanPrompt('casual weekend outfit');
+
+      expect(prompt).not.toContain('LOCKED CENTERPIECE');
+      expect(prompt).not.toContain('HARD SYSTEM DIRECTIVE');
+      expect(prompt).not.toContain('STYLING MODIFIER');
+      expect(prompt).not.toContain('CENTERPIECE-FIRST');
+    });
+  });
+});

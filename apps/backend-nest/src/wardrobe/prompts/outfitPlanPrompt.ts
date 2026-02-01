@@ -676,3 +676,609 @@ export function validateStartWithItemResponse(
     warnings: allWarnings,
   };
 }
+
+// ============================================================================
+// PATH #2 INTENT MODE EXCLUSIVITY (V3)
+// ============================================================================
+// Implements mutual exclusivity between mood chips and voice/text input.
+// Users MUST choose EXACTLY ONE intent mode. No silent merging. No fallback.
+// THIS IS COMPLETELY ISOLATED FROM PATH #1.
+// ============================================================================
+
+/**
+ * Intent modes for PATH #2
+ * - "mood": User selected mood chip(s)
+ * - "freeform": User typed or spoke a styling intent
+ * - "neutral": Neither provided - use default styling
+ */
+export type IntentMode = 'mood' | 'freeform' | 'neutral';
+
+/**
+ * Normalized input for PATH #2 with enforced intent mode exclusivity
+ */
+export type NormalizedStartWithItemInput = {
+  centerpieceItem: CenterpieceItem;
+  intentMode: IntentMode;
+  moods: string[] | null; // Only populated if intentMode === 'mood'
+  freeformPrompt: string | null; // Only populated if intentMode === 'freeform'
+  weather?: {
+    temp_f?: number;
+    condition?: string;
+    humidity?: number;
+  };
+  availableItems?: string[];
+};
+
+/**
+ * Raw input before normalization (what the frontend sends)
+ */
+export type RawStartWithItemInput = {
+  centerpieceItem: CenterpieceItem;
+  moodPrompts?: string[];
+  freeformPrompt?: string;
+  weather?: {
+    temp_f?: number;
+    condition?: string;
+    humidity?: number;
+  };
+  availableItems?: string[];
+};
+
+/**
+ * MUTUAL EXCLUSION ERROR
+ * Thrown when both mood chips and freeform prompt are provided.
+ */
+export class MutualExclusionError extends Error {
+  constructor() {
+    super(
+      'MUTUAL_EXCLUSION_ERROR: Cannot combine mood chips with voice/text prompt. Choose one.',
+    );
+    this.name = 'MutualExclusionError';
+  }
+}
+
+/**
+ * Normalizes PATH #2 input and ENFORCES intent mode exclusivity.
+ *
+ * RULES:
+ * - If moods.length > 0 AND freeformPrompt exists → throw MUTUAL_EXCLUSION_ERROR
+ * - If moods.length > 0 → intentMode = "mood"
+ * - If freeformPrompt.trim().length > 0 → intentMode = "freeform"
+ * - Otherwise → intentMode = "neutral"
+ *
+ * THIS IS ISOLATED FROM PATH #1. Do not use for PATH #1.
+ */
+export function normalizeStartWithItemIntent(
+  input: RawStartWithItemInput,
+): NormalizedStartWithItemInput {
+  const hasMoods = input.moodPrompts && input.moodPrompts.length > 0;
+  const hasFreeform = input.freeformPrompt && input.freeformPrompt.trim().length > 0;
+
+  // MUTUAL EXCLUSIVITY CHECK - fail closed
+  if (hasMoods && hasFreeform) {
+    throw new MutualExclusionError();
+  }
+
+  let intentMode: IntentMode;
+  let moods: string[] | null = null;
+  let freeformPrompt: string | null = null;
+
+  if (hasMoods) {
+    intentMode = 'mood';
+    moods = input.moodPrompts!;
+  } else if (hasFreeform) {
+    intentMode = 'freeform';
+    freeformPrompt = input.freeformPrompt!.trim();
+  } else {
+    intentMode = 'neutral';
+  }
+
+  return {
+    centerpieceItem: input.centerpieceItem,
+    intentMode,
+    moods,
+    freeformPrompt,
+    weather: input.weather,
+    availableItems: input.availableItems,
+  };
+}
+
+/**
+ * START WITH ITEM PROMPT V3 - PATH #2 ONLY (EXCLUSIVE INTENT MODE)
+ * =================================================================
+ * This is an ISOLATED prompt builder for the "Start with 1 Item" flow.
+ * V3 enforces MUTUAL EXCLUSIVITY between mood chips and freeform prompts.
+ *
+ * CRITICAL CONSTRAINTS:
+ * - Accepts NORMALIZED input only (use normalizeStartWithItemIntent first)
+ * - Uses ONLY the active intent source (mood OR freeform OR neutral)
+ * - NEVER mixes mood + freeform
+ * - The centerpiece item MUST appear in ALL 3 outfits
+ * - The LLM must NOT generate a slot for the centerpiece's category
+ * - Composition requirements enforced (3+ items, 2+ complements)
+ *
+ * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
+ * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
+ */
+export function buildStartWithItemPromptV3(input: NormalizedStartWithItemInput): string {
+  const { centerpieceItem, intentMode, moods, freeformPrompt, weather, availableItems } = input;
+
+  // Build styling intent based on EXCLUSIVE mode
+  let stylingIntent: string;
+  let moodInstruction = '';
+  let userIntentInstruction = '';
+
+  switch (intentMode) {
+    case 'mood':
+      // MOOD MODE: Use only mood chips
+      const moodKeywords = (moods || [])
+        .map((p) => {
+          const match = p.match(/with (?:a |an )?(\w+(?:[- ]\w+)?)/i);
+          return match ? match[1] : '';
+        })
+        .filter(Boolean);
+
+      stylingIntent = moodKeywords.length > 0 ? `Mood: ${moodKeywords.join(', ')}` : 'Mood-based styling';
+
+      moodInstruction = `
+STYLING MOOD (apply to ALL 3 outfits - EXCLUSIVE MODE):
+${(moods || []).join('\n')}
+
+IMPORTANT: User selected mood chips. Do NOT incorporate any text prompt.`;
+      break;
+
+    case 'freeform':
+      // FREEFORM MODE: Use only voice/text prompt
+      stylingIntent = `User request: ${freeformPrompt}`;
+
+      userIntentInstruction = `
+USER'S SPECIFIC REQUEST (EXCLUSIVE MODE):
+"${freeformPrompt}"
+
+You MUST incorporate this request into ALL 3 outfits while maintaining the centerpiece.
+IMPORTANT: This is the ONLY styling input. Do NOT add mood interpretations.`;
+      break;
+
+    case 'neutral':
+    default:
+      // NEUTRAL MODE: No specific styling, use balanced defaults
+      stylingIntent = 'Create versatile, well-coordinated outfits';
+      break;
+  }
+
+  // Derive constraints
+  const formality = deriveFormality(stylingIntent);
+  const occasion = deriveOccasion(stylingIntent);
+  const season = deriveSeason(stylingIntent, weather);
+  const weatherCondition = deriveWeather(stylingIntent, weather);
+
+  // Build constraints object
+  const constraints: Record<string, unknown> = {
+    formality: centerpieceItem.formality ?? formality,
+  };
+  if (occasion) constraints.occasion = occasion;
+  if (weatherCondition) constraints.weather = weatherCondition;
+  if (season) constraints.season = season;
+
+  // Build available items constraint
+  let availableItemsConstraint = '';
+  if (availableItems?.length) {
+    availableItemsConstraint = `
+WARDROBE CONSTRAINT (only use item types from this list):
+${availableItems.join(', ')}`;
+  }
+
+  // Determine which categories to generate (exclude centerpiece category)
+  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const categoriesToGenerate = allCategories.filter(
+    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+  );
+
+  // Build centerpiece description
+  const centerpieceDesc = [
+    centerpieceItem.color,
+    centerpieceItem.description,
+    centerpieceItem.style ? `(${centerpieceItem.style} style)` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Build intent mode indicator for the prompt
+  const intentModeLabel =
+    intentMode === 'mood'
+      ? 'MOOD CHIPS'
+      : intentMode === 'freeform'
+        ? 'VOICE/TEXT PROMPT'
+        : 'NEUTRAL (DEFAULT)';
+
+  return `SYSTEM: Stateless outfit planning engine - START WITH ITEM MODE V3. Generate exactly 3 ranked outfits built AROUND a specific centerpiece item. No commentary.
+
+INTENT MODE: ${intentModeLabel}
+
+CENTERPIECE ITEM (MUST be in ALL 3 outfits - NON-NEGOTIABLE):
+{
+  "category": "${centerpieceItem.category}",
+  "description": "${centerpieceDesc}",
+  "formality": ${centerpieceItem.formality ?? formality}
+}
+${moodInstruction}${userIntentInstruction}
+
+INPUT:
+{
+  "styling_intent": "${stylingIntent}",
+  "constraints": ${JSON.stringify(constraints)}
+}
+${availableItemsConstraint}
+
+CRITICAL RULES:
+1. The centerpiece ${centerpieceItem.category} is ALREADY SELECTED - do NOT generate a slot for ${centerpieceItem.category}
+2. ALL 3 outfits must be designed to COMPLEMENT the centerpiece item
+3. Match formality, color palette, and aesthetic to work WITH the centerpiece
+4. Only generate slots for: ${categoriesToGenerate.join(', ')}
+5. Use ONLY the specified intent mode (${intentModeLabel}) - do not mix or infer additional intent
+
+COMPOSITION REQUIREMENT (MANDATORY):
+Each outfit MUST contain:
+- The locked centerpiece (${centerpieceItem.category}) - already selected
+- AT LEAST 2 complementary wardrobe items from DIFFERENT categories
+- Forming a COMPLETE, wearable look (minimum 3 items total per outfit)
+
+Do NOT generate:
+- Single-item complements (centerpiece + 1 item only)
+- Accessory-only fills (centerpiece + accessory only)
+- Under-filled combinations
+
+OUTPUT (JSON only):
+{
+  "outfits": [
+    {
+      "title": "Pick #1: [Safe/Classic pairing for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "${categoriesToGenerate[0]}", "description": "item that complements centerpiece", "formality": N},
+        {"category": "${categoriesToGenerate[1]}", "description": "item that complements centerpiece", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #2: [Different vibe with the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "...", "description": "...", "formality": N},
+        {"category": "...", "description": "...", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #3: [Creative pairing for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "...", "description": "...", "formality": N},
+        {"category": "...", "description": "...", "formality": N}
+      ]
+    }
+  ]
+}
+
+RULES:
+- Exactly 3 outfits, all featuring the same centerpiece ${centerpieceItem.category}
+- DO NOT include a slot for ${centerpieceItem.category} (already selected)
+- Each outfit MUST have AT LEAST 2 slots (2 complementary items + centerpiece = 3+ total)
+- Each slot category must be DISTINCT (no duplicate categories)
+- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
+- All items must COMPLEMENT the centerpiece: ${centerpieceDesc}
+- Match colors, formality, and aesthetic to work with the centerpiece
+- No brands, no specific items, no images, no item names
+- Formality 1-10 per slot (match centerpiece formality: ${centerpieceItem.formality ?? formality})
+- JSON only, no extra text
+
+QUALITY OVERRIDE (applies to all picks):
+- Every item must look GOOD with the centerpiece ${centerpieceItem.category}
+- Do NOT suggest items that clash with the centerpiece's color or style
+- Prioritize cohesive outfits over forced variety
+- All 3 outfits should be genuinely wearable with the centerpiece
+
+PICK #2 DIFFERENT VIBE CONSTRAINTS:
+- MUST stay in the same formality band as Pick #1 (±1 level max)
+- MUST change 1-2 items to create a different vibe
+- MUST still complement the centerpiece ${centerpieceItem.category}
+
+PICK #3 CREATIVE CONSTRAINTS:
+- MAY introduce one experimental element
+- MUST still work with the centerpiece ${centerpieceItem.category}
+- MUST be realistically wearable
+- Think "creative pairing" not "incompatible styling"`;
+}
+
+/**
+ * Validates that the PATH #2 result respects the input intent mode.
+ * This is a sanity check to ensure the LLM response aligns with the request.
+ *
+ * THIS IS ISOLATED FROM PATH #1. Do not use for PATH #1 validation.
+ */
+export type IntentModeValidationResult = {
+  valid: boolean;
+  errors: string[];
+  intentMode: IntentMode;
+};
+
+export function validateStartWithItemIntentMode(
+  input: NormalizedStartWithItemInput,
+): IntentModeValidationResult {
+  const errors: string[] = [];
+
+  // Validate that the normalized input is internally consistent
+  switch (input.intentMode) {
+    case 'mood':
+      if (!input.moods || input.moods.length === 0) {
+        errors.push('Intent mode is "mood" but no moods provided');
+      }
+      if (input.freeformPrompt) {
+        errors.push('Intent mode is "mood" but freeformPrompt is present (should be null)');
+      }
+      break;
+
+    case 'freeform':
+      if (!input.freeformPrompt || input.freeformPrompt.trim().length === 0) {
+        errors.push('Intent mode is "freeform" but no freeformPrompt provided');
+      }
+      if (input.moods && input.moods.length > 0) {
+        errors.push('Intent mode is "freeform" but moods are present (should be null)');
+      }
+      break;
+
+    case 'neutral':
+      if (input.moods && input.moods.length > 0) {
+        errors.push('Intent mode is "neutral" but moods are present');
+      }
+      if (input.freeformPrompt && input.freeformPrompt.trim().length > 0) {
+        errors.push('Intent mode is "neutral" but freeformPrompt is present');
+      }
+      break;
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    intentMode: input.intentMode,
+  };
+}
+
+// ============================================================================
+// PATH #2 CENTERPIECE-FIRST PROMPT (V4)
+// ============================================================================
+// V4 enforces that the CENTERPIECE is the PRIMARY constraint.
+// User input (mood or freeform) is ONLY a styling MODIFIER.
+// The centerpiece ALWAYS wins over any user request.
+// THIS IS COMPLETELY ISOLATED FROM PATH #1.
+// ============================================================================
+
+/**
+ * START WITH ITEM PROMPT V4 - PATH #2 ONLY (CENTERPIECE-FIRST)
+ * =============================================================
+ * This is an ISOLATED prompt builder for the "Start with 1 Item" flow.
+ * V4 enforces CENTERPIECE-FIRST semantics where:
+ *
+ * CRITICAL CONSTRAINTS:
+ * 1. The centerpiece is the PRIMARY constraint - it overrides ALL user input
+ * 2. User text (freeform) is ONLY a styling MODIFIER, not a replacement
+ * 3. The centerpiece MUST appear in ALL 3 outfits - NON-NEGOTIABLE
+ * 4. The LLM CANNOT override, ignore, or deprioritize the centerpiece
+ * 5. Rogue generations that omit/replace centerpiece are rejected
+ *
+ * FREEFORM MODE BOUNDARY:
+ * User text may ONLY describe: vibe, occasion, setting, tone, risk level, aesthetic
+ * User text MUST NOT redefine: outfit core, main item, anchor piece, base garment
+ *
+ * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
+ * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
+ */
+export function buildStartWithItemPromptV4(input: NormalizedStartWithItemInput): string {
+  const { centerpieceItem, intentMode, moods, freeformPrompt, weather, availableItems } = input;
+
+  // Derive constraints
+  const formality = deriveFormality(freeformPrompt || '');
+  const occasion = deriveOccasion(freeformPrompt || '');
+  const season = deriveSeason(freeformPrompt || '', weather);
+  const weatherCondition = deriveWeather(freeformPrompt || '', weather);
+
+  // Build constraints object
+  const constraints: Record<string, unknown> = {
+    formality: centerpieceItem.formality ?? formality,
+  };
+  if (occasion) constraints.occasion = occasion;
+  if (weatherCondition) constraints.weather = weatherCondition;
+  if (season) constraints.season = season;
+
+  // Build available items constraint
+  let availableItemsConstraint = '';
+  if (availableItems?.length) {
+    availableItemsConstraint = `
+WARDROBE CONSTRAINT (only use item types from this list):
+${availableItems.join(', ')}`;
+  }
+
+  // Determine which categories to generate (exclude centerpiece category)
+  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const categoriesToGenerate = allCategories.filter(
+    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+  );
+
+  // Build centerpiece description
+  const centerpieceDesc = [
+    centerpieceItem.color,
+    centerpieceItem.description,
+    centerpieceItem.style ? `(${centerpieceItem.style} style)` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Build intent mode indicator for the prompt
+  const intentModeLabel =
+    intentMode === 'mood'
+      ? 'MOOD CHIPS'
+      : intentMode === 'freeform'
+        ? 'VOICE/TEXT PROMPT'
+        : 'NEUTRAL (DEFAULT)';
+
+  // Build styling modifier section based on intent mode
+  let stylingModifierSection = '';
+
+  switch (intentMode) {
+    case 'mood':
+      // MOOD MODE: Moods are styling MODIFIERS to the centerpiece
+      const moodKeywords = (moods || [])
+        .map((p) => {
+          const match = p.match(/with (?:a |an )?(\w+(?:[- ]\w+)?)/i);
+          return match ? match[1] : '';
+        })
+        .filter(Boolean);
+
+      stylingModifierSection = `
+STYLING MODIFIER (apply to items AROUND the locked centerpiece):
+Mood: ${moodKeywords.length > 0 ? moodKeywords.join(', ') : 'balanced'}
+${(moods || []).join('\n')}
+
+IMPORTANT: These moods describe HOW to style the outfit around the centerpiece.
+They do NOT replace or override the centerpiece. The centerpiece is LOCKED.`;
+      break;
+
+    case 'freeform':
+      // FREEFORM MODE: User text is a MODIFIER, not a replacement
+      stylingModifierSection = `
+STYLING MODIFIER (apply to items AROUND the locked centerpiece):
+User's styling request: "${freeformPrompt}"
+
+CRITICAL INTERPRETATION RULES:
+1. This text describes HOW to style the outfit - vibe, occasion, setting, tone
+2. This text does NOT replace the centerpiece
+3. This text does NOT redefine the outfit core
+4. This text is asking: "How should I style THIS ${centerpieceItem.category}?"
+5. The centerpiece is the ANCHOR - user text is a MODIFIER only
+
+FORBIDDEN INTERPRETATIONS:
+- "Build a completely different outfit"
+- "Ignore the centerpiece and do X instead"
+- "The user wants Y item as the main piece"
+- "Replace the ${centerpieceItem.category} with something else"
+
+CORRECT INTERPRETATION:
+- "Style the locked ${centerpieceItem.category} for [user's occasion/vibe]"
+- "Build complementary items around THIS specific ${centerpieceItem.category}"`;
+      break;
+
+    case 'neutral':
+    default:
+      // NEUTRAL MODE: No modifier, just balanced styling around centerpiece
+      stylingModifierSection = `
+STYLING MODIFIER: None specified
+Build balanced, versatile outfits around the locked centerpiece.`;
+      break;
+  }
+
+  return `SYSTEM: Stateless outfit planning engine - START WITH ITEM MODE V4 (CENTERPIECE-FIRST). Generate exactly 3 ranked outfits built AROUND a LOCKED centerpiece item. No commentary.
+
+========================
+HARD SYSTEM DIRECTIVE (NON-NEGOTIABLE)
+========================
+
+The following item is LOCKED and MUST appear in ALL 3 outfits:
+
+LOCKED CENTERPIECE:
+{
+  "category": "${centerpieceItem.category}",
+  "description": "${centerpieceDesc}",
+  "formality": ${centerpieceItem.formality ?? formality}
+}
+
+This is the PRIMARY CONSTRAINT. It CANNOT be:
+- Omitted from any outfit
+- Replaced with another item
+- Deprioritized or "worked around"
+- Overridden by any user request
+- Treated as optional or negotiable
+
+If ANY user request conflicts with this centerpiece, the CENTERPIECE WINS.
+
+========================
+INTENT MODE: ${intentModeLabel}
+========================
+${stylingModifierSection}
+
+INPUT:
+{
+  "locked_centerpiece": "${centerpieceItem.category}: ${centerpieceDesc}",
+  "constraints": ${JSON.stringify(constraints)}
+}
+${availableItemsConstraint}
+
+CRITICAL RULES:
+1. The centerpiece ${centerpieceItem.category} is LOCKED - do NOT generate a slot for ${centerpieceItem.category}
+2. ALL 3 outfits MUST be designed to COMPLEMENT this specific centerpiece
+3. User input (mood/text) modifies HOW you style around the centerpiece, NOT what the centerpiece is
+4. Only generate slots for: ${categoriesToGenerate.join(', ')}
+5. Every generated item must work WITH the locked ${centerpieceItem.category}
+
+COMPOSITION REQUIREMENT (MANDATORY):
+Each outfit MUST contain:
+- The LOCKED centerpiece (${centerpieceItem.category}) - already selected, NON-NEGOTIABLE
+- AT LEAST 2 complementary wardrobe items from DIFFERENT categories
+- Forming a COMPLETE, wearable look (minimum 3 items total per outfit)
+
+Do NOT generate:
+- Single-item complements (centerpiece + 1 item only)
+- Accessory-only fills (centerpiece + accessory only)
+- Under-filled combinations
+
+OUTPUT (JSON only):
+{
+  "outfits": [
+    {
+      "title": "Pick #1: [Safe/Classic styling for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "${categoriesToGenerate[0]}", "description": "item that complements the LOCKED centerpiece", "formality": N},
+        {"category": "${categoriesToGenerate[1]}", "description": "item that complements the LOCKED centerpiece", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #2: [Different styling for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "...", "description": "...", "formality": N},
+        {"category": "...", "description": "...", "formality": N}
+      ]
+    },
+    {
+      "title": "Pick #3: [Creative styling for the ${centerpieceItem.category}]",
+      "slots": [
+        {"category": "...", "description": "...", "formality": N},
+        {"category": "...", "description": "...", "formality": N}
+      ]
+    }
+  ]
+}
+
+RULES:
+- Exactly 3 outfits, ALL featuring the LOCKED centerpiece ${centerpieceItem.category}
+- DO NOT include a slot for ${centerpieceItem.category} (already LOCKED)
+- Each outfit MUST have AT LEAST 2 slots (2 complementary items + centerpiece = 3+ total)
+- Each slot category must be DISTINCT (no duplicate categories)
+- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
+- All items must COMPLEMENT the LOCKED centerpiece: ${centerpieceDesc}
+- Match colors, formality, and aesthetic to work with the centerpiece
+- No brands, no specific items, no images, no item names
+- Formality 1-10 per slot (match centerpiece formality: ${centerpieceItem.formality ?? formality})
+- JSON only, no extra text
+
+QUALITY OVERRIDE (applies to all picks):
+- Every item must look GOOD with the LOCKED centerpiece ${centerpieceItem.category}
+- Do NOT suggest items that clash with the centerpiece's color or style
+- Prioritize cohesive outfits over forced variety
+- All 3 outfits should be genuinely wearable with the centerpiece
+- User styling preference should ENHANCE the centerpiece, not override it
+
+PICK #2 DIFFERENT VIBE CONSTRAINTS:
+- MUST stay in the same formality band as Pick #1 (±1 level max)
+- MUST change 1-2 complementary items to create a different vibe
+- MUST still complement the LOCKED centerpiece ${centerpieceItem.category}
+
+PICK #3 CREATIVE CONSTRAINTS:
+- MAY introduce one experimental complementary element
+- MUST still work with the LOCKED centerpiece ${centerpieceItem.category}
+- MUST be realistically wearable
+- Think "creative styling" not "replacing the centerpiece"`;
+}

@@ -27,12 +27,16 @@ import { buildOutfitPrompt } from './prompts/outfitPrompt';
 import {
   buildOutfitPlanPrompt,
   buildStartWithItemPrompt,
-  buildStartWithItemPromptV2,
+  buildStartWithItemPromptV4,
+  normalizeStartWithItemIntent,
   validateStartWithItemResponse,
+  validateStartWithItemIntentMode,
+  MutualExclusionError,
   type OutfitPlan,
   type OutfitPlanSlot,
   type CenterpieceItem,
-  type StartWithItemInputV2,
+  type RawStartWithItemInput,
+  type NormalizedStartWithItemInput,
 } from './prompts/outfitPlanPrompt';
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
@@ -1789,9 +1793,9 @@ ${lockedLines}
       let planPrompt: string;
 
       if (isStartWithItem && centerpieceItem) {
-        // PATH #2: Use specialized V2 prompt that builds outfits AROUND the centerpiece
-        // V2 explicitly handles mood chips and freeform prompts as structured inputs
-        console.log('⚡ [FAST] PATH #2: Using buildStartWithItemPromptV2');
+        // PATH #2: Use specialized V4 prompt with CENTERPIECE-FIRST enforcement
+        // V4 ensures centerpiece is PRIMARY constraint - user input is only a styling MODIFIER
+        console.log('⚡ [FAST] PATH #2: Using buildStartWithItemPromptV4 (centerpiece-first enforcement)');
 
         // Extract mood prompts and freeform prompt from the query string
         // Format: "outfit built around my X. IMPORTANT REFINEMENT: User specifically requested: "mood. prompt". You MUST..."
@@ -1825,8 +1829,8 @@ ${lockedLines}
         console.log('⚡ [FAST] PATH #2: Extracted moods:', extractedMoods);
         console.log('⚡ [FAST] PATH #2: Extracted freeform:', extractedFreeform);
 
-        // Build V2 input with structured mood/prompt data
-        const v2Input: StartWithItemInputV2 = {
+        // Build raw input for normalization
+        const rawInput: RawStartWithItemInput = {
           centerpieceItem,
           moodPrompts: extractedMoods.length > 0 ? extractedMoods : undefined,
           freeformPrompt: extractedFreeform,
@@ -1839,7 +1843,29 @@ ${lockedLines}
           availableItems,
         };
 
-        planPrompt = buildStartWithItemPromptV2(v2Input);
+        // NORMALIZE INPUT AND ENFORCE MUTUAL EXCLUSIVITY
+        // This will throw MutualExclusionError if both moods AND freeform are present
+        let normalizedInput: NormalizedStartWithItemInput;
+        try {
+          normalizedInput = normalizeStartWithItemIntent(rawInput);
+          console.log('⚡ [FAST] PATH #2: Intent mode:', normalizedInput.intentMode);
+        } catch (error) {
+          if (error instanceof MutualExclusionError) {
+            console.error('⚡ [FAST] PATH #2: MUTUAL EXCLUSION ERROR - cannot combine moods with freeform prompt');
+            throw error; // Fail closed - do not proceed
+          }
+          throw error;
+        }
+
+        // Validate normalized input for internal consistency
+        const intentValidation = validateStartWithItemIntentMode(normalizedInput);
+        if (!intentValidation.valid) {
+          console.error('⚡ [FAST] PATH #2: Intent mode validation failed:', intentValidation.errors);
+          throw new Error(`PATH #2 intent mode validation failed: ${intentValidation.errors.join('; ')}`);
+        }
+
+        // Build V4 prompt with CENTERPIECE-FIRST enforcement
+        planPrompt = buildStartWithItemPromptV4(normalizedInput);
       } else {
         // PATH #1: Standard prompt (unchanged behavior)
         // CRITICAL: refinementAction contains ONLY slot categories, NEVER item names
