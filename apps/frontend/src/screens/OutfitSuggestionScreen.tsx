@@ -172,6 +172,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   // Swap item mode: track which section is being swapped (null = start from piece mode)
   const [swapSection, setSwapSection] = useState<'top' | 'bottom' | 'shoes' | null>(null);
 
+  // Tracks if user has confirmed outfit selection (hides thumbnails, shows refinement screen)
+  const [hasRefined, setHasRefined] = useState(false);
+
   const isDisabled = !top || !bottom || !shoes;
 
   // Switch VoiceTarget based on whether lockedItem is set
@@ -576,6 +579,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
 
     // Clear any existing outfit first to allow fresh generation
     clear();
+    // Reset refinement state for new outfit generation
+    setHasRefined(false);
 
     // Create NEW session for initial generation
     const newSessionId = uuid.v4() as string;
@@ -741,9 +746,20 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     // CRITICAL: Must have existing session - no refinement without it
     if (!userId || !sessionId) return;
 
+    // Get currently displayed items to pass as context
+    const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
+      ? (current as any).outfits[0].items
+      : Array.isArray((current as any)?.items)
+      ? (current as any).items
+      : [];
+
+    const lockedIds = rawItems
+      .map((it: any) => it?.id)
+      .filter(
+        (id: any): id is string => typeof id === 'string' && id.length > 0,
+      );
+
     // REUSE existing sessionId - this is non-negotiable
-    // NOTE: Do NOT lock items here - the refinement prompt should guide the AI
-    // on what to change. Locking all items prevents any changes from happening.
     regenerate(builtQuery, {
       topK: 25,
       sessionId, // REUSE - critical for session continuity
@@ -755,7 +771,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       weights,
       useFeedback,
       styleAgent,
-      // No lockedItemIds - allow AI to make changes based on refinement prompt
+      // Pass current items as context - AI will interpret refinement prompt to decide what to change
+      lockedItemIds: lockedIds,
     });
   };
 
@@ -1252,13 +1269,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     onPress={handleV2Generate}
                     disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel)}>
                     <Text style={globalStyles.buttonPrimaryText}>
-                      {loading ? 'Creating…' : 'CREATE OUTFIT'}
+                      {loading ? 'Creating…' : 'CREATE 3 OUTFITS'}
                     </Text>
                   </TouchableOpacity>
                 </Animatable.View>
               )}
 
-              {/* Controls */}
+              {/* Controls - only show refinement options after Continue is pressed */}
               <OutfitTuningControls
                 weather={weather}
                 onChangeWeather={v => setWeather(v as any)}
@@ -1276,8 +1293,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 onRefine={handleRefine}
                 isGenerating={loading || liveWxLoading}
                 canGenerate={canGenerate}
-                showRefine={hasOutfit}
-                adjustmentContent={hasOutfit ? (
+                showRefine={hasOutfit && hasRefined}
+                adjustmentContent={hasOutfit && hasRefined ? (
                   <GuidedRefinementChips
                     onSelectMood={(refinementPrompt, label) => {
                       // Empty strings mean deselection (toggle off)
@@ -1315,82 +1332,120 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 </Text>
               )}
 
-              {/* Outfit Selector - shows when multiple outfits available */}
-              {hasOutfit && outfits.length > 1 && (
-                <View style={{
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginBottom: 16,
-                  paddingHorizontal: 16,
-                }}>
-                  {outfits.slice(0, 3).map((outfit, index) => {
-                    const preview = getOutfitPreview(outfit);
-                    const isSelected = index === selected;
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        onPress={() => setSelected(index)}
-                        style={{
-                          flex: 1,
-                          maxWidth: 110,
-                          padding: 8,
-                          borderRadius: 12,
-                          backgroundColor: isSelected
-                            ? theme.colors.primary + '20'
-                            : theme.colors.surface2,
-                          borderWidth: 2,
-                          borderColor: isSelected
-                            ? theme.colors.primary
-                            : 'transparent',
-                        }}>
-                        {/* Mini preview images */}
-                        <View style={{
-                          flexDirection: 'row',
-                          justifyContent: 'center',
-                          marginBottom: 6,
-                        }}>
-                          {[preview?.top, preview?.bottom, preview?.shoes]
-                            .filter(Boolean)
-                            .slice(0, 3)
-                            .map((item, i) => (
-                              <Image
-                                key={i}
-                                source={{uri: item?.image}}
-                                style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: 6,
-                                  marginHorizontal: 1,
-                                  backgroundColor: theme.colors.surface3,
-                                }}
-                              />
-                            ))}
-                        </View>
-                        {/* Pick label */}
-                        <Text style={{
-                          fontSize: 11,
-                          fontWeight: isSelected ? '700' : '500',
-                          color: isSelected
-                            ? theme.colors.primary
-                            : theme.colors.foreground,
-                          textAlign: 'center',
-                        }} numberOfLines={1}>
-                          {index === 0 ? 'Pick #1' : index === 1 ? 'Pick #2' : 'Pick #3'}
-                        </Text>
-                        <Text style={{
-                          fontSize: 9,
-                          color: theme.colors.muted,
-                          textAlign: 'center',
-                          marginTop: 2,
-                        }} numberOfLines={1}>
-                          {index === 0 ? 'Safe' : index === 1 ? 'Different' : 'Wildcard'}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+              {/* Outfit Selector - shows when multiple outfits available and not yet refined */}
+              {hasOutfit && outfits.length > 1 && !hasRefined && (
+                <>
+                  {/* Selection prompt */}
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                    textAlign: 'center',
+                    marginBottom: 12,
+                    paddingHorizontal: 16,
+                  }}>
+                    Select which outfit you'd like to continue with
+                  </Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginBottom: 16,
+                    paddingHorizontal: 16,
+                  }}>
+                    {outfits.slice(0, 3).map((outfit, index) => {
+                      const preview = getOutfitPreview(outfit);
+                      const isSelected = index === selected;
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => {
+                            h('impactLight');
+                            setSelected(index);
+                          }}
+                          style={{
+                            flex: 1,
+                            maxWidth: 110,
+                            padding: 8,
+                            borderRadius: 12,
+                            backgroundColor: isSelected
+                              ? theme.colors.primary + '20'
+                              : theme.colors.surface2,
+                            borderWidth: 2,
+                            borderColor: isSelected
+                              ? theme.colors.primary
+                              : 'transparent',
+                          }}>
+                          {/* Mini preview images */}
+                          <View style={{
+                            flexDirection: 'row',
+                            justifyContent: 'center',
+                            marginBottom: 6,
+                          }}>
+                            {[preview?.top, preview?.bottom, preview?.shoes]
+                              .filter(Boolean)
+                              .slice(0, 3)
+                              .map((item, i) => (
+                                <Image
+                                  key={i}
+                                  source={{uri: item?.image}}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 6,
+                                    marginHorizontal: 1,
+                                    backgroundColor: theme.colors.surface3,
+                                  }}
+                                />
+                              ))}
+                          </View>
+                          {/* Pick label */}
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected
+                              ? theme.colors.primary
+                              : theme.colors.foreground,
+                            textAlign: 'center',
+                          }} numberOfLines={1}>
+                            {index === 0 ? 'Pick #1' : index === 1 ? 'Pick #2' : 'Pick #3'}
+                          </Text>
+                          <Text style={{
+                            fontSize: 9,
+                            color: theme.colors.muted,
+                            textAlign: 'center',
+                            marginTop: 2,
+                          }} numberOfLines={1}>
+                            {index === 0 ? 'Safe' : index === 1 ? 'Different' : 'Wildcard'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                </>
+              )}
+
+              {/* Continue button - shown on selection screen (before refinement) */}
+              {hasOutfit && outfits.length > 1 && !hasRefined && (
+                <TouchableOpacity
+                  style={[
+                    globalStyles.buttonPrimary,
+                    {
+                      width: 200,
+                      marginTop: 8,
+                      marginBottom: 16,
+                    },
+                  ]}
+                  onPress={() => {
+                    h('impactMedium');
+                    setHasRefined(true);
+                  }}>
+                  <Text style={globalStyles.buttonPrimaryText}>
+                    Continue
+                  </Text>
+                </TouchableOpacity>
               )}
 
               {/* Outfit cards */}
@@ -1399,8 +1454,12 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   {renderCard('Top', top, 'top')}
                   {renderCard('Bottom', bottom, 'bottom')}
                   {renderCard('Shoes', shoes, 'shoes')}
+                </>
+              )}
 
-                  {/* CTAs */}
+              {/* CTAs - only show on refinement screen (after Continue is pressed) */}
+              {hasOutfit && hasRefined && (
+                <>
                   <View
                     style={{
                       flexDirection: 'row',
@@ -1507,6 +1566,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         setSelectedMoodPrompt(null);
                         setOutfitPrompt('');
                         setSessionId(null);
+                        setHasRefined(false);
                       }}>
                       <Text style={globalStyles.buttonSecondaryText}>
                         All Done
