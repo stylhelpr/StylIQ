@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
@@ -162,14 +162,6 @@ export default function GuidedRefinementChips({
   const {theme} = useAppTheme();
   const {isRecording, startVoiceCommand} = useVoiceControl();
 
-  // Set VoiceTarget on mount so floating mic works for this input
-  useEffect(() => {
-    if (onPromptChange && showPrompt) {
-      VoiceTarget.set(onPromptChange, 'outfitPrompt');
-    }
-    return () => VoiceTarget.clear();
-  }, [onPromptChange, showPrompt]);
-
   const handleMicPress = () => {
     if (!onPromptChange) return;
     h('impactMedium');
@@ -296,12 +288,6 @@ export default function GuidedRefinementChips({
               editable={!disabled}
               multiline
               numberOfLines={2}
-              onFocus={() => {
-                if (onPromptChange) {
-                  VoiceTarget.set(onPromptChange, 'outfitPrompt');
-                }
-              }}
-              onBlur={() => VoiceTarget.clear()}
             />
             {promptValue && promptValue.length > 0 && (
               <TouchableOpacity

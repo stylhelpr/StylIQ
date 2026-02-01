@@ -239,7 +239,7 @@ export default function WardrobePickerModal({
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={[styles.categoryTabs, {minHeight: 57, maxHeight: 58, backgroundColor: 'red'}]}>
+            style={[styles.categoryTabs, {minHeight: 57, maxHeight: 58, backgroundColor: theme.colors.surface}]}>
             {CATEGORY_TABS.map(tab => (
               <TouchableOpacity
                 key={tab.value}

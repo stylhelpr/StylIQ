@@ -22,6 +22,8 @@ import {saveFavoriteOutfit} from '../utils/favorites';
 import OutfitNameModal from '../components/OutfitNameModal/OutfitNameModal';
 import {saveOutfitToDate} from '../utils/calendarStorage';
 import Voice from '@react-native-voice/voice';
+import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
+import {useVoiceControl} from '../hooks/useVoiceControl';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {useUUID} from '../context/UUIDContext';
@@ -89,6 +91,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const queryClient = useQueryClient();
+  const {isRecording, startVoiceCommand} = useVoiceControl();
 
   const insets = useSafeAreaInsets();
 
@@ -170,6 +173,15 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const [swapSection, setSwapSection] = useState<'top' | 'bottom' | 'shoes' | null>(null);
 
   const isDisabled = !top || !bottom || !shoes;
+
+  // Switch VoiceTarget based on whether lockedItem is set
+  useEffect(() => {
+    if (lockedItem) {
+      VoiceTarget.set(setBuildAroundPrompt, 'buildAroundPrompt');
+    } else {
+      VoiceTarget.set(setOutfitPrompt, 'outfitPrompt');
+    }
+  }, [lockedItem]);
 
   const REASON_TAGS = [
     'Too casual',
@@ -1113,7 +1125,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   {lockedItem && (
                     <View style={{
                       alignItems: 'center',
-                      marginTop: 16,
+                  
                       width: '100%',
                     }}>
                       {/* Thumbnail with close button */}
@@ -1171,27 +1183,61 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       }}>
                         How do you want to build around this item?
                       </Text>
-                      <TextInput
-                        style={{
-                          backgroundColor: theme.colors.surface,
-                          borderRadius: 12,
-                          borderWidth: 1,
-                          borderColor: theme.colors.surfaceBorder,
-                          paddingHorizontal: 16,
-                          paddingVertical: 12,
-                          fontSize: 15,
-                          color: theme.colors.foreground,
-                          minHeight: 44,
-                          width: '100%',
-                        }}
-                        value={buildAroundPrompt}
-                        onChangeText={setBuildAroundPrompt}
-                        placeholder="e.g. smart casual for dinner, keep it relaxed..."
-                        placeholderTextColor={theme.colors.muted}
-                        editable={!loading}
-                        multiline
-                        numberOfLines={2}
-                      />
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: theme.colors.surface,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: theme.colors.surfaceBorder,
+                        paddingRight: 8,
+                        width: '100%',
+                      }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            fontSize: 15,
+                            color: theme.colors.foreground,
+                            minHeight: 44,
+                          }}
+                          value={buildAroundPrompt}
+                          onChangeText={setBuildAroundPrompt}
+                          placeholder="e.g. smart casual dinner, keep it relaxed..."
+                          placeholderTextColor={theme.colors.muted}
+                          editable={!loading}
+                          multiline
+                          numberOfLines={1}
+                        />
+                        {buildAroundPrompt.length > 0 && (
+                          <TouchableOpacity
+                            style={{padding: 6, marginLeft: 4}}
+                            onPress={() => setBuildAroundPrompt('')}
+                            disabled={loading}>
+                            <MaterialIcons
+                              name="close"
+                              size={20}
+                              color={theme.colors.muted}
+                            />
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={{padding: 6, marginLeft: 4}}
+                          onPress={() => {
+                            VoiceTarget.set(setBuildAroundPrompt, 'buildAroundPrompt');
+                            startVoiceCommand((text: string) => {
+                              setBuildAroundPrompt(text);
+                            });
+                          }}
+                          disabled={loading}>
+                          <MaterialIcons
+                            name="mic"
+                            size={22}
+                            color={isRecording ? theme.colors.primary : theme.colors.muted}
+                          />
+                        </TouchableOpacity>
+                      </View>
 
                     </View>
                   )}
