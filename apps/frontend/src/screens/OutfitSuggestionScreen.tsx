@@ -1025,7 +1025,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             }}
             resizeMode="cover"
           />
-          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla - Outfit Studio</Text>
+          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla -AI Outfit Studio</Text>
         </View>
 
         {/* Header */}
@@ -1090,7 +1090,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       showAdjustments={false}
                       promptValue={outfitPrompt}
                       onPromptChange={setOutfitPrompt}
-                      promptPlaceholder="e.g. casual brunch, work meeting, date night..."
+                      promptPlaceholder="e.g. brunch, work, etc..."
                     />
                   )}
 
@@ -1201,9 +1201,10 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     style={[
                       globalStyles.buttonPrimary,
                       {width: 200, marginTop: 20},
+                      (loading || (!outfitPrompt.trim() && !selectedMoodLabel)) && {opacity: 0.5},
                     ]}
                     onPress={handleV2Generate}
-                    disabled={loading}>
+                    disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel)}>
                     <Text style={globalStyles.buttonPrimaryText}>
                       {loading ? 'Creating…' : 'CREATE OUTFIT'}
                     </Text>

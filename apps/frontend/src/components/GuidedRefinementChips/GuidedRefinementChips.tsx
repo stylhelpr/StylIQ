@@ -1,8 +1,11 @@
-import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet, TextInput} from 'react-native';
+import React, {useEffect} from 'react';
+import {View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView} from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {VoiceTarget} from '../../utils/VoiceUtils/voiceTarget';
+import {useVoiceControl} from '../../hooks/useVoiceControl';
 
 const h = (type: string) =>
   ReactNativeHapticFeedback.trigger(type, {
@@ -157,24 +160,50 @@ export default function GuidedRefinementChips({
   promptLabel = 'What kind of outfit do you want?',
 }: Props) {
   const {theme} = useAppTheme();
+  const {isRecording, startVoiceCommand} = useVoiceControl();
+
+  // Set VoiceTarget on mount so floating mic works for this input
+  useEffect(() => {
+    if (onPromptChange && showPrompt) {
+      VoiceTarget.set(onPromptChange, 'outfitPrompt');
+    }
+    return () => VoiceTarget.clear();
+  }, [onPromptChange, showPrompt]);
+
+  const handleMicPress = () => {
+    if (!onPromptChange) return;
+    h('impactMedium');
+    VoiceTarget.set(onPromptChange, 'outfitPrompt');
+    startVoiceCommand((text: string) => {
+      onPromptChange(text);
+    });
+  };
+
+  const handleClearPrompt = () => {
+    if (!onPromptChange) return;
+    h('impactLight');
+    onPromptChange('');
+  };
 
   const styles = StyleSheet.create({
     container: {
       width: '100%',
-      paddingHorizontal: 8,
-      marginTop: 16,
     },
     sectionTitle: {
       fontSize: 14,
       fontWeight: '500',
       color: theme.colors.muted,
-      marginBottom: 10,
-      marginTop: 8,
+      marginBottom: 6,
     },
     chipsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 8,
+    },
+    moodChipsScroll: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingRight: 8,
     },
     chip: {
       paddingHorizontal: 14,
@@ -199,17 +228,26 @@ export default function GuidedRefinementChips({
     chipTextSelected: {
       color: theme.colors.background,
     },
-    promptInput: {
+    promptInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: theme.colors.surface,
       borderRadius: 12,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
+      paddingRight: 8,
+    },
+    promptInput: {
+      flex: 1,
       paddingHorizontal: 16,
       paddingVertical: 12,
       fontSize: 15,
       color: theme.colors.foreground,
       minHeight: 44,
-      marginTop: 4,
+    },
+    inputIconButton: {
+      padding: 6,
+      marginLeft: 4,
     },
   });
 
@@ -248,24 +286,57 @@ export default function GuidedRefinementChips({
           {promptLabel ? (
             <Text style={styles.sectionTitle}>{promptLabel}</Text>
           ) : null}
-          <TextInput
-            style={styles.promptInput}
-            value={promptValue}
-            onChangeText={onPromptChange}
-            placeholder={promptPlaceholder}
-            placeholderTextColor={theme.colors.muted}
-            editable={!disabled}
-            multiline
-            numberOfLines={2}
-          />
+          <View style={styles.promptInputContainer}>
+            <TextInput
+              style={styles.promptInput}
+              value={promptValue}
+              onChangeText={onPromptChange}
+              placeholder={promptPlaceholder}
+              placeholderTextColor={theme.colors.muted}
+              editable={!disabled}
+              multiline
+              numberOfLines={2}
+              onFocus={() => {
+                if (onPromptChange) {
+                  VoiceTarget.set(onPromptChange, 'outfitPrompt');
+                }
+              }}
+              onBlur={() => VoiceTarget.clear()}
+            />
+            {promptValue && promptValue.length > 0 && (
+              <TouchableOpacity
+                style={styles.inputIconButton}
+                onPress={handleClearPrompt}
+                disabled={disabled}>
+                <MaterialIcons
+                  name="close"
+                  size={20}
+                  color={theme.colors.muted}
+                />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.inputIconButton}
+              onPress={handleMicPress}
+              disabled={disabled}>
+              <MaterialIcons
+                name="mic"
+                size={22}
+                color={isRecording ? theme.colors.primary : theme.colors.muted}
+              />
+            </TouchableOpacity>
+          </View>
         </>
       )}
 
       {/* Mood Section */}
       {showMoods && (
         <>
-          <Text style={styles.sectionTitle}>How are you feeling today? (Optional)</Text>
-          <View style={styles.chipsRow}>
+          <Text style={[styles.sectionTitle, {marginTop: 12}]}>How are you feeling today? (Optional)</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodChipsScroll}>
             {MOOD_CHIPS.map(chip => {
               const isSelected = selectedMoodLabel === chip.label;
               return renderChip(chip, isSelected, () =>
@@ -275,7 +346,7 @@ export default function GuidedRefinementChips({
                   : onSelectMood(chip.refinementPrompt, chip.label),
               );
             })}
-          </View>
+          </ScrollView>
         </>
       )}
 
@@ -283,11 +354,14 @@ export default function GuidedRefinementChips({
       {showAdjustments && (
         <>
           <Text style={styles.sectionTitle}>Refine Outfit (Optional Choices)</Text>
-          <View style={styles.chipsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodChipsScroll}>
             {ADJUSTMENT_CHIPS.map(chip =>
               renderChip(chip, false, () => onSelectAdjustment(chip.refinementPrompt)),
             )}
-          </View>
+          </ScrollView>
         </>
       )}
     </View>
