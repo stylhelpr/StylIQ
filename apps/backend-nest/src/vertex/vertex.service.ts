@@ -312,6 +312,13 @@ export class VertexService {
   // Image Embeddings (Predict API)
   // -------------------
   async embedImage(gcsUri: string): Promise<number[]> {
+    // Vertex AI multimodalembedding@001 doesn't support WEBP - convert to JPEG
+    let effectiveUri = gcsUri;
+    if (gcsUri.toLowerCase().endsWith('.webp')) {
+      console.log('[embedImage] Converting WEBP to JPEG for embedding:', gcsUri);
+      effectiveUri = await this.convertWebpToJpeg(gcsUri);
+    }
+
     const endpoint = `projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.imageModel}`;
 
     const [response]: any = await this.withSemaphore(() =>
@@ -319,7 +326,7 @@ export class VertexService {
         () =>
           this.client.predict({
             endpoint,
-            instances: [toValue({ image: { gcsUri } }) as any],
+            instances: [toValue({ image: { gcsUri: effectiveUri } }) as any],
             parameters: toValue({ dimension: 512 }) as any,
           }),
         'predict:image',
@@ -335,6 +342,45 @@ export class VertexService {
     }
 
     return values.map((v: any) => v.numberValue!);
+  }
+
+  // Convert WEBP to JPEG for Vertex AI embedding (WEBP not supported)
+  private async convertWebpToJpeg(gcsUri: string): Promise<string> {
+    const sharp = (await import('sharp')).default;
+    const { Storage } = await import('@google-cloud/storage');
+    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    const storage = new Storage({
+      projectId: credentials.project_id,
+      credentials,
+    });
+
+    // Parse gs://bucket/path
+    const match = gcsUri.match(/^gs:\/\/([^/]+)\/(.+)$/);
+    if (!match) {
+      throw new Error(`Invalid GCS URI: ${gcsUri}`);
+    }
+    const [, bucketName, objectPath] = match;
+
+    // Download WEBP
+    const bucket = storage.bucket(bucketName);
+    const [webpBuffer] = await bucket.file(objectPath).download();
+
+    // Convert to JPEG
+    const jpegBuffer = await sharp(webpBuffer)
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    // Upload converted JPEG to temp location
+    const jpegPath = objectPath.replace(/\.webp$/i, '-embed.jpg');
+    const jpegFile = bucket.file(jpegPath);
+    await jpegFile.save(jpegBuffer, {
+      contentType: 'image/jpeg',
+      resumable: false,
+    });
+
+    const convertedUri = `gs://${bucketName}/${jpegPath}`;
+    console.log('[embedImage] Converted WEBP to JPEG:', convertedUri);
+    return convertedUri;
   }
 
   // -------------------
