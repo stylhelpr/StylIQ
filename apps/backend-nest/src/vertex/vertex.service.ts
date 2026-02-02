@@ -341,7 +341,7 @@ export class VertexService {
     return values.map((v: any) => v.numberValue!);
   }
 
-  // Check actual image format and convert WEBP to JPEG if needed
+  // Check actual image format and convert WEBP/HEIF to JPEG if needed
   private async ensureEmbeddableFormat(gcsUri: string): Promise<string> {
     const sharpModule = await import('sharp');
     const sharp = sharpModule.default || sharpModule;
@@ -367,16 +367,33 @@ export class VertexService {
     const metadata = await sharp(imageBuffer).metadata();
     console.log('[embedImage] Detected format:', metadata.format, 'for', gcsUri);
 
-    // If not WEBP, use original URI
-    if (metadata.format !== 'webp') {
+    // Formats that need conversion (not supported by Vertex AI or Photoroom)
+    const needsConversion = metadata.format === 'webp' || metadata.format === 'heif';
+
+    if (!needsConversion) {
       return gcsUri;
     }
 
-    // Convert WEBP to JPEG
-    console.log('[embedImage] Converting WEBP to JPEG for embedding');
-    const jpegBuffer = await sharp(imageBuffer)
-      .jpeg({ quality: 95 })
-      .toBuffer();
+    // Convert to JPEG
+    let jpegBuffer: Buffer;
+    if (metadata.format === 'heif') {
+      // HEIF needs heic-convert - Sharp doesn't support it without libheif
+      console.log('[embedImage] Converting HEIF to JPEG using heic-convert');
+      const heicConvert = await import('heic-convert');
+      const convert = heicConvert.default || heicConvert;
+      const converted = await convert({
+        buffer: imageBuffer,
+        format: 'JPEG',
+        quality: 0.95,
+      });
+      jpegBuffer = Buffer.from(converted);
+    } else {
+      // WEBP can be handled by Sharp
+      console.log('[embedImage] Converting WEBP to JPEG');
+      jpegBuffer = await sharp(imageBuffer)
+        .jpeg({ quality: 95 })
+        .toBuffer();
+    }
 
     // Upload converted JPEG
     const jpegPath = objectPath.replace(/\.[^.]+$/, '') + '-embed.jpg';
@@ -389,6 +406,39 @@ export class VertexService {
     const convertedUri = `gs://${bucketName}/${jpegPath}`;
     console.log('[embedImage] Converted to:', convertedUri);
     return convertedUri;
+  }
+
+  // Convert image buffer to JPEG if it's in an unsupported format (HEIF, WEBP)
+  // Used before sending to external APIs like Photoroom
+  async ensureJpegBuffer(imageBuffer: Buffer): Promise<Buffer> {
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
+
+    const metadata = await sharp(imageBuffer).metadata();
+    console.log('[ensureJpegBuffer] Detected format:', metadata.format);
+
+    // HEIF needs special handling - Sharp doesn't support it without libheif
+    if (metadata.format === 'heif') {
+      console.log('[ensureJpegBuffer] Converting HEIF to JPEG using heic-convert');
+      const heicConvert = await import('heic-convert');
+      const convert = heicConvert.default || heicConvert;
+      const jpegBuffer = await convert({
+        buffer: imageBuffer,
+        format: 'JPEG',
+        quality: 0.95,
+      });
+      return Buffer.from(jpegBuffer);
+    }
+
+    // WEBP can be handled by Sharp
+    if (metadata.format === 'webp') {
+      console.log('[ensureJpegBuffer] Converting WEBP to JPEG');
+      return sharp(imageBuffer)
+        .jpeg({ quality: 95 })
+        .toBuffer();
+    }
+
+    return imageBuffer;
   }
 
   // -------------------
@@ -892,8 +942,11 @@ export class VertexService {
       const inputMeta = await sharp(imageBuffer).metadata();
       console.log('[GarmentSegmentation] INPUT dimensions:', inputMeta.width, 'x', inputMeta.height);
 
+      // Convert HEIF/WEBP to JPEG before sending to Photoroom
+      const jpegBuffer = await this.ensureJpegBuffer(imageBuffer);
+
       const form = new FormData();
-      form.append('imageFile', imageBuffer, {
+      form.append('imageFile', jpegBuffer, {
         filename: 'image.jpg',
         contentType: 'image/jpeg',
       });
