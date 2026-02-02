@@ -1015,7 +1015,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       style={[
         globalStyles.container,
         globalStyles.screen,
-        {backgroundColor: theme.colors.background, paddingBottom: 350},
+        {backgroundColor: theme.colors.background, paddingBottom: 0},
       ]}>
       <View
         style={{
@@ -1069,15 +1069,15 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           </Animatable.Text>
         </View> */}
 
-        <View style={[globalStyles.section]}>
-          <View style={globalStyles.centeredSection}>
+        <View style={[globalStyles.section, {flex: 1, marginBottom: 0}]}>
+          <View style={[globalStyles.centeredSection, {flex: 1}]}>
             <ScrollView
               onScroll={handleScroll}
               scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 marginTop: 8,
-                paddingBottom: 40,
+                paddingBottom: 200,
                 alignItems: 'center',
               }}>
               {/* AI Outfit v2 Entry State */}
