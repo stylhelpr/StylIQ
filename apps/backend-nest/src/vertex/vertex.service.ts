@@ -312,12 +312,9 @@ export class VertexService {
   // Image Embeddings (Predict API)
   // -------------------
   async embedImage(gcsUri: string): Promise<number[]> {
-    // Vertex AI multimodalembedding@001 doesn't support WEBP - convert to JPEG
-    let effectiveUri = gcsUri;
-    if (gcsUri.toLowerCase().endsWith('.webp')) {
-      console.log('[embedImage] Converting WEBP to JPEG for embedding:', gcsUri);
-      effectiveUri = await this.convertWebpToJpeg(gcsUri);
-    }
+    // Vertex AI multimodalembedding@001 doesn't support WEBP
+    // Always check actual file format, not just extension (iOS can send WEBP with .jpg extension)
+    const effectiveUri = await this.ensureEmbeddableFormat(gcsUri);
 
     const endpoint = `projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.imageModel}`;
 
@@ -344,9 +341,10 @@ export class VertexService {
     return values.map((v: any) => v.numberValue!);
   }
 
-  // Convert WEBP to JPEG for Vertex AI embedding (WEBP not supported)
-  private async convertWebpToJpeg(gcsUri: string): Promise<string> {
-    const sharp = (await import('sharp')).default;
+  // Check actual image format and convert WEBP to JPEG if needed
+  private async ensureEmbeddableFormat(gcsUri: string): Promise<string> {
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
     const { Storage } = await import('@google-cloud/storage');
     const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
     const storage = new Storage({
@@ -361,17 +359,27 @@ export class VertexService {
     }
     const [, bucketName, objectPath] = match;
 
-    // Download WEBP
+    // Download image
     const bucket = storage.bucket(bucketName);
-    const [webpBuffer] = await bucket.file(objectPath).download();
+    const [imageBuffer] = await bucket.file(objectPath).download();
 
-    // Convert to JPEG
-    const jpegBuffer = await sharp(webpBuffer)
-      .jpeg({ quality: 90 })
+    // Detect actual format using sharp
+    const metadata = await sharp(imageBuffer).metadata();
+    console.log('[embedImage] Detected format:', metadata.format, 'for', gcsUri);
+
+    // If not WEBP, use original URI
+    if (metadata.format !== 'webp') {
+      return gcsUri;
+    }
+
+    // Convert WEBP to JPEG
+    console.log('[embedImage] Converting WEBP to JPEG for embedding');
+    const jpegBuffer = await sharp(imageBuffer)
+      .jpeg({ quality: 95 })
       .toBuffer();
 
-    // Upload converted JPEG to temp location
-    const jpegPath = objectPath.replace(/\.webp$/i, '-embed.jpg');
+    // Upload converted JPEG
+    const jpegPath = objectPath.replace(/\.[^.]+$/, '') + '-embed.jpg';
     const jpegFile = bucket.file(jpegPath);
     await jpegFile.save(jpegBuffer, {
       contentType: 'image/jpeg',
@@ -379,7 +387,7 @@ export class VertexService {
     });
 
     const convertedUri = `gs://${bucketName}/${jpegPath}`;
-    console.log('[embedImage] Converted WEBP to JPEG:', convertedUri);
+    console.log('[embedImage] Converted to:', convertedUri);
     return convertedUri;
   }
 
@@ -878,6 +886,12 @@ export class VertexService {
         return null;
       }
 
+      // Log input dimensions
+      const sharpModule = await import('sharp');
+      const sharp = sharpModule.default || sharpModule;
+      const inputMeta = await sharp(imageBuffer).metadata();
+      console.log('[GarmentSegmentation] INPUT dimensions:', inputMeta.width, 'x', inputMeta.height);
+
       const form = new FormData();
       form.append('imageFile', imageBuffer, {
         filename: 'image.jpg',
@@ -909,6 +923,10 @@ export class VertexService {
       }
 
       const pngBuffer = Buffer.from(await res.arrayBuffer());
+
+      // Log output dimensions
+      const outputMeta = await sharp(pngBuffer).metadata();
+      console.log('[GarmentSegmentation] OUTPUT dimensions:', outputMeta.width, 'x', outputMeta.height);
 
       return this.uploadProcessedImage(pngBuffer, userId, originalObjectKey);
     } catch (err) {

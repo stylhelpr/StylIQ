@@ -132,7 +132,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     h('impactLight');
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      quality: 0.8,
+      quality: 1.0,
       maxWidth: 2048,
       maxHeight: 2048,
       selectionLimit: 1,
@@ -146,7 +146,7 @@ export default function NoteDetailScreen({navigate, params}: Props) {
     h('impactLight');
     const result = await launchCamera({
       mediaType: 'photo',
-      quality: 0.8,
+      quality: 1.0,
       maxWidth: 2048,
       maxHeight: 2048,
     });

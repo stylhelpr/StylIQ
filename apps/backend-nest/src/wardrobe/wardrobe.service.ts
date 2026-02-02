@@ -2872,7 +2872,11 @@ ${lockedLines}
     // Occasion & formality
     add('occasion_tags', dto.occasion_tags);
     add('dress_code', this.normalizeDressCode(dto.dress_code));
-    add('formality_score', dto.formality_score);
+    // Ensure formality_score is integer for smallint column
+    add(
+      'formality_score',
+      dto.formality_score != null ? Math.round(Number(dto.formality_score)) : undefined,
+    );
 
     // Seasonality & climate (ENUMS)
     const normalizedSeasonality = this.normalizeSeasonality(dto.seasonality);
@@ -2949,7 +2953,11 @@ ${lockedLines}
     add('goes_with_ids', dto.goes_with_ids);
     add('avoid_with_ids', dto.avoid_with_ids);
     add('user_rating', dto.user_rating);
-    add('fit_confidence', dto.fit_confidence);
+    // Ensure fit_confidence is integer for smallint column
+    add(
+      'fit_confidence',
+      dto.fit_confidence != null ? Math.round(Number(dto.fit_confidence)) : undefined,
+    );
     add('outfit_feedback', dto.outfit_feedback, 'json');
     add('disliked_features', dto.disliked_features);
 
@@ -2957,7 +2965,13 @@ ${lockedLines}
     add('ai_title', dto.ai_title);
     add('ai_description', dto.ai_description);
     add('ai_key_attributes', dto.ai_key_attributes);
-    add('ai_confidence', dto.ai_confidence);
+    // ai_confidence from AI is 0-1 float, DB expects smallint (0-100)
+    add(
+      'ai_confidence',
+      dto.ai_confidence != null
+        ? Math.round(Number(dto.ai_confidence) * 100)
+        : undefined,
+    );
 
     // System
     add('constraints', dto.constraints);

@@ -53,7 +53,7 @@ export default function SaveLookModal({visible, onClose, onSave}: Props) {
     h('impactLight');
     const result = await ImagePicker.launchImageLibrary({
       mediaType: 'photo',
-      quality: 0.8,
+      quality: 1.0,
       maxWidth: 2048,
       maxHeight: 2048,
     });
