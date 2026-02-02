@@ -141,7 +141,9 @@ OUTPUT (JSON only):
       "slots": [
         {"category": "Tops", "description": "generic item", "formality": N},
         {"category": "Bottoms", "description": "generic item", "formality": N},
-        {"category": "Shoes", "description": "generic item", "formality": N}
+        {"category": "Shoes", "description": "generic item", "formality": N},
+        {"category": "Outerwear", "description": "optional layer if appropriate", "formality": N},
+        {"category": "Accessories", "description": "optional accessory if appropriate", "formality": N}
       ]
     },
     {

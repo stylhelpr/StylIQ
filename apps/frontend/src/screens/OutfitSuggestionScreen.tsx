@@ -112,7 +112,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   // Local UI state
   // ──────────────────────────────────────────────────────────────
   const [visibleModal, setVisibleModal] = useState<
-    null | 'top' | 'bottom' | 'shoes'
+    null | 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories'
   >(null);
   const [lastSpeech, setLastSpeech] = useState('');
 
@@ -172,7 +172,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const [outfitPrompt, setOutfitPrompt] = useState<string>('');
   const [buildAroundPrompt, setBuildAroundPrompt] = useState<string>('');
   // Swap item mode: track which section is being swapped (null = start from piece mode)
-  const [swapSection, setSwapSection] = useState<'top' | 'bottom' | 'shoes' | null>(null);
+  const [swapSection, setSwapSection] = useState<'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories' | null>(null);
 
   // Tracks if user has confirmed outfit selection (hides thumbnails, shows refinement screen)
   const [hasRefined, setHasRefined] = useState(false);
@@ -769,10 +769,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     pickFirstByCategory(current?.items, 'Outerwear');
   const bottomApi = pickFirstByCategory(current?.items, 'Bottoms');
   const shoesApi = pickFirstByCategory(current?.items, 'Shoes');
+  // Extract outerwear separately (only if we have a Top, otherwise it's used as top fallback)
+  const outerwearApi = pickFirstByCategory(current?.items, 'Tops')
+    ? pickFirstByCategory(current?.items, 'Outerwear')
+    : null;
+  const accessoriesApi = pickFirstByCategory(current?.items, 'Accessories');
 
   const top = apiItemToUI(topApi);
   const bottom = apiItemToUI(bottomApi);
   const shoes = apiItemToUI(shoesApi);
+  const outerwear = apiItemToUI(outerwearApi);
+  const accessories = apiItemToUI(accessoriesApi);
 
   const hasOutfit = useMemo(() => {
     const o: any = current;
@@ -788,6 +795,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     top: current?.why ? [current.why] : [],
     bottom: current?.why ? [current.why] : [],
     shoes: current?.why ? [current.why] : [],
+    outerwear: current?.why ? [current.why] : [],
+    accessories: current?.why ? [current.why] : [],
   };
 
   // Extract IDs for feedback payload
@@ -874,17 +883,19 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const renderCard = (
     label: string,
     item: WardrobeItem | undefined,
-    section: 'top' | 'bottom' | 'shoes',
+    section: 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories',
   ) => {
     // AI Outfit v2: Check if this item is the locked item
     const isLocked = lockedItem && item?.id === lockedItem.id;
 
     // Map section to wardrobe category
-    const getCategoryForSection = (s: 'top' | 'bottom' | 'shoes') => {
+    const getCategoryForSection = (s: 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories') => {
       switch (s) {
         case 'top': return 'Tops';
         case 'bottom': return 'Bottoms';
         case 'shoes': return 'Shoes';
+        case 'outerwear': return 'Outerwear';
+        case 'accessories': return 'Accessories';
         default: return 'All';
       }
     };
@@ -1479,6 +1490,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   {renderCard('Top', top, 'top')}
                   {renderCard('Bottom', bottom, 'bottom')}
                   {renderCard('Shoes', shoes, 'shoes')}
+                  {outerwear && renderCard('Outerwear', outerwear, 'outerwear')}
+                  {accessories && renderCard('Accessories', accessories, 'accessories')}
                 </>
               )}
 
@@ -1758,6 +1771,20 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   item={shoes}
                   reasons={reasons.shoes}
                   section="Shoes"
+                  onClose={() => setVisibleModal(null)}
+                />
+                <WhyPickedModal
+                  visible={visibleModal === 'outerwear'}
+                  item={outerwear}
+                  reasons={reasons.outerwear}
+                  section="Outerwear"
+                  onClose={() => setVisibleModal(null)}
+                />
+                <WhyPickedModal
+                  visible={visibleModal === 'accessories'}
+                  item={accessories}
+                  reasons={reasons.accessories}
+                  section="Accessories"
                   onClose={() => setVisibleModal(null)}
                 />
               </>
