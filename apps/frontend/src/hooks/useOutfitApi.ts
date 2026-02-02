@@ -6,7 +6,8 @@ export type OutfitApiItem = {
   index: number;
   id: string;
   label: string;
-  image_url?: string;
+  image?: string; // computed best: touched_up > processed > original
+  image_url?: string; // original uploaded image
   main_category?: string;
   subcategory?: string;
   color?: string;
@@ -90,7 +91,7 @@ export function apiItemToUI(
     'Item';
   return {
     id: item.id,
-    image: resolveUri(item.image_url),
+    image: resolveUri(item.image || item.image_url),
     name,
     mainCategory: item.main_category,
     subCategory: item.subcategory,

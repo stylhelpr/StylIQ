@@ -67,7 +67,8 @@ type CatalogItem = {
   index: number;
   id: string;
   label: string;
-  image_url?: string;
+  image?: string; // computed best: touched_up > processed > original
+  image_url?: string; // original uploaded image (preserved for semantics)
 
   // core used by all scorers
   main_category?: string;
@@ -2016,8 +2017,9 @@ ${lockedLines}
 
       if (itemIds.length > 0) {
         const { rows } = await pool.query(
-          `SELECT id, name, image_url, main_category, subcategory, color,
-                  color_family, brand, dress_code, formality_score, material, fit
+          `SELECT id, name, image_url, touched_up_image_url, processed_image_url,
+                  main_category, subcategory, color, color_family, brand,
+                  dress_code, formality_score, material, fit
            FROM wardrobe_items
            WHERE id = ANY($1) AND user_id = $2`,
           [itemIds, userId],
@@ -2238,6 +2240,7 @@ ${lockedLines}
       index,
       id: row.id,
       label: row.name || 'Unknown Item',
+      image: row.touched_up_image_url || row.processed_image_url || row.image_url,
       image_url: row.image_url,
       main_category: row.main_category,
       subcategory: row.subcategory,
