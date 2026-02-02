@@ -913,7 +913,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         activeOpacity={0.9}
         style={[
           styles.cardOverlay,
-          {backgroundColor: 'white'},
+          {backgroundColor: theme.colors.surface},
           isLocked && {borderWidth: 2, borderColor: theme.colors.primary},
         ]}>
         <Image
@@ -1379,7 +1379,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                           }}
                           style={{
                             flex: 1,
-                            maxWidth: 110,
+                            maxWidth: 120,
                             padding: 8,
                             borderRadius: 12,
                             backgroundColor: isSelected
@@ -1390,29 +1390,34 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                               ? theme.colors.primary
                               : 'transparent',
                           }}>
-                          {/* Mini preview images */}
+                          {/* Stacked outfit preview (like AI Suggestions on home) */}
                           <View style={{
-                            flexDirection: 'row',
-                            justifyContent: 'center',
-                            flexWrap: 'wrap',
-                            marginBottom: 6,
+                            alignItems: 'center',
+                            justifyContent: 'flex-start',
+                            height: 110,
+                            marginBottom: 4,
                           }}>
-                            {[preview?.top, preview?.bottom, preview?.shoes, preview?.outerwear, preview?.accessories]
-                              .filter(Boolean)
-                              .map((item, i) => (
-                                <Image
-                                  key={i}
-                                  source={{uri: item?.image}}
-                                  style={{
-                                    width: 24,
-                                    height: 24,
-                                    borderRadius: 5,
-                                    marginHorizontal: 1,
-                                    marginVertical: 1,
-                                    backgroundColor: theme.colors.surface3,
-                                  }}
-                                />
-                              ))}
+                            {preview?.top && (
+                              <Image
+                                source={{uri: preview.top.image}}
+                                style={{width: 50, height: 45, zIndex: 3}}
+                                resizeMode="contain"
+                              />
+                            )}
+                            {preview?.bottom && (
+                              <Image
+                                source={{uri: preview.bottom.image}}
+                                style={{width: 50, height: 50, marginTop: -8, zIndex: 2}}
+                                resizeMode="contain"
+                              />
+                            )}
+                            {preview?.shoes && (
+                              <Image
+                                source={{uri: preview.shoes.image}}
+                                style={{width: 38, height: 32, marginTop: -6, zIndex: 1}}
+                                resizeMode="contain"
+                              />
+                            )}
                           </View>
                           {/* Pick label */}
                           <Text style={{
@@ -1495,6 +1500,86 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               {/* Outfit cards */}
               {hasOutfit && (
                 <>
+                  {/* Full Outfit Preview Card */}
+                  <View
+                    style={[
+                      styles.cardOverlay,
+                      {backgroundColor: theme.colors.surface},
+                    ]}>
+                    <View style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingVertical: 16,
+                    }}>
+                      {top && (
+                        <Image
+                          source={{uri: top.image}}
+                          style={{width: 140, height: 130, zIndex: 5}}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {bottom && (
+                        <Image
+                          source={{uri: bottom.image}}
+                          style={{width: 140, height: 150, marginTop: -20, zIndex: 4}}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {shoes && (
+                        <Image
+                          source={{uri: shoes.image}}
+                          style={{width: 100, height: 80, marginTop: -15, zIndex: 3}}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {/* Outerwear overlay on the side */}
+                      {outerwear && (
+                        <Image
+                          source={{uri: outerwear.image}}
+                          style={{
+                            position: 'absolute',
+                            right: 20,
+                            top: 30,
+                            width: 80,
+                            height: 90,
+                            zIndex: 6,
+                            transform: [{rotate: '10deg'}],
+                          }}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {/* Accessories overlay on the side */}
+                      {accessories && (
+                        <Image
+                          source={{uri: accessories.image}}
+                          style={{
+                            position: 'absolute',
+                            left: 20,
+                            bottom: 40,
+                            width: 60,
+                            height: 60,
+                            zIndex: 6,
+                          }}
+                          resizeMode="contain"
+                        />
+                      )}
+                    </View>
+                    <View
+                      style={[
+                        styles.categoryPill,
+                        {backgroundColor: theme.colors.background},
+                      ]}>
+                      <Text
+                        style={[
+                          globalStyles.label,
+                          {paddingHorizontal: 8, paddingVertical: 4, fontSize: 16},
+                        ]}>
+                        Full Outfit
+                      </Text>
+                    </View>
+                  </View>
+
                   {renderCard('Top', top, 'top')}
                   {renderCard('Bottom', bottom, 'bottom')}
                   {renderCard('Shoes', shoes, 'shoes')}
