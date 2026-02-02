@@ -159,8 +159,11 @@ OUTPUT (JSON only):
 
 RULES:
 - Exactly 3 outfits: #1 safe, #2 different vibe, #3 controlled wildcard
-- Each outfit: Tops, Bottoms, Shoes required. Outerwear, Accessories optional.
-- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
+- Each outfit SHOULD include ALL 5 categories: Tops, Bottoms, Shoes, Outerwear, Accessories
+- Only omit Outerwear if weather/context makes it inappropriate (e.g., hot summer day)
+- Only omit Accessories if none would enhance the outfit
+- Prefer COMPLETE outfits with 4-5 items over minimal 3-item outfits
+- Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer", "light bomber jacket", "leather belt")
 - No brands, no specific items, no images, no item names
 - Formality 1-10 per slot
 - JSON only, no extra text

@@ -756,11 +756,18 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     const topItem = pickFirstByCategory(items, 'Tops') ?? pickFirstByCategory(items, 'Outerwear');
     const bottomItem = pickFirstByCategory(items, 'Bottoms');
     const shoesItem = pickFirstByCategory(items, 'Shoes');
+    // Extract outerwear separately (only if we have a Top, otherwise it's used as top fallback)
+    const outerwearItem = pickFirstByCategory(items, 'Tops')
+      ? pickFirstByCategory(items, 'Outerwear')
+      : null;
+    const accessoriesItem = pickFirstByCategory(items, 'Accessories');
     return {
       title: outfit?.title || 'Outfit',
       top: apiItemToUI(topItem),
       bottom: apiItemToUI(bottomItem),
       shoes: apiItemToUI(shoesItem),
+      outerwear: apiItemToUI(outerwearItem),
+      accessories: apiItemToUI(accessoriesItem),
     };
   };
 
@@ -1387,20 +1394,21 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                           <View style={{
                             flexDirection: 'row',
                             justifyContent: 'center',
+                            flexWrap: 'wrap',
                             marginBottom: 6,
                           }}>
-                            {[preview?.top, preview?.bottom, preview?.shoes]
+                            {[preview?.top, preview?.bottom, preview?.shoes, preview?.outerwear, preview?.accessories]
                               .filter(Boolean)
-                              .slice(0, 3)
                               .map((item, i) => (
                                 <Image
                                   key={i}
                                   source={{uri: item?.image}}
                                   style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 6,
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: 5,
                                     marginHorizontal: 1,
+                                    marginVertical: 1,
                                     backgroundColor: theme.colors.surface3,
                                   }}
                                 />
