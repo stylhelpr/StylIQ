@@ -309,7 +309,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     if (isDirty && placedItems.length > 0) {
       setShowDiscardModal(true);
     } else {
-      navigate('Closet');
+      navigate('Wardrobe');
     }
   }, [isDirty, placedItems.length, navigate]);
 
@@ -336,7 +336,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
   // Handle discard
   const handleDiscard = useCallback(() => {
     setShowDiscardModal(false);
-    navigate('Closet');
+    navigate('Wardrobe');
   }, [navigate]);
 
   // Handle save from discard modal

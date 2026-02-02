@@ -200,18 +200,19 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 onPress={() => current !== 'Home' && navigate('Home')}
                 isActive={current === 'Home'}
               />
-              <TabButton
-                icon="auto-awesome"
-                label="AI OUTFIT"
-                onPress={() => current !== 'Outfit' && navigate('Outfit')}
-                isActive={current === 'Outfit'}
-              />
                  <TabButton
                 icon="style"
                 label="WARDROBE"
                 onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
                 isActive={current === 'Wardrobe'}
               />
+              <TabButton
+                icon="auto-awesome"
+                label="AI OUTFIT"
+                onPress={() => current !== 'Outfit' && navigate('Outfit')}
+                isActive={current === 'Outfit'}
+              />
+              
                  <TabButton
                 icon="checkroom"
                 label="OUTFITS"
@@ -245,18 +246,19 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               onPress={() => current !== 'Home' && navigate('Home')}
               isActive={current === 'Home'}
             />
+               <TabButton
+                icon="style"
+                label="WARDROBE"
+                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+                isActive={current === 'Wardrobe'}
+              />
           <TabButton
                 icon="auto-awesome"
                 label="AI OUTFIT"
                 onPress={() => current !== 'Outfit' && navigate('Outfit')}
                 isActive={current === 'Outfit'}
               />
-              <TabButton
-                icon="style"
-                label="WARDROBE"
-                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
-                isActive={current === 'Wardrobe'}
-              />
+           
                 <TabButton
                 icon="checkroom"
                 label="OUTFITS"
