@@ -10,6 +10,8 @@ import {
   Pressable,
   Image,
   Alert,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
@@ -121,6 +123,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const [showTweakSheet, setShowTweakSheet] = useState(false);
   const [swappingCategory, setSwappingCategory] = useState<string | null>(null); // Track which category is being swapped
   const [isSaving, setIsSaving] = useState(false); // Track outfit saving state
+  const [fullScreenOutfitIndex, setFullScreenOutfitIndex] = useState<number | null>(null); // Full screen modal outfit index
 
   const queryClient = useQueryClient();
   const lastSuggestionRef = useRef<string | null>(null);
@@ -200,69 +203,148 @@ const AiStylistSuggestions: React.FC<Props> = ({
   // Visual Outfit Components (inline)
   // ============================================
 
-  // Outfit image strip - horizontal scroll of item thumbnails
-  const OutfitStrip = ({items}: {items: OutfitItem[]}) => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{
-        // paddingHorizontal: moderateScale(tokens.spacing.xs),
-        gap: moderateScale(tokens.spacing.xs),
-        flexDirection: 'row',
-      }}>
-      {items.slice(0, 5).map(item => {
-        const isSwapping = swappingCategory === item.category;
-        return (
-          <View
-            key={item.id}
-            style={{
-              width: 85,
-              height: 85,
-              borderRadius: tokens.borderRadius.md,
-              overflow: 'hidden',
-              borderWidth: isSwapping ? 2 : theme.borderWidth.hairline,
-              borderColor: isSwapping ? theme.colors.button1 : theme.colors.surfaceBorder,
-              backgroundColor: theme.colors.surface2,
-            }}>
-            {isSwapping ? (
-              <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator size="small" color={theme.colors.button1} />
-              </View> 
-            ) : (
-              <>
-                <Image
-                  source={{uri: item.imageUrl}}
-                  style={{width: '100%', height: '100%', backgroundColor: theme.colors.button1}}
-                  resizeMode="contain"
-                />
-                <View
-                  style={{
-                    position: 'absolute',
-                    bottom: 2,
-                    left: 2,
-                    right: 2,
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    borderRadius: 4,
-                    paddingVertical: 1,
-                    paddingHorizontal: 3,
-                  }}>
-                  <Text
-                    style={{
-                      color: '#fff',
-                      fontSize: fontScale(tokens.fontSize.xxs),
-                      textAlign: 'center',
-                    }}
-                    numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                </View>
-              </>
+  // Outfit layout - composite snapshot + grid of individual items (like saved outfits card)
+  const OutfitStrip = ({items, outfitIndex}: {items: OutfitItem[]; outfitIndex: number}) => {
+    // Sort items by category for proper layering: top → outerwear → bottom → shoes → accessory
+    const categoryOrder = ['top', 'outerwear', 'bottom', 'shoes', 'accessory'];
+    const sortedItems = [...items].sort(
+      (a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category),
+    );
+
+    // Get items by category for snapshot composition
+    const topItem = items.find(i => i.category === 'top');
+    const outerwearItem = items.find(i => i.category === 'outerwear');
+    const bottomItem = items.find(i => i.category === 'bottom');
+    const shoesItem = items.find(i => i.category === 'shoes');
+    const accessoryItems = items.filter(i => i.category === 'accessory');
+
+    return (
+      <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+        {/* Left: Composite snapshot - all outfit items arranged */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setFullScreenOutfitIndex(outfitIndex)}
+          style={{
+            width: 160,
+            height: 210,
+            borderRadius: 12,
+            overflow: 'hidden',
+            backgroundColor: theme.colors.surface,
+            flexDirection: 'row',
+          }}>
+          {/* Left column: Outerwear */}
+          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10}}>
+            {outerwearItem && (
+              <Image
+                source={{uri: outerwearItem.imageUrl}}
+                style={{width: 40, height: 55}}
+                resizeMode="contain"
+              />
             )}
           </View>
-        );
-      })}
-    </ScrollView>
-  );
+
+          {/* Center column: Top → Bottom → Shoes (overlapping) */}
+          <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8}}>
+            {topItem && (
+              <Image
+                source={{uri: topItem.imageUrl}}
+                style={{width: 70, height: 65, zIndex: 3}}
+                resizeMode="contain"
+              />
+            )}
+            {bottomItem && (
+              <Image
+                source={{uri: bottomItem.imageUrl}}
+                style={{width: 70, height: 75, marginTop: -12, zIndex: 2}}
+                resizeMode="contain"
+              />
+            )}
+            {shoesItem && (
+              <Image
+                source={{uri: shoesItem.imageUrl}}
+                style={{width: 55, height: 50, marginTop: -10, zIndex: 1}}
+                resizeMode="contain"
+              />
+            )}
+          </View>
+
+          {/* Right column: Accessories */}
+          <View style={{width: 45, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 10, gap: 6}}>
+            {accessoryItems.slice(0, 3).map((acc, idx) => (
+              <Image
+                key={acc.id || idx}
+                source={{uri: acc.imageUrl}}
+                style={{width: 35, height: 35}}
+                resizeMode="contain"
+              />
+            ))}
+          </View>
+        </TouchableOpacity>
+
+        {/* Right: Grid of individual items */}
+        <View
+          style={{
+            marginLeft: 12,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            width: 164,
+            gap: 8,
+          }}>
+          {sortedItems.slice(0, 4).map(item => {
+            const isSwapping = swappingCategory === item.category;
+            return (
+              <View
+                key={item.id}
+                style={{
+                  width: 75,
+                  height: 75,
+                  borderRadius: tokens.borderRadius.sm,
+                  overflow: 'hidden',
+                  borderWidth: isSwapping ? 2 : theme.borderWidth.hairline,
+                  borderColor: isSwapping ? theme.colors.button1 : theme.colors.surfaceBorder,
+                  backgroundColor: theme.colors.surface2,
+                }}>
+                {isSwapping ? (
+                  <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                    <ActivityIndicator size="small" color={theme.colors.button1} />
+                  </View>
+                ) : (
+                  <>
+                    <Image
+                      source={{uri: item.imageUrl}}
+                      style={{width: '100%', height: '100%'}}
+                      resizeMode="contain"
+                    />
+                    <View
+                      style={{
+                        position: 'absolute',
+                        bottom: 2,
+                        left: 2,
+                        right: 2,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        borderRadius: 3,
+                        paddingVertical: 1,
+                        paddingHorizontal: 2,
+                      }}>
+                      <Text
+                        style={{
+                          color: '#fff',
+                          fontSize: fontScale(8),
+                          textAlign: 'center',
+                        }}
+                        numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                    </View>
+                  </>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   // Rank badge showing "1st Pick", "2nd Pick", etc.
   const RankBadge = ({rank}: {rank: 1 | 2 | 3}) => {
@@ -1173,7 +1255,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 )}
 
                 {/* Visual Outfit Strip - IMAGES FIRST */}
-                <OutfitStrip items={getCurrentOutfit()?.items || []} />
+                <OutfitStrip items={getCurrentOutfit()?.items || []} outfitIndex={activeOutfitIndex} />
 
                 {/* One-line summary */}
                 <Text
@@ -1441,6 +1523,184 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
       {/* 🎛️ Tweak Sheet Overlay - at SafeAreaView level for proper positioning */}
       <TweakSheet />
+
+      {/* 🖼️ Full Screen Outfit Modal */}
+      <Modal
+        visible={fullScreenOutfitIndex !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFullScreenOutfitIndex(null)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.92)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={() => setFullScreenOutfitIndex(null)}
+            style={{
+              position: 'absolute',
+              top: 60,
+              right: 20,
+              zIndex: 10,
+              padding: 10,
+            }}>
+            <Icon name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Full screen snapshot layout - centered with rank and summary */}
+          {(() => {
+            const outfits = isVisualFormat(aiData) ? aiData.outfits : [];
+            const totalOutfits = outfits.length;
+            const currentOutfit = outfits[fullScreenOutfitIndex ?? 0];
+            const items = currentOutfit?.items || [];
+            const topItem = items.find(i => i.category === 'top');
+            const outerwearItem = items.find(i => i.category === 'outerwear');
+            const bottomItem = items.find(i => i.category === 'bottom');
+            const shoesItem = items.find(i => i.category === 'shoes');
+            const accessoryItems = items.filter(i => i.category === 'accessory');
+            const screenWidth = Dimensions.get('window').width;
+
+            const rankLabels: Record<1 | 2 | 3, string> = {
+              1: '1st Pick',
+              2: '2nd Pick',
+              3: '3rd Pick',
+            };
+
+            // Navigation functions - wrap around continuously
+            const goToPrev = () => {
+              if (fullScreenOutfitIndex !== null && totalOutfits > 0) {
+                const newIndex = fullScreenOutfitIndex === 0 ? totalOutfits - 1 : fullScreenOutfitIndex - 1;
+                setFullScreenOutfitIndex(newIndex);
+              }
+            };
+
+            const goToNext = () => {
+              if (fullScreenOutfitIndex !== null && totalOutfits > 0) {
+                const newIndex = fullScreenOutfitIndex === totalOutfits - 1 ? 0 : fullScreenOutfitIndex + 1;
+                setFullScreenOutfitIndex(newIndex);
+              }
+            };
+
+            const showArrows = totalOutfits > 1;
+
+            return (
+              <View style={{alignItems: 'center', justifyContent: 'center', width: '100%'}}>
+                {/* Rank Badge */}
+                <View
+                  style={{
+                    backgroundColor: currentOutfit?.rank === 1 ? theme.colors.button1 : currentOutfit?.rank === 2 ? theme.colors.foreground2 : theme.colors.muted,
+                    paddingHorizontal: 16,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    marginBottom: 12,
+                  }}>
+                  <Text style={{color: currentOutfit?.rank === 1 ? '#fff' : theme.colors.foreground, fontSize: 16, fontWeight: '600'}}>
+                    {rankLabels[currentOutfit?.rank || 1]}
+                  </Text>
+                </View>
+
+                {/* Summary Caption */}
+                <Text style={{color: '#fff', fontSize: 15, fontWeight: '500', textAlign: 'center', marginBottom: 20, paddingHorizontal: 32, opacity: 0.9}}>
+                  {currentOutfit?.summary || 'Perfect for today'}
+                </Text>
+
+                {/* Outfit Card with arrows inside */}
+                <View
+                  style={{
+                    width: screenWidth - 16,
+                    borderRadius: 24,
+                    backgroundColor: theme.colors.surface,
+                    flexDirection: 'row',
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                }}>
+                  {/* Left Arrow */}
+                  <TouchableOpacity
+                    onPress={goToPrev}
+                    style={{padding: 4, opacity: showArrows ? 1 : 0.3}}>
+                    <Icon name="chevron-left" size={28} color={theme.colors.muted} />
+                  </TouchableOpacity>
+
+                  {/* Left column: Outerwear */}
+                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8}}>
+                    {outerwearItem && (
+                      <Image
+                        source={{uri: outerwearItem.imageUrl}}
+                        style={{width: 80, height: 130}}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+
+                  {/* Center column: Top → Bottom → Shoes (overlapping) */}
+                  <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 6}}>
+                    {topItem && (
+                      <Image
+                        source={{uri: topItem.imageUrl}}
+                        style={{width: 200, height: 190, zIndex: 3}}
+                        resizeMode="contain"
+                      />
+                    )}
+                    {bottomItem && (
+                      <Image
+                        source={{uri: bottomItem.imageUrl}}
+                        style={{width: 200, height: 220, marginTop: -42, zIndex: 2}}
+                        resizeMode="contain"
+                      />
+                    )}
+                    {shoesItem && (
+                      <Image
+                        source={{uri: shoesItem.imageUrl}}
+                        style={{width: 160, height: 145, marginTop: -32, zIndex: 1}}
+                        resizeMode="contain"
+                      />
+                    )}
+                  </View>
+
+                  {/* Right column: Accessories */}
+                  <View style={{width: 85, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 8, gap: 10}}>
+                    {accessoryItems.slice(0, 3).map((acc, idx) => (
+                      <Image
+                        key={acc.id || idx}
+                        source={{uri: acc.imageUrl}}
+                        style={{width: 80, height: 80}}
+                        resizeMode="contain"
+                      />
+                    ))}
+                  </View>
+
+                  {/* Right Arrow */}
+                  <TouchableOpacity
+                    onPress={goToNext}
+                    style={{padding: 4, opacity: showArrows ? 1 : 0.3}}>
+                    <Icon name="chevron-right" size={28} color={theme.colors.muted} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Reasoning Description */}
+                {currentOutfit?.reasoning && (
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontSize: 14,
+                      fontWeight: '400',
+                      textAlign: 'center',
+                      marginTop: 20,
+                      paddingHorizontal: 24,
+                      opacity: 0.85,
+                      lineHeight: 20,
+                    }}>
+                    {currentOutfit.reasoning}
+                  </Text>
+                )}
+              </View>
+            );
+          })()}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
