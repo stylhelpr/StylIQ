@@ -1,4 +1,4 @@
-import React, {useState, useMemo, useCallback} from 'react';
+import React, {useState, useMemo, useCallback, useEffect} from 'react';
 import {
   View,
   Text,
@@ -88,6 +88,12 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
   const [selectedCategory, setSelectedCategory] = useState<Category>('All');
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Clear FastImage cache on mount to ensure fresh images
+  useEffect(() => {
+    FastImage.clearMemoryCache();
+    FastImage.clearDiskCache();
+  }, []);
+
   // Animated drawer height
   const drawerHeight = useSharedValue(DRAWER_COLLAPSED_HEIGHT);
 
@@ -119,16 +125,17 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
     );
   }, [wardrobe, selectedCategory]);
 
-  // Resolve image URL - prioritize processed/touched-up versions
+  // Resolve image URL - backend computes best URL in 'image' field
   // Use || instead of ?? to treat empty strings as falsy
   const resolveUri = useCallback((item: WardrobeItem) => {
-    // Same priority as ClosetScreen: touchedUp > processed > thumbnail > image_url
+    // Backend now computes 'image' with priority: touchedUp > processed > original
+    // Check 'image' first, then fallbacks for legacy data
     const u =
+      item.image ||
       item.touchedUpImageUrl ||
       item.processedImageUrl ||
       item.thumbnailUrl ||
-      item.image_url ||
-      item.image;
+      item.image_url;
     if (!u) return '';
     if (/^https?:\/\//i.test(u)) return u;
     const base = API_BASE_URL.replace(/\/+$/, '');
@@ -317,7 +324,10 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
                       activeOpacity={0.7}
                       disabled={isPlaced}>
                       <FastImage
-                        source={{uri: resolveUri(item)}}
+                        source={{
+                          uri: resolveUri(item),
+                          cache: FastImage.cacheControl.web,
+                        }}
                         style={styles.itemImage}
                         resizeMode={FastImage.resizeMode.cover}
                       />

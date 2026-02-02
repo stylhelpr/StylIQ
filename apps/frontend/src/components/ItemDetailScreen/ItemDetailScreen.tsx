@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import FastImage from 'react-native-fast-image';
 import {API_BASE_URL} from '../../config/api';
 import {getAccessToken} from '../../utils/auth';
 import {mockClothingItems} from '../../components/mockClothingItems/mockClothingItems';
@@ -139,6 +140,7 @@ export default function ItemDetailScreen({route, navigation}: Props) {
   const [deleting, setDeleting] = useState(false);
   const [touchingUp, setTouchingUp] = useState(false);
   const [removingBg, setRemovingBg] = useState(false);
+  const [updatedImageUrl, setUpdatedImageUrl] = useState<string | null>(null);
 
   // Enriched
   const [pattern, setPattern] = useState('');
@@ -394,9 +396,19 @@ export default function ItemDetailScreen({route, navigation}: Props) {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       hSuccess();
       setRemovingBg(false);
+      // Clear FastImage cache to force reload of updated image
+      FastImage.clearMemoryCache();
+      FastImage.clearDiskCache();
+      // Update local image URL with the new processed image
+      if (data?.item?.image) {
+        setUpdatedImageUrl(data.item.image);
+      } else if (data?.item?.processedImageUrl) {
+        setUpdatedImageUrl(data.item.processedImageUrl);
+      }
+      // Invalidate wardrobe cache to refetch with new processed_image_url
       queryClient.invalidateQueries({queryKey: ['wardrobe']});
       Alert.alert('Success', 'Background has been removed successfully.');
     },
@@ -511,14 +523,16 @@ export default function ItemDetailScreen({route, navigation}: Props) {
             useGlobalStyles().cardStyles3,
             {paddingVertical: 20},
           ]}>
-          {(item?.touchedUpImageUrl ||
+          {(updatedImageUrl ||
+            item?.touchedUpImageUrl ||
             item?.processedImageUrl ||
             item?.image_url) && (
             <Image
               source={{
                 uri:
-                  item.touchedUpImageUrl ??
-                  item.processedImageUrl ??
+                  updatedImageUrl ||
+                  item.touchedUpImageUrl ||
+                  item.processedImageUrl ||
                   item.image_url,
               }}
               style={styles.image}

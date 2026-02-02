@@ -1855,10 +1855,11 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
     (post: CommunityPost, index: number) => {
       const liked = isPostLiked(post);
       const hasCompositeImages = post.top_image && post.bottom_image;
+      // Use || to treat empty strings as falsy
       const imageUri =
-        post.image_url ??
-        post.top_image ??
-        (post as any).imageUrl ??
+        post.image_url ||
+        post.top_image ||
+        (post as any).imageUrl ||
         (post as any).image;
 
       return (

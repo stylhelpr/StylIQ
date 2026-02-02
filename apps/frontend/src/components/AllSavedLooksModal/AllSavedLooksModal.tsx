@@ -416,8 +416,9 @@ export default function AllSavedLooksModal({
 
   const renderItem = useCallback(
     ({item: look}: {item: any}) => {
+      // Use || to treat empty strings as falsy
       const imageUri =
-        look.thumbnailUrl ?? look.image_url ?? look.image ?? null;
+        look.thumbnailUrl || look.image_url || look.image || null;
 
       return (
         <View

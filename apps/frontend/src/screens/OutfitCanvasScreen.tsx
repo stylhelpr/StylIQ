@@ -48,15 +48,15 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
   const insets = useSafeAreaInsets();
   const canvasRef = useRef<ViewShot>(null);
 
-  // Get best image URL from wardrobe item (prefer processed versions)
-  // Use || instead of ?? to treat empty strings as falsy
+  // Get best image URL from wardrobe item
+  // Backend computes 'image' with priority: touchedUp > processed > original
   const getItemImageUrl = (item: WardrobeItem): string => {
     return (
+      item.image ||
       item.touchedUpImageUrl ||
       item.processedImageUrl ||
       item.thumbnailUrl ||
       item.image_url ||
-      item.image ||
       ''
     );
   };
