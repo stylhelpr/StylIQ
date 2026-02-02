@@ -800,12 +800,71 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     return Array.isArray(items) && items.length > 0;
   }, [current]);
 
+  // Generate item-specific reasons based on item properties and outfit context
+  const generateItemReason = (
+    item: WardrobeItem | undefined,
+    role: 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories',
+  ): string[] => {
+    if (!item) return [];
+
+    const reasons: string[] = [];
+    const itemName = item.name || item.subCategory || item.mainCategory || 'This item';
+    const color = item.color ? item.color.toLowerCase() : '';
+
+    // Role-specific reasons
+    switch (role) {
+      case 'top':
+        if (color) {
+          reasons.push(`${itemName} provides a ${color} foundation that anchors the outfit's color palette.`);
+        } else {
+          reasons.push(`${itemName} serves as the visual centerpiece of this look.`);
+        }
+        if (item.subCategory) {
+          reasons.push(`A ${item.subCategory.toLowerCase()} brings the right level of formality for this outfit.`);
+        }
+        break;
+      case 'bottom':
+        if (color) {
+          reasons.push(`${itemName} in ${color} balances the top and creates visual harmony.`);
+        } else {
+          reasons.push(`${itemName} complements the upper half and completes the silhouette.`);
+        }
+        break;
+      case 'shoes':
+        if (color) {
+          reasons.push(`${itemName} in ${color} ties the look together from the ground up.`);
+        } else {
+          reasons.push(`${itemName} grounds the outfit and sets the overall tone.`);
+        }
+        if (item.subCategory) {
+          reasons.push(`${item.subCategory} footwear matches the formality level of this ensemble.`);
+        }
+        break;
+      case 'outerwear':
+        if (color) {
+          reasons.push(`${itemName} in ${color} adds a polished layer that elevates the look.`);
+        } else {
+          reasons.push(`${itemName} adds structure and completes the layered aesthetic.`);
+        }
+        break;
+      case 'accessories':
+        if (color) {
+          reasons.push(`${itemName} in ${color} adds a finishing touch that pulls everything together.`);
+        } else {
+          reasons.push(`${itemName} adds personality and completes the overall styling.`);
+        }
+        break;
+    }
+
+    return reasons;
+  };
+
   const reasons = {
-    top: current?.why ? [current.why] : [],
-    bottom: current?.why ? [current.why] : [],
-    shoes: current?.why ? [current.why] : [],
-    outerwear: current?.why ? [current.why] : [],
-    accessories: current?.why ? [current.why] : [],
+    top: generateItemReason(top, 'top'),
+    bottom: generateItemReason(bottom, 'bottom'),
+    shoes: generateItemReason(shoes, 'shoes'),
+    outerwear: generateItemReason(outerwear, 'outerwear'),
+    accessories: generateItemReason(accessories, 'accessories'),
   };
 
   // Extract IDs for feedback payload

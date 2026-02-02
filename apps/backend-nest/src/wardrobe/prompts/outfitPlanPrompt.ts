@@ -138,6 +138,7 @@ OUTPUT (JSON only):
   "outfits": [
     {
       "title": "Pick #1: [Safe/Classic choice]",
+      "why": "One sentence explaining why this outfit works for the request",
       "slots": [
         {"category": "Tops", "description": "generic item", "formality": N},
         {"category": "Bottoms", "description": "generic item", "formality": N},
@@ -148,10 +149,12 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #2: [Different vibe]",
+      "why": "One sentence explaining the different approach",
       "slots": [...]
     },
     {
       "title": "Pick #3: [Wildcard/Bold choice]",
+      "why": "One sentence explaining the creative twist",
       "slots": [...]
     }
   ]
@@ -159,6 +162,7 @@ OUTPUT (JSON only):
 
 RULES:
 - Exactly 3 outfits: #1 safe, #2 different vibe, #3 controlled wildcard
+- Each outfit MUST include a "why" field: one concise sentence explaining why this combination works
 - Each outfit SHOULD include ALL 5 categories: Tops, Bottoms, Shoes, Outerwear, Accessories
 - Only omit Outerwear if weather/context makes it inappropriate (e.g., hot summer day)
 - Only omit Accessories if none would enhance the outfit
@@ -300,6 +304,7 @@ OUTPUT (JSON only):
   "outfits": [
     {
       "title": "Pick #1: [Safe/Classic pairing for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining why these items complement the centerpiece",
       "slots": [
         {"category": "${categoriesToGenerate[0]}", "description": "item that complements centerpiece", "formality": N},
         {"category": "${categoriesToGenerate[1]}", "description": "item that complements centerpiece", "formality": N}
@@ -308,10 +313,12 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #2: [Different vibe with the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the different styling approach",
       "slots": [...]
     },
     {
       "title": "Pick #3: [Creative pairing for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the creative pairing",
       "slots": [...]
     }
   ]
@@ -319,6 +326,7 @@ OUTPUT (JSON only):
 
 RULES:
 - Exactly 3 outfits, all featuring the same centerpiece ${centerpieceItem.category}
+- Each outfit MUST include a "why" field explaining the styling rationale
 - DO NOT include a slot for ${centerpieceItem.category} (already selected)
 - Each outfit needs: slots for categories EXCEPT ${centerpieceItem.category}
 - Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer")
@@ -497,6 +505,7 @@ OUTPUT (JSON only):
   "outfits": [
     {
       "title": "Pick #1: [Safe/Classic pairing for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining why these items complement the centerpiece",
       "slots": [
         {"category": "${categoriesToGenerate[0]}", "description": "item that complements centerpiece and mood", "formality": N},
         {"category": "${categoriesToGenerate[1]}", "description": "item that complements centerpiece and mood", "formality": N}
@@ -504,6 +513,7 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #2: [Different vibe with the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the different styling approach",
       "slots": [
         {"category": "...", "description": "...", "formality": N},
         {"category": "...", "description": "...", "formality": N}
@@ -511,6 +521,7 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #3: [Creative pairing for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the creative pairing",
       "slots": [
         {"category": "...", "description": "...", "formality": N},
         {"category": "...", "description": "...", "formality": N}
@@ -521,6 +532,7 @@ OUTPUT (JSON only):
 
 RULES:
 - Exactly 3 outfits, all featuring the same centerpiece ${centerpieceItem.category}
+- Each outfit MUST include a "why" field explaining the styling rationale
 - DO NOT include a slot for ${centerpieceItem.category} (already selected)
 - Each outfit MUST have AT LEAST 2 slots (2 complementary items + centerpiece = 3+ total)
 - Each slot category must be DISTINCT (no duplicate categories)
@@ -938,6 +950,7 @@ OUTPUT (JSON only):
   "outfits": [
     {
       "title": "Pick #1: [Safe/Classic pairing for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining why these items complement the centerpiece",
       "slots": [
         {"category": "${categoriesToGenerate[0]}", "description": "item that complements centerpiece", "formality": N},
         {"category": "${categoriesToGenerate[1]}", "description": "item that complements centerpiece", "formality": N}
@@ -945,6 +958,7 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #2: [Different vibe with the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the different styling approach",
       "slots": [
         {"category": "...", "description": "...", "formality": N},
         {"category": "...", "description": "...", "formality": N}
@@ -952,6 +966,7 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #3: [Creative pairing for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the creative pairing",
       "slots": [
         {"category": "...", "description": "...", "formality": N},
         {"category": "...", "description": "...", "formality": N}
@@ -962,6 +977,7 @@ OUTPUT (JSON only):
 
 RULES:
 - Exactly 3 outfits, all featuring the same centerpiece ${centerpieceItem.category}
+- Each outfit MUST include a "why" field explaining the styling rationale
 - DO NOT include a slot for ${centerpieceItem.category} (already selected)
 - Each outfit MUST have AT LEAST 2 slots (2 complementary items + centerpiece = 3+ total)
 - Each slot category must be DISTINCT (no duplicate categories)
@@ -1235,6 +1251,7 @@ OUTPUT (JSON only):
   "outfits": [
     {
       "title": "Pick #1: [Safe/Classic styling for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining why these items complement the centerpiece",
       "slots": [
         {"category": "${categoriesToGenerate[0]}", "description": "item that complements the LOCKED centerpiece", "formality": N},
         {"category": "${categoriesToGenerate[1]}", "description": "item that complements the LOCKED centerpiece", "formality": N}
@@ -1242,6 +1259,7 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #2: [Different styling for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the different styling approach",
       "slots": [
         {"category": "...", "description": "...", "formality": N},
         {"category": "...", "description": "...", "formality": N}
@@ -1249,6 +1267,7 @@ OUTPUT (JSON only):
     },
     {
       "title": "Pick #3: [Creative styling for the ${centerpieceItem.category}]",
+      "why": "One sentence explaining the creative pairing",
       "slots": [
         {"category": "...", "description": "...", "formality": N},
         {"category": "...", "description": "...", "formality": N}
@@ -1259,6 +1278,7 @@ OUTPUT (JSON only):
 
 RULES:
 - Exactly 3 outfits, ALL featuring the LOCKED centerpiece ${centerpieceItem.category}
+- Each outfit MUST include a "why" field explaining the styling rationale
 - DO NOT include a slot for ${centerpieceItem.category} (already LOCKED)
 - Each outfit MUST have AT LEAST 2 slots (2 complementary items + centerpiece = 3+ total)
 - Each slot category must be DISTINCT (no duplicate categories)
