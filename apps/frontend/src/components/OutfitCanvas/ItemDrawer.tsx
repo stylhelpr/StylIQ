@@ -19,8 +19,8 @@ import Animated, {
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useUUID} from '../../context/UUIDContext';
-import {useQuery} from '@tanstack/react-query';
 import {API_BASE_URL} from '../../config/api';
+import {useWardrobeItems} from '../../hooks/useWardrobeItems';
 import CategoryTabs, {Category} from './CategoryTabs';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -28,7 +28,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 const DRAWER_COLLAPSED_HEIGHT = 150;
 const DRAWER_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.5;
-const ITEM_SIZE = 80;
+const ITEM_SIZE = 95;
 
 type WardrobeItem = {
   id: string;
@@ -97,23 +97,9 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
   // Animated drawer height
   const drawerHeight = useSharedValue(DRAWER_COLLAPSED_HEIGHT);
 
-  // Fetch wardrobe items
-  const {
-    data: wardrobe = [],
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ['wardrobe', userId],
-    queryFn: async () => {
-      const url = `${API_BASE_URL}/wardrobe/${encodeURIComponent(userId || '')}`;
-      const res = await fetch(url, {headers: {Accept: 'application/json'}});
-      if (!res.ok) throw new Error('Failed to fetch wardrobe');
-      const json = await res.json();
-      return Array.isArray(json) ? json : json?.items ?? [];
-    },
-    enabled: !!userId,
-    staleTime: 30_000,
-  });
+  // Fetch wardrobe items using shared hook (returns processed images)
+  const {data: wardrobeData, isLoading, isError} = useWardrobeItems(userId || '');
+  const wardrobe = Array.isArray(wardrobeData) ? wardrobeData : [];
 
   // Filter items by category
   const filteredItems = useMemo(() => {
@@ -313,6 +299,16 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
               <View style={styles.itemsRow}>
                 {filteredItems.map((item: WardrobeItem) => {
                   const isPlaced = placedItemIds.includes(item.id);
+                  const resolvedUri = resolveUri(item);
+                  // Debug: log FULL URLs being used
+                  console.log('[ItemDrawer] FULL URLS:', {
+                    id: item.id,
+                    image: item.image,
+                    touchedUpImageUrl: item.touchedUpImageUrl,
+                    processedImageUrl: item.processedImageUrl,
+                    image_url: item.image_url,
+                    resolved: resolvedUri,
+                  });
                   return (
                     <TouchableOpacity
                       key={item.id}
@@ -325,11 +321,11 @@ export default function ItemDrawer({onAddItem, placedItemIds}: Props) {
                       disabled={isPlaced}>
                       <FastImage
                         source={{
-                          uri: resolveUri(item),
+                          uri: resolvedUri,
                           cache: FastImage.cacheControl.web,
                         }}
                         style={styles.itemImage}
-                        resizeMode={FastImage.resizeMode.cover}
+                        resizeMode={FastImage.resizeMode.contain}
                       />
                       {isPlaced && (
                         <View style={styles.checkOverlay}>

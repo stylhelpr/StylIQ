@@ -5,10 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  Image,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import {useAppTheme} from '../../context/ThemeContext';
 import {useGlobalStyles} from '../../styles/useGlobalStyles';
 import {tokens} from '../../styles/tokens/tokens';
@@ -39,6 +39,9 @@ type WardrobeItem = {
   id: string;
   image_url?: string;
   image?: string; // API may return either image or image_url
+  processedImageUrl?: string;
+  touchedUpImageUrl?: string;
+  thumbnailUrl?: string;
   name?: string;
   label?: string;
   main_category?: string;
@@ -73,15 +76,19 @@ export default function WardrobePickerModal({
   const globalStyles = useGlobalStyles();
   const userId = useUUID();
 
-  const {data: wardrobe, isLoading} = useWardrobeItems(userId || '');
+  const {data: wardrobe, isLoading, refetch} = useWardrobeItems(userId || '');
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory || 'All');
 
-  // Reset to default category when modal opens
+  // Reset to default category and refetch fresh data when modal opens
+  // Also clear FastImage cache to ensure fresh images (matching ItemDrawer behavior)
   React.useEffect(() => {
     if (visible) {
+      FastImage.clearMemoryCache();
+      FastImage.clearDiskCache();
       setSelectedCategory(defaultCategory || 'All');
+      refetch();
     }
-  }, [visible, defaultCategory]);
+  }, [visible, defaultCategory, refetch]);
 
   // Filter wardrobe by category
   const filteredItems = useMemo(() => {
@@ -160,21 +167,25 @@ export default function WardrobePickerModal({
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'flex-start',
-      padding: 12,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      // paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 14,
+      width: '100%',
     },
     itemWrapper: {
-      width: '31%',
-      aspectRatio: 1,
-      margin: '1%',
+      width: 90,
+      height: 90,
       borderRadius: 12,
       overflow: 'hidden',
-      backgroundColor: '#fff',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder || 'rgba(0,0,0,0.1)',
     },
     itemImage: {
       width: '100%',
       height: '100%',
-      resizeMode: 'cover',
     },
     itemPlaceholder: {
       width: '100%',
@@ -287,7 +298,23 @@ export default function WardrobePickerModal({
           ) : (
             <ScrollView contentContainerStyle={styles.grid}>
               {filteredItems.map((item: WardrobeItem) => {
-                const uri = resolveUri(item.image_url || item.image);
+                // Match ItemDrawer exactly: image first (backend computes best), then fallbacks
+                const imageUrl =
+                  item.image ||
+                  item.touchedUpImageUrl ||
+                  item.processedImageUrl ||
+                  item.thumbnailUrl ||
+                  item.image_url;
+                const uri = resolveUri(imageUrl);
+                // Debug: log FULL URLs being used
+                console.log('[WardrobePicker] FULL URLS:', {
+                  id: item.id,
+                  image: item.image,
+                  touchedUpImageUrl: item.touchedUpImageUrl,
+                  processedImageUrl: item.processedImageUrl,
+                  image_url: item.image_url,
+                  resolved: uri,
+                });
                 return (
                   <TouchableOpacity
                     key={item.id}
@@ -295,7 +322,14 @@ export default function WardrobePickerModal({
                     onPress={() => handleSelectItem(item)}
                     activeOpacity={0.8}>
                     {uri ? (
-                      <Image source={{uri}} style={styles.itemImage} />
+                      <FastImage
+                        source={{
+                          uri,
+                          cache: FastImage.cacheControl.web,
+                        }}
+                        style={styles.itemImage}
+                        resizeMode={FastImage.resizeMode.contain}
+                      />
                     ) : (
                       <View style={styles.itemPlaceholder}>
                         <MaterialIcons
