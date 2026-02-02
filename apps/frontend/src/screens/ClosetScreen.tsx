@@ -564,8 +564,7 @@ export default function ClosetScreen({navigate}: Props) {
     itemImage: {
       width: '100%',
       height: ITEM_HEIGHT,
-      // backgroundColor: theme.colors.surface,
-      backgroundColor: 'red',
+      backgroundColor: theme.colors.surface,
       borderTopLeftRadius: tokens.borderRadius.sm,
       borderTopRightRadius: tokens.borderRadius.sm,
     },
@@ -660,7 +659,7 @@ export default function ClosetScreen({navigate}: Props) {
             <View
               style={{
                 width: '100%',
-                backgroundColor: '#828282',
+                backgroundColor: theme.colors.surface,
               }}>
               <FastImage
                 source={{

@@ -227,13 +227,13 @@ const AiStylistSuggestions: React.FC<Props> = ({
             {isSwapping ? (
               <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
                 <ActivityIndicator size="small" color={theme.colors.button1} />
-              </View>
+              </View> 
             ) : (
               <>
                 <Image
                   source={{uri: item.imageUrl}}
-                  style={{width: '100%', height: '100%'}}
-                  resizeMode="cover"
+                  style={{width: '100%', height: '100%', backgroundColor: theme.colors.button1}}
+                  resizeMode="contain"
                 />
                 <View
                   style={{

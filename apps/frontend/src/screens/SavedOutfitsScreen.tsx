@@ -1117,7 +1117,7 @@ export default function SavedOutfitsScreen() {
                               priority: FastImage.priority.normal,
                               cache: FastImage.cacheControl.web,
                             }}
-                            style={{width: 38, height: 38, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.muted}}
+                            style={{width: 8, height: 38, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.muted}}
                             resizeMode={FastImage.resizeMode.contain}
                           />
                         ) : null;
@@ -1173,7 +1173,7 @@ export default function SavedOutfitsScreen() {
                     }}>
                     <MaterialIcons
                       name="checkroom"
-                      size={22}
+                      size={2}
                       color={theme.colors.buttonText1}
                     />
                   </View>
@@ -1511,7 +1511,7 @@ export default function SavedOutfitsScreen() {
                       {/* Left: Canvas snapshot */}
                       <View style={{
                         width: 130,
-                        height: 170,
+                        height: 210,
                         overflow: 'hidden',
                         backgroundColor: theme.colors.surface,
                         // borderColor: theme.colors.muted,
@@ -1527,8 +1527,9 @@ export default function SavedOutfitsScreen() {
                           }}
                           style={{
                             width: 130,
-                            height: 170,
+                            height: 210,
                             borderRadius: 8,
+                       
                           }}
                           resizeMode={FastImage.resizeMode.contain}
                         />
@@ -1743,6 +1744,7 @@ export default function SavedOutfitsScreen() {
                         paddingVertical: 8.5,
                         paddingHorizontal: 14,
                         borderRadius: 8,
+                        marginLeft: 16,
                         backgroundColor:
                           theme.colors.surface3 ?? 'rgba(43,43,43,1)',
                       }}>
@@ -2971,19 +2973,60 @@ export default function SavedOutfitsScreen() {
                 {fullScreenOutfit?.name || 'Unnamed Outfit'}
               </Animatable.Text>
 
-              {/* Outfit Images - Using FastImage */}
+              {/* Snapshot Image (Canvas Outfits) - Show first if available */}
+              {fullScreenOutfit?.thumbnailUrl && (
+                <Animatable.View
+                  animation="fadeInUp"
+                  delay={300}
+                  duration={800}
+                  style={{
+                    width: '100%',
+                    maxWidth: 400,
+                    marginBottom: 28,
+                    alignItems: 'center',
+                  }}>
+                  <FastImage
+                    source={{
+                      uri: fullScreenOutfit.thumbnailUrl,
+                      priority: FastImage.priority.high,
+                      cache: FastImage.cacheControl.web,
+                    }}
+                    style={{
+                      width: '100%',
+                      height: 450,
+                      borderRadius: 20,
+                      borderWidth: tokens.borderWidth.hairline,
+                      borderColor: theme.colors.muted,
+                    }}
+                    resizeMode={FastImage.resizeMode.contain}
+                  />
+                  <Text
+                    style={{
+                      color: 'rgba(255,255,255,0.85)',
+                      fontSize: 14,
+                      fontWeight: '500',
+                      marginTop: 10,
+                      textAlign: 'center',
+                    }}>
+                    Full Outfit
+                  </Text>
+                </Animatable.View>
+              )}
+
+              {/* Individual Outfit Items - Using FastImage */}
               {(fullScreenOutfit?.allItems || [fullScreenOutfit?.top, fullScreenOutfit?.bottom, fullScreenOutfit?.shoes].filter(Boolean)).map(
                 (i, idx) =>
                   i?.image && (
                     <Animatable.View
                       key={i?.id || idx}
                       animation="fadeInUp"
-                      delay={300 + idx * 200}
+                      delay={fullScreenOutfit?.thumbnailUrl ? 500 + idx * 200 : 300 + idx * 200}
                       duration={800}
                       style={{
                         width: '100%',
                         maxWidth: 400,
                         marginBottom: 28,
+                        alignItems: 'center',
                       }}>
                       <FastImage
                         source={{
@@ -3000,6 +3043,18 @@ export default function SavedOutfitsScreen() {
                         }}
                         resizeMode={FastImage.resizeMode.contain}
                       />
+                      {i.name && (
+                        <Text
+                          style={{
+                            color: 'rgba(255,255,255,0.85)',
+                            fontSize: 14,
+                            fontWeight: '500',
+                            marginTop: 10,
+                            textAlign: 'center',
+                          }}>
+                          {i.name}
+                        </Text>
+                      )}
                     </Animatable.View>
                   ),
               )}

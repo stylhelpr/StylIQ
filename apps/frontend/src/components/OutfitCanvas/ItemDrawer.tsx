@@ -26,7 +26,7 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
-const DRAWER_COLLAPSED_HEIGHT = 75;
+const DRAWER_COLLAPSED_HEIGHT = 90;
 const DRAWER_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.5;
 const ITEM_SIZE = 80;
 

@@ -3486,7 +3486,11 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           return {
             id: item.id,
             name: item.name || item.ai_title || 'Item',
-            imageUrl: item.image_url || item.image,
+            imageUrl:
+              item.touched_up_image_url ||
+              item.processed_image_url ||
+              item.image_url ||
+              item.image,
             category: this.mapToCategory(item.main_category || item.category),
           };
         })

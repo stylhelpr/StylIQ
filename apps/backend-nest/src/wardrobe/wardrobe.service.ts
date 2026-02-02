@@ -2614,7 +2614,8 @@ ${lockedLines}
     return {
       ...row,
       userId: row.user_id,
-      image: row.image_url,
+      image:
+        row.touched_up_image_url || row.processed_image_url || row.image_url,
       gsutilUri: row.gsutil_uri,
       objectKey: row.object_key,
       processedImageUrl: row.processed_image_url,
