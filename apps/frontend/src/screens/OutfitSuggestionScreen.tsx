@@ -1200,7 +1200,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         borderRadius: 12,
                         overflow: 'hidden',
                         borderWidth: tokens.borderWidth.hairline,
-                        borderColor: theme.colors.muted,
+                        borderColor: theme.colors.primary,
                       }}>
                         <Image
                           source={{
@@ -1212,6 +1212,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                             width: 100,
                             height: 100,
                             backgroundColor: theme.colors.surface,
+                            padding: 8
                           }}
                           resizeMode="contain"
                         />
@@ -1241,11 +1242,13 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                       </Text>
 
                       {/* "How do you want to build around this item?" freeform input */}
+                      {/* Greyed out when a mood chip is selected (mutually exclusive) */}
                       <Text style={{
                         fontSize: 14,
                         fontWeight: '500',
                         color: theme.colors.muted,
                         marginBottom: 8,
+                        opacity: selectedMoodLabel ? 0.4 : 1,
                       }}>
                         How do you want to build around this item?
                       </Text>
@@ -1258,6 +1261,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         borderColor: theme.colors.surfaceBorder,
                         paddingRight: 8,
                         width: '100%',
+                        opacity: selectedMoodLabel ? 0.4 : 1,
                       }}>
                         <TextInput
                           style={{
@@ -1269,10 +1273,17 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                             minHeight: 44,
                           }}
                           value={buildAroundPrompt}
-                          onChangeText={setBuildAroundPrompt}
+                          onChangeText={(text) => {
+                            // When typing, clear selected mood chip (mutually exclusive)
+                            if (selectedMoodLabel) {
+                              setSelectedMoodLabel(null);
+                              setSelectedMoodPrompt(null);
+                            }
+                            setBuildAroundPrompt(text);
+                          }}
                           placeholder="e.g. smart casual dinner, keep it relaxed..."
                           placeholderTextColor={theme.colors.muted}
-                          editable={!loading}
+                          editable={!loading && !selectedMoodLabel}
                           multiline
                           numberOfLines={1}
                         />
