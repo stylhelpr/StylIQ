@@ -1199,8 +1199,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                         position: 'relative',
                         borderRadius: 12,
                         overflow: 'hidden',
-                        borderWidth: 2,
-                        borderColor: theme.colors.primary,
+                        borderWidth: tokens.borderWidth.hairline,
+                        borderColor: theme.colors.muted,
                       }}>
                         <Image
                           source={{
@@ -1211,9 +1211,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                           style={{
                             width: 100,
                             height: 100,
-                            backgroundColor: '#fff',
+                            backgroundColor: theme.colors.surface,
                           }}
-                          resizeMode="cover"
+                          resizeMode="contain"
                         />
                         <TouchableOpacity
                           onPress={() => {
@@ -1451,34 +1451,59 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                               ? theme.colors.primary
                               : 'transparent',
                           }}>
-                          {/* Stacked outfit preview (like AI Suggestions on home) */}
+                          {/* Stacked outfit preview with side items */}
                           <View style={{
-                            alignItems: 'center',
-                            justifyContent: 'flex-start',
+                            flexDirection: 'row',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center',
                             height: 110,
                             marginBottom: 4,
+                            width: '100%',
                           }}>
-                            {preview?.top && (
-                              <Image
-                                source={{uri: preview.top.image}}
-                                style={{width: 50, height: 45, zIndex: 3}}
-                                resizeMode="contain"
-                              />
-                            )}
-                            {preview?.bottom && (
-                              <Image
-                                source={{uri: preview.bottom.image}}
-                                style={{width: 50, height: 50, marginTop: -8, zIndex: 2}}
-                                resizeMode="contain"
-                              />
-                            )}
-                            {preview?.shoes && (
-                              <Image
-                                source={{uri: preview.shoes.image}}
-                                style={{width: 38, height: 32, marginTop: -6, zIndex: 1}}
-                                resizeMode="contain"
-                              />
-                            )}
+                            {/* Left side - Accessories */}
+                            <View style={{width: 24, alignItems: 'center', paddingTop: 30}}>
+                              {preview?.accessories && (
+                                <Image
+                                  source={{uri: preview.accessories.image}}
+                                  style={{width: 22, height: 22}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </View>
+                            {/* Center - Main outfit stack */}
+                            <View style={{alignItems: 'center', justifyContent: 'flex-start'}}>
+                              {preview?.top && (
+                                <Image
+                                  source={{uri: preview.top.image}}
+                                  style={{width: 44, height: 40}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                              {preview?.bottom && (
+                                <Image
+                                  source={{uri: preview.bottom.image}}
+                                  style={{width: 44, height: 44, marginTop: -6}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                              {preview?.shoes && (
+                                <Image
+                                  source={{uri: preview.shoes.image}}
+                                  style={{width: 34, height: 28, marginTop: -4}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </View>
+                            {/* Right side - Outerwear */}
+                            <View style={{width: 28, alignItems: 'center', paddingTop: 8}}>
+                              {preview?.outerwear && (
+                                <Image
+                                  source={{uri: preview.outerwear.image}}
+                                  style={{width: 26, height: 32}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </View>
                           </View>
                           {/* Pick label */}
                           <Text style={{
