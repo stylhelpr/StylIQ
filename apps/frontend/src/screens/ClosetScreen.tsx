@@ -90,7 +90,6 @@ const ScalePressable = ({
 
 type WardrobeItem = {
   id: string;
-  image?: string;
   image_url: string;
   thumbnailUrl?: string;
   processedImageUrl?: string;
@@ -228,12 +227,6 @@ export default function ClosetScreen({navigate}: Props) {
       color: 'Black',
     },
   ];
-
-  // Clear FastImage cache on mount to ensure fresh images are loaded
-  useEffect(() => {
-    FastImage.clearMemoryCache();
-    FastImage.clearDiskCache();
-  }, []);
 
   useEffect(() => {
     Animated.sequence([
@@ -638,13 +631,10 @@ export default function ClosetScreen({navigate}: Props) {
 
       const item = listItem.item!;
       const isDemo = item.id.startsWith('demo-');
-      // Backend computes 'image' with priority: touchedUp > processed > original
-      // Check 'image' first, then fallbacks for legacy data
       const imageUri =
-        item.image ||
-        item.touchedUpImageUrl ||
-        item.processedImageUrl ||
-        item.thumbnailUrl ||
+        item.touchedUpImageUrl ??
+        item.processedImageUrl ??
+        item.thumbnailUrl ??
         item.image_url;
 
       return (
@@ -676,7 +666,7 @@ export default function ClosetScreen({navigate}: Props) {
                 source={{
                   uri: imageUri,
                   priority: FastImage.priority.normal,
-                  cache: FastImage.cacheControl.web,
+                  cache: FastImage.cacheControl.immutable,
                 }}
                 style={globalStyles.image11}
                 resizeMode={FastImage.resizeMode.contain}

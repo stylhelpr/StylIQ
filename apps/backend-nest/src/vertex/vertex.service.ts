@@ -832,42 +832,39 @@ export class VertexService {
         return null;
       }
 
-      // Detect content type from buffer magic bytes
-      const isJpeg = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8;
-      const isPng = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50;
-      const contentType = isJpeg ? 'image/jpeg' : isPng ? 'image/png' : 'image/jpeg';
-      const ext = isJpeg ? 'jpg' : isPng ? 'png' : 'jpg';
-
-      console.log(`[GarmentSegmentation] Input image type: ${contentType}, size: ${imageBuffer.length}`);
-
-      // Use v2/edit API with explicit background removal
-      const axios = require('axios');
       const form = new FormData();
       form.append('imageFile', imageBuffer, {
-        filename: `image.${ext}`,
-        contentType: contentType,
+        filename: 'image.jpg',
+        contentType: 'image/jpeg',
       });
-      // Explicit background removal - transparent output
-      form.append('background.color', '00000000');
+      form.append('background.color', 'transparent');
 
-      console.log('[GarmentSegmentation] Calling PhotoRoom v2/edit with background removal...');
+      // Convert form-data stream to buffer for fetch compatibility
+      const formBuffer = form.getBuffer();
+      const formHeaders = form.getHeaders();
 
-      const response = await axios.post('https://image-api.photoroom.com/v2/edit', form, {
+      const res = await fetch('https://image-api.photoroom.com/v2/edit', {
+        method: 'POST',
         headers: {
-          ...form.getHeaders(),
           'x-api-key': apiKey,
+          ...formHeaders,
         },
-        responseType: 'arraybuffer',
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
+        body: new Uint8Array(formBuffer),
       });
 
-      const pngBuffer = Buffer.from(response.data);
-      console.log(`[GarmentSegmentation] PhotoRoom returned image, size: ${pngBuffer.length} bytes`);
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(
+          '[GarmentSegmentation] Photoroom error:',
+          res.status,
+          text,
+        );
+        return null;
+      }
 
-      const uploadResult = await this.uploadProcessedImage(pngBuffer, userId, originalObjectKey);
-      console.log(`[GarmentSegmentation] Uploaded to GCS: ${uploadResult.processedPublicUrl}`);
-      return uploadResult;
+      const pngBuffer = Buffer.from(await res.arrayBuffer());
+
+      return this.uploadProcessedImage(pngBuffer, userId, originalObjectKey);
     } catch (err) {
       console.error('[GarmentSegmentation] failed:', err);
       return null;

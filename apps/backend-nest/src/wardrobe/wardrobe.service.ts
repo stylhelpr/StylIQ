@@ -2611,16 +2611,10 @@ ${lockedLines}
 
   private toCamel(row: any) {
     if (!row) return row;
-    // Prioritize touched-up > processed > original image URL
-    const bestImage = (row.touched_up_image_url && row.touched_up_image_url.trim() !== '')
-      ? row.touched_up_image_url
-      : (row.processed_image_url && row.processed_image_url.trim() !== '')
-        ? row.processed_image_url
-        : row.image_url;
     return {
       ...row,
       userId: row.user_id,
-      image: bestImage,
+      image: row.image_url,
       gsutilUri: row.gsutil_uri,
       objectKey: row.object_key,
       processedImageUrl: row.processed_image_url,
