@@ -682,6 +682,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
         'top': 'tops',
         'bottom': 'bottoms',
         'shoes': 'shoes',
+        'outerwear': 'outerwear',
+        'accessories': 'accessories',
       };
       const swapCategory = swapCategoryMap[swapSection] || swapSection;
 
@@ -1988,6 +1990,8 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           swapSection === 'top' ? 'Tops' :
           swapSection === 'bottom' ? 'Bottoms' :
           swapSection === 'shoes' ? 'Shoes' :
+          swapSection === 'outerwear' ? 'Outerwear' :
+          swapSection === 'accessories' ? 'Accessories' :
           undefined
         }
       />
