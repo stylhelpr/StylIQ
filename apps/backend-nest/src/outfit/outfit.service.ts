@@ -214,6 +214,7 @@ export class OutfitService {
       co.occasion,
       co.canvas_data,
       co.thumbnail_url,
+      co.accessory_ids,
 
       t.id AS top_id,
       t.name AS top_name,
@@ -335,6 +336,29 @@ export class OutfitService {
         outfit.shoes = row.shoes_id
           ? { id: row.shoes_id, name: row.shoes_name, image: row.shoes_image_url }
           : null;
+
+        // Build allItems array for legacy outfits (same format as canvas-based)
+        const legacyItems: any[] = [];
+        if (outfit.top) legacyItems.push(outfit.top);
+        if (outfit.bottom) legacyItems.push(outfit.bottom);
+        if (outfit.shoes) legacyItems.push(outfit.shoes);
+
+        // Fetch accessory items if any
+        const accessoryIds = row.accessory_ids || [];
+        if (accessoryIds.length > 0) {
+          const accessoryRes = await pool.query(
+            `SELECT id, name,
+              COALESCE(NULLIF(touched_up_image_url, ''), NULLIF(processed_image_url, ''), image_url) AS image
+             FROM wardrobe_items
+             WHERE id = ANY($1)`,
+            [accessoryIds],
+          );
+          for (const acc of accessoryRes.rows) {
+            legacyItems.push({ id: acc.id, name: acc.name, image: acc.image });
+          }
+        }
+
+        outfit.allItems = legacyItems;
       }
 
       results.push(outfit);

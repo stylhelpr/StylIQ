@@ -1125,10 +1125,10 @@ export default function SavedOutfitsScreen() {
                     </View>
                   </View>
                 ) : (
-                  [outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                  (outfit.allItems || [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map((i, idx) =>
                     i?.image ? (
                       <FastImage
-                        key={i.id}
+                        key={i.id || idx}
                         source={{
                           uri: i.image,
                           priority: FastImage.priority.normal,
@@ -1554,10 +1554,10 @@ export default function SavedOutfitsScreen() {
                       </View>
                     </View>
                   ) : (
-                    [outfit.top, outfit.bottom, outfit.shoes].map(i =>
+                    (outfit.allItems || [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map((i, idx) =>
                       i?.image ? (
                         <FastImage
-                          key={i.id}
+                          key={i.id || idx}
                           source={{
                             uri: i.image,
                             priority: FastImage.priority.normal,

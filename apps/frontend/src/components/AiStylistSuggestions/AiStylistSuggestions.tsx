@@ -37,6 +37,8 @@ import {useUUID, useUUIDInitialized} from '../../context/UUIDContext';
 import {fetchWardrobeItems} from '../../hooks/useWardrobeItems';
 import {useQueryClient} from '@tanstack/react-query';
 import WardrobePickerModal from '../WardrobePickerModal/WardrobePickerModal';
+import ViewShot from 'react-native-view-shot';
+import FastImage from 'react-native-fast-image';
 
 type Props = {
   weather: any;
@@ -136,6 +138,60 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const hasRefetchedForRealWardrobe = useRef(false);
   const fetchSuggestionRef = useRef<((trigger: string) => void) | null>(null);
   const swapSingleItemRef = useRef<((category: string, keepIds: string[]) => void) | null>(null);
+  const snapshotRef = useRef<ViewShot>(null);
+
+  // Capture and upload outfit snapshot for saved outfits
+  const captureAndUploadSnapshot = async (): Promise<string | null> => {
+    try {
+      if (!snapshotRef.current?.capture) {
+        console.log('[AiStylist] Snapshot ref not available');
+        return null;
+      }
+
+      const uri = await snapshotRef.current.capture();
+      if (!uri) {
+        console.log('[AiStylist] Failed to capture snapshot');
+        return null;
+      }
+
+      const accessToken = await getAccessToken();
+      const filename = `ai-outfit-snapshot-${Date.now()}.png`;
+
+      // Get presigned URL for upload
+      const presignRes = await fetch(
+        `${API_BASE_URL}/upload/presign?filename=${encodeURIComponent(filename)}&contentType=image/png`,
+        {headers: {Authorization: `Bearer ${accessToken}`}},
+      );
+
+      if (!presignRes.ok) {
+        console.error('[AiStylist] Failed to get presign URL');
+        return null;
+      }
+
+      const {uploadUrl, publicUrl} = await presignRes.json();
+
+      // Read file and upload
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {'Content-Type': 'image/png'},
+        body: blob,
+      });
+
+      if (!uploadRes.ok) {
+        console.error('[AiStylist] Failed to upload snapshot');
+        return null;
+      }
+
+      console.log('[AiStylist] Snapshot uploaded:', publicUrl);
+      return publicUrl;
+    } catch (err) {
+      console.error('[AiStylist] Snapshot capture error:', err);
+      return null;
+    }
+  };
 
   // Fetch real wardrobe when component mounts and UUID is available
   // IMPORTANT: Do NOT clear cache here - only update wardrobe reference
@@ -442,6 +498,9 @@ const AiStylistSuggestions: React.FC<Props> = ({
 
     setIsSaving(true);
     try {
+      // Capture outfit snapshot for thumbnail
+      const thumbnailUrl = await captureAndUploadSnapshot();
+
       const accessToken = await getAccessToken();
       const response = await fetch(`${API_BASE_URL}/custom-outfits`, {
         method: 'POST',
@@ -462,7 +521,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             source: 'ai_stylist',
             rank: currentOutfit.rank,
           },
-          notes: currentOutfit.reasoning || '',
+          thumbnail_url: thumbnailUrl,
         }),
       });
 
@@ -1758,6 +1817,84 @@ const AiStylistSuggestions: React.FC<Props> = ({
         onSelectItem={handleSwapItem}
         defaultCategory={swapPickerCategory || undefined}
       />
+
+      {/* Hidden ViewShot for capturing outfit snapshot - matches SavedOutfitsScreen display (130x210) */}
+      <View style={{position: 'absolute', left: -9999, top: -9999}}>
+        <ViewShot
+          ref={snapshotRef}
+          options={{format: 'png', quality: 0.9}}
+          style={{
+            width: 150,
+            height: 240,
+            borderRadius: 12,
+            overflow: 'hidden',
+            backgroundColor: theme.colors.surface,
+            flexDirection: 'row',
+          }}>
+          {(() => {
+            const outfit = getCurrentOutfit();
+            if (!outfit) return null;
+            const items = outfit.items || [];
+            const topItem = items.find(i => i.category === 'top');
+            const outerwearItem = items.find(i => i.category === 'outerwear');
+            const bottomItem = items.find(i => i.category === 'bottom');
+            const shoesItem = items.find(i => i.category === 'shoes');
+            const accessoryItems = items.filter(i => i.category === 'accessory');
+
+            return (
+              <>
+                {/* Left column: Outerwear */}
+                <View style={{width: 42, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12}}>
+                  {outerwearItem?.imageUrl && (
+                    <FastImage
+                      source={{uri: outerwearItem.imageUrl}}
+                      style={{width: 38, height: 70}}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  )}
+                </View>
+
+                {/* Center column: Top → Bottom → Shoes (overlapping) */}
+                <View style={{flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10}}>
+                  {topItem?.imageUrl && (
+                    <FastImage
+                      source={{uri: topItem.imageUrl}}
+                      style={{width: 65, height: 80, zIndex: 3}}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  )}
+                  {bottomItem?.imageUrl && (
+                    <FastImage
+                      source={{uri: bottomItem.imageUrl}}
+                      style={{width: 65, height: 95, marginTop: -10, zIndex: 2}}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  )}
+                  {shoesItem?.imageUrl && (
+                    <FastImage
+                      source={{uri: shoesItem.imageUrl}}
+                      style={{width: 52, height: 58, marginTop: -8, zIndex: 1}}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  )}
+                </View>
+
+                {/* Right column: Accessories */}
+                <View style={{width: 42, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 12, gap: 8}}>
+                  {accessoryItems.slice(0, 3).map((acc, idx) => (
+                    <FastImage
+                      key={acc.id || idx}
+                      source={{uri: acc.imageUrl}}
+                      style={{width: 34, height: 34}}
+                      resizeMode={FastImage.resizeMode.contain}
+                    />
+                  ))}
+                </View>
+              </>
+            );
+          })()}
+        </ViewShot>
+      </View>
     </SafeAreaView>
   );
 };
