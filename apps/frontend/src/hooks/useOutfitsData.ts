@@ -24,6 +24,20 @@ export interface OutfitItem {
   image: string;
 }
 
+export interface CanvasPlacedItem {
+  id: string;
+  wardrobeItemId: string;
+  x: number;
+  y: number;
+  scale: number;
+  zIndex: number;
+}
+
+export interface CanvasData {
+  version: number;
+  placedItems: CanvasPlacedItem[];
+}
+
 export interface SavedOutfitData {
   id: string;
   name?: string;
@@ -41,6 +55,7 @@ export interface SavedOutfitData {
   timesWorn?: number;
   occasion?: OutfitOccasion;
   thumbnailUrl?: string;
+  canvas_data?: CanvasData;
 }
 
 interface ScheduledOutfitData {
@@ -73,6 +88,7 @@ interface RawOutfitData {
   rating?: number;
   occasion?: OutfitOccasion;
   thumbnailUrl?: string;
+  canvas_data?: CanvasData;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -153,6 +169,7 @@ const normalizeOutfit = (
       name: item.name,
       image: resolveBestImageUrl(item),
     })),
+    canvas_data: o.canvas_data,
   };
 };
 

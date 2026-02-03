@@ -17,7 +17,9 @@ import OutfitCanvas from '../components/OutfitCanvas/OutfitCanvas';
 import ItemDrawer from '../components/OutfitCanvas/ItemDrawer';
 import SaveOutfitModal from '../components/OutfitCanvas/SaveOutfitModal';
 import DiscardConfirmModal from '../components/OutfitCanvas/DiscardConfirmModal';
+import ImportOutfitModal from '../components/OutfitCanvas/ImportOutfitModal';
 import {CanvasItemData} from '../components/OutfitCanvas/CanvasItem';
+import {SavedOutfitData, OutfitItem} from '../hooks/useOutfitsData';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import uuid from 'react-native-uuid';
@@ -87,6 +89,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
   // Modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Resolve image URL helper
   function resolveImageUrl(u: string): string {
@@ -345,6 +348,169 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     setShowSaveModal(true);
   }, []);
 
+  // Categorize item by name for auto-layout
+  const categorizeItemByName = (name: string): 'Tops' | 'Bottoms' | 'Other' => {
+    const lowerName = (name || '').toLowerCase();
+
+    if (
+      [
+        'top',
+        'shirt',
+        'jacket',
+        'blazer',
+        'sweater',
+        'coat',
+        'blouse',
+        'hoodie',
+        'vest',
+        't-shirt',
+        'tee',
+        'cardigan',
+        'pullover',
+        'outerwear',
+      ].some(c => lowerName.includes(c))
+    ) {
+      return 'Tops';
+    }
+    if (
+      [
+        'pants',
+        'jeans',
+        'shorts',
+        'skirt',
+        'trousers',
+        'bottom',
+        'chinos',
+        'slacks',
+        'leggings',
+      ].some(c => lowerName.includes(c))
+    ) {
+      return 'Bottoms';
+    }
+    return 'Other';
+  };
+
+  // Import with original positions from canvas_data
+  const importWithOriginalPositions = (
+    outfit: SavedOutfitData,
+    items: OutfitItem[],
+  ): CanvasItemData[] => {
+    const canvasItems = outfit.canvas_data!.placedItems;
+    let currentZIndex = nextZIndex;
+
+    return canvasItems
+      .map(placed => {
+        const itemData = items.find(i => i.id === placed.wardrobeItemId);
+        if (!itemData) return null;
+
+        return {
+          id: uuid.v4() as string,
+          wardrobeItemId: placed.wardrobeItemId,
+          imageUrl: resolveImageUrl(itemData.image),
+          x: placed.x,
+          y: placed.y,
+          scale: placed.scale,
+          zIndex: currentZIndex++,
+        };
+      })
+      .filter(Boolean) as CanvasItemData[];
+  };
+
+  // Import with auto-layout for AI outfits or custom without canvas_data
+  const importWithAutoLayout = (items: OutfitItem[]): CanvasItemData[] => {
+    const categorized = {
+      tops: [] as OutfitItem[],
+      bottoms: [] as OutfitItem[],
+      other: [] as OutfitItem[],
+    };
+
+    items.forEach(item => {
+      const category = categorizeItemByName(item.name || '');
+      if (category === 'Tops') categorized.tops.push(item);
+      else if (category === 'Bottoms') categorized.bottoms.push(item);
+      else categorized.other.push(item);
+    });
+
+    let currentZIndex = nextZIndex;
+    const result: CanvasItemData[] = [];
+
+    const placeRow = (rowItems: OutfitItem[], y: number) => {
+      const count = rowItems.length;
+      rowItems.forEach((item, index) => {
+        const spacing = 0.25;
+        const totalWidth = (count - 1) * spacing;
+        const startX = 0.5 - totalWidth / 2;
+        const x = count === 1 ? 0.5 : startX + index * spacing;
+
+        result.push({
+          id: uuid.v4() as string,
+          wardrobeItemId: item.id,
+          imageUrl: resolveImageUrl(item.image),
+          x: Math.max(0.1, Math.min(0.9, x)),
+          y,
+          scale: 1.0,
+          zIndex: currentZIndex++,
+        });
+      });
+    };
+
+    placeRow(categorized.tops, 0.2);
+    placeRow(categorized.bottoms, 0.5);
+    placeRow(categorized.other, 0.8);
+
+    return result;
+  };
+
+  // Handle import outfit from modal
+  const handleImportOutfit = useCallback(
+    (outfit: SavedOutfitData) => {
+      setShowImportModal(false);
+
+      // Get items to import
+      const itemsToImport =
+        outfit.allItems ||
+        [outfit.top, outfit.bottom, outfit.shoes].filter(item => item && item.id);
+
+      if (itemsToImport.length === 0) {
+        ReactNativeHapticFeedback.trigger('notificationWarning', {
+          enableVibrateFallback: true,
+          ignoreAndroidSystemSettings: false,
+        });
+        return;
+      }
+
+      // Determine if we have canvas_data for positions
+      const hasCanvasData =
+        outfit.type === 'custom' &&
+        outfit.canvas_data?.placedItems &&
+        outfit.canvas_data.placedItems.length > 0;
+
+      // Build CanvasItemData[] with NEW UUIDs
+      const newItems = hasCanvasData
+        ? importWithOriginalPositions(outfit, itemsToImport)
+        : importWithAutoLayout(itemsToImport);
+
+      if (newItems.length === 0) {
+        ReactNativeHapticFeedback.trigger('notificationWarning', {
+          enableVibrateFallback: true,
+          ignoreAndroidSystemSettings: false,
+        });
+        return;
+      }
+
+      // Update state
+      setPlacedItems(prev => [...prev, ...newItems]);
+      setNextZIndex(prev => prev + newItems.length);
+      setIsDirty(true);
+
+      ReactNativeHapticFeedback.trigger('notificationSuccess', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
+    },
+    [nextZIndex],
+  );
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -360,7 +526,20 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       paddingBottom: 6,
       backgroundColor: theme.colors.background,
     },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
     backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    importButton: {
       width: 40,
       height: 40,
       borderRadius: 20,
@@ -372,7 +551,6 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       fontSize: 17,
       fontWeight: '600',
       color: theme.colors.foreground,
-    
     },
     saveButton: {
       paddingHorizontal: 16,
@@ -400,16 +578,29 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          activeOpacity={0.7}>
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color={theme.colors.foreground}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            activeOpacity={0.7}>
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={theme.colors.foreground}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.importButton}
+            onPress={() => setShowImportModal(true)}
+            activeOpacity={0.7}>
+            <MaterialIcons
+              name="file-download"
+              size={22}
+              color={theme.colors.foreground}
+            />
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.headerTitle}>Build Outfit</Text>
 
@@ -466,6 +657,12 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
         onClose={() => setShowDiscardModal(false)}
         onDiscard={handleDiscard}
         onSave={handleSaveFromDiscard}
+      />
+
+      <ImportOutfitModal
+        visible={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSelectOutfit={handleImportOutfit}
       />
     </SafeAreaView>
   );
