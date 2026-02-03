@@ -733,8 +733,8 @@ export default function NotesScreen({navigate}: Props) {
       flexDirection: 'column',
     },
     listCardImage: {
-      width: 44,
-      height: 44,
+      width: 64,
+      height: 64,
       borderRadius: 12,
     },
     // List card
@@ -1251,7 +1251,7 @@ export default function NotesScreen({navigate}: Props) {
           <Image
             source={{uri: note.image_url}}
             style={styles.listCardImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         ) : (
           <View style={styles.listCardIcon}>

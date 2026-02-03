@@ -852,7 +852,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     buttonSecondary: {
       backgroundColor: theme.colors.button2,
-      borderRadius: tokens.borderRadius['2xl'],
+      borderRadius: tokens.borderRadius.sm,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
