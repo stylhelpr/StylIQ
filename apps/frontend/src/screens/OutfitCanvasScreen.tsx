@@ -540,12 +540,11 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       alignItems: 'center',
     },
     importButton: {
-      width: 40,
-      height: 40,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
       borderRadius: 20,
-      backgroundColor: theme.colors.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: theme.colors.button1,
+      // marginLeft: 30
     },
     headerTitle: {
       fontSize: 17,
@@ -567,7 +566,7 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
       color: theme.colors.buttonText1,
     },
     saveButtonTextDisabled: {
-      opacity: 0.6,
+      // opacity: 0.6,
     },
     canvasContainer: {
       flex: 1,
@@ -594,15 +593,18 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
             style={styles.importButton}
             onPress={() => setShowImportModal(true)}
             activeOpacity={0.7}>
-            <MaterialIcons
-              name="file-download"
-              size={22}
-              color={theme.colors.foreground}
-            />
+          
+          <Text
+            style={[
+              styles.saveButtonText,
+              placedItems.length === 0 && styles.saveButtonTextDisabled,
+            ]}>
+            Import Outfit
+          </Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.headerTitle}>Build Outfit</Text>
+        {/* <Text style={styles.headerTitle}>Build Outfit</Text> */}
 
         <TouchableOpacity
           style={[
