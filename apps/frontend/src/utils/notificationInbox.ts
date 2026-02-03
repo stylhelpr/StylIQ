@@ -153,6 +153,30 @@ export async function markRead(userId: string, id: string) {
   await saveInbox(userId, updated);
 }
 
+/**
+ * Delete a single notification from inbox
+ */
+export async function deleteFromInbox(userId: string, id: string) {
+  if (!userId) {
+    console.warn('[notificationInbox] deleteFromInbox called without userId');
+    return;
+  }
+
+  // First delete from backend
+  try {
+    await apiClient.post('/notifications/delete', {id});
+    console.log('☁️ Notification deleted from backend:', id);
+  } catch (err) {
+    console.warn('⚠️ Failed to delete from backend:', err);
+  }
+
+  // Then remove from local storage
+  const list = await loadInbox(userId);
+  const filtered = list.filter(n => n.id !== id);
+  await saveInbox(userId, filtered);
+  console.log('🗑️ Notification deleted locally:', id);
+}
+
 export async function markAllRead(userId: string) {
   if (!userId) {
     console.warn('[notificationInbox] markAllRead called without userId');
