@@ -759,7 +759,7 @@ export default function SavedOutfitsScreen() {
     });
 
     // Also add to notification inbox so it shows in NotificationsScreen
-    await addToInbox({
+    await addToInbox(userId, {
       user_id: userId,
       id: `outfit-${outfitId}`,
       title,

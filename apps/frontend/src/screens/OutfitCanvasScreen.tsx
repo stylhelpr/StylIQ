@@ -19,7 +19,7 @@ import SaveOutfitModal from '../components/OutfitCanvas/SaveOutfitModal';
 import DiscardConfirmModal from '../components/OutfitCanvas/DiscardConfirmModal';
 import ImportOutfitModal from '../components/OutfitCanvas/ImportOutfitModal';
 import {CanvasItemData} from '../components/OutfitCanvas/CanvasItem';
-import {SavedOutfitData, OutfitItem} from '../hooks/useOutfitsData';
+import {SavedOutfitData} from '../hooks/useOutfitsData';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import uuid from 'react-native-uuid';
@@ -328,6 +328,19 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     setShowSaveModal(true);
   }, [placedItems.length]);
 
+  // Handle clear canvas
+  const handleClearCanvas = useCallback(() => {
+    if (placedItems.length === 0) return;
+    ReactNativeHapticFeedback.trigger('impactMedium', {
+      enableVibrateFallback: true,
+      ignoreAndroidSystemSettings: false,
+    });
+    setPlacedItems([]);
+    setSelectedItemId(null);
+    setNextZIndex(1);
+    setIsDirty(false);
+  }, [placedItems.length]);
+
   // Handle save from modal
   const handleSave = useCallback(
     (name: string) => {
@@ -348,128 +361,18 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     setShowSaveModal(true);
   }, []);
 
-  // Categorize item by name for auto-layout
-  const categorizeItemByName = (name: string): 'Tops' | 'Bottoms' | 'Other' => {
-    const lowerName = (name || '').toLowerCase();
-
-    if (
-      [
-        'top',
-        'shirt',
-        'jacket',
-        'blazer',
-        'sweater',
-        'coat',
-        'blouse',
-        'hoodie',
-        'vest',
-        't-shirt',
-        'tee',
-        'cardigan',
-        'pullover',
-        'outerwear',
-      ].some(c => lowerName.includes(c))
-    ) {
-      return 'Tops';
-    }
-    if (
-      [
-        'pants',
-        'jeans',
-        'shorts',
-        'skirt',
-        'trousers',
-        'bottom',
-        'chinos',
-        'slacks',
-        'leggings',
-      ].some(c => lowerName.includes(c))
-    ) {
-      return 'Bottoms';
-    }
-    return 'Other';
-  };
-
-  // Import with original positions from canvas_data
-  const importWithOriginalPositions = (
-    outfit: SavedOutfitData,
-    items: OutfitItem[],
-  ): CanvasItemData[] => {
-    const canvasItems = outfit.canvas_data!.placedItems;
-    let currentZIndex = nextZIndex;
-
-    return canvasItems
-      .map(placed => {
-        const itemData = items.find(i => i.id === placed.wardrobeItemId);
-        if (!itemData) return null;
-
-        return {
-          id: uuid.v4() as string,
-          wardrobeItemId: placed.wardrobeItemId,
-          imageUrl: resolveImageUrl(itemData.image),
-          x: placed.x,
-          y: placed.y,
-          scale: placed.scale,
-          zIndex: currentZIndex++,
-        };
-      })
-      .filter(Boolean) as CanvasItemData[];
-  };
-
-  // Import with auto-layout for AI outfits or custom without canvas_data
-  const importWithAutoLayout = (items: OutfitItem[]): CanvasItemData[] => {
-    const categorized = {
-      tops: [] as OutfitItem[],
-      bottoms: [] as OutfitItem[],
-      other: [] as OutfitItem[],
-    };
-
-    items.forEach(item => {
-      const category = categorizeItemByName(item.name || '');
-      if (category === 'Tops') categorized.tops.push(item);
-      else if (category === 'Bottoms') categorized.bottoms.push(item);
-      else categorized.other.push(item);
-    });
-
-    let currentZIndex = nextZIndex;
-    const result: CanvasItemData[] = [];
-
-    const placeRow = (rowItems: OutfitItem[], y: number) => {
-      const count = rowItems.length;
-      rowItems.forEach((item, index) => {
-        const spacing = 0.25;
-        const totalWidth = (count - 1) * spacing;
-        const startX = 0.5 - totalWidth / 2;
-        const x = count === 1 ? 0.5 : startX + index * spacing;
-
-        result.push({
-          id: uuid.v4() as string,
-          wardrobeItemId: item.id,
-          imageUrl: resolveImageUrl(item.image),
-          x: Math.max(0.1, Math.min(0.9, x)),
-          y,
-          scale: 1.0,
-          zIndex: currentZIndex++,
-        });
-      });
-    };
-
-    placeRow(categorized.tops, 0.2);
-    placeRow(categorized.bottoms, 0.5);
-    placeRow(categorized.other, 0.8);
-
-    return result;
-  };
-
   // Handle import outfit from modal
   const handleImportOutfit = useCallback(
     (outfit: SavedOutfitData) => {
       setShowImportModal(false);
 
-      // Get items to import
+      // Get ALL items to import - use allItems if available, otherwise fallback
       const itemsToImport =
-        outfit.allItems ||
-        [outfit.top, outfit.bottom, outfit.shoes].filter(item => item && item.id);
+        outfit.allItems && outfit.allItems.length > 0
+          ? outfit.allItems
+          : [outfit.top, outfit.bottom, outfit.shoes].filter(
+              item => item && item.id,
+            );
 
       if (itemsToImport.length === 0) {
         ReactNativeHapticFeedback.trigger('notificationWarning', {
@@ -479,24 +382,51 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
         return;
       }
 
-      // Determine if we have canvas_data for positions
-      const hasCanvasData =
-        outfit.type === 'custom' &&
-        outfit.canvas_data?.placedItems &&
-        outfit.canvas_data.placedItems.length > 0;
+      let currentZIndex = nextZIndex;
+      const newItems: CanvasItemData[] = [];
 
-      // Build CanvasItemData[] with NEW UUIDs
-      const newItems = hasCanvasData
-        ? importWithOriginalPositions(outfit, itemsToImport)
-        : importWithAutoLayout(itemsToImport);
+      // Build position lookup map from canvas_data if available
+      const canvasData = outfit.canvas_data?.placedItems;
+      const positionMap = new Map<string, {x: number; y: number; scale: number}>();
 
-      if (newItems.length === 0) {
-        ReactNativeHapticFeedback.trigger('notificationWarning', {
-          enableVibrateFallback: true,
-          ignoreAndroidSystemSettings: false,
+      if (canvasData && canvasData.length > 0) {
+        canvasData.forEach(p => {
+          positionMap.set(p.wardrobeItemId, {
+            x: p.x,
+            y: p.y,
+            scale: p.scale,
+          });
         });
-        return;
       }
+
+      // Import each item exactly once
+      itemsToImport.forEach((item, index) => {
+        const savedPosition = positionMap.get(item.id);
+
+        if (savedPosition) {
+          // Use saved position from canvas_data
+          newItems.push({
+            id: uuid.v4() as string,
+            wardrobeItemId: item.id,
+            imageUrl: resolveImageUrl(item.image),
+            x: savedPosition.x,
+            y: savedPosition.y,
+            scale: savedPosition.scale,
+            zIndex: currentZIndex++,
+          });
+        } else {
+          // Auto-layout: stack vertically with some spacing
+          newItems.push({
+            id: uuid.v4() as string,
+            wardrobeItemId: item.id,
+            imageUrl: resolveImageUrl(item.image),
+            x: 0.5,
+            y: 0.15 + index * 0.25,
+            scale: 1.0,
+            zIndex: currentZIndex++,
+          });
+        }
+      });
 
       // Update state
       setPlacedItems(prev => [...prev, ...newItems]);
@@ -568,6 +498,22 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
     saveButtonTextDisabled: {
       // opacity: 0.6,
     },
+    clearButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: theme.colors.error,
+      marginRight: 8,
+    },
+    clearButtonText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.colors.foreground,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
     canvasContainer: {
       flex: 1,
     },
@@ -593,7 +539,6 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
             style={styles.importButton}
             onPress={() => setShowImportModal(true)}
             activeOpacity={0.7}>
-          
           <Text
             style={[
               styles.saveButtonText,
@@ -606,22 +551,38 @@ export default function OutfitCanvasScreen({navigate, initialItem}: Props) {
 
         {/* <Text style={styles.headerTitle}>Build Outfit</Text> */}
 
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            placedItems.length === 0 && styles.saveButtonDisabled,
-          ]}
-          onPress={handleSavePress}
-          activeOpacity={0.7}
-          disabled={placedItems.length === 0}>
-          <Text
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearCanvas}
+            activeOpacity={0.7}
+            disabled={placedItems.length === 0}>
+            <Text
+              style={[
+                styles.clearButtonText,
+                placedItems.length === 0 && styles.saveButtonTextDisabled,
+              ]}>
+              Clear
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[
-              styles.saveButtonText,
-              placedItems.length === 0 && styles.saveButtonTextDisabled,
-            ]}>
-            Save Outfit
-          </Text>
-        </TouchableOpacity>
+              styles.saveButton,
+              placedItems.length === 0 && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSavePress}
+            activeOpacity={0.7}
+            disabled={placedItems.length === 0}>
+            <Text
+              style={[
+                styles.saveButtonText,
+                placedItems.length === 0 && styles.saveButtonTextDisabled,
+              ]}>
+              Save Outfit
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Canvas */}

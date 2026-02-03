@@ -1252,7 +1252,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
             </Text>
 
             {/* Status dot: pulsing green when Auto, grey outline when Manual */}
-            {isAutoMode ? (
+            {/* {isAutoMode ? (
               <Animatable.View
                 animation={{
                   0: {scale: 1, opacity: 0.7},
@@ -1283,7 +1283,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   marginLeft: moderateScale(tokens.spacing.xs),
                 }}
               />
-            )}
+            )} */}
           </View>
 
           {/* 🧠 Manual / Auto Switch */}

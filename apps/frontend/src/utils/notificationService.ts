@@ -184,7 +184,7 @@ export const initializeNotifications = async (userId?: string, forceRegister?: b
         lastShownId = mapped.id;
 
         // 📥 Add to inbox immediately so it shows in NotificationsScreen
-        await addToInbox(mapped);
+        await addToInbox(userId || '', mapped);
         console.log('📥 Added to inbox:', mapped.id);
 
         const title = String(mapped.title || 'Notification');
@@ -236,7 +236,7 @@ export const initializeNotifications = async (userId?: string, forceRegister?: b
     // 📬 Tapped from background → persist + open link
     openUnsub = messaging().onNotificationOpenedApp(async msg => {
       const mapped = mapMessage(msg);
-      await addToInbox(mapped);
+      await addToInbox(userId || '', mapped);
       // Validate deep-link before opening to prevent phishing attacks
       if (mapped.deeplink && isValidDeepLink(mapped.deeplink)) {
         try {
@@ -249,7 +249,7 @@ export const initializeNotifications = async (userId?: string, forceRegister?: b
     const initial = await messaging().getInitialNotification();
     if (initial) {
       const mapped = mapMessage(initial);
-      await addToInbox(mapped);
+      await addToInbox(userId || '', mapped);
       // Validate deep-link before opening to prevent phishing attacks
       if (mapped.deeplink && isValidDeepLink(mapped.deeplink)) {
         try {
