@@ -52,6 +52,7 @@ import {
   useDeleteScheduledOutfit,
   useInvalidateCalendarData,
   CalendarEvent,
+  NormalizedOutfitItem,
 } from '../hooks/useCalendar';
 
 // ───────── helpers ─────────
@@ -332,14 +333,16 @@ function SwipeableOutfitCard({
     },
     row: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       marginTop: 10,
+      gap: 8,
     },
     thumb: {
       width: 68,
       height: 68,
       borderRadius: 12,
-      marginRight: 8,
       backgroundColor: theme.colors.surface,
+      padding: 4
     },
   });
 
@@ -364,14 +367,14 @@ function SwipeableOutfitCard({
             🕒 {formatLocalTime(outfit.plannedDate)}
           </Text>
           <View style={swipeStyles.row}>
-            {[outfit.top, outfit.bottom, outfit.shoes].map(
-              item =>
+            {(outfit.allItems ?? [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean)).map(
+              (item: NormalizedOutfitItem | null | undefined) =>
                 item?.image && (
                   <Image
                     key={item.id}
                     source={{uri: item.image}}
                     style={swipeStyles.thumb}
-                    resizeMode="cover"
+                    resizeMode="contain"
                   />
                 ),
             )}
@@ -1977,14 +1980,15 @@ export default function OutfitPlannerScreen() {
                                 borderRadius: 16,
                                 height: 70,
                               }}>
-                              {outfit.image ? (
+                              {(outfit.allItems?.[0]?.image ?? outfit.top?.image) ? (
                                 <Image
-                                  source={{uri: outfit.image}}
+                                  source={{uri: outfit.allItems?.[0]?.image ?? outfit.top?.image}}
                                   style={{
                                     width: 52,
                                     height: 52,
                                     borderRadius: 12,
                                     marginRight: 14,
+                                    objectFit: 'contain',
                                   }}
                                 />
                               ) : (

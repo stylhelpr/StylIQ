@@ -733,7 +733,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                     style={{
                       backgroundColor: theme.colors.button1,
                       paddingHorizontal: moderateScale(tokens.spacing.md),
-                      paddingVertical: moderateScale(tokens.spacing.sm),
+                      paddingVertical: moderateScale(tokens.spacing.xs),
                       borderRadius: tokens.borderRadius.md,
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -1409,7 +1409,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 )}
 
                 {/* Collapse/Expand toggle for reasoning */}
-                {getCurrentOutfit()?.reasoning && (
+                {/* {getCurrentOutfit()?.reasoning && (
                   <Pressable
                     onPress={toggleExpanded}
                     style={{
@@ -1438,7 +1438,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       />
                     </Animatable.View>
                   </Pressable>
-                )}
+                )} */}
               </>
             )}
 

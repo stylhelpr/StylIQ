@@ -30,14 +30,21 @@ export interface ScheduledOutfitData {
   scheduled_for: string;
 }
 
+export interface NormalizedOutfitItem {
+  id: string;
+  image: string;
+  name?: string;
+}
+
 export interface NormalizedOutfit {
   id: string;
   name?: string;
   plannedDate: string;
   type: 'ai' | 'custom';
-  top?: {id: string; image: string} | null;
-  bottom?: {id: string; image: string} | null;
-  shoes?: {id: string; image: string} | null;
+  top?: NormalizedOutfitItem | null;
+  bottom?: NormalizedOutfitItem | null;
+  shoes?: NormalizedOutfitItem | null;
+  allItems?: NormalizedOutfitItem[];
   notes?: string;
 }
 
@@ -202,17 +209,41 @@ export function useScheduledOutfits(userId: string, apiBaseUrl: string) {
       const normalize = (o: any, isCustom: boolean): NormalizedOutfit | null => {
         const plannedDate = scheduleMap[o.id];
         if (!plannedDate) return null;
+
+        const top = o.top ? {...o.top, image: normalizeImageUrl(o.top.image)} : null;
+        const bottom = o.bottom
+          ? {...o.bottom, image: normalizeImageUrl(o.bottom.image)}
+          : null;
+        const shoes = o.shoes
+          ? {...o.shoes, image: normalizeImageUrl(o.shoes.image)}
+          : null;
+
+        // Build allItems: use existing array if available (custom outfits), otherwise construct from top/bottom/shoes
+        let allItems: NormalizedOutfitItem[];
+        if (o.allItems && Array.isArray(o.allItems)) {
+          // Custom outfits with allItems from backend - normalize image URLs
+          allItems = o.allItems
+            .filter((item: any) => item?.id && item?.image)
+            .map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              image: normalizeImageUrl(item.image),
+            }));
+        } else {
+          // AI outfits - build from top/bottom/shoes
+          allItems = [top, bottom, shoes].filter(
+            (item): item is NormalizedOutfitItem => item !== null && !!item.image,
+          );
+        }
+
         return {
           ...o,
           plannedDate,
           type: isCustom ? 'custom' : 'ai',
-          top: o.top ? {...o.top, image: normalizeImageUrl(o.top.image)} : null,
-          bottom: o.bottom
-            ? {...o.bottom, image: normalizeImageUrl(o.bottom.image)}
-            : null,
-          shoes: o.shoes
-            ? {...o.shoes, image: normalizeImageUrl(o.shoes.image)}
-            : null,
+          top,
+          bottom,
+          shoes,
+          allItems,
         };
       };
 
