@@ -471,7 +471,14 @@ const AiStylistSuggestions: React.FC<Props> = ({
       };
     });
 
-    setAiData({...aiData, outfits: updatedOutfits});
+    const updatedAiData = {...aiData, outfits: updatedOutfits};
+    setAiData(updatedAiData);
+
+    // Persist the updated data to cache so it survives navigation
+    AsyncStorage.setItem(AI_SUGGESTION_STORAGE_KEY, JSON.stringify(updatedAiData)).catch(() => {
+      // Silent fail - swap still works locally
+    });
+
     setShowSwapPicker(false);
     setSwappingCategory(null);
     setSwapPickerCategory(null);
