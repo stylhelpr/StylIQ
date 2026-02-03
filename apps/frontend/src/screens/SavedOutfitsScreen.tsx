@@ -742,17 +742,24 @@ export default function SavedOutfitsScreen() {
     outfitName: string | undefined,
     when: Date,
   ) => {
-    const local = new Date(when.getTime() - when.getTimezoneOffset() * 60000);
     const title = 'Outfit Reminder';
     const message = `Wear ${outfitName?.trim() || 'your planned outfit'}`;
+
+    console.log('🔔 Scheduling notification:', {
+      outfitId,
+      when: when.toISOString(),
+      whenLocal: when.toLocaleString(),
+      now: new Date().toISOString(),
+      nowLocal: new Date().toLocaleString(),
+    });
 
     // @ts-ignore - id property exists but types may be outdated
     PushNotification.localNotificationSchedule({
       id: `outfit-${outfitId}`,
-      channelId: 'outfits',
+      channelId: 'style-channel',
       title,
       message,
-      date: local,
+      date: when,
       allowWhileIdle: true,
       playSound: true,
       soundName: 'default',
