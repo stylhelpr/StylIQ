@@ -36,6 +36,7 @@ import {getAccessToken} from '../../utils/auth';
 import {useUUID, useUUIDInitialized} from '../../context/UUIDContext';
 import {fetchWardrobeItems} from '../../hooks/useWardrobeItems';
 import {useQueryClient} from '@tanstack/react-query';
+import WardrobePickerModal from '../WardrobePickerModal/WardrobePickerModal';
 
 type Props = {
   weather: any;
@@ -123,6 +124,8 @@ const AiStylistSuggestions: React.FC<Props> = ({
   const [showTweakSheet, setShowTweakSheet] = useState(false);
   const [swappingCategory, setSwappingCategory] = useState<string | null>(null); // Track which category is being swapped
   const [isSaving, setIsSaving] = useState(false); // Track outfit saving state
+  const [showSwapPicker, setShowSwapPicker] = useState(false); // Show wardrobe picker for swap
+  const [swapPickerCategory, setSwapPickerCategory] = useState<string | null>(null); // Category to filter picker
   const [fullScreenOutfitIndex, setFullScreenOutfitIndex] = useState<number | null>(null); // Full screen modal outfit index
 
   const queryClient = useQueryClient();
@@ -380,6 +383,44 @@ const AiStylistSuggestions: React.FC<Props> = ({
     );
   };
 
+  // Handle swapping an item from the wardrobe picker
+  const handleSwapItem = (wardrobeItem: any) => {
+    if (!aiData || !isVisualFormat(aiData) || !swappingCategory) return;
+
+    // Build image URL from wardrobe item (same priority as WardrobePickerModal)
+    const imageUrl =
+      wardrobeItem.image ||
+      wardrobeItem.touchedUpImageUrl ||
+      wardrobeItem.processedImageUrl ||
+      wardrobeItem.thumbnailUrl ||
+      wardrobeItem.image_url ||
+      '';
+
+    // Create new outfit item from wardrobe item
+    const newOutfitItem: OutfitItem = {
+      id: wardrobeItem.id,
+      name: wardrobeItem.name || wardrobeItem.label || 'Item',
+      imageUrl: imageUrl,
+      category: swappingCategory as OutfitItem['category'],
+    };
+
+    // Update the current outfit's items
+    const updatedOutfits = aiData.outfits.map((outfit, idx) => {
+      if (idx !== activeOutfitIndex) return outfit;
+      return {
+        ...outfit,
+        items: outfit.items.map(item =>
+          item.category === swappingCategory ? newOutfitItem : item,
+        ),
+      };
+    });
+
+    setAiData({...aiData, outfits: updatedOutfits});
+    setShowSwapPicker(false);
+    setSwappingCategory(null);
+    setSwapPickerCategory(null);
+  };
+
   // Save outfit to Saved Outfits (custom-outfits endpoint)
   const handleSaveOutfit = async () => {
     const currentOutfit = getCurrentOutfit();
@@ -611,13 +652,17 @@ const AiStylistSuggestions: React.FC<Props> = ({
                   <TouchableOpacity
                     key={category}
                     onPress={() => {
-                      // Keep modal open - user closes it manually
-                      setSwappingCategory(category); // Show spinner on this item only
-                      // Send swap request with current outfit context
-                      const keepIds = currentItems
-                        .filter(item => item.category !== category)
-                        .map(item => item.id);
-                      swapSingleItemRef.current?.(category, keepIds);
+                      // Map outfit category to wardrobe picker category
+                      const categoryMap: Record<string, string> = {
+                        top: 'Tops',
+                        bottom: 'Bottoms',
+                        outerwear: 'Outerwear',
+                        shoes: 'Shoes',
+                        accessory: 'Accessories',
+                      };
+                      setSwapPickerCategory(categoryMap[category] || 'All');
+                      setSwappingCategory(category); // Track which outfit category to replace
+                      setShowSwapPicker(true);
                     }}
                     style={{
                       backgroundColor: theme.colors.button1,
@@ -1701,6 +1746,18 @@ const AiStylistSuggestions: React.FC<Props> = ({
           })()}
         </View>
       </Modal>
+
+      {/* Wardrobe Picker Modal for swapping items */}
+      <WardrobePickerModal
+        visible={showSwapPicker}
+        onClose={() => {
+          setShowSwapPicker(false);
+          setSwappingCategory(null);
+          setSwapPickerCategory(null);
+        }}
+        onSelectItem={handleSwapItem}
+        defaultCategory={swapPickerCategory || undefined}
+      />
     </SafeAreaView>
   );
 };

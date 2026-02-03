@@ -3497,6 +3497,74 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
         .filter(Boolean),
     }));
 
+    // 🛡️ OUTFIT COMPLETENESS ENFORCEMENT
+    // Every outfit MUST have: 1 top, 1 bottom, 1 shoes (outerwear optional)
+    // Build category pools sorted by feedback score for fallback injection
+    const categoryPools = {
+      top: wardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'top')
+        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      bottom: wardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'bottom')
+        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      shoes: wardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'shoes')
+        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+    };
+
+    // Enforce completeness for each outfit
+    for (const outfit of outfitsWithItems) {
+      const existingIds = new Set(outfit.items.map((item) => item?.id).filter(Boolean));
+      const hasTop = outfit.items.some((item) => item?.category === 'top');
+      const hasBottom = outfit.items.some((item) => item?.category === 'bottom');
+      const hasShoes = outfit.items.some((item) => item?.category === 'shoes');
+
+      // Inject missing top
+      if (!hasTop && categoryPools.top.length > 0) {
+        const fallback = categoryPools.top.find((item) => !existingIds.has(item.id));
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            category: 'top',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+
+      // Inject missing bottom
+      if (!hasBottom && categoryPools.bottom.length > 0) {
+        const fallback = categoryPools.bottom.find((item) => !existingIds.has(item.id));
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            category: 'bottom',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+
+      // Inject missing shoes
+      if (!hasShoes && categoryPools.shoes.length > 0) {
+        const fallback = categoryPools.shoes.find((item) => !existingIds.has(item.id));
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            category: 'shoes',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+    }
+
     return { weatherSummary, outfits: outfitsWithItems };
   }
 
