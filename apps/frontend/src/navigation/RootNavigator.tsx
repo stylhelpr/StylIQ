@@ -229,9 +229,17 @@ const RootNavigator = ({
     onScreenChange?.(currentScreen);
   }, [currentScreen]);
 
-  // Fetch real wardrobe when user is authenticated
+  // Fetch real wardrobe when user is authenticated, clear on logout
   useEffect(() => {
     console.warn('[WARDROBE] useEffect TRIGGERED - contextUUID:', contextUUID, 'isUUIDInitialized:', isUUIDInitialized);
+
+    // Clear wardrobe when user logs out (UUID becomes null)
+    if (!contextUUID) {
+      console.warn('[WARDROBE] 🧹 Clearing wardrobe (user logged out)');
+      setWardrobe([]);
+      return;
+    }
+
     if (contextUUID && isUUIDInitialized) {
       console.warn('[WARDROBE] Fetching real wardrobe for user:', contextUUID);
       fetchWardrobeItems(contextUUID)
@@ -240,10 +248,9 @@ const RootNavigator = ({
           if (items?.[0]) {
             console.warn('[WARDROBE] First item image:', items[0].image);
           }
-          if (items && items.length > 0) {
-            setWardrobe(items);
-            console.warn(`[WARDROBE] ✅ Loaded ${items.length} real wardrobe items`);
-          }
+          // Always set wardrobe from fetch result (even if empty) to ensure clean state for new users
+          setWardrobe(items || []);
+          console.warn(`[WARDROBE] ✅ Loaded ${items?.length || 0} real wardrobe items`);
         })
         .catch(err => console.error('[WARDROBE] ❌ Failed to fetch:', err));
     }
