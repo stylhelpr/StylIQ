@@ -2061,16 +2061,21 @@ export default function OnboardingScreen({navigate}: Props) {
 
   // Slide: Favorite Brands
   const handleAddBrand = () => {
-    const trimmed = newBrandInput.trim();
-    if (!trimmed) return;
-    const exists = favoriteBrands.some(
-      b => b.toLowerCase() === trimmed.toLowerCase(),
-    );
-    if (exists) {
-      setNewBrandInput('');
-      return;
+    const input = newBrandInput.trim();
+    if (!input) return;
+
+    // Split on commas to handle "Nike, Adidas" as separate brands
+    const newBrands = input
+      .split(',')
+      .map(b => b.trim())
+      .filter(b => b.length > 0)
+      .filter(b => !favoriteBrands.some(
+        existing => existing.toLowerCase() === b.toLowerCase()
+      ));
+
+    if (newBrands.length > 0) {
+      setFavoriteBrands([...favoriteBrands, ...newBrands]);
     }
-    setFavoriteBrands([...favoriteBrands, trimmed]);
     setNewBrandInput('');
   };
 
