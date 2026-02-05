@@ -866,9 +866,10 @@ const AiStylistSuggestions: React.FC<Props> = ({
       // Get summary text for notification (works for both formats)
       const summaryText = isVisualFormat(data)
         ? data.outfits[0]?.summary || 'New outfit suggestions ready'
-        : data.suggestion;
+        : data.suggestion || 'New style recommendation';
       const significantChange =
         lastSuggestionRef.current &&
+        summaryText &&
         summaryText.slice(0, 60) !== lastSuggestionRef.current.slice(0, 60);
 
       if (

@@ -69,6 +69,17 @@ export function useLogout({navigate}: LogoutOptions) {
         'auth_logged_in',
         'user_id',
         'style_profile',
+        // Clear AI suggestion caches to prevent data leaking between accounts
+        'aiStylist_lastSuggestion',
+        'aiStylist_isExpanded',
+        'aiStylist_activeOutfitIndex',
+        'aiStylist_lastFetchTime',
+        // Clear HomeScreen state caches
+        'savedLooksOpen',
+        'inspired_has_real',
+        'shared_has_real',
+        'saved_outfits_has_real',
+        'onboarding_complete',
       ]);
 
       // 4. Reset UUID context

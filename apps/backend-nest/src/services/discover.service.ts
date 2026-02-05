@@ -284,8 +284,7 @@ export class DiscoverService {
       `SELECT
         u.gender_presentation,
         sp.preferred_brands,
-        sp.style_keywords,
-        sp.favorite_colors,
+        sp.color_preferences,
         sp.disliked_styles,
         sp.style_preferences,
         sp.fit_preferences,
@@ -315,8 +314,8 @@ export class DiscoverService {
     return {
       gender: this.normalizeGender(row.gender_presentation),
       preferred_brands: this.ensureArray(row.preferred_brands),
-      style_keywords: this.ensureArray(row.style_keywords),
-      favorite_colors: this.ensureArray(row.favorite_colors),
+      style_keywords: this.ensureArray(row.style_preferences), // Use style_preferences as style_keywords
+      favorite_colors: this.ensureArray(row.color_preferences), // DB column is color_preferences
       disliked_styles: this.ensureArray(row.disliked_styles),
       style_preferences: this.ensureArray(row.style_preferences),
       fit_preferences: this.ensureArray(row.fit_preferences),

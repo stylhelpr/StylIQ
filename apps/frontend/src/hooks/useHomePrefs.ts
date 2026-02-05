@@ -19,7 +19,7 @@ const KEY = 'home_prefs_v1';
 
 const DEFAULT_PREFS: HomePrefs = {
   weather: true,
-  locationMap: true,
+  locationMap: false,
   aiSuggestions: true,
   quickAccess: false,
   topFashionStories: true,
