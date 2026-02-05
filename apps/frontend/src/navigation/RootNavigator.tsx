@@ -85,7 +85,6 @@ import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
 
 import {useAppTheme} from '../context/ThemeContext';
-import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
 import {WardrobeItem} from '../types/wardrobe';
 import {fetchWardrobeItems} from '../hooks/useWardrobeItems';
 import SwipeBackHandler from '../components/Gestures/SwipeBackHandler';
@@ -194,7 +193,7 @@ const RootNavigator = ({
 }) => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('Splash');
   const [screenParams, setScreenParams] = useState<any>(null);
-  const [wardrobe, setWardrobe] = useState<WardrobeItem[]>(mockClothingItems);
+  const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
 
   const screensWithNoHeader = ['Splash', 'Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen', 'Onboarding'];
   const screensWithSettings = ['Profile'];
