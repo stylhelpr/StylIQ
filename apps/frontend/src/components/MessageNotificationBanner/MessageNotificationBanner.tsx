@@ -106,7 +106,7 @@ export default function MessageNotificationBanner({onTapNotification}: Props) {
       showNotification(message);
 
       // Add to notification inbox
-      await addToInbox({
+      await addToInbox(userId || '', {
         user_id: userId || undefined,
         id: `msg-${message.id}`,
         title: message.sender_name,
@@ -135,7 +135,7 @@ export default function MessageNotificationBanner({onTapNotification}: Props) {
       console.log('🔔 Community notification received:', notification);
 
       // Add to notification inbox with category: 'message' (goes to Community Messages)
-      await addToInbox({
+      await addToInbox(userId || '', {
         user_id: userId || undefined,
         id: notification.id,
         title: notification.title,

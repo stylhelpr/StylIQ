@@ -34,6 +34,7 @@ import ShoppingHabitScreen from '../screens/ShoppingHabitScreen';
 import SkinToneScreen from '../screens/SkinToneScreen';
 import StyleIconsScreen from '../screens/StyleIconsScreen';
 import OutfitBuilderScreen from '../screens/OutfitBuilderScreen';
+import OutfitCanvasScreen from '../screens/OutfitCanvasScreen';
 import SavedOutfitsScreen from '../screens/SavedOutfitsScreen';
 import {useSavedOutfits} from '../hooks/useSavedOutfits';
 import TryOnOverlayWrapperScreen from '../screens/TryOnOverlayWrapperScreen';
@@ -85,7 +86,8 @@ import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
 
 import {useAppTheme} from '../context/ThemeContext';
 import {mockClothingItems} from '../components/mockClothingItems/mockClothingItems';
-import {WardrobeItem} from '../hooks/useOutfitSuggestion';
+import {WardrobeItem} from '../types/wardrobe';
+import {fetchWardrobeItems} from '../hooks/useWardrobeItems';
 import SwipeBackHandler from '../components/Gestures/SwipeBackHandler';
 
 import VoiceMicButton from '../components/VoiceMicButton/VoiceMicButton';
@@ -95,7 +97,7 @@ import {
   getCredentialsWithBiometrics,
   hasStoredCredentials,
 } from '../utils/auth';
-import {useSetUUID} from '../context/UUIDContext';
+import {useSetUUID, useUUID, useUUIDInitialized} from '../context/UUIDContext';
 import jwtDecode from 'jwt-decode';
 import {API_BASE_URL} from '../config/api';
 import {fetchUserData} from '../hooks/useUserData';
@@ -141,6 +143,7 @@ type Screen =
   | 'Outfit'
   | 'Search'
   | 'OutfitBuilder'
+  | 'OutfitCanvas'
   | 'SavedOutfits'
   | 'TryOnOverlay'
   | 'Notifications'
@@ -195,7 +198,7 @@ const RootNavigator = ({
 
   const screensWithNoHeader = ['Splash', 'Login', 'ItemDetail', 'AddItem', 'VideoFeedScreen', 'ImageCarouselScreen', 'Onboarding'];
   const screensWithSettings = ['Profile'];
-  const screensWithoutBottomNav = ['Splash', 'Login', 'VideoFeedScreen', 'ImageCarouselScreen', 'WebBrowser'];
+  const screensWithoutBottomNav = ['Splash', 'Login', 'VideoFeedScreen', 'ImageCarouselScreen', 'WebBrowser', 'OutfitCanvas'];
 
   const screenHistory = useRef<Screen[]>([]); // ✅ full navigation history stack
   const isGoingBackRef = useRef(false);
@@ -213,6 +216,8 @@ const RootNavigator = ({
 
   const {theme} = useAppTheme();
   const setUUID = useSetUUID();
+  const contextUUID = useUUID();
+  const isUUIDInitialized = useUUIDInitialized();
 
   useEffect(() => {
     if (registerNavigate) {
@@ -224,6 +229,26 @@ const RootNavigator = ({
   useEffect(() => {
     onScreenChange?.(currentScreen);
   }, [currentScreen]);
+
+  // Fetch real wardrobe when user is authenticated
+  useEffect(() => {
+    console.warn('[WARDROBE] useEffect TRIGGERED - contextUUID:', contextUUID, 'isUUIDInitialized:', isUUIDInitialized);
+    if (contextUUID && isUUIDInitialized) {
+      console.warn('[WARDROBE] Fetching real wardrobe for user:', contextUUID);
+      fetchWardrobeItems(contextUUID)
+        .then(items => {
+          console.warn('[WARDROBE] API response:', items?.length, 'items');
+          if (items?.[0]) {
+            console.warn('[WARDROBE] First item image:', items[0].image);
+          }
+          if (items && items.length > 0) {
+            setWardrobe(items);
+            console.warn(`[WARDROBE] ✅ Loaded ${items.length} real wardrobe items`);
+          }
+        })
+        .catch(err => console.error('[WARDROBE] ❌ Failed to fetch:', err));
+    }
+  }, [contextUUID, isUUIDInitialized]);
 
   const styles = StyleSheet.create({
     container: {
@@ -295,14 +320,43 @@ const RootNavigator = ({
 
   const routeAfterLogin = async () => {
     try {
-      const [[, logged], [, userId]] = await AsyncStorage.multiGet([
-        'auth_logged_in',
-        'user_id',
-      ]);
+      const logged = await AsyncStorage.getItem('auth_logged_in');
       if (logged !== 'true') {
         setCurrentScreen('Login');
         return;
       }
+
+      // CRITICAL: Use UUID from context - it's derived from /auth/profile which validates JWT
+      // DO NOT use AsyncStorage.getItem('user_id') directly - that's a stale cache
+      // The contextUUID is set by UUIDContext after server validates auth0_sub
+      const userId = contextUUID;
+
+      console.log('[routeAfterLogin] Using context UUID:', userId);
+
+      // If UUID not yet initialized by context, wait briefly or use context value
+      // This handles the race condition where routeAfterLogin is called before UUIDContext finishes
+      if (!userId && !isUUIDInitialized) {
+        console.log('[routeAfterLogin] Waiting for UUIDContext to initialize...');
+        // Context will set UUID after /auth/profile returns
+        // For now, check if we at least have a cached value as temporary fallback
+        const cachedUserId = await AsyncStorage.getItem('user_id');
+        if (cachedUserId) {
+          console.log('[routeAfterLogin] Using cached user_id temporarily:', cachedUserId);
+          const user = await fetchUserData(cachedUserId);
+          if (user) {
+            const onboarded = user?.onboarding_complete === true;
+            await AsyncStorage.setItem('onboarding_complete', onboarded ? 'true' : 'false');
+            if (onboarded) {
+              setScreenParams({autoNavigateToHome: true});
+              setCurrentScreen('VideoFeedScreen');
+            } else {
+              setCurrentScreen('Onboarding');
+            }
+            return;
+          }
+        }
+      }
+
       // Fetch fresh onboarding status from server (cached via TanStack Query)
       if (userId) {
         const user = await fetchUserData(userId);
@@ -503,6 +557,13 @@ const RootNavigator = ({
             wardrobe={wardrobe}
             navigate={navigate}
             saveOutfit={saveOutfit}
+          />
+        );
+      case 'OutfitCanvas':
+        return (
+          <OutfitCanvasScreen
+            navigate={navigate}
+            initialItem={screenParams?.initialItem}
           />
         );
       case 'SavedOutfits':

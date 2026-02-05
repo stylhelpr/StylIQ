@@ -6,7 +6,8 @@ export type OutfitApiItem = {
   index: number;
   id: string;
   label: string;
-  image_url?: string;
+  image?: string; // computed best: touched_up > processed > original
+  image_url?: string; // original uploaded image
   main_category?: string;
   subcategory?: string;
   color?: string;
@@ -90,7 +91,7 @@ export function apiItemToUI(
     'Item';
   return {
     id: item.id,
-    image: resolveUri(item.image_url),
+    image: resolveUri(item.image || item.image_url),
     name,
     mainCategory: item.main_category,
     subCategory: item.subcategory,
@@ -139,7 +140,11 @@ export function useOutfitApi(userId?: string) {
 
   const regenerate = useCallback(
     async (query: string, opts?: GenerateOptions) => {
-      if (!userId) return;
+      console.log('[useOutfitApi.regenerate] Called with query:', query, 'userId:', userId);
+      if (!userId) {
+        console.log('[useOutfitApi.regenerate] No userId, returning early');
+        return;
+      }
 
       setLoading(true);
       setErr(null);
@@ -183,6 +188,7 @@ export function useOutfitApi(userId?: string) {
 
         if (opts?.lockedItemIds?.length) {
           body.lockedItemIds = opts.lockedItemIds; // ✅ camelCase matches backend
+          console.log('[useOutfitApi] Sending lockedItemIds to backend:', opts.lockedItemIds);
         }
 
         // 👇 add this
@@ -224,15 +230,24 @@ export function useOutfitApi(userId?: string) {
           signal: ac.signal,
         });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        if (!res.ok) {
+          console.log('[useOutfitApi] HTTP error:', res.status, res.statusText);
+          throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        }
 
         const json = await res.json();
+        console.log('[useOutfitApi] Response received:', {
+          hasOutfits: !!json?.outfits,
+          outfitCount: json?.outfits?.length,
+          firstOutfitItems: json?.outfits?.[0]?.items?.length,
+        });
         const arr: OutfitApi[] = Array.isArray(json?.outfits)
           ? json.outfits
           : [];
         setOutfits(arr);
         setSelected(0);
       } catch (e: any) {
+        console.log('[useOutfitApi] Error caught:', e?.name, e?.message);
         if (e?.name !== 'AbortError')
           setErr(e?.message || 'Failed to fetch outfits');
       } finally {

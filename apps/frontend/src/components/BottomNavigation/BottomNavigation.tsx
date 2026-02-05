@@ -200,6 +200,27 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 onPress={() => current !== 'Home' && navigate('Home')}
                 isActive={current === 'Home'}
               />
+                 <TabButton
+                icon="style"
+                label="WARDROBE"
+                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+                isActive={current === 'Wardrobe'}
+              />
+              <TabButton
+                icon="auto-awesome"
+                label="AI OUTFIT"
+                onPress={() => current !== 'Outfit' && navigate('Outfit')}
+                isActive={current === 'Outfit'}
+              />
+              
+                 <TabButton
+                icon="checkroom"
+                label="OUTFITS"
+                onPress={() =>
+                  current !== 'SavedOutfits' && navigate('SavedOutfits')
+                }
+                isActive={current === 'SavedOutfits'}
+              />
               <TabButton
                 icon="group"
                 label="COMMUNITY"
@@ -209,26 +230,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
                 }
                 isActive={current === 'CommunityShowcaseScreen'}
               />
-              <TabButton
-                icon="auto-awesome"
-                label="AI OUTFIT"
-                onPress={() => current !== 'Outfit' && navigate('Outfit')}
-                isActive={current === 'Outfit'}
-              />
-              <TabButton
-                icon="style"
-                label="WARDROBE"
-                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
-                isActive={current === 'Wardrobe'}
-              />
-              <TabButton
-                icon="checkroom"
-                label="OUTFITS"
-                onPress={() =>
-                  current !== 'SavedOutfits' && navigate('SavedOutfits')
-                }
-                isActive={current === 'SavedOutfits'}
-              />
+           
             </LiquidGlassView>
           </Animated.View>
         ) : (
@@ -244,35 +246,36 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               onPress={() => current !== 'Home' && navigate('Home')}
               isActive={current === 'Home'}
             />
-            <TabButton
-              icon="group"
-              label="Community"
-              onPress={() =>
-                current !== 'CommunityShowcaseScreen' &&
-                navigate('CommunityShowcaseScreen')
-              }
-              isActive={current === 'CommunityShowcaseScreen'}
-            />
-            <TabButton
-              icon="auto-awesome"
-              label="Style Me"
-              onPress={() => current !== 'Outfit' && navigate('Outfit')}
-              isActive={current === 'Outfit'}
-            />
-            <TabButton
-              icon="style"
-              label="Wardrobe"
-              onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
-              isActive={current === 'Wardrobe'}
-            />
-            <TabButton
-              icon="checkroom"
-              label="Saved"
-              onPress={() =>
-                current !== 'SavedOutfits' && navigate('SavedOutfits')
-              }
-              isActive={current === 'SavedOutfits'}
-            />
+               <TabButton
+                icon="style"
+                label="WARDROBE"
+                onPress={() => current !== 'Wardrobe' && navigate('Wardrobe')}
+                isActive={current === 'Wardrobe'}
+              />
+          <TabButton
+                icon="auto-awesome"
+                label="AI OUTFIT"
+                onPress={() => current !== 'Outfit' && navigate('Outfit')}
+                isActive={current === 'Outfit'}
+              />
+           
+                <TabButton
+                icon="checkroom"
+                label="OUTFITS"
+                onPress={() =>
+                  current !== 'SavedOutfits' && navigate('SavedOutfits')
+                }
+                isActive={current === 'SavedOutfits'}
+              />
+              <TabButton
+                icon="group"
+                label="COMMUNITY"
+                onPress={() =>
+                  current !== 'CommunityShowcaseScreen' &&
+                  navigate('CommunityShowcaseScreen')
+                }
+                isActive={current === 'CommunityShowcaseScreen'}
+              />
           </View>
         )}
       </SafeAreaView>

@@ -22,9 +22,10 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import * as Animatable from 'react-native-animatable';
 import Voice from '@react-native-voice/voice';
 import {useWindowDimensions} from 'react-native';
+import {VoiceTarget} from '../../utils/VoiceUtils/voiceTarget';
 
 const h = (type: string) =>
-  ReactNativeHapticFeedback.trigger(type, {
+  ReactNativeHapticFeedback.trigger(type as any, {
     enableVibrateFallback: true,
     ignoreAndroidSystemSettings: false,
   });
@@ -77,6 +78,12 @@ type Props = {
   canGenerate?: boolean; // default true if omitted
   // ⬇️ NEW — control visibility of Refine UI
   showRefine?: boolean; // default true
+  // Content to render between refine input and button (e.g. adjustment chips)
+  adjustmentContent?: React.ReactNode;
+  // Selected adjustment prompt from chips (will be combined with refine text)
+  selectedAdjustmentPrompt?: string | null;
+  // Callback to clear adjustment selection after refining
+  onClearAdjustment?: () => void;
 };
 
 /** Minimal slider with NO external packages */
@@ -207,13 +214,16 @@ export default function OutfitTuningControls({
   onRefine,
   canGenerate = true,
   showRefine = true,
+  adjustmentContent,
+  selectedAdjustmentPrompt,
+  onClearAdjustment,
 }: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const role = useAuthRole();
 
   const S = StyleSheet.create({
-    container: {width: '100%', paddingHorizontal: 20, gap: 12},
+    container: {width: '100%', gap: 12},
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -274,11 +284,6 @@ export default function OutfitTuningControls({
       zIndex: 9999,
       elevation: 9999,
     },
-    card: {
-      padding: 12,
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface,
-    },
     pillTextPrimary: {color: '#fff', fontWeight: '600', fontSize: 13},
     // refineInputContainer: {
     //   flexDirection: 'row',
@@ -302,8 +307,7 @@ export default function OutfitTuningControls({
     },
 
     refineInput: {
-      paddingHorizontal: 0,
-      paddingVertical: 12,
+      paddingHorizontal: 0,      paddingVertical: 12,
 
       color: theme.colors.foreground,
       fontSize: 16,
@@ -321,7 +325,6 @@ export default function OutfitTuningControls({
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: '#ff8c00',
-      opacity: isGenerating ? 0.7 : 1,
       marginTop: 12,
       marginBottom: 12,
       width: 150,
@@ -339,6 +342,13 @@ export default function OutfitTuningControls({
 
   // voice state
   const [isListening, setIsListening] = useState(false);
+
+  // Set VoiceTarget for floating mic button when refine input is shown
+  useEffect(() => {
+    if (showRefine) {
+      VoiceTarget.set(setRefineText, 'refineText');
+    }
+  }, [showRefine]);
 
   useEffect(() => {
     Voice.onSpeechResults = e => {
@@ -432,58 +442,34 @@ export default function OutfitTuningControls({
       : 'Rainy'
     : 'Off';
 
+  // Don't render anything until outfit exists (v2 uses separate entry UI)
+  if (!showRefine) {
+    return null;
+  }
+
   return (
     <View style={S.container}>
-      {/* Swap between Create and Update UI */}
-      {!showRefine ? (
-        // ---------- CREATE OUTFIT ----------
-        <View
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-          <Animatable.View
-            animation="fadeInUp"
-            delay={100}
-            duration={800}
-            easing="ease-out-back"
-            useNativeDriver>
-            <TouchableOpacity
-              style={[globalStyles.buttonPrimary, {width: 140, marginTop: 12}]}
-              onPress={() => {
-                h('impactMedium');
-                onRegenerate();
-              }}
-              disabled={isGenDisabled}
-              accessibilityState={{disabled: isGenDisabled}}
-              testID="generate-outfit-button">
-              <Text
-                style={[globalStyles.buttonPrimaryText, {fontWeight: '700'}]}>
-                {isGenerating ? 'Generating…' : 'Create Outfit'}
+      {/* ---------- UPDATE OUTFIT ---------- */}
+      <>
+          <View style={{alignItems: 'left'}}>
+              <Text style={{color: theme.colors.foreground, fontWeight: 600, marginBottom: 6}}>
+                Want to tweak this outfit?
               </Text>
-            </TouchableOpacity>
-          </Animatable.View>
-        </View>
-      ) : (
-        // ---------- UPDATE OUTFIT ----------
-        <>
-          <View style={{alignItems: 'center', paddingHorizontal: 16}}>
             <View
               style={[
                 globalStyles.promptRow,
                 {
                   minHeight: 45,
-                  marginTop: 12,
                   paddingHorizontal: 14,
                   borderWidth: tokens.borderWidth.xl,
                   borderColor: theme.colors.surfaceBorder,
                   backgroundColor: theme.colors.surface3,
                   borderRadius: 30,
-                  width: Math.min(width * 0.9, 460),
+                  // width: Math.min(width * 0.9, 460),
                   alignSelf: 'center',
                 },
               ]}>
+       
               <TextInput
                 multiline
                 scrollEnabled={false}
@@ -525,6 +511,9 @@ export default function OutfitTuningControls({
             </View>
           </View>
 
+          {/* Adjustment content slot (e.g. adjustment chips) */}
+          {adjustmentContent}
+
           <View
             style={{
               display: 'flex',
@@ -532,25 +521,32 @@ export default function OutfitTuningControls({
               alignItems: 'center',
             }}>
             <TouchableOpacity
-              style={S.refineCta}
+              style={[S.refineCta, {opacity: isGenerating || (!refineText.trim() && !selectedAdjustmentPrompt) ? 0.5 : 1}]}
               onPress={() => {
-                if (onRefine && refineText.trim()) {
+                // Combine user text input with selected adjustment chip
+                const combinedPrompt = [
+                  refineText.trim(),
+                  selectedAdjustmentPrompt,
+                ].filter(Boolean).join('. ');
+
+                if (onRefine && combinedPrompt) {
                   h('impactLight');
-                  onRefine(refineText.trim());
+                  onRefine(combinedPrompt);
                   setRefineText('');
                   setIsListening(false);
+                  // Clear the selected adjustment chip
+                  onClearAdjustment?.();
                 }
               }}
-              disabled={isGenerating}
-              accessibilityState={{disabled: isGenerating}}
+              disabled={isGenerating || (!refineText.trim() && !selectedAdjustmentPrompt)}
+              accessibilityState={{disabled: isGenerating || (!refineText.trim() && !selectedAdjustmentPrompt)}}
               testID="refine-outfit-button">
               <Text style={S.ctaText}>
-                {isGenerating ? 'Refining…' : 'Update Outfit'}
+                {isGenerating ? 'Refining…' : 'Refine Outfit'}
               </Text>
             </TouchableOpacity>
           </View>
         </>
-      )}
 
       {/* EVERYTHING BELOW THE CTA IS NOW COLLAPSIBLE */}
       {showExtras && (

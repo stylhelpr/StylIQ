@@ -73,9 +73,9 @@ export class OutfitService {
       SELECT
         o.*,
         so.scheduled_for,
-        t.id AS top_id, t.name AS top_name, t.image_url AS top_image_url,
-        b.id AS bottom_id, b.name AS bottom_name, b.image_url AS bottom_image_url,
-        s.id AS shoes_id, s.name AS shoes_name, s.image_url AS shoes_image_url
+        t.id AS top_id, t.name AS top_name, COALESCE(NULLIF(t.touched_up_image_url, ''), NULLIF(t.processed_image_url, ''), t.image_url) AS top_image_url,
+        b.id AS bottom_id, b.name AS bottom_name, COALESCE(NULLIF(b.touched_up_image_url, ''), NULLIF(b.processed_image_url, ''), b.image_url) AS bottom_image_url,
+        s.id AS shoes_id, s.name AS shoes_name, COALESCE(NULLIF(s.touched_up_image_url, ''), NULLIF(s.processed_image_url, ''), s.image_url) AS shoes_image_url
       FROM outfit_suggestions o
       LEFT JOIN wardrobe_items t ON o.top_id = t.id
       LEFT JOIN wardrobe_items b ON o.bottom_id = b.id
@@ -165,11 +165,11 @@ export class OutfitService {
   }
 
   async favoriteOutfit(dto: FavoriteOutfitDto) {
-    const { user_id, outfit_id } = dto;
+    const { user_id, outfit_id, outfit_type = 'ai' } = dto;
     await pool.query(
-      `INSERT INTO outfit_favorites (user_id, outfit_id)
-       VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-      [user_id, outfit_id],
+      `INSERT INTO outfit_favorites (user_id, outfit_id, outfit_type)
+       VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [user_id, outfit_id, outfit_type],
     );
     return { message: 'Favorited' };
   }
@@ -196,9 +196,11 @@ export class OutfitService {
   }
 
   async getCustomOutfits(userId: string) {
-    // Ensure occasion column exists
+    // Ensure required columns exist
     await pool.query(`
-      ALTER TABLE custom_outfits ADD COLUMN IF NOT EXISTS occasion TEXT
+      ALTER TABLE custom_outfits ADD COLUMN IF NOT EXISTS occasion TEXT;
+      ALTER TABLE custom_outfits ADD COLUMN IF NOT EXISTS canvas_data JSONB;
+      ALTER TABLE custom_outfits ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
     `);
 
     const res = await pool.query(
@@ -210,18 +212,21 @@ export class OutfitService {
       co.notes,
       co.rating,
       co.occasion,
+      co.canvas_data,
+      co.thumbnail_url,
+      co.accessory_ids,
 
       t.id AS top_id,
       t.name AS top_name,
-      t.image_url AS top_image_url,
+      COALESCE(NULLIF(t.touched_up_image_url, ''), NULLIF(t.processed_image_url, ''), t.image_url) AS top_image_url,
 
       b.id AS bottom_id,
       b.name AS bottom_name,
-      b.image_url AS bottom_image_url,
+      COALESCE(NULLIF(b.touched_up_image_url, ''), NULLIF(b.processed_image_url, ''), b.image_url) AS bottom_image_url,
 
       s.id AS shoes_id,
       s.name AS shoes_name,
-      s.image_url AS shoes_image_url
+      COALESCE(NULLIF(s.touched_up_image_url, ''), NULLIF(s.processed_image_url, ''), s.image_url) AS shoes_image_url
 
     FROM custom_outfits co
     LEFT JOIN wardrobe_items t ON co.top_id = t.id
@@ -233,38 +238,133 @@ export class OutfitService {
       [userId],
     );
 
-    // console.log('🧵 CUSTOM OUTFIT DB ROWS:', res.rows);
+    // For canvas-based outfits, we need to resolve wardrobe item images
+    const results: any[] = [];
+    for (const row of res.rows) {
+      const outfit: any = {
+        id: row.id,
+        name: row.name ?? '',
+        createdAt: new Date(row.created_at).toISOString(),
+        notes: row.notes ?? '',
+        rating: row.rating ?? null,
+        thumbnailUrl: row.thumbnail_url ?? '',
+        occasion: row.occasion ?? null,
+        top: null,
+        bottom: null,
+        shoes: null,
+      };
 
-    return res.rows.map((row) => ({
-      id: row.id,
-      name: row.name ?? '',
-      createdAt: new Date(row.created_at).toISOString(),
-      notes: row.notes ?? '',
-      rating: row.rating ?? null,
-      thumbnailUrl: row.thumbnail_url ?? '',
-      occasion: row.occasion ?? null,
-      top: row.top_id
-        ? {
-            id: row.top_id,
-            name: row.top_name,
-            image: row.top_image_url,
+      // Check if this is a canvas-based outfit
+      if (row.canvas_data?.placedItems?.length > 0) {
+        // Get wardrobe item IDs from canvas_data
+        const wardrobeIds = row.canvas_data.placedItems.map((item: any) => item.wardrobeItemId);
+
+        // Fetch wardrobe items with ALL image URL fields (let frontend pick best one like canvas does)
+        const itemsRes = await pool.query(
+          `SELECT id, name, image_url, touched_up_image_url, processed_image_url
+           FROM wardrobe_items
+           WHERE id = ANY($1)`,
+          [wardrobeIds],
+        );
+
+        const itemsMap = new Map<string, any>(itemsRes.rows.map((i: any) => [i.id, i]));
+
+        // 🔍 DEBUG: Log what the database returns for each wardrobe item
+        console.log('🖼️ getCustomOutfits - wardrobe items from DB:', itemsRes.rows.map((i: any) => ({
+          id: i.id,
+          name: i.name,
+          image_url: i.image_url?.substring(0, 50) + '...',
+          touched_up_image_url: i.touched_up_image_url ? i.touched_up_image_url.substring(0, 50) + '...' : i.touched_up_image_url,
+          processed_image_url: i.processed_image_url ? i.processed_image_url.substring(0, 50) + '...' : i.processed_image_url,
+        })));
+
+        // Create items array for ALL canvas items - return all image URLs for frontend resolution
+        const allCanvasItems = row.canvas_data.placedItems
+          .map((placed: any) => {
+            const item = itemsMap.get(placed.wardrobeItemId);
+            if (!item) return null;
+
+            // Normalize empty strings to null for proper || fallback
+            const touchedUp = item.touched_up_image_url && item.touched_up_image_url.trim() !== '' ? item.touched_up_image_url : null;
+            const processed = item.processed_image_url && item.processed_image_url.trim() !== '' ? item.processed_image_url : null;
+            const original = item.image_url && item.image_url.trim() !== '' ? item.image_url : '';
+
+            // Return all image URLs - frontend will pick best one using same logic as canvas
+            const image = touchedUp || processed || original;
+
+            console.log(`🖼️ Item ${item.id} (${item.name}): touchedUp=${!!touchedUp}, processed=${!!processed}, original=${!!original}, selected=${image?.substring(0, 40)}`);
+
+            return {
+              id: item.id,
+              name: item.name,
+              image,
+              // Also include individual fields for frontend flexibility
+              touchedUpImageUrl: touchedUp || '',
+              processedImageUrl: processed || '',
+              imageUrl: original,
+            };
+          })
+          .filter(Boolean);
+
+        // Assign first 3 to top/bottom/shoes slots for compatibility
+        if (allCanvasItems[0]) outfit.top = allCanvasItems[0];
+        if (allCanvasItems[1]) outfit.bottom = allCanvasItems[1];
+        if (allCanvasItems[2]) outfit.shoes = allCanvasItems[2];
+
+        // Include ALL items for full grid display
+        outfit.allItems = allCanvasItems;
+
+        // 🔍 DEBUG: Log what we're returning
+        console.log('🖼️ getCustomOutfits - allCanvasItems returned:', allCanvasItems.map((i: any) => ({
+          id: i.id,
+          name: i.name,
+          image: i.image?.substring(0, 60) + '...',
+          touchedUpImageUrl: i.touchedUpImageUrl?.substring(0, 50) + '...',
+          processedImageUrl: i.processedImageUrl?.substring(0, 50) + '...',
+        })));
+
+        // Also include canvas_data for full reconstruction
+        outfit.canvas_data = row.canvas_data;
+      } else {
+        // Legacy format with top_id, bottom_id, shoes_id
+        outfit.top = row.top_id
+          ? { id: row.top_id, name: row.top_name, image: row.top_image_url }
+          : null;
+        outfit.bottom = row.bottom_id
+          ? { id: row.bottom_id, name: row.bottom_name, image: row.bottom_image_url }
+          : null;
+        outfit.shoes = row.shoes_id
+          ? { id: row.shoes_id, name: row.shoes_name, image: row.shoes_image_url }
+          : null;
+
+        // Build allItems array for legacy outfits (same format as canvas-based)
+        const legacyItems: any[] = [];
+        if (outfit.top) legacyItems.push(outfit.top);
+        if (outfit.bottom) legacyItems.push(outfit.bottom);
+        if (outfit.shoes) legacyItems.push(outfit.shoes);
+
+        // Fetch accessory items if any
+        const accessoryIds = row.accessory_ids || [];
+        if (accessoryIds.length > 0) {
+          const accessoryRes = await pool.query(
+            `SELECT id, name,
+              COALESCE(NULLIF(touched_up_image_url, ''), NULLIF(processed_image_url, ''), image_url) AS image
+             FROM wardrobe_items
+             WHERE id = ANY($1)`,
+            [accessoryIds],
+          );
+          for (const acc of accessoryRes.rows) {
+            legacyItems.push({ id: acc.id, name: acc.name, image: acc.image });
           }
-        : null,
-      bottom: row.bottom_id
-        ? {
-            id: row.bottom_id,
-            name: row.bottom_name,
-            image: row.bottom_image_url,
-          }
-        : null,
-      shoes: row.shoes_id
-        ? {
-            id: row.shoes_id,
-            name: row.shoes_name,
-            image: row.shoes_image_url,
-          }
-        : null,
-    }));
+        }
+
+        outfit.allItems = legacyItems;
+      }
+
+      results.push(outfit);
+    }
+
+    return results;
   }
 
   async deleteOutfit(id: string, userId: string) {

@@ -659,7 +659,7 @@ export default function ClosetScreen({navigate}: Props) {
             <View
               style={{
                 width: '100%',
-                backgroundColor: 'white',
+                backgroundColor: theme.colors.surface,
               }}>
               <FastImage
                 source={{
@@ -850,7 +850,13 @@ export default function ClosetScreen({navigate}: Props) {
                   },
                 ]}
                 hapticStyle="impactMedium"
-                onPress={() => navigate('OutfitBuilder')}>
+                onPress={() => {
+                  ReactNativeHapticFeedback.trigger('notificationSuccess', {
+                    enableVibrateFallback: true,
+                    ignoreAndroidSystemSettings: false,
+                  });
+                  navigate('OutfitCanvas');
+                }}>
                 <Text style={globalStyles.buttonPrimaryText}>
                   + Build An Outfit
                 </Text>

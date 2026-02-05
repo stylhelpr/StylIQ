@@ -382,12 +382,14 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
   }, [postDetailSlideAnim, postDetailOpacityAnim]);
 
   // Open initial post modal if navigated with initialPostId
-  const initialPostOpenedRef = useRef(false);
+  const lastOpenedPostIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialPostId && posts.length > 0 && !initialPostOpenedRef.current) {
+    console.log('[CommunityShowcase] initialPostId:', initialPostId, 'posts.length:', posts.length, 'lastOpened:', lastOpenedPostIdRef.current);
+    if (initialPostId && posts.length > 0 && lastOpenedPostIdRef.current !== initialPostId) {
       const targetPost = posts.find((p: CommunityPost) => p.id === initialPostId);
+      console.log('[CommunityShowcase] targetPost found:', !!targetPost);
       if (targetPost) {
-        initialPostOpenedRef.current = true;
+        lastOpenedPostIdRef.current = initialPostId;
         // Open immediately - no delay needed
         openPostDetailModal(targetPost);
       }
@@ -1633,6 +1635,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
         ? displayedPosts[currentImageIndex % displayedPosts.length]
         : null;
     const mockPost = MOCK_POSTS[currentImageIndex % MOCK_POSTS.length];
+    const isComposite = heroPost?.top_image && heroPost?.bottom_image;
     const heroImageUrl = heroPost?.image_url || heroPost?.top_image || mockPost.imageUrl;
     const heroUserName = heroPost?.user_name || mockPost.userName;
     const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
@@ -1662,19 +1665,53 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
             borderRadius: tokens.borderRadius.lg,
             opacity: fadeAnim,
           }}>
-          <FastImage
-            source={{
-              uri: heroImageUrl,
-              priority: FastImage.priority.high,
-              cache: FastImage.cacheControl.immutable,
-            }}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: tokens.borderRadius.lg,
-            }}
-            resizeMode={FastImage.resizeMode.cover}
-          />
+          {isComposite && heroPost ? (
+            // 2x2 Grid for composite outfits
+            <View style={{flex: 1, flexDirection: 'column', borderRadius: tokens.borderRadius.lg, overflow: 'hidden'}}>
+              <View style={{flex: 1, flexDirection: 'row'}}>
+                <FastImage
+                  source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                  style={{flex: 1}}
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+                <FastImage
+                  source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                  style={{flex: 1}}
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+              </View>
+              <View style={{flex: 1, flexDirection: 'row'}}>
+                {heroPost.shoes_image ? (
+                  <FastImage
+                    source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                    style={{flex: 1}}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+                {heroPost.accessory_image ? (
+                  <FastImage
+                    source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+                    style={{flex: 1}}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+              </View>
+            </View>
+          ) : (
+            <FastImage
+              source={{
+                uri: heroImageUrl,
+                priority: FastImage.priority.high,
+                cache: FastImage.cacheControl.immutable,
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: tokens.borderRadius.lg,
+              }}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+          )}
         </Animated.View>
 
         {/* Light tinted overlay for better text visibility */}
@@ -1817,12 +1854,12 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
   const renderPostCard = useCallback(
     (post: CommunityPost, index: number) => {
       const liked = isPostLiked(post);
-      const cellSize = CARD_WIDTH / 2;
       const hasCompositeImages = post.top_image && post.bottom_image;
+      // Use || to treat empty strings as falsy
       const imageUri =
-        post.image_url ??
-        post.top_image ??
-        (post as any).imageUrl ??
+        post.image_url ||
+        post.top_image ||
+        (post as any).imageUrl ||
         (post as any).image;
 
       return (
@@ -1837,15 +1874,10 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
             style={styles.card}>
             {hasCompositeImages ? (
               // 2x2 Grid Composite
-              <View style={styles.cardImage}>
+              <View style={[styles.cardImage, {flexDirection: 'column'}]}>
                 {/* Row 1 */}
-                <View style={{flexDirection: 'row', height: cellSize}}>
-                  <View
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: theme.colors.background,
-                    }}>
+                <View style={{flexDirection: 'row', flex: 1}}>
+                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
                     {post.top_image && (
                       <FastImage
                         source={{
@@ -1858,12 +1890,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                       />
                     )}
                   </View>
-                  <View
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: theme.colors.background,
-                    }}>
+                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
                     {post.bottom_image && (
                       <FastImage
                         source={{
@@ -1878,13 +1905,8 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                   </View>
                 </View>
                 {/* Row 2 */}
-                <View style={{flexDirection: 'row', height: cellSize}}>
-                  <View
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: theme.colors.background,
-                    }}>
+                <View style={{flexDirection: 'row', flex: 1}}>
+                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
                     {post.shoes_image && (
                       <FastImage
                         source={{
@@ -1897,12 +1919,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                       />
                     )}
                   </View>
-                  <View
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: theme.colors.background,
-                    }}>
+                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
                     {post.accessory_image && (
                       <FastImage
                         source={{

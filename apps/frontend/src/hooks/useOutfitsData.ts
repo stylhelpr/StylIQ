@@ -24,12 +24,27 @@ export interface OutfitItem {
   image: string;
 }
 
+export interface CanvasPlacedItem {
+  id: string;
+  wardrobeItemId: string;
+  x: number;
+  y: number;
+  scale: number;
+  zIndex: number;
+}
+
+export interface CanvasData {
+  version: number;
+  placedItems: CanvasPlacedItem[];
+}
+
 export interface SavedOutfitData {
   id: string;
   name?: string;
   top: OutfitItem;
   bottom: OutfitItem;
   shoes: OutfitItem;
+  allItems?: OutfitItem[];
   createdAt: string;
   tags?: string[];
   notes?: string;
@@ -39,6 +54,8 @@ export interface SavedOutfitData {
   type: 'custom' | 'ai';
   timesWorn?: number;
   occasion?: OutfitOccasion;
+  thumbnailUrl?: string;
+  canvas_data?: CanvasData;
 }
 
 interface ScheduledOutfitData {
@@ -47,18 +64,31 @@ interface ScheduledOutfitData {
   scheduled_for: string;
 }
 
+interface RawOutfitItemData {
+  id: string;
+  name?: string;
+  image?: string;
+  image_url?: string;
+  touchedUpImageUrl?: string;
+  processedImageUrl?: string;
+  imageUrl?: string;
+}
+
 interface RawOutfitData {
   id: string;
   name?: string;
-  top?: {id: string; name?: string; image?: string; image_url?: string};
-  bottom?: {id: string; name?: string; image?: string; image_url?: string};
-  shoes?: {id: string; name?: string; image?: string; image_url?: string};
+  top?: RawOutfitItemData;
+  bottom?: RawOutfitItemData;
+  shoes?: RawOutfitItemData;
+  allItems?: RawOutfitItemData[];
   created_at?: string;
   createdAt?: string;
   tags?: string[];
   notes?: string;
   rating?: number;
   occasion?: OutfitOccasion;
+  thumbnailUrl?: string;
+  canvas_data?: CanvasData;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -68,6 +98,23 @@ interface RawOutfitData {
 const normalizeImageUrl = (url: string | undefined | null): string => {
   if (!url) return '';
   return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+};
+
+// Resolve best image URL - backend now computes the correct image, just use it
+// Fallback chain in case backend returns individual fields instead
+const resolveBestImageUrl = (item: RawOutfitItemData): string => {
+  // The backend computes 'image' with correct priority (touchedUp > processed > imageUrl)
+  // Just use it directly, with fallbacks for legacy data
+  const bestUrl = item.image || item.touchedUpImageUrl || item.processedImageUrl || item.imageUrl || item.image_url || '';
+  // 🔍 DEBUG: Log which field was selected
+  console.log('🖼️ resolveBestImageUrl:', {
+    id: item.id,
+    hasImage: !!item.image,
+    hasTouchedUp: !!item.touchedUpImageUrl,
+    hasProcessed: !!item.processedImageUrl,
+    selectedUrl: bestUrl?.substring(0, 60),
+  });
+  return normalizeImageUrl(bestUrl);
 };
 
 const normalizeOutfit = (
@@ -85,21 +132,21 @@ const normalizeOutfit = (
       ? {
           id: o.top.id,
           name: o.top.name,
-          image: normalizeImageUrl(o.top.image || o.top.image_url),
+          image: resolveBestImageUrl(o.top),
         }
       : ({} as OutfitItem),
     bottom: o.bottom
       ? {
           id: o.bottom.id,
           name: o.bottom.name,
-          image: normalizeImageUrl(o.bottom.image || o.bottom.image_url),
+          image: resolveBestImageUrl(o.bottom),
         }
       : ({} as OutfitItem),
     shoes: o.shoes
       ? {
           id: o.shoes.id,
           name: o.shoes.name,
-          image: normalizeImageUrl(o.shoes.image || o.shoes.image_url),
+          image: resolveBestImageUrl(o.shoes),
         }
       : ({} as OutfitItem),
     createdAt:
@@ -116,6 +163,13 @@ const normalizeOutfit = (
     type: isCustom ? 'custom' : 'ai',
     timesWorn: wornCounts[outfitId] ?? 0,
     occasion: o.occasion ?? undefined,
+    thumbnailUrl: o.thumbnailUrl ? normalizeImageUrl(o.thumbnailUrl) : undefined,
+    allItems: o.allItems?.map(item => ({
+      id: item.id,
+      name: item.name,
+      image: resolveBestImageUrl(item),
+    })),
+    canvas_data: o.canvas_data,
   };
 };
 
@@ -149,8 +203,18 @@ export function useOutfitsQuery(
       console.log('📦 useOutfitsQuery fetched:', {
         aiCount: aiData.length,
         customCount: customData.length,
-        customData: JSON.stringify(customData, null, 2),
       });
+
+      // 🔍 DEBUG: Log first custom outfit's allItems to trace image URLs
+      if (customData.length > 0 && customData[0].allItems) {
+        console.log('🖼️ Frontend received allItems:', customData[0].allItems.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          image: item.image?.substring(0, 60),
+          touchedUpImageUrl: item.touchedUpImageUrl?.substring(0, 50),
+          processedImageUrl: item.processedImageUrl?.substring(0, 50),
+        })));
+      }
 
       // Build schedule map
       const scheduleMap: Record<string, string> = {};

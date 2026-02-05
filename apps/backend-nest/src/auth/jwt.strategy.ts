@@ -49,8 +49,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     try {
       // Resolve Auth0 sub → internal UUID (ONCE, at auth boundary)
+      // CRITICAL: This is the ONLY place where auth0_sub is used to identify a user
+      // NO fallback to email, NO caching, NO merging - strict auth0_sub lookup only
       const result = await pool.query(
-        'SELECT id FROM users WHERE auth0_sub = $1',
+        'SELECT id, auth0_sub FROM users WHERE auth0_sub = $1',
         [auth0Sub],
       );
 
@@ -59,9 +61,32 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('User not found');
       }
 
+      const userId = result.rows[0].id;
+      const dbAuth0Sub = result.rows[0].auth0_sub;
+
+      // VERIFICATION: Log that JWT sub matches DB auth0_sub (they MUST be identical)
+      this.logger.log({
+        event: 'AUTH_SUCCESS',
+        jwtSub: auth0Sub,
+        dbAuth0Sub: dbAuth0Sub,
+        userId: userId,
+        match: auth0Sub === dbAuth0Sub,
+      });
+
+      // Sanity check - these MUST match
+      if (auth0Sub !== dbAuth0Sub) {
+        this.logger.error({
+          event: 'AUTH_MISMATCH',
+          message: 'JWT sub does not match DB auth0_sub - this should never happen',
+          jwtSub: auth0Sub,
+          dbAuth0Sub: dbAuth0Sub,
+        });
+        throw new UnauthorizedException('Authentication integrity error');
+      }
+
       // Return ONLY internal UUID - Auth0 sub never leaves auth layer
       return {
-        userId: result.rows[0].id,
+        userId: userId,
       };
     } catch (err) {
       // Wrap DB errors as UnauthorizedException to prevent pg errors from bubbling up

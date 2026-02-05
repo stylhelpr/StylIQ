@@ -1,6 +1,12 @@
 // utils/auth.ts
+// MULTI-ACCOUNT: Auth functions separated for normal logout vs hard logout
+// Normal logout: preserves Face ID credentials (useLogout hook)
+// Hard logout: clears ALL credentials (Remove Account from Device)
+
 import Auth0, {Credentials} from 'react-native-auth0';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {UserScopedStorage} from '../storage/userScopedStorage';
+import {clearUserMMKVStorage} from '../../../../store/mmkvStorage';
 
 const AUTH0_DOMAIN = 'dev-xeaol4s5b2zd7wuz.us.auth0.com';
 const AUTH0_CLIENT_ID = '0VpKzuZyGjkmAMNmEYXNRQQbdysFkLz5';
@@ -67,12 +73,52 @@ export const getAccessToken = async (): Promise<string> => {
 
 /**
  * Log the user out from Auth0 and clear saved credentials.
+ * NOTE: For normal logout, use the useLogout hook instead - it preserves Face ID.
+ * This function is kept for backwards compatibility but should rarely be called directly.
  */
 export const logout = async (): Promise<void> => {
   await auth0.webAuth.clearSession({federated: true});
   await auth0.credentialsManager.clearCredentials();
   // Clear cached user ID to prevent stale data on next login
   await AsyncStorage.removeItem('user_id');
+};
+
+/**
+ * MULTI-ACCOUNT: Hard logout - completely removes a user's account from the device.
+ * This clears:
+ * - All Auth0 credentials (disables Face ID for this account)
+ * - All user-scoped storage data
+ * - All user-scoped MMKV data
+ *
+ * Use this for "Remove Account from Device" feature.
+ * For normal logout, use the useLogout hook instead.
+ */
+export const hardLogout = async (userId: string): Promise<void> => {
+  console.log('[auth] hardLogout: Removing all data for user:', userId);
+
+  // 1. Clear Auth0 web session and credentials
+  try {
+    await auth0.webAuth.clearSession({federated: true});
+  } catch (err) {
+    console.warn('[auth] Failed to clear web session:', err);
+  }
+  await auth0.credentialsManager.clearCredentials();
+
+  // 2. Clear all user-scoped AsyncStorage data
+  await UserScopedStorage.clearUserData(userId);
+
+  // 3. Clear user-scoped MMKV storage
+  clearUserMMKVStorage(userId);
+
+  // 4. Clear legacy keys
+  await AsyncStorage.multiRemove([
+    'user_id',
+    'auth_logged_in',
+    'style_profile',
+    'active_user_id',
+  ]);
+
+  console.log('[auth] hardLogout: Complete for user:', userId);
 };
 
 /**

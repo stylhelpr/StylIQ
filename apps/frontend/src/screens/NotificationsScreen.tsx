@@ -19,6 +19,7 @@ import {
   markRead,
   markAllRead,
   clearAll,
+  deleteFromInbox,
   AppNotification,
   subscribeInboxChange,
 } from '../utils/notificationInbox';
@@ -618,7 +619,7 @@ export default function NotificationsScreen({
                                         onPress: async () => {
                                           try {
                                             h('impactHeavy');
-                                            await markRead(userId, id);
+                                            await deleteFromInbox(userId, id);
                                             const updated = items.filter(
                                               item => item.id !== id,
                                             );

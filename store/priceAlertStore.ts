@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {createUserScopedZustandStorage} from './userScopedZustandStorage';
 
 export type PriceAlert = {
   id: number;
@@ -35,6 +35,9 @@ type PriceAlertState = {
   getAlertsWithPriceDrop: () => PriceAlert[];
   getPriceChangePercent: (alertId: number) => number | null;
   hasActiveAlerts: () => boolean;
+
+  // Logout - clears in-memory state for multi-account support
+  resetForLogout: () => void;
 
   // Hydration
   _hasHydrated: boolean;
@@ -103,19 +106,52 @@ export const usePriceAlertStore = create<PriceAlertState>()(
         return get().alerts.some(a => a.enabled && a.targetPrice);
       },
 
+      // MULTI-ACCOUNT: Reset in-memory state on logout
+      resetForLogout: () => {
+        set({
+          alerts: [],
+          loading: false,
+          error: null,
+          _hasHydrated: false,
+        });
+      },
+
       _hasHydrated: false,
       setHasHydrated: (hasHydrated: boolean) =>
         set({_hasHydrated: hasHydrated}),
     }),
     {
       name: 'price-alert-store',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Use user-scoped storage adapter for multi-account support
+      storage: createJSONStorage(() => createUserScopedZustandStorage('price-alert-store')),
+      // MULTI-ACCOUNT: Skip auto-hydration on store creation
+      // We manually trigger rehydration after active user is set in UUIDContext
+      skipHydration: true,
       version: 1,
       partialize: state => ({
         alerts: state.alerts,
       }),
+      // MULTI-ACCOUNT: Use a merge function that completely replaces persisted state
+      merge: (persistedState, currentState) => {
+        // CRITICAL: When switching users, we need to COMPLETELY replace the state
+        // If persistedState is null/empty (new user), we MUST clear existing data
+        if (persistedState && typeof persistedState === 'object' && Object.keys(persistedState as object).length > 0) {
+          console.log('[PriceAlertStore] Merging persisted state');
+          return {
+            ...currentState,
+            ...(persistedState as object),
+          };
+        }
+        // No persisted state = new user or empty storage
+        console.log('[PriceAlertStore] No persisted state - returning fresh state');
+        return {
+          ...currentState,
+          alerts: [],
+        };
+      },
       onRehydrateStorage: () => state => {
         if (state) {
+          console.log('[PriceAlertStore] Rehydration complete, alerts:', state.alerts?.length || 0);
           state.setHasHydrated(true);
         }
       },

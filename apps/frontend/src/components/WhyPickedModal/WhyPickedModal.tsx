@@ -17,7 +17,7 @@ type Props = {
   onClose: () => void;
   item: WardrobeItem | undefined;
   reasons: string[];
-  section: 'Top' | 'Bottom' | 'Shoes';
+  section: 'Top' | 'Bottom' | 'Shoes' | 'Outerwear' | 'Accessories';
 };
 
 export default function WhyPickedModal({

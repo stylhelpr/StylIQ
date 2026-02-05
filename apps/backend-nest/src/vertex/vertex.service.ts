@@ -312,6 +312,10 @@ export class VertexService {
   // Image Embeddings (Predict API)
   // -------------------
   async embedImage(gcsUri: string): Promise<number[]> {
+    // Vertex AI multimodalembedding@001 doesn't support WEBP
+    // Always check actual file format, not just extension (iOS can send WEBP with .jpg extension)
+    const effectiveUri = await this.ensureEmbeddableFormat(gcsUri);
+
     const endpoint = `projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.imageModel}`;
 
     const [response]: any = await this.withSemaphore(() =>
@@ -319,7 +323,7 @@ export class VertexService {
         () =>
           this.client.predict({
             endpoint,
-            instances: [toValue({ image: { gcsUri } }) as any],
+            instances: [toValue({ image: { gcsUri: effectiveUri } }) as any],
             parameters: toValue({ dimension: 512 }) as any,
           }),
         'predict:image',
@@ -335,6 +339,106 @@ export class VertexService {
     }
 
     return values.map((v: any) => v.numberValue!);
+  }
+
+  // Check actual image format and convert WEBP/HEIF to JPEG if needed
+  private async ensureEmbeddableFormat(gcsUri: string): Promise<string> {
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
+    const { Storage } = await import('@google-cloud/storage');
+    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    const storage = new Storage({
+      projectId: credentials.project_id,
+      credentials,
+    });
+
+    // Parse gs://bucket/path
+    const match = gcsUri.match(/^gs:\/\/([^/]+)\/(.+)$/);
+    if (!match) {
+      throw new Error(`Invalid GCS URI: ${gcsUri}`);
+    }
+    const [, bucketName, objectPath] = match;
+
+    // Download image
+    const bucket = storage.bucket(bucketName);
+    const [imageBuffer] = await bucket.file(objectPath).download();
+
+    // Detect actual format using sharp
+    const metadata = await sharp(imageBuffer).metadata();
+    console.log('[embedImage] Detected format:', metadata.format, 'for', gcsUri);
+
+    // Formats that need conversion (not supported by Vertex AI or Photoroom)
+    const needsConversion = metadata.format === 'webp' || metadata.format === 'heif';
+
+    if (!needsConversion) {
+      return gcsUri;
+    }
+
+    // Convert to JPEG
+    let jpegBuffer: Buffer;
+    if (metadata.format === 'heif') {
+      // HEIF needs heic-convert - Sharp doesn't support it without libheif
+      console.log('[embedImage] Converting HEIF to JPEG using heic-convert');
+      const heicConvert = await import('heic-convert');
+      const convert = heicConvert.default || heicConvert;
+      const converted = await convert({
+        buffer: imageBuffer,
+        format: 'JPEG',
+        quality: 0.95,
+      });
+      jpegBuffer = Buffer.from(converted);
+    } else {
+      // WEBP can be handled by Sharp
+      console.log('[embedImage] Converting WEBP to JPEG');
+      jpegBuffer = await sharp(imageBuffer)
+        .jpeg({ quality: 95 })
+        .toBuffer();
+    }
+
+    // Upload converted JPEG
+    const jpegPath = objectPath.replace(/\.[^.]+$/, '') + '-embed.jpg';
+    const jpegFile = bucket.file(jpegPath);
+    await jpegFile.save(jpegBuffer, {
+      contentType: 'image/jpeg',
+      resumable: false,
+    });
+
+    const convertedUri = `gs://${bucketName}/${jpegPath}`;
+    console.log('[embedImage] Converted to:', convertedUri);
+    return convertedUri;
+  }
+
+  // Convert image buffer to JPEG if it's in an unsupported format (HEIF, WEBP)
+  // Used before sending to external APIs like Photoroom
+  async ensureJpegBuffer(imageBuffer: Buffer): Promise<Buffer> {
+    const sharpModule = await import('sharp');
+    const sharp = sharpModule.default || sharpModule;
+
+    const metadata = await sharp(imageBuffer).metadata();
+    console.log('[ensureJpegBuffer] Detected format:', metadata.format);
+
+    // HEIF needs special handling - Sharp doesn't support it without libheif
+    if (metadata.format === 'heif') {
+      console.log('[ensureJpegBuffer] Converting HEIF to JPEG using heic-convert');
+      const heicConvert = await import('heic-convert');
+      const convert = heicConvert.default || heicConvert;
+      const jpegBuffer = await convert({
+        buffer: imageBuffer,
+        format: 'JPEG',
+        quality: 0.95,
+      });
+      return Buffer.from(jpegBuffer);
+    }
+
+    // WEBP can be handled by Sharp
+    if (metadata.format === 'webp') {
+      console.log('[ensureJpegBuffer] Converting WEBP to JPEG');
+      return sharp(imageBuffer)
+        .jpeg({ quality: 95 })
+        .toBuffer();
+    }
+
+    return imageBuffer;
   }
 
   // -------------------
@@ -832,8 +936,17 @@ export class VertexService {
         return null;
       }
 
+      // Log input dimensions
+      const sharpModule = await import('sharp');
+      const sharp = sharpModule.default || sharpModule;
+      const inputMeta = await sharp(imageBuffer).metadata();
+      console.log('[GarmentSegmentation] INPUT dimensions:', inputMeta.width, 'x', inputMeta.height);
+
+      // Convert HEIF/WEBP to JPEG before sending to Photoroom
+      const jpegBuffer = await this.ensureJpegBuffer(imageBuffer);
+
       const form = new FormData();
-      form.append('imageFile', imageBuffer, {
+      form.append('imageFile', jpegBuffer, {
         filename: 'image.jpg',
         contentType: 'image/jpeg',
       });
@@ -863,6 +976,10 @@ export class VertexService {
       }
 
       const pngBuffer = Buffer.from(await res.arrayBuffer());
+
+      // Log output dimensions
+      const outputMeta = await sharp(pngBuffer).metadata();
+      console.log('[GarmentSegmentation] OUTPUT dimensions:', outputMeta.width, 'x', outputMeta.height);
 
       return this.uploadProcessedImage(pngBuffer, userId, originalObjectKey);
     } catch (err) {

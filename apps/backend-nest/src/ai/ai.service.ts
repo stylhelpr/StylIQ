@@ -2978,12 +2978,23 @@ Write a concise, 150-word updated summary focusing on their taste, preferences, 
   /** 🌤️ Suggest daily style plan */
   async suggest(body: {
     user?: string;
+    user_id?: string; // Auth user ID for feedback read-back
     weather?: any;
     wardrobe?: any[];
     preferences?: Record<string, any>;
+    format?: 'text' | 'visual';
+    constraint?: string;
+    mode?: 'auto' | 'manual';
   }) {
-    const { user, weather, wardrobe, preferences } = body;
+    const { user, user_id, weather, wardrobe, preferences, format = 'text', constraint, mode = 'manual' } = body;
 
+    // If visual format requested and wardrobe has items with images
+    const hasWardrobeWithImages = wardrobe?.some((item) => item.image_url || item.image);
+    if (format === 'visual' && hasWardrobeWithImages && wardrobe) {
+      return this.suggestVisualOutfits(user, user_id, weather, wardrobe, preferences, constraint, mode);
+    }
+
+    // Original text-based suggestion logic
     const temp = weather?.fahrenheit?.main?.temp;
     const tempDesc = temp
       ? `${temp}°F and ${temp < 60 ? 'cool' : temp > 85 ? 'warm' : 'mild'} weather`
@@ -3044,6 +3055,559 @@ Preferences: ${JSON.stringify(preferences || {})}
     }
 
     return parsed;
+  }
+
+  /**
+   * 🎯 LEARNING INTEGRATION: Fetch user feedback context for AI Stylist
+   * Reads from user_pref_item and outfit_feedback to provide preference signals
+   */
+  private async getUserFeedbackContext(
+    userId: string | undefined,
+    wardrobe: any[],
+  ): Promise<{
+    itemScores: Map<string, number>;
+    likedPatterns: string[];
+    dislikedPatterns: string[];
+    recentFeedbackSummary: string;
+  }> {
+    const emptyResult = {
+      itemScores: new Map<string, number>(),
+      likedPatterns: [] as string[],
+      dislikedPatterns: [] as string[],
+      recentFeedbackSummary: '',
+    };
+
+    if (!userId) {
+      return emptyResult;
+    }
+
+    try {
+      // 1. Fetch item-level preference scores
+      const itemIds = wardrobe.map((item) => item.id).filter(Boolean);
+      if (itemIds.length === 0) {
+        return emptyResult;
+      }
+
+      const { rows: prefRows } = await pool.query<{
+        item_id: string;
+        score: number;
+      }>(
+        `SELECT item_id, score FROM user_pref_item
+         WHERE user_id = $1 AND item_id = ANY($2)`,
+        [userId, itemIds],
+      );
+
+      const itemScores = new Map<string, number>(
+        prefRows.map((r) => [String(r.item_id), Number(r.score)]),
+      );
+
+      // 2. Extract liked/disliked patterns from high-scoring items
+      const likedPatterns: string[] = [];
+      const dislikedPatterns: string[] = [];
+
+      for (const item of wardrobe) {
+        const score = itemScores.get(item.id);
+        if (score && score >= 2) {
+          // Strongly liked items
+          const pattern = `${item.color || ''} ${item.main_category || item.category || ''}`.trim();
+          if (pattern && !likedPatterns.includes(pattern)) {
+            likedPatterns.push(pattern);
+          }
+        } else if (score && score <= -2) {
+          // Strongly disliked items
+          const pattern = `${item.color || ''} ${item.main_category || item.category || ''}`.trim();
+          if (pattern && !dislikedPatterns.includes(pattern)) {
+            dislikedPatterns.push(pattern);
+          }
+        }
+      }
+
+      // 3. Build summary for prompt injection
+      const parts: string[] = [];
+      if (likedPatterns.length > 0) {
+        parts.push(`Preferred: ${likedPatterns.slice(0, 5).join(', ')}`);
+      }
+      if (dislikedPatterns.length > 0) {
+        parts.push(`Avoid: ${dislikedPatterns.slice(0, 3).join(', ')}`);
+      }
+
+      const recentFeedbackSummary = parts.length > 0
+        ? `\n\n👍 USER PREFERENCES (from past feedback):\n${parts.join('\n')}`
+        : '';
+
+      console.log(`🎯 [AI Stylist] Loaded feedback for ${userId}: ${prefRows.length} item scores, ${likedPatterns.length} liked patterns`);
+
+      return {
+        itemScores,
+        likedPatterns,
+        dislikedPatterns,
+        recentFeedbackSummary,
+      };
+    } catch (err: any) {
+      console.warn('⚠️ [AI Stylist] Failed to load user feedback:', err.message);
+      return emptyResult;
+    }
+  }
+
+  /** 👗 Suggest visual outfit combinations with images */
+  private async suggestVisualOutfits(
+    user: string | undefined,
+    userId: string | undefined, // Auth user ID for feedback read-back
+    weather: any,
+    wardrobe: any[],
+    preferences: Record<string, any> | undefined,
+    constraint?: string,
+    mode: 'auto' | 'manual' = 'manual',
+  ) {
+    const temp = weather?.fahrenheit?.main?.temp;
+    const condition = weather?.fahrenheit?.weather?.[0]?.main || '';
+    const tempDesc = temp
+      ? `${temp}°F and ${temp < 60 ? 'cool' : temp > 85 ? 'warm' : 'mild'} weather`
+      : 'unknown temperature';
+
+    // Generate concise weather summary for UI
+    const weatherSummary = this.generateWeatherSummary(temp, condition);
+
+    // 🎯 LEARNING INTEGRATION: Fetch user feedback context
+    const feedbackContext = await this.getUserFeedbackContext(userId, wardrobe);
+
+    // Build wardrobe summary with IDs for AI to reference
+    // Apply feedback-based filtering: boost high-score items, deprioritize low-score
+    const wardrobeSummary = wardrobe
+      .filter((item) => item.image_url || item.image)
+      .map((item) => ({
+        ...item,
+        feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+      }))
+      // Sort by feedback score (higher = more preferred) then by recency
+      .sort((a, b) => b.feedbackScore - a.feedbackScore)
+      .slice(0, 50) // Limit to prevent token overflow
+      .map((item) => ({
+        id: item.id,
+        name: item.name || item.ai_title || 'Unnamed item',
+        category: item.main_category || item.category || 'unknown',
+        color: item.color || item.dominant_hex || 'unknown',
+        style: item.style_descriptors?.join(', ') || '',
+        // Include preference indicator for AI context
+        preference: item.feedbackScore > 0 ? 'liked' : item.feedbackScore < 0 ? 'avoid' : undefined,
+      }));
+
+    // Detect if this is a single-piece swap request
+    const isSwapRequest = constraint?.toLowerCase().startsWith('swap ');
+    const swapMatch = constraint?.match(/swap (\w+) only, keep these items: (.+)/i);
+    const swapCategory = swapMatch?.[1];
+    const keepItemIds = swapMatch?.[2]?.split(', ').filter(Boolean) || [];
+
+    // Detect adjustment type for partial outfit modifications
+    const adjustmentType = constraint?.toLowerCase();
+    const isPartialAdjustment = adjustmentType && [
+      'more casual', 'more formal', 'warmer layers', 'lighter, cooler', 'different color palette'
+    ].includes(adjustmentType);
+
+    // Build adjustment-specific rules for preserving outfit continuity
+    let adjustmentRules = '';
+    if (isPartialAdjustment && !isSwapRequest) {
+      const adjustmentGuide: Record<string, string> = {
+        'more casual': `PARTIAL ADJUSTMENT - MORE CASUAL:
+   - Keep 70-80% of the previous outfit items
+   - Only swap 1-2 pieces to reduce formality (e.g., dress shoes → clean sneakers, blazer → casual jacket)
+   - Preserve the color palette and silhouette integrity
+   - In reasoning, reference what you kept: "Keeping the [item], but swapping [item] for..."`,
+        'more formal': `PARTIAL ADJUSTMENT - MORE FORMAL:
+   - Keep 70-80% of the previous outfit items
+   - Only swap 1-2 pieces to increase structure (e.g., sneakers → loafers, t-shirt → button-down)
+   - Preserve the color palette and overall cohesion
+   - In reasoning, reference what you kept: "Same foundation, elevating with..."`,
+        'warmer layers': `PARTIAL ADJUSTMENT - WARMER LAYERS:
+   - Keep 80%+ of the outfit items
+   - Only ADD or UPGRADE outerwear (e.g., add a jacket, swap light layer → heavier)
+   - Do NOT change shoes, bottoms, or accessories unless absolutely necessary
+   - In reasoning, reference what stays: "Adding warmth with [item] while keeping..."`,
+        'lighter, cooler': `PARTIAL ADJUSTMENT - COOLER OUTFIT:
+   - Keep 80%+ of the outfit items
+   - Only REMOVE or DOWNGRADE layers (e.g., remove jacket, swap heavy → light)
+   - Do NOT change the core outfit pieces
+   - In reasoning, reference what stays: "Lightening up by removing [item], keeping..."`,
+        'different color palette': `PARTIAL ADJUSTMENT - DIFFERENT COLORS:
+   - Keep the SAME silhouettes and item categories
+   - Only swap items for different color variations from the wardrobe
+   - Preserve fit, formality, and weather-appropriateness
+   - In reasoning, reference the shift: "Same shapes, shifting to [color family]..."`,
+      };
+      adjustmentRules = adjustmentGuide[adjustmentType] || '';
+    }
+
+    // Mode-specific tone guidance
+    const modeGuidance = mode === 'auto'
+      ? `MODE: AUTOMATIC — Use proactive phrasing: "Styled for your day ahead...", "Ready for your evening"`
+      : `MODE: MANUAL — Use responsive phrasing: "Here's what works...", "This should do the trick..."`;
+
+    const systemPrompt = `
+You are a PROFESSIONAL HUMAN FASHION STYLIST, not an assistant, not a chatbot, and not a creative experimenter.
+
+This recommendation appears ABOVE THE FOLD on app launch.
+A single bad suggestion causes user trust loss and app deletion.
+
+Your primary objective is NOT creativity.
+Your objective is ACCURACY, STYLE ALIGNMENT, and TRUST.
+
+${modeGuidance}
+
+════════════════════════
+NON-NEGOTIABLE RULES
+════════════════════════
+
+1. NEVER output an outfit unless you are highly confident it matches the user's style.
+2. NEVER surprise the user with bold, experimental, or identity-breaking choices.
+3. NEVER justify a bad outfit with clever wording.
+4. WHEN IN DOUBT, choose safer, simpler, more classic options.
+5. BORING BUT CORRECT beats interesting but risky.
+6. YOU ARE ALLOWED TO BE CONSERVATIVE. THIS IS A FEATURE.
+
+════════════════════════
+HARD FILTERS (ABSOLUTE BLOCKERS)
+════════════════════════
+
+DISCARD any outfit that violates ANY of the following:
+- Weather incompatibility (wrong fabric weight, missing layers for cold, too heavy for warm)
+- Dress code mismatch
+- Missing required layers (top, bottom, shoes minimum)
+- Unbalanced silhouettes or clashing color harmony
+- Radical deviation from classic, safe styling
+
+If an outfit fails ANY filter → IT MUST NOT EXIST.
+
+════════════════════════
+CONFIDENCE THRESHOLD
+════════════════════════
+
+Only output outfits you are CONFIDENT the user would realistically wear today.
+
+High confidence indicators:
+- Similar silhouettes to classic, proven combinations
+- Neutral or trusted color palettes (navy, grey, black, white, earth tones)
+- Context-appropriate layering
+- Weather-right fabric choices
+
+Low confidence → choose safer alternatives or reduce complexity.
+
+════════════════════════
+RANKING RULES
+════════════════════════
+
+Rank 1 = PRIMARY RECOMMENDATION
+- Must be the safest, strongest, most reliable option
+- Should feel inevitable, not experimental
+- This is the outfit you would personally stand behind with your reputation
+
+Rank 2 = POLISHED VARIATION
+- Slightly more elevated or refined
+- Still fully safe and aligned
+
+Rank 3 = RELAXED OPTION
+- Lower formality, more laid-back
+- Still coherent and intentional
+
+Do NOT make ranks feel equal. Rank 1 is THE recommendation.
+
+${isSwapRequest && swapCategory ? `
+════════════════════════
+SINGLE-PIECE SWAP
+════════════════════════
+User wants to swap ONLY the ${swapCategory}.
+- MUST keep these exact items in ALL 3 outfits: ${keepItemIds.join(', ')}
+- Only change the ${swapCategory} - pick 3 different safe options
+- Each outfit = same kept items + different ${swapCategory}
+- In reasoning, reference continuity: "Keeping everything else, but trying..."
+` : adjustmentRules ? `
+════════════════════════
+ADJUSTMENT MODE
+════════════════════════
+${adjustmentRules}
+` : constraint ? `
+════════════════════════
+CONSTRAINT
+════════════════════════
+"${constraint}" - adjust accordingly but maintain safety and alignment.
+` : ''}
+
+════════════════════════
+EXPLANATION STYLE
+════════════════════════
+
+Sound like a confident human stylist. Be concise and opinionated.
+
+DO:
+- Explain WHY it works (weather, silhouette, practicality)
+- Be direct and confident
+- Reinforce trust
+
+DO NOT:
+- Describe items mechanically
+- Use phrases like "this outfit combines…"
+- Over-explain or justify weak choices
+
+Good: "Clean, confident, and weather-right. The layers add warmth without bulk, silhouette stays sharp."
+Bad: "This outfit combines a shirt with pants and shoes for a cohesive look."
+
+════════════════════════
+FAILSAFE RULE
+════════════════════════
+
+If you cannot confidently produce a GREAT outfit:
+- Default to a simple, clean, classic, low-risk option
+- Reduce color complexity
+- Reduce layering complexity
+- Prefer familiarity over novelty
+
+Never output a risky outfit just to fill space.
+
+════════════════════════
+FINAL SELF-CHECK (MANDATORY)
+════════════════════════
+
+Before outputting, ask:
+"Would I confidently recommend this to a real client I care about?"
+
+If the answer is not an immediate YES → DO NOT OUTPUT.
+
+════════════════════════
+OUTPUT FORMAT
+════════════════════════
+
+Output valid JSON only:
+{
+  "outfits": [
+    {
+      "id": "outfit-1",
+      "rank": 1,
+      "summary": "Short, confident vibe (max 80 chars)",
+      "reasoning": "WHY this works — 1-2 sentences, reference weather/context",
+      "itemIds": ["item-id-1", "item-id-2", "item-id-3"]
+    },
+    {
+      "id": "outfit-2",
+      "rank": 2,
+      "summary": "...",
+      "reasoning": "...",
+      "itemIds": ["..."]
+    },
+    {
+      "id": "outfit-3",
+      "rank": 3,
+      "summary": "...",
+      "reasoning": "...",
+      "itemIds": ["..."]
+    }
+  ]
+}
+`;
+
+    const userPrompt = `
+Client: ${user || 'The user'}
+Weather: ${tempDesc}
+Preferences: ${JSON.stringify(preferences || {})}
+${feedbackContext.recentFeedbackSummary}
+
+Available wardrobe items:
+${JSON.stringify(wardrobeSummary, null, 2)}
+
+${feedbackContext.likedPatterns.length > 0 ? `NOTE: Items marked with "preference": "liked" are user favorites - prioritize these.` : ''}
+${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "preference": "avoid" have been disliked - use sparingly or avoid.` : ''}
+`;
+
+    const completion = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      temperature: 0.4, // Lower temperature for more consistent, conservative outputs
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) throw new Error('No visual suggestion response received from model.');
+
+    let parsed: {
+      outfits: Array<{
+        id: string;
+        rank: 1 | 2 | 3;
+        summary: string;
+        reasoning?: string;
+        itemIds: string[];
+      }>;
+    };
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      console.error('❌ Failed to parse visual AI JSON:', raw);
+      throw new Error('AI response was not valid JSON.');
+    }
+
+    // 🛡️ HARD BLOCK: Strongly disliked items (score <= -2) cannot appear in Rank 1
+    const stronglyDislikedIds = new Set(
+      [...feedbackContext.itemScores.entries()]
+        .filter(([_, score]) => score <= -2)
+        .map(([id]) => id),
+    );
+
+    if (stronglyDislikedIds.size > 0) {
+      const rank1Outfit = parsed.outfits.find((o) => o.rank === 1);
+      if (rank1Outfit) {
+        const hasDislikedItem = rank1Outfit.itemIds.some((id) => stronglyDislikedIds.has(id));
+        if (hasDislikedItem) {
+          console.warn('🛡️ [AI Stylist] Rank 1 contained disliked item — swapping with Rank 2');
+          // Swap Rank 1 and Rank 2
+          const rank2Outfit = parsed.outfits.find((o) => o.rank === 2);
+          if (rank2Outfit && !rank2Outfit.itemIds.some((id) => stronglyDislikedIds.has(id))) {
+            rank1Outfit.rank = 2;
+            rank2Outfit.rank = 1;
+            // Re-sort by rank
+            parsed.outfits.sort((a, b) => a.rank - b.rank);
+          }
+        }
+      }
+    }
+
+    // Map item IDs back to full wardrobe items with images
+    const wardrobeMap = new Map(wardrobe.map((item) => [item.id, item]));
+
+    const outfitsWithItems = parsed.outfits.map((outfit) => ({
+      id: outfit.id,
+      rank: outfit.rank,
+      summary: outfit.summary,
+      reasoning: outfit.reasoning,
+      items: outfit.itemIds
+        .map((itemId) => {
+          const item = wardrobeMap.get(itemId);
+          if (!item) return null;
+          return {
+            id: item.id,
+            name: item.name || item.ai_title || 'Item',
+            imageUrl:
+              item.touched_up_image_url ||
+              item.processed_image_url ||
+              item.image_url ||
+              item.image,
+            category: this.mapToCategory(item.main_category || item.category),
+          };
+        })
+        .filter(Boolean),
+    }));
+
+    // 🛡️ OUTFIT COMPLETENESS ENFORCEMENT
+    // Every outfit MUST have: 1 top, 1 bottom, 1 shoes (outerwear optional)
+    // Build category pools sorted by feedback score for fallback injection
+    const categoryPools = {
+      top: wardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'top')
+        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      bottom: wardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'bottom')
+        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      shoes: wardrobe
+        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'shoes')
+        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+    };
+
+    // Enforce completeness for each outfit
+    for (const outfit of outfitsWithItems) {
+      const existingIds = new Set(outfit.items.map((item) => item?.id).filter(Boolean));
+      const hasTop = outfit.items.some((item) => item?.category === 'top');
+      const hasBottom = outfit.items.some((item) => item?.category === 'bottom');
+      const hasShoes = outfit.items.some((item) => item?.category === 'shoes');
+
+      // Inject missing top
+      if (!hasTop && categoryPools.top.length > 0) {
+        const fallback = categoryPools.top.find((item) => !existingIds.has(item.id));
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            category: 'top',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+
+      // Inject missing bottom
+      if (!hasBottom && categoryPools.bottom.length > 0) {
+        const fallback = categoryPools.bottom.find((item) => !existingIds.has(item.id));
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            category: 'bottom',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+
+      // Inject missing shoes
+      if (!hasShoes && categoryPools.shoes.length > 0) {
+        const fallback = categoryPools.shoes.find((item) => !existingIds.has(item.id));
+        if (fallback) {
+          outfit.items.push({
+            id: fallback.id,
+            name: fallback.name || fallback.ai_title || 'Item',
+            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            category: 'shoes',
+          });
+          existingIds.add(fallback.id);
+        }
+      }
+    }
+
+    return { weatherSummary, outfits: outfitsWithItems };
+  }
+
+  /** Generate concise weather summary for UI (one line max) */
+  private generateWeatherSummary(temp: number | undefined, condition: string): string {
+    if (!temp) return 'Check local weather for best outfit choices.';
+
+    const conditionLower = (condition || '').toLowerCase();
+    const isRainy = conditionLower.includes('rain') || conditionLower.includes('drizzle');
+    const isCloudy = conditionLower.includes('cloud') || conditionLower.includes('overcast');
+    const isClear = conditionLower.includes('clear') || conditionLower.includes('sun');
+
+    if (temp < 50) {
+      if (isRainy) return `Cold and rainy (${temp}°F) — warm layers and waterproof shoes.`;
+      return `Cold today (${temp}°F) — heavier layers recommended.`;
+    }
+    if (temp < 65) {
+      if (isRainy) return `Cool with rain (${temp}°F) — light layers and closed shoes.`;
+      return `Cool and ${isClear ? 'clear' : 'crisp'} (${temp}°F) — light layers work well.`;
+    }
+    if (temp < 80) {
+      if (isRainy) return `Mild with rain expected (${temp}°F) — breathable layers, closed shoes.`;
+      return `Pleasant ${temp}°F — versatile options today.`;
+    }
+    // Hot weather
+    if (isRainy) return `Warm and humid (${temp}°F) — lightweight, breathable fabrics.`;
+    return `Warm today (${temp}°F) — keep it light and breathable.`;
+  }
+
+  /** Map backend category to frontend category type */
+  private mapToCategory(
+    category: string,
+  ): 'top' | 'bottom' | 'outerwear' | 'shoes' | 'accessory' {
+    const normalized = (category || '').toLowerCase();
+    if (normalized.includes('top') || normalized.includes('shirt') || normalized.includes('blouse'))
+      return 'top';
+    if (normalized.includes('bottom') || normalized.includes('pant') || normalized.includes('skirt'))
+      return 'bottom';
+    if (normalized.includes('outer') || normalized.includes('jacket') || normalized.includes('coat'))
+      return 'outerwear';
+    if (normalized.includes('shoe') || normalized.includes('boot') || normalized.includes('sneaker'))
+      return 'shoes';
+    return 'accessory';
   }
 
   /* ------------------------------------------------------------

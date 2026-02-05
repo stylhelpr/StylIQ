@@ -22,6 +22,8 @@ import {saveFavoriteOutfit} from '../utils/favorites';
 import OutfitNameModal from '../components/OutfitNameModal/OutfitNameModal';
 import {saveOutfitToDate} from '../utils/calendarStorage';
 import Voice from '@react-native-voice/voice';
+import {VoiceTarget} from '../utils/VoiceUtils/voiceTarget';
+import {useVoiceControl} from '../hooks/useVoiceControl';
 import {useGlobalStyles} from '../styles/useGlobalStyles';
 import {tokens} from '../styles/tokens/tokens';
 import {useUUID} from '../context/UUIDContext';
@@ -54,6 +56,18 @@ import {
 // Weather utils
 import {getCurrentLocation, fetchWeather} from '../utils/travelWeather';
 
+// AI Outfit v2 components
+import GuidedRefinementChips from '../components/GuidedRefinementChips/GuidedRefinementChips';
+import WardrobePickerModal from '../components/WardrobePickerModal/WardrobePickerModal';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+
+// Haptic feedback helper
+const h = (type: string) =>
+  ReactNativeHapticFeedback.trigger(type as any, {
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  });
+
 type Props = {navigate: (screen: string, params?: any) => void};
 
 type Weights = {
@@ -77,6 +91,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const {theme} = useAppTheme();
   const globalStyles = useGlobalStyles();
   const queryClient = useQueryClient();
+  const {isRecording, startVoiceCommand} = useVoiceControl();
 
   const insets = useSafeAreaInsets();
 
@@ -97,7 +112,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   // Local UI state
   // ──────────────────────────────────────────────────────────────
   const [visibleModal, setVisibleModal] = useState<
-    null | 'top' | 'bottom' | 'shoes'
+    null | 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories'
   >(null);
   const [lastSpeech, setLastSpeech] = useState('');
 
@@ -145,7 +160,33 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     reason: '',
   });
 
+  // ──────────────────────────────────────────────────────────────
+  // AI Outfit v2 State
+  // ──────────────────────────────────────────────────────────────
+  const [showWardrobePicker, setShowWardrobePicker] = useState(false);
+  const [lockedItem, setLockedItem] = useState<WardrobeItem | null>(null);
+  const [selectedMoodLabel, setSelectedMoodLabel] = useState<string | null>(null);
+  const [selectedMoodPrompt, setSelectedMoodPrompt] = useState<string | null>(null);
+  const [selectedAdjustmentLabel, setSelectedAdjustmentLabel] = useState<string | null>(null);
+  const [selectedAdjustmentPrompt, setSelectedAdjustmentPrompt] = useState<string | null>(null);
+  const [outfitPrompt, setOutfitPrompt] = useState<string>('');
+  const [buildAroundPrompt, setBuildAroundPrompt] = useState<string>('');
+  // Swap item mode: track which section is being swapped (null = start from piece mode)
+  const [swapSection, setSwapSection] = useState<'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories' | null>(null);
+
+  // Tracks if user has confirmed outfit selection (hides thumbnails, shows refinement screen)
+  const [hasRefined, setHasRefined] = useState(false);
+
   const isDisabled = !top || !bottom || !shoes;
+
+  // Switch VoiceTarget based on whether lockedItem is set
+  useEffect(() => {
+    if (lockedItem) {
+      VoiceTarget.set(setBuildAroundPrompt, 'buildAroundPrompt');
+    } else {
+      VoiceTarget.set(setOutfitPrompt, 'outfitPrompt');
+    }
+  }, [lockedItem]);
 
   const REASON_TAGS = [
     'Too casual',
@@ -157,7 +198,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   ];
 
   // Backend hook
-  const {current, loading, error, regenerate, clear} = useOutfitApi(userId);
+  const {current, loading, error, regenerate, clear, outfits, selected, setSelected} = useOutfitApi(userId);
 
   // Voice input
   const handleVoiceStart = async () => {
@@ -517,17 +558,237 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   };
 
   // ──────────────────────────────────────────────────────────────
+  // AI Outfit v2 Handlers
+  // ──────────────────────────────────────────────────────────────
+
+  // "Create Outfit" - Initial generation with NEW session (uses legacy builtQuery)
+  const handleV2Generate = () => {
+    console.log('[handleV2Generate] Called! userId:', userId);
+    if (!userId) {
+      console.log('[handleV2Generate] No userId, returning early');
+      return;
+    }
+
+    // Debug: Log locked item info
+    if (lockedItem) {
+      console.log('[handleV2Generate] Locked item:', {
+        id: lockedItem.id,
+        name: lockedItem.name,
+        category: (lockedItem as any).mainCategory || (lockedItem as any).main_category,
+        fullItem: lockedItem,
+      });
+    }
+
+    // Clear any existing outfit first to allow fresh generation
+    clear();
+    // Reset refinement state for new outfit generation
+    setHasRefined(false);
+    setSelectedAdjustmentLabel(null);
+    setSelectedAdjustmentPrompt(null);
+
+    // Create NEW session for initial generation
+    const newSessionId = uuid.v4() as string;
+    setSessionId(newSessionId);
+    // Keep lockedItem if user selected one via "Start from a Piece"
+    // Keep selectedMoodLabel/Prompt - don't reset it, so user's mood selection persists
+
+    const wxToSend = useWeather
+      ? weather === 'auto'
+        ? liveWeatherCtx ?? {
+            tempF: 68,
+            precipitation: 'none' as const,
+            windMph: 5,
+            locationName: 'Local' as const,
+          }
+        : chipWeatherContext
+      : undefined;
+
+    const useStyle = useStylePrefs && weights.styleWeight > 0;
+
+    // If user selected a locked item, build query around it with buildAroundPrompt
+    // Handle both snake_case and camelCase property names from API (cast to any for flexibility)
+    const li = lockedItem as any;
+    const lockedItemCategory = lockedItem
+      ? (li.subCategory || li.subcategory || li.mainCategory || li.main_category || li.name || 'item')
+      : '';
+    const queryToUse = lockedItem
+      ? `outfit built around my ${lockedItemCategory}${buildAroundPrompt ? `: ${buildAroundPrompt}` : ''}`
+      : builtQuery;
+
+    // Use existing builtQuery logic (legacy behavior preservation)
+    // If user selected a mood before generating, incorporate it
+    // For locked items, use buildAroundPrompt; otherwise use outfitPrompt
+    const promptParts = lockedItem
+      ? [selectedMoodPrompt, buildAroundPrompt].filter(Boolean)
+      : [selectedMoodPrompt, outfitPrompt].filter(Boolean);
+
+    const lockedIds = lockedItem ? [lockedItem.id] : undefined;
+    console.log('[handleV2Generate] Calling regenerate with:', {
+      query: queryToUse,
+      lockedItemIds: lockedIds,
+      refinementPrompt: promptParts.join(' ') || undefined,
+    });
+
+    regenerate(queryToUse, {
+      topK: 25,
+      useWeather,
+      sessionId: newSessionId,
+      weather: wxToSend,
+      styleProfile: useStyle ? styleProfile : undefined,
+      useStyle,
+      // @ts-ignore
+      weights,
+      useFeedback,
+      styleAgent,
+      // Include selected mood and freeform prompt as context if present
+      refinementPrompt: promptParts.join(' ') || undefined,
+      // Include locked item if user started from a piece
+      lockedItemIds: lockedIds,
+    });
+  };
+
+  // "Start from a Piece" - Just select the item, don't generate yet
+  const handleStartFromPiece = (item: any) => {
+    console.log('[handleStartFromPiece] Selected item:', {
+      id: item.id,
+      name: item.name,
+      category: item.mainCategory || item.main_category,
+      fullItem: item,
+    });
+    // Just set the locked item and close modal - user will tap "Create Outfit" to generate
+    setLockedItem(item);
+    setShowWardrobePicker(false);
+    setSwapSection(null);
+  };
+
+  // Handle wardrobe item selection (both "start from piece" and "swap" modes)
+  const handleWardrobeItemSelect = (item: any) => {
+    // Handle both snake_case and camelCase properties
+    const itemCategory = item.subCategory || item.subcategory || item.mainCategory || item.main_category || item.name || 'item';
+
+    if (swapSection && sessionId) {
+      // Swap mode: update the specific outfit slot with the new item
+      h('impactMedium');
+
+      // Get current outfit items to lock the ones we're NOT swapping
+      const rawItems = Array.isArray((current as any)?.outfits?.[0]?.items)
+        ? (current as any).outfits[0].items
+        : Array.isArray((current as any)?.items)
+        ? (current as any).items
+        : [];
+
+      // Map swapSection to main category for filtering
+      const swapCategoryMap: Record<string, string> = {
+        'top': 'tops',
+        'bottom': 'bottoms',
+        'shoes': 'shoes',
+        'outerwear': 'outerwear',
+        'accessories': 'accessories',
+      };
+      const swapCategory = swapCategoryMap[swapSection] || swapSection;
+
+      // Get IDs of items we want to KEEP (everything except the swapped section)
+      const itemsToKeep = rawItems
+        .filter((it: any) => {
+          const cat = (it?.mainCategory || it?.main_category || '').toLowerCase();
+          return cat !== swapCategory;
+        })
+        .map((it: any) => it?.id)
+        .filter((id: any): id is string => typeof id === 'string' && id.length > 0);
+
+      // Lock the items we're keeping PLUS the new item
+      const allLockedIds = [...itemsToKeep, item.id];
+
+      // Build swap prompt
+      const swapPrompt = `Replace ONLY the ${swapSection} with this specific ${itemCategory}. Keep all other items exactly the same.`;
+
+      // Close modal and reset swap state BEFORE triggering refinement
+      setShowWardrobePicker(false);
+      setSwapSection(null);
+
+      // Get weather context
+      const wxToSend = useWeather
+        ? weather === 'auto'
+          ? liveWeatherCtx ?? {
+              tempF: 68,
+              precipitation: 'none' as const,
+              windMph: 5,
+              locationName: 'Local' as const,
+            }
+          : chipWeatherContext
+        : undefined;
+
+      const useStyle = useStylePrefs && weights.styleWeight > 0;
+
+      // Trigger refinement with ALL relevant items locked
+      regenerate(builtQuery, {
+        topK: 25,
+        useWeather,
+        sessionId, // Reuse existing session
+        weather: wxToSend,
+        styleProfile: useStyle ? styleProfile : undefined,
+        useStyle,
+        // @ts-ignore
+        weights,
+        useFeedback,
+        styleAgent,
+        refinementPrompt: swapPrompt,
+        // Lock the items we're keeping + the new item
+        lockedItemIds: allLockedIds,
+      });
+    } else if (swapSection && !sessionId) {
+      // Swap mode but no session - shouldn't happen, but handle gracefully
+      console.warn('[Swap] No session ID available for swap');
+      setShowWardrobePicker(false);
+      setSwapSection(null);
+    } else {
+      // Start from piece mode
+      handleStartFromPiece(item);
+    }
+  };
+
+  // ──────────────────────────────────────────────────────────────
   // Extract cards
   // ──────────────────────────────────────────────────────────────
+
+  // Helper to extract preview items from any outfit
+  const getOutfitPreview = (outfit: any) => {
+    if (!outfit) return null;
+    const items = outfit?.items || [];
+    const topItem = pickFirstByCategory(items, 'Tops') ?? pickFirstByCategory(items, 'Outerwear');
+    const bottomItem = pickFirstByCategory(items, 'Bottoms');
+    const shoesItem = pickFirstByCategory(items, 'Shoes');
+    // Extract outerwear separately (only if we have a Top, otherwise it's used as top fallback)
+    const outerwearItem = pickFirstByCategory(items, 'Tops')
+      ? pickFirstByCategory(items, 'Outerwear')
+      : null;
+    const accessoriesItem = pickFirstByCategory(items, 'Accessories');
+    return {
+      title: outfit?.title || 'Outfit',
+      top: apiItemToUI(topItem),
+      bottom: apiItemToUI(bottomItem),
+      shoes: apiItemToUI(shoesItem),
+      outerwear: apiItemToUI(outerwearItem),
+      accessories: apiItemToUI(accessoriesItem),
+    };
+  };
+
   const topApi =
     pickFirstByCategory(current?.items, 'Tops') ??
     pickFirstByCategory(current?.items, 'Outerwear');
   const bottomApi = pickFirstByCategory(current?.items, 'Bottoms');
   const shoesApi = pickFirstByCategory(current?.items, 'Shoes');
+  // Extract outerwear separately (only if we have a Top, otherwise it's used as top fallback)
+  const outerwearApi = pickFirstByCategory(current?.items, 'Tops')
+    ? pickFirstByCategory(current?.items, 'Outerwear')
+    : null;
+  const accessoriesApi = pickFirstByCategory(current?.items, 'Accessories');
 
   const top = apiItemToUI(topApi);
   const bottom = apiItemToUI(bottomApi);
   const shoes = apiItemToUI(shoesApi);
+  const outerwear = apiItemToUI(outerwearApi);
+  const accessories = apiItemToUI(accessoriesApi);
 
   const hasOutfit = useMemo(() => {
     const o: any = current;
@@ -539,10 +800,71 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
     return Array.isArray(items) && items.length > 0;
   }, [current]);
 
+  // Generate item-specific reasons based on item properties and outfit context
+  const generateItemReason = (
+    item: WardrobeItem | undefined,
+    role: 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories',
+  ): string[] => {
+    if (!item) return [];
+
+    const reasons: string[] = [];
+    const itemName = item.name || item.subCategory || item.mainCategory || 'This item';
+    const color = item.color ? item.color.toLowerCase() : '';
+
+    // Role-specific reasons
+    switch (role) {
+      case 'top':
+        if (color) {
+          reasons.push(`${itemName} provides a ${color} foundation that anchors the outfit's color palette.`);
+        } else {
+          reasons.push(`${itemName} serves as the visual centerpiece of this look.`);
+        }
+        if (item.subCategory) {
+          reasons.push(`A ${item.subCategory.toLowerCase()} brings the right level of formality for this outfit.`);
+        }
+        break;
+      case 'bottom':
+        if (color) {
+          reasons.push(`${itemName} in ${color} balances the top and creates visual harmony.`);
+        } else {
+          reasons.push(`${itemName} complements the upper half and completes the silhouette.`);
+        }
+        break;
+      case 'shoes':
+        if (color) {
+          reasons.push(`${itemName} in ${color} ties the look together from the ground up.`);
+        } else {
+          reasons.push(`${itemName} grounds the outfit and sets the overall tone.`);
+        }
+        if (item.subCategory) {
+          reasons.push(`${item.subCategory} footwear matches the formality level of this ensemble.`);
+        }
+        break;
+      case 'outerwear':
+        if (color) {
+          reasons.push(`${itemName} in ${color} adds a polished layer that elevates the look.`);
+        } else {
+          reasons.push(`${itemName} adds structure and completes the layered aesthetic.`);
+        }
+        break;
+      case 'accessories':
+        if (color) {
+          reasons.push(`${itemName} in ${color} adds a finishing touch that pulls everything together.`);
+        } else {
+          reasons.push(`${itemName} adds personality and completes the overall styling.`);
+        }
+        break;
+    }
+
+    return reasons;
+  };
+
   const reasons = {
-    top: current?.why ? [current.why] : [],
-    bottom: current?.why ? [current.why] : [],
-    shoes: current?.why ? [current.why] : [],
+    top: generateItemReason(top, 'top'),
+    bottom: generateItemReason(bottom, 'bottom'),
+    shoes: generateItemReason(shoes, 'shoes'),
+    outerwear: generateItemReason(outerwear, 'outerwear'),
+    accessories: generateItemReason(accessories, 'accessories'),
   };
 
   // Extract IDs for feedback payload
@@ -629,46 +951,107 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
   const renderCard = (
     label: string,
     item: WardrobeItem | undefined,
-    section: 'top' | 'bottom' | 'shoes',
-  ) => (
-    <TouchableOpacity
-      onPress={() => setVisibleModal(section)}
-      activeOpacity={0.9}
-      style={[
-        styles.cardOverlay,
-        {backgroundColor: 'white'},
-      ]}>
-      <Image
-        source={
-          item?.image
-            ? {uri: item.image}
-            : {uri: 'https://via.placeholder.com/300x200?text=No+Image'}
-        }
-        style={styles.cardImage}
-      />
-      <View
+    section: 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories',
+  ) => {
+    // AI Outfit v2: Check if this item is the locked item
+    const isLocked = lockedItem && item?.id === lockedItem.id;
+
+    // Map section to wardrobe category
+    const getCategoryForSection = (s: 'top' | 'bottom' | 'shoes' | 'outerwear' | 'accessories') => {
+      switch (s) {
+        case 'top': return 'Tops';
+        case 'bottom': return 'Bottoms';
+        case 'shoes': return 'Shoes';
+        case 'outerwear': return 'Outerwear';
+        case 'accessories': return 'Accessories';
+        default: return 'All';
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={() => setVisibleModal(section)}
+        activeOpacity={0.9}
         style={[
-          styles.categoryPill,
-          {backgroundColor: theme.colors.background},
+          styles.cardOverlay,
+          {backgroundColor: theme.colors.surface},
+          isLocked && {borderWidth: 2, borderColor: theme.colors.primary},
         ]}>
-        <Text
+        <Image
+          source={
+            item?.image
+              ? {uri: item.image}
+              : {uri: 'https://via.placeholder.com/300x200?text=No+Image'}
+          }
+          style={styles.cardImage}
+        />
+        <View
           style={[
-            globalStyles.label,
-            {paddingHorizontal: 8, paddingVertical: 4, fontSize: 16},
+            styles.categoryPill,
+            {backgroundColor: theme.colors.background},
           ]}>
-          {label}
-        </Text>
-      </View>
-      <View style={styles.overlay}>
-        <View style={globalStyles.labelContainer2}>
-          <Text style={styles.itemName}>
-            {item?.name ?? `No ${label} selected`}
+          <Text
+            style={[
+              globalStyles.label,
+              {paddingHorizontal: 8, paddingVertical: 4, fontSize: 16},
+            ]}>
+            {label}
           </Text>
-          <Text style={styles.whyText}>Why this {label}?</Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        {/* AI Outfit v2: Locked item indicator */}
+        {isLocked && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              backgroundColor: theme.colors.primary,
+              borderRadius: 12,
+              padding: 4,
+            }}>
+            <MaterialIcons name="lock" size={16} color="#fff" />
+          </View>
+        )}
+        {/* Swap out Item button - hide for locked items and until outfit is selected */}
+        {!isLocked && hasRefined && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation();
+              h('impactLight');
+              setSwapSection(section);
+              setShowWardrobePicker(true);
+            }}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              borderRadius: 16,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+            <MaterialIcons name="swap-horiz" size={16} color="#fff" />
+            <Text style={{color: '#fff', fontSize: 12, fontWeight: '500'}}>
+              Swap
+            </Text>
+          </TouchableOpacity>
+        )}
+        <View style={styles.overlay}>
+          <View style={globalStyles.labelContainer2}>
+            <Text style={styles.itemName}>
+              {item?.name ?? `No ${label} selected`}
+            </Text>
+            <Text style={styles.whyText}>
+              {isLocked ? 'You chose this piece' : `Why this ${label}?`}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // Loading
   if (loading) {
@@ -679,9 +1062,9 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           {justifyContent: 'center', alignItems: 'center'},
         ]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{marginTop: 12, color: theme.colors.foreground}}>
+        {/* <Text style={{marginTop: 12, color: theme.colors.foreground}}>
           Styling your look…
-        </Text>
+        </Text> */}
       </View>
     );
   }
@@ -691,7 +1074,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
       style={[
         globalStyles.container,
         globalStyles.screen,
-        {backgroundColor: theme.colors.background, paddingBottom: 350},
+        {backgroundColor: theme.colors.background, paddingBottom: 0},
       ]}>
       <View
         style={{
@@ -699,13 +1082,31 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           backgroundColor: theme.colors.background, // same tone as old nav
         }}
       />
-      <View className="sectionTitle">
-        <View style={globalStyles.sectionTitle}>
-          <Text style={globalStyles.header}>AI Outfit</Text>
+      
+      <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingLeft: moderateScale(tokens.spacing.sm),
+            marginBottom: 10
+          }}>
+          <Image
+            source={require('../assets/images/Styla1.png')}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              marginRight: 8,
+              borderWidth: 1,
+              borderColor: theme.colors.surfaceBorder,
+            }}
+            resizeMode="cover"
+          />
+          <Text style={[globalStyles.header, {paddingLeft: 0}]}>Styla -AI Outfit Studio</Text>
         </View>
 
         {/* Header */}
-        <View
+        {/* <View
           style={{
             justifyContent: 'center',
             paddingHorizontal: moderateScale(tokens.spacing.xxl),
@@ -720,108 +1121,267 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
               textAlign: 'center',
               fontSize: fontScale(tokens.fontSize.md),
               color: theme.colors.foreground,
-              fontWeight: tokens.fontWeight.medium,
+              fontWeight: tokens.fontWeight.normal,
             }}>
             Outfits are assembled from your personal uploaded wardrobe items. Just tell me what kind of look you 
-            want and press "Create Outfit"
+            want and press "Generate Ideas"
           </Animatable.Text>
-        </View>
+        </View> */}
 
-        <View style={[globalStyles.section]}>
-          <View style={globalStyles.centeredSection}>
+        <View style={[globalStyles.section, {flex: 1, marginBottom: 0}]}>
+          <View style={[globalStyles.centeredSection, {flex: 1}]}>
             <ScrollView
               onScroll={handleScroll}
               scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{
                 marginTop: 8,
-                paddingBottom: 40,
+                paddingBottom: 200,
                 alignItems: 'center',
               }}>
-              {/* Prompt input with mic - hide when refine input is shown */}
+              {/* AI Outfit v2 Entry State */}
               {!hasOutfit && (
-                <View
-                  style={[
-                    globalStyles.promptRow,
-                    {
-                      minHeight: 45,
-                      marginBottom: 12,
-                      paddingHorizontal: 14,
-                      borderWidth: tokens.borderWidth.xl,
-                      borderColor: theme.colors.surfaceBorder,
-                      backgroundColor: theme.colors.surface3,
-                      borderRadius: 20,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    },
-                  ]}>
-                  <TextInput
-                    placeholder="Describe the look you want here..."
-                    placeholderTextColor={theme.colors.muted}
-                    multiline
-                    scrollEnabled={false}
-                    style={[
-                      globalStyles.promptInput,
-                      {
-                        color: theme.colors.foreground,
-                        flex: 1,
-                        minHeight: 42,
-                        paddingTop: 10,
-                        paddingBottom: 10,
-                        textAlignVertical: 'top',
-                      },
-                    ]}
-                    value={lastSpeech}
-                    onChangeText={setLastSpeech}
-                  />
+                <Animatable.View
+                  animation="fadeInUp"
+                  duration={600}
+                  easing="ease-out-cubic"
+                  style={{
+                    alignItems: 'center',
+                    width: '100%',
+                    marginBottom: 20,
+                  }}>
+      
 
-                  {/* ✅ Clear Button - one tap fix */}
-                  {lastSpeech.length > 0 && (
-                    <TouchableOpacity
-                      onPress={async () => {
-                        try {
-                          // ✅ Stop any ongoing recognition
-                          await Voice.stop();
-                          // ✅ Cancel to flush partial results
-                          await Voice.cancel();
-                        } catch (e) {
-                          console.warn('Voice stop/cancel error', e);
+                  {/* Mood chips and prompt input visible from entry state - hide when piece selected */}
+                  {/* Mutually exclusive: user can EITHER type a prompt OR select a mood chip, not both */}
+                  {!lockedItem && (
+                    <GuidedRefinementChips
+                      onSelectMood={(refinementPrompt, label) => {
+                        // When selecting a chip, clear any typed prompt (mutually exclusive)
+                        if (label) {
+                          setOutfitPrompt('');
                         }
-
-                        // ✅ Clear after a short delay to avoid ghost text from final callbacks
-                        setTimeout(() => {
-                          setLastSpeech('');
-                        }, 100);
+                        setSelectedMoodLabel(label || null);
+                        setSelectedMoodPrompt(refinementPrompt || null);
                       }}
-                      style={{paddingHorizontal: 8}}>
-                      <MaterialIcons
-                        name="close"
-                        size={22}
-                        color={theme.colors.foreground2}
-                      />
-                    </TouchableOpacity>
+                      onSelectAdjustment={(refinementPrompt, label) => {
+                        setSelectedAdjustmentLabel(label || null);
+                        setSelectedAdjustmentPrompt(refinementPrompt || null);
+                      }}
+                      disabled={loading}
+                      moodChipsDisabled={!!outfitPrompt.trim()}
+                      promptInputDisabled={!!selectedMoodLabel}
+                      selectedMoodLabel={selectedMoodLabel}
+                      selectedAdjustmentLabel={selectedAdjustmentLabel}
+                      showAdjustments={false}
+                      promptValue={outfitPrompt}
+                      onPromptChange={(text) => {
+                        // When typing a prompt, clear any selected mood chip (mutually exclusive)
+                        if (text.trim()) {
+                          setSelectedMoodLabel(null);
+                          setSelectedMoodPrompt(null);
+                        }
+                        setOutfitPrompt(text);
+                      }}
+                      promptPlaceholder="e.g. brunch, work, etc..."
+                    />
                   )}
 
-                  {/* 🎙️ Mic Button */}
-                  <TouchableOpacity onPress={handleVoiceStart}>
-                    <MaterialIcons
-                      name="keyboard-voice"
-                      size={22}
-                      color={theme.colors.foreground}
-                      style={{marginRight: 6}}
-                    />
-                  </TouchableOpacity>
-                </View>
+                  {/* Show locked item section when piece is selected */}
+                  {lockedItem && (
+                    <View style={{
+                      alignItems: 'center',
+                  
+                      width: '100%',
+                    }}>
+                      {/* Thumbnail with close button */}
+                      <View style={{
+                        position: 'relative',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        borderWidth: tokens.borderWidth.hairline,
+                        borderColor: theme.colors.primary,
+                      }}>
+                        <Image
+                          source={{
+                            uri: lockedItem.image?.startsWith('http')
+                              ? lockedItem.image
+                              : `${API_BASE_URL}/${lockedItem.image?.replace(/^\/+/, '')}`,
+                          }}
+                          style={{
+                            width: 100,
+                            height: 100,
+                            backgroundColor: theme.colors.surface,
+                            padding: 8
+                          }}
+                          resizeMode="contain"
+                        />
+                        <TouchableOpacity
+                          onPress={() => {
+                            setLockedItem(null);
+                            setBuildAroundPrompt('');
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 4,
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            borderRadius: 12,
+                            padding: 4,
+                          }}>
+                          <MaterialIcons name="close" size={16} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                      <Text style={{
+                        fontSize: 12,
+                        color: theme.colors.foreground,
+                        marginTop: 6,
+                        marginBottom: 12,
+                      }}>
+                        {lockedItem.name || lockedItem.subCategory || lockedItem.mainCategory || 'Selected item'}
+                      </Text>
+
+                      {/* "How do you want to build around this item?" freeform input */}
+                      {/* Greyed out when a mood chip is selected (mutually exclusive) */}
+                      <Text style={{
+                        fontSize: 14,
+                        fontWeight: '500',
+                        color: theme.colors.muted,
+                        marginBottom: 8,
+                        opacity: selectedMoodLabel ? 0.4 : 1,
+                      }}>
+                        How do you want to build around this item?
+                      </Text>
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: theme.colors.surface,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderColor: theme.colors.surfaceBorder,
+                        paddingRight: 8,
+                        width: '100%',
+                        opacity: selectedMoodLabel ? 0.4 : 1,
+                      }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            fontSize: 15,
+                            color: theme.colors.foreground,
+                            minHeight: 44,
+                          }}
+                          value={buildAroundPrompt}
+                          onChangeText={(text) => {
+                            // When typing, clear selected mood chip (mutually exclusive)
+                            if (selectedMoodLabel) {
+                              setSelectedMoodLabel(null);
+                              setSelectedMoodPrompt(null);
+                            }
+                            setBuildAroundPrompt(text);
+                          }}
+                          placeholder="e.g. smart casual dinner, keep it relaxed..."
+                          placeholderTextColor={theme.colors.muted}
+                          editable={!loading && !selectedMoodLabel}
+                          multiline
+                          numberOfLines={1}
+                        />
+                        {buildAroundPrompt.length > 0 && (
+                          <TouchableOpacity
+                            style={{padding: 6, marginLeft: 4}}
+                            onPress={() => setBuildAroundPrompt('')}
+                            disabled={loading}>
+                            <MaterialIcons
+                              name="close"
+                              size={20}
+                              color={theme.colors.muted}
+                            />
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={{padding: 6, marginLeft: 4}}
+                          onPress={() => {
+                            VoiceTarget.set(setBuildAroundPrompt, 'buildAroundPrompt');
+                            startVoiceCommand((text: string) => {
+                              setBuildAroundPrompt(text);
+                            });
+                          }}
+                          disabled={loading}>
+                          <MaterialIcons
+                            name="mic"
+                            size={22}
+                            color={isRecording ? theme.colors.primary : theme.colors.muted}
+                          />
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* PATH #2: Mood chips for Start with 1 Item */}
+                      {/* Mutually exclusive: user can EITHER type buildAroundPrompt OR select a mood chip */}
+                      <GuidedRefinementChips
+                        onSelectMood={(refinementPrompt, label) => {
+                          // When selecting a chip, clear any typed prompt (mutually exclusive)
+                          if (label) {
+                            setBuildAroundPrompt('');
+                          }
+                          setSelectedMoodLabel(label || null);
+                          setSelectedMoodPrompt(refinementPrompt || null);
+                        }}
+                        onSelectAdjustment={() => {}}
+                        disabled={loading}
+                        moodChipsDisabled={!!buildAroundPrompt.trim()}
+                        selectedMoodLabel={selectedMoodLabel}
+                        selectedAdjustmentLabel={null}
+                        showAdjustments={false}
+                        showPrompt={false}
+                        showMoods={true}
+                      />
+
+                    </View>
+                  )}
+
+                  {/* Primary CTAs: Create Outfit & Start from a Piece */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 12,
+                      marginTop: 20,
+                    }}>
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonPrimary,
+                        {width: 160},
+                        (loading || (!outfitPrompt.trim() && !selectedMoodLabel && !lockedItem)) && {opacity: 0.5},
+                      ]}
+                      onPress={handleV2Generate}
+                      disabled={loading || (!outfitPrompt.trim() && !selectedMoodLabel && !lockedItem)}>
+                      <Text style={globalStyles.buttonPrimaryText}>
+                        {loading ? 'Creating…' : 'Create 3 Outfits'}
+                      </Text>
+                    </TouchableOpacity>
+                    {!lockedItem && (
+                      <TouchableOpacity
+                        style={[
+                          globalStyles.buttonSecondary,
+                          {width: 160},
+                        ]}
+                        onPress={() => setShowWardrobePicker(true)}
+                        disabled={loading}>
+                        <Text style={globalStyles.buttonSecondaryText}>
+                          Start with 1 Item
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </Animatable.View>
               )}
 
-              {/* Controls */}
+              {/* Controls - only show refinement options after Continue is pressed */}
               <OutfitTuningControls
                 weather={weather}
-                occasion={occasion}
-                style={style}
                 onChangeWeather={v => setWeather(v as any)}
-                onChangeOccasion={setOccasion}
-                onChangeStyle={setStyle}
                 useWeather={useWeather}
                 onToggleWeather={setUseWeather}
                 useStylePrefs={useStylePrefs}
@@ -836,7 +1396,7 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 onRefine={handleRefine}
                 isGenerating={loading || liveWxLoading}
                 canGenerate={canGenerate}
-                showRefine={hasOutfit}
+                showRefine={hasOutfit && hasRefined}
               />
 
               {/* Live weather note */}
@@ -858,14 +1418,276 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                 </Text>
               )}
 
+              {/* Outfit Selector - shows when multiple outfits available and not yet refined */}
+              {hasOutfit && outfits.length > 1 && !hasRefined && (
+                <>
+                  {/* Selection prompt */}
+                  <Text style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: theme.colors.foreground,
+                    textAlign: 'left',
+                    marginBottom: 12,
+                  }}>
+                    Select which outfit you'd like and click Continue
+                  </Text>
+                  <View style={{
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginBottom: 16,
+                    paddingHorizontal: 16,
+                  }}>
+                    {outfits.slice(0, 3).map((outfit, index) => {
+                      const preview = getOutfitPreview(outfit);
+                      const isSelected = index === selected;
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => {
+                            h('impactLight');
+                            setSelected(index);
+                          }}
+                          style={{
+                            flex: 1,
+                            maxWidth: 120,
+                            padding: 8,
+                            borderRadius: 12,
+                            backgroundColor: isSelected
+                              ? theme.colors.primary + '20'
+                              : theme.colors.surface2,
+                            borderWidth: 2,
+                            borderColor: isSelected
+                              ? theme.colors.primary
+                              : 'transparent',
+                          }}>
+                          {/* Stacked outfit preview with side items */}
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'flex-start',
+                            justifyContent: 'center',
+                            height: 110,
+                            marginBottom: 4,
+                            width: '100%',
+                          }}>
+                            {/* Left side - Accessories */}
+                            <View style={{width: 24, alignItems: 'center', paddingTop: 30}}>
+                              {preview?.accessories && (
+                                <Image
+                                  source={{uri: preview.accessories.image}}
+                                  style={{width: 22, height: 22}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </View>
+                            {/* Center - Main outfit stack */}
+                            <View style={{alignItems: 'center', justifyContent: 'flex-start'}}>
+                              {preview?.top && (
+                                <Image
+                                  source={{uri: preview.top.image}}
+                                  style={{width: 44, height: 40}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                              {preview?.bottom && (
+                                <Image
+                                  source={{uri: preview.bottom.image}}
+                                  style={{width: 44, height: 44, marginTop: -6}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                              {preview?.shoes && (
+                                <Image
+                                  source={{uri: preview.shoes.image}}
+                                  style={{width: 34, height: 28, marginTop: -4}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </View>
+                            {/* Right side - Outerwear */}
+                            <View style={{width: 28, alignItems: 'center', paddingTop: 8}}>
+                              {preview?.outerwear && (
+                                <Image
+                                  source={{uri: preview.outerwear.image}}
+                                  style={{width: 26, height: 32}}
+                                  resizeMode="contain"
+                                />
+                              )}
+                            </View>
+                          </View>
+                          {/* Pick label */}
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected
+                              ? theme.colors.primary
+                              : theme.colors.foreground,
+                            textAlign: 'center',
+                          }} numberOfLines={1}>
+                            {index === 0 ? 'Pick #1' : index === 1 ? 'Pick #2' : 'Pick #3'}
+                          </Text>
+                          <Text style={{
+                            fontSize: 9,
+                            color: theme.colors.muted,
+                            textAlign: 'center',
+                            marginTop: 2,
+                          }} numberOfLines={1}>
+                            {index === 0 ? 'Safe' : index === 1 ? 'Different' : 'Wildcard'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                </>
+              )}
+
+              {/* Continue & Start Over buttons - shown on selection screen (before refinement) */}
+              {hasOutfit && outfits.length > 1 && !hasRefined && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 12,
+                    marginTop: 8,
+                    marginBottom: 16,
+                  }}>
+               
+                  <TouchableOpacity
+                    style={[
+                      globalStyles.buttonPrimary,
+                      {width: 140},
+                    ]}
+                    onPress={() => {
+                      h('impactMedium');
+                      setHasRefined(true);
+                    }}>
+                    <Text style={globalStyles.buttonPrimaryText}>
+                      Continue
+                    </Text>
+                  </TouchableOpacity>
+                     <TouchableOpacity
+                    style={[
+                      globalStyles.buttonSecondary,
+                      {width: 140},
+                    ]}
+                    onPress={() => {
+                      h('impactLight');
+                      clear();
+                      setLockedItem(null);
+                      setSelectedMoodLabel(null);
+                      setSelectedMoodPrompt(null);
+                      setSelectedAdjustmentLabel(null);
+                      setSelectedAdjustmentPrompt(null);
+                      setOutfitPrompt('');
+                      setSessionId(null);
+                      setHasRefined(false);
+                      // Reset voice target to outfit prompt input
+                      VoiceTarget.set(setOutfitPrompt, 'outfitPrompt');
+                    }}>
+                    <Text style={globalStyles.buttonSecondaryText}>
+                      Start Over
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Outfit cards */}
               {hasOutfit && (
                 <>
+                  {/* Full Outfit Preview Card */}
+                  <View
+                    style={[
+                      styles.cardOverlay,
+                      {backgroundColor: theme.colors.surface},
+                    ]}>
+                    <View style={{
+                      flex: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingVertical: 16,
+                    }}>
+                      {top && (
+                        <Image
+                          source={{uri: top.image}}
+                          style={{width: 140, height: 130, zIndex: 5}}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {bottom && (
+                        <Image
+                          source={{uri: bottom.image}}
+                          style={{width: 140, height: 150, marginTop: -20, zIndex: 4}}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {shoes && (
+                        <Image
+                          source={{uri: shoes.image}}
+                          style={{width: 100, height: 80, marginTop: -15, zIndex: 3}}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {/* Outerwear overlay on the side */}
+                      {outerwear && (
+                        <Image
+                          source={{uri: outerwear.image}}
+                          style={{
+                            position: 'absolute',
+                            right: 20,
+                            top: 30,
+                            width: 80,
+                            height: 90,
+                            zIndex: 6,
+                            transform: [{rotate: '10deg'}],
+                          }}
+                          resizeMode="contain"
+                        />
+                      )}
+                      {/* Accessories overlay on the side */}
+                      {accessories && (
+                        <Image
+                          source={{uri: accessories.image}}
+                          style={{
+                            position: 'absolute',
+                            left: 20,
+                            bottom: 40,
+                            width: 60,
+                            height: 60,
+                            zIndex: 6,
+                          }}
+                          resizeMode="contain"
+                        />
+                      )}
+                    </View>
+                    <View
+                      style={[
+                        styles.categoryPill,
+                        {backgroundColor: theme.colors.background},
+                      ]}>
+                      <Text
+                        style={[
+                          globalStyles.label,
+                          {paddingHorizontal: 8, paddingVertical: 4, fontSize: 16},
+                        ]}>
+                        Full Outfit
+                      </Text>
+                    </View>
+                  </View>
+
                   {renderCard('Top', top, 'top')}
                   {renderCard('Bottom', bottom, 'bottom')}
                   {renderCard('Shoes', shoes, 'shoes')}
+                  {outerwear && renderCard('Outerwear', outerwear, 'outerwear')}
+                  {accessories && renderCard('Accessories', accessories, 'accessories')}
+                </>
+              )}
 
-                  {/* CTAs */}
+              {/* CTAs - only show on refinement screen (after Continue is pressed) */}
+              {hasOutfit && hasRefined && (
+                <>
                   <View
                     style={{
                       flexDirection: 'row',
@@ -934,22 +1756,53 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                     </TouchableOpacity>
                   </View>
 
-                  {/* All Done button */}
-                  <TouchableOpacity
-                    style={[
-                      globalStyles.buttonSecondary,
-                      {
-                        marginTop: 16,
-                        width: '100%',
-                        maxWidth: 400,
-                        alignSelf: 'center',
-                      },
-                    ]}
-                    onPress={clear}>
-                    <Text style={globalStyles.buttonSecondaryText}>
-                      All Done
-                    </Text>
-                  </TouchableOpacity>
+                  {/* AI Outfit v2: New Outfit & All Done buttons */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      width: '100%',
+                      maxWidth: 400,
+                      alignSelf: 'center',
+                      marginTop: 16,
+                      gap: 12,
+                    }}>
+                    {/* New Outfit - creates fresh session */}
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonPrimary,
+                        {flex: 1},
+                      ]}
+                      onPress={handleV2Generate}
+                      disabled={loading}>
+                      <Text style={globalStyles.buttonPrimaryText}>
+                        {loading ? 'Creating…' : 'Remix Outfit'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* All Done - clears and returns to entry */}
+                    <TouchableOpacity
+                      style={[
+                        globalStyles.buttonSecondary,
+                        {flex: 1},
+                      ]}
+                      onPress={() => {
+                        clear();
+                        setLockedItem(null);
+                        setSelectedMoodLabel(null);
+                        setSelectedMoodPrompt(null);
+                        setSelectedAdjustmentLabel(null);
+                        setSelectedAdjustmentPrompt(null);
+                        setOutfitPrompt('');
+                        setSessionId(null);
+                        setHasRefined(false);
+                      }}>
+                      <Text style={globalStyles.buttonSecondaryText}>
+                        All Done
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </>
               )}
 
@@ -1110,6 +1963,20 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
                   section="Shoes"
                   onClose={() => setVisibleModal(null)}
                 />
+                <WhyPickedModal
+                  visible={visibleModal === 'outerwear'}
+                  item={outerwear}
+                  reasons={reasons.outerwear}
+                  section="Outerwear"
+                  onClose={() => setVisibleModal(null)}
+                />
+                <WhyPickedModal
+                  visible={visibleModal === 'accessories'}
+                  item={accessories}
+                  reasons={reasons.accessories}
+                  section="Accessories"
+                  onClose={() => setVisibleModal(null)}
+                />
               </>
             )}
 
@@ -1195,7 +2062,6 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
             />
           </View>
         </View>
-      </View>
 
       <ReaderModal
         visible={!!shopReaderUrl}
@@ -1206,9 +2072,28 @@ export default function OutfitSuggestionScreen({navigate}: Props) {
           setShopReaderTitle(null);
         }}
       />
+
+      {/* AI Outfit v2: Wardrobe Picker Modal */}
+      <WardrobePickerModal
+        visible={showWardrobePicker}
+        onClose={() => {
+          setShowWardrobePicker(false);
+          setSwapSection(null);
+        }}
+        onSelectItem={handleWardrobeItemSelect}
+        defaultCategory={
+          swapSection === 'top' ? 'Tops' :
+          swapSection === 'bottom' ? 'Bottoms' :
+          swapSection === 'shoes' ? 'Shoes' :
+          swapSection === 'outerwear' ? 'Outerwear' :
+          swapSection === 'accessories' ? 'Accessories' :
+          undefined
+        }
+      />
     </View>
   );
 }
+
 
 ///////////////////////////
 

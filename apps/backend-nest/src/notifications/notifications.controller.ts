@@ -87,6 +87,11 @@ export class NotificationsController {
     return this.service.clearAll(req.user.userId);
   }
 
+  @Post('delete')
+  async deleteItem(@Req() req, @Body() body: { id: string }) {
+    return this.service.deleteItem(req.user.userId, body.id);
+  }
+
   // Optional manual trigger to prove the full flow:
   @Post('notify/source-article')
   notifySource(

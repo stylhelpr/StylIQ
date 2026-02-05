@@ -539,6 +539,14 @@ export class NotificationsService {
     return { ok: true };
   }
 
+  async deleteItem(user_id: string, id: string) {
+    await pool.query(
+      `DELETE FROM user_notifications WHERE user_id = $1 AND id = $2`,
+      [user_id, id],
+    );
+    return { ok: true };
+  }
+
   // ── Debug ────────────────────────────────────────────────
   async debug(user_id?: string) {
     this.ensureFirebase();

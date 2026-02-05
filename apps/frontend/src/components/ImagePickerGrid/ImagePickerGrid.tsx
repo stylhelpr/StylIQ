@@ -107,9 +107,7 @@ export default function ImagePickerGrid({
     if (!(await requestAndroidPermissions())) return;
     const result = await launchCamera({
       mediaType: 'photo',
-      quality: 0.8,
-      maxWidth: 2048,
-      maxHeight: 2048,
+      quality: 1,
     });
     if (result.assets?.length) {
       const {accepted, rejected} = splitBySize(result.assets);
@@ -134,12 +132,22 @@ export default function ImagePickerGrid({
   const pickFromGallery = async () => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      quality: 0.8,
-      maxWidth: 2048,
-      maxHeight: 2048,
+      quality: 1,
       selectionLimit: 0,
+      assetRepresentationMode: 'current', // Force full resolution, not iCloud optimized
     });
     if (result.assets?.length) {
+      // Log what the image picker is returning
+      result.assets.forEach((asset, i) => {
+        console.log(`[ImagePicker] Asset ${i}:`, {
+          width: asset.width,
+          height: asset.height,
+          fileSize: asset.fileSize,
+          type: asset.type,
+          fileName: asset.fileName,
+        });
+      });
+
       const {accepted, rejected} = splitBySize(result.assets);
       if (rejected.length) {
         Alert.alert(

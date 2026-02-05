@@ -335,7 +335,8 @@ export const createGlobalStyles = (theme: Theme) =>
       borderRadius: tokens.borderRadius.md,
     },
     cardStyles5: {
-      padding: isTablet ? 20 : isLargePhone ? 18 : isRegularPhone ? 14 : 14,
+      paddingVertical: isTablet ? 20 : isLargePhone ? 18 : isRegularPhone ? 14 : 14,
+      paddingHorizontal: isTablet ? 20 : isLargePhone ? 8 : isRegularPhone ? 8 : 8,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
       borderRadius: tokens.borderRadius.xxxl,
@@ -851,7 +852,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     buttonSecondary: {
       backgroundColor: theme.colors.button2,
-      borderRadius: tokens.borderRadius['2xl'],
+      borderRadius: tokens.borderRadius.sm,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: '#000',
@@ -1032,7 +1033,7 @@ export const createGlobalStyles = (theme: Theme) =>
     image11: {
       width: '100%',
       height: isTablet ? 160 : isLargePhone ? 165 : isRegularPhone ? 165 : 165,
-      backgroundColor: 'white',
+
     },
     bgContainer1: {
       height: isTablet ? 260 : isLargePhone ? 305 : isRegularPhone ? 260 : 260,

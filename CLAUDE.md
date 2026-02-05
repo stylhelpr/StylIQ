@@ -352,3 +352,41 @@ npm run dev
 - Background notification job runs on interval in backend
 - Redis used for caching (Upstash Redis)
 - Vector embeddings stored in Pinecone for AI recommendations
+
+## Behavioral Rules
+
+- If any requirement, constraint, or behavior is unclear, Claude MUST stop and ask instead of guessing.
+- If a mistake recurs and required correction before, add a short rule here to prevent it in the future.
+- For security-sensitive work (auth/permissions, payments, deletes, background jobs/cron, storage access), Claude MUST do an adversarial verification pass before declaring done:
+  - List 5–10 plausible failure modes / attack paths
+  - For each: explain whether it’s mitigated, and where (file/route) or what’s missing
+  - Confirm what was tested (commands/flows) or state explicitly what could not be tested
+
+## Plan Mode Requirement
+
+Before making changes, Claude MUST enter Plan Mode if the task matches any trigger below.
+
+A task requires Plan Mode if it involves ANY of the following:
+- Touching 3 or more files
+- Adding or modifying backend API endpoints
+- Adding or modifying database logic
+- Adding or modifying native (iOS/Swift) code
+- Refactoring logic beyond a single function or component
+- Introducing a new feature or workflow that spans frontend and backend
+- Any security-sensitive work (auth/permissions, payments, deletes, background jobs/cron, storage access)
+
+Plan Mode rules:
+- Do NOT write code
+- Do NOT edit files
+- Do NOT run commands
+
+Plan output MUST include:
+1. Objective summary
+2. Step-by-step plan
+3. Files to be changed
+4. Risks or edge cases
+5. Open questions (if any)
+
+Execution may begin ONLY after you reply with **“APPROVED”**.
+
+

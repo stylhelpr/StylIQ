@@ -1,8 +1,8 @@
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 import {sanitizeUrlForAnalytics} from './utils';
+import {createUserScopedZustandStorage} from './userScopedZustandStorage';
 
 export type ShoppingItem = {
   id: string;
@@ -1378,12 +1378,13 @@ export const useShoppingStore = create<ShoppingState>()(
       },
 
       // Reset all user data on logout (analytics are user-specific and stored in DB)
+      // MULTI-ACCOUNT: Clears in-memory state only. Persisted data is user-scoped.
       resetForLogout: () => {
         // console.log(
         //   '[ShoppingStore] resetForLogout called - clearing all data',
         // );
-        // NOTE: tabs and currentTabId are NOT cleared on logout
-        // Tabs (with screenshots) persist until manually closed or Clear Shopping Analytics is pressed
+        // MULTI-ACCOUNT FIX: Clear tabs to prevent data leakage between accounts
+        // Tabs contain URLs, screenshots, and browsing history that are user-specific
         set({
           bookmarks: [],
           history: [],
@@ -1398,6 +1399,9 @@ export const useShoppingStore = create<ShoppingState>()(
           // CRITICAL: Clear sensitive data (passwords now in iOS Keychain)
           savedAddresses: [],
           savedCards: [],
+          // MULTI-ACCOUNT FIX: Clear tabs to prevent cross-account data leakage
+          tabs: [],
+          currentTabId: null,
           // Clear sync state so next login triggers full sync
           lastSyncTimestamp: null,
           isSyncing: false,
@@ -1414,6 +1418,8 @@ export const useShoppingStore = create<ShoppingState>()(
           timeToActionLog: [],
           // IMPORTANT: Clear _historyClearedAt so history can be restored from server on next login
           _historyClearedAt: null,
+          // Reset hydration state so store rehydrates on next login
+          _hasHydrated: false,
         });
         // console.log('[ShoppingStore] resetForLogout complete');
       },
@@ -1629,7 +1635,11 @@ export const useShoppingStore = create<ShoppingState>()(
     }),
     {
       name: 'shopping-store',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Use user-scoped storage adapter for multi-account support
+      storage: createJSONStorage(() => createUserScopedZustandStorage('shopping-store')),
+      // MULTI-ACCOUNT: Skip auto-hydration on store creation
+      // We manually trigger rehydration after active user is set in UUIDContext
+      skipHydration: true,
       version: 2,
       migrate: (persistedState: any, version: number) => {
         if (version < 2) {
@@ -1687,8 +1697,54 @@ export const useShoppingStore = create<ShoppingState>()(
         // Track when history was cleared to prevent server restore
         _historyClearedAt: state._historyClearedAt,
       }),
+      // MULTI-ACCOUNT: Use a merge function that completely replaces persisted state
+      // Default shallow merge doesn't work well with multi-account switching
+      merge: (persistedState, currentState) => {
+        // CRITICAL: When switching users, we need to COMPLETELY replace the state
+        // If persistedState is null/empty (new user), we MUST clear existing data
+        // to prevent User A's data from leaking to User B
+        if (persistedState && typeof persistedState === 'object' && Object.keys(persistedState as object).length > 0) {
+          console.log('[ShoppingStore] Merging persisted state with', Object.keys(persistedState as object).length, 'keys');
+          return {
+            ...currentState,
+            ...(persistedState as object),
+          };
+        }
+        // No persisted state = new user or empty storage
+        // Return fresh state with empty arrays to prevent data leakage
+        console.log('[ShoppingStore] No persisted state - returning fresh state');
+        return {
+          ...currentState,
+          // Reset all user-specific data to prevent leakage
+          bookmarks: [],
+          history: [],
+          collections: [],
+          tabs: [],
+          currentTabId: null,
+          recentSearches: [],
+          productInteractions: [],
+          cartHistory: [],
+          aiShoppingAssistantSuggestions: [],
+          hasAiSuggestionsLoaded: false,
+          aiSuggestionsCachedAt: null,
+          timeToActionLog: [],
+          savedAddresses: [],
+          savedCards: [],
+          lastSyncTimestamp: null,
+          pendingChanges: {
+            bookmarks: [],
+            deletedBookmarkUrls: [],
+            history: [],
+            collections: [],
+            deletedCollectionIds: [],
+            cartHistory: [],
+          },
+          _historyClearedAt: null,
+        };
+      },
       onRehydrateStorage: () => state => {
         if (state) {
+          console.log('[ShoppingStore] Rehydration complete, tabs:', state.tabs?.length || 0, 'bookmarks:', state.bookmarks?.length || 0);
           state.setHasHydrated(true);
         }
       },

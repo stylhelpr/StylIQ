@@ -53,7 +53,13 @@ export class UsersService {
   }
 
   async sync(dto: CreateUserDto) {
-    // console.log('🔵 SYNC SERVICE CALLED WITH:', dto);
+    // DEBUG: Log auth0_sub to verify it's unique per account
+    console.log('[UsersService.sync] INCOMING:', {
+      auth0_sub: dto.auth0_sub,
+      email: dto.email,
+      first_name: dto.first_name,
+      last_name: dto.last_name,
+    });
 
     // 1️⃣ Find or create user
     const existing = await pool.query(
@@ -63,18 +69,21 @@ export class UsersService {
 
     let user = existing.rows[0];
 
+    console.log('[UsersService.sync] EXISTING USER:', user ? {
+      id: user.id,
+      auth0_sub: user.auth0_sub,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    } : 'NOT FOUND - WILL CREATE NEW USER');
+
     if (user) {
-      // Light refresh of basic fields if provided
+      // EXISTING USER: Only update email (for account recovery purposes)
+      // DO NOT update first_name/last_name - user may have customized these
+      // The name from Google/Auth0 token should NOT overwrite user's profile
       const toUpdate: Partial<CreateUserDto> = {};
       if (dto.email && dto.email !== user.email) toUpdate.email = dto.email;
-      if (
-        dto.first_name &&
-        dto.first_name !== user.first_name &&
-        dto.first_name !== dto.email
-      )
-        toUpdate.first_name = dto.first_name;
-      if (dto.last_name && dto.last_name !== user.last_name)
-        toUpdate.last_name = dto.last_name;
+      // REMOVED: name updates - user's profile name is what THEY set, not Google
 
       // ✅ Only update profile_picture if:
       // - user has no picture yet, OR

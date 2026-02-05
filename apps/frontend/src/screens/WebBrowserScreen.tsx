@@ -59,6 +59,8 @@ import {shouldShareCookiesForUrl} from '../utils/keychainCookiePolicy';
 import {generateKeychainAutoFillScript} from '../utils/keychainAutoFillScript';
 import {useBrowserOnboarding} from '../hooks/useBrowserOnboarding';
 import {BrowserOnboardingModal} from '../components/BrowserOnboardingModal/BrowserOnboardingModal';
+import Geolocation from 'react-native-geolocation-service';
+import {ensureLocationPermission} from '../utils/permissions';
 
 const {width: screenWidth} = Dimensions.get('window');
 const TAB_CARD_WIDTH = (screenWidth - 48) / 2;
@@ -1275,6 +1277,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
     'keychainPageHasPassword',
     'keychainPasswordFieldsFound',
     'keychainScriptInitialized',
+    // Geolocation request from web pages
+    'geolocationRequest',
+    'geoDebug',
   ] as const;
   const MAX_MESSAGE_SIZE = 200 * 1024; // 200KB limit
 
@@ -1317,7 +1322,9 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         return;
       }
 
-      if (data.type === 'pageText') {
+      if (data.type === 'geoDebug') {
+        console.log('[WebView]', data.message);
+      } else if (data.type === 'pageText') {
         lastPageTextRef.current = data.content || '';
         // console.log(
         //   '[MSG] Page text received:',
@@ -1475,6 +1482,146 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
         //   '[Keychain] Script initialized, hasPasswordFields:',
         //   data.hasPasswordFields,
         // );
+      }
+      // ===================================================================
+      // GEOLOCATION HANDLING
+      // Intercepts navigator.geolocation requests from web pages
+      // ===================================================================
+      else if (data.type === 'geolocationRequest') {
+        console.log('[Geolocation] Request received from webpage, callbackId:', data.callbackId);
+        const {callbackId} = data;
+
+        // Request permission first, then get location
+        (async () => {
+          const hasPermission = await ensureLocationPermission();
+          console.log('[Geolocation] Permission result:', hasPermission);
+
+          if (!hasPermission) {
+            console.log('[Geolocation] Permission denied');
+            const errorResponse = `
+              (function() {
+                if (window.__geolocationCallbacks && window.__geolocationCallbacks['${callbackId}']) {
+                  window.__geolocationCallbacks['${callbackId}'].error({
+                    code: 1,
+                    message: 'Location permission denied'
+                  });
+                  delete window.__geolocationCallbacks['${callbackId}'];
+                }
+              })();
+              true;
+            `;
+            webRef.current?.injectJavaScript(errorResponse);
+            return;
+          }
+
+          console.log('[Geolocation] Starting watchPosition for accurate fix...');
+
+          // Use watchPosition to get an accurate GPS fix, then stop watching
+          let responded = false;
+          const watchId = Geolocation.watchPosition(
+            position => {
+              const accuracy = position.coords.accuracy;
+              console.log('[Geolocation] Position update - lat:', position.coords.latitude, 'lng:', position.coords.longitude, 'accuracy:', accuracy, 'meters');
+
+              // Only respond once we have reasonable accuracy (< 100 meters) or after first position
+              if (!responded && (accuracy < 100 || accuracy)) {
+                responded = true;
+                Geolocation.clearWatch(watchId);
+
+                console.log('[Geolocation] Sending to webpage - accuracy:', accuracy, 'meters');
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const acc = position.coords.accuracy;
+                const alt = position.coords.altitude;
+                const altAcc = position.coords.altitudeAccuracy;
+                const head = position.coords.heading;
+                const spd = position.coords.speed;
+                const ts = position.timestamp;
+
+                const response = `
+                  (function() {
+                    var log = function(msg) {
+                      console.log(msg);
+                      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({type: 'geoDebug', message: msg}));
+                      }
+                    };
+                    try {
+                      log('[GeoJS] Looking for callback: ${callbackId}');
+                      log('[GeoJS] __geolocationCallbacks exists: ' + !!window.__geolocationCallbacks);
+                      log('[GeoJS] Callbacks: ' + (window.__geolocationCallbacks ? Object.keys(window.__geolocationCallbacks).join(',') : 'none'));
+                      if (window.__geolocationCallbacks && window.__geolocationCallbacks['${callbackId}']) {
+                        log('[GeoJS] Found callback, invoking...');
+                        var cb = window.__geolocationCallbacks['${callbackId}'];
+                        var posData = {
+                          coords: {
+                            latitude: ${lat},
+                            longitude: ${lng},
+                            accuracy: ${acc},
+                            altitude: ${alt !== null ? alt : 'null'},
+                            altitudeAccuracy: ${altAcc !== null ? altAcc : 'null'},
+                            heading: ${head !== null ? head : 'null'},
+                            speed: ${spd !== null ? spd : 'null'}
+                          },
+                          timestamp: ${ts}
+                        };
+                        log('[GeoJS] Calling success with lat:${lat} lng:${lng}');
+                        cb.success(posData);
+                        log('[GeoJS] SUCCESS - Callback invoked');
+                        delete window.__geolocationCallbacks['${callbackId}'];
+                      } else {
+                        log('[GeoJS] ERROR: Callback NOT FOUND');
+                      }
+                    } catch(e) {
+                      log('[GeoJS] EXCEPTION: ' + e.message);
+                    }
+                  })();
+                  true;
+                `;
+                console.log('[Geolocation] Injecting JS, length:', response.length);
+                webRef.current?.injectJavaScript(response);
+                console.log('[Geolocation] JS injected');
+              }
+            },
+            error => {
+              if (!responded) {
+                responded = true;
+                Geolocation.clearWatch(watchId);
+                console.log('[Geolocation] Error:', error.code, error.message);
+                const errorResponse = `
+                  (function() {
+                    if (window.__geolocationCallbacks && window.__geolocationCallbacks['${callbackId}']) {
+                      window.__geolocationCallbacks['${callbackId}'].error({
+                        code: ${error.code},
+                        message: '${error.message.replace(/'/g, "\\'")}'
+                      });
+                      delete window.__geolocationCallbacks['${callbackId}'];
+                    }
+                  })();
+                  true;
+                `;
+                webRef.current?.injectJavaScript(errorResponse);
+              }
+            },
+            {
+              enableHighAccuracy: true,
+              distanceFilter: 0,
+              interval: 1000,
+              fastestInterval: 500,
+              forceRequestLocation: true,
+              forceLocationManager: false,
+              showLocationDialog: true,
+            },
+          );
+
+          // Timeout fallback - if no accurate position after 15 seconds, use whatever we have
+          setTimeout(() => {
+            if (!responded) {
+              console.log('[Geolocation] Timeout - clearing watch');
+              Geolocation.clearWatch(watchId);
+            }
+          }, 15000);
+        })();
       }
       // iOS Password AutoFill handles password saving automatically via iCloud Keychain
       // No app-level password handling needed
@@ -2638,6 +2785,58 @@ Respond with JSON array of exactly 5 objects with SPECIFIC recommendations:
             ref={webRef}
             source={{uri: currentTab?.url || ''}}
             style={{flex: 1}}
+            // === DEBUGGING ===
+            webviewDebuggingEnabled={__DEV__}
+            // === GEOLOCATION ===
+            geolocationEnabled={true}
+            injectedJavaScriptBeforeContentLoaded={`
+              (function() {
+                console.log('[StylIQ Geolocation] Injecting geolocation override...');
+
+                // Store callbacks for geolocation requests
+                window.__geolocationCallbacks = {};
+                var callbackCounter = 0;
+
+                // Check if navigator.geolocation exists
+                if (!navigator.geolocation) {
+                  console.log('[StylIQ Geolocation] navigator.geolocation not available');
+                  return;
+                }
+
+                // Override navigator.geolocation.getCurrentPosition
+                var originalGetCurrentPosition = navigator.geolocation.getCurrentPosition;
+                navigator.geolocation.getCurrentPosition = function(success, error, options) {
+                  console.log('[StylIQ Geolocation] getCurrentPosition called');
+                  var callbackId = 'geo_' + (++callbackCounter) + '_' + Date.now();
+                  window.__geolocationCallbacks[callbackId] = { success: success, error: error };
+
+                  if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                    console.log('[StylIQ Geolocation] Sending request to React Native, callbackId:', callbackId);
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                      type: 'geolocationRequest',
+                      callbackId: callbackId,
+                      options: options || {}
+                    }));
+                  } else {
+                    console.log('[StylIQ Geolocation] ReactNativeWebView not available, falling back');
+                    if (originalGetCurrentPosition) {
+                      originalGetCurrentPosition.call(navigator.geolocation, success, error, options);
+                    }
+                  }
+                };
+
+                // Override navigator.geolocation.watchPosition
+                var originalWatchPosition = navigator.geolocation.watchPosition;
+                navigator.geolocation.watchPosition = function(success, error, options) {
+                  console.log('[StylIQ Geolocation] watchPosition called');
+                  navigator.geolocation.getCurrentPosition(success, error, options);
+                  return callbackCounter;
+                };
+
+                console.log('[StylIQ Geolocation] Override complete');
+                true;
+              })();
+            `}
             // === SECURITY: Apply secure defaults ===
             {...SECURE_WEBVIEW_DEFAULTS}
             // Allow HTTP for compatibility with some fashion sites, and about: for iframes

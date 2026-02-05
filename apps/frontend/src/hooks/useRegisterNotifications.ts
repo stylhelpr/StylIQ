@@ -31,7 +31,7 @@ export function useRegisterNotifications() {
     // Foreground message
     const unsubMsg = messaging().onMessage(async msg => {
       const data = msg.data as Record<string, string> | undefined;
-      await addToInbox({
+      await addToInbox(userId, {
         user_id: userId,
         id: msg.messageId || `fcm-${Date.now()}`,
         title: msg.notification?.title ?? '',
@@ -47,7 +47,7 @@ export function useRegisterNotifications() {
     // Tapped from background
     const unsubOpened = messaging().onNotificationOpenedApp(async msg => {
       const data = msg.data as Record<string, string> | undefined;
-      await addToInbox({
+      await addToInbox(userId, {
         user_id: userId,
         id: msg.messageId || `fcm-${Date.now()}`,
         title: msg.notification?.title ?? '',
@@ -69,7 +69,7 @@ export function useRegisterNotifications() {
       .then(async msg => {
         if (!msg) return;
         const data = msg.data as Record<string, string> | undefined;
-        await addToInbox({
+        await addToInbox(userId, {
           user_id: userId,
           id: msg.messageId || `fcm-${Date.now()}`,
           title: msg.notification?.title ?? '',

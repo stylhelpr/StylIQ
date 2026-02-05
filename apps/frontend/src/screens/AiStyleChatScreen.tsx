@@ -1188,9 +1188,20 @@ export default function AiStylistChatScreen({navigate}: Props) {
                     height: width < 360 ? 6 : 8,
                     borderRadius: 4,
                     backgroundColor: '#34C759',
-                    marginRight: 6,
+                    marginRight: 12,
                   }}
                 />
+                    <Image
+                            source={require('../assets/images/Styla1.png')}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              borderWidth: 1,
+                              borderColor: theme.colors.surfaceBorder,
+                            }}
+                            resizeMode="cover"
+                          />
                 <Text
                   numberOfLines={1}
                   ellipsizeMode="tail"
@@ -1200,6 +1211,7 @@ export default function AiStylistChatScreen({navigate}: Props) {
                       // fontSize: width < 360 ? 22 : width < 400 ? 28 : 34,
                       flexShrink: 1,
                       color: theme.colors.foreground,
+                      marginLeft: -8,
                     },
                   ]}>
                   Ask Styla

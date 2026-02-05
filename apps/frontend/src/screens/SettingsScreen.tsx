@@ -35,7 +35,7 @@ import {useAuth0} from 'react-native-auth0';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useWindowDimensions} from 'react-native';
 import {fontScale, moderateScale} from '../utils/scale';
-import {getAccessToken} from '../utils/auth';
+import {getAccessToken, hardLogout} from '../utils/auth';
 
 type Props = {
   navigate: (screen: string, params?: any) => void;
@@ -77,7 +77,7 @@ export default function SettingsScreen({navigate, goBack}: Props) {
   const insets = useSafeAreaInsets();
   const {height} = useWindowDimensions();
 
-  const {prefs, setVisible} = useHomePrefs();
+  const {prefs, setVisible} = useHomePrefs(userId);
 
   // Shopping Analytics Tracking Consent
   const {trackingConsent, setTrackingConsent, deleteAllAnalyticsData} =
@@ -436,6 +436,42 @@ export default function SettingsScreen({navigate, goBack}: Props) {
               Alert.alert(
                 'Error',
                 'You must be logged in to delete community data.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // MULTI-ACCOUNT: Remove this account from device (preserves server data)
+  const handleRemoveAccountFromDevice = () => {
+    Alert.alert(
+      'Reset User Data?',
+      'This will sign you out and clear all your local data. Your account will NOT be deleted. You can sign back in anytime.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            if (!userId) {
+              Alert.alert('Error', 'No user logged in.');
+              return;
+            }
+            try {
+              h('notificationWarning');
+              await hardLogout(userId);
+              navigate('Login');
+              Alert.alert(
+                'Account Removed',
+                'Your account has been removed from this device. You can sign back in anytime.',
+              );
+            } catch (error) {
+              console.error('Failed to remove account from device:', error);
+              Alert.alert(
+                'Error',
+                'Failed to remove account. Please try again.',
               );
             }
           },
@@ -862,13 +898,24 @@ export default function SettingsScreen({navigate, goBack}: Props) {
                   </AppleTouchFeedback>
 
                   <AppleTouchFeedback
-                    onPress={resetApp}
+                    onPress={handleRemoveAccountFromDevice}
                     hapticStyle="impactLight"
                     style={[globalStyles.menuSection1, globalStyles.hrLine]}>
-                    <Text
-                      style={[globalStyles.menuLabel, {color: colors.error}]}>
-                      Reset App Data
-                    </Text>
+                    <View>
+                      <Text
+                        style={[globalStyles.menuLabel, {color: colors.warning || colors.error}]}>
+                        Reset User Data
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.foreground3,
+                          marginTop: 10,
+                          marginLeft: 10,
+                        }}>
+                        Sign out and remove all local data. Your server account stays intact.
+                      </Text>
+                    </View>
                   </AppleTouchFeedback>
 
                   <AppleTouchFeedback

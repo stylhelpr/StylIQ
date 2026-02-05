@@ -1,6 +1,7 @@
 // Pure TypeScript service (NO React hooks)
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {UserScopedStorage} from '../storage/userScopedStorage';
+import {getActiveUserId} from '../storage/activeUserManager';
 
 // UUID v4 generator that works in React Native (no crypto.getRandomValues needed)
 function generateUUID(): string {
@@ -27,8 +28,12 @@ export interface QueuedEvent {
   created_at: number;
 }
 
+const QUEUE_KEY = 'analytics-queue';
+
 /**
- * In-memory queue with AsyncStorage persistence.
+ * In-memory queue with user-scoped AsyncStorage persistence.
+ *
+ * MULTI-ACCOUNT: Queue is user-scoped to prevent analytics leakage between accounts.
  *
  * Note: For production scale (1M+ events), use SQLite.
  * For MVP, AsyncStorage is acceptable with caveat:
@@ -36,16 +41,25 @@ export interface QueuedEvent {
  * - Sync failures require manual retry
  */
 export class AnalyticsQueueService {
-  private static readonly QUEUE_KEY = 'analytics-queue';
   private events: QueuedEvent[] = [];
   private isLoaded = false;
+  private currentUserId: string | null = null;
 
   /**
-   * Load queue from AsyncStorage (call once on app start).
+   * Load queue from user-scoped storage (call once on app start or user login).
    */
-  async load() {
+  async load(userId?: string) {
+    const activeUserId = userId || await getActiveUserId();
+    if (!activeUserId) {
+      console.log('[AnalyticsQueue] No active user, skipping load');
+      this.events = [];
+      this.isLoaded = true;
+      return;
+    }
+
     try {
-      const data = await AsyncStorage.getItem(AnalyticsQueueService.QUEUE_KEY);
+      this.currentUserId = activeUserId;
+      const data = await UserScopedStorage.getItem(activeUserId, QUEUE_KEY);
       this.events = data ? JSON.parse(data) : [];
       this.isLoaded = true;
       // console.log(
@@ -117,7 +131,8 @@ export class AnalyticsQueueService {
   }
 
   /**
-   * Clear entire queue (used on GDPR delete or consent decline).
+   * Clear entire queue (used on GDPR delete, consent decline, or logout).
+   * MULTI-ACCOUNT: Only clears in-memory state - persisted data is user-scoped.
    */
   clear() {
     this.events = [];
@@ -126,12 +141,30 @@ export class AnalyticsQueueService {
   }
 
   /**
-   * Persist to AsyncStorage.
+   * Reset for logout - clears in-memory state only.
+   * Persisted data stays in user-scoped storage for next login.
+   */
+  resetForLogout() {
+    this.events = [];
+    this.isLoaded = false;
+    this.currentUserId = null;
+    // console.log('[AnalyticsQueue] Reset for logout');
+  }
+
+  /**
+   * Persist to user-scoped storage.
    */
   private async persist() {
+    const userId = this.currentUserId || await getActiveUserId();
+    if (!userId) {
+      console.log('[AnalyticsQueue] No active user, skipping persist');
+      return;
+    }
+
     try {
-      await AsyncStorage.setItem(
-        AnalyticsQueueService.QUEUE_KEY,
+      await UserScopedStorage.setItem(
+        userId,
+        QUEUE_KEY,
         JSON.stringify(this.events),
       );
     } catch (err) {

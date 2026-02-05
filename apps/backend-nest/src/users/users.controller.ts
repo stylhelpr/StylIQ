@@ -28,6 +28,13 @@ export class UsersController {
     const user = await this.service.findById(userId);
     if (!user) return null;
 
+    // DEBUG: Log what we're returning
+    console.log('[/users/me] Returning:', {
+      userId,
+      first_name: user.first_name,
+      last_name: user.last_name,
+    });
+
     return {
       id: user.id,
       email: user.email,
