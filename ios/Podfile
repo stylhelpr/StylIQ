@@ -81,28 +81,6 @@ target 'StylIQ' do
         s['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
       end
     end
-
-    # ------------------------------------------------------------
-    # 📦 Force-copy GoogleService-Info.plist into .app bundle
-    # ------------------------------------------------------------
-    app_name = 'StylIQ'
-    plist_path = File.expand_path('../GoogleService-Info.plist', __dir__)
-    script_path = File.expand_path('../ios/add-firebase-plist.sh', __dir__)
-
-    File.open(script_path, 'w') do |f|
-      f.puts <<~EOS
-        #!/bin/bash
-        set -e
-        APP_NAME="#{app_name}"
-        PLIST_PATH="#{plist_path}"
-        TARGET_DIR="./build/Debug-iphonesimulator/$APP_NAME.app"
-        echo "📦 Injecting $PLIST_PATH into $TARGET_DIR ..."
-        until [ -d "$TARGET_DIR" ]; do sleep 2; done
-        cp "$PLIST_PATH" "$TARGET_DIR/" && echo "✅ Copied GoogleService-Info.plist"
-      EOS
-    end
-    system("chmod +x #{script_path}")
-    puts "✅ Firebase copy script ready (#{script_path})"
   end
 end
 
