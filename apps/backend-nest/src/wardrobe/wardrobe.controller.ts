@@ -22,6 +22,7 @@ import {
   AnalyzeImageResponseDto,
 } from './dto/analyze-image.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Storage } from '@google-cloud/storage';
 import { getSecret, getSecretJson, secretExists } from '../config/secrets';
 
@@ -73,6 +74,7 @@ function normalizeUserStyle(
   return Object.keys(out).length ? out : undefined;
 }
 
+@SkipThrottle()
 @UseGuards(JwtAuthGuard)
 @Controller('wardrobe')
 export class WardrobeController {

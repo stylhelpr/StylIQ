@@ -379,14 +379,22 @@ export class VertexService {
     if (metadata.format === 'heif') {
       // HEIF needs heic-convert - Sharp doesn't support it without libheif
       console.log('[embedImage] Converting HEIF to JPEG using heic-convert');
-      const heicConvert = await import('heic-convert');
-      const convert = heicConvert.default || heicConvert;
-      const converted = await convert({
-        buffer: imageBuffer,
-        format: 'JPEG',
-        quality: 0.95,
-      });
-      jpegBuffer = Buffer.from(converted);
+      try {
+        const heicConvert = await import('heic-convert');
+        const convert = heicConvert.default || heicConvert;
+        const converted = await convert({
+          buffer: imageBuffer,
+          format: 'JPEG',
+          quality: 0.95,
+        });
+        jpegBuffer = Buffer.from(converted);
+      } catch (heicErr) {
+        // Sharp may detect format as heif but buffer isn't valid HEIC (e.g. iOS edge cases)
+        console.warn('[embedImage] heic-convert failed, falling back to sharp:', (heicErr as Error).message);
+        jpegBuffer = await sharp(imageBuffer)
+          .jpeg({ quality: 95 })
+          .toBuffer();
+      }
     } else {
       // WEBP can be handled by Sharp
       console.log('[embedImage] Converting WEBP to JPEG');
@@ -420,14 +428,22 @@ export class VertexService {
     // HEIF needs special handling - Sharp doesn't support it without libheif
     if (metadata.format === 'heif') {
       console.log('[ensureJpegBuffer] Converting HEIF to JPEG using heic-convert');
-      const heicConvert = await import('heic-convert');
-      const convert = heicConvert.default || heicConvert;
-      const jpegBuffer = await convert({
-        buffer: imageBuffer,
-        format: 'JPEG',
-        quality: 0.95,
-      });
-      return Buffer.from(jpegBuffer);
+      try {
+        const heicConvert = await import('heic-convert');
+        const convert = heicConvert.default || heicConvert;
+        const jpegBuffer = await convert({
+          buffer: imageBuffer,
+          format: 'JPEG',
+          quality: 0.95,
+        });
+        return Buffer.from(jpegBuffer);
+      } catch (heicErr) {
+        // Sharp may detect format as heif but buffer isn't valid HEIC (e.g. iOS edge cases)
+        console.warn('[ensureJpegBuffer] heic-convert failed, falling back to sharp:', (heicErr as Error).message);
+        return sharp(imageBuffer)
+          .jpeg({ quality: 95 })
+          .toBuffer();
+      }
     }
 
     // WEBP can be handled by Sharp

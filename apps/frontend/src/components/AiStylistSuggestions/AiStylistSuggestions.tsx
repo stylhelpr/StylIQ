@@ -48,7 +48,7 @@ type Props = {
   preferences?: any;
 };
 
-// Legacy text-based response type (backward compatibility)
+/// Legacy text-based response type (backward compatibility)
 export type AiSuggestionResponse = {
   suggestion: string;
   insight?: string;

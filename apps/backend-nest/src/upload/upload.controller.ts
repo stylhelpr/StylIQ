@@ -12,9 +12,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AuthenticatedRequest } from '../auth/types/auth-user';
 import { UploadService } from './upload.service';
 
+@SkipThrottle()
 @UseGuards(AuthGuard('jwt'))
 @Controller('upload')
 export class UploadController {
