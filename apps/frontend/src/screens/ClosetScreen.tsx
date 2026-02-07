@@ -132,6 +132,12 @@ const CATEGORY_META: Array<{
   {value: 'Unisex', label: 'Unisex', icon: 'wc'},
   {value: 'Costumes', label: 'Costumes', icon: 'theater-comedy'},
   {value: 'Traditional Wear', label: 'Traditional Wear', icon: 'festival'},
+  {value: 'Dresses', label: 'Dresses', icon: 'dry-cleaning'},
+  {value: 'Skirts', label: 'Skirts', icon: 'drag-handle'},
+  {value: 'Bags', label: 'Bags', icon: 'shopping-bag'},
+  {value: 'Headwear', label: 'Headwear', icon: 'face'},
+  {value: 'Jewelry', label: 'Jewelry', icon: 'diamond'},
+  {value: 'Other', label: 'Other', icon: 'more-horiz'},
 ];
 
 const sortOptions = [

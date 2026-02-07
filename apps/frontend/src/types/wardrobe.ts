@@ -30,7 +30,13 @@ export type WardrobeItem = {
     | 'Maternity'
     | 'Unisex'
     | 'Costumes'
-    | 'TraditionalWear';
+    | 'TraditionalWear'
+    | 'Dresses'
+    | 'Skirts'
+    | 'Bags'
+    | 'Headwear'
+    | 'Jewelry'
+    | 'Other';
   subCategory?: string;
   tags?: string[];
   styleDescriptors?: string[];

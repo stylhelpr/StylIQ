@@ -51,6 +51,13 @@ type Props = {
 const categorizeItem = (item: WardrobeItem): Category => {
   const cat = (item.main_category || item.mainCategory || '').toLowerCase();
 
+  // Exact-match new categories first (items explicitly labeled with new main_category)
+  if (cat === 'dresses') return 'Dresses';
+  if (cat === 'skirts') return 'Skirts';
+  if (cat === 'bags') return 'Bags';
+  if (cat === 'headwear') return 'Headwear';
+  if (cat === 'jewelry') return 'Jewelry';
+
   if (
     ['tops', 'outerwear', 'shirts', 'jackets', 'knitwear', 'sweaters', 'blazers', 'coats', 't-shirts', 'blouses'].some(
       c => cat.includes(c),

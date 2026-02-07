@@ -51,5 +51,43 @@
     "Performance Jackets",
     "Gym Hoodies"
   ],
-  "Formalwear": ["Suits", "Dress Shirts", "Tuxedos", "Waistcoats"]
+  "Formalwear": ["Suits", "Dress Shirts", "Tuxedos", "Waistcoats"],
+  "Dresses": [
+    "Midi Dresses",
+    "Maxi Dresses",
+    "Mini Dresses",
+    "Wrap Dresses",
+    "Shirt Dresses",
+    "Cocktail Dresses",
+    "Casual Dresses"
+  ],
+  "Skirts": [
+    "Mini Skirts",
+    "Midi Skirts",
+    "Maxi Skirts",
+    "Pencil Skirts",
+    "A-Line Skirts",
+    "Pleated Skirts"
+  ],
+  "Bags": [
+    "Handbags",
+    "Tote Bags",
+    "Crossbody Bags",
+    "Clutches",
+    "Backpacks"
+  ],
+  "Headwear": [
+    "Baseball Caps",
+    "Beanies",
+    "Fedoras",
+    "Sun Hats",
+    "Headbands"
+  ],
+  "Jewelry": [
+    "Necklaces",
+    "Bracelets",
+    "Earrings",
+    "Rings"
+  ],
+  "Other": []
 }

@@ -126,6 +126,12 @@ export function useClosetVoiceCommands(
         maternity: 'Maternity',
         unisex: 'Unisex',
         costumes: 'Costumes',
+        dresses: 'Dresses',
+        skirts: 'Skirts',
+        bags: 'Bags',
+        headwear: 'Headwear',
+        jewelry: 'Jewelry',
+        other: 'Other',
       };
 
       for (const [keyword, category] of Object.entries(categories)) {

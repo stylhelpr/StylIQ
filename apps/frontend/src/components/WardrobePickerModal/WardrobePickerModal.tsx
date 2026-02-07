@@ -30,9 +30,14 @@ const CATEGORY_TABS = [
   {value: 'All', label: 'All', icon: 'category'},
   {value: 'Tops', label: 'Tops', icon: 'checkroom'},
   {value: 'Bottoms', label: 'Bottoms', icon: 'drag-handle'},
+  {value: 'Dresses', label: 'Dresses', icon: 'dry-cleaning'},
+  {value: 'Skirts', label: 'Skirts', icon: 'drag-handle'},
   {value: 'Shoes', label: 'Shoes', icon: 'hiking'},
   {value: 'Outerwear', label: 'Outerwear', icon: 'ac-unit'},
   {value: 'Accessories', label: 'Accessories', icon: 'watch'},
+  {value: 'Bags', label: 'Bags', icon: 'shopping-bag'},
+  {value: 'Headwear', label: 'Headwear', icon: 'face'},
+  {value: 'Jewelry', label: 'Jewelry', icon: 'diamond'},
 ];
 
 type WardrobeItem = {

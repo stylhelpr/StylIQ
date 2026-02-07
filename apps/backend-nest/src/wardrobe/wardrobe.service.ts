@@ -547,6 +547,7 @@ export class WardrobeService {
       return 'tops';
     if (
       main === 'bottoms' ||
+      main === 'skirts' ||
       /\b(trouser|pants|jeans|chinos|shorts|joggers?|sweatpants?)\b/i.test(sub)
     )
       return 'bottoms';
@@ -566,6 +567,9 @@ export class WardrobeService {
       return 'outerwear';
     if (
       main === 'accessories' ||
+      main === 'bags' ||
+      main === 'headwear' ||
+      main === 'jewelry' ||
       /\b(belt|watch|hat|scarf|tie|sunglasses|bag|briefcase)\b/i.test(sub)
     )
       return 'accessories';
@@ -2351,6 +2355,12 @@ ${lockedLines}
       'Unisex',
       'Costumes',
       'TraditionalWear',
+      'Dresses',
+      'Skirts',
+      'Bags',
+      'Headwear',
+      'Jewelry',
+      'Other',
     ];
     const raw = (val ?? '').toString().trim();
     if (unions.includes(raw as any))
@@ -2373,7 +2383,7 @@ ${lockedLines}
       jeans: 'Bottoms',
       chinos: 'Bottoms',
       shorts: 'Bottoms',
-      skirt: 'Bottoms',
+      skirt: 'Skirts',
       outer: 'Outerwear',
       outerwear: 'Outerwear',
       jacket: 'Outerwear',
@@ -2390,9 +2400,9 @@ ${lockedLines}
       loafers: 'Shoes',
       accessory: 'Accessories',
       accessories: 'Accessories',
-      bag: 'Accessories',
+      bag: 'Bags',
       belt: 'Accessories',
-      hat: 'Accessories',
+      hat: 'Headwear',
       scarf: 'Accessories',
       tie: 'Accessories',
       sunglasses: 'Accessories',
@@ -2430,6 +2440,25 @@ ${lockedLines}
       traditionalwear: 'TraditionalWear',
       kimono: 'TraditionalWear',
       sari: 'TraditionalWear',
+      dress: 'Dresses',
+      dresses: 'Dresses',
+      skirts: 'Skirts',
+      bags: 'Bags',
+      handbag: 'Bags',
+      handbags: 'Bags',
+      tote: 'Bags',
+      clutch: 'Bags',
+      crossbody: 'Bags',
+      headwear: 'Headwear',
+      beanie: 'Headwear',
+      fedora: 'Headwear',
+      cap: 'Headwear',
+      jewelry: 'Jewelry',
+      necklace: 'Jewelry',
+      bracelet: 'Jewelry',
+      earrings: 'Jewelry',
+      ring: 'Jewelry',
+      other: 'Other',
     };
     return map[s] ?? 'Tops';
   }
@@ -2439,6 +2468,13 @@ ${lockedLines}
     layering?: string | null,
   ): CreateWardrobeItemDto['main_category'] {
     const normalized = this.normalizeMainCategory(rawMain);
+    // If normalizeMainCategory already resolved to a specific new category,
+    // skip subcategory coercion — these categories are canonical and should
+    // not be overridden by legacy subcategory keyword checks.
+    const newCategories: CreateWardrobeItemDto['main_category'][] = [
+      'Dresses', 'Skirts', 'Bags', 'Headwear', 'Jewelry', 'Other',
+    ];
+    if (newCategories.includes(normalized)) return normalized;
     const s = (sub ?? '').toLowerCase();
     const lay = (layering ?? '').toUpperCase();
     if (
@@ -2479,12 +2515,10 @@ ${lockedLines}
     if (
       [
         'belt',
-        'hat',
         'scarf',
         'tie',
         'watch',
         'sunglasses',
-        'bag',
         'briefcase',
       ].some((k) => s.includes(k))
     )

@@ -94,6 +94,12 @@ export class CreateWardrobeItemDto {
     'Unisex',
     'Costumes',
     'TraditionalWear',
+    'Dresses',
+    'Skirts',
+    'Bags',
+    'Headwear',
+    'Jewelry',
+    'Other',
   ])
   main_category!:
     | 'Tops'
@@ -110,7 +116,13 @@ export class CreateWardrobeItemDto {
     | 'Maternity'
     | 'Unisex'
     | 'Costumes'
-    | 'TraditionalWear';
+    | 'TraditionalWear'
+    | 'Dresses'
+    | 'Skirts'
+    | 'Bags'
+    | 'Headwear'
+    | 'Jewelry'
+    | 'Other';
 
   @IsOptional()
   @IsString()

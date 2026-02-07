@@ -15,7 +15,13 @@ export type MainCategory =
   | 'Maternity'
   | 'Unisex'
   | 'Costumes'
-  | 'Traditional Wear';
+  | 'Traditional Wear'
+  | 'Dresses'
+  | 'Skirts'
+  | 'Bags'
+  | 'Headwear'
+  | 'Jewelry'
+  | 'Other';
 
 export type Subcategory =
   // Tops
@@ -118,6 +124,43 @@ export type Subcategory =
   | 'Gowns'
   | 'Evening Dresses'
   | 'Dress Pants'
+
+  // Dresses
+  | 'Midi Dresses'
+  | 'Maxi Dresses'
+  | 'Mini Dresses'
+  | 'Wrap Dresses'
+  | 'Shirt Dresses'
+  | 'Cocktail Dresses'
+  | 'Casual Dresses'
+
+  // Skirts
+  | 'Mini Skirts'
+  | 'Midi Skirts'
+  | 'Maxi Skirts'
+  | 'Pencil Skirts'
+  | 'A-Line Skirts'
+  | 'Pleated Skirts'
+
+  // Bags
+  | 'Handbags'
+  | 'Tote Bags'
+  | 'Crossbody Bags'
+  | 'Clutches'
+  | 'Backpacks'
+
+  // Headwear
+  | 'Baseball Caps'
+  | 'Beanies'
+  | 'Fedoras'
+  | 'Sun Hats'
+  | 'Headbands'
+
+  // Jewelry
+  | 'Necklaces'
+  | 'Bracelets'
+  | 'Earrings'
+  | 'Rings'
 
   // Loungewear / Sleepwear / etc.
   | 'Pajamas'
