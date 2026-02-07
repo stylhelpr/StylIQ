@@ -420,6 +420,7 @@ const DiscoverCarousel: React.FC<DiscoverCarouselProps> = ({
                     source={{uri: item.image_url}}
                     style={[globalStyles.image7, {backgroundColor: 'white'}]}
                     resizeMode="contain"
+                    //  resizeMode="cover"
                     onError={() =>
                       console.warn('⚠️ image failed', item.image_url)
                     }
