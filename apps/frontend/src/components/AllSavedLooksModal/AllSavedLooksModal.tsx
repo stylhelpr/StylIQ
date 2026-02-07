@@ -656,7 +656,7 @@ export default function AllSavedLooksModal({
                     marginTop: 4,
                   },
                 ]}>
-                SAVED INPSIRED STYLES
+                SAVED INPSIRING STYLES
               </Text>
             </View>
 

@@ -1614,7 +1614,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 color: theme.colors.foreground,
                 fontSize: fontScale(tokens.fontSize.md),
               }}>
-              Swipe card above for 3 new suggestions
+              Swipe card above for 3 new outfits
             </Text>
           </View>
 

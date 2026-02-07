@@ -223,7 +223,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
               <TabButton
                 icon="group"
-                label="COMMUNITY"
+                label="STYLE FEED"
                 onPress={() =>
                   current !== 'CommunityShowcaseScreen' &&
                   navigate('CommunityShowcaseScreen')
@@ -269,7 +269,7 @@ const BottomNavigation = ({current, navigate, scrollY}: Props) => {
               />
               <TabButton
                 icon="group"
-                label="COMMUNITY"
+                label="STYLE FEED"
                 onPress={() =>
                   current !== 'CommunityShowcaseScreen' &&
                   navigate('CommunityShowcaseScreen')

@@ -2097,7 +2097,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={{alignItems: 'flex-start', flex: 1}}>
-            <Text style={[globalStyles.header, {color: theme.colors.primary, marginBottom: 0, paddingLeft: 0}]}>Community Share</Text>
+            <Text style={[globalStyles.header, {color: theme.colors.primary, marginBottom: 0, paddingLeft: 0}]}>Style Feed</Text>
             <Text style={styles.headerSubtitle}>Looks shared by the community</Text>
           </View>
           <Pressable
