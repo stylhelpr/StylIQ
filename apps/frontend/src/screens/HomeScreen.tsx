@@ -73,6 +73,7 @@ import {useHomeVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
 import LinearGradientWrapper from '../components/LinearGradientWrapper/LinearGradientWrapper';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+import {apiClient} from '../lib/apiClient';
 import FilamentPreview from '../components/FilamentPreview';
 import {useHeadPoseActions} from '../hooks/useHeadPoseActions';
 import {
@@ -755,6 +756,8 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [readerVisible, setReaderVisible] = useState(false);
   const [readerUrl, setReaderUrl] = useState<string | undefined>(undefined);
   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
+  const [readerProduct, setReaderProduct] = useState<DiscoverProduct | null>(null);
+  const [savingReaderProduct, setSavingReaderProduct] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [
     savedRecommendationsModalVisible,
