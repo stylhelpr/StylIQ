@@ -26,13 +26,21 @@
     "Parkas",
     "Vests"
   ],
-  "Shoes": {
-    "Sneakers": ["Athletic Sneakers", "Lifestyle Sneakers"],
-    "Dress Shoes": ["Oxfords", "Derbies", "Monk Straps"],
-    "Casual Shoes": ["Loafers", "Boat Shoes", "Espadrilles"],
-    "Boots": ["Chelsea Boots", "Combat Boots", "Chukkas"],
-    "Others": ["Sandals", "Slides"]
-  },
+  "Shoes": [
+    "Athletic Sneakers",
+    "Lifestyle Sneakers",
+    "Oxfords",
+    "Derbies",
+    "Monk Straps",
+    "Loafers",
+    "Boat Shoes",
+    "Espadrilles",
+    "Chelsea Boots",
+    "Combat Boots",
+    "Chukkas",
+    "Sandals",
+    "Slides"
+  ],
   "Accessories": [
     "Belts",
     "Hats",
@@ -40,8 +48,7 @@
     "Gloves",
     "Sunglasses",
     "Watches",
-    "Jewelry",
-    "Bags"
+    "Ties"
   ],
   "Undergarments": ["Undershirts", "Briefs", "Boxers", "Socks"],
   "Activewear": [

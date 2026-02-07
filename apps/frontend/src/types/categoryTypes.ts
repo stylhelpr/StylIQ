@@ -15,7 +15,7 @@ export type MainCategory =
   | 'Maternity'
   | 'Unisex'
   | 'Costumes'
-  | 'Traditional Wear'
+  | 'TraditionalWear'
   | 'Dresses'
   | 'Skirts'
   | 'Bags'

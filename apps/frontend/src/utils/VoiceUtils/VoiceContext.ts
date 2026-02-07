@@ -132,6 +132,7 @@ export function useClosetVoiceCommands(
         headwear: 'Headwear',
         jewelry: 'Jewelry',
         other: 'Other',
+        'traditional wear': 'TraditionalWear',
       };
 
       for (const [keyword, category] of Object.entries(categories)) {

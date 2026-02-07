@@ -80,7 +80,7 @@ const categorizeItem = (item: WardrobeItem): Category => {
     return 'Shoes';
   }
   if (
-    ['accessories', 'hats', 'scarves', 'belts', 'jewelry', 'bags', 'glasses', 'watches'].some(
+    ['accessories', 'hats', 'scarves', 'belts', 'bags', 'glasses', 'watches'].some(
       c => cat.includes(c),
     )
   ) {

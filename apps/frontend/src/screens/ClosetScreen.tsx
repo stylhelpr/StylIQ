@@ -131,7 +131,7 @@ const CATEGORY_META: Array<{
   {value: 'Maternity', label: 'Maternity', icon: 'pregnant-woman'},
   {value: 'Unisex', label: 'Unisex', icon: 'wc'},
   {value: 'Costumes', label: 'Costumes', icon: 'theater-comedy'},
-  {value: 'Traditional Wear', label: 'Traditional Wear', icon: 'festival'},
+  {value: 'TraditionalWear', label: 'Traditional Wear', icon: 'festival'},
   {value: 'Dresses', label: 'Dresses', icon: 'dry-cleaning'},
   {value: 'Skirts', label: 'Skirts', icon: 'drag-handle'},
   {value: 'Bags', label: 'Bags', icon: 'shopping-bag'},
@@ -1506,7 +1506,7 @@ export default function ClosetScreen({navigate}: Props) {
 //   {value: 'Maternity', label: 'Maternity', icon: 'pregnant-woman'},
 //   {value: 'Unisex', label: 'Unisex', icon: 'wc'},
 //   {value: 'Costumes', label: 'Costumes', icon: 'theater-comedy'},
-//   {value: 'Traditional Wear', label: 'Traditional Wear', icon: 'festival'},
+//   {value: 'TraditionalWear', label: 'Traditional Wear', icon: 'festival'},
 // ];
 
 // const sortOptions = [

@@ -2366,6 +2366,7 @@ ${lockedLines}
     if (unions.includes(raw as any))
       return raw as CreateWardrobeItemDto['main_category'];
     const s = raw.toLowerCase();
+    if (/\bdress(es)?\b/i.test(s)) return 'Dresses';
     const map: Record<string, CreateWardrobeItemDto['main_category']> = {
       top: 'Tops',
       tops: 'Tops',

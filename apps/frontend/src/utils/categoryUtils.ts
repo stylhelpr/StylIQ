@@ -169,7 +169,7 @@ export function getInferredCategory(name: string): {
     return {main: 'Unisex', sub: 'Utility Vests'};
   if (lower.includes('costume')) return {main: 'Costumes', sub: 'Costumes'};
   if (lower.includes('cultural'))
-    return {main: 'Traditional Wear', sub: 'Cultural Attire'};
+    return {main: 'TraditionalWear', sub: 'Cultural Attire'};
 
   return null;
 }
