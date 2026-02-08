@@ -1032,7 +1032,7 @@ export const createGlobalStyles = (theme: Theme) =>
     },
     image11: {
       width: '100%',
-      height: isTablet ? 160 : isLargePhone ? 165 : isRegularPhone ? 165 : 165,
+      height: isTablet ? 160 : isLargePhone ? 120 : isRegularPhone ? 120 : 120,
 
     },
     bgContainer1: {

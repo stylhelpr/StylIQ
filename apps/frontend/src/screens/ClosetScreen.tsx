@@ -708,6 +708,7 @@ export default function ClosetScreen({navigate}: Props) {
               style={{
                 width: '100%',
                 backgroundColor: theme.colors.surface,
+                padding: 12,
               }}>
               <FastImage
                 source={{
@@ -1653,6 +1654,1664 @@ export default function ClosetScreen({navigate}: Props) {
     </SafeAreaView>
   );
 }
+
+//////////////////////
+
+// import React, {useState, useEffect, useMemo, useRef, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   StyleSheet,
+//   Image,
+//   Dimensions,
+//   TouchableOpacity,
+//   TouchableWithoutFeedback,
+//   TextInput,
+//   Animated,
+//   Easing,
+//   Alert,
+//   Pressable,
+//   NativeSyntheticEvent,
+//   NativeScrollEvent,
+//   ScrollView,
+// } from 'react-native';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import {FlashList} from '@shopify/flash-list';
+// import {FlatList} from 'react-native';
+// import FastImage from 'react-native-fast-image';
+// import {useAppTheme} from '../context/ThemeContext';
+// import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+// import {getInferredCategory} from '../utils/categoryUtils';
+// import {MainCategory, Subcategory} from '../types/categoryTypes';
+// import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+// import {useUUID} from '../context/UUIDContext';
+// import {apiClient} from '../lib/apiClient';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
+// import {useClosetVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
+// import {GradientBackground} from '../components/LinearGradientComponents/GradientBackground';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// import {useSafeAreaInsets} from 'react-native-safe-area-context';
+
+// const {width: SCREEN_WIDTH} = Dimensions.get('window');
+// const NUM_COLUMNS = 2;
+// const ITEM_SPACING = 12;
+// const ITEM_WIDTH = (SCREEN_WIDTH - ITEM_SPACING * 3) / NUM_COLUMNS;
+// const ITEM_HEIGHT = ITEM_WIDTH * 1.3;
+
+// // Horizontal sections view card sizing
+// const HORIZ_CARD_WIDTH = 140;
+// const HORIZ_CARD_HEIGHT = 100;
+
+// // Animated pressable with scale effect for images
+// const ScalePressable = ({
+//   children,
+//   onPress,
+//   onLongPress,
+//   style,
+// }: {
+//   children: React.ReactNode;
+//   onPress: () => void;
+//   onLongPress?: () => void;
+//   style?: any;
+// }) => {
+//   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+//   const handlePressIn = () => {
+//     Animated.spring(scaleAnim, {
+//       toValue: 0.96,
+//       useNativeDriver: true,
+//       speed: 50,
+//       bounciness: 4,
+//     }).start();
+//   };
+
+//   const handlePressOut = () => {
+//     Animated.spring(scaleAnim, {
+//       toValue: 1,
+//       useNativeDriver: true,
+//       speed: 50,
+//       bounciness: 4,
+//     }).start();
+//   };
+
+//   return (
+//     <Pressable
+//       onPress={onPress}
+//       onLongPress={onLongPress}
+//       onPressIn={handlePressIn}
+//       onPressOut={handlePressOut}>
+//       <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
+//         {children}
+//       </Animated.View>
+//     </Pressable>
+//   );
+// };
+
+// type WardrobeItem = {
+//   id: string;
+//   image_url: string;
+//   thumbnailUrl?: string;
+//   processedImageUrl?: string;
+//   touchedUpImageUrl?: string;
+//   name: string;
+//   color?: string;
+//   main_category?: MainCategory | string;
+//   subcategory?: Subcategory | string;
+//   fit?: string;
+//   size?: string;
+//   brand?: string;
+//   material?: string;
+//   width?: number;
+//   height?: number;
+//   favorite?: boolean;
+// };
+
+// type Props = {
+//   navigate: (screen: string, params?: any) => void;
+// };
+
+// const CATEGORY_META: Array<{
+//   value: MainCategory | 'All';
+//   label: string;
+//   icon: string;
+// }> = [
+//   {value: 'All', label: 'All', icon: 'category'},
+//   {value: 'Tops', label: 'Tops', icon: 'checkroom'},
+//   {value: 'Bottoms', label: 'Bottoms', icon: 'drag-handle'},
+//   {value: 'Shoes', label: 'Shoes', icon: 'hiking'},
+//   {value: 'Outerwear', label: 'Outerwear', icon: 'ac-unit'},
+//   {value: 'Dresses', label: 'Dresses', icon: 'dry-cleaning'},
+//   {value: 'Skirts', label: 'Skirts', icon: 'drag-handle'},
+//   {value: 'Activewear', label: 'Activewear', icon: 'fitness-center'},
+//   {value: 'Loungewear', label: 'Loungewear', icon: 'weekend'},
+//   {value: 'Formalwear', label: 'Formalwear', icon: 'work'},
+//   {value: 'Sleepwear', label: 'Sleepwear', icon: 'hotel'},
+//   {value: 'Swimwear', label: 'Swimwear', icon: 'pool'},
+//   {value: 'Accessories', label: 'Accessories', icon: 'watch'},
+//   {value: 'Bags', label: 'Bags', icon: 'shopping-bag'},
+//   {value: 'Jewelry', label: 'Jewelry', icon: 'diamond'},
+//   {value: 'Headwear', label: 'Headwear', icon: 'face'},
+//   {value: 'Undergarments', label: 'Undergarments', icon: 'layers'},
+//   {value: 'TraditionalWear', label: 'Traditional Wear', icon: 'festival'},
+//   {value: 'Unisex', label: 'Unisex', icon: 'wc'},
+//   {value: 'Maternity', label: 'Maternity', icon: 'pregnant-woman'},
+//   {value: 'Costumes', label: 'Costumes', icon: 'theater-comedy'},
+//   {value: 'Other', label: 'Other', icon: 'more-horiz'},
+// ];
+
+// const sortOptions = [
+//   {label: 'Name A-Z', value: 'az'},
+//   {label: 'Name Z-A', value: 'za'},
+//   {label: 'Favorites First', value: 'favorites'},
+// ];
+
+// type FlatListItem = {
+//   type: 'header' | 'subheader' | 'item';
+//   id: string;
+//   mainCategory?: string;
+//   subCategory?: string;
+//   item?: WardrobeItem & {inferredCategory?: any; effectiveMain?: MainCategory};
+// };
+
+// export default function ClosetScreen({navigate}: Props) {
+//   const {theme} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const queryClient = useQueryClient();
+//   const userId = useUUID();
+
+//   const insets = useSafeAreaInsets();
+//   const [swipeActive, setSwipeActive] = useState(false);
+//   const scrollEnabled = !swipeActive;
+
+//   // Sync scroll position with global nav for bottom nav hide/show
+//   const handleScroll = useCallback(
+//     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+//       if (global.__navScrollY) {
+//         global.__navScrollY.setValue(event.nativeEvent.contentOffset.y);
+//       }
+//     },
+//     [],
+//   );
+
+//   const [selectedCategory, setSelectedCategory] = useState<
+//     'All' | MainCategory
+//   >('All');
+//   const [sortOption, setSortOption] = useState<'az' | 'za' | 'favorites'>('az');
+//   const [viewMode, setViewMode] = useState<'grid' | 'sections'>('grid');
+
+//   // Load persisted view mode
+//   useEffect(() => {
+//     AsyncStorage.getItem('closet_view_mode').then(val => {
+//       if (val === 'grid' || val === 'sections') {
+//         setViewMode(val);
+//       }
+//     });
+//   }, []);
+
+//   // Persist view mode on change
+//   useEffect(() => {
+//     AsyncStorage.setItem('closet_view_mode', viewMode);
+//   }, [viewMode]);
+
+//   // Menu states
+//   const [menuVisible, setMenuVisible] = useState(false);
+//   const [menuView, setMenuView] = useState<'main' | 'filter' | 'sort'>('main');
+
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [selectedItemToEdit, setSelectedItemToEdit] =
+//     useState<WardrobeItem | null>(null);
+//   const [editedName, setEditedName] = useState('');
+//   const [editedColor, setEditedColor] = useState('');
+
+//   const screenFade = useRef(new Animated.Value(0)).current;
+//   const screenTranslate = useRef(new Animated.Value(50)).current;
+//   const fabBounce = useRef(new Animated.Value(250)).current;
+
+//   const submenuOpacity = useRef(new Animated.Value(0)).current;
+
+//   // Demo wardrobe state - tracks if user has ever had real wardrobe items
+//   const [hasEverHadWardrobe, setHasEverHadWardrobe] = useState<boolean | null>(
+//     null,
+//   );
+
+//   // Demo wardrobe items (bundled assets)
+//   const demoWardrobeItems: WardrobeItem[] = [
+//     {
+//       id: 'demo-top-1',
+//       image_url: Image.resolveAssetSource(
+//         require('../assets/images/top-sweater1.png'),
+//       ).uri,
+//       name: 'Cable Knit Sweater',
+//       main_category: 'Tops',
+//       subcategory: 'Sweaters',
+//       color: 'Orange',
+//     },
+//     {
+//       id: 'demo-bottom-1',
+//       image_url: Image.resolveAssetSource(
+//         require('../assets/images/bottoms-jeans1.png'),
+//       ).uri,
+//       name: 'Classic Blue Jeans',
+//       main_category: 'Bottoms',
+//       subcategory: 'Jeans',
+//       color: 'Blue',
+//     },
+//     {
+//       id: 'demo-shoe-1',
+//       image_url: Image.resolveAssetSource(
+//         require('../assets/images/shoes-loafers1.jpg'),
+//       ).uri,
+//       name: 'Black Leather Loafers',
+//       main_category: 'Shoes',
+//       subcategory: 'Loafers',
+//       color: 'Black',
+//     },
+//   ];
+
+//   useEffect(() => {
+//     Animated.sequence([
+//       Animated.timing(screenFade, {
+//         toValue: 1,
+//         duration: 800,
+//         easing: Easing.out(Easing.exp),
+//         useNativeDriver: true,
+//       }),
+//       Animated.spring(screenTranslate, {
+//         toValue: 0,
+//         speed: 2,
+//         bounciness: 14,
+//         useNativeDriver: true,
+//       }),
+//     ]).start();
+//     Animated.spring(fabBounce, {
+//       toValue: 0,
+//       delay: 900,
+//       speed: 2,
+//       bounciness: 14,
+//       useNativeDriver: true,
+//     }).start();
+//   }, []);
+
+//   // Load hasEverHadWardrobe flag from AsyncStorage
+//   useEffect(() => {
+//     const loadDemoFlag = async () => {
+//       try {
+//         const hasWardrobe = await AsyncStorage.getItem('wardrobe_has_real');
+//         setHasEverHadWardrobe(hasWardrobe === 'true');
+//       } catch (err) {
+//         console.error('Failed to load wardrobe demo flag:', err);
+//         setHasEverHadWardrobe(false);
+//       }
+//     };
+//     loadDemoFlag();
+//   }, []);
+
+//   const {data: wardrobe = [], isLoading} = useQuery({
+//     queryKey: ['wardrobe', userId],
+//     queryFn: async () => {
+//       const res = await apiClient.get('/wardrobe');
+//       return res.data;
+//     },
+//     enabled: !!userId,
+//     staleTime: 30000,
+//   });
+
+//   // Update hasEverHadWardrobe when real content appears
+//   useEffect(() => {
+//     if (wardrobe && wardrobe.length > 0 && hasEverHadWardrobe === false) {
+//       setHasEverHadWardrobe(true);
+//       AsyncStorage.setItem('wardrobe_has_real', 'true');
+//     }
+//   }, [wardrobe, hasEverHadWardrobe]);
+
+//   // Compute wardrobe state: 'demo' | 'real' | 'empty-real'
+//   const wardrobeState =
+//     wardrobe && wardrobe.length > 0
+//       ? 'real'
+//       : hasEverHadWardrobe
+//         ? 'empty-real'
+//         : 'demo';
+
+//   // Use demo items when in demo state, otherwise use real wardrobe
+//   const displayWardrobe =
+//     wardrobeState === 'demo' ? demoWardrobeItems : wardrobe;
+
+//   const hSelect = () =>
+//     ReactNativeHapticFeedback.trigger('selection', {
+//       enableVibrateFallback: true,
+//       ignoreAndroidSystemSettings: false,
+//     });
+
+//   const deleteMutation = useMutation({
+//     mutationFn: async (id: string) => {
+//       await apiClient.delete(`/wardrobe/${id}`);
+//     },
+//     onMutate: async (id: string) => {
+//       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
+//       const prev = queryClient.getQueryData<WardrobeItem[]>([
+//         'wardrobe',
+//         userId,
+//       ]);
+//       queryClient.setQueryData<WardrobeItem[]>(
+//         ['wardrobe', userId],
+//         old => old?.filter(item => item.id !== id) || [],
+//       );
+//       return {prev};
+//     },
+//     onError: (_err, _id, context) => {
+//       if (context?.prev) {
+//         queryClient.setQueryData(['wardrobe', userId], context.prev);
+//       }
+//     },
+//     onSettled: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
+//     },
+//   });
+
+//   const updateMutation = useMutation({
+//     mutationFn: async ({
+//       id,
+//       name,
+//       color,
+//     }: {
+//       id: string;
+//       name?: string;
+//       color?: string;
+//     }) => {
+//       await apiClient.put(`/wardrobe/${id}`, {name, color});
+//     },
+//     onMutate: async ({id, name, color}) => {
+//       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
+//       const prev = queryClient.getQueryData<WardrobeItem[]>([
+//         'wardrobe',
+//         userId,
+//       ]);
+//       queryClient.setQueryData<WardrobeItem[]>(
+//         ['wardrobe', userId],
+//         old =>
+//           old?.map(item =>
+//             item.id === id
+//               ? {...item, name: name ?? item.name, color: color ?? item.color}
+//               : item,
+//           ) || [],
+//       );
+//       return {prev};
+//     },
+//     onError: (_err, _vars, context) => {
+//       if (context?.prev) {
+//         queryClient.setQueryData(['wardrobe', userId], context.prev);
+//       }
+//     },
+//     onSettled: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
+//     },
+//   });
+
+//   const filtered = useMemo(() => {
+//     return (displayWardrobe as WardrobeItem[])
+//       .map(item => {
+//         const inferred = getInferredCategory(item.name);
+//         const effectiveMain: MainCategory | undefined =
+//           (item.main_category as MainCategory) ?? inferred?.main;
+//         return {...item, inferredCategory: inferred, effectiveMain};
+//       })
+//       .filter(item => {
+//         if (selectedCategory === 'All') return true;
+//         return item.effectiveMain === selectedCategory;
+//       })
+//       .sort((a, b) => {
+//         if (sortOption === 'az') return a.name.localeCompare(b.name);
+//         if (sortOption === 'za') return b.name.localeCompare(a.name);
+//         if (sortOption === 'favorites')
+//           return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
+//         return 0;
+//       });
+//   }, [displayWardrobe, selectedCategory, sortOption]);
+
+//   // Flatten categorized items for FlashList
+//   const flatListData = useMemo(() => {
+//     const result: FlatListItem[] = [];
+//     const categorized: Record<
+//       string,
+//       Record<
+//         string,
+//         (WardrobeItem & {
+//           inferredCategory?: any;
+//           effectiveMain?: MainCategory;
+//         })[]
+//       >
+//     > = {};
+
+//     for (const item of filtered) {
+//       const main =
+//         (item.main_category as string) ||
+//         item.inferredCategory?.main ||
+//         'Uncategorized';
+//       const sub =
+//         (item.subcategory as string) || item.inferredCategory?.sub || 'General';
+//       if (!categorized[main]) categorized[main] = {};
+//       if (!categorized[main][sub]) categorized[main][sub] = [];
+//       categorized[main][sub].push(item);
+//     }
+
+//     for (const [mainCategory, subMap] of Object.entries(categorized)) {
+//       result.push({
+//         type: 'header',
+//         id: `header-${mainCategory}`,
+//         mainCategory,
+//       });
+
+//       for (const [subCategory, items] of Object.entries(subMap)) {
+//         result.push({
+//           type: 'subheader',
+//           id: `subheader-${mainCategory}-${subCategory}`,
+//           mainCategory,
+//           subCategory,
+//         });
+
+//         for (const item of items) {
+//           result.push({
+//             type: 'item',
+//             id: `item-${item.id}`,
+//             mainCategory,
+//             subCategory,
+//             item,
+//           });
+//         }
+//       }
+//     }
+
+//     return result;
+//   }, [filtered]);
+
+//   // Group filtered items by main category for sections view
+//   const categorizedSections = useMemo(() => {
+//     const grouped: Record<
+//       string,
+//       (WardrobeItem & {inferredCategory?: any; effectiveMain?: MainCategory})[]
+//     > = {};
+
+//     for (const item of filtered) {
+//       const main =
+//         (item.main_category as string) ||
+//         item.inferredCategory?.main ||
+//         'Uncategorized';
+//       if (!grouped[main]) grouped[main] = [];
+//       grouped[main].push(item);
+//     }
+
+//     return Object.entries(grouped).map(([category, items]) => ({
+//       category,
+//       items,
+//     }));
+//   }, [filtered]);
+
+//   // FAB state
+//   const [fabOpen, setFabOpen] = useState(false);
+//   const fabAnim = useRef(new Animated.Value(0)).current;
+
+//   const toggleFab = () => {
+//     ReactNativeHapticFeedback.trigger('impactLight', {
+//       enableVibrateFallback: true,
+//     });
+//     Animated.spring(fabAnim, {
+//       toValue: fabOpen ? 0 : 1,
+//       useNativeDriver: false,
+//       friction: 6,
+//       tension: 40,
+//     }).start();
+//     setFabOpen(!fabOpen);
+//   };
+
+//   const fabOpacity = fabAnim.interpolate({
+//     inputRange: [0, 0.6, 1],
+//     outputRange: [0, 0.9, 1],
+//   });
+
+//   const favoriteMutation = useMutation({
+//     mutationFn: async ({id, favorite}: {id: string; favorite: boolean}) => {
+//       await apiClient.put(`/wardrobe/favorite/${id}`, {favorite});
+//     },
+//     onMutate: async ({id, favorite}) => {
+//       await queryClient.cancelQueries({queryKey: ['wardrobe', userId]});
+//       const prev = queryClient.getQueryData<WardrobeItem[]>([
+//         'wardrobe',
+//         userId,
+//       ]);
+//       queryClient.setQueryData<WardrobeItem[]>(
+//         ['wardrobe', userId],
+//         old =>
+//           old?.map(item => (item.id === id ? {...item, favorite} : item)) || [],
+//       );
+//       return {prev};
+//     },
+//     onError: (err, _, context) => {
+//       if (context?.prev) {
+//         queryClient.setQueryData(['wardrobe', userId], context.prev);
+//       }
+//     },
+//     onSettled: () => {
+//       queryClient.invalidateQueries({queryKey: ['wardrobe', userId]});
+//     },
+//   });
+
+//   const styles = StyleSheet.create({
+//     buttonRow: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'flex-end',
+//       marginTop: 10,
+//     },
+//     popover: {
+//       position: 'absolute',
+//       top: insets.top + 115,
+//       right: 20,
+//       width: 220,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       paddingVertical: 12,
+//       paddingHorizontal: 14,
+//       elevation: 20,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.25,
+//       shadowOffset: {width: 0, height: 4},
+//       shadowRadius: 14,
+//       zIndex: 9999,
+//     },
+//     submenu: {
+//       position: 'absolute',
+//       top: insets.top + 115,
+//       right: 16,
+//       width: 320,
+//       maxHeight: Dimensions.get('window').height * 0.7,
+//       backgroundColor: theme.colors.surface,
+//       borderRadius: 16,
+//       paddingVertical: 16,
+//       paddingHorizontal: 18,
+//       elevation: 20,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.25,
+//       shadowOffset: {width: 0, height: 4},
+//       shadowRadius: 14,
+//       zIndex: 9999,
+//     },
+//     optionRow: {
+//       paddingVertical: 10,
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//     },
+//     optionText: {
+//       fontSize: 16,
+//       color: theme.colors.foreground,
+//       marginLeft: 8,
+//     },
+//     mainOptionText: {
+//       fontSize: 17,
+//       color: theme.colors.foreground,
+//       fontWeight: tokens.fontWeight.semiBold,
+//     },
+//     input: {
+//       borderWidth: 1,
+//       borderColor: theme.colors.inputBorder,
+//       borderRadius: 8,
+//       padding: 12,
+//       marginBottom: 12,
+//       color: theme.colors.foreground,
+//       backgroundColor: theme.colors.background,
+//     },
+//     itemContainer: {
+//       width: ITEM_WIDTH,
+//       marginBottom: 15,
+//     },
+//     itemImage: {
+//       width: '100%',
+//       height: ITEM_HEIGHT,
+//       backgroundColor: theme.colors.surface,
+//       borderTopLeftRadius: tokens.borderRadius.sm,
+//       borderTopRightRadius: tokens.borderRadius.sm,
+//     },
+//     itemRow: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       justifyContent: 'space-between',
+//       paddingHorizontal: ITEM_SPACING,
+//     },
+//   });
+
+//   const openSubmenu = (view: 'filter' | 'sort') => {
+//     setMenuView(view);
+//     submenuOpacity.setValue(0);
+//     Animated.timing(submenuOpacity, {
+//       toValue: 1,
+//       duration: 180,
+//       useNativeDriver: true,
+//     }).start();
+//   };
+
+//   useClosetVoiceCommands(
+//     openSubmenu,
+//     setMenuVisible,
+//     setSelectedCategory,
+//     setSortOption,
+//   );
+
+//   const renderItem = useCallback(
+//     ({item: listItem}: {item: FlatListItem}) => {
+//       if (listItem.type === 'header') {
+//         return (
+//           // <View style={globalStyles.section}>
+//           <View style={{paddingHorizontal: 4, marginTop: 16}}>
+//             <Animated.Text
+//               style={[
+//                 globalStyles.sectionTitle5,
+//                 {
+//                   transform: [
+//                     {
+//                       translateY: screenFade.interpolate({
+//                         inputRange: [0, 1],
+//                         outputRange: [20, 0],
+//                       }),
+//                     },
+//                   ],
+//                   opacity: screenFade,
+//                 },
+//               ]}>
+//               {listItem.mainCategory}
+//             </Animated.Text>
+//           </View>
+//         );
+//       }
+
+//       if (listItem.type === 'subheader') {
+//         return (
+//           <View style={{paddingHorizontal: ITEM_SPACING}}>
+//             <Text style={[globalStyles.title3]}>{listItem.subCategory}</Text>
+//           </View>
+//         );
+//       }
+
+//       const item = listItem.item!;
+//       const isDemo = item.id.startsWith('demo-');
+//       const imageUri =
+//         item.touchedUpImageUrl ??
+//         item.processedImageUrl ??
+//         item.thumbnailUrl ??
+//         item.image_url;
+
+//       return (
+//         <View style={styles.itemContainer}>
+//           <ScalePressable
+//             style={globalStyles.outfitCard4}
+//             onPress={() => {
+//               if (isDemo) {
+//                 // For demo items, navigate to AddItem to encourage adding real items
+//                 navigate('AddItem');
+//               } else {
+//                 navigate('ItemDetail', {itemId: item.id, item});
+//               }
+//             }}
+//             onLongPress={() => {
+//               if (!isDemo) {
+//                 setEditedName(item.name ?? '');
+//                 setEditedColor(item.color ?? '');
+//                 setSelectedItemToEdit(item);
+//                 setShowEditModal(true);
+//               }
+//             }}>
+//             <View
+//               style={{
+//                 width: '100%',
+//                 backgroundColor: theme.colors.surface,
+//               }}>
+//               <FastImage
+//                 source={{
+//                   uri: imageUri,
+//                   priority: FastImage.priority.normal,
+//                   cache: FastImage.cacheControl.immutable,
+//                 }}
+//                 style={globalStyles.image11}
+//                 resizeMode={FastImage.resizeMode.contain}
+//               />
+//             </View>
+
+//             {/* Favorite - hide for demo items */}
+//             {!isDemo && (
+//               <View
+//                 style={{
+//                   position: 'absolute',
+//                   top: 8,
+//                   right: 8,
+//                   zIndex: 10,
+//                   padding: 4,
+//                 }}>
+//                 <AppleTouchFeedback
+//                   hapticStyle="impactLight"
+//                   onPress={() =>
+//                     favoriteMutation.mutate({
+//                       id: item.id,
+//                       favorite: !item.favorite,
+//                     })
+//                   }>
+//                   <MaterialIcons
+//                     name="favorite"
+//                     size={28}
+//                     color={item.favorite ? 'red' : theme.colors.inputBorder}
+//                   />
+//                 </AppleTouchFeedback>
+//               </View>
+//             )}
+
+//             {/* Demo badge */}
+//             {isDemo && (
+//               <View
+//                 style={{
+//                   position: 'absolute',
+//                   top: 8,
+//                   right: 8,
+//                   backgroundColor: 'black',
+//                   paddingHorizontal: 8,
+//                   paddingVertical: 3,
+//                   borderRadius: 6,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: 'white',
+//                     fontSize: 11,
+//                     fontWeight: tokens.fontWeight.semiBold,
+//                   }}>
+//                   Sample
+//                 </Text>
+//               </View>
+//             )}
+
+//             {/* Labels */}
+//             <View style={globalStyles.labelContainer}>
+//               <Text
+//                 style={[globalStyles.cardLabel]}
+//                 numberOfLines={1}
+//                 ellipsizeMode="tail">
+//                 {item.name}
+//               </Text>
+//               <Text style={[globalStyles.cardSubLabel]} numberOfLines={1}>
+//                 {listItem.subCategory}
+//               </Text>
+//             </View>
+
+//             {/* Try On - hide for demo items */}
+//             {!isDemo && (
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() =>
+//                   navigate('TryOnOverlay', {
+//                     outfit: {
+//                       top: {
+//                         name: item.name,
+//                         imageUri: item.image_url,
+//                       },
+//                     },
+//                     userPhotoUri: Image.resolveAssetSource(
+//                       require('../assets/images/full-body-temp1.png'),
+//                     ).uri,
+//                   })
+//                 }
+//                 style={{
+//                   position: 'absolute',
+//                   top: 10,
+//                   left: 8,
+//                   backgroundColor: 'black',
+//                   paddingHorizontal: 10,
+//                   paddingVertical: 4,
+//                   borderRadius: 8,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontSize: 14,
+//                     fontWeight: tokens.fontWeight.medium,
+//                   }}>
+//                   Try On
+//                 </Text>
+//               </AppleTouchFeedback>
+//             )}
+//           </ScalePressable>
+//         </View>
+//       );
+//     },
+//     [
+//       globalStyles,
+//       screenFade,
+//       theme,
+//       navigate,
+//       favoriteMutation,
+//       styles.itemContainer,
+//       wardrobeState,
+//     ],
+//   );
+
+//   const getItemType = useCallback((item: FlatListItem) => {
+//     return item.type;
+//   }, []);
+
+//   const keyExtractor = useCallback((item: FlatListItem) => item.id, []);
+
+//   // Estimate item sizes for FlashList optimization
+//   const overrideItemLayout = useCallback(
+//     (layout: {span?: number; size?: number}, item: FlatListItem): void => {
+//       if (item.type === 'header') {
+//         layout.size = 60;
+//         layout.span = NUM_COLUMNS;
+//       } else if (item.type === 'subheader') {
+//         layout.size = 40;
+//         layout.span = NUM_COLUMNS;
+//       } else {
+//         layout.size = ITEM_HEIGHT + 80;
+//         layout.span = 1;
+//       }
+//     },
+//     [],
+//   );
+
+//   const renderHorizontalCard = useCallback(
+//     ({
+//       item,
+//     }: {
+//       item: WardrobeItem & {
+//         inferredCategory?: any;
+//         effectiveMain?: MainCategory;
+//       };
+//     }) => {
+//       const isDemo = item.id.startsWith('demo-');
+//       const imageUri =
+//         item.touchedUpImageUrl ??
+//         item.processedImageUrl ??
+//         item.thumbnailUrl ??
+//         item.image_url;
+
+//       return (
+//         <View style={{width: HORIZ_CARD_WIDTH, marginRight: 10}}>
+//           <ScalePressable
+//             style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH}]}
+//             onPress={() => {
+//               if (isDemo) {
+//                 navigate('AddItem');
+//               } else {
+//                 navigate('ItemDetail', {itemId: item.id, item});
+//               }
+//             }}
+//             onLongPress={() => {
+//               if (!isDemo) {
+//                 setEditedName(item.name ?? '');
+//                 setEditedColor(item.color ?? '');
+//                 setSelectedItemToEdit(item);
+//                 setShowEditModal(true);
+//               }
+//             }}>
+//             <View
+//               style={{
+//                 width: '100%',
+//                 backgroundColor: theme.colors.surface,
+//                 // backgroundColor: 'white',
+//                 padding: 8
+//               }}>
+//               <FastImage
+//                 source={{
+//                   uri: imageUri,
+//                   priority: FastImage.priority.normal,
+//                   cache: FastImage.cacheControl.immutable,
+//                 }}
+//                 style={{width: '100%', height: HORIZ_CARD_HEIGHT}}
+//                 resizeMode={FastImage.resizeMode.contain}
+//               />
+//             </View>
+
+//             {/* Favorite - hide for demo items */}
+//             {!isDemo && (
+//               <View
+//                 style={{
+//                   position: 'absolute',
+//                   top: 8,
+//                   right: 8,
+//                   zIndex: 10,
+//                   padding: 4,
+//                 }}>
+//                 <AppleTouchFeedback
+//                   hapticStyle="impactLight"
+//                   onPress={() =>
+//                     favoriteMutation.mutate({
+//                       id: item.id,
+//                       favorite: !item.favorite,
+//                     })
+//                   }>
+//                   <MaterialIcons
+//                     name="favorite"
+//                     size={28}
+//                     color={item.favorite ? 'red' : theme.colors.inputBorder}
+//                   />
+//                 </AppleTouchFeedback>
+//               </View>
+//             )}
+
+//             {/* Demo badge */}
+//             {isDemo && (
+//               <View
+//                 style={{
+//                   position: 'absolute',
+//                   top: 8,
+//                   right: 8,
+//                   backgroundColor: 'black',
+//                   paddingHorizontal: 8,
+//                   paddingVertical: 3,
+//                   borderRadius: 6,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: 'white',
+//                     fontSize: 11,
+//                     fontWeight: tokens.fontWeight.semiBold,
+//                   }}>
+//                   Sample
+//                 </Text>
+//               </View>
+//             )}
+
+//             {/* Labels */}
+//             <View style={globalStyles.labelContainer}>
+//               <Text
+//                 style={[globalStyles.cardLabel]}
+//                 numberOfLines={1}
+//                 ellipsizeMode="tail">
+//                 {item.name}
+//               </Text>
+//               <Text style={[globalStyles.cardSubLabel]} numberOfLines={1}>
+//                 {item.subcategory as string || item.inferredCategory?.sub || ''}
+//               </Text>
+//             </View>
+
+//             {/* Try On - hide for demo items */}
+//             {!isDemo && (
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() =>
+//                   navigate('TryOnOverlay', {
+//                     outfit: {
+//                       top: {
+//                         name: item.name,
+//                         imageUri: item.image_url,
+//                       },
+//                     },
+//                     userPhotoUri: Image.resolveAssetSource(
+//                       require('../assets/images/full-body-temp1.png'),
+//                     ).uri,
+//                   })
+//                 }
+//                 style={{
+//                   position: 'absolute',
+//                   top: 10,
+//                   left: 8,
+//                   backgroundColor: 'black',
+//                   paddingHorizontal: 10,
+//                   paddingVertical: 4,
+//                   borderRadius: 8,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: theme.colors.foreground,
+//                     fontSize: 14,
+//                     fontWeight: tokens.fontWeight.medium,
+//                   }}>
+//                   Try On
+//                 </Text>
+//               </AppleTouchFeedback>
+//             )}
+//           </ScalePressable>
+//         </View>
+//       );
+//     },
+//     [globalStyles, theme, navigate, favoriteMutation, wardrobeState],
+//   );
+
+//   const horizKeyExtractor = useCallback(
+//     (
+//       item: WardrobeItem & {
+//         inferredCategory?: any;
+//         effectiveMain?: MainCategory;
+//       },
+//     ) => item.id,
+//     [],
+//   );
+
+//   return (
+//     <SafeAreaView
+//       edges={['top']}
+//       style={[
+//         globalStyles.screen,
+//         globalStyles.container,
+//         {
+//           flex: 1,
+//           backgroundColor: theme.colors.background,
+//           paddingBottom: 0,
+//         },
+//       ]}>
+//       <Animated.View
+//         style={{
+//           flex: 1,
+//           opacity: screenFade,
+//           transform: [{translateY: screenTranslate}],
+//         }}>
+//         <View
+//           style={{
+//             height: Math.max(insets.top, 44),
+//             backgroundColor: 'theme.colors.background',
+//           }}
+//         />
+      
+
+//         {/* Header row: title + buttons on one line */}
+//         <View
+//           style={{
+//             flexDirection: 'row',
+//             alignItems: 'center',
+//             justifyContent: 'space-between',
+//             // paddingHorizontal: 16,
+//             marginBottom: 8,
+//           }}>
+//           <Text style={[globalStyles.header, {marginBottom: 0}]}>Wardrobe</Text>
+
+//           <View style={{flexDirection: 'row', alignItems: 'center'}}>
+//             <AppleTouchFeedback
+//               style={[
+//                 globalStyles.buttonPrimary,
+//                 {
+//                   paddingHorizontal: 16,
+//                   paddingVertical: 11,
+//                   marginRight: 10,
+//                 },
+//               ]}
+//               hapticStyle="impactMedium"
+//               onPress={() => {
+//                 ReactNativeHapticFeedback.trigger('notificationSuccess', {
+//                   enableVibrateFallback: true,
+//                   ignoreAndroidSystemSettings: false,
+//                 });
+//                 navigate('OutfitCanvas');
+//               }}>
+//               <Text style={globalStyles.buttonPrimaryText}>+ Build An Outfit</Text>
+//             </AppleTouchFeedback>
+
+//             {/* View Mode Toggle */}
+//             <AppleTouchFeedback
+//               hapticStyle="impactLight"
+//               style={{
+//                 paddingHorizontal: 7,
+//                 paddingVertical: 8,
+//                 borderRadius: tokens.borderRadius.sm,
+//                 backgroundColor: theme.colors.button1,
+//                 elevation: 2,
+//                 marginRight: 10,
+//               }}
+//               onPress={() => {
+//                 hSelect();
+//                 setViewMode(prev =>
+//                   prev === 'grid' ? 'sections' : 'grid',
+//                 );
+//               }}>
+//               <MaterialIcons
+//                 name={viewMode === 'grid' ? 'view-stream' : 'grid-view'}
+//                 size={28}
+//                 color={theme.colors.buttonText1}
+//               />
+//             </AppleTouchFeedback>
+
+//             {/* Unified Menu Trigger */}
+//             <AppleTouchFeedback
+//               hapticStyle="impactLight"
+//               style={{
+//                 paddingHorizontal: 7,
+//                 paddingVertical: 8,
+//                 borderRadius: tokens.borderRadius.sm,
+//                 backgroundColor: theme.colors.button1,
+//                 elevation: 2,
+//               }}
+//               onPress={() => {
+//                 setMenuVisible(prev => !prev);
+//                 setMenuView('main');
+//               }}>
+//               <MaterialIcons
+//                 name="filter-list"
+//                 size={28}
+//                 color={theme.colors.buttonText1}
+//               />
+//             </AppleTouchFeedback>
+//           </View>
+//         </View>
+
+//         {/* Photo tips info bar - shown only while sample items are present */}
+//         {wardrobeState === 'demo' && (
+//           <View
+//             style={{
+//               backgroundColor: theme.colors.primary + '20',
+//               paddingVertical: 12,
+//               paddingHorizontal: 16,
+//               marginHorizontal: 16,
+//               marginBottom: 12,
+//               borderRadius: 10,
+//             }}>
+//             <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 8}}>
+//               <MaterialIcons
+//                 name="info-outline"
+//                 size={18}
+//                 color={theme.colors.primary}
+//                 style={{marginRight: 6}}
+//               />
+//               <Text
+//                 style={{
+//                   color: theme.colors.foreground,
+//                   fontSize: 14,
+//                   fontWeight: tokens.fontWeight.semiBold,
+//                 }}>
+//                   This is the place to add your own individual wardrobe items
+             
+//               </Text>
+//             </View>
+//             <View style={{paddingLeft: 4}}>
+//               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 How to photograph your clothes for best results:
+//               </Text>
+//               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 {'\u2022'} Lay items flat on a plain background (preferably a plain white flat sheet)
+//               </Text>
+//               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 {'\u2022'} Smooth wrinkles on all items and avoid shadows
+//               </Text>
+//               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 {'\u2022'} Take pictures of each item separately using good lighting and close up
+//               </Text>
+//               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 {'\u2022'} Show/Expose tags on clothes when possible for best descriptions
+//               </Text>
+//                 <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 {'\u2022'} Start adding your wardrobe items by tapping the '+' button
+//               </Text>
+//               <Text style={{color: theme.colors.foreground, fontSize: 13, lineHeight: 20}}>
+//                 {'\u2022'} Add items one-by-one or in bulk — wardrobe data is filled in automatically for you
+//               </Text>
+//             </View>
+//           </View>
+//         )}
+
+//         {/* Empty state - only show when user had items before but now has none */}
+//         {!isLoading && wardrobeState === 'empty-real' && (
+//           <View style={{flexDirection: 'row', alignSelf: 'center'}}>
+//             <Text style={globalStyles.missingDataMessage1}>
+//               No wardrobe items found.
+//             </Text>
+//             <View style={{alignSelf: 'flex-start'}}>
+//               <TooltipBubble
+//                 message="You haven't uploaded any wardrobe items yet. Tap the + button at the bottom to start adding your personal wardrobe inventory."
+//                 position="top"
+//               />
+//             </View>
+//           </View>
+//         )}
+
+//         {/* Wardrobe Views */}
+//         {viewMode === 'grid' ? (
+//           <FlashList
+//             data={flatListData}
+//             renderItem={renderItem}
+//             keyExtractor={keyExtractor}
+//             getItemType={getItemType}
+//             overrideItemLayout={overrideItemLayout}
+//             numColumns={NUM_COLUMNS}
+//             showsVerticalScrollIndicator={false}
+//             onScroll={handleScroll}
+//             scrollEventThrottle={16}
+//             drawDistance={ITEM_HEIGHT * 2}
+//             contentContainerStyle={{
+//               paddingHorizontal: ITEM_SPACING / 2,
+//               paddingBottom: 120,
+//             }}
+//           />
+//         ) : (
+//           <ScrollView
+//             showsVerticalScrollIndicator={false}
+//             onScroll={handleScroll}
+//             scrollEventThrottle={16}
+//             contentContainerStyle={{paddingBottom: 120}}>
+//             {categorizedSections.map(section => (
+//               <View key={section.category} style={{marginBottom: 8}}>
+//                 <Animated.Text
+//                   style={[
+//                     globalStyles.sectionTitle5,
+//                     {
+//                       paddingHorizontal: ITEM_SPACING,
+//                       marginTop: 16,
+//                       marginBottom: 8,
+//                       transform: [
+//                         {
+//                           translateY: screenFade.interpolate({
+//                             inputRange: [0, 1],
+//                             outputRange: [20, 0],
+//                           }),
+//                         },
+//                       ],
+//                       opacity: screenFade,
+//                     },
+//                   ]}>
+//                   {section.category}
+//                 </Animated.Text>
+//                 <FlatList
+//                   data={section.items}
+//                   renderItem={renderHorizontalCard}
+//                   keyExtractor={horizKeyExtractor}
+//                   horizontal
+//                   showsHorizontalScrollIndicator={false}
+//                   contentContainerStyle={{paddingHorizontal: ITEM_SPACING}}
+//                 />
+//               </View>
+//             ))}
+//           </ScrollView>
+//         )}
+
+//         <>
+//           {/* Floating Mini FABs */}
+//           {[
+//             {icon: 'center-focus-weak', onPress: () => navigate('BarcodeScannerScreen'), offset: 3},
+//             {icon: 'search', onPress: () => navigate('Search'), offset: 2},
+//             {icon: 'add', onPress: () => navigate('AddItem'), offset: 1},
+//           ].map((btn, index) => (
+//             <Animated.View
+//               key={index}
+//               style={{
+//                 position: 'absolute',
+//                 bottom: 97,
+//                 right: -2,
+//                 opacity: fabOpacity,
+
+//                 transform: [
+//                   {
+//                     translateX: fabAnim.interpolate({
+//                       inputRange: [0, 1],
+//                       outputRange: [0, -70 * (btn.offset + 0.3)],
+//                     }),
+//                   },
+//                   {scale: fabAnim},
+//                 ],
+//               }}>
+//               <View
+//                 style={{
+//                   width: 50,
+//                   height: 50,
+//                   borderRadius: 26,
+//                   borderWidth: 1,
+//                   borderColor: theme.colors.buttonText1,
+//                   backgroundColor:
+//                     btn.icon === 'add'
+//                       ? theme.colors.button1
+//                       : 'rgba(54, 54, 54, 0.44)',
+//                   alignItems: 'center',
+//                   justifyContent: 'center',
+//                 }}>
+//                 <Pressable
+//                   onPress={() => {
+//                     toggleFab();
+//                     btn.onPress();
+//                   }}
+//                   style={{
+//                     width: '100%',
+//                     height: '100%',
+//                     alignItems: 'center',
+//                     justifyContent: 'center',
+//                   }}>
+//                   {btn.icon === 'add' && (
+//                     <Text
+//                       style={{
+//                         color: theme.colors.foreground,
+//                         fontSize: 9,
+//                         fontWeight: tokens.fontWeight.semiBold,
+//                         marginBottom: -2,
+//                       }}>
+//                       Add
+//                     </Text>
+//                   )}
+//                   {btn.icon === 'center-focus-weak' && (
+//                     <Text
+//                       style={{
+//                         color: theme.colors.foreground,
+//                         fontSize: 9,
+//                         fontWeight: tokens.fontWeight.semiBold,
+//                         marginBottom: -2,
+//                       }}>
+//                       Scan
+//                     </Text>
+//                   )}
+//                   <MaterialIcons
+//                     name={btn.icon}
+//                     size={btn.icon === 'add' || btn.icon === 'center-focus-weak' ? 20 : 26}
+//                     color={theme.colors.foreground}
+//                   />
+//                 </Pressable>
+//               </View>
+//             </Animated.View>
+//           ))}
+
+//           {/* Main FAB (always visible) */}
+//           <Animated.View
+//             style={{
+//               position: 'absolute',
+//               bottom: 96,
+//               right: 18,
+//               transform: [{translateY: fabBounce}],
+//             }}>
+//             <View
+//               style={{
+//                 width: 54,
+//                 height: 54,
+//                 borderRadius: 32,
+//                 borderWidth: 1,
+//                 borderColor: theme.colors.foreground,
+//                 backgroundColor: 'rgba(54, 54, 54, 0.44)',
+//                 alignItems: 'center',
+//                 justifyContent: 'center',
+//               }}>
+//               <Pressable
+//                 onPress={toggleFab}
+//                 style={{
+//                   width: '100%',
+//                   height: '100%',
+//                   alignItems: 'center',
+//                   justifyContent: 'center',
+//                 }}>
+//                 <Animated.View
+//                   style={{
+//                     transform: [
+//                       {
+//                         rotate: fabAnim.interpolate({
+//                           inputRange: [0, 1],
+//                           outputRange: ['0deg', '45deg'],
+//                         }),
+//                       },
+//                     ],
+//                   }}>
+//                   <MaterialIcons
+//                     name="add"
+//                     size={32}
+//                     color={theme.colors.foreground}
+//                   />
+//                 </Animated.View>
+//               </Pressable>
+//             </View>
+//           </Animated.View>
+//         </>
+
+//         {/* Popover + Submenus */}
+//         {menuVisible && (
+//           <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+//             <View
+//               style={{
+//                 position: 'absolute',
+//                 top: -60,
+//                 left: 0,
+//                 right: 0,
+//                 bottom: 0,
+//                 backgroundColor: 'transparent',
+//                 zIndex: 9999,
+//               }}>
+//               <TouchableWithoutFeedback>
+//                 <View>
+//                   {menuView === 'main' && (
+//                     <View style={styles.popover}>
+//                       <TouchableOpacity
+//                         style={styles.optionRow}
+//                         onPress={() => {
+//                           hSelect();
+//                           openSubmenu('filter');
+//                         }}>
+//                         <MaterialIcons
+//                           name="filter-list"
+//                           size={24}
+//                           color={theme.colors.foreground}
+//                         />
+//                         <Text style={styles.mainOptionText}>Filter</Text>
+//                       </TouchableOpacity>
+
+//                       <TouchableOpacity
+//                         style={styles.optionRow}
+//                         onPress={() => {
+//                           hSelect();
+//                           openSubmenu('sort');
+//                         }}>
+//                         <MaterialIcons
+//                           name="sort"
+//                           size={22}
+//                           color={theme.colors.foreground}
+//                         />
+//                         <Text style={styles.mainOptionText}>Sort</Text>
+//                       </TouchableOpacity>
+//                     </View>
+//                   )}
+
+//                   {menuView === 'filter' && (
+//                     <Animated.View
+//                       style={[
+//                         styles.submenu,
+//                         {
+//                           opacity: submenuOpacity,
+//                           transform: [
+//                             {
+//                               scale: submenuOpacity.interpolate({
+//                                 inputRange: [0, 1],
+//                                 outputRange: [0.95, 1],
+//                               }),
+//                             },
+//                           ],
+//                         },
+//                       ]}>
+//                       <ScrollView
+//                         showsVerticalScrollIndicator={false}
+//                         contentContainerStyle={{paddingBottom: 8}}>
+//                         {CATEGORY_META.map(cat => (
+//                           <TouchableOpacity
+//                             key={cat.value}
+//                             onPress={() => {
+//                               hSelect();
+//                               setSelectedCategory(cat.value as any);
+//                               setMenuVisible(false);
+//                             }}
+//                             style={styles.optionRow}>
+//                             <MaterialIcons
+//                               name={cat.icon}
+//                               size={20}
+//                               color={theme.colors.foreground}
+//                             />
+//                             <Text style={styles.optionText}>{cat.label}</Text>
+//                           </TouchableOpacity>
+//                         ))}
+//                       </ScrollView>
+//                     </Animated.View>
+//                   )}
+
+//                   {menuView === 'sort' && (
+//                     <Animated.View
+//                       style={[
+//                         styles.submenu,
+//                         {
+//                           opacity: submenuOpacity,
+//                           transform: [
+//                             {
+//                               scale: submenuOpacity.interpolate({
+//                                 inputRange: [0, 1],
+//                                 outputRange: [0.95, 1],
+//                               }),
+//                             },
+//                           ],
+//                         },
+//                       ]}>
+//                       <ScrollView
+//                         showsVerticalScrollIndicator={false}
+//                         contentContainerStyle={{paddingBottom: 8}}>
+//                         {sortOptions.map(opt => (
+//                           <TouchableOpacity
+//                             key={opt.value}
+//                             onPress={() => {
+//                               hSelect();
+//                               setSortOption(opt.value as any);
+//                               setMenuVisible(false);
+//                             }}
+//                             style={styles.optionRow}>
+//                             <MaterialIcons
+//                               name="sort"
+//                               size={20}
+//                               color={theme.colors.foreground}
+//                             />
+//                             <Text style={styles.optionText}>{opt.label}</Text>
+//                           </TouchableOpacity>
+//                         ))}
+//                       </ScrollView>
+//                     </Animated.View>
+//                   )}
+//                 </View>
+//               </TouchableWithoutFeedback>
+//             </View>
+//           </TouchableWithoutFeedback>
+//         )}
+
+//         {/* Edit Modal */}
+//         {selectedItemToEdit && showEditModal && (
+//           <View
+//             style={{
+//               position: 'absolute',
+//               top: 0,
+//               left: 0,
+//               right: 0,
+//               bottom: 0,
+//               backgroundColor: 'rgba(0,0,0,0.5)',
+//               justifyContent: 'center',
+//               alignItems: 'center',
+//               zIndex: 10000,
+//               elevation: 30,
+//             }}>
+//             <TouchableWithoutFeedback onPress={() => setShowEditModal(false)}>
+//               <View
+//                 style={{
+//                   position: 'absolute',
+//                   top: 0,
+//                   left: 0,
+//                   right: 0,
+//                   bottom: 0,
+//                 }}
+//               />
+//             </TouchableWithoutFeedback>
+
+//             <Animated.View
+//               style={{
+//                 padding: 24,
+//                 borderRadius: 12,
+//                 backgroundColor: theme.colors.surface,
+//                 width: '90%',
+//                 maxWidth: 720,
+//                 opacity: screenFade,
+//                 transform: [
+//                   {
+//                     scale: screenFade.interpolate({
+//                       inputRange: [0, 1],
+//                       outputRange: [0.8, 1],
+//                     }),
+//                   },
+//                 ],
+//               }}>
+//               <TextInput
+//                 value={editedName}
+//                 onChangeText={setEditedName}
+//                 placeholder="Name"
+//                 style={styles.input}
+//                 placeholderTextColor="#999"
+//               />
+//               <TextInput
+//                 value={editedColor}
+//                 onChangeText={setEditedColor}
+//                 placeholder="Color"
+//                 style={styles.input}
+//                 placeholderTextColor="#999"
+//               />
+
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   if (selectedItemToEdit) {
+//                     updateMutation.mutate({
+//                       id: selectedItemToEdit.id,
+//                       name: editedName || selectedItemToEdit.name,
+//                       color: editedColor || selectedItemToEdit.color,
+//                     });
+//                     setShowEditModal(false);
+//                     setSelectedItemToEdit(null);
+//                   }
+//                 }}
+//                 style={{
+//                   paddingVertical: 12,
+//                   borderRadius: tokens.borderRadius.sm,
+//                   alignItems: 'center',
+//                   backgroundColor: theme.colors.primary,
+//                   marginTop: 12,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     fontSize: 16,
+//                     fontWeight: tokens.fontWeight.semiBold,
+//                     color: theme.colors.background,
+//                   }}>
+//                   Save Changes
+//                 </Text>
+//               </AppleTouchFeedback>
+
+//               <AppleTouchFeedback
+//                 hapticStyle="impactLight"
+//                 onPress={() => {
+//                   Alert.alert(
+//                     'Delete Item',
+//                     'Are you sure you want to delete this item?',
+//                     [
+//                       {text: 'Cancel', style: 'cancel'},
+//                       {
+//                         text: 'Delete',
+//                         style: 'destructive',
+//                         onPress: () => {
+//                           deleteMutation.mutate(selectedItemToEdit.id);
+//                           setShowEditModal(false);
+//                           setSelectedItemToEdit(null);
+//                         },
+//                       },
+//                     ],
+//                   );
+//                 }}
+//                 style={{
+//                   backgroundColor: '#cc0000',
+//                   padding: 12,
+//                   borderRadius: 8,
+//                   marginTop: 16,
+//                 }}>
+//                 <Text
+//                   style={{
+//                     color: '#fff',
+//                     textAlign: 'center',
+//                     fontWeight: tokens.fontWeight.semiBold,
+//                   }}>
+//                   Delete Item
+//                 </Text>
+//               </AppleTouchFeedback>
+//             </Animated.View>
+//           </View>
+//         )}
+//       </Animated.View>
+//     </SafeAreaView>
+//   );
+// }
 
 ///////////////////
 
