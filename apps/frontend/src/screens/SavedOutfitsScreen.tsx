@@ -376,6 +376,7 @@ export default function SavedOutfitsScreen() {
 
   // 🧠 State Management
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
   const [editedOccasion, setEditedOccasion] = useState<
@@ -2125,6 +2126,24 @@ export default function SavedOutfitsScreen() {
           <TouchableOpacity
             onPress={() => {
               hSelect();
+              setShowSortDropdown(prev => !prev);
+            }}
+            style={{
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: showSortDropdown
+                ? theme.colors.primary
+                : theme.colors.surface,
+            }}>
+            <MaterialIcons
+              name="sort"
+              size={24}
+              color={showSortDropdown ? '#fff' : theme.colors.primary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              hSelect();
               setViewMode(prev => (prev === 'list' ? 'grid' : 'list'));
             }}
             style={{
@@ -2168,154 +2187,163 @@ export default function SavedOutfitsScreen() {
         </View>
       </View>
 
-      <View style={[globalStyles.section]}>
-        <Text
-          style={[globalStyles.label, {marginBottom: 12, textAlign: 'left'}]}>
-          Sort by:
-        </Text>
-
-        {/* Responsive pills in one fixed row */}
-        <View
+      {/* Sort dropdown — toggled via header icon */}
+      {showSortDropdown && (
+        <Animatable.View
+          animation="fadeInDown"
+          duration={200}
           style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'nowrap',
+            marginHorizontal: 16,
+            marginBottom: 8,
+            backgroundColor: theme.colors.surface,
+            borderRadius: 16,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.colors.surfaceBorder,
+            overflow: 'hidden',
           }}>
           {(
             [
-              {key: 'newest', label: 'Newest'},
-              {key: 'favorites', label: 'Favorites'},
-              {key: 'planned', label: 'Planned'},
-              {key: 'stars', label: 'Rating'},
+              {key: 'newest', label: 'Newest', icon: 'schedule'},
+              {key: 'favorites', label: 'Favorites', icon: 'favorite'},
+              {key: 'planned', label: 'Planned', icon: 'event'},
+              {key: 'stars', label: 'Rating', icon: 'star'},
             ] as const
-          ).map(({key, label}, idx) => {
-            const screenWidth = Dimensions.get('window').width;
-            const totalSpacing = 12 * 3 + 32;
-            const pillWidth = (screenWidth - totalSpacing) / 4;
-
-            return (
-              <TouchableOpacity
-                key={key}
-                onPress={() => {
-                  hSelect();
-                  setSortType(key);
-                }}
-                activeOpacity={0.8}
-                style={{
-                  backgroundColor:
-                    sortType === key
-                      ? theme.colors.foreground
-                      : theme.colors.surface3,
-                  paddingVertical: 9,
-                  borderRadius: 22,
-                  width: pillWidth,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="clip"
-                  adjustsFontSizeToFit={false}
-                  style={{
-                    color:
-                      sortType === key
-                        ? theme.colors.background
-                        : theme.colors.foreground2,
-                    fontSize: 14,
-                    fontWeight: '600',
-                    textAlign: 'center',
-                  }}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Occasion filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingVertical: 12,
-            gap: 8,
-          }}
-          style={{flexGrow: 0}}>
-          {/* "All" chip */}
-          <TouchableOpacity
-            onPress={() => setOccasionFilter(null)}
-            style={{
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 16,
-              backgroundColor:
-                occasionFilter === null
-                  ? theme.colors.button1
-                  : theme.colors.surface3,
-              borderWidth: 1,
-              borderColor:
-                occasionFilter === null
-                  ? theme.colors.surfaceBorder
-                  : theme.colors.surfaceBorder,
-            }}>
-            <Text
+          ).map(({key, label, icon}) => (
+            <TouchableOpacity
+              key={key}
+              onPress={() => {
+                hSelect();
+                setSortType(key);
+                setShowSortDropdown(false);
+              }}
+              activeOpacity={0.7}
               style={{
-                fontSize: 13,
-                fontWeight: '600',
-                color:
-                  occasionFilter === null ? 'white' : theme.colors.foreground,
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                backgroundColor:
+                  sortType === key
+                    ? theme.colors.primary + '18'
+                    : 'transparent',
               }}>
-              All ({displayOutfits.length})
-            </Text>
-          </TouchableOpacity>
-
-          {/* Occasion chips */}
-          {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(occasion => {
-            const config = OCCASION_CONFIG[occasion];
-            const count = displayOutfits.filter(
-              o => o.occasion === occasion,
-            ).length;
-            if (count === 0) return null;
-            const isSelected = occasionFilter === occasion;
-
-            return (
-              <TouchableOpacity
-                key={occasion}
-                onPress={() => setOccasionFilter(isSelected ? null : occasion)}
+              <MaterialIcons
+                name={icon}
+                size={20}
+                color={
+                  sortType === key
+                    ? theme.colors.primary
+                    : theme.colors.foreground3
+                }
+                style={{marginRight: 12}}
+              />
+              <Text
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 16,
-                  backgroundColor: isSelected
-                    ? config.color
-                    : theme.colors.surface,
-                  borderWidth: 1,
-                  borderColor: isSelected
-                    ? config.color
-                    : theme.colors.surfaceBorder,
-                  gap: 6,
+                  fontSize: 15,
+                  fontWeight: sortType === key ? '700' : '500',
+                  color:
+                    sortType === key
+                      ? theme.colors.primary
+                      : theme.colors.foreground,
+                  flex: 1,
                 }}>
+                {label}
+              </Text>
+              {sortType === key && (
                 <MaterialIcons
-                  name={config.icon as any}
-                  size={16}
-                  color={isSelected ? '#fff' : config.color}
+                  name="check"
+                  size={18}
+                  color={theme.colors.primary}
                 />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: '600',
-                    color: isSelected ? '#fff' : theme.colors.foreground,
-                  }}>
-                  {config.label} ({count})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </Animatable.View>
+      )}
+
+      {/* Occasion filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          gap: 8,
+        }}
+        style={{flexGrow: 0}}>
+        {/* "All" chip */}
+        <TouchableOpacity
+          onPress={() => setOccasionFilter(null)}
+          style={{
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 16,
+            backgroundColor:
+              occasionFilter === null
+                ? theme.colors.button1
+                : theme.colors.surface3,
+            borderWidth: 1,
+            borderColor:
+              occasionFilter === null
+                ? theme.colors.surfaceBorder
+                : theme.colors.surfaceBorder,
+          }}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '600',
+              color:
+                occasionFilter === null ? 'white' : theme.colors.foreground,
+            }}>
+            All ({displayOutfits.length})
+          </Text>
+        </TouchableOpacity>
+
+        {/* Occasion chips */}
+        {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(occasion => {
+          const config = OCCASION_CONFIG[occasion];
+          const count = displayOutfits.filter(
+            o => o.occasion === occasion,
+          ).length;
+          if (count === 0) return null;
+          const isSelected = occasionFilter === occasion;
+
+          return (
+            <TouchableOpacity
+              key={occasion}
+              onPress={() => setOccasionFilter(isSelected ? null : occasion)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 16,
+                backgroundColor: isSelected
+                  ? config.color
+                  : theme.colors.surface,
+                borderWidth: 1,
+                borderColor: isSelected
+                  ? config.color
+                  : theme.colors.surfaceBorder,
+                gap: 6,
+              }}>
+              <MaterialIcons
+                name={config.icon as any}
+                size={16}
+                color={isSelected ? '#fff' : config.color}
+              />
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: isSelected ? '#fff' : theme.colors.foreground,
+                }}>
+                {config.label} ({count})
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {/* Demo indicator banner */}
       {outfitsState === 'demo' && (
