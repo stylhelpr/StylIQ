@@ -45,8 +45,8 @@ const ITEM_WIDTH = (SCREEN_WIDTH - ITEM_SPACING * 3) / NUM_COLUMNS;
 const ITEM_HEIGHT = ITEM_WIDTH * 1.3;
 
 // Horizontal sections view card sizing
-const HORIZ_CARD_WIDTH = ITEM_WIDTH * 0.95;
-const HORIZ_CARD_HEIGHT = HORIZ_CARD_WIDTH * 1.3;
+const HORIZ_CARD_WIDTH = 140;
+const HORIZ_CARD_HEIGHT = 120;
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -860,9 +860,9 @@ export default function ClosetScreen({navigate}: Props) {
         item.image_url;
 
       return (
-        <View style={{width: HORIZ_CARD_WIDTH, marginRight: ITEM_SPACING}}>
+        <View style={{width: HORIZ_CARD_WIDTH, marginRight: 10}}>
           <ScalePressable
-            style={globalStyles.outfitCard5}
+            style={[globalStyles.outfitCard5, {width: HORIZ_CARD_WIDTH}]}
             onPress={() => {
               if (isDemo) {
                 navigate('AddItem');
