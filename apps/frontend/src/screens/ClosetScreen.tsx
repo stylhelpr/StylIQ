@@ -185,6 +185,20 @@ export default function ClosetScreen({navigate}: Props) {
   const [sortOption, setSortOption] = useState<'az' | 'za' | 'favorites'>('az');
   const [viewMode, setViewMode] = useState<'grid' | 'sections'>('grid');
 
+  // Load persisted view mode
+  useEffect(() => {
+    AsyncStorage.getItem('closet_view_mode').then(val => {
+      if (val === 'grid' || val === 'sections') {
+        setViewMode(val);
+      }
+    });
+  }, []);
+
+  // Persist view mode on change
+  useEffect(() => {
+    AsyncStorage.setItem('closet_view_mode', viewMode);
+  }, [viewMode]);
+
   // Menu states
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuView, setMenuView] = useState<'main' | 'filter' | 'sort'>('main');
