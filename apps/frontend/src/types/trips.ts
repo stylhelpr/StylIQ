@@ -1,0 +1,101 @@
+export type TripActivity =
+  | 'Business'
+  | 'Dinner'
+  | 'Casual'
+  | 'Beach'
+  | 'Active'
+  | 'Formal'
+  | 'Sightseeing'
+  | 'Cold Weather';
+
+export type WeatherCondition =
+  | 'sunny'
+  | 'partly-cloudy'
+  | 'cloudy'
+  | 'rainy'
+  | 'snowy'
+  | 'windy';
+
+export type DayWeather = {
+  date: string;
+  dayLabel: string;
+  highF: number;
+  lowF: number;
+  condition: WeatherCondition;
+  rainChance: number;
+};
+
+export type ClosetLocation = {
+  id: string;
+  label: string;
+};
+
+/**
+ * Minimal wardrobe item shape for trips feature.
+ * Handles the mixed camelCase/snake_case API response.
+ */
+export type TripWardrobeItem = {
+  id: string;
+  image_url?: string;
+  thumbnailUrl?: string;
+  processedImageUrl?: string;
+  touchedUpImageUrl?: string;
+  name: string;
+  color?: string;
+  main_category?: string;
+  subcategory?: string;
+  material?: string;
+  seasonality?: string;
+  thermalRating?: number;
+  breathability?: number;
+  rainOk?: boolean;
+  climateSweetspotFMin?: number;
+  climateSweetspotFMax?: number;
+  layering?: string;
+  occasionTags?: string[];
+  dressCode?: string;
+  formalityScore?: number;
+};
+
+export type TripPackingItem = {
+  id: string;
+  wardrobeItemId: string;
+  name: string;
+  imageUrl: string;
+  color?: string;
+  mainCategory: string;
+  subCategory?: string;
+  locationLabel: string;
+  packed: boolean;
+};
+
+export type CapsuleOutfit = {
+  id: string;
+  dayLabel: string;
+  items: TripPackingItem[];
+};
+
+export type PackingGroup = {
+  category: string;
+  items: TripPackingItem[];
+};
+
+export type TripCapsule = {
+  outfits: CapsuleOutfit[];
+  packingList: PackingGroup[];
+};
+
+export type Trip = {
+  id: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  activities: TripActivity[];
+  startingLocationId: string;
+  startingLocationLabel: string;
+  weather: DayWeather[];
+  capsule: TripCapsule | null;
+  createdAt: string;
+};
+
+export type TripsScreen = 'home' | 'create' | 'capsule';

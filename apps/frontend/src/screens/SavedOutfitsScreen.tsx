@@ -377,6 +377,21 @@ export default function SavedOutfitsScreen() {
 
   // 🧠 State Management
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // Load persisted view mode
+  useEffect(() => {
+    AsyncStorage.getItem('saved_outfits_view_mode').then(val => {
+      if (val === 'list' || val === 'grid') {
+        setViewMode(val);
+      }
+    });
+  }, []);
+
+  // Persist view mode on change
+  useEffect(() => {
+    AsyncStorage.setItem('saved_outfits_view_mode', viewMode);
+  }, [viewMode]);
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuView, setMenuView] = useState<'main' | 'sort' | 'filter'>('main');
   const submenuOpacity = useRef(new Animated.Value(0)).current;

@@ -80,6 +80,7 @@ import SaveNoteScreen from '../screens/SaveNoteScreen';
 import NoteDetailScreen from '../screens/NoteDetailScreen';
 import OutfitHistoryScreen from '../screens/OutfitHistoryScreen';
 import OutfitsByOccasionScreen from '../screens/OutfitsByOccasionScreen';
+import TripsNavigator from '../screens/Trips/TripsNavigator';
 
 import BottomNavigation from '../components/BottomNavigation/BottomNavigation';
 import LayoutWrapper from '../components/LayoutWrapper/LayoutWrapper';
@@ -182,7 +183,8 @@ type Screen =
   | 'Notes'
   | 'SaveNote'
   | 'NoteDetail'
-  | 'Closet';
+  | 'Closet'
+  | 'Trips';
 
 const RootNavigator = ({
   registerNavigate,
@@ -740,6 +742,8 @@ const RootNavigator = ({
             goBack={goBack}
           />
         );
+      case 'Trips':
+        return <TripsNavigator navigate={navigate} wardrobe={wardrobe} />;
       default:
         return (
           <HomeScreen
