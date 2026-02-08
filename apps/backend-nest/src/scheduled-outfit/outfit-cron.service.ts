@@ -53,7 +53,7 @@ export class OutfitCronService {
 
       this.log.log(`Sent ${rows.length} outfit reminder(s).`);
     } catch (e) {
-      this.log.error('sendDueOutfitAlerts failed', e as any);
+      this.log.error('sendDueOutfitAlerts failed', e);
     }
   }
 }

@@ -50,7 +50,11 @@ export class CustomOutfitController {
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')
-  async update(@Req() req, @Param('id') id: string, @Body() dto: UpdateCustomOutfitDto) {
+  async update(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomOutfitDto,
+  ) {
     const userId = req.user.userId;
     const result = await this.service.update(id, userId, dto);
     if (!result.outfit) {

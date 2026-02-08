@@ -42,7 +42,11 @@ describe('PATH #1: buildOutfitPlanPrompt (IMMUTABLE)', () => {
     it('should produce consistent output for formal query', () => {
       const prompt = buildOutfitPlanPrompt('business meeting interview', {
         weather: { temp_f: 65, condition: 'cloudy' },
-        availableItems: ['Tops: dress shirt', 'Bottoms: slacks', 'Shoes: oxford'],
+        availableItems: [
+          'Tops: dress shirt',
+          'Bottoms: slacks',
+          'Shoes: oxford',
+        ],
       });
 
       // Verify key structural elements
@@ -57,7 +61,11 @@ describe('PATH #1: buildOutfitPlanPrompt (IMMUTABLE)', () => {
     it('should produce consistent output for athletic query', () => {
       const prompt = buildOutfitPlanPrompt('gym workout training', {
         weather: { temp_f: 80, condition: 'sunny' },
-        availableItems: ['Tops: tank top', 'Bottoms: shorts', 'Shoes: running shoes'],
+        availableItems: [
+          'Tops: tank top',
+          'Bottoms: shorts',
+          'Shoes: running shoes',
+        ],
       });
 
       expect(prompt).toContain('"occasion":"athletic"');
@@ -79,9 +87,12 @@ describe('PATH #1: buildOutfitPlanPrompt (IMMUTABLE)', () => {
     });
 
     it('should NOT include item names in output (security constraint)', () => {
-      const prompt = buildOutfitPlanPrompt('outfit with my favorite blue shirt', {
-        availableItems: ['Tops: blue shirt', 'Bottoms: jeans'],
-      });
+      const prompt = buildOutfitPlanPrompt(
+        'outfit with my favorite blue shirt',
+        {
+          availableItems: ['Tops: blue shirt', 'Bottoms: jeans'],
+        },
+      );
 
       // Verify no specific item names leak into the prompt structure
       expect(prompt).not.toContain('"blue shirt"');
@@ -111,7 +122,9 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
 
       const prompt = buildStartWithItemPromptV2(input);
 
-      expect(prompt).toContain('CENTERPIECE ITEM (MUST be in ALL 3 outfits - NON-NEGOTIABLE)');
+      expect(prompt).toContain(
+        'CENTERPIECE ITEM (MUST be in ALL 3 outfits - NON-NEGOTIABLE)',
+      );
       expect(prompt).toContain('"category": "Bottoms"');
       expect(prompt).toContain('navy blue');
     });
@@ -123,9 +136,13 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
 
       const prompt = buildStartWithItemPromptV2(input);
 
-      expect(prompt).toContain('The centerpiece Bottoms is ALREADY SELECTED - do NOT generate a slot for Bottoms');
+      expect(prompt).toContain(
+        'The centerpiece Bottoms is ALREADY SELECTED - do NOT generate a slot for Bottoms',
+      );
       expect(prompt).toContain('DO NOT include a slot for Bottoms');
-      expect(prompt).toContain('Only generate slots for: Tops, Shoes, Outerwear, Accessories');
+      expect(prompt).toContain(
+        'Only generate slots for: Tops, Shoes, Outerwear, Accessories',
+      );
     });
 
     it('should handle different centerpiece categories', () => {
@@ -143,7 +160,9 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
       const prompt = buildStartWithItemPromptV2(input);
 
       expect(prompt).toContain('do NOT generate a slot for Shoes');
-      expect(prompt).toContain('Only generate slots for: Tops, Bottoms, Outerwear, Accessories');
+      expect(prompt).toContain(
+        'Only generate slots for: Tops, Bottoms, Outerwear, Accessories',
+      );
     });
   });
 
@@ -199,7 +218,9 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
 
       expect(prompt).toContain("USER'S SPECIFIC REQUEST");
       expect(prompt).toContain('going to a business casual dinner date');
-      expect(prompt).toContain('You MUST incorporate this request into ALL 3 outfits');
+      expect(prompt).toContain(
+        'You MUST incorporate this request into ALL 3 outfits',
+      );
     });
 
     it('should handle both mood and freeform prompt together', () => {
@@ -235,7 +256,11 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
     it('should include available items constraint', () => {
       const input: StartWithItemInputV2 = {
         centerpieceItem: baseCenterpiece,
-        availableItems: ['Tops: polo shirt', 'Tops: oxford shirt', 'Shoes: loafers'],
+        availableItems: [
+          'Tops: polo shirt',
+          'Tops: oxford shirt',
+          'Shoes: loafers',
+        ],
       };
 
       const prompt = buildStartWithItemPromptV2(input);
@@ -271,7 +296,9 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
       const prompt = buildStartWithItemPromptV2(input);
 
       expect(prompt).toContain('QUALITY OVERRIDE');
-      expect(prompt).toContain('Every item must look GOOD with the centerpiece');
+      expect(prompt).toContain(
+        'Every item must look GOOD with the centerpiece',
+      );
       expect(prompt).toContain('Do NOT suggest items that clash');
     });
   });
@@ -395,8 +422,12 @@ describe('PATH #2: Composition Validator', () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('minimum 3 required'))).toBe(true);
-      expect(result.errors.some((e) => e.includes('minimum 2 required'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('minimum 3 required'))).toBe(
+        true,
+      );
+      expect(result.errors.some((e) => e.includes('minimum 2 required'))).toBe(
+        true,
+      );
     });
 
     it('should REJECT outfit missing centerpiece', () => {
@@ -418,7 +449,9 @@ describe('PATH #2: Composition Validator', () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('missing the centerpiece'))).toBe(true);
+      expect(
+        result.errors.some((e) => e.includes('missing the centerpiece')),
+      ).toBe(true);
     });
 
     it('should REJECT outfit with only accessories as complementary items', () => {
@@ -440,7 +473,9 @@ describe('PATH #2: Composition Validator', () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('only has accessories'))).toBe(true);
+      expect(
+        result.errors.some((e) => e.includes('only has accessories')),
+      ).toBe(true);
     });
 
     it('should REJECT outfit with duplicate categories', () => {
@@ -462,7 +497,9 @@ describe('PATH #2: Composition Validator', () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('duplicate categories'))).toBe(true);
+      expect(
+        result.errors.some((e) => e.includes('duplicate categories')),
+      ).toBe(true);
     });
 
     it('should REJECT outfit with items missing IDs', () => {
@@ -560,7 +597,9 @@ describe('PATH #2: Composition Validator', () => {
       );
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('Expected 3 outfits'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('Expected 3 outfits'))).toBe(
+        true,
+      );
     });
 
     it('should REJECT response with any underfilled outfit', () => {
@@ -679,7 +718,9 @@ describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
         freeformPrompt: 'date night rooftop dinner',
       };
 
-      expect(() => normalizeStartWithItemIntent(input)).toThrow(MutualExclusionError);
+      expect(() => normalizeStartWithItemIntent(input)).toThrow(
+        MutualExclusionError,
+      );
       expect(() => normalizeStartWithItemIntent(input)).toThrow(
         'MUTUAL_EXCLUSION_ERROR',
       );
@@ -827,9 +868,9 @@ describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
       const result = validateStartWithItemIntentMode(input);
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('freeformPrompt is present'))).toBe(
-        true,
-      );
+      expect(
+        result.errors.some((e) => e.includes('freeformPrompt is present')),
+      ).toBe(true);
     });
 
     it('should REJECT freeform mode with moods present', () => {
@@ -843,7 +884,9 @@ describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
       const result = validateStartWithItemIntentMode(input);
 
       expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.includes('moods are present'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('moods are present'))).toBe(
+        true,
+      );
     });
   });
 
@@ -974,7 +1017,9 @@ describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
       const prompt = buildStartWithItemPromptV3(input);
 
       expect(prompt).toContain('do NOT generate a slot for Shoes');
-      expect(prompt).toContain('Only generate slots for: Tops, Bottoms, Outerwear, Accessories');
+      expect(prompt).toContain(
+        'Only generate slots for: Tops, Bottoms, Outerwear, Accessories',
+      );
     });
   });
 
@@ -1124,7 +1169,9 @@ describe('PATH #2: Centerpiece-First Enforcement (V4)', () => {
 
       expect(prompt).toContain('STYLING MODIFIER');
       expect(prompt).toContain('apply to items AROUND the locked centerpiece');
-      expect(prompt).toContain('They do NOT replace or override the centerpiece');
+      expect(prompt).toContain(
+        'They do NOT replace or override the centerpiece',
+      );
     });
 
     it('should still include LOCKED CENTERPIECE section in mood mode', () => {
@@ -1155,7 +1202,9 @@ describe('PATH #2: Centerpiece-First Enforcement (V4)', () => {
 
       expect(prompt).toContain('LOCKED CENTERPIECE');
       expect(prompt).toContain('HARD SYSTEM DIRECTIVE');
-      expect(prompt).toContain('balanced, versatile outfits around the locked centerpiece');
+      expect(prompt).toContain(
+        'balanced, versatile outfits around the locked centerpiece',
+      );
     });
   });
 
@@ -1189,7 +1238,9 @@ describe('PATH #2: Centerpiece-First Enforcement (V4)', () => {
       const prompt = buildStartWithItemPromptV4(input);
 
       expect(prompt).toContain('do NOT generate a slot for Tops');
-      expect(prompt).toContain('Only generate slots for: Bottoms, Shoes, Outerwear, Accessories');
+      expect(prompt).toContain(
+        'Only generate slots for: Bottoms, Shoes, Outerwear, Accessories',
+      );
     });
   });
 

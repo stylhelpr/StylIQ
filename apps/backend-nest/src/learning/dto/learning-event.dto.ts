@@ -25,7 +25,12 @@ export type LearningEventType =
 /**
  * Entity types that can be the subject of learning events.
  */
-export type EntityType = 'outfit' | 'product' | 'post' | 'look' | 'notification';
+export type EntityType =
+  | 'outfit'
+  | 'product'
+  | 'post'
+  | 'look'
+  | 'notification';
 
 /**
  * Signal polarity values.

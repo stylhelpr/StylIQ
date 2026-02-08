@@ -1,7 +1,18 @@
-import {Injectable, BadRequestException, NotFoundException} from '@nestjs/common';
-import {DatabaseService} from '../db/database.service';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { DatabaseService } from '../db/database.service';
 
-export type SocialPlatform = 'instagram' | 'tiktok' | 'pinterest' | 'threads' | 'twitter' | 'facebook' | 'linkedin';
+export type SocialPlatform =
+  | 'instagram'
+  | 'tiktok'
+  | 'pinterest'
+  | 'threads'
+  | 'twitter'
+  | 'facebook'
+  | 'linkedin';
 
 export interface ConnectedAccount {
   id: string;
@@ -26,7 +37,7 @@ export class ConnectedAccountsService {
          FROM connected_accounts
          WHERE user_id = $1
          ORDER BY platform ASC`,
-        [userId]
+        [userId],
       );
       return result.rows;
     } catch (error) {
@@ -38,11 +49,14 @@ export class ConnectedAccountsService {
   /**
    * Check if a social account is connected for a user
    */
-  async isConnected(userId: string, platform: SocialPlatform): Promise<boolean> {
+  async isConnected(
+    userId: string,
+    platform: SocialPlatform,
+  ): Promise<boolean> {
     try {
       const result = await this.db.query(
         `SELECT id FROM connected_accounts WHERE user_id = $1 AND platform = $2 LIMIT 1`,
-        [userId, platform]
+        [userId, platform],
       );
       return result.rows.length > 0;
     } catch (error) {
@@ -58,13 +72,13 @@ export class ConnectedAccountsService {
     userId: string,
     platform: SocialPlatform,
     accountId: string,
-    username: string
+    username: string,
   ): Promise<ConnectedAccount> {
     try {
       // Check if already connected
       const existing = await this.db.query(
         `SELECT id FROM connected_accounts WHERE user_id = $1 AND platform = $2`,
-        [userId, platform]
+        [userId, platform],
       );
 
       if (existing.rows.length > 0) {
@@ -74,7 +88,7 @@ export class ConnectedAccountsService {
            SET account_id = $3, username = $4, connected_at = NOW()
            WHERE user_id = $1 AND platform = $2
            RETURNING id, user_id, platform, account_id, username, connected_at`,
-          [userId, platform, accountId, username]
+          [userId, platform, accountId, username],
         );
         return result.rows[0];
       }
@@ -84,7 +98,7 @@ export class ConnectedAccountsService {
         `INSERT INTO connected_accounts (user_id, platform, account_id, username, connected_at)
          VALUES ($1, $2, $3, $4, NOW())
          RETURNING id, user_id, platform, account_id, username, connected_at`,
-        [userId, platform, accountId, username]
+        [userId, platform, accountId, username],
       );
       return result.rows[0];
     } catch (error) {
@@ -96,11 +110,14 @@ export class ConnectedAccountsService {
   /**
    * Disconnect a social account
    */
-  async disconnectAccount(userId: string, platform: SocialPlatform): Promise<void> {
+  async disconnectAccount(
+    userId: string,
+    platform: SocialPlatform,
+  ): Promise<void> {
     try {
       const result = await this.db.query(
         `DELETE FROM connected_accounts WHERE user_id = $1 AND platform = $2`,
-        [userId, platform]
+        [userId, platform],
       );
 
       if (result.rows.length === 0) {
@@ -116,13 +133,16 @@ export class ConnectedAccountsService {
   /**
    * Get a specific connected account
    */
-  async getConnectedAccount(userId: string, platform: SocialPlatform): Promise<ConnectedAccount | null> {
+  async getConnectedAccount(
+    userId: string,
+    platform: SocialPlatform,
+  ): Promise<ConnectedAccount | null> {
     try {
       const result = await this.db.query<ConnectedAccount>(
         `SELECT id, user_id, platform, account_id, username, connected_at
          FROM connected_accounts
          WHERE user_id = $1 AND platform = $2`,
-        [userId, platform]
+        [userId, platform],
       );
       return result.rows[0] || null;
     } catch (error) {

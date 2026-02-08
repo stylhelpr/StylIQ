@@ -15,10 +15,7 @@ export class StyleProfilesController {
   }
 
   @Put(':userId/measurements')
-  updateMeasurements(
-    @Req() req,
-    @Body() dto: UpdateStyleProfileDto,
-  ) {
+  updateMeasurements(@Req() req, @Body() dto: UpdateStyleProfileDto) {
     const userId = req.user.userId;
     return this.styleProfilesService.updateMeasurements(userId, dto);
   }

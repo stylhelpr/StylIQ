@@ -20,8 +20,10 @@ export type OutfitPlanResponse = {
 // Derive formality from query keywords
 function deriveFormality(query: string): number {
   const q = query.toLowerCase();
-  if (/\b(formal|business|interview|wedding|gala|black.?tie)\b/.test(q)) return 9;
-  if (/\b(smart.?casual|business.?casual|dinner|date|upscale)\b/.test(q)) return 7;
+  if (/\b(formal|business|interview|wedding|gala|black.?tie)\b/.test(q))
+    return 9;
+  if (/\b(smart.?casual|business.?casual|dinner|date|upscale)\b/.test(q))
+    return 7;
   if (/\b(casual|everyday|relaxed|weekend|brunch)\b/.test(q)) return 4;
   if (/\b(gym|workout|athletic|exercise|training)\b/.test(q)) return 2;
   if (/\b(lounge|home|sleep|pajama)\b/.test(q)) return 1;
@@ -42,7 +44,10 @@ function deriveOccasion(query: string): string | null {
 }
 
 // Derive season from query or weather
-function deriveSeason(query: string, weather?: { temp_f?: number }): string | null {
+function deriveSeason(
+  query: string,
+  weather?: { temp_f?: number },
+): string | null {
   const q = query.toLowerCase();
   if (/\b(winter|cold|freezing|snow)\b/.test(q)) return 'winter';
   if (/\b(summer|hot|warm|beach)\b/.test(q)) return 'summer';
@@ -60,7 +65,10 @@ function deriveSeason(query: string, weather?: { temp_f?: number }): string | nu
 }
 
 // Derive weather condition
-function deriveWeather(query: string, weather?: { temp_f?: number; condition?: string }): string | null {
+function deriveWeather(
+  query: string,
+  weather?: { temp_f?: number; condition?: string },
+): string | null {
   if (weather?.condition) return weather.condition;
   const q = query.toLowerCase();
   if (/\b(rain|rainy|wet)\b/.test(q)) return 'rainy';
@@ -263,7 +271,13 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+  ];
   const categoriesToGenerate = allCategories.filter(
     (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
   );
@@ -381,8 +395,16 @@ export type StartWithItemInputV2 = {
   availableItems?: string[];
 };
 
-export function buildStartWithItemPromptV2(input: StartWithItemInputV2): string {
-  const { centerpieceItem, moodPrompts, freeformPrompt, weather, availableItems } = input;
+export function buildStartWithItemPromptV2(
+  input: StartWithItemInputV2,
+): string {
+  const {
+    centerpieceItem,
+    moodPrompts,
+    freeformPrompt,
+    weather,
+    availableItems,
+  } = input;
 
   // Build combined styling intent from mood + freeform prompt
   const stylingIntentParts: string[] = [];
@@ -434,7 +456,13 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+  ];
   const categoriesToGenerate = allCategories.filter(
     (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
   );
@@ -487,7 +515,15 @@ CRITICAL RULES:
 2. ALL 3 outfits must be designed to COMPLEMENT the centerpiece item
 3. Match formality, color palette, and aesthetic to work WITH the centerpiece
 4. Only generate slots for: ${categoriesToGenerate.join(', ')}
-5. Apply the mood/intent to ALL items selected${moodPrompts?.length ? '\n6. Each outfit must reflect the specified mood(s): ' + moodPrompts.map((p) => p.match(/with (?:a |an )?(\w+)/i)?.[1]).filter(Boolean).join(', ') : ''}
+5. Apply the mood/intent to ALL items selected${
+    moodPrompts?.length
+      ? '\n6. Each outfit must reflect the specified mood(s): ' +
+        moodPrompts
+          .map((p) => p.match(/with (?:a |an )?(\w+)/i)?.[1])
+          .filter(Boolean)
+          .join(', ')
+      : ''
+  }
 
 COMPOSITION REQUIREMENT (MANDATORY):
 Each outfit MUST contain:
@@ -616,7 +652,9 @@ export function validateStartWithItemComposition(
   }
 
   // Rule 3: At least 2 non-centerpiece items
-  const nonCenterpieceItems = outfit.items.filter((item) => item.id !== centerpieceId);
+  const nonCenterpieceItems = outfit.items.filter(
+    (item) => item.id !== centerpieceId,
+  );
   if (nonCenterpieceItems.length < 2) {
     errors.push(
       `Outfit ${outfitIndex + 1} has only ${nonCenterpieceItems.length} complementary items (minimum 2 required)`,
@@ -624,7 +662,9 @@ export function validateStartWithItemComposition(
   }
 
   // Rule 4: No duplicate categories
-  const categories = outfit.items.map((item) => item.main_category?.toLowerCase());
+  const categories = outfit.items.map((item) =>
+    item.main_category?.toLowerCase(),
+  );
   const categorySet = new Set(categories.filter(Boolean));
   if (categorySet.size < categories.filter(Boolean).length) {
     errors.push(`Outfit ${outfitIndex + 1} has duplicate categories`);
@@ -634,7 +674,10 @@ export function validateStartWithItemComposition(
   const nonAccessoryNonCenterpiece = nonCenterpieceItems.filter(
     (item) => item.main_category?.toLowerCase() !== 'accessories',
   );
-  if (nonCenterpieceItems.length >= 2 && nonAccessoryNonCenterpiece.length === 0) {
+  if (
+    nonCenterpieceItems.length >= 2 &&
+    nonAccessoryNonCenterpiece.length === 0
+  ) {
     errors.push(
       `Outfit ${outfitIndex + 1} only has accessories as complementary items (need at least one core garment)`,
     );
@@ -643,12 +686,16 @@ export function validateStartWithItemComposition(
   // Rule 6: All items must have an ID
   const itemsWithoutId = outfit.items.filter((item) => !item.id);
   if (itemsWithoutId.length > 0) {
-    errors.push(`Outfit ${outfitIndex + 1} has ${itemsWithoutId.length} items without IDs`);
+    errors.push(
+      `Outfit ${outfitIndex + 1} has ${itemsWithoutId.length} items without IDs`,
+    );
   }
 
   // Warnings (non-fatal)
   if (outfit.items.length === 3) {
-    warnings.push(`Outfit ${outfitIndex + 1} has minimum items (3) - consider adding more variety`);
+    warnings.push(
+      `Outfit ${outfitIndex + 1} has minimum items (3) - consider adding more variety`,
+    );
   }
 
   return {
@@ -769,7 +816,8 @@ export function normalizeStartWithItemIntent(
   input: RawStartWithItemInput,
 ): NormalizedStartWithItemInput {
   const hasMoods = input.moodPrompts && input.moodPrompts.length > 0;
-  const hasFreeform = input.freeformPrompt && input.freeformPrompt.trim().length > 0;
+  const hasFreeform =
+    input.freeformPrompt && input.freeformPrompt.trim().length > 0;
 
   // MUTUAL EXCLUSIVITY CHECK - fail closed
   if (hasMoods && hasFreeform) {
@@ -817,8 +865,17 @@ export function normalizeStartWithItemIntent(
  * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
  * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
  */
-export function buildStartWithItemPromptV3(input: NormalizedStartWithItemInput): string {
-  const { centerpieceItem, intentMode, moods, freeformPrompt, weather, availableItems } = input;
+export function buildStartWithItemPromptV3(
+  input: NormalizedStartWithItemInput,
+): string {
+  const {
+    centerpieceItem,
+    intentMode,
+    moods,
+    freeformPrompt,
+    weather,
+    availableItems,
+  } = input;
 
   // Build styling intent based on EXCLUSIVE mode
   let stylingIntent: string;
@@ -835,7 +892,10 @@ export function buildStartWithItemPromptV3(input: NormalizedStartWithItemInput):
         })
         .filter(Boolean);
 
-      stylingIntent = moodKeywords.length > 0 ? `Mood: ${moodKeywords.join(', ')}` : 'Mood-based styling';
+      stylingIntent =
+        moodKeywords.length > 0
+          ? `Mood: ${moodKeywords.join(', ')}`
+          : 'Mood-based styling';
 
       moodInstruction = `
 STYLING MOOD (apply to ALL 3 outfits - EXCLUSIVE MODE):
@@ -886,7 +946,13 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+  ];
   const categoriesToGenerate = allCategories.filter(
     (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
   );
@@ -1030,7 +1096,9 @@ export function validateStartWithItemIntentMode(
         errors.push('Intent mode is "mood" but no moods provided');
       }
       if (input.freeformPrompt) {
-        errors.push('Intent mode is "mood" but freeformPrompt is present (should be null)');
+        errors.push(
+          'Intent mode is "mood" but freeformPrompt is present (should be null)',
+        );
       }
       break;
 
@@ -1039,7 +1107,9 @@ export function validateStartWithItemIntentMode(
         errors.push('Intent mode is "freeform" but no freeformPrompt provided');
       }
       if (input.moods && input.moods.length > 0) {
-        errors.push('Intent mode is "freeform" but moods are present (should be null)');
+        errors.push(
+          'Intent mode is "freeform" but moods are present (should be null)',
+        );
       }
       break;
 
@@ -1089,8 +1159,17 @@ export function validateStartWithItemIntentMode(
  * THIS FUNCTION IS COMPLETELY ISOLATED FROM PATH #1.
  * DO NOT MODIFY buildOutfitPlanPrompt() - it is read-only.
  */
-export function buildStartWithItemPromptV4(input: NormalizedStartWithItemInput): string {
-  const { centerpieceItem, intentMode, moods, freeformPrompt, weather, availableItems } = input;
+export function buildStartWithItemPromptV4(
+  input: NormalizedStartWithItemInput,
+): string {
+  const {
+    centerpieceItem,
+    intentMode,
+    moods,
+    freeformPrompt,
+    weather,
+    availableItems,
+  } = input;
 
   // Derive constraints
   const formality = deriveFormality(freeformPrompt || '');
@@ -1115,7 +1194,13 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece category)
-  const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+  const allCategories = [
+    'Tops',
+    'Bottoms',
+    'Shoes',
+    'Outerwear',
+    'Accessories',
+  ];
   const categoriesToGenerate = allCategories.filter(
     (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
   );

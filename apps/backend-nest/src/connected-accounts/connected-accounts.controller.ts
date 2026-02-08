@@ -11,8 +11,11 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import {AuthGuard} from '@nestjs/passport';
-import {ConnectedAccountsService, SocialPlatform} from './connected-accounts.service';
+import { AuthGuard } from '@nestjs/passport';
+import {
+  ConnectedAccountsService,
+  SocialPlatform,
+} from './connected-accounts.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
 
 interface ConnectAccountDto {
@@ -34,7 +37,9 @@ interface ConnectedAccountsResponse {
 @UseGuards(AuthGuard('jwt'))
 @Controller('api/connected-accounts')
 export class ConnectedAccountsController {
-  constructor(private readonly connectedAccountsService: ConnectedAccountsService) {}
+  constructor(
+    private readonly connectedAccountsService: ConnectedAccountsService,
+  ) {}
 
   /**
    * GET /api/connected-accounts/:userId
@@ -44,7 +49,8 @@ export class ConnectedAccountsController {
   async getConnectedAccounts(@Req() req): Promise<ConnectedAccountsResponse> {
     const userId = req.user.userId;
 
-    const accounts = await this.connectedAccountsService.getConnectedAccounts(userId);
+    const accounts =
+      await this.connectedAccountsService.getConnectedAccounts(userId);
     const formatted = this.connectedAccountsService.formatForFrontend(accounts);
 
     return {
@@ -61,8 +67,13 @@ export class ConnectedAccountsController {
   @HttpCode(200)
   async connectAccount(
     @Req() req,
-    @Body() body: ConnectAccountDto
-  ): Promise<{platform: SocialPlatform; isConnected: boolean; username?: string; accountId?: string}> {
+    @Body() body: ConnectAccountDto,
+  ): Promise<{
+    platform: SocialPlatform;
+    isConnected: boolean;
+    username?: string;
+    accountId?: string;
+  }> {
     const userId = req.user.userId;
     if (!body.platform) {
       throw new BadRequestException('Platform is required');
@@ -82,7 +93,7 @@ export class ConnectedAccountsController {
       userId,
       body.platform,
       accountId,
-      username
+      username,
     );
 
     return {
@@ -101,14 +112,17 @@ export class ConnectedAccountsController {
   @HttpCode(200)
   async disconnectAccount(
     @Req() req,
-    @Param('platform') platform: string
-  ): Promise<{success: boolean; message: string}> {
+    @Param('platform') platform: string,
+  ): Promise<{ success: boolean; message: string }> {
     const userId = req.user.userId;
     if (!platform) {
       throw new BadRequestException('Platform is required');
     }
 
-    await this.connectedAccountsService.disconnectAccount(userId, platform as SocialPlatform);
+    await this.connectedAccountsService.disconnectAccount(
+      userId,
+      platform as SocialPlatform,
+    );
 
     return {
       success: true,
@@ -123,8 +137,8 @@ export class ConnectedAccountsController {
   @Get(':userId/:platform')
   async checkConnection(
     @Req() req,
-    @Param('platform') platform: string
-  ): Promise<{isConnected: boolean; username?: string}> {
+    @Param('platform') platform: string,
+  ): Promise<{ isConnected: boolean; username?: string }> {
     const userId = req.user.userId;
     if (!platform) {
       throw new BadRequestException('Platform is required');
@@ -132,7 +146,7 @@ export class ConnectedAccountsController {
 
     const account = await this.connectedAccountsService.getConnectedAccount(
       userId,
-      platform as SocialPlatform
+      platform as SocialPlatform,
     );
 
     return {
@@ -152,7 +166,7 @@ export class ConnectedAccountsController {
   async handleOAuthCallback(
     @Param('platform') platform: string,
     @Query('code') authCode: string,
-    @Query('state') stateParam: string
+    @Query('state') stateParam: string,
   ) {
     if (!authCode) {
       throw new BadRequestException('Authorization code is required');
@@ -164,7 +178,11 @@ export class ConnectedAccountsController {
 
     try {
       // Decode the state parameter to get userId
-      let state: {userId: string; platform: SocialPlatform; timestamp: number};
+      let state: {
+        userId: string;
+        platform: SocialPlatform;
+        timestamp: number;
+      };
       try {
         // Decode base64 using Node.js Buffer (available on backend)
         const decodedStr = Buffer.from(stateParam, 'base64').toString('utf8');
@@ -174,14 +192,16 @@ export class ConnectedAccountsController {
         throw new BadRequestException('Invalid state parameter');
       }
 
-      const {userId, platform: statePlatform} = state;
+      const { userId, platform: statePlatform } = state;
 
       // Verify platform matches
       if (statePlatform !== platform) {
         throw new BadRequestException('Platform mismatch in state parameter');
       }
 
-      console.log(`[OAuth] Handling callback for ${platform}, userId: ${userId}`);
+      console.log(
+        `[OAuth] Handling callback for ${platform}, userId: ${userId}`,
+      );
 
       // NOTE: In production, you would:
       // 1. Exchange authCode for access_token by calling the social platform's token endpoint
@@ -197,9 +217,9 @@ export class ConnectedAccountsController {
       // Store the connected account
       await this.connectedAccountsService.connectAccount(
         userId,
-        platform as SocialPlatform,
+        platform,
         mockAccountId,
-        mockUsername
+        mockUsername,
       );
 
       // Return HTML that redirects back to the app via deep linking
@@ -282,8 +302,13 @@ export class ConnectedAccountsController {
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`[OAuth] Error handling callback for ${platform}:`, errorMsg);
-      throw new BadRequestException(`Failed to connect ${platform} account: ${errorMsg}`);
+      console.error(
+        `[OAuth] Error handling callback for ${platform}:`,
+        errorMsg,
+      );
+      throw new BadRequestException(
+        `Failed to connect ${platform} account: ${errorMsg}`,
+      );
     }
   }
 }

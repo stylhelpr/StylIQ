@@ -44,7 +44,11 @@ export class ScheduledOutfitController {
   }
 
   @Put(':id')
-  update(@Req() req, @Param('id') id: string, @Body() dto: UpdateScheduledOutfitDto) {
+  update(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateScheduledOutfitDto,
+  ) {
     const userId = req.user.userId;
     return this.service.update(id, userId, dto);
   }
@@ -56,10 +60,7 @@ export class ScheduledOutfitController {
   }
 
   @Delete()
-  async deleteByUserAndOutfit(
-    @Req() req,
-    @Body() body: { outfit_id: string },
-  ) {
+  async deleteByUserAndOutfit(@Req() req, @Body() body: { outfit_id: string }) {
     const user_id = req.user.userId;
     return this.service.deleteByUserAndOutfit(user_id, body.outfit_id);
   }

@@ -69,9 +69,7 @@ export class ShoppingAnalyticsEventDto {
       this.canonical_url?.includes('?') ||
       this.canonical_url?.includes('#')
     ) {
-      throw new Error(
-        'canonical_url must not contain query params or hash',
-      );
+      throw new Error('canonical_url must not contain query params or hash');
     }
   }
 }

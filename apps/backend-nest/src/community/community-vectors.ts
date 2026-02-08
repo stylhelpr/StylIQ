@@ -50,7 +50,12 @@ export async function querySimilarPosts(params: {
   excludePostIds?: string[];
   excludeUserIds?: string[];
 }) {
-  const { vector, topK = 50, excludePostIds = [], excludeUserIds = [] } = params;
+  const {
+    vector,
+    topK = 50,
+    excludePostIds = [],
+    excludeUserIds = [],
+  } = params;
 
   const ns = index.namespace(COMMUNITY_NAMESPACE);
 

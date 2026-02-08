@@ -1546,7 +1546,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
       overflow: 'hidden',
     },
     postDetailCompositeCell: {
-      backgroundColor: theme.colors.background,
+      backgroundColor: '#F5F5F5',
     },
     postDetailFooter: {
       paddingHorizontal: 16,
@@ -1671,12 +1671,12 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
               <View style={{flex: 1, flexDirection: 'row'}}>
                 <FastImage
                   source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1}}
+                  style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}
                   resizeMode={FastImage.resizeMode.cover}
                 />
                 <FastImage
                   source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1}}
+                  style={{flex: 1, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}
                   resizeMode={FastImage.resizeMode.cover}
                 />
               </View>
@@ -1684,17 +1684,17 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                 {heroPost.shoes_image ? (
                   <FastImage
                     source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1}}
+                    style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}
                     resizeMode={FastImage.resizeMode.cover}
                   />
-                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}} />}
                 {heroPost.accessory_image ? (
                   <FastImage
                     source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1}}
+                    style={{flex: 1, backgroundColor: '#F5F5F5'}}
                     resizeMode={FastImage.resizeMode.cover}
                   />
-                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5'}} />}
               </View>
             </View>
           ) : (
@@ -1877,7 +1877,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
               <View style={[styles.cardImage, {flexDirection: 'column'}]}>
                 {/* Row 1 */}
                 <View style={{flexDirection: 'row', flex: 1}}>
-                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+                  <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}>
                     {post.top_image && (
                       <FastImage
                         source={{
@@ -1890,7 +1890,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                       />
                     )}
                   </View>
-                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+                  <View style={{flex: 1, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}>
                     {post.bottom_image && (
                       <FastImage
                         source={{
@@ -1906,7 +1906,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                 </View>
                 {/* Row 2 */}
                 <View style={{flexDirection: 'row', flex: 1}}>
-                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+                  <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}>
                     {post.shoes_image && (
                       <FastImage
                         source={{
@@ -1919,7 +1919,7 @@ export default function CommunityShowcaseScreen({navigate, initialPostId}: Props
                       />
                     )}
                   </View>
-                  <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+                  <View style={{flex: 1, backgroundColor: '#F5F5F5'}}>
                     {post.accessory_image && (
                       <FastImage
                         source={{

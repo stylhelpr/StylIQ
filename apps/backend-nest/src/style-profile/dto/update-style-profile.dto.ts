@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsNumber, IsArray, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  IsObject,
+  IsBoolean,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class UpdateStyleProfileDto {

@@ -105,7 +105,11 @@ describe('validateCategoryPair', () => {
 
   // ── Halter dress override ──────────────────────────────────────────
   it('corrects "Black halterneck maxi satin slip" from Tops/Camisole → Dresses', () => {
-    const r = validateCategoryPair('Tops', 'Camisole', 'Black halterneck maxi satin slip');
+    const r = validateCategoryPair(
+      'Tops',
+      'Camisole',
+      'Black halterneck maxi satin slip',
+    );
     expect(r.main_category).toBe('Dresses');
     expect(r.corrected).toBe(true);
   });

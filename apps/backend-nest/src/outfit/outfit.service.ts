@@ -148,7 +148,9 @@ export class OutfitService {
         this.learningEvents
           .logEvent({
             userId: user_id,
-            eventType: isPositive ? 'OUTFIT_RATED_POSITIVE' : 'OUTFIT_RATED_NEGATIVE',
+            eventType: isPositive
+              ? 'OUTFIT_RATED_POSITIVE'
+              : 'OUTFIT_RATED_NEGATIVE',
             entityType: 'outfit',
             entityId: outfit_id,
             signalPolarity: isPositive ? 1 : -1,
@@ -257,7 +259,9 @@ export class OutfitService {
       // Check if this is a canvas-based outfit
       if (row.canvas_data?.placedItems?.length > 0) {
         // Get wardrobe item IDs from canvas_data
-        const wardrobeIds = row.canvas_data.placedItems.map((item: any) => item.wardrobeItemId);
+        const wardrobeIds = row.canvas_data.placedItems.map(
+          (item: any) => item.wardrobeItemId,
+        );
 
         // Fetch wardrobe items with ALL image URL fields (let frontend pick best one like canvas does)
         const itemsRes = await pool.query(
@@ -267,16 +271,25 @@ export class OutfitService {
           [wardrobeIds],
         );
 
-        const itemsMap = new Map<string, any>(itemsRes.rows.map((i: any) => [i.id, i]));
+        const itemsMap = new Map<string, any>(
+          itemsRes.rows.map((i: any) => [i.id, i]),
+        );
 
         // 🔍 DEBUG: Log what the database returns for each wardrobe item
-        console.log('🖼️ getCustomOutfits - wardrobe items from DB:', itemsRes.rows.map((i: any) => ({
-          id: i.id,
-          name: i.name,
-          image_url: i.image_url?.substring(0, 50) + '...',
-          touched_up_image_url: i.touched_up_image_url ? i.touched_up_image_url.substring(0, 50) + '...' : i.touched_up_image_url,
-          processed_image_url: i.processed_image_url ? i.processed_image_url.substring(0, 50) + '...' : i.processed_image_url,
-        })));
+        console.log(
+          '🖼️ getCustomOutfits - wardrobe items from DB:',
+          itemsRes.rows.map((i: any) => ({
+            id: i.id,
+            name: i.name,
+            image_url: i.image_url?.substring(0, 50) + '...',
+            touched_up_image_url: i.touched_up_image_url
+              ? i.touched_up_image_url.substring(0, 50) + '...'
+              : i.touched_up_image_url,
+            processed_image_url: i.processed_image_url
+              ? i.processed_image_url.substring(0, 50) + '...'
+              : i.processed_image_url,
+          })),
+        );
 
         // Create items array for ALL canvas items - return all image URLs for frontend resolution
         const allCanvasItems = row.canvas_data.placedItems
@@ -285,14 +298,26 @@ export class OutfitService {
             if (!item) return null;
 
             // Normalize empty strings to null for proper || fallback
-            const touchedUp = item.touched_up_image_url && item.touched_up_image_url.trim() !== '' ? item.touched_up_image_url : null;
-            const processed = item.processed_image_url && item.processed_image_url.trim() !== '' ? item.processed_image_url : null;
-            const original = item.image_url && item.image_url.trim() !== '' ? item.image_url : '';
+            const touchedUp =
+              item.touched_up_image_url &&
+              item.touched_up_image_url.trim() !== ''
+                ? item.touched_up_image_url
+                : null;
+            const processed =
+              item.processed_image_url && item.processed_image_url.trim() !== ''
+                ? item.processed_image_url
+                : null;
+            const original =
+              item.image_url && item.image_url.trim() !== ''
+                ? item.image_url
+                : '';
 
             // Return all image URLs - frontend will pick best one using same logic as canvas
             const image = touchedUp || processed || original;
 
-            console.log(`🖼️ Item ${item.id} (${item.name}): touchedUp=${!!touchedUp}, processed=${!!processed}, original=${!!original}, selected=${image?.substring(0, 40)}`);
+            console.log(
+              `🖼️ Item ${item.id} (${item.name}): touchedUp=${!!touchedUp}, processed=${!!processed}, original=${!!original}, selected=${image?.substring(0, 40)}`,
+            );
 
             return {
               id: item.id,
@@ -315,13 +340,16 @@ export class OutfitService {
         outfit.allItems = allCanvasItems;
 
         // 🔍 DEBUG: Log what we're returning
-        console.log('🖼️ getCustomOutfits - allCanvasItems returned:', allCanvasItems.map((i: any) => ({
-          id: i.id,
-          name: i.name,
-          image: i.image?.substring(0, 60) + '...',
-          touchedUpImageUrl: i.touchedUpImageUrl?.substring(0, 50) + '...',
-          processedImageUrl: i.processedImageUrl?.substring(0, 50) + '...',
-        })));
+        console.log(
+          '🖼️ getCustomOutfits - allCanvasItems returned:',
+          allCanvasItems.map((i: any) => ({
+            id: i.id,
+            name: i.name,
+            image: i.image?.substring(0, 60) + '...',
+            touchedUpImageUrl: i.touchedUpImageUrl?.substring(0, 50) + '...',
+            processedImageUrl: i.processedImageUrl?.substring(0, 50) + '...',
+          })),
+        );
 
         // Also include canvas_data for full reconstruction
         outfit.canvas_data = row.canvas_data;
@@ -331,10 +359,18 @@ export class OutfitService {
           ? { id: row.top_id, name: row.top_name, image: row.top_image_url }
           : null;
         outfit.bottom = row.bottom_id
-          ? { id: row.bottom_id, name: row.bottom_name, image: row.bottom_image_url }
+          ? {
+              id: row.bottom_id,
+              name: row.bottom_name,
+              image: row.bottom_image_url,
+            }
           : null;
         outfit.shoes = row.shoes_id
-          ? { id: row.shoes_id, name: row.shoes_name, image: row.shoes_image_url }
+          ? {
+              id: row.shoes_id,
+              name: row.shoes_name,
+              image: row.shoes_image_url,
+            }
           : null;
 
         // Build allItems array for legacy outfits (same format as canvas-based)
@@ -462,8 +498,13 @@ export class OutfitService {
     return { message: 'Outfit updated' };
   }
 
-  async markAsWorn(outfitId: string, outfitType: 'custom' | 'ai', userId: string) {
-    const columnName = outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
+  async markAsWorn(
+    outfitId: string,
+    outfitType: 'custom' | 'ai',
+    userId: string,
+  ) {
+    const columnName =
+      outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
 
     // Insert a worn record with scheduled_for set to epoch (1970-01-01) so it doesn't appear on calendar
     // Only worn_at matters for the count
@@ -498,8 +539,13 @@ export class OutfitService {
     return rows[0];
   }
 
-  async unmarkWorn(outfitId: string, outfitType: 'custom' | 'ai', userId: string) {
-    const columnName = outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
+  async unmarkWorn(
+    outfitId: string,
+    outfitType: 'custom' | 'ai',
+    userId: string,
+  ) {
+    const columnName =
+      outfitType === 'custom' ? 'custom_outfit_id' : 'ai_outfit_id';
 
     // Delete the most recent worn record for this outfit
     const { rows } = await pool.query(

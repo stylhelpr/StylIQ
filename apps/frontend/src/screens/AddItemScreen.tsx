@@ -378,8 +378,8 @@ export default function AddItemScreen({
     const mainCategory = (category?.trim() || 'Uncategorized') as string;
 
     try {
-      // 1) Upload all to GCS (sequential + retry to avoid 429)
-      const uploaded = await mapWithConcurrency(selected, 1, async uri => {
+      // 1) Upload all to GCS (concurrent — GCS handles high throughput, withRetry catches transient 429)
+      const uploaded = await mapWithConcurrency(selected, 3, async uri => {
         const filename = uri.split('/').pop() ?? 'upload.jpg';
         const up = await withRetry(() =>
           uploadImageToGCS({localUri: uri, filename, userId}),
@@ -387,13 +387,13 @@ export default function AddItemScreen({
         return {uri, filename, ...up};
       });
 
-      // 2) For each uploaded image (sequential + retry to avoid 429):
+      // 2) For each uploaded image (concurrency=2, backend semaphore handles rate limits):
       let ok = 0,
         failed = 0,
         aiUsed = 0,
         fallbackUsed = 0;
 
-      await mapWithConcurrency(uploaded, 1, async u => {
+      await mapWithConcurrency(uploaded, 2, async u => {
         const userProvidedName = name?.trim() || undefined;
 
         try {

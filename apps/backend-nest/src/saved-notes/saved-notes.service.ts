@@ -11,7 +11,15 @@ export class SavedNotesService {
       `INSERT INTO saved_notes (user_id, url, title, content, tags, color, image_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [user_id, url ?? null, title ?? null, content ?? null, tags ?? null, color ?? null, image_url ?? null],
+      [
+        user_id,
+        url ?? null,
+        title ?? null,
+        content ?? null,
+        tags ?? null,
+        color ?? null,
+        image_url ?? null,
+      ],
     );
     return res.rows[0];
   }

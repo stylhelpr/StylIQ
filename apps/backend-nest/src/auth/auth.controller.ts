@@ -92,7 +92,9 @@ export class AuthController {
   async getProfile(@Req() req: Request) {
     const userId = (req.user as any)?.userId;
     if (!userId) {
-      console.error('[/auth/profile] Missing userId in token - JWT validation should have failed');
+      console.error(
+        '[/auth/profile] Missing userId in token - JWT validation should have failed',
+      );
       return { error: 'Missing userId in token' };
     }
 

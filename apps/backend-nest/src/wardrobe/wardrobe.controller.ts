@@ -132,7 +132,10 @@ export class WardrobeController {
   }
 
   @Post('search-hybrid')
-  searchHybrid(@Req() req, @Body() b: { q?: string; gcs_uri?: string; topK?: number }) {
+  searchHybrid(
+    @Req() req,
+    @Body() b: { q?: string; gcs_uri?: string; topK?: number },
+  ) {
     return this.service.searchHybrid(req.user.userId, b.q, b.gcs_uri, b.topK);
   }
 
@@ -180,22 +183,17 @@ export class WardrobeController {
       });
     }
 
-    return this.service.generateOutfits(
-      userId,
-      body.query,
-      body.topK || 5,
-      {
-        userStyle,
-        weather: weatherArg,
-        weights: body.weights,
-        useWeather: body.useWeather ?? true,
-        useFeedback: body.useFeedback,
-        styleAgent: body.styleAgent,
-        sessionId: body.session_id || (body as any).sessionId,
-        refinementPrompt: body.refinementPrompt,
-        lockedItemIds: body.lockedItemIds ?? [],
-      },
-    );
+    return this.service.generateOutfits(userId, body.query, body.topK || 5, {
+      userStyle,
+      weather: weatherArg,
+      weights: body.weights,
+      useWeather: body.useWeather ?? true,
+      useFeedback: body.useFeedback,
+      styleAgent: body.styleAgent,
+      sessionId: body.session_id || (body as any).sessionId,
+      refinementPrompt: body.refinementPrompt,
+      lockedItemIds: body.lockedItemIds ?? [],
+    });
   }
 
   /**
@@ -250,50 +248,65 @@ export class WardrobeController {
       name?: string;
     },
   ) {
-    const draft = dto.gsutil_uri
-      ? await this.vertex.analyzeImage(dto.gsutil_uri)
-      : {};
+    // Run AI analysis and garment segmentation in parallel (independent I/O)
+    const [draft, bgResult] = await Promise.all([
+      dto.gsutil_uri
+        ? this.vertex.analyzeImage(dto.gsutil_uri)
+        : Promise.resolve({}),
+      dto.object_key
+        ? (async () => {
+            console.log('[GarmentSegmentation] start', {
+              user_id: req.user.userId,
+              object_key: dto.object_key,
+            });
+            try {
+              const credentials = getSecretJson<GCPServiceAccount>(
+                'GCP_SERVICE_ACCOUNT_JSON',
+              );
+              const storage = new Storage({
+                projectId: credentials.project_id,
+                credentials,
+              });
+              const bucketName = secretExists('GCS_BUCKET_NAME')
+                ? getSecret('GCS_BUCKET_NAME')
+                : 'stylhelpr-prod-bucket';
+
+              const bucket = storage.bucket(bucketName);
+              const file = bucket.file(dto.object_key!);
+              const [imageBuffer] = await file.download();
+
+              const result = await this.vertex.removeBackground(
+                imageBuffer,
+                req.user.userId,
+                dto.object_key!,
+              );
+
+              if (result) {
+                console.log('[GarmentSegmentation] success', {
+                  processed_object_key: result.processedGcsUri,
+                });
+              } else {
+                console.log(
+                  '[GarmentSegmentation] skipped (no result returned)',
+                );
+              }
+              return result;
+            } catch (err) {
+              console.error('[GarmentSegmentation] failed', err);
+              return null; // Non-blocking: continue without processed image
+            }
+          })()
+        : Promise.resolve(null),
+    ]);
+
     const payload: CreateWardrobeItemDto = this.service.composeFromAiDraft(
       { ...dto, user_id: req.user.userId } as any,
       draft,
     );
 
-    // --- Garment Segmentation (non-blocking) ---
-    if (dto.object_key) {
-      console.log('[GarmentSegmentation] start', { user_id: req.user.userId, object_key: dto.object_key });
-      try {
-        const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
-        const storage = new Storage({
-          projectId: credentials.project_id,
-          credentials,
-        });
-        const bucketName = secretExists('GCS_BUCKET_NAME')
-          ? getSecret('GCS_BUCKET_NAME')
-          : 'stylhelpr-prod-bucket';
-
-        const bucket = storage.bucket(bucketName);
-        const file = bucket.file(dto.object_key);
-        const [imageBuffer] = await file.download();
-
-        const result = await this.vertex.removeBackground(
-          imageBuffer,
-          req.user.userId,
-          dto.object_key,
-        );
-
-        if (result) {
-          payload.processed_image_url = result.processedPublicUrl;
-          payload.processed_gsutil_uri = result.processedGcsUri;
-          console.log('[GarmentSegmentation] success', {
-            processed_object_key: result.processedGcsUri,
-          });
-        } else {
-          console.log('[GarmentSegmentation] skipped (no result returned)');
-        }
-      } catch (err) {
-        console.error('[GarmentSegmentation] failed', err);
-        // Non-blocking: continue without processed image
-      }
+    if (bgResult) {
+      payload.processed_image_url = bgResult.processedPublicUrl;
+      payload.processed_gsutil_uri = bgResult.processedGcsUri;
     }
 
     return this.service.createItem(payload);
@@ -305,7 +318,11 @@ export class WardrobeController {
     @Param('item_id') itemId: string,
     @Body() body: { favorite: boolean },
   ) {
-    const result = await this.service.updateFavorite(itemId, req.user.userId, body.favorite);
+    const result = await this.service.updateFavorite(
+      itemId,
+      req.user.userId,
+      body.favorite,
+    );
     if (!result) {
       throw new NotFoundException('Wardrobe item not found');
     }
@@ -327,11 +344,12 @@ export class WardrobeController {
     const userId = req.user.userId;
     const result = await this.service.removeBackgroundItem(itemId, userId);
     if (!result) {
-      throw new NotFoundException('Wardrobe item not found or background removal failed');
+      throw new NotFoundException(
+        'Wardrobe item not found or background removal failed',
+      );
     }
     return result;
   }
-
 }
 
 /////////////////////

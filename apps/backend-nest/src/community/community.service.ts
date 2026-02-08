@@ -1165,7 +1165,12 @@ export class CommunityService implements OnModuleInit {
         category: 'message',
         notificationId, // Include ID so frontend uses the same ID
       };
-      this.notifications.sendPushToUser(followingId, title, message, notificationData);
+      this.notifications.sendPushToUser(
+        followingId,
+        title,
+        message,
+        notificationData,
+      );
       // Save to inbox for Community Messages section
       this.notifications.saveInboxItem({
         id: notificationId,

@@ -78,11 +78,15 @@ export class DiscoverService {
 
     // If cache is valid but empty, log this unusual state
     if (cacheValid && cached.length === 0) {
-      this.log.warn(`🛒 Cache marked valid but contains 0 products for user ${userId} - will attempt fetch`);
+      this.log.warn(
+        `🛒 Cache marked valid but contains 0 products for user ${userId} - will attempt fetch`,
+      );
     }
 
     // Cache expired or never set - ONE fetch attempt, then lock for a week
-    this.log.log(`Cache expired or empty for user ${userId} - fetching fresh products`);
+    this.log.log(
+      `Cache expired or empty for user ${userId} - fetching fresh products`,
+    );
 
     let products: DiscoverProduct[] = [];
 
@@ -97,7 +101,7 @@ export class DiscoverService {
       try {
         const fallback = await this.getFallbackProducts(userId);
         // Merge: keep what we got, add from fallback to reach 10
-        const existingIds = new Set(products.map(p => p.product_id));
+        const existingIds = new Set(products.map((p) => p.product_id));
         for (const p of fallback) {
           if (products.length >= TARGET_PRODUCTS) break;
           if (!existingIds.has(p.product_id)) {
@@ -105,7 +109,9 @@ export class DiscoverService {
           }
         }
       } catch (fallbackError: any) {
-        this.log.error(`getFallbackProducts also failed: ${fallbackError?.message}`);
+        this.log.error(
+          `getFallbackProducts also failed: ${fallbackError?.message}`,
+        );
       }
     }
 
@@ -115,7 +121,9 @@ export class DiscoverService {
     }
     await this.updateRefreshTimestamp(userId);
 
-    this.log.log(`Locked ${products.length} products for user ${userId} - no more API calls for 7 days`);
+    this.log.log(
+      `Locked ${products.length} products for user ${userId} - no more API calls for 7 days`,
+    );
     return products;
   }
 
@@ -176,7 +184,9 @@ export class DiscoverService {
 
   // ==================== FETCH PERSONALIZED PRODUCTS ====================
 
-  private async fetchPersonalizedProducts(userId: string): Promise<DiscoverProduct[]> {
+  private async fetchPersonalizedProducts(
+    userId: string,
+  ): Promise<DiscoverProduct[]> {
     this.log.log(`fetchPersonalizedProducts starting for ${userId}`);
 
     let profile: UserProfile;
@@ -187,7 +197,13 @@ export class DiscoverService {
 
     try {
       // Gather all personalization signals
-      [profile, browserSignals, learnedPrefs, ownedCategories, shownProductIds] = await Promise.all([
+      [
+        profile,
+        browserSignals,
+        learnedPrefs,
+        ownedCategories,
+        shownProductIds,
+      ] = await Promise.all([
         this.getUserProfile(userId),
         this.getBrowserSignals(userId),
         this.getLearnedPreferences(userId),
@@ -199,7 +215,9 @@ export class DiscoverService {
       throw err;
     }
 
-    this.log.log(`Profile for ${userId}: gender=${profile.gender}, brands=${profile.preferred_brands.length}, keywords=${profile.style_keywords.length}`);
+    this.log.log(
+      `Profile for ${userId}: gender=${profile.gender}, brands=${profile.preferred_brands.length}, keywords=${profile.style_keywords.length}`,
+    );
 
     // Must have gender - hard requirement
     if (!profile.gender) {
@@ -208,9 +226,14 @@ export class DiscoverService {
     }
 
     // Build search queries based on profile
-    const queries = this.buildSearchQueries(profile, browserSignals, learnedPrefs, ownedCategories);
+    const queries = this.buildSearchQueries(
+      profile,
+      browserSignals,
+      learnedPrefs,
+      ownedCategories,
+    );
 
-    let allProducts: any[] = [];
+    const allProducts: any[] = [];
     const usedProductIds = new Set(shownProductIds);
 
     // Limit products per query to ensure diversity across brands/styles
@@ -262,7 +285,9 @@ export class DiscoverService {
     }
 
     // Transform and save
-    const finalProducts = allProducts.slice(0, TARGET_PRODUCTS).map((p, i) => this.transformProduct(p, i + 1));
+    const finalProducts = allProducts
+      .slice(0, TARGET_PRODUCTS)
+      .map((p, i) => this.transformProduct(p, i + 1));
 
     // Save to DB
     await this.saveProducts(userId, finalProducts);
@@ -271,9 +296,14 @@ export class DiscoverService {
     await this.updateRefreshTimestamp(userId);
 
     // Track shown products
-    await this.trackShownProducts(userId, finalProducts.map(p => p.product_id));
+    await this.trackShownProducts(
+      userId,
+      finalProducts.map((p) => p.product_id),
+    );
 
-    this.log.log(`Fetched ${finalProducts.length} personalized products for user ${userId}`);
+    this.log.log(
+      `Fetched ${finalProducts.length} personalized products for user ${userId}`,
+    );
     return finalProducts;
   }
 
@@ -327,8 +357,10 @@ export class DiscoverService {
   private normalizeGender(gender: string | null): string | null {
     if (!gender) return null;
     const g = gender.toLowerCase().trim();
-    if (g.includes('male') || g.includes('man') || g.includes('men')) return 'male';
-    if (g.includes('female') || g.includes('woman') || g.includes('women')) return 'female';
+    if (g.includes('male') || g.includes('man') || g.includes('men'))
+      return 'male';
+    if (g.includes('female') || g.includes('woman') || g.includes('women'))
+      return 'female';
     return null;
   }
 
@@ -365,7 +397,9 @@ export class DiscoverService {
 
   // ==================== LEARNED PREFERENCES ====================
 
-  private async getLearnedPreferences(userId: string): Promise<LearnedPreferences> {
+  private async getLearnedPreferences(
+    userId: string,
+  ): Promise<LearnedPreferences> {
     const result = await pool.query(
       `SELECT feature, score
        FROM user_pref_feature
@@ -395,7 +429,9 @@ export class DiscoverService {
 
   // ==================== OWNED CATEGORIES ====================
 
-  private async getOwnedCategories(userId: string): Promise<Map<string, number>> {
+  private async getOwnedCategories(
+    userId: string,
+  ): Promise<Map<string, number>> {
     const result = await pool.query(
       `SELECT main_category, COUNT(*)::int as count
        FROM wardrobe_items
@@ -426,7 +462,10 @@ export class DiscoverService {
     }
   }
 
-  private async trackShownProducts(userId: string, productIds: string[]): Promise<void> {
+  private async trackShownProducts(
+    userId: string,
+    productIds: string[],
+  ): Promise<void> {
     if (productIds.length === 0) return;
 
     try {
@@ -479,7 +518,13 @@ export class DiscoverService {
     }
 
     // Priority 5: Categories they DON'T own much of (find gaps)
-    const categoryPriority = ['Shoes', 'Accessories', 'Outerwear', 'Tops', 'Bottoms'];
+    const categoryPriority = [
+      'Shoes',
+      'Accessories',
+      'Outerwear',
+      'Tops',
+      'Bottoms',
+    ];
     for (const cat of categoryPriority) {
       const count = ownedCategories.get(cat) || 0;
       if (count < 3) {
@@ -545,13 +590,17 @@ export class DiscoverService {
   // ==================== HELPERS ====================
 
   private getProductId(product: any): string {
-    return product.product_id || product.product_link || `${product.title}-${product.price}`;
+    return (
+      product.product_id ||
+      product.product_link ||
+      `${product.title}-${product.price}`
+    );
   }
 
   private matchesDisliked(product: any, dislikedStyles: string[]): boolean {
     if (dislikedStyles.length === 0) return false;
     const title = (product.title || '').toLowerCase();
-    return dislikedStyles.some(style => title.includes(style.toLowerCase()));
+    return dislikedStyles.some((style) => title.includes(style.toLowerCase()));
   }
 
   private transformProduct(raw: any, position: number): DiscoverProduct {
@@ -570,7 +619,10 @@ export class DiscoverService {
     };
   }
 
-  private async saveProducts(userId: string, products: DiscoverProduct[]): Promise<void> {
+  private async saveProducts(
+    userId: string,
+    products: DiscoverProduct[],
+  ): Promise<void> {
     try {
       // Mark old batch as not current (preserve history, especially saved items)
       await pool.query(
@@ -627,7 +679,9 @@ export class DiscoverService {
 
   // ==================== FALLBACK ====================
 
-  private async getFallbackProducts(userId: string): Promise<DiscoverProduct[]> {
+  private async getFallbackProducts(
+    userId: string,
+  ): Promise<DiscoverProduct[]> {
     this.log.log(`getFallbackProducts called for ${userId}`);
 
     const apiKey = this.serpApiKey;
@@ -642,7 +696,9 @@ export class DiscoverService {
         'SELECT gender_presentation FROM users WHERE id = $1',
         [userId],
       );
-      const gender = this.normalizeGender(userResult.rows[0]?.gender_presentation);
+      const gender = this.normalizeGender(
+        userResult.rows[0]?.gender_presentation,
+      );
       const genderPrefix = gender === 'male' ? "men's" : "women's";
 
       const query = `${genderPrefix} fashion clothing trending`;
@@ -751,7 +807,10 @@ export class DiscoverService {
   /**
    * Save a product - COPIES it to the permanent saved_recommendations table
    */
-  async saveProduct(userId: string, productId: string): Promise<{ success: boolean }> {
+  async saveProduct(
+    userId: string,
+    productId: string,
+  ): Promise<{ success: boolean }> {
     try {
       // Get the product details from user_discover_products
       const productResult = await pool.query(
@@ -762,7 +821,9 @@ export class DiscoverService {
       );
 
       if (productResult.rowCount === 0) {
-        this.log.warn(`saveProduct: product not found in discover - userId=${userId}, productId=${productId}`);
+        this.log.warn(
+          `saveProduct: product not found in discover - userId=${userId}, productId=${productId}`,
+        );
         return { success: false };
       }
 
@@ -816,7 +877,9 @@ export class DiscoverService {
           .catch(() => {});
       }
 
-      this.log.log(`Product saved permanently: userId=${userId}, productId=${productId}`);
+      this.log.log(
+        `Product saved permanently: userId=${userId}, productId=${productId}`,
+      );
       return { success: true };
     } catch (error) {
       this.log.error(`saveProduct failed: ${error?.message}`);
@@ -827,7 +890,10 @@ export class DiscoverService {
   /**
    * Unsave a product - DELETES it from saved_recommendations (gone forever)
    */
-  async unsaveProduct(userId: string, productId: string): Promise<{ success: boolean }> {
+  async unsaveProduct(
+    userId: string,
+    productId: string,
+  ): Promise<{ success: boolean }> {
     try {
       // DELETE from permanent saved_recommendations table
       const result = await pool.query(
@@ -846,7 +912,9 @@ export class DiscoverService {
       );
 
       if (result.rowCount === 0) {
-        this.log.warn(`unsaveProduct: product not found in saved_recommendations - userId=${userId}, productId=${productId}`);
+        this.log.warn(
+          `unsaveProduct: product not found in saved_recommendations - userId=${userId}, productId=${productId}`,
+        );
         return { success: false };
       }
 
@@ -867,7 +935,9 @@ export class DiscoverService {
           .catch(() => {});
       }
 
-      this.log.log(`Product deleted from saved: userId=${userId}, productId=${productId}`);
+      this.log.log(
+        `Product deleted from saved: userId=${userId}, productId=${productId}`,
+      );
       return { success: true };
     } catch (error) {
       this.log.error(`unsaveProduct failed: ${error?.message}`);
@@ -878,7 +948,10 @@ export class DiscoverService {
   /**
    * Toggle saved state for a product
    */
-  async toggleSaveProduct(userId: string, productId: string): Promise<{ success: boolean; saved: boolean }> {
+  async toggleSaveProduct(
+    userId: string,
+    productId: string,
+  ): Promise<{ success: boolean; saved: boolean }> {
     try {
       // Check if product is in saved_recommendations
       const current = await pool.query(

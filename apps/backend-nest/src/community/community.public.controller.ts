@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CommunityService } from './community.service';
 import { SkipAuth } from '../auth/skip-auth.decorator';
@@ -50,7 +44,11 @@ export class CommunityPublicController {
     @Query('currentUserId') currentUserId?: string,
     @Query('limit') limit: string = '20',
   ) {
-    return this.service.searchPosts(query, resolveUserId(req, currentUserId), parseInt(limit));
+    return this.service.searchPosts(
+      query,
+      resolveUserId(req, currentUserId),
+      parseInt(limit),
+    );
   }
 
   @Get('posts/by-user/:authorId')
@@ -59,7 +57,11 @@ export class CommunityPublicController {
     @Query('limit') limit: string = '20',
     @Query('offset') offset: string = '0',
   ) {
-    return this.service.getPostsByUser(authorId, parseInt(limit), parseInt(offset));
+    return this.service.getPostsByUser(
+      authorId,
+      parseInt(limit),
+      parseInt(offset),
+    );
   }
 
   @Get('posts/:id')
@@ -110,7 +112,10 @@ export class CommunityPublicController {
     @Param('id') userId: string,
     @Query('currentUserId') currentUserId?: string,
   ) {
-    return this.service.getUserProfile(userId, resolveUserId(req, currentUserId));
+    return this.service.getUserProfile(
+      userId,
+      resolveUserId(req, currentUserId),
+    );
   }
 
   @Get('users/:id/followers')

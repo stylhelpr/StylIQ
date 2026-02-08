@@ -156,9 +156,7 @@ export class AiService {
       throw new Error('OPENAI_API_KEY secret not found.');
     }
     if (/^sk-?x{3,}/i.test(apiKey)) {
-      throw new Error(
-        'OPENAI_API_KEY appears masked (e.g., "sk-xxxxx...").',
-      );
+      throw new Error('OPENAI_API_KEY appears masked (e.g., "sk-xxxxx...").');
     }
     if (!apiKey.startsWith('sk-')) {
       throw new Error('OPENAI_API_KEY is malformed — must start with "sk-".');
@@ -423,7 +421,7 @@ Return format:
       } else {
         // Try to extract any array value from the object
         const arrayValue = Object.values(parsed).find((v) => Array.isArray(v));
-        pieces = arrayValue ? (arrayValue as any[]) : [];
+        pieces = arrayValue ? arrayValue : [];
       }
 
       // console.log('👗 [AI] analyzeOutfitPieces() found', pieces.length, 'pieces');
@@ -562,7 +560,7 @@ Return format:
           : process.env.DEFAULT_GENDER || 'neutral';
 
     // 🧠 Build stylist prompt (base)
-    let prompt = `
+    const prompt = `
         You are a world-class AI stylist for ${normalizedGender} fashion.
         Create a cohesive outfit inspired by an uploaded look.
 
@@ -664,7 +662,7 @@ ${prompt}
       outfit.map(async (o: any) => {
         const query =
           `${normalizedGender} ${o.item || o.category || ''} ${o.color || ''}`.trim();
-        let products = await this.productSearch.search(query);
+        const products = await this.productSearch.search(query);
         let top = products[0];
 
         if (!top?.image || top.image.includes('No_image')) {
@@ -823,7 +821,10 @@ Output JSON only:
 
         const raw = completion.choices[0]?.message?.content || '{}';
         identified = JSON.parse(raw);
-        console.log('🧠 [OpenAI] recreateVisual identified pieces:', identified);
+        console.log(
+          '🧠 [OpenAI] recreateVisual identified pieces:',
+          identified,
+        );
       } catch (err: any) {
         console.error('❌ recreateVisual identify failed:', err.message);
         identified = { pieces: [], style_note: 'Could not analyze image' };
@@ -844,11 +845,15 @@ Output JSON only:
     }
 
     // 🛍️ Step 2: Use Google Lens to find purchasable matches for EACH piece
-    const serpApiKey = secretExists('SERPAPI_KEY') ? getSecret('SERPAPI_KEY') : null;
+    const serpApiKey = secretExists('SERPAPI_KEY')
+      ? getSecret('SERPAPI_KEY')
+      : null;
 
     const enrichedPieces = await Promise.all(
       pieces.map(async (piece: any) => {
-        const searchQuery = piece.search_query || `${normalizedGender} ${piece.item} ${piece.color}`;
+        const searchQuery =
+          piece.search_query ||
+          `${normalizedGender} ${piece.item} ${piece.color}`;
 
         let products: any[] = [];
 
@@ -880,13 +885,17 @@ Output JSON only:
             });
           }
         } catch (err: any) {
-          console.warn(`[recreateVisual] Shopping search failed for ${piece.category}:`, err.message);
+          console.warn(
+            `[recreateVisual] Shopping search failed for ${piece.category}:`,
+            err.message,
+          );
         }
 
         // If no products found, try fallback product search
         if (!products.length) {
           try {
-            const fallbackProducts = await this.productSearch.search(searchQuery);
+            const fallbackProducts =
+              await this.productSearch.search(searchQuery);
             products = fallbackProducts.slice(0, 3).map((p: any) => ({
               title: p.name || p.title || piece.item,
               brand: p.brand || 'Unknown',
@@ -2052,7 +2061,7 @@ ${climateNote}
     }
 
     /* 🎯 --- SMART CONTEXT: Classify query to load only relevant data --- */
-    let contextNeeds = {
+    const contextNeeds = {
       memory: true, // always load chat history
       styleProfile: false,
       wardrobe: false,
@@ -2099,8 +2108,8 @@ IMPORTANT: Questions about "how many items", "what do I own", "my clothes", "my 
       });
 
       // console.log(
-    //     `🎯 Smart context: ${needs.length ? needs.join(', ') : 'minimal (chat only)'}`,
-    //   );
+      //     `🎯 Smart context: ${needs.length ? needs.join(', ') : 'minimal (chat only)'}`,
+      //   );
       // ✅ Force-enable weather context if location or weather was passed
       if (dto.lat || dto.lon || dto.weather) {
         contextNeeds.weather = true;
@@ -2986,12 +2995,31 @@ Write a concise, 150-word updated summary focusing on their taste, preferences, 
     constraint?: string;
     mode?: 'auto' | 'manual';
   }) {
-    const { user, user_id, weather, wardrobe, preferences, format = 'text', constraint, mode = 'manual' } = body;
+    const {
+      user,
+      user_id,
+      weather,
+      wardrobe,
+      preferences,
+      format = 'text',
+      constraint,
+      mode = 'manual',
+    } = body;
 
     // If visual format requested and wardrobe has items with images
-    const hasWardrobeWithImages = wardrobe?.some((item) => item.image_url || item.image);
+    const hasWardrobeWithImages = wardrobe?.some(
+      (item) => item.image_url || item.image,
+    );
     if (format === 'visual' && hasWardrobeWithImages && wardrobe) {
-      return this.suggestVisualOutfits(user, user_id, weather, wardrobe, preferences, constraint, mode);
+      return this.suggestVisualOutfits(
+        user,
+        user_id,
+        weather,
+        wardrobe,
+        preferences,
+        constraint,
+        mode,
+      );
     }
 
     // Original text-based suggestion logic
@@ -3109,13 +3137,15 @@ Preferences: ${JSON.stringify(preferences || {})}
         const score = itemScores.get(item.id);
         if (score && score >= 2) {
           // Strongly liked items
-          const pattern = `${item.color || ''} ${item.main_category || item.category || ''}`.trim();
+          const pattern =
+            `${item.color || ''} ${item.main_category || item.category || ''}`.trim();
           if (pattern && !likedPatterns.includes(pattern)) {
             likedPatterns.push(pattern);
           }
         } else if (score && score <= -2) {
           // Strongly disliked items
-          const pattern = `${item.color || ''} ${item.main_category || item.category || ''}`.trim();
+          const pattern =
+            `${item.color || ''} ${item.main_category || item.category || ''}`.trim();
           if (pattern && !dislikedPatterns.includes(pattern)) {
             dislikedPatterns.push(pattern);
           }
@@ -3131,11 +3161,14 @@ Preferences: ${JSON.stringify(preferences || {})}
         parts.push(`Avoid: ${dislikedPatterns.slice(0, 3).join(', ')}`);
       }
 
-      const recentFeedbackSummary = parts.length > 0
-        ? `\n\n👍 USER PREFERENCES (from past feedback):\n${parts.join('\n')}`
-        : '';
+      const recentFeedbackSummary =
+        parts.length > 0
+          ? `\n\n👍 USER PREFERENCES (from past feedback):\n${parts.join('\n')}`
+          : '';
 
-      console.log(`🎯 [AI Stylist] Loaded feedback for ${userId}: ${prefRows.length} item scores, ${likedPatterns.length} liked patterns`);
+      console.log(
+        `🎯 [AI Stylist] Loaded feedback for ${userId}: ${prefRows.length} item scores, ${likedPatterns.length} liked patterns`,
+      );
 
       return {
         itemScores,
@@ -3144,7 +3177,10 @@ Preferences: ${JSON.stringify(preferences || {})}
         recentFeedbackSummary,
       };
     } catch (err: any) {
-      console.warn('⚠️ [AI Stylist] Failed to load user feedback:', err.message);
+      console.warn(
+        '⚠️ [AI Stylist] Failed to load user feedback:',
+        err.message,
+      );
       return emptyResult;
     }
   }
@@ -3189,20 +3225,33 @@ Preferences: ${JSON.stringify(preferences || {})}
         color: item.color || item.dominant_hex || 'unknown',
         style: item.style_descriptors?.join(', ') || '',
         // Include preference indicator for AI context
-        preference: item.feedbackScore > 0 ? 'liked' : item.feedbackScore < 0 ? 'avoid' : undefined,
+        preference:
+          item.feedbackScore > 0
+            ? 'liked'
+            : item.feedbackScore < 0
+              ? 'avoid'
+              : undefined,
       }));
 
     // Detect if this is a single-piece swap request
     const isSwapRequest = constraint?.toLowerCase().startsWith('swap ');
-    const swapMatch = constraint?.match(/swap (\w+) only, keep these items: (.+)/i);
+    const swapMatch = constraint?.match(
+      /swap (\w+) only, keep these items: (.+)/i,
+    );
     const swapCategory = swapMatch?.[1];
     const keepItemIds = swapMatch?.[2]?.split(', ').filter(Boolean) || [];
 
     // Detect adjustment type for partial outfit modifications
     const adjustmentType = constraint?.toLowerCase();
-    const isPartialAdjustment = adjustmentType && [
-      'more casual', 'more formal', 'warmer layers', 'lighter, cooler', 'different color palette'
-    ].includes(adjustmentType);
+    const isPartialAdjustment =
+      adjustmentType &&
+      [
+        'more casual',
+        'more formal',
+        'warmer layers',
+        'lighter, cooler',
+        'different color palette',
+      ].includes(adjustmentType);
 
     // Build adjustment-specific rules for preserving outfit continuity
     let adjustmentRules = '';
@@ -3238,9 +3287,10 @@ Preferences: ${JSON.stringify(preferences || {})}
     }
 
     // Mode-specific tone guidance
-    const modeGuidance = mode === 'auto'
-      ? `MODE: AUTOMATIC — Use proactive phrasing: "Styled for your day ahead...", "Ready for your evening"`
-      : `MODE: MANUAL — Use responsive phrasing: "Here's what works...", "This should do the trick..."`;
+    const modeGuidance =
+      mode === 'auto'
+        ? `MODE: AUTOMATIC — Use proactive phrasing: "Styled for your day ahead...", "Ready for your evening"`
+        : `MODE: MANUAL — Use responsive phrasing: "Here's what works...", "This should do the trick..."`;
 
     const systemPrompt = `
 You are a PROFESSIONAL HUMAN FASHION STYLIST, not an assistant, not a chatbot, and not a creative experimenter.
@@ -3310,7 +3360,9 @@ Rank 3 = RELAXED OPTION
 
 Do NOT make ranks feel equal. Rank 1 is THE recommendation.
 
-${isSwapRequest && swapCategory ? `
+${
+  isSwapRequest && swapCategory
+    ? `
 ════════════════════════
 SINGLE-PIECE SWAP
 ════════════════════════
@@ -3319,17 +3371,23 @@ User wants to swap ONLY the ${swapCategory}.
 - Only change the ${swapCategory} - pick 3 different safe options
 - Each outfit = same kept items + different ${swapCategory}
 - In reasoning, reference continuity: "Keeping everything else, but trying..."
-` : adjustmentRules ? `
+`
+    : adjustmentRules
+      ? `
 ════════════════════════
 ADJUSTMENT MODE
 ════════════════════════
 ${adjustmentRules}
-` : constraint ? `
+`
+      : constraint
+        ? `
 ════════════════════════
 CONSTRAINT
 ════════════════════════
 "${constraint}" - adjust accordingly but maintain safety and alignment.
-` : ''}
+`
+        : ''
+}
 
 ════════════════════════
 EXPLANATION STYLE
@@ -3427,7 +3485,8 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     });
 
     const raw = completion.choices[0]?.message?.content;
-    if (!raw) throw new Error('No visual suggestion response received from model.');
+    if (!raw)
+      throw new Error('No visual suggestion response received from model.');
 
     let parsed: {
       outfits: Array<{
@@ -3456,12 +3515,19 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     if (stronglyDislikedIds.size > 0) {
       const rank1Outfit = parsed.outfits.find((o) => o.rank === 1);
       if (rank1Outfit) {
-        const hasDislikedItem = rank1Outfit.itemIds.some((id) => stronglyDislikedIds.has(id));
+        const hasDislikedItem = rank1Outfit.itemIds.some((id) =>
+          stronglyDislikedIds.has(id),
+        );
         if (hasDislikedItem) {
-          console.warn('🛡️ [AI Stylist] Rank 1 contained disliked item — swapping with Rank 2');
+          console.warn(
+            '🛡️ [AI Stylist] Rank 1 contained disliked item — swapping with Rank 2',
+          );
           // Swap Rank 1 and Rank 2
           const rank2Outfit = parsed.outfits.find((o) => o.rank === 2);
-          if (rank2Outfit && !rank2Outfit.itemIds.some((id) => stronglyDislikedIds.has(id))) {
+          if (
+            rank2Outfit &&
+            !rank2Outfit.itemIds.some((id) => stronglyDislikedIds.has(id))
+          ) {
             rank1Outfit.rank = 2;
             rank2Outfit.rank = 1;
             // Re-sort by rank
@@ -3502,34 +3568,63 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     // Build category pools sorted by feedback score for fallback injection
     const categoryPools = {
       top: wardrobe
-        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'top')
-        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .filter(
+          (item) =>
+            this.mapToCategory(item.main_category || item.category) === 'top',
+        )
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
       bottom: wardrobe
-        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'bottom')
-        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .filter(
+          (item) =>
+            this.mapToCategory(item.main_category || item.category) ===
+            'bottom',
+        )
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
       shoes: wardrobe
-        .filter((item) => this.mapToCategory(item.main_category || item.category) === 'shoes')
-        .map((item) => ({ ...item, feedbackScore: feedbackContext.itemScores.get(item.id) || 0 }))
+        .filter(
+          (item) =>
+            this.mapToCategory(item.main_category || item.category) === 'shoes',
+        )
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
     };
 
     // Enforce completeness for each outfit
     for (const outfit of outfitsWithItems) {
-      const existingIds = new Set(outfit.items.map((item) => item?.id).filter(Boolean));
+      const existingIds = new Set(
+        outfit.items.map((item) => item?.id).filter(Boolean),
+      );
       const hasTop = outfit.items.some((item) => item?.category === 'top');
-      const hasBottom = outfit.items.some((item) => item?.category === 'bottom');
+      const hasBottom = outfit.items.some(
+        (item) => item?.category === 'bottom',
+      );
       const hasShoes = outfit.items.some((item) => item?.category === 'shoes');
 
       // Inject missing top
       if (!hasTop && categoryPools.top.length > 0) {
-        const fallback = categoryPools.top.find((item) => !existingIds.has(item.id));
+        const fallback = categoryPools.top.find(
+          (item) => !existingIds.has(item.id),
+        );
         if (fallback) {
           outfit.items.push({
             id: fallback.id,
             name: fallback.name || fallback.ai_title || 'Item',
-            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            imageUrl:
+              fallback.touched_up_image_url ||
+              fallback.processed_image_url ||
+              fallback.image_url ||
+              fallback.image,
             category: 'top',
           });
           existingIds.add(fallback.id);
@@ -3538,12 +3633,18 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
       // Inject missing bottom
       if (!hasBottom && categoryPools.bottom.length > 0) {
-        const fallback = categoryPools.bottom.find((item) => !existingIds.has(item.id));
+        const fallback = categoryPools.bottom.find(
+          (item) => !existingIds.has(item.id),
+        );
         if (fallback) {
           outfit.items.push({
             id: fallback.id,
             name: fallback.name || fallback.ai_title || 'Item',
-            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            imageUrl:
+              fallback.touched_up_image_url ||
+              fallback.processed_image_url ||
+              fallback.image_url ||
+              fallback.image,
             category: 'bottom',
           });
           existingIds.add(fallback.id);
@@ -3552,12 +3653,18 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
 
       // Inject missing shoes
       if (!hasShoes && categoryPools.shoes.length > 0) {
-        const fallback = categoryPools.shoes.find((item) => !existingIds.has(item.id));
+        const fallback = categoryPools.shoes.find(
+          (item) => !existingIds.has(item.id),
+        );
         if (fallback) {
           outfit.items.push({
             id: fallback.id,
             name: fallback.name || fallback.ai_title || 'Item',
-            imageUrl: fallback.touched_up_image_url || fallback.processed_image_url || fallback.image_url || fallback.image,
+            imageUrl:
+              fallback.touched_up_image_url ||
+              fallback.processed_image_url ||
+              fallback.image_url ||
+              fallback.image,
             category: 'shoes',
           });
           existingIds.add(fallback.id);
@@ -3569,28 +3676,38 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
   }
 
   /** Generate concise weather summary for UI (one line max) */
-  private generateWeatherSummary(temp: number | undefined, condition: string): string {
+  private generateWeatherSummary(
+    temp: number | undefined,
+    condition: string,
+  ): string {
     if (!temp) return 'Check local weather for best outfit choices.';
 
     const conditionLower = (condition || '').toLowerCase();
-    const isRainy = conditionLower.includes('rain') || conditionLower.includes('drizzle');
-    const isCloudy = conditionLower.includes('cloud') || conditionLower.includes('overcast');
-    const isClear = conditionLower.includes('clear') || conditionLower.includes('sun');
+    const isRainy =
+      conditionLower.includes('rain') || conditionLower.includes('drizzle');
+    const isCloudy =
+      conditionLower.includes('cloud') || conditionLower.includes('overcast');
+    const isClear =
+      conditionLower.includes('clear') || conditionLower.includes('sun');
 
     if (temp < 50) {
-      if (isRainy) return `Cold and rainy (${temp}°F) — warm layers and waterproof shoes.`;
+      if (isRainy)
+        return `Cold and rainy (${temp}°F) — warm layers and waterproof shoes.`;
       return `Cold today (${temp}°F) — heavier layers recommended.`;
     }
     if (temp < 65) {
-      if (isRainy) return `Cool with rain (${temp}°F) — light layers and closed shoes.`;
+      if (isRainy)
+        return `Cool with rain (${temp}°F) — light layers and closed shoes.`;
       return `Cool and ${isClear ? 'clear' : 'crisp'} (${temp}°F) — light layers work well.`;
     }
     if (temp < 80) {
-      if (isRainy) return `Mild with rain expected (${temp}°F) — breathable layers, closed shoes.`;
+      if (isRainy)
+        return `Mild with rain expected (${temp}°F) — breathable layers, closed shoes.`;
       return `Pleasant ${temp}°F — versatile options today.`;
     }
     // Hot weather
-    if (isRainy) return `Warm and humid (${temp}°F) — lightweight, breathable fabrics.`;
+    if (isRainy)
+      return `Warm and humid (${temp}°F) — lightweight, breathable fabrics.`;
     return `Warm today (${temp}°F) — keep it light and breathable.`;
   }
 
@@ -3599,13 +3716,29 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     category: string,
   ): 'top' | 'bottom' | 'outerwear' | 'shoes' | 'accessory' {
     const normalized = (category || '').toLowerCase();
-    if (normalized.includes('top') || normalized.includes('shirt') || normalized.includes('blouse'))
+    if (
+      normalized.includes('top') ||
+      normalized.includes('shirt') ||
+      normalized.includes('blouse')
+    )
       return 'top';
-    if (normalized.includes('bottom') || normalized.includes('pant') || normalized.includes('skirt'))
+    if (
+      normalized.includes('bottom') ||
+      normalized.includes('pant') ||
+      normalized.includes('skirt')
+    )
       return 'bottom';
-    if (normalized.includes('outer') || normalized.includes('jacket') || normalized.includes('coat'))
+    if (
+      normalized.includes('outer') ||
+      normalized.includes('jacket') ||
+      normalized.includes('coat')
+    )
       return 'outerwear';
-    if (normalized.includes('shoe') || normalized.includes('boot') || normalized.includes('sneaker'))
+    if (
+      normalized.includes('shoe') ||
+      normalized.includes('boot') ||
+      normalized.includes('sneaker')
+    )
       return 'shoes';
     return 'accessory';
   }
@@ -3721,7 +3854,9 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
   -------------------------------------------------------------*/
   async lookupFallback(upc: string) {
     try {
-      const rapidApiKey = secretExists('RAPIDAPI_KEY') ? getSecret('RAPIDAPI_KEY') : '';
+      const rapidApiKey = secretExists('RAPIDAPI_KEY')
+        ? getSecret('RAPIDAPI_KEY')
+        : '';
       const res = await fetch(`https://barcodes1.p.rapidapi.com/?upc=${upc}`, {
         headers: {
           'X-RapidAPI-Key': rapidApiKey,

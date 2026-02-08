@@ -12,7 +12,11 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { AuthenticatedRequest } from '../auth/types/auth-user';
 import { PriceTrackingService } from './price-tracking.service';
-import { TrackItemDto, UpdatePriceAlertDto, UpdatePriceDto } from './dto/track-item.dto';
+import {
+  TrackItemDto,
+  UpdatePriceAlertDto,
+  UpdatePriceDto,
+} from './dto/track-item.dto';
 
 @Controller('api/price-tracking')
 export class PriceTrackingController {
@@ -20,7 +24,10 @@ export class PriceTrackingController {
 
   @Post('track')
   @UseGuards(AuthGuard('jwt'))
-  async addTracking(@Request() req: AuthenticatedRequest, @Body() item: TrackItemDto) {
+  async addTracking(
+    @Request() req: AuthenticatedRequest,
+    @Body() item: TrackItemDto,
+  ) {
     const userId = req.user.userId;
     return this.priceTrackingService.addPriceTracking(userId, item);
   }
@@ -56,14 +63,20 @@ export class PriceTrackingController {
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'))
-  async removeTracking(@Request() req: AuthenticatedRequest, @Param('id') id: number) {
+  async removeTracking(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: number,
+  ) {
     const userId = req.user.userId;
     return this.priceTrackingService.removePriceTracking(userId, id);
   }
 
   @Get(':id/history')
   @UseGuards(AuthGuard('jwt'))
-  async getPriceHistory(@Request() req: AuthenticatedRequest, @Param('id') id: number) {
+  async getPriceHistory(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: number,
+  ) {
     const userId = req.user.userId;
     return this.priceTrackingService.getPriceHistory(userId, id);
   }

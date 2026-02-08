@@ -78,7 +78,7 @@ async function bootstrap() {
     });
 
     // Ensure Express-style middleware exists (used by Passport)
-    const fastifyInstance = adapter.getInstance() as any;
+    const fastifyInstance = adapter.getInstance();
     if (typeof fastifyInstance.use !== 'function') {
       await fastifyInstance.register(fastifyExpress);
     }

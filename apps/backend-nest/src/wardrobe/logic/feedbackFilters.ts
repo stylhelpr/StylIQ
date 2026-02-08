@@ -179,7 +179,10 @@ const CATEGORY_ALIASES: Array<[NormalizedCategory, RegExp]> = [
   ['bags', /\b(bags?|handbags?|totes?|clutch(es)?|backpacks?|crossbody)\b/i],
   ['headwear', /\b(caps?|beanies?|fedoras?|headbands?|sun\s*hats?)\b/i],
   ['jewelry', /\b(necklaces?|bracelets?|earrings?|rings?|jewelry)\b/i],
-  ['undergarments', /\b(underwear|briefs?|boxers?|bras?|socks?|panties|shapewear)\b/i],
+  [
+    'undergarments',
+    /\b(underwear|briefs?|boxers?|bras?|socks?|panties|shapewear)\b/i,
+  ],
   ['loungewear', /\b(lounge|sweatshirts?|co-?ords?)\b/i],
   ['sleepwear', /\b(pajamas?|nightgowns?|nightshirts?|robes?|sleepwear)\b/i],
 ];
@@ -284,11 +287,15 @@ function itemIsCategory(it: CatalogItem, cat: NormalizedCategory): boolean {
     case 'swimwear':
       return m === 'swimwear' || /\b(swim|trunks|boardshorts?)\b/i.test(s);
     case 'dresses':
-      return m === 'dresses' || /\b(dress(es)?|gown|jumpsuit|romper)\b/i.test(s);
+      return (
+        m === 'dresses' || /\b(dress(es)?|gown|jumpsuit|romper)\b/i.test(s)
+      );
     case 'skirts':
       return m === 'skirts' || /\bskirts?\b/i.test(s);
     case 'bags':
-      return m === 'bags' || /\b(handbag|tote|clutch|backpack|crossbody)\b/i.test(s);
+      return (
+        m === 'bags' || /\b(handbag|tote|clutch|backpack|crossbody)\b/i.test(s)
+      );
     case 'headwear':
       return m === 'headwear';
     case 'jewelry':
@@ -479,10 +486,7 @@ function applyRulesSoft<T extends CatalogItem>(
   catalog: T[],
   rules: FeedbackRule[],
 ): T[] {
-  const itemRules = rules.filter((r) => r.kind === 'excludeItemIds') as Extract<
-    FeedbackRule,
-    { kind: 'excludeItemIds' }
-  >[];
+  const itemRules = rules.filter((r) => r.kind === 'excludeItemIds');
   if (!itemRules.length) return catalog;
   const banned = new Set<string>();
   itemRules.forEach((r) => r.item_ids.forEach((id) => banned.add(String(id))));

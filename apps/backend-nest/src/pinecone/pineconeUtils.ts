@@ -17,7 +17,9 @@ function getPineconeIndex(): Index {
   if (!pineconeIndex) {
     const indexName = getSecret('PINECONE_INDEX');
     // Use PINECONE_HOST if available to skip describeIndex control plane call
-    const host = secretExists('PINECONE_HOST') ? getSecret('PINECONE_HOST') : undefined;
+    const host = secretExists('PINECONE_HOST')
+      ? getSecret('PINECONE_HOST')
+      : undefined;
     pineconeIndex = getPineconeClient().Index(indexName, host);
   }
   return pineconeIndex;

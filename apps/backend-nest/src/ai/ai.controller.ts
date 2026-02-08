@@ -80,11 +80,7 @@ export class AiController {
     @Body() body: { image_url: string; gender?: string },
   ) {
     const userId = req.user.userId;
-    return this.service.personalizedShop(
-      userId,
-      body.image_url,
-      body.gender,
-    );
+    return this.service.personalizedShop(userId, body.image_url, body.gender);
   }
 
   @Post('recreate-visual')
@@ -129,7 +125,10 @@ export class AiController {
       if (!res.ok) throw new Error(`SerpAPI failed (${res.status})`);
       const json = await res.json();
 
-      console.log('🔍 [similar-looks] SerpAPI response keys:', Object.keys(json || {}));
+      console.log(
+        '🔍 [similar-looks] SerpAPI response keys:',
+        Object.keys(json || {}),
+      );
 
       // Try multiple result fields - Google Lens returns different structures
       const matches =
@@ -206,7 +205,9 @@ export class AiController {
       });
     } catch (err: any) {
       console.error('❌ [AI] similar-looks error:', err.message, err.stack);
-      throw new BadRequestException(`Similar looks search failed: ${err.message}`);
+      throw new BadRequestException(
+        `Similar looks search failed: ${err.message}`,
+      );
     }
   }
 
@@ -224,7 +225,10 @@ export class AiController {
     try {
       // Step 1: Use AI to analyze the image and identify each clothing piece
       // console.log('👗 [recreate-outfit] Step 1: Analyzing outfit with AI...');
-      const outfitPieces = await this.service.analyzeOutfitPieces(imageUrl, gender);
+      const outfitPieces = await this.service.analyzeOutfitPieces(
+        imageUrl,
+        gender,
+      );
       // console.log('👗 [recreate-outfit] Identified pieces:', outfitPieces);
 
       if (!outfitPieces || outfitPieces.length === 0) {
@@ -237,11 +241,15 @@ export class AiController {
         outfitPieces.map(async (piece: any) => {
           // Build search query - prioritize brand/logo if available
           const brandPart = piece.brand ? `${piece.brand} ` : '';
-          const searchQuery = `${brandPart}${piece.color || ''} ${piece.item} ${piece.style || ''}`.trim();
+          const searchQuery =
+            `${brandPart}${piece.color || ''} ${piece.item} ${piece.style || ''}`.trim();
           // console.log(`👗 [recreate-outfit] Searching for: "${searchQuery}" (brand: ${piece.brand || 'none'})`);
 
           try {
-            const products = await this.searchGoogleShopping(searchQuery, gender);
+            const products = await this.searchGoogleShopping(
+              searchQuery,
+              gender,
+            );
             return {
               category: piece.category,
               item: piece.item,
@@ -253,7 +261,10 @@ export class AiController {
               products: products.slice(0, 6), // Top 6 matches per piece
             };
           } catch (err) {
-            console.error(`👗 [recreate-outfit] Search failed for ${piece.item}:`, err);
+            console.error(
+              `👗 [recreate-outfit] Search failed for ${piece.item}:`,
+              err,
+            );
             return {
               category: piece.category,
               item: piece.item,
@@ -280,7 +291,10 @@ export class AiController {
   /**
    * Helper: Search Google Shopping via SerpAPI
    */
-  private async searchGoogleShopping(query: string, gender?: string): Promise<any[]> {
+  private async searchGoogleShopping(
+    query: string,
+    gender?: string,
+  ): Promise<any[]> {
     const genderQuery = gender ? ` ${gender}'s` : '';
     const fullQuery = `${query}${genderQuery}`;
 
@@ -289,7 +303,8 @@ export class AiController {
     )}&hl=en&gl=us&api_key=${getSecret('SERPAPI_KEY')}`;
 
     const res = await fetch(serpUrl);
-    if (!res.ok) throw new Error(`Google Shopping search failed (${res.status})`);
+    if (!res.ok)
+      throw new Error(`Google Shopping search failed (${res.status})`);
 
     const json = await res.json();
     const results = json?.shopping_results || [];
@@ -297,7 +312,10 @@ export class AiController {
     return results.map((item: any) => {
       let price: string | null = null;
       if (item.price) {
-        price = typeof item.price === 'string' ? item.price : `$${item.extracted_price || item.price}`;
+        price =
+          typeof item.price === 'string'
+            ? item.price
+            : `$${item.extracted_price || item.price}`;
       }
 
       return {

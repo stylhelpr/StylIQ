@@ -24,7 +24,9 @@ export class SavedLookService {
   private storage: Storage;
 
   constructor(private readonly learningEvents: LearningEventsService) {
-    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
+    const credentials = getSecretJson<GCPServiceAccount>(
+      'GCP_SERVICE_ACCOUNT_JSON',
+    );
     this.storage = new Storage({
       projectId: credentials.project_id,
       credentials,
@@ -103,7 +105,10 @@ export class SavedLookService {
       gsutilUri = gcsResult.gsutilUri;
       objectKey = gcsResult.objectKey;
     } catch (err) {
-      console.error('[SavedLooks] Failed to upload to GCS, falling back to external URL:', err);
+      console.error(
+        '[SavedLooks] Failed to upload to GCS, falling back to external URL:',
+        err,
+      );
       // Fall back to storing the external URL if upload fails
     }
 

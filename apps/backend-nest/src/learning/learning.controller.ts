@@ -38,7 +38,9 @@ export class LearningController {
    * Get current learning consent status.
    */
   @Get('consent')
-  async getConsent(@Req() req): Promise<{ enabled: boolean; enabledAt?: string }> {
+  async getConsent(
+    @Req() req,
+  ): Promise<{ enabled: boolean; enabledAt?: string }> {
     const userId = req.user.userId;
 
     const result = await pool.query(
@@ -79,7 +81,9 @@ export class LearningController {
    */
   @Post('consent/disable')
   @HttpCode(HttpStatus.OK)
-  async disableConsent(@Req() req): Promise<{ enabled: boolean; deletedEvents: number }> {
+  async disableConsent(
+    @Req() req,
+  ): Promise<{ enabled: boolean; deletedEvents: number }> {
     const userId = req.user.userId;
 
     // Update consent flag

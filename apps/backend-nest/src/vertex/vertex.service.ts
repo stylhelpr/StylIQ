@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { PredictionServiceClient, helpers } from '@google-cloud/aiplatform';
 import { VertexAI, SchemaType } from '@google-cloud/vertexai';
 import { GoogleAuth } from 'google-auth-library';
+import { Storage } from '@google-cloud/storage';
 import { withBackoff } from './vertex.util';
 import { getSecret, getSecretJson, secretExists } from '../config/secrets';
 import * as FormData from 'form-data';
@@ -154,6 +155,8 @@ export class VertexService {
   private location: string;
   private vertexAI: VertexAI; // Generative API (Gemini)
   private googleAuth: GoogleAuth; // For REST API calls
+  private gcsStorage: Storage; // Reusable GCS client
+  private gcsBucketName: string; // Resolved once
 
   // Model names - defaults, can be overridden via config secrets if needed
   private textModel = 'gemini-embedding-001';
@@ -226,6 +229,15 @@ export class VertexService {
       },
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
+
+    // Reusable GCS client (avoid recreating per call)
+    this.gcsStorage = new Storage({
+      projectId: credentials.project_id,
+      credentials,
+    });
+    this.gcsBucketName = secretExists('GCS_BUCKET_NAME')
+      ? getSecret('GCS_BUCKET_NAME')
+      : 'stylhelpr-prod-bucket';
   }
 
   // -------------------
@@ -295,7 +307,9 @@ export class VertexService {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Vertex embedding REST error: ${response.status} ${errText}`);
+      throw new Error(
+        `Vertex embedding REST error: ${response.status} ${errText}`,
+      );
     }
 
     const data = await response.json();
@@ -345,12 +359,6 @@ export class VertexService {
   private async ensureEmbeddableFormat(gcsUri: string): Promise<string> {
     const sharpModule = await import('sharp');
     const sharp = sharpModule.default || sharpModule;
-    const { Storage } = await import('@google-cloud/storage');
-    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
-    const storage = new Storage({
-      projectId: credentials.project_id,
-      credentials,
-    });
 
     // Parse gs://bucket/path
     const match = gcsUri.match(/^gs:\/\/([^/]+)\/(.+)$/);
@@ -360,15 +368,21 @@ export class VertexService {
     const [, bucketName, objectPath] = match;
 
     // Download image
-    const bucket = storage.bucket(bucketName);
+    const bucket = this.gcsStorage.bucket(bucketName);
     const [imageBuffer] = await bucket.file(objectPath).download();
 
     // Detect actual format using sharp
     const metadata = await sharp(imageBuffer).metadata();
-    console.log('[embedImage] Detected format:', metadata.format, 'for', gcsUri);
+    console.log(
+      '[embedImage] Detected format:',
+      metadata.format,
+      'for',
+      gcsUri,
+    );
 
     // Formats that need conversion (not supported by Vertex AI or Photoroom)
-    const needsConversion = metadata.format === 'webp' || metadata.format === 'heif';
+    const needsConversion =
+      metadata.format === 'webp' || metadata.format === 'heif';
 
     if (!needsConversion) {
       return gcsUri;
@@ -390,9 +404,7 @@ export class VertexService {
     } else {
       // WEBP can be handled by Sharp
       console.log('[embedImage] Converting WEBP to JPEG');
-      jpegBuffer = await sharp(imageBuffer)
-        .jpeg({ quality: 95 })
-        .toBuffer();
+      jpegBuffer = await sharp(imageBuffer).jpeg({ quality: 95 }).toBuffer();
     }
 
     // Upload converted JPEG
@@ -419,7 +431,9 @@ export class VertexService {
 
     // HEIF needs special handling - Sharp doesn't support it without libheif
     if (metadata.format === 'heif') {
-      console.log('[ensureJpegBuffer] Converting HEIF to JPEG using heic-convert');
+      console.log(
+        '[ensureJpegBuffer] Converting HEIF to JPEG using heic-convert',
+      );
       const heicConvert = await import('heic-convert');
       const convert = heicConvert.default || heicConvert;
       const jpegBuffer = await convert({
@@ -433,9 +447,7 @@ export class VertexService {
     // WEBP can be handled by Sharp
     if (metadata.format === 'webp') {
       console.log('[ensureJpegBuffer] Converting WEBP to JPEG');
-      return sharp(imageBuffer)
-        .jpeg({ quality: 95 })
-        .toBuffer();
+      return sharp(imageBuffer).jpeg({ quality: 95 }).toBuffer();
     }
 
     return imageBuffer;
@@ -790,25 +802,13 @@ export class VertexService {
     userId: string,
     originalObjectKey: string,
   ): Promise<{ processedGcsUri: string; processedPublicUrl: string }> {
-    const { Storage } = await import('@google-cloud/storage');
-    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
-    const storage = new Storage({
-      projectId: credentials.project_id,
-      credentials,
-    });
-
-    // Use same bucket resolution as UploadService
-    const bucketName = secretExists('GCS_BUCKET_NAME')
-      ? getSecret('GCS_BUCKET_NAME')
-      : 'stylhelpr-prod-bucket';
-
     const filename = originalObjectKey.split('/').pop() || 'image.png';
     const processedObjectKey = `processed/${userId}/transparent/${Date.now()}-${filename.replace(
       /\.[^.]+$/,
       '.png',
     )}`;
 
-    const bucket = storage.bucket(bucketName);
+    const bucket = this.gcsStorage.bucket(this.gcsBucketName);
     const file = bucket.file(processedObjectKey);
 
     await file.save(imageBuffer, {
@@ -816,8 +816,8 @@ export class VertexService {
       resumable: false,
     });
 
-    const gcsUri = `gs://${bucketName}/${processedObjectKey}`;
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${processedObjectKey}`;
+    const gcsUri = `gs://${this.gcsBucketName}/${processedObjectKey}`;
+    const publicUrl = `https://storage.googleapis.com/${this.gcsBucketName}/${processedObjectKey}`;
 
     return {
       processedGcsUri: gcsUri,
@@ -887,24 +887,13 @@ export class VertexService {
     userId: string,
     originalObjectKey: string,
   ): Promise<{ touchedUpGcsUri: string; touchedUpPublicUrl: string }> {
-    const { Storage } = await import('@google-cloud/storage');
-    const credentials = getSecretJson<GCPServiceAccount>('GCP_SERVICE_ACCOUNT_JSON');
-    const storage = new Storage({
-      projectId: credentials.project_id,
-      credentials,
-    });
-
-    const bucketName = secretExists('GCS_BUCKET_NAME')
-      ? getSecret('GCS_BUCKET_NAME')
-      : 'stylhelpr-prod-bucket';
-
     const filename = originalObjectKey.split('/').pop() || 'image.png';
     const touchedUpObjectKey = `touched-up/${userId}/${Date.now()}-${filename.replace(
       /\.[^.]+$/,
       '.png',
     )}`;
 
-    const bucket = storage.bucket(bucketName);
+    const bucket = this.gcsStorage.bucket(this.gcsBucketName);
     const file = bucket.file(touchedUpObjectKey);
 
     await file.save(imageBuffer, {
@@ -912,8 +901,8 @@ export class VertexService {
       resumable: false,
     });
 
-    const gcsUri = `gs://${bucketName}/${touchedUpObjectKey}`;
-    const publicUrl = `https://storage.googleapis.com/${bucketName}/${touchedUpObjectKey}`;
+    const gcsUri = `gs://${this.gcsBucketName}/${touchedUpObjectKey}`;
+    const publicUrl = `https://storage.googleapis.com/${this.gcsBucketName}/${touchedUpObjectKey}`;
 
     return {
       touchedUpGcsUri: gcsUri,
@@ -940,7 +929,12 @@ export class VertexService {
       const sharpModule = await import('sharp');
       const sharp = sharpModule.default || sharpModule;
       const inputMeta = await sharp(imageBuffer).metadata();
-      console.log('[GarmentSegmentation] INPUT dimensions:', inputMeta.width, 'x', inputMeta.height);
+      console.log(
+        '[GarmentSegmentation] INPUT dimensions:',
+        inputMeta.width,
+        'x',
+        inputMeta.height,
+      );
 
       // Convert HEIF/WEBP to JPEG before sending to Photoroom
       const jpegBuffer = await this.ensureJpegBuffer(imageBuffer);
@@ -979,7 +973,12 @@ export class VertexService {
 
       // Log output dimensions
       const outputMeta = await sharp(pngBuffer).metadata();
-      console.log('[GarmentSegmentation] OUTPUT dimensions:', outputMeta.width, 'x', outputMeta.height);
+      console.log(
+        '[GarmentSegmentation] OUTPUT dimensions:',
+        outputMeta.width,
+        'x',
+        outputMeta.height,
+      );
 
       return this.uploadProcessedImage(pngBuffer, userId, originalObjectKey);
     } catch (err) {

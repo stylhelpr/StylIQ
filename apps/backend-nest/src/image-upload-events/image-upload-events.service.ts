@@ -4,7 +4,10 @@ import { pool } from '../db/pool';
 
 @Injectable()
 export class ImageUploadEventsService {
-  async create(userId: string, dto: Omit<CreateImageUploadEventDto, 'user_id'>) {
+  async create(
+    userId: string,
+    dto: Omit<CreateImageUploadEventDto, 'user_id'>,
+  ) {
     const {
       wardrobe_item_id,
       file_name,

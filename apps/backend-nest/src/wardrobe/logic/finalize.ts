@@ -377,7 +377,7 @@ export function validateOutfits(
       ((wedding || blackTie) && (dressShoes[0] ?? anyShoes[0])) ||
       anyShoes[0];
 
-    const items = [top, bottom, shoe].filter(Boolean) as CatalogItemLite[];
+    const items = [top, bottom, shoe].filter(Boolean);
     if (items.length) {
       out = [
         {

@@ -35,7 +35,12 @@ export class MessagingController {
     @Query('before') before?: string,
   ) {
     const userId = req.user.userId;
-    return this.service.getMessages(userId, otherUserId, parseInt(limit), before);
+    return this.service.getMessages(
+      userId,
+      otherUserId,
+      parseInt(limit),
+      before,
+    );
   }
 
   // Poll for new messages (used for real-time updates)

@@ -478,7 +478,7 @@ export function scoreItemForStyle(
       (item as any).label ||
       [item.main_category, item.subcategory].filter(Boolean).join(' / ') ||
       'Item';
-    // eslint-disable-next-line no-console
+
     console.log(
       `[STYLE] ${label} raw=${rawScore.toFixed(2)} norm=${norm.toFixed(
         2,

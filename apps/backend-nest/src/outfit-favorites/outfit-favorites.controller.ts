@@ -33,7 +33,10 @@ export class OutfitFavoritesController {
 
   @UseGuards(JwtAuthGuard)
   @Post('remove')
-  async removeFavorite(@Req() req, @Body() dto: Omit<RemoveFavoriteDto, 'user_id'>) {
+  async removeFavorite(
+    @Req() req,
+    @Body() dto: Omit<RemoveFavoriteDto, 'user_id'>,
+  ) {
     const user_id = req.user.userId;
     return this.service.removeFavorite({ user_id, ...dto });
   }

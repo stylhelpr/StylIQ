@@ -13,10 +13,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
 import { ConsentCache } from './consent-cache';
-import {
-  LEARNING_FLAGS,
-  EVENT_LOGGING_CONFIG,
-} from '../config/feature-flags';
+import { LEARNING_FLAGS, EVENT_LOGGING_CONFIG } from '../config/feature-flags';
 import {
   CreateLearningEventInput,
   EVENT_SIGNAL_DEFAULTS,
@@ -145,7 +142,9 @@ export class LearningEventsService {
       );
       return parseInt(result.rows[0].count, 10);
     } catch (error) {
-      this.logger.error(`[LearningEvents] getEventCount failed: ${error.message}`);
+      this.logger.error(
+        `[LearningEvents] getEventCount failed: ${error.message}`,
+      );
       return 0;
     }
   }

@@ -6,15 +6,34 @@ import { pool } from '../db/pool';
 @Injectable()
 export class CustomOutfitService {
   async create(dto: CreateCustomOutfitDto) {
-    const { user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes, canvas_data, thumbnail_url } =
-      dto;
+    const {
+      user_id,
+      name,
+      top_id,
+      bottom_id,
+      shoes_id,
+      accessory_ids,
+      notes,
+      canvas_data,
+      thumbnail_url,
+    } = dto;
 
     const result = await pool.query(
       `INSERT INTO custom_outfits (
         user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes, canvas_data, thumbnail_url
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *`,
-      [user_id, name, top_id, bottom_id, shoes_id, accessory_ids, notes, canvas_data ? JSON.stringify(canvas_data) : null, thumbnail_url],
+      [
+        user_id,
+        name,
+        top_id,
+        bottom_id,
+        shoes_id,
+        accessory_ids,
+        notes,
+        canvas_data ? JSON.stringify(canvas_data) : null,
+        thumbnail_url,
+      ],
     );
 
     return {

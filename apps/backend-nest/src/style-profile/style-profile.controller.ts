@@ -1,5 +1,13 @@
 // src/style-profile/style-profile.controller.ts
-import { Controller, Get, Put, Body, UseGuards, Req, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  UseGuards,
+  Req,
+  Param,
+} from '@nestjs/common';
 import { StyleProfileService } from './style-profile.service';
 import { UpdateStyleProfileDto } from './dto/update-style-profile.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';

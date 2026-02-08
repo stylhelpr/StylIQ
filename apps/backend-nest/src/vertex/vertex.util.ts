@@ -17,7 +17,6 @@ export async function withBackoff<T>(
   const retryableHttp = new Set([429, 500, 502, 503, 504]);
   const retryableGrpc = new Set([8, 14, 13, 4]); // RESOURCE_EXHAUSTED, UNAVAILABLE, INTERNAL, DEADLINE_EXCEEDED
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       return await fn();

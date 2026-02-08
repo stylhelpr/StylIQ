@@ -1,5 +1,11 @@
 // create-custom-outfit.dto.ts
-import { IsString, IsOptional, IsArray, IsNumber, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsNumber,
+  IsObject,
+} from 'class-validator';
 
 export class CreateCustomOutfitDto {
   @IsString()

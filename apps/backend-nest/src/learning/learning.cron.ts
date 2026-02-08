@@ -106,7 +106,9 @@ export class LearningCronService {
         );
       }
     } catch (error) {
-      this.logger.error(`[LearningCron] Event cleanup failed: ${error.message}`);
+      this.logger.error(
+        `[LearningCron] Event cleanup failed: ${error.message}`,
+      );
     }
   }
 

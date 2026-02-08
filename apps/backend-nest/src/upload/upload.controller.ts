@@ -89,7 +89,10 @@ export class UploadController {
 
     const results: any[] = [];
     for (const item of items) {
-      const res = await this.uploadService.saveWardrobeItem({ ...item, user_id: userId });
+      const res = await this.uploadService.saveWardrobeItem({
+        ...item,
+        user_id: userId,
+      });
       results.push(res);
     }
     return { count: results.length, results };

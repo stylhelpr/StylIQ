@@ -75,10 +75,14 @@ export class BrowserSyncService {
     const limits = await this.getUserLimits(userId);
     const counts = await this.getCurrentCounts(userId);
 
-    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
-      await Promise.all([
-        this.db.query(
-          `SELECT id, url, title, favicon_url, price, price_history, brand, category,
+    const [
+      bookmarksResult,
+      historyResult,
+      collectionsResult,
+      cartHistoryResult,
+    ] = await Promise.all([
+      this.db.query(
+        `SELECT id, url, title, favicon_url, price, price_history, brand, category,
                 source, sizes_viewed, colors_viewed, view_count, last_viewed_at,
                 emotion_at_save, body_measurements_at_time,
                 created_at, updated_at
@@ -86,20 +90,20 @@ export class BrowserSyncService {
          WHERE user_id = $1
          ORDER BY updated_at DESC
          LIMIT $2`,
-          [userId, limits.maxBookmarks],
-        ),
-        this.db.query(
-          `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
+        [userId, limits.maxBookmarks],
+      ),
+      this.db.query(
+        `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
                 visit_count, visited_at, brand, session_id, is_cart_page,
                 body_measurements_at_time
          FROM browser_history
          WHERE user_id = $1 AND visited_at > now() - INTERVAL '${limits.maxHistoryDays} days'
          ORDER BY visited_at DESC
          LIMIT $2`,
-          [userId, MAX_HISTORY_ENTRIES_PER_SYNC],
-        ),
-        this.db.query(
-          `SELECT c.id, c.name, c.description, c.color, c.created_at, c.updated_at,
+        [userId, MAX_HISTORY_ENTRIES_PER_SYNC],
+      ),
+      this.db.query(
+        `SELECT c.id, c.name, c.description, c.color, c.created_at, c.updated_at,
                 COALESCE(array_agg(ci.bookmark_id) FILTER (WHERE ci.bookmark_id IS NOT NULL), '{}') as bookmark_ids
          FROM browser_collections c
          LEFT JOIN browser_collection_items ci ON c.id = ci.collection_id
@@ -107,17 +111,17 @@ export class BrowserSyncService {
          GROUP BY c.id
          ORDER BY c.updated_at DESC
          LIMIT $2`,
-          [userId, limits.maxCollections],
-        ),
-        this.db.query(
-          `SELECT id, cart_url, abandoned, time_to_checkout, created_at, updated_at
+        [userId, limits.maxCollections],
+      ),
+      this.db.query(
+        `SELECT id, cart_url, abandoned, time_to_checkout, created_at, updated_at
          FROM browser_cart_history
          WHERE user_id = $1
          ORDER BY updated_at DESC
          LIMIT 100`,
-          [userId],
-        ),
-      ]);
+        [userId],
+      ),
+    ]);
 
     // Fetch cart events for each cart history entry
     const cartHistory = await this.mapCartHistoryFromDb(cartHistoryResult.rows);
@@ -149,46 +153,50 @@ export class BrowserSyncService {
     const counts = await this.getCurrentCounts(userId);
     const sinceDate = new Date(lastSyncTimestamp);
 
-    const [bookmarksResult, historyResult, collectionsResult, cartHistoryResult] =
-      await Promise.all([
-        this.db.query(
-          `SELECT id, url, title, favicon_url, price, price_history, brand, category,
+    const [
+      bookmarksResult,
+      historyResult,
+      collectionsResult,
+      cartHistoryResult,
+    ] = await Promise.all([
+      this.db.query(
+        `SELECT id, url, title, favicon_url, price, price_history, brand, category,
                 source, sizes_viewed, colors_viewed, view_count, last_viewed_at,
                 emotion_at_save, body_measurements_at_time,
                 created_at, updated_at
          FROM browser_bookmarks
          WHERE user_id = $1 AND updated_at > $2
          ORDER BY updated_at DESC`,
-          [userId, sinceDate],
-        ),
-        this.db.query(
-          `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
+        [userId, sinceDate],
+      ),
+      this.db.query(
+        `SELECT id, url, title, source, dwell_time_seconds, scroll_depth_percent,
                 visit_count, visited_at, brand, session_id, is_cart_page,
                 body_measurements_at_time
          FROM browser_history
          WHERE user_id = $1 AND visited_at > $2
          ORDER BY visited_at DESC
          LIMIT $3`,
-          [userId, sinceDate, MAX_HISTORY_ENTRIES_PER_SYNC],
-        ),
-        this.db.query(
-          `SELECT c.id, c.name, c.description, c.color, c.created_at, c.updated_at,
+        [userId, sinceDate, MAX_HISTORY_ENTRIES_PER_SYNC],
+      ),
+      this.db.query(
+        `SELECT c.id, c.name, c.description, c.color, c.created_at, c.updated_at,
                 COALESCE(array_agg(ci.bookmark_id) FILTER (WHERE ci.bookmark_id IS NOT NULL), '{}') as bookmark_ids
          FROM browser_collections c
          LEFT JOIN browser_collection_items ci ON c.id = ci.collection_id
          WHERE c.user_id = $1 AND c.updated_at > $2
          GROUP BY c.id
          ORDER BY c.updated_at DESC`,
-          [userId, sinceDate],
-        ),
-        this.db.query(
-          `SELECT id, cart_url, abandoned, time_to_checkout, created_at, updated_at
+        [userId, sinceDate],
+      ),
+      this.db.query(
+        `SELECT id, cart_url, abandoned, time_to_checkout, created_at, updated_at
          FROM browser_cart_history
          WHERE user_id = $1 AND updated_at > $2
          ORDER BY updated_at DESC`,
-          [userId, sinceDate],
-        ),
-      ]);
+        [userId, sinceDate],
+      ),
+    ]);
 
     // Fetch cart events for each cart history entry
     const cartHistory = await this.mapCartHistoryFromDb(cartHistoryResult.rows);
@@ -212,7 +220,10 @@ export class BrowserSyncService {
   }
 
   // Push sync - receive changes from client
-  async pushSync(userId: string, data: SyncRequestDto): Promise<SyncResponseDto> {
+  async pushSync(
+    userId: string,
+    data: SyncRequestDto,
+  ): Promise<SyncResponseDto> {
     const limits = await this.getUserLimits(userId);
     const counts = await this.getCurrentCounts(userId);
 
@@ -242,7 +253,10 @@ export class BrowserSyncService {
 
     if (data.collections?.length) {
       const newCollectionsCount = data.collections.filter((c) => !c.id).length;
-      if (counts.collectionCount + newCollectionsCount > limits.maxCollections) {
+      if (
+        counts.collectionCount + newCollectionsCount >
+        limits.maxCollections
+      ) {
         throw new BadRequestException(
           `Collection limit exceeded. Max: ${limits.maxCollections}, Current: ${counts.collectionCount}`,
         );
@@ -326,7 +340,9 @@ export class BrowserSyncService {
           bookmark.viewCount || 1,
           bookmark.lastViewedAt ? new Date(bookmark.lastViewedAt) : null,
           bookmark.emotionAtSave || null, // GOLD #5
-          bookmark.bodyMeasurementsAtTime ? JSON.stringify(bookmark.bodyMeasurementsAtTime) : null, // GOLD #8
+          bookmark.bodyMeasurementsAtTime
+            ? JSON.stringify(bookmark.bodyMeasurementsAtTime)
+            : null, // GOLD #8
         ],
       );
     }
@@ -370,7 +386,9 @@ export class BrowserSyncService {
           entry.brand || null,
           entry.sessionId || null, // GOLD #3
           entry.isCartPage || false, // GOLD #3b
-          entry.bodyMeasurementsAtTime ? JSON.stringify(entry.bodyMeasurementsAtTime) : null, // GOLD #8
+          entry.bodyMeasurementsAtTime
+            ? JSON.stringify(entry.bodyMeasurementsAtTime)
+            : null, // GOLD #8
         ],
       );
     }
@@ -488,25 +506,45 @@ export class BrowserSyncService {
     // Delete in dependency order to avoid foreign key violations
     await Promise.all([
       // Delete all GOLD metrics
-      this.db.query('DELETE FROM browser_time_to_action WHERE user_id = $1', [userId]),
-      this.db.query('DELETE FROM browser_product_interactions WHERE user_id = $1', [userId]),
+      this.db.query('DELETE FROM browser_time_to_action WHERE user_id = $1', [
+        userId,
+      ]),
+      this.db.query(
+        'DELETE FROM browser_product_interactions WHERE user_id = $1',
+        [userId],
+      ),
 
       // Delete shopping analytics events
-      this.db.query('DELETE FROM shopping_analytics_events WHERE user_id = $1', [userId]),
+      this.db.query(
+        'DELETE FROM shopping_analytics_events WHERE user_id = $1',
+        [userId],
+      ),
 
       // Delete cart-related data
-      this.db.query('DELETE FROM browser_cart_events WHERE cart_history_id IN (SELECT id FROM browser_cart_history WHERE user_id = $1)', [userId]),
-      this.db.query('DELETE FROM browser_cart_history WHERE user_id = $1', [userId]),
+      this.db.query(
+        'DELETE FROM browser_cart_events WHERE cart_history_id IN (SELECT id FROM browser_cart_history WHERE user_id = $1)',
+        [userId],
+      ),
+      this.db.query('DELETE FROM browser_cart_history WHERE user_id = $1', [
+        userId,
+      ]),
 
       // Delete browsing data
       this.db.query('DELETE FROM browser_history WHERE user_id = $1', [userId]),
 
       // Delete bookmarks and associated data
-      this.db.query('DELETE FROM browser_collection_items WHERE bookmark_id IN (SELECT id FROM browser_bookmarks WHERE user_id = $1)', [userId]),
-      this.db.query('DELETE FROM browser_bookmarks WHERE user_id = $1', [userId]),
+      this.db.query(
+        'DELETE FROM browser_collection_items WHERE bookmark_id IN (SELECT id FROM browser_bookmarks WHERE user_id = $1)',
+        [userId],
+      ),
+      this.db.query('DELETE FROM browser_bookmarks WHERE user_id = $1', [
+        userId,
+      ]),
 
       // Delete collections
-      this.db.query('DELETE FROM browser_collections WHERE user_id = $1', [userId]),
+      this.db.query('DELETE FROM browser_collections WHERE user_id = $1', [
+        userId,
+      ]),
     ]);
 
     console.log(`[GDPR] Deleted all analytics for user ${userId}`);
@@ -583,12 +621,7 @@ export class BrowserSyncService {
            time_to_checkout = COALESCE(EXCLUDED.time_to_checkout, browser_cart_history.time_to_checkout),
            updated_at = now()
          RETURNING id`,
-        [
-          userId,
-          cart.cartUrl,
-          cart.abandoned,
-          cart.timeToCheckout || null,
-        ],
+        [userId, cart.cartUrl, cart.abandoned, cart.timeToCheckout || null],
       );
 
       const cartHistoryId = result.rows[0].id;

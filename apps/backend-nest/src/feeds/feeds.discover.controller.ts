@@ -32,19 +32,32 @@ const IOS_SAFARI_UA =
 
 // SSRF Protection: Allowed domains for feed discovery
 const ALLOWED_DOMAINS = new Set([
-  'vogue.com', 'www.vogue.com',
-  'gq.com', 'www.gq.com',
-  'elle.com', 'www.elle.com',
-  'harpersbazaar.com', 'www.harpersbazaar.com',
-  'wwd.com', 'www.wwd.com',
-  'businessoffashion.com', 'www.businessoffashion.com',
-  'fashionista.com', 'www.fashionista.com',
-  'thecut.com', 'www.thecut.com',
-  'refinery29.com', 'www.refinery29.com',
-  'whowhatwear.com', 'www.whowhatwear.com',
-  'highsnobiety.com', 'www.highsnobiety.com',
-  'hypebeast.com', 'www.hypebeast.com',
-  'nymag.com', 'www.nymag.com',
+  'vogue.com',
+  'www.vogue.com',
+  'gq.com',
+  'www.gq.com',
+  'elle.com',
+  'www.elle.com',
+  'harpersbazaar.com',
+  'www.harpersbazaar.com',
+  'wwd.com',
+  'www.wwd.com',
+  'businessoffashion.com',
+  'www.businessoffashion.com',
+  'fashionista.com',
+  'www.fashionista.com',
+  'thecut.com',
+  'www.thecut.com',
+  'refinery29.com',
+  'www.refinery29.com',
+  'whowhatwear.com',
+  'www.whowhatwear.com',
+  'highsnobiety.com',
+  'www.highsnobiety.com',
+  'hypebeast.com',
+  'www.hypebeast.com',
+  'nymag.com',
+  'www.nymag.com',
   'feeds.feedburner.com',
   'medium.com',
   'substack.com',
@@ -55,12 +68,12 @@ function isPrivateIP(ip: string): boolean {
   const parts = ip.split('.').map(Number);
   if (parts.length !== 4) return ip.startsWith('::') || ip.startsWith('fe80:');
   const [a, b] = parts;
-  if (a === 127) return true;                         // 127.0.0.0/8
-  if (a === 10) return true;                          // 10.0.0.0/8
-  if (a === 172 && b >= 16 && b <= 31) return true;   // 172.16.0.0/12
-  if (a === 192 && b === 168) return true;            // 192.168.0.0/16
-  if (a === 169 && b === 254) return true;            // 169.254.0.0/16 link-local
-  if (a === 0) return true;                           // 0.0.0.0/8
+  if (a === 127) return true; // 127.0.0.0/8
+  if (a === 10) return true; // 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local
+  if (a === 0) return true; // 0.0.0.0/8
   return false;
 }
 
@@ -88,7 +101,10 @@ async function validateUrlForSSRF(urlString: string): Promise<URL> {
       throw new ForbiddenException('Request blocked');
     }
   } catch (err) {
-    if (err instanceof ForbiddenException || err instanceof BadRequestException) {
+    if (
+      err instanceof ForbiddenException ||
+      err instanceof BadRequestException
+    ) {
       throw err;
     }
     throw new BadRequestException('DNS resolution failed');

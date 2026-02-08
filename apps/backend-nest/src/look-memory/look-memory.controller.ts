@@ -33,10 +33,7 @@ export class LookMemoryController {
   }
 
   @Get()
-  async getLookMemory(
-    @Req() req,
-    @Query('limit') limit?: string,
-  ) {
+  async getLookMemory(@Req() req, @Query('limit') limit?: string) {
     const userId = req.user.userId;
     try {
       const data = await this.lookMemoryService.getLookMemory(

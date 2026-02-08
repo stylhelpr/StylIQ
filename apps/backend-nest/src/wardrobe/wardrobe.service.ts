@@ -158,11 +158,11 @@ function buildUserPrefsFromRules(
   // mirror the predicate logic lightly to issue a -5 soft penalty
   const hit = (it: any): boolean => {
     const id = it?.id;
-    const brand = lc((it as any).brand);
-    const color = lc((it as any).color) || lc((it as any).color_family);
-    const main = lc((it as any).main_category);
-    const sub = lc((it as any).subcategory);
-    const lbl = lc((it as any).label);
+    const brand = lc(it.brand);
+    const color = lc(it.color) || lc(it.color_family);
+    const main = lc(it.main_category);
+    const sub = lc(it.subcategory);
+    const lbl = lc(it.label);
 
     for (const r of rules) {
       switch (r.kind) {
@@ -814,7 +814,7 @@ export class WardrobeService {
         );
 
         const seen = new Set(
-          matches.map((m) => this.normalizePineconeId(m.id as string).id),
+          matches.map((m) => this.normalizePineconeId(m.id).id),
         );
 
         for (const r of rows) {
@@ -866,12 +866,10 @@ export class WardrobeService {
           '🧩 MATCHES snapshot after inject:',
           matches.map((m) => ({
             rawId: m.id,
-            normId: this.normalizePineconeId(m.id as string).id,
+            normId: this.normalizePineconeId(m.id).id,
             name: m.metadata?.name,
             sub: m.metadata?.subcategory,
-            locked: lockedIds.includes(
-              this.normalizePineconeId(m.id as string).id,
-            ),
+            locked: lockedIds.includes(this.normalizePineconeId(m.id).id),
           })),
         );
       }
@@ -892,7 +890,7 @@ export class WardrobeService {
       if (extraFetches.length) {
         const per = Math.max(5, Math.ceil(topK / 2));
         const seen = new Set(
-          matches.map((m) => this.normalizePineconeId(m.id as string).id),
+          matches.map((m) => this.normalizePineconeId(m.id).id),
         );
         for (const { term } of extraFetches) {
           const vec = await this.vertex.embedText(`${baseQuery} ${term}`);
@@ -904,7 +902,7 @@ export class WardrobeService {
           });
           // Dedup and prepend
           const uniques = extra.filter((e) => {
-            const { id } = this.normalizePineconeId(e.id as string);
+            const { id } = this.normalizePineconeId(e.id);
             if (seen.has(id)) return false;
             seen.add(id);
             return true;
@@ -920,7 +918,7 @@ export class WardrobeService {
 
       // ── 2) Build catalog ────────────────────────────────────────
       let catalog: CatalogItem[] = matches.map((m, i) => {
-        const { id } = this.normalizePineconeId(m.id as string);
+        const { id } = this.normalizePineconeId(m.id);
         const meta: any = m.metadata || {};
         const sub_raw = this.asStr(meta.subcategory ?? meta.subCategory);
         const main_raw = this.asStr(meta.main_category ?? meta.mainCategory);
@@ -971,7 +969,7 @@ export class WardrobeService {
 
       // ⚡ Re-lock any injected must-haves that got wiped out during merge
       for (const m of matches) {
-        const norm = this.normalizePineconeId(m.id as string).id;
+        const norm = this.normalizePineconeId(m.id).id;
         if (m.id.endsWith(':forced_musthave') && !lockedIds.includes(norm)) {
           console.log('⚡ Re-locking forced must-have:', norm);
           lockedIds.push(norm);
@@ -1246,7 +1244,6 @@ export class WardrobeService {
         console.log('⚪ No style profile or agent applied');
       }
 
-
       // 4) Rerank
       let reranked: CatalogItem[];
       if (opts?.styleAgent && STYLE_AGENTS[opts.styleAgent]) {
@@ -1482,7 +1479,7 @@ ${lockedLines}
         finalizeOutfitSlots(o, reranked, effectiveQuery),
       );
       outfits = enforceConstraintsOnOutfits(
-        outfits as any,
+        outfits,
         reranked as any,
         effectiveQuery,
       ) as any;
@@ -1500,7 +1497,7 @@ ${lockedLines}
             o.items.map((it: any) => it?.id).filter(Boolean),
           ),
         ),
-      ) as string[];
+      );
 
       await pool.query(
         `CREATE TABLE IF NOT EXISTS user_pref_item(
@@ -1554,11 +1551,11 @@ ${lockedLines}
             user_id: userId,
             query: effectiveQuery, // ← log the combined query
             best_outfit: {
-              outfit_id: (best as any).outfit_id,
-              title: (best as any).title,
-              why: (best as any).why,
-              missing: (best as any).missing,
-              items: (best as any).items.map((it: any) => ({
+              outfit_id: best.outfit_id,
+              title: best.title,
+              why: best.why,
+              missing: best.missing,
+              items: best.items.map((it: any) => ({
                 id: it?.id,
                 label: it?.label,
                 image_url: it?.image_url,
@@ -1594,10 +1591,10 @@ ${lockedLines}
 
       return {
         request_id,
-        outfit_id: (best as any).outfit_id,
-        items: (best as any).items,
-        why: (best as any).why,
-        missing: (best as any).missing,
+        outfit_id: best.outfit_id,
+        items: best.items,
+        why: best.why,
+        missing: best.missing,
         outfits: withIds,
       };
     } catch (err: any) {
@@ -1652,8 +1649,10 @@ ${lockedLines}
       // CRITICAL: LLM NEVER receives item names, only slot-level actions
       // Parse user's refinement prompt to detect EXPLICIT change requests
       const isRefinement = query.toLowerCase().includes('refinement');
-      let refinementAction: { keep_slots: string[]; change_slots: string[] } | undefined;
-      let lockedItemsByCategory = new Map<string, string>(); // category -> itemId
+      let refinementAction:
+        | { keep_slots: string[]; change_slots: string[] }
+        | undefined;
+      const lockedItemsByCategory = new Map<string, string>(); // category -> itemId
 
       if (isRefinement && lockedItemIds.length > 0) {
         // Fetch locked items to determine their categories ONLY (not to pass names to LLM)
@@ -1677,17 +1676,61 @@ ${lockedLines}
         // Parse refinement prompt to detect which categories user wants to CHANGE
         // CRITICAL: Only parse the REFINEMENT portion, not the original query
         // Extract just the user's refinement text from within quotes
-        const refinementMatch = query.match(/IMPORTANT REFINEMENT:.*?"([^"]+)"/i);
-        const refinementText = refinementMatch ? refinementMatch[1].toLowerCase() : '';
+        const refinementMatch = query.match(
+          /IMPORTANT REFINEMENT:.*?"([^"]+)"/i,
+        );
+        const refinementText = refinementMatch
+          ? refinementMatch[1].toLowerCase()
+          : '';
 
         console.log('⚡ [FAST] Parsing refinement text only:', refinementText);
 
         const categoryKeywords: Record<string, string[]> = {
-          tops: ['shirt', 'top', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'cardigan'],
-          bottoms: ['pants', 'jeans', 'shorts', 'trousers', 'bottom', 'skirt', 'chinos'],
-          shoes: ['shoes', 'sneakers', 'boots', 'loafers', 'sandals', 'heels', 'footwear'],
-          outerwear: ['jacket', 'coat', 'blazer', 'outerwear', 'windbreaker', 'puffer'],
-          accessories: ['belt', 'accessory', 'accessories', 'watch', 'hat', 'scarf', 'bag'],
+          tops: [
+            'shirt',
+            'top',
+            'tee',
+            't-shirt',
+            'blouse',
+            'sweater',
+            'hoodie',
+            'cardigan',
+          ],
+          bottoms: [
+            'pants',
+            'jeans',
+            'shorts',
+            'trousers',
+            'bottom',
+            'skirt',
+            'chinos',
+          ],
+          shoes: [
+            'shoes',
+            'sneakers',
+            'boots',
+            'loafers',
+            'sandals',
+            'heels',
+            'footwear',
+          ],
+          outerwear: [
+            'jacket',
+            'coat',
+            'blazer',
+            'outerwear',
+            'windbreaker',
+            'puffer',
+          ],
+          accessories: [
+            'belt',
+            'accessory',
+            'accessories',
+            'watch',
+            'hat',
+            'scarf',
+            'bag',
+          ],
         };
 
         // Detect categories mentioned with explicit "change" intent
@@ -1709,8 +1752,11 @@ ${lockedLines}
 
               // Find which category this word belongs to
               for (const [cat, keywords] of Object.entries(categoryKeywords)) {
-                if (keywords.some((kw) => word.includes(kw) || kw.includes(word))) {
-                  const normalizedCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+                if (
+                  keywords.some((kw) => word.includes(kw) || kw.includes(word))
+                ) {
+                  const normalizedCat =
+                    cat.charAt(0).toUpperCase() + cat.slice(1);
                   if (!explicitlyChangeCategories.includes(normalizedCat)) {
                     explicitlyChangeCategories.push(normalizedCat);
                   }
@@ -1720,11 +1766,17 @@ ${lockedLines}
           }
         }
 
-        console.log('⚡ [FAST] Refinement - detected explicit change intent for:', explicitlyChangeCategories);
+        console.log(
+          '⚡ [FAST] Refinement - detected explicit change intent for:',
+          explicitlyChangeCategories,
+        );
 
         // Keep slots = locked categories MINUS explicitly changed ones
         const keepCategories = lockedCategories.filter(
-          (c) => !explicitlyChangeCategories.map((e) => e.toLowerCase()).includes(c.toLowerCase()),
+          (c) =>
+            !explicitlyChangeCategories
+              .map((e) => e.toLowerCase())
+              .includes(c.toLowerCase()),
         );
 
         // Remove explicitly changed categories from lockedItemsByCategory
@@ -1733,11 +1785,20 @@ ${lockedLines}
         }
 
         // All standard categories
-        const allCategories = ['Tops', 'Bottoms', 'Shoes', 'Outerwear', 'Accessories'];
+        const allCategories = [
+          'Tops',
+          'Bottoms',
+          'Shoes',
+          'Outerwear',
+          'Accessories',
+        ];
 
         // Change slots = categories NOT being kept
         const changeCategories = allCategories.filter(
-          (c) => !keepCategories.map((k) => k.toLowerCase()).includes(c.toLowerCase()),
+          (c) =>
+            !keepCategories
+              .map((k) => k.toLowerCase())
+              .includes(c.toLowerCase()),
         );
 
         refinementAction = {
@@ -1745,8 +1806,15 @@ ${lockedLines}
           change_slots: changeCategories,
         };
 
-        console.log('⚡ [FAST] Refinement - keep slots:', keepCategories, 'change slots:', changeCategories);
-        console.log('⚡ [FAST] Refinement - NO item names sent to LLM (slot-level only)');
+        console.log(
+          '⚡ [FAST] Refinement - keep slots:',
+          keepCategories,
+          'change slots:',
+          changeCategories,
+        );
+        console.log(
+          '⚡ [FAST] Refinement - NO item names sent to LLM (slot-level only)',
+        );
       }
 
       // ── 0c) PATH #2: Detect "Start with Item" case ──
@@ -1758,7 +1826,10 @@ ${lockedLines}
 
       if (isStartWithItem) {
         console.log('⚡ [FAST] PATH #2: Start with Item detected');
-        console.log('⚡ [FAST] PATH #2: Centerpiece item ID:', lockedItemIds[0]);
+        console.log(
+          '⚡ [FAST] PATH #2: Centerpiece item ID:',
+          lockedItemIds[0],
+        );
 
         // Fetch the centerpiece item details from database
         const { rows: centerpieceRows } = await pool.query(
@@ -1788,9 +1859,14 @@ ${lockedLines}
             style: cp.dress_code,
           };
 
-          console.log('⚡ [FAST] PATH #2: Centerpiece item:', JSON.stringify(centerpieceItem, null, 2));
+          console.log(
+            '⚡ [FAST] PATH #2: Centerpiece item:',
+            JSON.stringify(centerpieceItem, null, 2),
+          );
         } else {
-          console.warn('⚡ [FAST] PATH #2: Centerpiece item not found in database');
+          console.warn(
+            '⚡ [FAST] PATH #2: Centerpiece item not found in database',
+          );
         }
       }
 
@@ -1801,17 +1877,24 @@ ${lockedLines}
       if (isStartWithItem && centerpieceItem) {
         // PATH #2: Use specialized V4 prompt with CENTERPIECE-FIRST enforcement
         // V4 ensures centerpiece is PRIMARY constraint - user input is only a styling MODIFIER
-        console.log('⚡ [FAST] PATH #2: Using buildStartWithItemPromptV4 (centerpiece-first enforcement)');
+        console.log(
+          '⚡ [FAST] PATH #2: Using buildStartWithItemPromptV4 (centerpiece-first enforcement)',
+        );
 
         // Extract mood prompts and freeform prompt from the query string
         // Format: "outfit built around my X. IMPORTANT REFINEMENT: User specifically requested: "mood. prompt". You MUST..."
-        let extractedMoods: string[] = [];
+        const extractedMoods: string[] = [];
         let extractedFreeform: string | undefined;
 
-        const refinementMatch = query.match(/IMPORTANT REFINEMENT:.*?"([^"]+)"/i);
+        const refinementMatch = query.match(
+          /IMPORTANT REFINEMENT:.*?"([^"]+)"/i,
+        );
         if (refinementMatch && refinementMatch[1]) {
           const refinementText = refinementMatch[1];
-          console.log('⚡ [FAST] PATH #2: Extracted refinement text:', refinementText);
+          console.log(
+            '⚡ [FAST] PATH #2: Extracted refinement text:',
+            refinementText,
+          );
 
           // Split by period to separate mood prompts from freeform prompt
           // Mood prompts typically start with "Create an outfit with..."
@@ -1819,8 +1902,10 @@ ${lockedLines}
 
           for (const part of parts) {
             const trimmed = part.trim();
-            if (trimmed.toLowerCase().startsWith('create an outfit') ||
-                trimmed.toLowerCase().startsWith('create a ')) {
+            if (
+              trimmed.toLowerCase().startsWith('create an outfit') ||
+              trimmed.toLowerCase().startsWith('create a ')
+            ) {
               // This is a mood prompt
               extractedMoods.push(trimmed);
             } else if (trimmed.length > 0) {
@@ -1833,7 +1918,10 @@ ${lockedLines}
         }
 
         console.log('⚡ [FAST] PATH #2: Extracted moods:', extractedMoods);
-        console.log('⚡ [FAST] PATH #2: Extracted freeform:', extractedFreeform);
+        console.log(
+          '⚡ [FAST] PATH #2: Extracted freeform:',
+          extractedFreeform,
+        );
 
         // Build raw input for normalization
         const rawInput: RawStartWithItemInput = {
@@ -1854,20 +1942,31 @@ ${lockedLines}
         let normalizedInput: NormalizedStartWithItemInput;
         try {
           normalizedInput = normalizeStartWithItemIntent(rawInput);
-          console.log('⚡ [FAST] PATH #2: Intent mode:', normalizedInput.intentMode);
+          console.log(
+            '⚡ [FAST] PATH #2: Intent mode:',
+            normalizedInput.intentMode,
+          );
         } catch (error) {
           if (error instanceof MutualExclusionError) {
-            console.error('⚡ [FAST] PATH #2: MUTUAL EXCLUSION ERROR - cannot combine moods with freeform prompt');
+            console.error(
+              '⚡ [FAST] PATH #2: MUTUAL EXCLUSION ERROR - cannot combine moods with freeform prompt',
+            );
             throw error; // Fail closed - do not proceed
           }
           throw error;
         }
 
         // Validate normalized input for internal consistency
-        const intentValidation = validateStartWithItemIntentMode(normalizedInput);
+        const intentValidation =
+          validateStartWithItemIntentMode(normalizedInput);
         if (!intentValidation.valid) {
-          console.error('⚡ [FAST] PATH #2: Intent mode validation failed:', intentValidation.errors);
-          throw new Error(`PATH #2 intent mode validation failed: ${intentValidation.errors.join('; ')}`);
+          console.error(
+            '⚡ [FAST] PATH #2: Intent mode validation failed:',
+            intentValidation.errors,
+          );
+          throw new Error(
+            `PATH #2 intent mode validation failed: ${intentValidation.errors.join('; ')}`,
+          );
         }
 
         // Build V4 prompt with CENTERPIECE-FIRST enforcement
@@ -1888,7 +1987,10 @@ ${lockedLines}
       }
 
       console.log('⚡ [FAST] Plan prompt length:', planPrompt.length, 'chars');
-      console.log('⚡ [FAST] Plan prompt (first 500 chars):', planPrompt.substring(0, 500));
+      console.log(
+        '⚡ [FAST] Plan prompt (first 500 chars):',
+        planPrompt.substring(0, 500),
+      );
       const planStartTime = Date.now();
 
       const plan = await this.vertex.generateOutfitPlan(planPrompt);
@@ -1901,9 +2003,7 @@ ${lockedLines}
       console.log('⚡ [FAST] Plan:', JSON.stringify(plan, null, 2));
 
       // Handle both new format (single outfit) and old format (outfits array)
-      const outfitsArray = plan.outfit
-        ? [plan.outfit]
-        : plan.outfits || [];
+      const outfitsArray = plan.outfit ? [plan.outfit] : plan.outfits || [];
 
       if (!outfitsArray.length) {
         console.warn('⚡ [FAST] No outfits in plan, returning empty');
@@ -2005,7 +2105,7 @@ ${lockedLines}
       for (const outfit of assembledOutfits) {
         for (const sr of outfit.slotResults) {
           for (const match of sr.matches) {
-            const itemId = this.normalizePineconeId(match.id as string).id;
+            const itemId = this.normalizePineconeId(match.id).id;
             allItemIds.add(itemId);
           }
         }
@@ -2044,11 +2144,21 @@ ${lockedLines}
       // PATH #2 (start with item): Centerpiece is FIRST in every outfit, LLM generated complementary slots
       // Refinement: backend handles kept items directly (no LLM involvement with item names)
       if (isStartWithItem && centerpieceDbItem) {
-        console.log('⚡ [FAST] PATH #2: Assembling outfits with centerpiece:', centerpieceDbItem.name);
-        console.log('⚡ [FAST] PATH #2: Centerpiece category:', centerpieceDbItem.main_category);
+        console.log(
+          '⚡ [FAST] PATH #2: Assembling outfits with centerpiece:',
+          centerpieceDbItem.name,
+        );
+        console.log(
+          '⚡ [FAST] PATH #2: Centerpiece category:',
+          centerpieceDbItem.main_category,
+        );
       } else if (isRefinement) {
-        console.log('⚡ [FAST] Refinement - backend directly uses locked items for kept slots');
-        console.log('⚡ [FAST] Refinement - LLM only generated descriptions for changed slots');
+        console.log(
+          '⚡ [FAST] Refinement - backend directly uses locked items for kept slots',
+        );
+        console.log(
+          '⚡ [FAST] Refinement - LLM only generated descriptions for changed slots',
+        );
       }
 
       const outfits = assembledOutfits.map((assembled, outfitIdx) => {
@@ -2064,7 +2174,9 @@ ${lockedLines}
           const centerpieceId = centerpieceDbItem.id;
           items.push(this.dbRowToCatalogItem(centerpieceDbItem));
           usedIds.add(centerpieceId);
-          console.log(`⚡ [FAST] PATH #2: Outfit ${outfitIdx + 1} - Centerpiece: ${centerpieceDbItem.name} (${centerpieceDbItem.main_category})`);
+          console.log(
+            `⚡ [FAST] PATH #2: Outfit ${outfitIdx + 1} - Centerpiece: ${centerpieceDbItem.name} (${centerpieceDbItem.main_category})`,
+          );
         }
         // ── Refinement: Add locked items for KEPT slots ──
         else if (isRefinement && lockedItemsByCategory.size > 0) {
@@ -2074,7 +2186,9 @@ ${lockedLines}
             if (item && !usedIds.has(itemId)) {
               items.push(this.dbRowToCatalogItem(item));
               usedIds.add(itemId);
-              console.log(`⚡ [FAST] Kept ${category} slot: ${item.name} (backend-direct, no LLM)`);
+              console.log(
+                `⚡ [FAST] Kept ${category} slot: ${item.name} (backend-direct, no LLM)`,
+              );
             }
           }
         }
@@ -2102,14 +2216,16 @@ ${lockedLines}
 
           if (alreadyHasCategory) {
             if (isStartWithItem) {
-              console.log(`⚡ [FAST] PATH #2: Skipping ${categoryMain} slot (centerpiece already fills this category)`);
+              console.log(
+                `⚡ [FAST] PATH #2: Skipping ${categoryMain} slot (centerpiece already fills this category)`,
+              );
             }
             continue;
           }
 
           // Pick best unused match from Pinecone results
           for (const match of sr.matches) {
-            const itemId = this.normalizePineconeId(match.id as string).id;
+            const itemId = this.normalizePineconeId(match.id).id;
             if (usedIds.has(itemId)) continue;
 
             const item = itemsMap.get(itemId);
@@ -2117,9 +2233,13 @@ ${lockedLines}
               items.push(this.dbRowToCatalogItem(item));
               usedIds.add(itemId);
               if (isRefinement) {
-                console.log(`⚡ [FAST] Changed ${categoryMain} slot: ${item.name} (from LLM description: "${sr.slot.description}")`);
+                console.log(
+                  `⚡ [FAST] Changed ${categoryMain} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
+                );
               } else if (isStartWithItem) {
-                console.log(`⚡ [FAST] PATH #2: Complementary ${categoryMain}: ${item.name} (matched: "${sr.slot.description}")`);
+                console.log(
+                  `⚡ [FAST] PATH #2: Complementary ${categoryMain}: ${item.name} (matched: "${sr.slot.description}")`,
+                );
               }
               break;
             }
@@ -2149,7 +2269,8 @@ ${lockedLines}
       // CRITICAL: Enforce centerpiece + composition constraints - fail closed on violation
       if (isStartWithItem && centerpieceDbItem) {
         const centerpieceId = centerpieceDbItem.id;
-        const centerpieceCategory = centerpieceDbItem.main_category?.toLowerCase() || '';
+        const centerpieceCategory =
+          centerpieceDbItem.main_category?.toLowerCase() || '';
 
         console.log('⚡ [FAST] PATH #2: Running composition validation...');
 
@@ -2176,8 +2297,12 @@ ${lockedLines}
         }
 
         console.log('✅ [FAST] PATH #2: Composition validation PASSED');
-        console.log(`✅ [FAST] PATH #2: Centerpiece ${centerpieceDbItem.name} present in all 3 outfits`);
-        console.log(`✅ [FAST] PATH #2: Each outfit has ${outfits[0]?.items?.length || 0}+ items`);
+        console.log(
+          `✅ [FAST] PATH #2: Centerpiece ${centerpieceDbItem.name} present in all 3 outfits`,
+        );
+        console.log(
+          `✅ [FAST] PATH #2: Each outfit has ${outfits[0]?.items?.length || 0}+ items`,
+        );
       }
 
       // Pick the best outfit (first one for now)
@@ -2245,7 +2370,8 @@ ${lockedLines}
       index,
       id: row.id,
       label: row.name || 'Unknown Item',
-      image: row.touched_up_image_url || row.processed_image_url || row.image_url,
+      image:
+        row.touched_up_image_url || row.processed_image_url || row.image_url,
       image_url: row.image_url,
       main_category: row.main_category,
       subcategory: row.subcategory,
@@ -2474,8 +2600,19 @@ ${lockedLines}
     // skip subcategory coercion — these categories are canonical and should
     // not be overridden by legacy subcategory keyword checks.
     const newCategories: CreateWardrobeItemDto['main_category'][] = [
-      'Dresses', 'Skirts', 'Bags', 'Headwear', 'Jewelry', 'Other',
-      'Loungewear', 'Sleepwear', 'Swimwear', 'Maternity', 'Unisex', 'Costumes', 'TraditionalWear',
+      'Dresses',
+      'Skirts',
+      'Bags',
+      'Headwear',
+      'Jewelry',
+      'Other',
+      'Loungewear',
+      'Sleepwear',
+      'Swimwear',
+      'Maternity',
+      'Unisex',
+      'Costumes',
+      'TraditionalWear',
     ];
     if (newCategories.includes(normalized)) return normalized;
     const s = (sub ?? '').toLowerCase();
@@ -2516,14 +2653,9 @@ ${lockedLines}
     )
       return 'Shoes';
     if (
-      [
-        'belt',
-        'scarf',
-        'tie',
-        'watch',
-        'sunglasses',
-        'briefcase',
-      ].some((k) => s.includes(k))
+      ['belt', 'scarf', 'tie', 'watch', 'sunglasses', 'briefcase'].some((k) =>
+        s.includes(k),
+      )
     )
       return 'Accessories';
     if (normalized === 'Tops' && lay === 'SHELL') return 'Outerwear';
@@ -2729,7 +2861,8 @@ ${lockedLines}
 
     // Validate main_category ↔ subcategory pair (catches AI misclassification)
     const validated = validateCategoryPair(resolvedMain, rawSub, name);
-    const main_category = validated.main_category as CreateWardrobeItemDto['main_category'];
+    const main_category =
+      validated.main_category as CreateWardrobeItemDto['main_category'];
     const validatedSub = validated.subcategory;
 
     const layering = this.normalizeLayeringDto(layeringRaw);
@@ -2740,8 +2873,7 @@ ${lockedLines}
       pick<string>('seasonality') ?? draft?.seasonality,
     );
 
-    const rawTags =
-      pick<string[] | string>('tags') ?? (draft?.tags as any) ?? [];
+    const rawTags = pick<string[] | string>('tags') ?? draft?.tags ?? [];
     const tags: string[] = Array.isArray(rawTags)
       ? rawTags.filter(Boolean).map(String)
       : String(rawTags)
@@ -2921,7 +3053,9 @@ ${lockedLines}
     // Ensure formality_score is integer for smallint column
     add(
       'formality_score',
-      dto.formality_score != null ? Math.round(Number(dto.formality_score)) : undefined,
+      dto.formality_score != null
+        ? Math.round(Number(dto.formality_score))
+        : undefined,
     );
 
     // Seasonality & climate (ENUMS)
@@ -3002,7 +3136,9 @@ ${lockedLines}
     // Ensure fit_confidence is integer for smallint column
     add(
       'fit_confidence',
-      dto.fit_confidence != null ? Math.round(Number(dto.fit_confidence)) : undefined,
+      dto.fit_confidence != null
+        ? Math.round(Number(dto.fit_confidence))
+        : undefined,
     );
     add('outfit_feedback', dto.outfit_feedback, 'json');
     add('disliked_features', dto.disliked_features);
@@ -3030,48 +3166,48 @@ ${lockedLines}
     const result = await pool.query(sql, vals);
     const item = result.rows[0];
 
-    // Embeddings
-    let imageVec: number[] | undefined;
+    // Embeddings (parallel — image and text are independent)
     const gcs = dto.gsutil_uri ?? item.gsutil_uri;
-    if (gcs) imageVec = await this.vertex.embedImage(gcs);
+    const compositeText = [
+      item.name,
+      item.main_category,
+      item.subcategory,
+      item.color,
+      item.color_family,
+      item.material,
+      item.fit,
+      item.size,
+      item.brand,
+      item.color_temp,
+      item.contrast_profile,
+      String(item.formality_score ?? ''),
+      item.seasonality,
+      item.layering,
+      item.pattern,
+      item.pattern_scale,
+      item.neckline,
+      item.collar_type,
+      item.sleeve_length,
+      item.rise,
+      item.leg,
+      String(item.inseam_in ?? ''),
+      item.length_class,
+      item.shoe_style,
+      item.sole,
+      Array.isArray(item.occasion_tags) ? item.occasion_tags.join(' ') : '',
+      Array.isArray(item.tags) ? item.tags.join(' ') : '',
+      item.dress_code,
+      item.anchor_role,
+      item.dominant_hex,
+      Array.isArray(item.palette_hex) ? item.palette_hex.join(' ') : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
-    const textVec = await this.vertex.embedText(
-      [
-        item.name,
-        item.main_category,
-        item.subcategory,
-        item.color,
-        item.color_family,
-        item.material,
-        item.fit,
-        item.size,
-        item.brand,
-        item.color_temp,
-        item.contrast_profile,
-        String(item.formality_score ?? ''),
-        item.seasonality,
-        item.layering,
-        item.pattern,
-        item.pattern_scale,
-        item.neckline,
-        item.collar_type,
-        item.sleeve_length,
-        item.rise,
-        item.leg,
-        String(item.inseam_in ?? ''),
-        item.length_class,
-        item.shoe_style,
-        item.sole,
-        Array.isArray(item.occasion_tags) ? item.occasion_tags.join(' ') : '',
-        Array.isArray(item.tags) ? item.tags.join(' ') : '',
-        item.dress_code,
-        item.anchor_role,
-        item.dominant_hex,
-        Array.isArray(item.palette_hex) ? item.palette_hex.join(' ') : '',
-      ]
-        .filter(Boolean)
-        .join(' '),
-    );
+    const [imageVec, textVec] = await Promise.all([
+      gcs ? this.vertex.embedImage(gcs) : Promise.resolve(undefined),
+      this.vertex.embedText(compositeText),
+    ]);
 
     const meta = this.sanitizeMeta({ ...item });
     await upsertItemNs({
@@ -3302,15 +3438,16 @@ ${lockedLines}
     const item = itemResult.rows[0];
 
     // 2. Get the processed image URL (or fall back to original)
-    const sourceImageUrl =
-      item.processed_image_url || item.image_url;
+    const sourceImageUrl = item.processed_image_url || item.image_url;
     if (!sourceImageUrl) {
       console.error('[TouchUp] No source image URL found for item:', itemId);
       return null;
     }
 
     // 3. Call PhotoRoom touch-up API
-    const objectKey = item.gsutil_uri?.replace(/^gs:\/\/[^/]+\//, '') || `items/${userId}/${itemId}`;
+    const objectKey =
+      item.gsutil_uri?.replace(/^gs:\/\/[^/]+\//, '') ||
+      `items/${userId}/${itemId}`;
     const touchUpResult = await this.vertex.touchUpImage(
       sourceImageUrl,
       userId,
@@ -3357,17 +3494,25 @@ ${lockedLines}
     // 2. Get the original image URL
     const sourceImageUrl = item.image_url;
     if (!sourceImageUrl) {
-      console.error('[RemoveBackground] No source image URL found for item:', itemId);
+      console.error(
+        '[RemoveBackground] No source image URL found for item:',
+        itemId,
+      );
       return null;
     }
 
     // 3. Download the image and call removeBackground
-    const objectKey = item.gsutil_uri?.replace(/^gs:\/\/[^/]+\//, '') || `items/${userId}/${itemId}`;
+    const objectKey =
+      item.gsutil_uri?.replace(/^gs:\/\/[^/]+\//, '') ||
+      `items/${userId}/${itemId}`;
 
     // Fetch the image buffer from the URL
     const response = await fetch(sourceImageUrl);
     if (!response.ok) {
-      console.error('[RemoveBackground] Failed to fetch source image:', sourceImageUrl);
+      console.error(
+        '[RemoveBackground] Failed to fetch source image:',
+        sourceImageUrl,
+      );
       return null;
     }
     const imageBuffer = Buffer.from(await response.arrayBuffer());
@@ -3379,7 +3524,10 @@ ${lockedLines}
     );
 
     if (!removeResult) {
-      console.error('[RemoveBackground] PhotoRoom remove-background failed for item:', itemId);
+      console.error(
+        '[RemoveBackground] PhotoRoom remove-background failed for item:',
+        itemId,
+      );
       return null;
     }
 
@@ -3391,7 +3539,12 @@ ${lockedLines}
            updated_at = now()
        WHERE id = $3 AND user_id = $4
        RETURNING *`,
-      [removeResult.processedPublicUrl, removeResult.processedGcsUri, itemId, userId],
+      [
+        removeResult.processedPublicUrl,
+        removeResult.processedGcsUri,
+        itemId,
+        userId,
+      ],
     );
 
     if (updateResult.rowCount === 0) {
@@ -3426,10 +3579,10 @@ ${lockedLines}
       try {
         await storage.bucket(bucketName).file(fileName).delete();
       } catch (err: any) {
-        if ((err as any).code === 404) {
+        if (err.code === 404) {
           console.warn('🧼 GCS file already deleted:', fileName);
         } else {
-          console.error('❌ Error deleting GCS file:', (err as any).message);
+          console.error('❌ Error deleting GCS file:', err.message);
         }
       }
     }
@@ -3445,7 +3598,7 @@ ${lockedLines}
       includeMetadata: true,
     });
     return matches.map((m) => {
-      const { id, modality } = this.normalizePineconeId(m.id as string);
+      const { id, modality } = this.normalizePineconeId(m.id);
       return { id, modality, score: m.score, meta: m.metadata };
     });
   }
@@ -3458,7 +3611,7 @@ ${lockedLines}
       includeMetadata: true,
     });
     return matches.map((m) => {
-      const { id, modality } = this.normalizePineconeId(m.id as string);
+      const { id, modality } = this.normalizePineconeId(m.id);
       return { id, modality, score: m.score, meta: m.metadata };
     });
   }
@@ -3471,7 +3624,7 @@ ${lockedLines}
       includeMetadata: true,
     });
     return matches.map((m) => {
-      const { id, modality } = this.normalizePineconeId(m.id as string);
+      const { id, modality } = this.normalizePineconeId(m.id);
       return { id, modality, score: m.score, meta: m.metadata };
     });
   }
@@ -3487,7 +3640,7 @@ ${lockedLines}
       topK,
     });
     return matches.map((m) => {
-      const { id, modality } = this.normalizePineconeId(m.id as string);
+      const { id, modality } = this.normalizePineconeId(m.id);
       return { id, modality, score: m.score, meta: m.metadata };
     });
   }

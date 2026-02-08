@@ -44,7 +44,11 @@ export class SavedNotesController {
   }
 
   @Put(':id')
-  async update(@Req() req, @Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
+  async update(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateSavedNoteDto,
+  ) {
     const userId = req.user.userId;
     const note = await this.service.update(id, userId, dto);
     if (!note) {
@@ -54,7 +58,11 @@ export class SavedNotesController {
   }
 
   @Patch(':id')
-  async partialUpdate(@Req() req, @Param('id') id: string, @Body() dto: UpdateSavedNoteDto) {
+  async partialUpdate(
+    @Req() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateSavedNoteDto,
+  ) {
     const userId = req.user.userId;
     const note = await this.service.update(id, userId, dto);
     if (!note) {

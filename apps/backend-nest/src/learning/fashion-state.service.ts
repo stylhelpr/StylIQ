@@ -12,10 +12,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { pool } from '../db/pool';
-import {
-  LEARNING_FLAGS,
-  AGGREGATION_CONFIG,
-} from '../config/feature-flags';
+import { LEARNING_FLAGS, AGGREGATION_CONFIG } from '../config/feature-flags';
 import {
   UserFashionState,
   ScoreMap,
@@ -184,7 +181,9 @@ export class FashionStateService {
 
       return now - lastComputed > AGGREGATION_CONFIG.STALENESS_THRESHOLD_MS;
     } catch (error) {
-      this.logger.warn(`[FashionState] isStateStale check failed: ${error.message}`);
+      this.logger.warn(
+        `[FashionState] isStateStale check failed: ${error.message}`,
+      );
       return true; // Assume stale on error
     }
   }
@@ -230,7 +229,8 @@ export class FashionStateService {
 
     for (const event of events) {
       const ageDays =
-        (Date.now() - new Date(event.event_ts).getTime()) / (1000 * 60 * 60 * 24);
+        (Date.now() - new Date(event.event_ts).getTime()) /
+        (1000 * 60 * 60 * 24);
 
       // Asymmetric decay: negative signals decay faster
       const halfLife =
@@ -239,16 +239,25 @@ export class FashionStateService {
           : AGGREGATION_CONFIG.POSITIVE_HALF_LIFE_DAYS;
 
       const decay = Math.pow(0.5, ageDays / halfLife);
-      const effectiveSignal = event.signal_polarity * event.signal_weight * decay;
+      const effectiveSignal =
+        event.signal_polarity * event.signal_weight * decay;
 
       const features = event.extracted_features || {};
 
       // Accumulate scores for each feature type
       this.accumulateScores(rawScores.brands, features.brands, effectiveSignal);
       this.accumulateScores(rawScores.colors, features.colors, effectiveSignal);
-      this.accumulateScores(rawScores.categories, features.categories, effectiveSignal);
+      this.accumulateScores(
+        rawScores.categories,
+        features.categories,
+        effectiveSignal,
+      );
       this.accumulateScores(rawScores.styles, features.styles, effectiveSignal);
-      this.accumulateScores(rawScores.materials, features.materials, effectiveSignal);
+      this.accumulateScores(
+        rawScores.materials,
+        features.materials,
+        effectiveSignal,
+      );
       this.accumulateScores(rawScores.tags, features.tags, effectiveSignal);
 
       // Track occasion frequency
@@ -283,8 +292,11 @@ export class FashionStateService {
     };
 
     // Calculate derived values
-    const explicitEventCount = events.filter((e) => e.signal_polarity !== 0).length;
-    const isColdStart = explicitEventCount < AGGREGATION_CONFIG.MIN_EVENTS_FOR_ACTIVE;
+    const explicitEventCount = events.filter(
+      (e) => e.signal_polarity !== 0,
+    ).length;
+    const isColdStart =
+      explicitEventCount < AGGREGATION_CONFIG.MIN_EVENTS_FOR_ACTIVE;
 
     const avgPurchasePrice =
       prices.length > 0
@@ -327,7 +339,9 @@ export class FashionStateService {
       ]);
       this.logger.log(`[FashionState] Deleted state for user ${userId}`);
     } catch (error) {
-      this.logger.error(`[FashionState] deleteUserState failed: ${error.message}`);
+      this.logger.error(
+        `[FashionState] deleteUserState failed: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -354,7 +368,9 @@ export class FashionStateService {
 
       return result.rows.map((row) => row.user_id);
     } catch (error) {
-      this.logger.error(`[FashionState] getStaleUserIds failed: ${error.message}`);
+      this.logger.error(
+        `[FashionState] getStaleUserIds failed: ${error.message}`,
+      );
       return [];
     }
   }

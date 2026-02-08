@@ -23,30 +23,21 @@ export class DiscoverController {
 
   // Save a product (add to favorites)
   @Post(':userId/save')
-  async saveProduct(
-    @Req() req,
-    @Body('product_id') productId: string,
-  ) {
+  async saveProduct(@Req() req, @Body('product_id') productId: string) {
     const userId = req.user.userId;
     return this.discoverService.saveProduct(userId, productId);
   }
 
   // Unsave a product (remove from favorites)
   @Post(':userId/unsave')
-  async unsaveProduct(
-    @Req() req,
-    @Body('product_id') productId: string,
-  ) {
+  async unsaveProduct(@Req() req, @Body('product_id') productId: string) {
     const userId = req.user.userId;
     return this.discoverService.unsaveProduct(userId, productId);
   }
 
   // Toggle saved state
   @Post(':userId/toggle-save')
-  async toggleSaveProduct(
-    @Req() req,
-    @Body('product_id') productId: string,
-  ) {
+  async toggleSaveProduct(@Req() req, @Body('product_id') productId: string) {
     const userId = req.user.userId;
     return this.discoverService.toggleSaveProduct(userId, productId);
   }

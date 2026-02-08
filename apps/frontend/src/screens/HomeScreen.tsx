@@ -337,30 +337,30 @@ const HeroCarousel = React.memo(
               <View style={{flex: 1, flexDirection: 'row'}}>
                 <FastImage
                   source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1}}
-                  resizeMode={FastImage.resizeMode.cover}
+                  style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}
+                  resizeMode={FastImage.resizeMode.contain}
                 />
                 <FastImage
                   source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                  style={{flex: 1}}
-                  resizeMode={FastImage.resizeMode.cover}
+                  style={{flex: 1, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}
+                  resizeMode={FastImage.resizeMode.contain}
                 />
               </View>
               <View style={{flex: 1, flexDirection: 'row'}}>
                 {heroPost.shoes_image ? (
                   <FastImage
                     source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1}}
-                    resizeMode={FastImage.resizeMode.cover}
+                    style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}
+                    resizeMode={FastImage.resizeMode.contain}
                   />
-                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}} />}
                 {heroPost.accessory_image ? (
                   <FastImage
                     source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
-                    style={{flex: 1}}
-                    resizeMode={FastImage.resizeMode.cover}
+                    style={{flex: 1, backgroundColor: '#F5F5F5'}}
+                    resizeMode={FastImage.resizeMode.contain}
                   />
-                ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+                ) : <View style={{flex: 1, backgroundColor: '#F5F5F5'}} />}
               </View>
             </View>
           ) : (
@@ -375,8 +375,9 @@ const HeroCarousel = React.memo(
                 width: '100%',
                 height: '100%',
                 borderRadius: tokens.borderRadius.lg,
+                backgroundColor: 'white'
               }}
-              resizeMode={FastImage.resizeMode.cover}
+              resizeMode={FastImage.resizeMode.contain}
             />
           )}
         </Animated.View>
@@ -772,6 +773,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
   const [unsaveRecommendation, setUnsaveRecommendation] = useState<
     ((productId: string) => void) | null
   >(null);
+  const [updateProductSaved, setUpdateProductSaved] = useState<
+    ((productId: string, saved: boolean) => void) | null
+  >(null);
   const [shopResults, setShopResults] = useState<ProductResult[]>([]);
 
   const [personalizedVisible, setPersonalizedVisible] = useState(false);
@@ -1048,11 +1052,33 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
     string | null
   >(null);
 
-  const openArticle = (url: string, title?: string) => {
+  const openArticle = (url: string, title?: string, product?: DiscoverProduct) => {
     setReaderUrl(url);
     setReaderTitle(title);
+    setReaderProduct(product || null);
     setReaderVisible(true);
   };
+
+  const handleReaderToggleSave = useCallback(async () => {
+    if (!userId || !readerProduct || savingReaderProduct) return;
+    setSavingReaderProduct(true);
+    ReactNativeHapticFeedback.trigger('impactLight', {
+      enableVibrateFallback: true,
+      ignoreAndroidSystemSettings: false,
+    });
+    try {
+      const response = await apiClient.post(`/discover/${userId}/toggle-save`, {
+        product_id: readerProduct.product_id,
+      });
+      const newSaved = response.data.saved;
+      setReaderProduct(prev => prev ? {...prev, saved: newSaved} : null);
+      updateProductSaved?.(readerProduct.product_id, newSaved);
+    } catch (err) {
+      console.error('Failed to toggle save from reader:', err);
+    } finally {
+      setSavingReaderProduct(false);
+    }
+  }, [userId, readerProduct, savingReaderProduct, updateProductSaved]);
 
   const {prefs, ready} = useHomePrefs(userId);
 
@@ -1616,7 +1642,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                 style={{
                   width: SHARE_SIZE,
                   height: SHARE_SIZE + 80,
-                  backgroundColor: '#000',
+                  backgroundColor: '#F5F5F5',
                 }}>
                 {/* Check if this is a 4-grid outfit or single image */}
                 {shareVibe.generated_outfit?.outfit?.length > 0 ||
@@ -1633,33 +1659,33 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                         <>
                           {/* Row 1 */}
                           <View style={{flexDirection: 'row', height: CELL}}>
-                            <View style={{width: CELL, height: CELL}}>
+                            <View style={{width: CELL, height: CELL, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}>
                               {items[0]?.image && (
                                 <Image
                                   source={{uri: items[0].image}}
                                   style={{width: '100%', height: '100%'}}
-                                  resizeMode="cover"
+                                  resizeMode="contain"
                                 />
                               )}
                             </View>
-                            <View style={{width: CELL, height: CELL}}>
+                            <View style={{width: CELL, height: CELL, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}>
                               {items[1]?.image && (
                                 <Image
                                   source={{uri: items[1].image}}
                                   style={{width: '100%', height: '100%'}}
-                                  resizeMode="cover"
+                                  resizeMode="contain"
                                 />
                               )}
                             </View>
                           </View>
                           {/* Row 2 */}
                           <View style={{flexDirection: 'row', height: CELL}}>
-                            <View style={{width: CELL, height: CELL}}>
+                            <View style={{width: CELL, height: CELL, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}>
                               {items[2]?.image && (
                                 <Image
                                   source={{uri: items[2].image}}
                                   style={{width: '100%', height: '100%'}}
-                                  resizeMode="cover"
+                                  resizeMode="contain"
                                 />
                               )}
                             </View>
@@ -1667,13 +1693,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                               style={{
                                 width: CELL,
                                 height: CELL,
-                                backgroundColor: '#000',
+                                backgroundColor: '#F5F5F5',
                               }}>
                               {items[3]?.image && (
                                 <Image
                                   source={{uri: items[3].image}}
                                   style={{width: '100%', height: '100%'}}
-                                  resizeMode="cover"
+                                  resizeMode="contain"
                                 />
                               )}
                             </View>
@@ -1689,7 +1715,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                       uri: shareVibe.source_image_url || shareVibe.image_url,
                     }}
                     style={{width: SHARE_SIZE, height: SHARE_SIZE}}
-                    resizeMode="cover"
+                    resizeMode="contain"
                   />
                 )}
 
@@ -2314,10 +2340,11 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                   onCloseSavedModal={() =>
                     setSavedRecommendationsModalVisible(false)
                   }
-                  onSavedProductsChange={(products, fetchFn, unsaveFn) => {
+                  onSavedProductsChange={(products, fetchFn, unsaveFn, updateSaveFn) => {
                     setSavedRecommendations(products);
                     setFetchSavedRecommendations(() => fetchFn);
                     setUnsaveRecommendation(() => unsaveFn);
+                    setUpdateProductSaved(() => updateSaveFn);
                   }}
                 />
               </Animatable.View>
@@ -2443,8 +2470,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                 <View>
                                   <Image
                                     source={{uri: look.image_url}}
-                                    style={[globalStyles.image8]}
+                                    style={[globalStyles.image8, {backgroundColor: 'white'}]}
                                     resizeMode="cover"
+                                    // resizeMode="contain"
                                   />
                                 </View>
                                 <TouchableOpacity
@@ -2637,8 +2665,9 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     <View>
                                       <Image
                                         source={{uri: c.source_image_url}}
-                                        style={[globalStyles.image8]}
-                                        resizeMode="cover"
+                                        style={[globalStyles.image8, {backgroundColor: 'white'}]}
+                                        // resizeMode="cover"
+                                         resizeMode="cover"
                                       />
                                     </View>
                                     <TouchableOpacity
@@ -2808,7 +2837,7 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                     height: 130,
                                     borderRadius: tokens.borderRadius.md,
                                     overflow: 'hidden',
-                                    backgroundColor: '#000',
+                                    backgroundColor: '#F5F5F5',
                                   }}>
                                   <View>
                                     {look.image_url ? (
@@ -2826,13 +2855,13 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                           }}>
                                           <Image
                                             source={{uri: look.top_image}}
-                                            style={{width: 65, height: 65}}
-                                            resizeMode="cover"
+                                            style={{width: 65, height: 65, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#ffffff'}}
+                                            resizeMode="contain"
                                           />
                                           <Image
                                             source={{uri: look.bottom_image}}
-                                            style={{width: 65, height: 65}}
-                                            resizeMode="cover"
+                                            style={{width: 65, height: 65, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#ffffff'}}
+                                            resizeMode="contain"
                                           />
                                         </View>
                                         <View
@@ -2842,20 +2871,20 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
                                           }}>
                                           <Image
                                             source={{uri: look.shoes_image}}
-                                            style={{width: 65, height: 65}}
-                                            resizeMode="cover"
+                                            style={{width: 65, height: 65, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#ffffff'}}
+                                            resizeMode="contain"
                                           />
                                           <View
                                             style={{
                                               width: 65,
                                               height: 65,
-                                              backgroundColor: '#000',
+                                              backgroundColor: '#F5F5F5',
                                               justifyContent: 'center',
                                               alignItems: 'center',
                                             }}>
                                             <Text
                                               style={{
-                                                color: '#fff',
+                                                color: '#000',
                                                 fontSize: 8,
                                                 fontWeight: '800',
                                                 letterSpacing: 1,
@@ -3473,6 +3502,3484 @@ const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
 };
 
 export default HomeScreen;
+
+///////////////
+
+// import React, {useEffect, useState, useMemo, useRef, useCallback} from 'react';
+// import {
+//   View,
+//   Text,
+//   ScrollView,
+//   TouchableOpacity,
+//   StyleSheet,
+//   Image,
+//   Animated,
+//   Easing,
+//   Modal,
+//   Pressable,
+// } from 'react-native';
+// import {useAppTheme} from '../context/ThemeContext';
+// import FastImage from 'react-native-fast-image';
+// import {useCommunityPosts} from '../hooks/useCommunityApi';
+// import type {CommunityPost} from '../types/community';
+// import {fetchWeather} from '../utils/travelWeather';
+// import {ensureLocationPermission} from '../utils/permissions';
+// import Geolocation from 'react-native-geolocation-service';
+// import Icon from 'react-native-vector-icons/MaterialIcons';
+// import * as Animatable from 'react-native-animatable';
+// import AppleTouchFeedback from '../components/AppleTouchFeedback/AppleTouchFeedback';
+// import {initializeNotifications} from '../utils/notificationService';
+// import {useUUID} from '../context/UUIDContext';
+// import {API_BASE_URL} from '../config/api';
+// import {fontScale, moderateScale} from '../utils/scale';
+// import {SafeAreaView} from 'react-native-safe-area-context';
+// // import Video from 'react-native-video';
+// import {useGlobalStyles} from '../styles/useGlobalStyles';
+// import {tokens} from '../styles/tokens/tokens';
+// import SaveLookModal from '../components/SavedLookModal/SavedLookModal';
+// import SavedLookPreviewModal from '../components/SavedLookModal/SavedLookPreviewModal';
+// import LiveLocationMap from '../components/LiveLocationMap/LiveLocationMap';
+// import {useHomePrefs} from '../hooks/useHomePrefs';
+// import DiscoverCarousel, {
+//   DiscoverProduct,
+// } from '../components/DiscoverCarousel/DiscoverCarousel';
+// import NewsCarousel from '../components/NewsCarousel/NewsCarousel';
+// import ReaderModal from '../components/FashionFeed/ReaderModal';
+// import SavedRecommendationsModal from '../components/SavedRecommendationsModal/SavedRecommendationsModal';
+// import {TooltipBubble} from '../components/ToolTip/ToolTip1';
+// import AiStylistSuggestions from '../components/AiStylistSuggestions/AiStylistSuggestions';
+// import RecommendedCarousel from '../components/RecommendedCarousel/RecommendedCarousel';
+// import {Surface} from '../components/LinearGradientComponents/Surface';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// // import SparkleIcon from '../assets/images/sparkle-icon.png';
+// // import Future1 from '../assets/images/future-icon1.png';
+// import AllSavedLooksModal from '../components/AllSavedLooksModal/AllSavedLooksModal';
+// import {useRecreateLook} from '../hooks/useRecreateLook';
+// import {searchProducts} from '../services/productSearchClient';
+// import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+// import {Linking} from 'react-native';
+// import type {ProductResult} from '../services/productSearchClient';
+// import ShopModal from '../components/ShopModal/ShopModal';
+// import {
+//   Share,
+//   TextInput,
+//   Alert,
+//   KeyboardAvoidingView,
+//   Platform,
+// } from 'react-native';
+// import ViewShot from 'react-native-view-shot';
+// import {useCreatePost} from '../hooks/useCommunityApi';
+// import {BlurView} from '@react-native-community/blur';
+// import PersonalizedShopModal from '../components/PersonalizedShopModal/PersonalizedShopModal';
+// import VisualRecreateModal from '../components/VisualRecreateModal/VisualRecreateModal';
+// import RecreatedLookScreen from './RecreatedLookScreen';
+// import {Camera} from 'react-native-vision-camera';
+// import {useResponsive} from '../hooks/useResponsive';
+// import LiquidGlassCard from '../components/LiquidGlassCard/LiquidGlassCard';
+// import {useHomeVoiceCommands} from '../utils/VoiceUtils/VoiceContext';
+// import LinearGradientWrapper from '../components/LinearGradientWrapper/LinearGradientWrapper';
+// import {useSafeAreaInsets} from 'react-native-safe-area-context';
+// import {LiquidGlassView, isLiquidGlassSupported} from '@callstack/liquid-glass';
+// import {apiClient} from '../lib/apiClient';
+// import FilamentPreview from '../components/FilamentPreview';
+// import {useHeadPoseActions} from '../hooks/useHeadPoseActions';
+// import {
+//   useUserProfile,
+//   useLookMemory,
+//   useRecreatedLooks,
+//   useSavedLooks,
+//   useSharedLooks,
+//   useSaveRecreatedLook,
+//   useDeleteRecreatedLook,
+//   useRenameRecreatedLook,
+//   useDeleteSavedLook,
+// } from '../hooks/useHomeData';
+
+// // import {NativeModules} from 'react-native';
+// // const {StylIQDynamicIslandModule} = NativeModules;
+// // import {SkiaTest} from '../tests/SkiaTest';
+
+// import {DynamicIsland} from '../native/dynamicIsland';
+
+// type Props = {
+//   navigate: (screen: string, params?: any) => void;
+//   wardrobe: any[];
+// };
+
+// // Animated pressable with scale effect for images
+// const ScalePressable = ({
+//   children,
+//   onPress,
+//   style,
+// }: {
+//   children: React.ReactNode;
+//   onPress: () => void;
+//   style?: any;
+// }) => {
+//   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+//   const handlePressIn = () => {
+//     Animated.spring(scaleAnim, {
+//       toValue: 0.96,
+//       useNativeDriver: true,
+//       speed: 50,
+//       bounciness: 4,
+//     }).start();
+//   };
+
+//   const handlePressOut = () => {
+//     Animated.spring(scaleAnim, {
+//       toValue: 1,
+//       useNativeDriver: true,
+//       speed: 50,
+//       bounciness: 4,
+//     }).start();
+//   };
+
+//   return (
+//     <Pressable
+//       onPress={onPress}
+//       onPressIn={handlePressIn}
+//       onPressOut={handlePressOut}>
+//       <Animated.View style={[style, {transform: [{scale: scaleAnim}]}]}>
+//         {children}
+//       </Animated.View>
+//     </Pressable>
+//   );
+// };
+
+// // Helper to get initials from a name
+// const getInitials = (name: string): string => {
+//   if (!name) return '?';
+//   const parts = name.trim().split(/\s+/);
+//   if (parts.length >= 2) {
+//     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+//   }
+//   return name.slice(0, 2).toUpperCase();
+// };
+
+// // Helper to check if avatar is a real one (not a pravatar fallback)
+// const isRealAvatar = (avatarUrl: string | undefined | null): boolean => {
+//   if (!avatarUrl) return false;
+//   return !avatarUrl.includes('pravatar.cc');
+// };
+
+// // Avatar component that shows initials when no real profile picture
+// const UserAvatar = ({
+//   avatarUrl,
+//   userName,
+//   size,
+//   style,
+//   onPress,
+// }: {
+//   avatarUrl: string | undefined | null;
+//   userName: string;
+//   size: number;
+//   style?: any;
+//   onPress?: () => void;
+// }) => {
+//   const content = isRealAvatar(avatarUrl) ? (
+//     <FastImage
+//       source={{
+//         uri: avatarUrl!,
+//         priority: FastImage.priority.normal,
+//         cache: FastImage.cacheControl.immutable,
+//       }}
+//       style={[
+//         {
+//           width: size,
+//           height: size,
+//           borderRadius: size / 2,
+//         },
+//         style,
+//       ]}
+//       resizeMode={FastImage.resizeMode.cover}
+//     />
+//   ) : (
+//     <View
+//       style={[
+//         {
+//           width: size,
+//           height: size,
+//           borderRadius: size / 2,
+//           backgroundColor: '#000',
+//           justifyContent: 'center',
+//           alignItems: 'center',
+//         },
+//         style,
+//       ]}>
+//       <Text
+//         style={{
+//           color: '#fff',
+//           fontSize: size * 0.4,
+//           fontWeight: '600',
+//         }}>
+//         {getInitials(userName)}
+//       </Text>
+//     </View>
+//   );
+
+//   if (onPress) {
+//     return <Pressable onPress={onPress}>{content}</Pressable>;
+//   }
+
+//   return content;
+// };
+
+// // Mock data for hero fallback
+// const MOCK_HERO_POSTS = [
+//   {
+//     id: '1',
+//     imageUrl:
+//       'https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=400',
+//     userName: 'StyleQueen',
+//     userAvatar: 'https://i.pravatar.cc/100?img=1',
+//     likes: 234,
+//     views: 1247,
+//     tags: ['casual', 'summer'],
+//   },
+//   {
+//     id: '2',
+//     imageUrl:
+//       'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400',
+//     userName: 'FashionForward',
+//     userAvatar: 'https://i.pravatar.cc/100?img=2',
+//     likes: 189,
+//     views: 892,
+//     tags: ['elegant', 'evening'],
+//   },
+//   {
+//     id: '3',
+//     imageUrl:
+//       'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400',
+//     userName: 'TrendSetter',
+//     userAvatar: 'https://i.pravatar.cc/100?img=3',
+//     likes: 421,
+//     views: 2156,
+//     tags: ['streetwear', 'urban'],
+//   },
+// ];
+
+// // Memoized Hero Carousel - Community-style hero section
+// const HeroCarousel = React.memo(
+//   ({
+//     communityPosts,
+//     navigate,
+//     theme,
+//   }: {
+//     communityPosts: CommunityPost[];
+//     navigate: (screen: string, params?: any) => void;
+//     theme: any;
+//   }) => {
+//     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+//     const heroFadeAnim = useRef(new Animated.Value(1)).current;
+
+//     // Get displayed like count for a post
+//     const getPostLikeCount = useCallback((post: CommunityPost) => {
+//       return post.likes_count ?? 0;
+//     }, []);
+
+//     // Cycle through posts
+//     useEffect(() => {
+//       const postsToUse = communityPosts.length > 0 ? communityPosts : MOCK_HERO_POSTS;
+//       if (postsToUse.length <= 1) return;
+
+//       const interval = setInterval(() => {
+//         Animated.timing(heroFadeAnim, {
+//           toValue: 0,
+//           duration: 800,
+//           useNativeDriver: true,
+//         }).start(() => {
+//           setCurrentImageIndex(prev => (prev + 1) % postsToUse.length);
+//           Animated.timing(heroFadeAnim, {
+//             toValue: 1,
+//             duration: 1200,
+//             useNativeDriver: true,
+//           }).start();
+//         });
+//       }, 8000);
+
+//       return () => clearInterval(interval);
+//     }, [communityPosts.length, heroFadeAnim]);
+
+//     // Get hero data from community posts or mock data
+//     const heroPost = communityPosts.length > 0
+//       ? communityPosts[currentImageIndex % communityPosts.length]
+//       : null;
+//     const mockPost = MOCK_HERO_POSTS[currentImageIndex % MOCK_HERO_POSTS.length];
+//     const isComposite = heroPost?.top_image && heroPost?.bottom_image;
+//     const heroImageUrl = heroPost?.image_url || heroPost?.top_image || mockPost.imageUrl;
+//     const heroUserName = heroPost?.user_name || mockPost.userName;
+//     const heroUserAvatar = heroPost?.user_avatar || mockPost.userAvatar;
+//     const heroUserId = heroPost?.user_id;
+//     const heroTags = heroPost?.tags || mockPost.tags;
+//     const heroLikes = heroPost ? getPostLikeCount(heroPost) : mockPost.likes;
+//     const heroViews = heroPost?.views_count ?? mockPost.views ?? 0;
+//     const heroName = heroPost?.name || heroPost?.description || 'Featured Look';
+
+//     return (
+//       <Pressable
+//         onPress={() => {
+//           if (heroPost) {
+//             navigate('CommunityShowcaseScreen', {initialPostId: heroPost.id});
+//           }
+//         }}
+//         style={{
+//           width: '100%',
+//           height: 300,
+//           overflow: 'hidden',
+//           borderRadius: tokens.borderRadius.lg,
+//         }}>
+//         <Animated.View
+//           pointerEvents="none"
+//           style={{
+//             width: '100%',
+//             height: '100%',
+//             borderRadius: tokens.borderRadius.lg,
+//             opacity: heroFadeAnim,
+//           }}>
+//           {isComposite && heroPost ? (
+//             // 2x2 Grid for composite outfits
+//             <View style={{flex: 1, flexDirection: 'column', borderRadius: tokens.borderRadius.lg, overflow: 'hidden'}}>
+//               <View style={{flex: 1, flexDirection: 'row'}}>
+//                 <FastImage
+//                   source={{uri: heroPost.top_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+//                   style={{flex: 1}}
+//                   resizeMode={FastImage.resizeMode.cover}
+//                 />
+//                 <FastImage
+//                   source={{uri: heroPost.bottom_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+//                   style={{flex: 1}}
+//                   resizeMode={FastImage.resizeMode.cover}
+//                 />
+//               </View>
+//               <View style={{flex: 1, flexDirection: 'row'}}>
+//                 {heroPost.shoes_image ? (
+//                   <FastImage
+//                     source={{uri: heroPost.shoes_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+//                     style={{flex: 1}}
+//                     resizeMode={FastImage.resizeMode.cover}
+//                   />
+//                 ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+//                 {heroPost.accessory_image ? (
+//                   <FastImage
+//                     source={{uri: heroPost.accessory_image, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable}}
+//                     style={{flex: 1}}
+//                     resizeMode={FastImage.resizeMode.cover}
+//                   />
+//                 ) : <View style={{flex: 1, backgroundColor: '#111'}} />}
+//               </View>
+//             </View>
+//           ) : (
+//             // Single image
+//             <FastImage
+//               source={{
+//                 uri: heroImageUrl,
+//                 priority: FastImage.priority.high,
+//                 cache: FastImage.cacheControl.immutable,
+//               }}
+//               style={{
+//                 width: '100%',
+//                 height: '100%',
+//                 borderRadius: tokens.borderRadius.lg,
+//               }}
+//               resizeMode={FastImage.resizeMode.cover}
+//             />
+//           )}
+//         </Animated.View>
+
+//         {/* Light tinted overlay for better text visibility */}
+//         <View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             top: 0,
+//             left: 0,
+//             right: 0,
+//             bottom: 0,
+//             backgroundColor: 'rgba(0, 0, 0, 0.25)',
+//             borderRadius: tokens.borderRadius.lg,
+//           }}
+//         />
+
+//         {/* Title in upper left corner */}
+//         <View
+//           pointerEvents="none"
+//           style={{
+//             position: 'absolute',
+//             top: moderateScale(tokens.spacing.md),
+//             left: moderateScale(tokens.spacing.md),
+//           }}>
+//           <Text
+//             style={{
+//               fontSize: fontScale(tokens.fontSize['3xl']),
+//               fontWeight: tokens.fontWeight.bold,
+//               color: 'white',
+//               textShadowColor: 'rgba(0, 0, 0, 1)',
+//               textShadowOffset: {width: 0, height: 1},
+//               textShadowRadius: 3,
+//             }}>
+//             "{heroName}"
+//           </Text>
+//         </View>
+
+//         <Animatable.View
+//           key={`text-${currentImageIndex}`}
+//           animation="fadeInUp"
+//           duration={1200}
+//           delay={200}
+//           useNativeDriver
+//           style={{
+//             position: 'absolute',
+//             bottom: 0,
+//             left: 0,
+//             right: 0,
+//             paddingHorizontal: moderateScale(tokens.spacing.sm),
+//             paddingBottom: moderateScale(tokens.spacing.sm),
+//           }}>
+//           <View
+//             style={{
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//               marginBottom: moderateScale(tokens.spacing.xxs),
+//             }}>
+//             <UserAvatar
+//               avatarUrl={heroUserAvatar}
+//               userName={heroUserName}
+//               size={40}
+//               style={{
+//                 marginRight: 10,
+//                 borderWidth: 1.5,
+//                 borderColor: theme.colors.button1,
+//               }}
+//               onPress={
+//                 heroUserId
+//                   ? () => {
+//                       navigate('UserProfileScreen', {
+//                         userId: heroUserId,
+//                         userName: heroUserName,
+//                         userAvatar: heroUserAvatar,
+//                       });
+//                     }
+//                   : undefined
+//               }
+//             />
+//             <Text
+//               style={{
+//                 fontSize: fontScale(tokens.fontSize['3xl']),
+//                 fontWeight: tokens.fontWeight.bold,
+//                 color: '#ffffff',
+//                 textShadowColor: 'rgba(0, 0, 0, 0.5)',
+//                 textShadowOffset: {width: 0, height: 2},
+//                 textShadowRadius: 4,
+//               }}>
+//               @{heroUserName}
+//             </Text>
+//           </View>
+//           {/* <View
+//             style={{
+//               flexDirection: 'row',
+//               alignItems: 'center',
+//               flexWrap: 'wrap',
+//               gap: 6,
+//             }}>
+//             {heroTags.slice(0, 3).map(tag => (
+//               <View key={tag}>
+//                 <Text
+//                   style={{
+//                     fontSize: fontScale(tokens.fontSize.sm),
+//                     color: 'rgba(255,255,255,0.85)',
+//                     backgroundColor: 'rgba(59, 59, 59, 0.7)',
+//                     paddingHorizontal: 8,
+//                     paddingVertical: 4,
+//                     borderRadius: 8,
+//                     overflow: 'hidden',
+//                   }}>
+//                   #{tag}
+//                 </Text>
+//               </View>
+//             ))}
+//             <Text
+//               style={{
+//                 fontSize: fontScale(tokens.fontSize.sm),
+//                 fontWeight: tokens.fontWeight.medium,
+//                 color: 'rgba(255, 255, 255, 0.9)',
+//                 marginLeft: 4,
+//                 textShadowColor: 'rgba(0, 0, 0, 0.4)',
+//                 textShadowOffset: {width: 0, height: 1},
+//                 textShadowRadius: 3,
+//               }}>
+//               • {heroLikes} likes • {heroViews} views
+//             </Text>
+//           </View> */}
+//         </Animatable.View>
+//       </Pressable>
+//     );
+//   },
+// );
+
+// const HomeScreen: React.FC<Props> = ({navigate, wardrobe}) => {
+//   const scrollY = useRef(new Animated.Value(0)).current;
+
+//   // 🎬 Entrance fade-in animation
+//   const screenOpacity = useRef(new Animated.Value(0)).current;
+
+//   useEffect(() => {
+//     Animated.timing(screenOpacity, {
+//       toValue: 1,
+//       duration: 600,
+//       useNativeDriver: true,
+//       easing: Easing.out(Easing.quad),
+//     }).start();
+//   }, [screenOpacity]);
+
+//   // 🎢 Scroll-active scale for weather & AI cards
+//   const scrollActiveScale = useRef(new Animated.Value(1)).current;
+//   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+//   const lastScrollY = useRef(0);
+
+//   // Sync local scrollY with global nav scrollY for bottom nav hide/show
+//   useEffect(() => {
+//     const listenerId = scrollY.addListener(({value}) => {
+//       if (global.__navScrollY) {
+//         global.__navScrollY.setValue(value);
+//       }
+
+//       // Detect scroll activity and animate scale
+//       const scrollDelta = Math.abs(value - lastScrollY.current);
+//       lastScrollY.current = value;
+
+//       if (scrollDelta > 1) {
+//         // Scrolling - shrink slightly with smooth ease
+//         Animated.timing(scrollActiveScale, {
+//           toValue: 0.985,
+//           duration: 200,
+//           useNativeDriver: true,
+//           easing: Easing.out(Easing.cubic),
+//         }).start();
+
+//         // Reset timeout
+//         if (scrollTimeout.current) {
+//           clearTimeout(scrollTimeout.current);
+//         }
+//         scrollTimeout.current = setTimeout(() => {
+//           // Stopped scrolling - return to normal with gentle ease
+//           Animated.timing(scrollActiveScale, {
+//             toValue: 1,
+//             duration: 300,
+//             useNativeDriver: true,
+//             easing: Easing.out(Easing.cubic),
+//           }).start();
+//         }, 150);
+//       }
+//     });
+//     return () => {
+//       scrollY.removeListener(listenerId);
+//       if (scrollTimeout.current) {
+//         clearTimeout(scrollTimeout.current);
+//       }
+//     };
+//   }, [scrollY, scrollActiveScale]);
+
+//   // Parallax / blur / shadow interpolations
+//   const interpolatedBlurAmount = scrollY.interpolate({
+//     inputRange: [0, 100],
+//     outputRange: [10, 2],
+//     extrapolate: 'clamp',
+//   });
+//   const interpolatedShadowOpacity = scrollY.interpolate({
+//     inputRange: [0, 100],
+//     outputRange: [0.12, 0.03],
+//     extrapolate: 'clamp',
+//   });
+
+//   const {theme, setSkin} = useAppTheme();
+//   const globalStyles = useGlobalStyles();
+//   const [weather, setWeather] = useState<any>(null);
+//   const userId = useUUID();
+
+//   // 🎯 TanStack Query: Community posts for hero section
+//   const {data: communityPosts = []} = useCommunityPosts(userId ?? undefined, 'all', 10);
+
+//   const insets = useSafeAreaInsets();
+//   const MAP_BASE_HEIGHT = moderateScale(250); // allow more breathing room
+
+//   const HEADER_HEIGHT = 60; // whatever your header’s height is
+//   const BOTTOM_NAV_HEIGHT = 90; // whatever your bottom nav’s height is
+
+//   useEffect(() => {
+//     (async () => {
+//       const status = await Camera.getCameraPermissionStatus();
+//       if (status !== 'authorized') {
+//         await Camera.requestCameraPermission();
+//       }
+//     })();
+//   }, []);
+
+//   // Head Gestures
+//   useHeadPoseActions(
+//     () => {
+//       navigate('Notifications');
+//     },
+//     () => {
+//       navigate('VideoFeedScreen');
+//     },
+//   );
+
+//   useHeadPoseActions(
+//     // LEFT → open modal
+//     () => {
+//       setImageModalVisible(true);
+//     },
+
+//     // RIGHT → close modal
+//     () => {
+//       if (imageModalVisible) {
+//         setImageModalVisible(false);
+//       }
+//     },
+//   );
+
+//   // Simple inline collapsible wrapper — smooth open/close animation
+//   const CollapsibleSection: React.FC<{
+//     title?: string;
+//     children: React.ReactNode;
+//     open: boolean;
+//     onToggle: (newState: boolean) => void;
+//   }> = ({title, children, open, onToggle}) => {
+//     const animatedHeight = useRef(new Animated.Value(open ? 1 : 0)).current;
+
+//     useEffect(() => {
+//       Animated.timing(animatedHeight, {
+//         toValue: open ? 1 : 0,
+//         duration: 260,
+//         easing: Easing.out(Easing.quad),
+//         useNativeDriver: false,
+//       }).start();
+//     }, [open]);
+
+//     const toggle = () => {
+//       onToggle(!open);
+//     };
+
+//     return (
+//       <View
+//         style={{
+//           overflow: 'hidden',
+//           marginBottom: open ? 0 : 20,
+//         }}>
+//         {title && (
+//           <TouchableOpacity
+//             activeOpacity={0.7}
+//             onPress={toggle}
+//             style={{
+//               flexDirection: 'row',
+//               // justifyContent: 'space-between',
+//               alignItems: 'center',
+//               marginBottom: moderateScale(tokens.spacing.xs),
+//             }}>
+//             <Text
+//               style={{
+//                 color: theme.colors.foreground,
+//                 fontSize: fontScale(tokens.fontSize.lg),
+//                 fontWeight: tokens.fontWeight.bold,
+//                 // fontWeight: tokens.fontWeight.medium,
+//                 paddingLeft: 16,
+//                 textTransform: 'uppercase',
+//               }}>
+//               {title}
+//             </Text>
+
+//             <Animated.View
+//               style={{
+//                 transform: [
+//                   {
+//                     rotateZ: animatedHeight.interpolate({
+//                       inputRange: [0, 1],
+//                       outputRange: ['0deg', '180deg'],
+//                     }),
+//                   },
+//                 ],
+//                 marginRight: 24,
+//               }}>
+//               <View
+//                 style={{
+//                   backgroundColor: theme.colors.surface3,
+//                   borderRadius: 50,
+//                   padding: 1,
+//                 }}>
+//                 {/* <Icon
+//                   name="keyboard-arrow-down"
+//                   size={25}
+//                   color={theme.colors.foreground}
+//                 /> */}
+//               </View>
+//             </Animated.View>
+//           </TouchableOpacity>
+//         )}
+
+//         <Animated.View
+//           style={{
+//             opacity: animatedHeight,
+//             transform: [
+//               {
+//                 scaleY: animatedHeight.interpolate({
+//                   inputRange: [0, 1],
+//                   outputRange: [0.96, 1],
+//                 }),
+//               },
+//             ],
+//           }}>
+//           {open && children}
+//         </Animated.View>
+//       </View>
+//     );
+//   };
+
+//   // 🎨 TanStack Query: User profile data (name, picture, theme)
+//   const {data: userProfile} = useUserProfile(userId ?? '');
+
+//   // Apply theme from user profile
+//   useEffect(() => {
+//     if (userProfile?.theme_mode) {
+//       setSkin(userProfile.theme_mode);
+//     }
+//   }, [userProfile?.theme_mode, setSkin]);
+
+//   // Derive user data from TanStack Query cache
+//   const firstName = userProfile?.first_name ?? '';
+//   const lastName = userProfile?.last_name ?? '';
+//   const [userPicture, setUserPicture] = useState<string | null>(null);
+
+//   // Sync userPicture from profile (but allow local override from AsyncStorage)
+//   useEffect(() => {
+//     if (userProfile?.picture && !userPicture) {
+//       setUserPicture(userProfile.picture);
+//     }
+//   }, [userProfile?.picture, userPicture]);
+//   const [saveModalVisible, setSaveModalVisible] = useState(false);
+//   const [previewVisible, setPreviewVisible] = useState(false);
+//   const [selectedLook, setSelectedLook] = useState<any | null>(null);
+//   const [readerVisible, setReaderVisible] = useState(false);
+//   const [readerUrl, setReaderUrl] = useState<string | undefined>(undefined);
+//   const [readerTitle, setReaderTitle] = useState<string | undefined>(undefined);
+//   const [readerProduct, setReaderProduct] = useState<DiscoverProduct | null>(null);
+//   const [savingReaderProduct, setSavingReaderProduct] = useState(false);
+//   const [imageModalVisible, setImageModalVisible] = useState(false);
+//   const [
+//     savedRecommendationsModalVisible,
+//     setSavedRecommendationsModalVisible,
+//   ] = useState(false);
+//   const [savedRecommendations, setSavedRecommendations] = useState<
+//     DiscoverProduct[]
+//   >([]);
+//   const [fetchSavedRecommendations, setFetchSavedRecommendations] = useState<
+//     (() => void) | null
+//   >(null);
+//   const [unsaveRecommendation, setUnsaveRecommendation] = useState<
+//     ((productId: string) => void) | null
+//   >(null);
+//   const [shopResults, setShopResults] = useState<ProductResult[]>([]);
+
+//   const [personalizedVisible, setPersonalizedVisible] = useState(false);
+//   const [personalizedPurchases, setPersonalizedPurchases] = useState<any[]>([]);
+//   const [visualRecreateVisible, setVisualRecreateVisible] = useState(false);
+//   const [visualRecreateData, setVisualRecreateData] = useState<{
+//     pieces?: any[];
+//     results?: any[];
+//     source_image?: string;
+//     lookId?: string;
+//     lookName?: string;
+//     tags?: string[];
+//   } | null>(null);
+//   const [showSavedLooks, setShowSavedLooks] = useState(true);
+
+//   // Map dropdown state & animations
+//   // DEAFULT OPEN STATE
+//   const [mapVisible, setMapVisible] = useState(true);
+//   const chevron = useRef(new Animated.Value(1)).current;
+//   const mapHeight = useRef(new Animated.Value(MAP_BASE_HEIGHT)).current;
+//   const mapOpacity = useRef(new Animated.Value(1)).current;
+//   const [mapOpen, setMapOpen] = useState(true);
+
+//   const [savedOpen, setSavedOpen] = useState(true);
+//   const [createdOpen, setCreatedOpen] = useState(true);
+//   const [shoppedOpen, setShoppedOpen] = useState(true);
+//   const [sharedOpen, setSharedOpen] = useState(true);
+
+//   // Demo carousel state - tracks if user has ever had real content
+//   const [hasEverHadInspired, setHasEverHadInspired] = useState<boolean | null>(null);
+//   const [hasEverHadRecreated, setHasEverHadRecreated] = useState<boolean | null>(null);
+//   const [hasEverHadShared, setHasEverHadShared] = useState<boolean | null>(null);
+
+//   // Demo carousel images (bundled assets)
+//   const demoInspiredImages = [
+//     require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+//     require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+//   ];
+//   const demoRecreatedImages = [
+//     require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
+//   ];
+//   const demoSharedImages = [
+//     require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
+//   ];
+
+//   // Carousel scroll refs - preserve position across re-renders
+//   const inspiredScrollRef = useRef<ScrollView>(null);
+//   const recreatedScrollRef = useRef<ScrollView>(null);
+//   const sharedScrollRef = useRef<ScrollView>(null);
+//   const inspiredScrollPos = useRef(0);
+//   const recreatedScrollPos = useRef(0);
+//   const sharedScrollPos = useRef(0);
+
+//   // Fashion hero text messages
+//   const fashionTexts = [
+//     {
+//       title: 'Get Ready\nFor A Revolution.',
+//       subtitle: 'Discover the latest in fashion innovation and style',
+//     },
+//     {
+//       title: 'Elevate Your\nStyle Game.',
+//       subtitle:
+//         'Transform your wardrobe with trending pieces and timeless classics',
+//     },
+//     {
+//       title: 'Fashion Forward\nThinking.',
+//       subtitle: 'Stay ahead of the curve with curated style inspiration',
+//     },
+//     {
+//       title: 'Dress The Part.\nOwn The Moment.',
+//       subtitle: 'Make every outfit count with personalized recommendations',
+//     },
+//     {
+//       title: 'Your Style.\nYour Story.',
+//       subtitle: 'Express yourself through fashion that speaks to who you are',
+//     },
+//     {
+//       title: 'Curated Looks\nJust For You.',
+//       subtitle: 'AI-powered styling tailored to your unique preferences',
+//     },
+//     {
+//       title: 'Unlock Your\nSignature Style.',
+//       subtitle: 'Find the perfect pieces that define your personal aesthetic',
+//     },
+//     {
+//       title: 'Bold Choices.\nTimeless Impact.',
+//       subtitle: 'Discover fashion that makes a statement and lasts',
+//     },
+//     {
+//       title: 'Trend Meets\nAuthenticity.',
+//       subtitle: 'Blend the latest trends with your individual flair',
+//     },
+//     {
+//       title: 'Confidence\nStarts Here.',
+//       subtitle: 'Step out in style with outfits designed to inspire',
+//     },
+//   ];
+
+//   // Fashion hero images
+//   const fashionImages = [
+//     require('../assets/images/fashion/fashion-runway-event-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-show-elegance-stockcake.webp'),
+//     require('../assets/images/fashion/generated-image-1.png'),
+//     require('../assets/images/fashion/fashion-runway-show-stockcake.webp'),
+//     require('../assets/images/fashion/colorful-fashion-statement-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-runway-show-stockcake3.webp'),
+//     require('../assets/images/fashion/backstage-fashion-moment-stockcake.jpg'),
+//     require('../assets/images/fashion/vibrant-model-portrait-stockcake.jpg'),
+//     require('../assets/images/fashion/futuristic-fashion-model-stockcake.webp'),
+//     require('../assets/images/fashion/starry-night-fashion-stockcake.webp'),
+//     require('../assets/images/fashion/elegant-runway-model-stockcake.jpg'),
+//     require('../assets/images/fashion/glittering-runway-model-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-runway-model-stockcake2.webp'),
+//     require('../assets/images/fashion/fashion-runway-model-stockcake.jpg'),
+//     require('../assets/images/fashion/stylish-model-duo-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-runway-model-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-show-glamour-stockcake2.jpg'),
+//     require('../assets/images/fashion/fashion-show-glamour-stockcake.jpg'),
+//     require('../assets/images/fashion/runway-fashion-moment-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-show-silhouette-stockcake.webp'),
+//     require('../assets/images/fashion/fashion-show-glamour-stockcake.webp'),
+//   ];
+
+//   // 🗣️ Enable voice control for HomeScreen
+//   // All voice commands are centralized in VoiceContext.ts → HOME_VOICE_COMMANDS
+//   useHomeVoiceCommands(setImageModalVisible, setSaveModalVisible, navigate);
+
+//   useEffect(() => {
+//     const restoreSectionsState = async () => {
+//       try {
+//         const saved = await AsyncStorage.getItem('savedLooksOpen');
+//         const created = await AsyncStorage.getItem('createdVibeOpen');
+//         const shopped = await AsyncStorage.getItem('shoppedVibeOpen');
+//         if (saved !== null) setSavedOpen(JSON.parse(saved));
+//         if (created !== null) setCreatedOpen(JSON.parse(created));
+//         if (shopped !== null) setShoppedOpen(JSON.parse(shopped));
+//       } catch (err) {
+//         console.error('❌ Failed to restore collapsible states:', err);
+//       }
+//     };
+//     restoreSectionsState();
+//   }, []);
+
+//   const {recreateLook, loading: recreating} = useRecreateLook();
+//   const [recreatedData, setRecreatedData] = useState<any | null>(null);
+//   const [showRecreatedModal, setShowRecreatedModal] = useState(false);
+
+//   const [shopVisible, setShopVisible] = useState(false);
+
+//   // 🎯 TanStack Query: Look memory, recreated looks, saved looks, shared looks
+//   // Note: hooks return stable empty arrays, no need for = [] defaults here
+//   const {data: lookMemoryData, isLoading: loadingVibes} = useLookMemory(
+//     userId ?? '',
+//   );
+//   const {
+//     data: recreatedLooksData,
+//     isLoading: loadingCreations,
+//     refetch: refetchRecreatedLooks,
+//   } = useRecreatedLooks(userId ?? '');
+//   const {data: savedLooksData, refetch: refetchSavedLooks} = useSavedLooks(
+//     userId ?? '',
+//   );
+//   const {data: sharedLooksData} = useSharedLooks(userId ?? '');
+
+//   // TanStack Query mutations
+//   const saveRecreatedLookMutation = useSaveRecreatedLook();
+//   const deleteRecreatedLookMutation = useDeleteRecreatedLook();
+//   const renameRecreatedLookMutation = useRenameRecreatedLook();
+//   const deleteSavedLookMutation = useDeleteSavedLook();
+
+//   // Use TanStack Query data directly - no local state sync needed
+//   // This prevents unnecessary re-renders that cause image flashing
+//   const recentVibes = lookMemoryData;
+//   const recentCreations = recreatedLooksData;
+//   const savedLooks = savedLooksData;
+//   const sharedLooks = sharedLooksData;
+//   const [hiddenSharedLooks, setHiddenSharedLooks] = useState<Set<string>>(
+//     new Set(),
+//   );
+
+//   // Load hasEverHadRealContent flags from AsyncStorage
+//   useEffect(() => {
+//     const loadDemoFlags = async () => {
+//       try {
+//         const [inspired, recreated, shared] = await Promise.all([
+//           AsyncStorage.getItem('inspired_has_real'),
+//           AsyncStorage.getItem('created_has_real'),
+//           AsyncStorage.getItem('shared_has_real'),
+//         ]);
+//         setHasEverHadInspired(inspired === 'true');
+//         setHasEverHadRecreated(recreated === 'true');
+//         setHasEverHadShared(shared === 'true');
+//       } catch (err) {
+//         console.error('Failed to load demo flags:', err);
+//         setHasEverHadInspired(false);
+//         setHasEverHadRecreated(false);
+//         setHasEverHadShared(false);
+//       }
+//     };
+//     loadDemoFlags();
+//   }, []);
+
+//   // Update hasEverHadRealContent when real content appears
+//   useEffect(() => {
+//     if (savedLooks && savedLooks.length > 0 && hasEverHadInspired === false) {
+//       setHasEverHadInspired(true);
+//       AsyncStorage.setItem('inspired_has_real', 'true');
+//     }
+//   }, [savedLooks, hasEverHadInspired]);
+
+//   useEffect(() => {
+//     if (recentCreations && recentCreations.length > 0 && hasEverHadRecreated === false) {
+//       setHasEverHadRecreated(true);
+//       AsyncStorage.setItem('created_has_real', 'true');
+//     }
+//   }, [recentCreations, hasEverHadRecreated]);
+
+//   useEffect(() => {
+//     if (sharedLooks && sharedLooks.length > 0 && hasEverHadShared === false) {
+//       setHasEverHadShared(true);
+//       AsyncStorage.setItem('shared_has_real', 'true');
+//     }
+//   }, [sharedLooks, hasEverHadShared]);
+
+//   // Compute carousel states: 'demo' | 'real' | 'empty-real'
+//   const inspiredState = savedLooks && savedLooks.length > 0
+//     ? 'real'
+//     : hasEverHadInspired
+//       ? 'empty-real'
+//       : 'demo';
+//   const recreatedState = recentCreations && recentCreations.length > 0
+//     ? 'real'
+//     : hasEverHadRecreated
+//       ? 'empty-real'
+//       : 'demo';
+//   const sharedState = sharedLooks && sharedLooks.length > 0
+//     ? 'real'
+//     : hasEverHadShared
+//       ? 'empty-real'
+//       : 'demo';
+
+//   // Share composite state for Recent Created/Shopped Looks
+//   const shareVibeRef = useRef<ViewShot>(null);
+//   const [shareVibe, setShareVibe] = useState<any | null>(null);
+//   const SHARE_SIZE = 400;
+
+//   // Share options state (community vs external)
+//   const [shareOptionsVisible, setShareOptionsVisible] = useState(false);
+//   const [pendingShareVibe, setPendingShareVibe] = useState<any | null>(null);
+//   const [communityShareModalVisible, setCommunityShareModalVisible] =
+//     useState(false);
+//   const [communityName, setCommunityName] = useState('');
+//   const [communityDescription, setCommunityDescription] = useState('');
+//   const [communityTags, setCommunityTags] = useState('');
+
+//   // Community post mutation
+//   const createPostMutation = useCreatePost();
+
+//   const {width, isXS, isSM, isMD} = useResponsive();
+
+//   // Dynamically compute button width so layout adapts to device width
+//   const buttonWidth =
+//     isXS || isSM
+//       ? (width - 64) / 2 // ➜ 2 columns on small phones like iPhone SE
+//       : isMD
+//         ? (width - 80) / 3 // ➜ 3 columns on mid-size phones
+//         : 160; // ➜ fallback for large phones and tablets
+
+//   //  TOOL TIPS
+//   const [showSettingsTooltip, setShowSettingsTooltip] = useState(false);
+//   const [showQuickAccessTooltip, setShowQuickAccessTooltip] = useState<
+//     string | null
+//   >(null);
+
+//   const openArticle = (url: string, title?: string) => {
+//     setReaderUrl(url);
+//     setReaderTitle(title);
+//     setReaderVisible(true);
+//   };
+
+//   const {prefs, ready} = useHomePrefs(userId);
+
+//   useEffect(() => {
+//     const restoreSectionsState = async () => {
+//       try {
+//         const created = await AsyncStorage.getItem('createdVibeOpen');
+//         const shopped = await AsyncStorage.getItem('shoppedVibeOpen');
+//         if (created !== null) setCreatedOpen(JSON.parse(created));
+//         if (shopped !== null) setShoppedOpen(JSON.parse(shopped));
+//       } catch (err) {
+//         console.error('❌ Failed to restore vibe section states:', err);
+//       }
+//     };
+//     restoreSectionsState();
+//   }, []);
+
+//   // User data now comes from useUserProfile TanStack Query hook above
+
+//   // Load profile picture from AsyncStorage
+//   useEffect(() => {
+//     if (!userId) return;
+//     (async () => {
+//       const cached = await AsyncStorage.getItem(`profile_picture:${userId}`);
+//       if (cached) {
+//         setUserPicture(
+//           `${cached}${cached.includes('?') ? '&' : '?'}v=${Date.now()}`,
+//         );
+//       }
+//     })();
+//   }, [userId]);
+
+//   // Look memory now comes from useLookMemory TanStack Query hook above
+
+//   // Recreated looks now come from useRecreatedLooks TanStack Query hook
+//   // Use refetchRecreatedLooks() to refresh the data
+//   const loadRecentCreations = useCallback(() => {
+//     refetchRecreatedLooks();
+//   }, [refetchRecreatedLooks]);
+
+//   // Shared looks now come from useSharedLooks TanStack Query hook above
+
+//   useEffect(() => {
+//     const restoreMapState = async () => {
+//       try {
+//         const savedState = await AsyncStorage.getItem('mapOpenState');
+//         if (savedState !== null) {
+//           const isOpen = JSON.parse(savedState);
+//           setMapOpen(isOpen);
+
+//           // Make sure animation reflects stored state
+//           mapHeight.setValue(isOpen ? 220 : 0);
+//           mapOpacity.setValue(isOpen ? 1 : 0);
+//           chevron.setValue(isOpen ? 1 : 0);
+//         }
+//       } catch (err) {
+//         console.error('❌ Failed to restore map state:', err);
+//       }
+//     };
+//     restoreMapState();
+//   }, []);
+
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       const hasPermission = await ensureLocationPermission();
+//       if (!hasPermission) return;
+//       Geolocation.getCurrentPosition(
+//         async pos => {
+//           const data = await fetchWeather(
+//             pos.coords.latitude,
+//             pos.coords.longitude,
+//           );
+//           setWeather(data);
+//         },
+//         err => console.warn(err),
+//         {enableHighAccuracy: true, timeout: 15000, maximumAge: 1000},
+//       );
+//     };
+//     fetchData();
+//   }, []);
+
+//   useEffect(() => {
+//     if (userId) {
+//       initializeNotifications(userId);
+//     }
+//   }, [userId]);
+
+//   // Saved looks now come from useSavedLooks TanStack Query hook above
+//   // Use refetchSavedLooks() to refresh the data
+//   const fetchSavedLooks = useCallback(() => {
+//     refetchSavedLooks();
+//   }, [refetchSavedLooks]);
+
+//   const openPersonalizedShopModal = (data: PersonalizedResult) => {
+//     if (!data) return;
+
+//     const normalized: PersonalizedResult = {
+//       recreated_outfit: Array.isArray(data.recreated_outfit)
+//         ? [...data.recreated_outfit]
+//         : [],
+//       suggested_purchases: Array.isArray(data.suggested_purchases)
+//         ? [...data.suggested_purchases]
+//         : [],
+//       style_note: data.style_note ?? '',
+//       tags: data.tags ?? [],
+//     };
+
+//     console.log('💎 Opening Personalized Shop Modal with:', normalized);
+
+//     setPersonalizedPurchases(JSON.parse(JSON.stringify(normalized)));
+
+//     setTimeout(() => {
+//       setPersonalizedVisible(true);
+//     }, 100);
+//   };
+
+//   const openVisualRecreateModal = (data: {
+//     pieces?: any[];
+//     results?: any[];
+//     source_image?: string;
+//     lookId?: string;
+//     lookName?: string;
+//     tags?: string[];
+//   }) => {
+//     if (!data) return;
+//     // console.log('👗 Opening Visual Recreate Modal with:', data);
+//     // console.log('👗 Pieces count:', data.pieces?.length);
+//     setVisualRecreateData(data);
+//     setVisualRecreateVisible(true);
+//   };
+
+//   const toggleMap = async () => {
+//     if (mapOpen) {
+//       Animated.parallel([
+//         Animated.timing(mapHeight, {
+//           toValue: 0,
+//           duration: 300,
+//           easing: Easing.out(Easing.cubic),
+//           useNativeDriver: false,
+//         }),
+//         Animated.timing(mapOpacity, {
+//           toValue: 0,
+//           duration: 250,
+//           easing: Easing.out(Easing.quad),
+//           useNativeDriver: false,
+//         }),
+//         Animated.timing(chevron, {
+//           toValue: 0,
+//           duration: 220,
+//           useNativeDriver: true,
+//         }),
+//       ]).start(async () => {
+//         setMapOpen(false);
+//         await AsyncStorage.setItem('mapOpenState', JSON.stringify(false));
+//       });
+//     } else {
+//       setMapOpen(true);
+//       await AsyncStorage.setItem('mapOpenState', JSON.stringify(true));
+
+//       Animated.parallel([
+//         Animated.timing(mapHeight, {
+//           toValue: MAP_BASE_HEIGHT,
+//           duration: 320,
+//           easing: Easing.out(Easing.cubic),
+//           useNativeDriver: false,
+//         }),
+//         Animated.timing(mapOpacity, {
+//           toValue: 1,
+//           duration: 300,
+//           easing: Easing.out(Easing.quad),
+//           useNativeDriver: false,
+//         }),
+//         Animated.timing(chevron, {
+//           toValue: 1,
+//           duration: 220,
+//           useNativeDriver: true,
+//         }),
+//       ]).start();
+//     }
+//   };
+
+//   const rotateZ = chevron.interpolate({
+//     inputRange: [0, 1],
+//     outputRange: ['0deg', '180deg'],
+//   });
+
+//   const styles = StyleSheet.create({
+//     bodyText: {
+//       fontSize: fontScale(tokens.fontSize.base),
+//       fontWeight: tokens.fontWeight.medium,
+//       color: theme.colors.foreground,
+//     },
+//     subtext: {
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       fontWeight: tokens.fontWeight.medium,
+//       color: theme.colors.foreground,
+//     },
+//     dailyLookText: {
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       fontWeight: tokens.fontWeight.medium,
+//       color: theme.colors.foreground3,
+//       lineHeight: 22,
+//     },
+//     tryButton: {
+//       backgroundColor: theme.colors.button1,
+//       paddingVertical: moderateScale(tokens.spacing.xsm),
+//       marginTop: moderateScale(tokens.spacing.sm2),
+//       alignItems: 'center',
+//     },
+//     tryButtonText: {
+//       fontSize: fontScale(tokens.fontSize.lg),
+//       fontWeight: tokens.fontWeight.semiBold,
+//       color: theme.colors.buttonText1,
+//     },
+//     quickAccessItem: {
+//       alignItems: 'center',
+//       width: '40%',
+//       minWidth: 140,
+//       maxWidth: 185,
+//       margin: moderateScale(tokens.spacing.sm),
+//     },
+//     quickAccessButton: {
+//       backgroundColor: theme.colors.button1,
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//     sectionWeather: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       justifyContent: 'space-between',
+//     },
+//     weatherCity: {
+//       fontSize: fontScale(tokens.fontSize.base),
+//       fontWeight: tokens.fontWeight.semiBold,
+//       color: theme.colors.foreground,
+//       marginBottom: moderateScale(tokens.spacing.nano),
+//     },
+//     weatherDesc: {
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       color: theme.colors.foreground2,
+//     },
+//     weatherTempContainer: {
+//       backgroundColor: theme.colors.button1,
+//       paddingVertical: moderateScale(tokens.spacing.xxs),
+//       paddingHorizontal: moderateScale(tokens.spacing.sm2),
+//       borderRadius: tokens.borderRadius.xl,
+//       minWidth: moderateScale(72),
+//       alignItems: 'center',
+//     },
+//     weatherTemp: {
+//       fontSize: fontScale(tokens.fontSize['2.5xl']),
+//       fontWeight: tokens.fontWeight.bold,
+//       color: theme.colors.buttonText1,
+//     },
+//     weatherAdvice: {
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       fontWeight: tokens.fontWeight.bold,
+//       color: '#ffd369',
+//       marginTop: moderateScale(tokens.spacing.nano),
+//       lineHeight: 22,
+//       paddingRight: moderateScale(tokens.spacing.sm2),
+//     },
+//     tagRow: {
+//       flexDirection: 'row',
+//       flexWrap: 'wrap',
+//       gap: 8,
+//     },
+//     tag: {
+//       backgroundColor: theme.colors.surface,
+//       paddingHorizontal: moderateScale(tokens.spacing.sm),
+//       paddingVertical: moderateScale(tokens.spacing.xxs),
+//       borderRadius: 20,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.05,
+//       shadowRadius: 4,
+//       elevation: 2,
+//     },
+//     tagText: {
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       fontWeight: tokens.fontWeight.semiBold,
+//       color: theme.colors.foreground,
+//     },
+//     tooltip: {
+//       position: 'absolute',
+//       top: -38,
+//       backgroundColor: 'rgba(28,28,30,0.95)',
+//       paddingHorizontal: moderateScale(tokens.spacing.xsm),
+//       paddingVertical: moderateScale(tokens.spacing.xxs),
+//       borderRadius: 8,
+//       maxWidth: 180,
+//       zIndex: 999,
+//     },
+//     tooltipText: {
+//       color: theme.colors.buttonText1,
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       textAlign: 'center',
+//     },
+//     quickTooltip: {
+//       position: 'absolute',
+//       bottom: 60,
+//       backgroundColor: 'rgba(28,28,30,0.95)',
+//       paddingHorizontal: moderateScale(tokens.spacing.sm),
+//       paddingVertical: moderateScale(tokens.spacing.xs),
+//       borderRadius: 8,
+//       maxWidth: 180,
+//       zIndex: 999,
+//     },
+//     quickTooltipText: {
+//       color: theme.colors.buttonText1,
+//       fontSize: fontScale(tokens.fontSize.sm),
+//       textAlign: 'center',
+//     },
+//   });
+
+//   if (!ready) {
+//     return <View style={globalStyles.screen} />;
+//   }
+
+//   // 🧥 Recreate Look (uses TanStack Query mutation for saving)
+//   const handleRecreateLook = async ({
+//     image_url,
+//     tags,
+//   }: {
+//     image_url: string;
+//     tags?: string[];
+//   }) => {
+//     try {
+//       const result = await recreateLook({user_id: userId, tags, image_url});
+
+//       // 💾 Save recreated look using TanStack Query mutation
+//       if (userId && result) {
+//         saveRecreatedLookMutation.mutate({
+//           userId,
+//           source_image_url: image_url,
+//           generated_outfit: result,
+//           tags,
+//         });
+//       }
+
+//       // 👇 Instead of navigation
+//       setRecreatedData(result);
+//       setShowRecreatedModal(true);
+//     } catch (err) {
+//       // Recreate look failed silently
+//     }
+//   };
+
+//   // 🛍️ Shop The Vibe
+//   const handleShopModal = async (tags?: string[]) => {
+//     try {
+//       const query = tags && tags.length > 0 ? tags.join(' ') : 'outfit';
+//       const results = await searchProducts(query);
+
+//       if (results && results.length > 0) {
+//         setShopResults(results);
+//         setShopVisible(true);
+//       }
+//     } catch (err) {
+//       // Shop modal failed silently
+//     }
+//   };
+
+//   // Show share options when user taps share button
+//   const handleShareVibe = (vibe: any) => {
+//     ReactNativeHapticFeedback.trigger('impactLight');
+//     setPendingShareVibe(vibe);
+//     setShareOptionsVisible(true);
+//   };
+
+//   // Delete recreated look (uses TanStack Query mutation with optimistic update)
+//   const handleDeleteRecreatedLook = (lookId: string) => {
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     if (!userId) return;
+
+//     deleteRecreatedLookMutation.mutate(
+//       {userId, lookId},
+//       {
+//         onSuccess: () => {
+//           ReactNativeHapticFeedback.trigger('notificationSuccess');
+//         },
+//       },
+//     );
+//   };
+
+//   // Rename recreated look (uses TanStack Query mutation with optimistic update)
+//   const handleRenameRecreatedLook = (lookId: string, newName: string) => {
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     if (!userId) return;
+
+//     renameRecreatedLookMutation.mutate(
+//       {userId, lookId, name: newName},
+//       {
+//         onSuccess: () => {
+//           // Also update the modal data
+//           setVisualRecreateData(prev =>
+//             prev ? {...prev, lookName: newName} : prev,
+//           );
+//           ReactNativeHapticFeedback.trigger('notificationSuccess');
+//         },
+//       },
+//     );
+//   };
+
+//   // Delete saved look (Inspired Looks) - uses TanStack Query mutation with optimistic update
+//   const handleDeleteSavedLook = (lookId: string) => {
+//     ReactNativeHapticFeedback.trigger('impactMedium');
+//     if (!userId) return;
+
+//     deleteSavedLookMutation.mutate(
+//       {userId, lookId},
+//       {
+//         onSuccess: () => {
+//           ReactNativeHapticFeedback.trigger('notificationSuccess');
+//         },
+//       },
+//     );
+//   };
+
+//   // Share to Community
+//   const handleShareToCommunity = () => {
+//     if (!pendingShareVibe || !userId) return;
+//     setShareOptionsVisible(false);
+//     setCommunityName('');
+//     setCommunityDescription('');
+//     setCommunityTags('');
+//     setCommunityShareModalVisible(true);
+//   };
+
+//   const handleConfirmCommunityShare = async () => {
+//     if (!pendingShareVibe || !userId) return;
+
+//     try {
+//       ReactNativeHapticFeedback.trigger('impactMedium');
+
+//       const tagsArray = communityTags
+//         .split(',')
+//         .map(t => t.trim().toLowerCase())
+//         .filter(t => t.length > 0);
+
+//       // Get outfit items for the post
+//       const outfitItems =
+//         pendingShareVibe.generated_outfit?.outfit ||
+//         pendingShareVibe.generated_outfit?.owned ||
+//         [];
+
+//       // If we have outfit items, use them; otherwise use single image
+//       // Note: userId is extracted from JWT token on backend, not sent in body
+//       const postData: any = {
+//         name:
+//           communityName ||
+//           pendingShareVibe.name ||
+//           (pendingShareVibe.tags &&
+//             pendingShareVibe.tags.slice(0, 3).join(', ')) ||
+//           pendingShareVibe.query_used ||
+//           'My look',
+//         description: communityDescription || '',
+//         tags: tagsArray.length > 0 ? tagsArray : ['look'],
+//       };
+
+//       if (outfitItems.length >= 3) {
+//         // Use outfit grid images
+//         postData.topImage = outfitItems[0]?.image;
+//         postData.bottomImage = outfitItems[1]?.image;
+//         postData.shoesImage = outfitItems[2]?.image;
+//         if (outfitItems[3]) postData.accessoryImage = outfitItems[3]?.image;
+//       } else {
+//         // Use single image
+//         postData.imageUrl =
+//           pendingShareVibe.source_image_url || pendingShareVibe.image_url;
+//       }
+
+//       await createPostMutation.mutateAsync(postData);
+
+//       setCommunityShareModalVisible(false);
+//       setPendingShareVibe(null);
+//       Alert.alert('Success', 'Your look has been shared to the community!');
+
+//       // Refresh the shared looks section to show the new post
+//       fetchSharedLooks();
+//     } catch (error) {
+//       console.error('Failed to share to community:', error);
+//       Alert.alert('Error', 'Failed to share to community. Please try again.');
+//     }
+//   };
+
+//   // Share externally via native share sheet
+//   const handleShareExternal = async () => {
+//     setShareOptionsVisible(false);
+//     if (!pendingShareVibe) return;
+
+//     const vibe = pendingShareVibe;
+
+//     try {
+//       // Check if this is a 4-grid outfit or single image
+//       const outfitItems =
+//         vibe.generated_outfit?.outfit || vibe.generated_outfit?.owned || [];
+//       const isGridLayout = outfitItems.length > 0;
+
+//       if (isGridLayout) {
+//         // Prefetch all grid images
+//         const prefetchPromises = outfitItems
+//           .filter((item: any) => item?.image)
+//           .map((item: any) => Image.prefetch(item.image));
+//         await Promise.all(prefetchPromises);
+//       } else {
+//         // Single image
+//         const imageUri = vibe.source_image_url || vibe.image_url;
+//         if (!imageUri) {
+//           console.warn('No image URL found for vibe:', vibe);
+//           setPendingShareVibe(null);
+//           return;
+//         }
+//         await Image.prefetch(imageUri);
+//       }
+
+//       // Set the vibe to render the composite
+//       setShareVibe(vibe);
+
+//       // Wait for the composite to render (longer wait for images to paint)
+//       await new Promise(resolve => setTimeout(resolve, 500));
+
+//       // Capture the styled share card
+//       if (!shareVibeRef.current) {
+//         throw new Error('Share composite ref not ready');
+//       }
+
+//       const compositeUri = await shareVibeRef.current.capture?.();
+
+//       // Open native iOS share sheet
+//       await Share.share({
+//         url: compositeUri,
+//         message: `Check out this look "${
+//           vibe.name ||
+//           (vibe.tags && vibe.tags.slice(0, 3).join(', ')) ||
+//           vibe.query_used ||
+//           'AI Look'
+//         }" via StylHelpr`,
+//         title: 'Share Your Look',
+//       });
+
+//       // Clear states
+//       setShareVibe(null);
+//       setPendingShareVibe(null);
+//     } catch (err) {
+//       console.error('Error sharing vibe:', err);
+//       setShareVibe(null);
+//       setPendingShareVibe(null);
+//     }
+//   };
+
+//   return (
+//     <Animated.View style={{flex: 1, opacity: screenOpacity}}>
+//       <LinearGradientWrapper>
+//         <View style={{flex: 1, backgroundColor: theme.colors.background}}>
+//           {/* Hidden share card for Recent Created/Shopped Looks */}
+//           {shareVibe && (
+//             <View style={{position: 'absolute', left: -9999, top: -9999}}>
+//               <ViewShot
+//                 ref={shareVibeRef}
+//                 options={{format: 'png', quality: 0.95}}
+//                 style={{
+//                   width: SHARE_SIZE,
+//                   height: SHARE_SIZE + 80,
+//                   backgroundColor: '#000',
+//                 }}>
+//                 {/* Check if this is a 4-grid outfit or single image */}
+//                 {shareVibe.generated_outfit?.outfit?.length > 0 ||
+//                 shareVibe.generated_outfit?.owned?.length > 0 ? (
+//                   // 2x2 Grid layout for outfits with multiple items
+//                   <View style={{width: SHARE_SIZE, height: SHARE_SIZE}}>
+//                     {(() => {
+//                       const items =
+//                         shareVibe.generated_outfit?.outfit ||
+//                         shareVibe.generated_outfit?.owned ||
+//                         [];
+//                       const CELL = SHARE_SIZE / 2;
+//                       return (
+//                         <>
+//                           {/* Row 1 */}
+//                           <View style={{flexDirection: 'row', height: CELL}}>
+//                             <View style={{width: CELL, height: CELL}}>
+//                               {items[0]?.image && (
+//                                 <Image
+//                                   source={{uri: items[0].image}}
+//                                   style={{width: '100%', height: '100%'}}
+//                                   resizeMode="cover"
+//                                 />
+//                               )}
+//                             </View>
+//                             <View style={{width: CELL, height: CELL}}>
+//                               {items[1]?.image && (
+//                                 <Image
+//                                   source={{uri: items[1].image}}
+//                                   style={{width: '100%', height: '100%'}}
+//                                   resizeMode="cover"
+//                                 />
+//                               )}
+//                             </View>
+//                           </View>
+//                           {/* Row 2 */}
+//                           <View style={{flexDirection: 'row', height: CELL}}>
+//                             <View style={{width: CELL, height: CELL}}>
+//                               {items[2]?.image && (
+//                                 <Image
+//                                   source={{uri: items[2].image}}
+//                                   style={{width: '100%', height: '100%'}}
+//                                   resizeMode="cover"
+//                                 />
+//                               )}
+//                             </View>
+//                             <View
+//                               style={{
+//                                 width: CELL,
+//                                 height: CELL,
+//                                 backgroundColor: '#000',
+//                               }}>
+//                               {items[3]?.image && (
+//                                 <Image
+//                                   source={{uri: items[3].image}}
+//                                   style={{width: '100%', height: '100%'}}
+//                                   resizeMode="cover"
+//                                 />
+//                               )}
+//                             </View>
+//                           </View>
+//                         </>
+//                       );
+//                     })()}
+//                   </View>
+//                 ) : (
+//                   // Single full-bleed image
+//                   <Image
+//                     source={{
+//                       uri: shareVibe.source_image_url || shareVibe.image_url,
+//                     }}
+//                     style={{width: SHARE_SIZE, height: SHARE_SIZE}}
+//                     resizeMode="cover"
+//                   />
+//                 )}
+
+//                 {/* Center watermark with tinted overlay */}
+//                 <View
+//                   style={{
+//                     position: 'absolute',
+//                     top: 0,
+//                     left: 0,
+//                     width: SHARE_SIZE,
+//                     height: SHARE_SIZE,
+//                     justifyContent: 'center',
+//                     alignItems: 'center',
+//                   }}>
+//                   <View
+//                     style={{
+//                       backgroundColor: 'rgba(0,0,0,0.5)',
+//                       paddingHorizontal: 32,
+//                       paddingVertical: 16,
+//                       borderRadius: 40,
+//                       borderWidth: 1.5,
+//                       borderColor: 'rgba(255,255,255,0.25)',
+//                       shadowColor: '#000',
+//                       shadowOffset: {width: 0, height: 4},
+//                       shadowOpacity: 0.4,
+//                       shadowRadius: 12,
+//                     }}>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 10,
+//                         fontWeight: '500',
+//                         letterSpacing: 0.5,
+//                         textAlign: 'center',
+//                         marginBottom: 4,
+//                       }}>
+//                       Created on
+//                     </Text>
+//                     <Text
+//                       style={{
+//                         color: '#fff',
+//                         fontSize: 28,
+//                         fontWeight: '800',
+//                         letterSpacing: 1.5,
+//                         textShadowColor: 'rgba(0,0,0,0.5)',
+//                         textShadowOffset: {width: 0, height: 2},
+//                         textShadowRadius: 4,
+//                       }}>
+//                       StylHelpr
+//                     </Text>
+//                   </View>
+//                 </View>
+
+//                 {/* Bottom info panel */}
+//                 <View
+//                   style={{
+//                     height: 80,
+//                     backgroundColor: 'rgba(144, 0, 255, 1)',
+//                     paddingHorizontal: 20,
+//                     paddingVertical: 16,
+//                   }}>
+//                   <Text
+//                     style={{
+//                       fontSize: 18,
+//                       fontWeight: '700',
+//                       color: '#fff',
+//                       marginBottom: 8,
+//                     }}
+//                     numberOfLines={1}>
+//                     {shareVibe.name ||
+//                       (shareVibe.tags &&
+//                         shareVibe.tags.slice(0, 3).join(', ')) ||
+//                       shareVibe.query_used ||
+//                       'AI Look'}
+//                   </Text>
+//                   <View
+//                     style={{
+//                       flexDirection: 'row',
+//                       alignItems: 'center',
+//                       justifyContent: 'space-between',
+//                     }}>
+//                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
+//                       {userPicture ? (
+//                         <Image
+//                           source={{uri: userPicture}}
+//                           style={{
+//                             width: 24,
+//                             height: 24,
+//                             borderRadius: 12,
+//                             marginRight: 8,
+//                           }}
+//                         />
+//                       ) : (
+//                         <View
+//                           style={{
+//                             width: 24,
+//                             height: 24,
+//                             borderRadius: 12,
+//                             marginRight: 8,
+//                             backgroundColor: '#000',
+//                             justifyContent: 'center',
+//                             alignItems: 'center',
+//                           }}>
+//                           <Text
+//                             style={{
+//                               color: '#fff',
+//                               fontSize: 10,
+//                               fontWeight: '700',
+//                             }}>
+//                             SH
+//                           </Text>
+//                         </View>
+//                       )}
+//                       <Text
+//                         style={{
+//                           fontSize: 14,
+//                           fontWeight: '500',
+//                           color: '#fff',
+//                         }}
+//                         numberOfLines={1}>
+//                         @
+//                         {firstName && lastName
+//                           ? `${firstName.toLowerCase()}${lastName.toLowerCase()}`
+//                           : 'stylhelpr'}
+//                       </Text>
+//                     </View>
+//                     <Text
+//                       style={{
+//                         fontSize: 12,
+//                         fontWeight: '400',
+//                         color: 'rgba(255,255,255,0.8)',
+//                       }}>
+//                       {shareVibe.created_at
+//                         ? new Date(shareVibe.created_at).toLocaleDateString()
+//                         : new Date().toLocaleDateString()}
+//                     </Text>
+//                   </View>
+//                 </View>
+//               </ViewShot>
+//             </View>
+//           )}
+
+//           {/* <View style={{flex: 1}}> */}
+//           <Animated.ScrollView
+//             // 👇 this ensures content scrolls under header & nav
+//             contentContainerStyle={[
+//               globalStyles.container,
+//               {
+//                 paddingTop: insets.top + HEADER_HEIGHT, // restore the "old" header space
+//                 paddingBottom: insets.bottom + BOTTOM_NAV_HEIGHT, // restore nav space
+//                 minHeight: '100%',
+//               },
+//             ]}
+//             scrollEventThrottle={16}
+//             onScroll={Animated.event(
+//               [{nativeEvent: {contentOffset: {y: scrollY}}}],
+//               {useNativeDriver: true},
+//             )}
+//             showsVerticalScrollIndicator={false}>
+
+//      {/* Header Row: Greeting + Menu */}
+//             <View
+//               style={{
+//                 flexDirection: 'row',
+//                 justifyContent: 'space-between',
+//                 alignItems: 'center',
+//                 paddingHorizontal: moderateScale(tokens.spacing.md),
+//                 paddingVertical: 8,
+//                 marginBottom: moderateScale(tokens.spacing.xxs),
+//               }}>
+//               <Animatable.Text
+//                 animation="fadeInLeft"
+//                 duration={500}
+//                 delay={150}
+//                 useNativeDriver
+//                 style={{
+//                   flex: 1,
+//                   fontSize: fontScale(tokens.fontSize.xl),
+//                   fontWeight: tokens.fontWeight.bold,
+//                   color: theme.colors.foreground,
+//                 }}
+//                 numberOfLines={1}
+//                 ellipsizeMode="tail">
+//                 {firstName
+//                   ? `Hi ${firstName}, let’s make getting dressed easy!`
+//                   : 'Hi there, let’s make getting dressed easy!'}
+//               </Animatable.Text>
+//             </View>
+
+//             {/* Hero Carousel - Memoized to prevent re-renders from interval */}
+//             <View style={{paddingBottom: 4}}>
+//               <HeroCarousel
+//                 communityPosts={communityPosts}
+//                 navigate={navigate}
+//                 theme={theme}
+//               />
+//             </View>
+
+//             <View
+//               style={{
+//                 flexDirection: 'row',
+//                 justifyContent: 'center',
+//                 alignItems: 'center',
+//                 // paddingHorizontal: moderateScale(tokens.spacing.md),
+//                 paddingVertical: 4,
+//                 marginBottom: moderateScale(tokens.spacing.xxs),
+//               }}>
+//             <Text
+//                style={{
+//                   fontSize: fontScale(tokens.fontSize.md),
+//                   fontWeight: tokens.fontWeight.bold,
+//                   color: theme.colors.foreground,
+//                 }}
+//                 >
+//             Today's Inspiration
+//             </Text>
+//             </View>
+       
+
+  
+
+//             {/* 🍎 Weather Section — Clean, Glanceable, Non-Redundant */}
+//             {prefs.weather && (
+//               <Animated.View
+//                 style={{
+//                   transform: [{scale: scrollActiveScale}],
+//                 }}>
+//                 <Animatable.View
+//                   animation="fadeInUp"
+//                   duration={700}
+//                   delay={200}
+//                   useNativeDriver
+//                   style={globalStyles.section}>
+//                   {/* <Text style={globalStyles.sectionTitle}>Weather</Text> */}
+
+//                   {weather && (
+//                     <View
+//                       style={[
+//                         globalStyles.cardStyles5,
+//                         {
+//                           paddingVertical: moderateScale(tokens.spacing.md1),
+//                           paddingHorizontal: moderateScale(tokens.spacing.md2),
+//                         },
+//                       ]}>
+//                       <View
+//                         style={{
+//                           flexDirection: 'row',
+//                           alignItems: 'center',
+//                           justifyContent: 'space-between',
+//                         }}>
+//                         {/* 🌤️ Left column — City, Condition, Icon */}
+//                         <View
+//                           style={{
+//                             flexDirection: 'row',
+//                             alignItems: 'center',
+//                             flex: 1,
+//                           }}>
+//                           <Animatable.View
+//                             animation={{
+//                               0: {
+//                                 opacity: 1,
+//                                 scale: 1,
+//                                 translateY: 0,
+//                               },
+//                               0.5: {
+//                                 opacity: 0.99,
+//                                 scale: 1.2,
+//                                 translateY: -2,
+//                               },
+//                               1: {
+//                                 opacity: 1,
+//                                 scale: 1,
+//                                 translateY: 0,
+//                               },
+//                             }}
+//                             iterationCount="infinite"
+//                             duration={2000}
+//                             easing="ease-in-out"
+//                             useNativeDriver
+//                             style={{
+//                               marginRight: moderateScale(tokens.spacing.xsm),
+//                             }}>
+//                             <Icon
+//                               name={(() => {
+//                                 const condition =
+//                                   weather.celsius.weather[0].main;
+//                                 if (condition === 'Rain') return 'umbrella';
+//                                 if (condition === 'Snow') return 'ac-unit';
+//                                 if (condition === 'Clouds') return 'wb-cloudy';
+//                                 if (condition === 'Clear') return 'wb-sunny';
+//                                 return 'wb-sunny';
+//                               })()}
+//                               size={36}
+//                               color={theme.colors.foreground}
+//                               style={{
+//                                 alignSelf: 'center',
+//                               }}
+//                             />
+//                           </Animatable.View>
+//                           <View>
+//                             <Text
+//                               style={[
+//                                 styles.weatherCity,
+//                                 {
+//                                   fontSize: fontScale(tokens.fontSize.xl),
+//                                   fontWeight: tokens.fontWeight.bold,
+//                                 },
+//                               ]}>
+//                               {weather.celsius.name}
+//                             </Text>
+//                             <Text
+//                               style={{
+//                                 fontSize: fontScale(tokens.fontSize.base),
+//                                 color: theme.colors.foreground2,
+//                                 fontWeight: tokens.fontWeight.bold,
+//                                 textTransform: 'capitalize',
+//                               }}>
+//                               {weather.celsius.weather[0].description}
+//                             </Text>
+//                           </View>
+//                         </View>
+
+//                         {/* 🌡️ Right column — Big Temp */}
+//                         <View
+//                           style={[
+//                             styles.weatherTempContainer,
+//                             {
+//                               alignSelf: 'center',
+//                             },
+//                             // {
+//                             //   shadowColor: '#000',
+//                             //   shadowOffset: {width: 8, height: 10},
+//                             //   shadowOpacity: 0.5,
+//                             //   shadowRadius: 5,
+//                             //   elevation: 6,
+//                             // },
+//                           ]}>
+//                           <Text
+//                             style={{
+//                               fontSize: moderateScale(
+//                                 isXS
+//                                   ? tokens.fontSize['2.5xl'] // ~28 pt → perfect for SE 3
+//                                   : isSM
+//                                     ? tokens.fontSize['3xl'] // ~30 pt → for 13 mini / 12 mini
+//                                     : isMD
+//                                       ? tokens.fontSize['3.5xl'] // ~32 pt → for standard 14 / 15
+//                                       : tokens.fontSize['4xl'], // ~36 pt → for Plus / Pro Max
+//                               ),
+//                               fontWeight: tokens.fontWeight.extraBold,
+//                               color: theme.colors.buttonText1,
+//                             }}>
+//                             {Math.round(weather.fahrenheit.main.temp)}°F
+//                           </Text>
+//                         </View>
+//                       </View>
+
+//                       {/* 👇 Optional: short vibe line (kept minimal & non-overlapping) */}
+//                       <View>
+//                         <Text
+//                           style={{
+//                             fontSize: fontScale(tokens.fontSize.md),
+//                             color: theme.colors.foreground2,
+//                             fontWeight: tokens.fontWeight.medium,
+//                             marginLeft: 44,
+//                             // marginLeft: 42,
+//                           }}>
+//                           {(() => {
+//                             const temp = weather.fahrenheit.main.temp;
+//                             const condition = weather.celsius.weather[0].main;
+
+//                             if (temp < 25) return 'Brutally Cold';
+//                             if (temp < 32) return condition === 'Snow';
+//                             // ? 'Freezing & Snowy'
+//                             // : 'Freezing';
+//                             if (temp < 40)
+//                               return condition === 'Clouds'
+//                                 ? 'Bitter & Overcast'
+//                                 : 'Bitter Cold';
+//                             if (temp < 50)
+//                               return condition === 'Rain'
+//                                 ? 'Cold & Wet'
+//                                 : 'Chilly';
+//                             if (temp < 60)
+//                               return condition === 'Clouds'
+//                                 ? 'Cool & Cloudy'
+//                                 : 'Crisp & Cool';
+//                             if (temp < 70)
+//                               return condition === 'Clear'
+//                                 ? ' Mild & Bright'
+//                                 : 'Mild';
+//                             if (temp < 80)
+//                               return condition === 'Clear'
+//                                 ? 'Warm & Clear'
+//                                 : 'Warm';
+//                             if (temp < 90)
+//                               return condition === 'Rain'
+//                                 ? 'Hot & Humid'
+//                                 : 'Hot';
+//                             if (temp < 100) return 'Very Hot';
+//                             return 'Extreme Heat';
+//                           })()}
+//                         </Text>
+//                       </View>
+//                     </View>
+//                   )}
+//                 </Animatable.View>
+//               </Animated.View>
+//             )}
+
+//             {/* AI SUGGESTS SECTION */}
+//             {prefs.aiSuggestions &&
+//               typeof weather?.fahrenheit?.main?.temp === 'number' && (
+//                 <Animated.View
+//                   style={{
+//                     transform: [{scale: scrollActiveScale}],
+//                   }}>
+//                   <AiStylistSuggestions
+//                     theme={theme}
+//                     weather={weather}
+//                     globalStyles={globalStyles}
+//                     navigate={navigate}
+//                     wardrobe={wardrobe}
+//                   />
+//                 </Animated.View>
+//               )}
+
+//             {/* Map Section — collapsible with animated height & fade */}
+//             {prefs.locationMap && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 delay={300}
+//                 duration={700}
+//                 useNativeDriver
+//                 style={[
+//                   globalStyles.section,
+//                   {
+//                     marginBottom: mapOpen
+//                       ? moderateScale(-20)
+//                       : moderateScale(4), // collapse extra gap when closed
+//                   },
+//                 ]}>
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     alignItems: 'center',
+//                     justifyContent: 'space-between',
+//                   }}>
+//                   <Text
+//                     style={[
+//                       globalStyles.sectionTitle,
+//                       {paddingTop: moderateScale(tokens.spacing.nano)},
+//                     ]}>
+//                     Location
+//                   </Text>
+//                   <AppleTouchFeedback
+//                     hapticStyle="impactLight"
+//                     onPress={toggleMap}
+//                     style={{
+//                       paddingHorizontal: moderateScale(tokens.spacing.xsm),
+//                     }}>
+//                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
+//                       <Animated.View style={{transform: [{rotateZ}]}}>
+//                         <Icon
+//                           name="keyboard-arrow-down"
+//                           size={30}
+//                           color={theme.colors.foreground}
+//                         />
+//                       </Animated.View>
+//                     </View>
+//                   </AppleTouchFeedback>
+//                 </View>
+
+//                 <Animated.View
+//                   style={{
+//                     height: mapHeight,
+//                     opacity: mapOpacity,
+//                     overflow: 'hidden',
+//                   }}>
+//                   <View
+//                     style={[
+//                       {
+//                         borderWidth: tokens.borderWidth.hairline,
+//                         borderColor: theme.colors.surfaceBorder,
+//                         borderRadius: tokens.borderRadius['2xl'],
+//                         overflow: 'hidden',
+//                       },
+//                     ]}>
+//                     {prefs.locationEnabled && (
+//                       <LiveLocationMap
+//                         height={
+//                           MAP_BASE_HEIGHT - insets.bottom - moderateScale(10)
+//                         }
+//                         useCustomPin={false}
+//                         postHeartbeat={false}
+//                       />
+//                     )}
+//                   </View>
+//                 </Animated.View>
+//               </Animatable.View>
+//             )}
+
+//             {/* Quick Access Section */}
+//             {prefs.quickAccess && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 delay={500}
+//                 duration={700}
+//                 useNativeDriver
+//                 style={globalStyles.centeredSection}>
+//                 <View style={globalStyles.section}>
+//                   <Text style={globalStyles.sectionTitle}>Quick Access</Text>
+//                   <View style={[globalStyles.centeredSection]}>
+//                     <View
+//                       style={[
+//                         globalStyles.cardStyles1,
+//                         {
+//                           padding: moderateScale(tokens.spacing.md2),
+//                           justifyContent: 'space-between',
+//                           flexDirection: 'row',
+//                           flexWrap: 'wrap',
+//                           width: '100%',
+//                         },
+//                       ]}>
+//                       {[
+//                         {label: 'Style Me', screen: 'Outfit'},
+//                         {label: 'Wardrobe', screen: 'Wardrobe'},
+//                         {label: 'Add Clothes', screen: 'AddItem'},
+//                         {label: 'Profile', screen: 'Profile'},
+//                       ].map((btn, idx) => (
+//                         <Animatable.View
+//                           key={btn.screen}
+//                           animation="zoomIn"
+//                           delay={600 + idx * 100}
+//                           duration={500}
+//                           useNativeDriver
+//                           style={{
+//                             width: buttonWidth, // already computed responsively above
+//                             marginBottom:
+//                               idx < 2 ? moderateScale(tokens.spacing.md) : 0,
+//                           }}>
+//                           <AppleTouchFeedback
+//                             style={[
+//                               globalStyles.buttonPrimary,
+//                               {
+//                                 width: '100%',
+//                                 justifyContent: 'center',
+//                               },
+//                             ]}
+//                             hapticStyle="impactHeavy"
+//                             onPress={() => navigate(btn.screen)}>
+//                             <Text style={globalStyles.buttonPrimaryText}>
+//                               {btn.label}
+//                             </Text>
+//                           </AppleTouchFeedback>
+//                         </Animatable.View>
+//                       ))}
+//                     </View>
+//                   </View>
+//                 </View>
+//               </Animatable.View>
+//             )}
+
+     
+
+//             {/* <FilamentPreview /> */}
+
+    
+//           {/* Recommended for You - Community Posts Carousel */}
+//             {/* <Animatable.View
+//               animation="fadeInUp"
+//               delay={250}
+//               duration={700}
+//               useNativeDriver
+//               style={globalStyles.sectionScroll}>
+//               <Text style={[globalStyles.sectionTitle]}>
+//                 Recommended Community Posts
+//               </Text>
+//               <RecommendedCarousel
+//                 onOpenPost={(postId: string) => {
+//                   navigate('CommunityShowcaseScreen', {initialPostId: postId});
+//                 }}
+//               />
+//             </Animatable.View> */}
+
+//             {/* Discover / Recommended Items */}
+//             {prefs.recommendedItems && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 delay={700}
+//                 duration={700}
+//                 useNativeDriver
+//                 style={globalStyles.sectionScroll}>
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     justifyContent: 'space-between',
+//                     alignItems: 'center',
+//                   }}>
+//                   <Text style={[globalStyles.sectionTitle, {}]}>
+//                     Recommended Buys
+//                   </Text>
+//                     <Pressable
+//                     onPress={() => {
+//                       ReactNativeHapticFeedback.trigger('impactLight');
+//                       setSavedRecommendationsModalVisible(true);
+//                     }}>
+//                     <Text
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.sm),
+//                         color: theme.colors.foreground,
+//                         fontWeight: tokens.fontWeight.bold,
+//                         marginTop: -5,
+//                         marginRight: moderateScale(tokens.spacing.sm),         
+//                       }}>
+//                       See Saved Recs
+//                     </Text>
+//                   </Pressable>
+//                 </View>
+//                 <DiscoverCarousel
+//                   onOpenItem={openArticle}
+//                   savedModalVisible={savedRecommendationsModalVisible}
+//                   onCloseSavedModal={() =>
+//                     setSavedRecommendationsModalVisible(false)
+//                   }
+//                   onSavedProductsChange={(products, fetchFn, unsaveFn) => {
+//                     setSavedRecommendations(products);
+//                     setFetchSavedRecommendations(() => fetchFn);
+//                     setUnsaveRecommendation(() => unsaveFn);
+//                   }}
+//                 />
+//               </Animatable.View>
+//             )}
+
+//             {prefs.inspiredLooks && (
+//               <>
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     justifyContent: 'space-between',
+//                     marginLeft: moderateScale(tokens.spacing.md2),
+//                   }}>
+//                   <View>
+//                     <Text style={globalStyles.sectionTitle}>Saved Inspiring Styles</Text>
+                
+//                   </View>
+//                   <View style={{flexDirection: 'row', alignItems: 'center'}}>
+//                     <Pressable
+//                       onPress={() => {
+//                         ReactNativeHapticFeedback.trigger('impactLight');
+//                         setImageModalVisible(true);
+//                       }}>
+//                       <Text
+//                         style={{
+//                           fontSize: fontScale(tokens.fontSize.sm),
+//                           color: theme.colors.foreground,
+//                           fontWeight: tokens.fontWeight.bold,
+//                           marginTop: -5,
+//                           marginRight: moderateScale(tokens.spacing.md),
+//                         }}>
+//                         See All Saved
+//                       </Text>
+//                     </Pressable>
+             
+//                   </View>
+//                 </View>
+
+//                 {/* INSPIRED STYLES SECTION */}
+//                 {inspiredState !== 'empty-real' && (
+//                   <CollapsibleSection
+//                     open={savedOpen}
+//                     onToggle={async newState => {
+//                       setSavedOpen(newState);
+//                       await AsyncStorage.setItem(
+//                         'savedLooksOpen',
+//                         JSON.stringify(newState),
+//                       );
+//                     }}>
+//                     <View
+//                       style={[globalStyles.sectionScroll2, {marginBottom: 16}]}>
+//                       {inspiredState === 'demo' ? (
+//                         <ScrollView
+//                           horizontal
+//                           showsHorizontalScrollIndicator={false}
+//                           contentContainerStyle={{
+//                             paddingRight: moderateScale(tokens.spacing.xs),
+//                           }}>
+//                           {demoInspiredImages.map((img, index) => (
+//                             <View key={`demo-inspired-${index}`} style={globalStyles.outfitCard}>
+//                               <Pressable
+//                                 onPress={() => {
+//                                   ReactNativeHapticFeedback.trigger('impactLight');
+//                                 }}
+//                                 style={{alignItems: 'center'}}>
+//                                 <Image
+//                                   source={img}
+//                                   style={[globalStyles.image8]}
+//                                   resizeMode="cover"
+//                                 />
+//                                 <View
+//                                   style={{
+//                                     position: 'absolute',
+//                                     top: 8,
+//                                     right: 8,
+//                                     backgroundColor: 'black',
+//                                     paddingHorizontal: 8,
+//                                     paddingVertical: 3,
+//                                     borderRadius: 6,
+//                                   }}>
+//                                   <Text
+//                                     style={{
+//                                       color: 'white',
+//                                       fontSize: 11,
+//                                       fontWeight: tokens.fontWeight.semiBold,
+//                                     }}>
+//                                     Sample
+//                                   </Text>
+//                                 </View>
+//                               </Pressable>
+//                             </View>
+//                           ))}
+//                         </ScrollView>
+//                       ) : (
+//                         <ScrollView
+//                           ref={inspiredScrollRef}
+//                           horizontal
+//                           showsHorizontalScrollIndicator={false}
+//                           onScroll={e => {
+//                             inspiredScrollPos.current =
+//                               e.nativeEvent.contentOffset.x;
+//                           }}
+//                           scrollEventThrottle={16}
+//                           onLayout={() => {
+//                             if (inspiredScrollPos.current > 0) {
+//                               inspiredScrollRef.current?.scrollTo({
+//                                 x: inspiredScrollPos.current,
+//                                 animated: false,
+//                               });
+//                             }
+//                           }}
+//                           contentContainerStyle={{
+//                             paddingRight: moderateScale(tokens.spacing.xs),
+//                           }}>
+//                           {savedLooks.map((look, index) => (
+//                             <View key={look.id} style={globalStyles.outfitCard}>
+//                               <ScalePressable
+//                                 onPress={() => {
+//                                   setSelectedLook(look);
+//                                   setPreviewVisible(true);
+//                                 }}
+//                                 style={{alignItems: 'center'}}>
+//                                 <View>
+//                                   <Image
+//                                     source={{uri: look.image_url}}
+//                                     style={[globalStyles.image8]}
+//                                     resizeMode="cover"
+//                                   />
+//                                 </View>
+//                                 <TouchableOpacity
+//                                   onPress={() => handleShareVibe(look)}
+//                                   style={{
+//                                     position: 'absolute',
+//                                     top: 6,
+//                                     right: 6,
+//                                     backgroundColor: 'rgba(0,0,0,0.4)',
+//                                     borderRadius: 20,
+//                                     padding: 6,
+//                                   }}>
+//                                   <Icon
+//                                     name="ios-share"
+//                                     size={20}
+//                                     color={theme.colors.buttonText1}
+//                                   />
+//                                 </TouchableOpacity>
+
+//                                 <Text
+//                                   style={[
+//                                     globalStyles.cardSubLabel,
+//                                     {marginTop: 4, textAlign: 'center'},
+//                                   ]}
+//                                   numberOfLines={1}>
+//                                   {look.name}
+//                                 </Text>
+//                               </ScalePressable>
+//                             </View>
+//                           ))}
+//                         </ScrollView>
+//                       )}
+//                           {inspiredState === 'demo' && (
+//                       <Text
+//                         style={{
+//                           fontSize: fontScale(tokens.fontSize.xs),
+//                           color: theme.colors.foreground2,
+//                           marginTop: 2,
+//                         }}>
+//                         Inspiring images you upload in 'See All Saved' appear here
+//                       </Text>
+//                     )}
+//                     </View>
+                    
+//                   </CollapsibleSection>
+//                 )}
+
+//                 {/* RECREATED STYLES SECTION */}
+//                 {loadingCreations && (
+//                   <Animatable.View
+//                     animation="fadeIn"
+//                     duration={400}
+//                     useNativeDriver
+//                     style={{
+//                       padding: moderateScale(tokens.spacing.md),
+//                       alignItems: 'center',
+//                     }}>
+//                     <Text style={{color: theme.colors.foreground2}}>
+//                       Loading recent creations...
+//                     </Text>
+//                   </Animatable.View>
+//                 )}
+
+//                 {!loadingCreations && (
+//                   <>
+//                     <View
+//                       style={{
+//                         flexDirection: 'row',
+//                         justifyContent: 'space-between',
+//                         marginLeft: moderateScale(tokens.spacing.md2),
+//                       }}>
+//                       <View>
+//                         <Text style={globalStyles.sectionTitle}>Saved Recreated Styles</Text>
+              
+//                       </View>
+//                       <Pressable
+//                         onPress={() => {
+//                           ReactNativeHapticFeedback.trigger('impactLight');
+//                           setVisualRecreateVisible(true);
+//                         }}>
+                     
+//                       </Pressable>
+//                     </View>
+                    
+
+//                     {recreatedState !== 'empty-real' && (
+//                       <CollapsibleSection
+//                         open={createdOpen}
+//                         onToggle={async newState => {
+//                           setCreatedOpen(newState);
+//                           await AsyncStorage.setItem(
+//                             'createdVibeOpen',
+//                             JSON.stringify(newState),
+//                           );
+//                         }}>
+//                         <View style={globalStyles.sectionScroll}>
+//                           {recreatedState === 'demo' ? (
+//                             <ScrollView
+//                               horizontal
+//                               showsHorizontalScrollIndicator={false}
+//                               contentContainerStyle={{
+//                                 paddingRight: moderateScale(tokens.spacing.xs),
+//                               }}>
+//                               {demoRecreatedImages.map((img, index) => (
+//                                 <View
+//                                   key={`demo-recreated-${index}`}
+//                                   style={[
+//                                     globalStyles.outfitCard,
+//                                     globalStyles.image8,
+//                                     {height: 'auto', borderWidth: 0},
+//                                   ]}>
+//                                   <Pressable
+//                                     onPress={() => {
+//                                       ReactNativeHapticFeedback.trigger('impactLight');
+//                                     }}
+//                                     style={{alignItems: 'center', width: '100%'}}>
+//                                     <Image
+//                                       source={img}
+//                                       style={[globalStyles.image8]}
+//                                       resizeMode="cover"
+//                                     />
+//                                     <View
+//                                       style={{
+//                                         position: 'absolute',
+//                                         top: 8,
+//                                         right: 8,
+//                                         backgroundColor: 'black',
+//                                         paddingHorizontal: 8,
+//                                         paddingVertical: 3,
+//                                         borderRadius: 6,
+//                                       }}>
+//                                       <Text
+//                                         style={{
+//                                           color: 'white',
+//                                           fontSize: 11,
+//                                           fontWeight: tokens.fontWeight.semiBold,
+//                                         }}>
+//                                         Sample
+//                                       </Text>
+//                                     </View>
+//                                   </Pressable>
+//                                 </View>
+//                               ))}
+//                             </ScrollView>
+//                           ) : (
+//                             <ScrollView
+//                               ref={recreatedScrollRef}
+//                               horizontal
+//                               showsHorizontalScrollIndicator={false}
+//                               onScroll={e => {
+//                                 recreatedScrollPos.current =
+//                                   e.nativeEvent.contentOffset.x;
+//                               }}
+//                               scrollEventThrottle={16}
+//                               onLayout={() => {
+//                                 if (recreatedScrollPos.current > 0) {
+//                                   recreatedScrollRef.current?.scrollTo({
+//                                     x: recreatedScrollPos.current,
+//                                     animated: false,
+//                                   });
+//                                 }
+//                               }}
+//                               contentContainerStyle={{
+//                                 paddingRight: moderateScale(tokens.spacing.xs),
+//                               }}>
+//                               {recentCreations.map(c => (
+//                                 <View
+//                                   key={c.id}
+//                                   style={[
+//                                     globalStyles.outfitCard,
+//                                     globalStyles.image8,
+//                                     {height: 'auto', borderWidth: 0},
+//                                   ]}>
+//                                   <ScalePressable
+//                                     onPress={() => {
+//                                       if (c.generated_outfit?.pieces) {
+//                                         openVisualRecreateModal({
+//                                           pieces: c.generated_outfit.pieces,
+//                                           source_image: c.source_image_url,
+//                                           lookId: c.id,
+//                                           lookName: c.name,
+//                                         });
+//                                       } else {
+//                                         navigate('RecreatedLook', {
+//                                           data: c.generated_outfit,
+//                                         });
+//                                       }
+//                                     }}
+//                                     style={{alignItems: 'center', width: '100%'}}>
+//                                     <View>
+//                                       <Image
+//                                         source={{uri: c.source_image_url}}
+//                                         style={[globalStyles.image8]}
+//                                         resizeMode="cover"
+//                                       />
+//                                     </View>
+//                                     <TouchableOpacity
+//                                       onPress={() => handleShareVibe(c)}
+//                                       style={{
+//                                         position: 'absolute',
+//                                         top: 6,
+//                                         right: 6,
+//                                         backgroundColor: 'rgba(0,0,0,0.4)',
+//                                         borderRadius: 20,
+//                                         padding: 6,
+//                                       }}>
+//                                       <Icon
+//                                         name="ios-share"
+//                                         size={20}
+//                                         color={theme.colors.buttonText1}
+//                                       />
+//                                     </TouchableOpacity>
+
+//                                     <Text
+//                                       numberOfLines={1}
+//                                       ellipsizeMode="tail"
+//                                       style={[
+//                                         globalStyles.cardSubLabel,
+//                                         {
+//                                           marginTop: 4,
+//                                           textAlign: 'center',
+//                                           width: '100%',
+//                                         },
+//                                       ]}>
+//                                       {c.name ||
+//                                         (c.tags && c.tags.slice(0, 3).join(' ')) ||
+//                                         'AI Look'}
+//                                     </Text>
+//                                   </ScalePressable>
+//                                 </View>
+//                               ))}
+//                             </ScrollView>
+//                           )}
+//                           {recreatedState === 'demo' && (
+//                             <Text
+//                               style={{
+//                                 fontSize: fontScale(tokens.fontSize.xs),
+//                                 color: theme.colors.foreground2,
+//                                 marginTop: 2,
+//                               }}>
+//                               Looks recreated inside 'See All Saved' appear here
+//                             </Text>
+//                           )}
+//                         </View>
+
+//                       </CollapsibleSection>
+//                     )}
+//                   </>
+//                 )}
+
+//                 {/* SHARED STYLES SECTION */}
+//                 <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     justifyContent: 'space-between',
+//                     marginLeft: moderateScale(tokens.spacing.md2),
+//                   }}>
+//                   <View>
+//                     <Text style={globalStyles.sectionTitle}>Your Shared Styles</Text>
+                 
+//                   </View>
+//                   {sharedState === 'demo' && (
+//                     <Pressable
+//                       onPress={() => {
+//                         ReactNativeHapticFeedback.trigger('impactLight');
+//                         setShareOptionsVisible(true);
+//                       }}>
+//                     </Pressable>
+//                   )}
+//                 </View>
+
+//                 {sharedState !== 'empty-real' && (
+//                   <CollapsibleSection
+//                     open={sharedOpen}
+//                     onToggle={async newState => {
+//                       setSharedOpen(newState);
+//                       await AsyncStorage.setItem(
+//                         'sharedLooksOpen',
+//                         JSON.stringify(newState),
+//                       );
+//                     }}>
+//                     <View style={globalStyles.sectionScroll}>
+//                       {sharedState === 'demo' ? (
+//                         <ScrollView
+//                           horizontal
+//                           showsHorizontalScrollIndicator={false}
+//                           contentContainerStyle={{paddingRight: 8}}>
+//                           {demoSharedImages.map((img, index) => (
+//                             <View
+//                               key={`demo-shared-${index}`}
+//                               style={[globalStyles.outfitCard]}>
+//                               <Pressable
+//                                 onPress={() => {
+//                                   ReactNativeHapticFeedback.trigger('impactLight');
+//                                 }}
+//                                 style={{
+//                                   width: 130,
+//                                   height: 130,
+//                                   borderRadius: tokens.borderRadius.md,
+//                                   overflow: 'hidden',
+//                                 }}>
+//                                 <Image
+//                                   source={img}
+//                                   style={{width: 130, height: 130}}
+//                                   resizeMode="cover"
+//                                 />
+//                                 <View
+//                                   style={{
+//                                     position: 'absolute',
+//                                     top: 8,
+//                                     right: 8,
+//                                     backgroundColor: 'black',
+//                                     paddingHorizontal: 8,
+//                                     paddingVertical: 3,
+//                                     borderRadius: 6,
+//                                   }}>
+//                                   <Text
+//                                     style={{
+//                                       color: 'white',
+//                                       fontSize: 11,
+//                                       fontWeight: tokens.fontWeight.semiBold,
+//                                     }}>
+//                                     Sample
+//                                   </Text>
+//                                 </View>
+//                               </Pressable>
+//                             </View>
+//                           ))}
+//                         </ScrollView>
+//                       ) : (
+//                         <ScrollView
+//                           ref={sharedScrollRef}
+//                           horizontal
+//                           showsHorizontalScrollIndicator={false}
+//                           onScroll={e => {
+//                             sharedScrollPos.current =
+//                               e.nativeEvent.contentOffset.x;
+//                           }}
+//                           scrollEventThrottle={16}
+//                           onLayout={() => {
+//                             if (sharedScrollPos.current > 0) {
+//                               sharedScrollRef.current?.scrollTo({
+//                                 x: sharedScrollPos.current,
+//                                 animated: false,
+//                               });
+//                             }
+//                           }}
+//                           contentContainerStyle={{paddingRight: 8}}>
+//                           {sharedLooks
+//                             .filter(look => !hiddenSharedLooks.has(look.id))
+//                             .map((look: any) => (
+//                               <View
+//                                 key={look.id}
+//                                 style={[globalStyles.outfitCard]}>
+//                                 <Pressable
+//                                   onPress={() => {
+//                                     // Could navigate to look detail or show preview
+//                                   }}
+//                                   style={{
+//                                     width: 130,
+//                                     height: 130,
+//                                     borderRadius: tokens.borderRadius.md,
+//                                     overflow: 'hidden',
+//                                     backgroundColor: '#000',
+//                                   }}>
+//                                   <View>
+//                                     {look.image_url ? (
+//                                       <Image
+//                                         source={{uri: look.image_url}}
+//                                         style={{width: 130, height: 130}}
+//                                         resizeMode="cover"
+//                                       />
+//                                     ) : (
+//                                       <>
+//                                         <View
+//                                           style={{
+//                                             flexDirection: 'row',
+//                                             height: 65,
+//                                           }}>
+//                                           <Image
+//                                             source={{uri: look.top_image}}
+//                                             style={{width: 65, height: 65}}
+//                                             resizeMode="cover"
+//                                           />
+//                                           <Image
+//                                             source={{uri: look.bottom_image}}
+//                                             style={{width: 65, height: 65}}
+//                                             resizeMode="cover"
+//                                           />
+//                                         </View>
+//                                         <View
+//                                           style={{
+//                                             flexDirection: 'row',
+//                                             height: 65,
+//                                           }}>
+//                                           <Image
+//                                             source={{uri: look.shoes_image}}
+//                                             style={{width: 65, height: 65}}
+//                                             resizeMode="cover"
+//                                           />
+//                                           <View
+//                                             style={{
+//                                               width: 65,
+//                                               height: 65,
+//                                               backgroundColor: '#000',
+//                                               justifyContent: 'center',
+//                                               alignItems: 'center',
+//                                             }}>
+//                                             <Text
+//                                               style={{
+//                                                 color: '#fff',
+//                                                 fontSize: 8,
+//                                                 fontWeight: '800',
+//                                                 letterSpacing: 1,
+//                                               }}>
+//                                               StylHelpr
+//                                             </Text>
+//                                           </View>
+//                                         </View>
+//                                       </>
+//                                     )}
+//                                     <Pressable
+//                                       onPress={() => {
+//                                         Alert.alert(
+//                                           'Remove Look',
+//                                           'Are you sure you want to remove this shared look from your feed?',
+//                                           [
+//                                             {text: 'Cancel', style: 'cancel'},
+//                                             {
+//                                               text: 'Remove',
+//                                               style: 'destructive',
+//                                               onPress: () => {
+//                                                 setHiddenSharedLooks(prev =>
+//                                                   new Set(prev).add(look.id),
+//                                                 );
+//                                               },
+//                                             },
+//                                           ],
+//                                         );
+//                                       }}
+//                                       style={{
+//                                         position: 'absolute',
+//                                         bottom: 4,
+//                                         right: 4,
+//                                         width: 20,
+//                                         height: 20,
+//                                         borderRadius: 10,
+//                                         backgroundColor: 'rgba(220, 38, 38, 0.9)',
+//                                         justifyContent: 'center',
+//                                         alignItems: 'center',
+//                                       }}>
+//                                       <Icon name="close" size={14} color="#fff" />
+//                                     </Pressable>
+//                                   </View>
+//                                 </Pressable>
+//                                 <Text
+//                                   style={[
+//                                     globalStyles.cardSubLabel,
+//                                     {
+//                                       textAlign: 'center',
+//                                       marginTop: 4,
+//                                       width: 130,
+//                                     },
+//                                   ]}
+//                                   numberOfLines={1}>
+//                                   {look.name || 'Shared Look'}
+//                                 </Text>
+//                               </View>
+//                             ))}
+//                         </ScrollView>
+//                       )}
+//                          {sharedState === 'demo' && (
+//                       <Text
+//                         style={{
+//                           fontSize: fontScale(tokens.fontSize.xs),
+//                           color: theme.colors.foreground2,
+//                           marginTop: 2,
+//                         }}>
+//                         Images you share with the Community appear here
+//                       </Text>
+//                     )}
+//                     </View>
+                    
+//                   </CollapsibleSection>
+//                 )}
+//               </>
+//             )}
+
+
+//        {/* Fasion News Button */}
+//             <Animatable.View
+//               animation="fadeInUp"
+//               delay={180}
+//               duration={500}
+//               useNativeDriver
+//               style={{
+//                 paddingHorizontal: moderateScale(tokens.spacing.md),
+//                 marginTop: 6,
+//                 marginBottom: 22,
+//                 display: 'flex',
+//                 flexDirection: 'row',
+//               }}>
+//               <Animatable.View
+//                 animation={{
+//                   0: {scale: 1},
+//                   0.5: {scale: 1.02},
+//                   1: {scale: 1},
+//                 }}
+//                 iterationCount="infinite"
+//                 duration={2500}
+//                 easing="ease-in-out"
+//                 useNativeDriver
+//                 style={{width: '45%', margin: 'auto'}}>
+//                 <AppleTouchFeedback
+//                   onPress={() => navigate('Explore')}
+//                   hapticStyle="impactLight"
+//                   style={[
+//                     globalStyles.buttonPrimary,
+//                     {
+//                       width: '100%',
+//                       justifyContent: 'center',
+//                       backgroundColor: theme.colors.button1,
+//                       // backgroundColor: 'transparent',
+//                       // borderWidth: tokens.borderWidth.hairline,
+//                       // borderColor: theme.colors.foreground,
+//                       borderRadius: tokens.borderRadius.sm,
+//                       // borderRadius: tokens.borderRadius.xxxl,
+//                     },
+//                   ]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.buttonPrimaryText,
+//                       {textTransform: 'uppercase', fontWeight: '700'},
+//                     ]}>
+//                     Fashion News
+//                   </Text>
+//                 </AppleTouchFeedback>
+//               </Animatable.View> 
+// {/* 
+//                <Animatable.View
+//                 animation={{
+//                   0: {scale: 1},
+//                   0.5: {scale: 1.02},
+//                   1: {scale: 1},
+//                 }}
+//                 iterationCount="infinite"
+//                 duration={2500}
+//                 easing="ease-in-out"
+//                 useNativeDriver
+//                 style={{width: '45%', margin: 'auto'}}>
+//                 <AppleTouchFeedback
+//                   onPress={() => navigate('VideoFeedScreen')}
+//                   hapticStyle="impactLight"
+//                   style={[
+//                     globalStyles.buttonPrimary,
+//                     {
+//                       width: '100%',
+//                       justifyContent: 'center',
+//                       backgroundColor: theme.colors.button1,
+//                       // backgroundColor: 'transparent',
+//                       // borderWidth: tokens.borderWidth.hairline,
+//                       // borderColor: theme.colors.foreground,
+//                       borderRadius: tokens.borderRadius.sm,
+//                       // borderRadius: tokens.borderRadius.xxxl,
+//                       // marginTop: 20,
+//                     },
+//                   ]}>
+//                   <Text
+//                     style={[
+//                       globalStyles.buttonPrimaryText,
+//                       {textTransform: 'uppercase', fontWeight: '700'},
+//                     ]}>
+//                     Media Inspo
+//                   </Text>
+//                 </AppleTouchFeedback>
+//               </Animatable.View>  */}
+//              </Animatable.View>
+
+//         {/* Top Fashion Stories / News Carousel */}
+//             {/* {prefs.topFashionStories && (
+//               <Animatable.View
+//                 animation="fadeInUp"
+//                 delay={600}
+//                 duration={700}
+//                 useNativeDriver
+//                 style={globalStyles.sectionScroll}>
+//                       <View
+//                   style={{
+//                     flexDirection: 'row',
+//                     justifyContent: 'space-between',
+//                     alignItems: 'center',
+//                   }}>
+//                 <Text style={[globalStyles.sectionTitle]}>
+//                   Top Fashion News
+//                 </Text>
+//                 <AppleTouchFeedback
+//                   onPress={() => navigate('Explore')}
+//                   hapticStyle="impactLight"
+//                   >
+              
+//                   <Text
+//                       style={{
+//                         fontSize: fontScale(tokens.fontSize.sm),
+//                         color: theme.colors.foreground,
+//                         fontWeight: tokens.fontWeight.bold,
+//                         marginTop: -5,
+//                         marginRight: moderateScale(tokens.spacing.sm),         
+//                       }}>
+//                       All Fashion News
+//                     </Text>
+//                       </AppleTouchFeedback>
+//                     </View>
+//                 <NewsCarousel onOpenArticle={openArticle} />
+//               </Animatable.View>
+//             )} */}
+
+
+//             <SaveLookModal
+//               visible={saveModalVisible}
+//               onClose={() => setSaveModalVisible(false)}
+//             />
+//             <SavedLookPreviewModal
+//               visible={previewVisible}
+//               look={selectedLook}
+//               onClose={() => setPreviewVisible(false)}
+//             />
+//             <SavedRecommendationsModal
+//               visible={savedRecommendationsModalVisible && !readerVisible}
+//               onClose={() => setSavedRecommendationsModalVisible(false)}
+//               savedProducts={savedRecommendations}
+//               onOpenItem={openArticle}
+//               onUnsave={productId => {
+//                 // Immediately remove from local state so it disappears from grid
+//                 setSavedRecommendations(prev =>
+//                   prev.filter(p => p.product_id !== productId),
+//                 );
+//                 // Also update carousel state
+//                 unsaveRecommendation?.(productId);
+//               }}
+//               onRefresh={() => {
+//                 fetchSavedRecommendations?.();
+//               }}
+//             />
+//             <ReaderModal
+//               visible={readerVisible}
+//               url={readerUrl}
+//               title={readerTitle}
+//               onClose={() => setReaderVisible(false)}
+//             />
+//             <AllSavedLooksModal
+//               visible={imageModalVisible}
+//               onClose={() => setImageModalVisible(false)}
+//               savedLooks={savedLooks}
+//               recreateLook={handleRecreateLook}
+//               openShopModal={handleShopModal}
+//               shopResults={shopResults}
+//               openPersonalizedShopModal={openPersonalizedShopModal}
+//               openVisualRecreateModal={openVisualRecreateModal}
+//               onSaveLook={fetchSavedLooks}
+//               onRecreate={loadRecentCreations}
+//             />
+//             <ShopModal
+//               visible={shopVisible}
+//               onClose={() => setShopVisible(false)}
+//               results={shopResults}
+//             />
+//             {/* <PersonalizedShopModal
+//           visible={personalizedVisible}
+//           onClose={() => setPersonalizedVisible(false)}
+//           purchases={personalizedPurchases}
+//         /> */}
+//             <PersonalizedShopModal
+//               visible={personalizedVisible}
+//               onClose={() => setPersonalizedVisible(false)}
+//               purchases={
+//                 personalizedPurchases?.purchases ??
+//                 personalizedPurchases?.suggested_purchases ??
+//                 []
+//               }
+//               recreatedOutfit={
+//                 personalizedPurchases?.recreatedOutfit ??
+//                 personalizedPurchases?.recreated_outfit ??
+//                 []
+//               }
+//               styleNote={
+//                 personalizedPurchases?.styleNote ??
+//                 personalizedPurchases?.style_note ??
+//                 ''
+//               }
+//             />
+//             <VisualRecreateModal
+//               visible={visualRecreateVisible}
+//               onClose={() => setVisualRecreateVisible(false)}
+//               pieces={visualRecreateData?.pieces}
+//               results={visualRecreateData?.results}
+//               source_image={visualRecreateData?.source_image}
+//               lookId={visualRecreateData?.lookId}
+//               lookName={visualRecreateData?.lookName}
+//               tags={visualRecreateData?.tags}
+//               onDelete={handleDeleteRecreatedLook}
+//               onRename={handleRenameRecreatedLook}
+//               onSave={loadRecentCreations}
+//             />
+//             {showRecreatedModal && recreatedData && (
+//               <Modal
+//                 visible={showRecreatedModal}
+//                 animationType="slide"
+//                 transparent={false}
+//                 presentationStyle="fullScreen"
+//                 statusBarTranslucent
+//                 onRequestClose={() => setShowRecreatedModal(false)}>
+//                 <RecreatedLookScreen
+//                   route={{params: {data: recreatedData}}}
+//                   navigation={{goBack: () => setShowRecreatedModal(false)}}
+//                 />
+//               </Modal>
+//             )}
+
+//             {/* Share Options Modal */}
+//             <Modal
+//               visible={shareOptionsVisible}
+//               transparent
+//               animationType="fade"
+//               onRequestClose={() => setShareOptionsVisible(false)}>
+//               <Pressable
+//                 style={{
+//                   flex: 1,
+//                   justifyContent: 'center',
+//                   alignItems: 'center',
+//                 }}
+//                 onPress={() => setShareOptionsVisible(false)}>
+//                 <BlurView
+//                   style={StyleSheet.absoluteFill}
+//                   blurType="dark"
+//                   blurAmount={20}
+//                   reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+//                 />
+//                 <Animatable.View
+//                   animation="slideInUp"
+//                   duration={300}
+//                   style={{
+//                     backgroundColor: theme.colors.surface,
+//                     borderRadius: 20,
+//                     padding: 20,
+//                     width: '85%',
+//                     maxWidth: 340,
+//                   }}>
+//                   <Text
+//                     style={{
+//                       fontSize: 18,
+//                       fontWeight: '700',
+//                       color: theme.colors.foreground,
+//                       marginBottom: 20,
+//                       textAlign: 'center',
+//                     }}>
+//                     Share Look
+//                   </Text>
+
+//                   {/* Share to Community */}
+//                   <AppleTouchFeedback
+//                     hapticStyle="impactMedium"
+//                     onPress={handleShareToCommunity}
+//                     style={{
+//                       flexDirection: 'row',
+//                       alignItems: 'center',
+//                       backgroundColor: theme.colors.button1,
+//                       paddingVertical: 14,
+//                       paddingHorizontal: 20,
+//                       borderRadius: 14,
+//                       marginBottom: 12,
+//                     }}>
+//                     <Icon
+//                       name="groups"
+//                       size={24}
+//                       color={theme.colors.buttonText1}
+//                     />
+//                     <Text
+//                       style={{
+//                         color: theme.colors.buttonText1,
+//                         fontSize: 16,
+//                         fontWeight: '600',
+//                         marginLeft: 12,
+//                       }}>
+//                       Share to Community
+//                     </Text>
+//                   </AppleTouchFeedback>
+
+//                   {/* Share Externally */}
+//                   <AppleTouchFeedback
+//                     hapticStyle="impactLight"
+//                     onPress={handleShareExternal}
+//                     style={{
+//                       flexDirection: 'row',
+//                       alignItems: 'center',
+//                       backgroundColor: theme.colors.surface2,
+//                       paddingVertical: 14,
+//                       paddingHorizontal: 20,
+//                       marginBottom: 12,
+//                       borderRadius: 14,
+//                       borderWidth: tokens.borderWidth.md,
+//                       borderColor: theme.colors.muted,
+//                     }}>
+//                     <Icon
+//                       name="ios-share"
+//                       size={24}
+//                       color={theme.colors.foreground}
+//                     />
+//                     <Text
+//                       style={{
+//                         color: theme.colors.foreground,
+//                         fontSize: 16,
+//                         fontWeight: '600',
+//                         marginLeft: 12,
+//                       }}>
+//                       Share via...
+//                     </Text>
+//                   </AppleTouchFeedback>
+
+//                   {/* Cancel */}
+//                   <AppleTouchFeedback
+//                     hapticStyle="selection"
+//                     onPress={() => {
+//                       setShareOptionsVisible(false);
+//                       setPendingShareVibe(null);
+//                     }}
+//                     style={{
+//                       paddingVertical: 12,
+//                       alignItems: 'center',
+//                       borderRadius: 14,
+//                       borderWidth: tokens.borderWidth.md,
+//                       borderColor: theme.colors.muted,
+//                     }}>
+//                     <Text
+//                       style={{
+//                         color: theme.colors.muted,
+//                         fontSize: 16,
+//                       }}>
+//                       Cancel
+//                     </Text>
+//                   </AppleTouchFeedback>
+//                 </Animatable.View>
+//               </Pressable>
+//             </Modal>
+
+//             {/* Community Share Modal */}
+//             <Modal
+//               visible={communityShareModalVisible}
+//               transparent
+//               animationType="fade"
+//               onRequestClose={() => setCommunityShareModalVisible(false)}>
+//               <KeyboardAvoidingView
+//                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+//                 style={{flex: 1}}>
+//                 <Pressable
+//                   style={{
+//                     flex: 1,
+//                     justifyContent: 'center',
+//                     alignItems: 'center',
+//                   }}
+//                   onPress={() => setCommunityShareModalVisible(false)}>
+//                   <BlurView
+//                     style={StyleSheet.absoluteFill}
+//                     blurType="dark"
+//                     blurAmount={20}
+//                     reducedTransparencyFallbackColor="rgba(0,0,0,0.7)"
+//                   />
+//                   <Pressable
+//                     onPress={e => e.stopPropagation()}
+//                     style={{
+//                       backgroundColor: theme.colors.surface,
+//                       borderRadius: 20,
+//                       padding: 24,
+//                       width: '90%',
+//                       maxWidth: 360,
+//                     }}>
+//                     <Text
+//                       style={{
+//                         fontSize: 18,
+//                         fontWeight: '700',
+//                         color: theme.colors.foreground,
+//                         marginBottom: 20,
+//                         textAlign: 'center',
+//                       }}>
+//                       Share to Community
+//                     </Text>
+
+//                     {/* Name Input */}
+//                     <Text
+//                       style={{
+//                         fontSize: 14,
+//                         fontWeight: '600',
+//                         color: theme.colors.foreground2,
+//                         marginBottom: 8,
+//                       }}>
+//                       Name
+//                     </Text>
+//                     <TextInput
+//                       value={communityName}
+//                       onChangeText={setCommunityName}
+//                       placeholder="Give your style a name..."
+//                       placeholderTextColor={theme.colors.muted}
+//                       style={{
+//                         backgroundColor: theme.colors.surface3,
+//                         borderRadius: 14,
+//                         borderWidth: tokens.borderWidth.md,
+//                         borderColor: theme.colors.muted,
+//                         padding: 14,
+//                         color: theme.colors.foreground,
+//                         fontSize: 15,
+//                         marginBottom: 16,
+//                       }}
+//                     />
+
+//                     {/* Story Input */}
+//                     <Text
+//                       style={{
+//                         fontSize: 14,
+//                         fontWeight: '600',
+//                         color: theme.colors.foreground2,
+//                         marginBottom: 8,
+//                       }}>
+//                       Story
+//                     </Text>
+//                     <TextInput
+//                       value={communityDescription}
+//                       onChangeText={setCommunityDescription}
+//                       placeholder="Tell the story behind this style..."
+//                       placeholderTextColor={theme.colors.muted}
+//                       multiline
+//                       style={{
+//                         backgroundColor: theme.colors.surface3,
+//                         borderRadius: 14,
+//                         borderWidth: tokens.borderWidth.md,
+//                         borderColor: theme.colors.muted,
+//                         padding: 14,
+//                         color: theme.colors.foreground,
+//                         fontSize: 15,
+//                         minHeight: 80,
+//                         marginBottom: 16,
+//                         textAlignVertical: 'top',
+//                       }}
+//                     />
+
+//                     {/* Tags Input */}
+//                     <Text
+//                       style={{
+//                         fontSize: 14,
+//                         fontWeight: '600',
+//                         color: theme.colors.foreground2,
+//                         marginBottom: 8,
+//                       }}>
+//                       Tags (comma-separated)
+//                     </Text>
+//                     <TextInput
+//                       value={communityTags}
+//                       onChangeText={setCommunityTags}
+//                       placeholder="casual, summer, streetwear..."
+//                       placeholderTextColor={theme.colors.muted}
+//                       style={{
+//                         backgroundColor: theme.colors.surface3,
+//                         borderRadius: 14,
+//                         borderWidth: tokens.borderWidth.md,
+//                         borderColor: theme.colors.muted,
+//                         padding: 14,
+//                         color: theme.colors.foreground,
+//                         fontSize: 15,
+//                         marginBottom: 24,
+//                       }}
+//                     />
+
+//                     {/* Action Buttons */}
+//                     <View
+//                       style={{
+//                         flexDirection: 'row',
+//                         justifyContent: 'flex-end',
+//                       }}>
+//                       <AppleTouchFeedback
+//                         hapticStyle="selection"
+//                         onPress={() => {
+//                           setCommunityShareModalVisible(false);
+//                           setPendingShareVibe(null);
+//                         }}
+//                         style={{
+//                           paddingHorizontal: 20,
+//                           paddingVertical: 12,
+//                           borderRadius: 14,
+//                           borderWidth: tokens.borderWidth.md,
+//                           borderColor: theme.colors.muted,
+//                         }}>
+//                         <Text style={{color: theme.colors.muted, fontSize: 16}}>
+//                           Cancel
+//                         </Text>
+//                       </AppleTouchFeedback>
+
+//                       <AppleTouchFeedback
+//                         hapticStyle="impactMedium"
+//                         onPress={handleConfirmCommunityShare}
+//                         style={{
+//                           backgroundColor: theme.colors.button1,
+//                           paddingHorizontal: 24,
+//                           paddingVertical: 12,
+//                           borderRadius: 12,
+//                           marginLeft: 12,
+//                         }}>
+//                         <Text
+//                           style={{
+//                             color: theme.colors.buttonText1,
+//                             fontSize: 16,
+//                             fontWeight: '600',
+//                           }}>
+//                           {createPostMutation.isPending
+//                             ? 'Sharing...'
+//                             : 'Share'}
+//                         </Text>
+//                       </AppleTouchFeedback>
+//                     </View>
+//                   </Pressable>
+//                 </Pressable>
+//               </KeyboardAvoidingView>
+//             </Modal>
+//           </Animated.ScrollView>
+//         </View>
+//       </LinearGradientWrapper>
+//     </Animated.View>
+//   );
+// };
+
+// export default HomeScreen;
 
 
 //////////////////

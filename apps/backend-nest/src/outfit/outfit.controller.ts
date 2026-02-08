@@ -57,7 +57,10 @@ export class OutfitController {
   }
 
   @Delete('favorite')
-  unfavoriteOutfit(@Req() req, @Body() dto: Omit<FavoriteOutfitDto, 'user_id'>) {
+  unfavoriteOutfit(
+    @Req() req,
+    @Body() dto: Omit<FavoriteOutfitDto, 'user_id'>,
+  ) {
     const user_id = req.user.userId;
     return this.outfitService.unfavoriteOutfit({ user_id, ...dto });
   }
@@ -81,7 +84,13 @@ export class OutfitController {
     @Body() body: { name?: string; occasion?: string },
   ) {
     const userId = req.user.userId;
-    return this.outfitService.updateOutfit(table, id, userId, body.name, body.occasion);
+    return this.outfitService.updateOutfit(
+      table,
+      id,
+      userId,
+      body.name,
+      body.occasion,
+    );
   }
 
   @Post('mark-worn/:outfitId/:outfitType/:userId')

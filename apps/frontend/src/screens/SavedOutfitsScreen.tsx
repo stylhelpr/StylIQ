@@ -1844,19 +1844,19 @@ export default function SavedOutfitsScreen() {
             style={{
               width: SHARE_SIZE,
               height: SHARE_SIZE + 80,
-              backgroundColor: '#000',
+              backgroundColor: '#F5F5F5',
             }}>
             {/* 2x2 Grid */}
             {/* Row 1 */}
             <View style={{flexDirection: 'row', height: SHARE_CELL}}>
-              <View style={{width: SHARE_CELL, height: SHARE_CELL}}>
+              <View style={{width: SHARE_CELL, height: SHARE_CELL, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: '#000'}}>
                 <Image
                   source={{uri: shareOutfit.top?.image}}
                   style={{width: '100%', height: '100%'}}
                   resizeMode="cover"
                 />
               </View>
-              <View style={{width: SHARE_CELL, height: SHARE_CELL}}>
+              <View style={{width: SHARE_CELL, height: SHARE_CELL, backgroundColor: '#F5F5F5', borderBottomWidth: 0.5, borderColor: '#000'}}>
                 <Image
                   source={{uri: shareOutfit.bottom?.image}}
                   style={{width: '100%', height: '100%'}}
@@ -1866,19 +1866,19 @@ export default function SavedOutfitsScreen() {
             </View>
             {/* Row 2 */}
             <View style={{flexDirection: 'row', height: SHARE_CELL}}>
-              <View style={{width: SHARE_CELL, height: SHARE_CELL}}>
+              <View style={{width: SHARE_CELL, height: SHARE_CELL, backgroundColor: '#F5F5F5', borderRightWidth: 0.5, borderColor: '#000'}}>
                 <Image
                   source={{uri: shareOutfit.shoes?.image}}
                   style={{width: '100%', height: '100%'}}
                   resizeMode="cover"
                 />
               </View>
-              {/* Plain black cell */}
+              {/* Plain off-white cell */}
               <View
                 style={{
                   width: SHARE_CELL,
                   height: SHARE_CELL,
-                  backgroundColor: '#000',
+                  backgroundColor: '#F5F5F5',
                 }}
               />
             </View>
