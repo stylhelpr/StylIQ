@@ -185,6 +185,27 @@ async function mapWithConcurrency<T, R>(
   return out;
 }
 
+// Retry wrapper for 429 rate-limit errors
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      const is429 =
+        err?.response?.status === 429 ||
+        err?.status === 429 ||
+        (err?.message && err.message.includes('429'));
+      if (!is429 || attempt === maxRetries) throw err;
+      const delayMs = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  throw new Error('withRetry: unreachable');
+}
+
 export default function AddItemScreen({
   navigate,
   goBack,
@@ -357,30 +378,34 @@ export default function AddItemScreen({
     const mainCategory = (category?.trim() || 'Uncategorized') as string;
 
     try {
-      // 1) Upload all to GCS
-      const uploaded = await mapWithConcurrency(selected, 3, async uri => {
+      // 1) Upload all to GCS (sequential + retry to avoid 429)
+      const uploaded = await mapWithConcurrency(selected, 1, async uri => {
         const filename = uri.split('/').pop() ?? 'upload.jpg';
-        const up = await uploadImageToGCS({localUri: uri, filename, userId});
+        const up = await withRetry(() =>
+          uploadImageToGCS({localUri: uri, filename, userId}),
+        );
         return {uri, filename, ...up};
       });
 
-      // 2) For each uploaded image:
+      // 2) For each uploaded image (sequential + retry to avoid 429):
       let ok = 0,
         failed = 0,
         aiUsed = 0,
         fallbackUsed = 0;
 
-      await mapWithConcurrency(uploaded, 3, async u => {
+      await mapWithConcurrency(uploaded, 1, async u => {
         const userProvidedName = name?.trim() || undefined;
 
         try {
-          await autoCreateWithAI({
-            user_id: userId,
-            image_url: u.publicUrl,
-            gsutil_uri: u.gsutilUri,
-            name: userProvidedName,
-            object_key: u.objectKey,
-          });
+          await withRetry(() =>
+            autoCreateWithAI({
+              user_id: userId,
+              image_url: u.publicUrl,
+              gsutil_uri: u.gsutilUri,
+              name: userProvidedName,
+              object_key: u.objectKey,
+            }),
+          );
           aiUsed++;
           ok++;
         } catch (e) {

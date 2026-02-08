@@ -322,15 +322,6 @@ export default function WardrobePickerModal({
                   item.thumbnailUrl ||
                   item.image_url;
                 const uri = resolveUri(imageUrl);
-                // Debug: log FULL URLs being used
-                console.log('[WardrobePicker] FULL URLS:', {
-                  id: item.id,
-                  image: item.image,
-                  touchedUpImageUrl: item.touchedUpImageUrl,
-                  processedImageUrl: item.processedImageUrl,
-                  image_url: item.image_url,
-                  resolved: uri,
-                });
                 return (
                   <TouchableOpacity
                     key={item.id}
