@@ -1829,7 +1829,7 @@ export default function SavedOutfitsScreen() {
     [],
   );
 
-  // 🔲 Grid View: minimal 2-column thumbnail + name only
+  // 🔲 Grid View: minimal 2-column thumbnail + name only /
   // Sized so exactly 3 rows are visible on screen
   const GRID_GAP = 6;
   const GRID_PADDING_H = 10;
