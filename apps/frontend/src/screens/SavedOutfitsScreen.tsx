@@ -16,6 +16,7 @@ import {
   PanResponder,
   Pressable,
   FlatList,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {FlashList} from '@shopify/flash-list';
 import FastImage from 'react-native-fast-image';
@@ -376,7 +377,9 @@ export default function SavedOutfitsScreen() {
 
   // 🧠 State Management
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuView, setMenuView] = useState<'main' | 'sort' | 'filter'>('main');
+  const submenuOpacity = useRef(new Animated.Value(0)).current;
   const [editingOutfitId, setEditingOutfitId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
   const [editedOccasion, setEditedOccasion] = useState<
@@ -1832,13 +1835,13 @@ export default function SavedOutfitsScreen() {
 
   // 🔲 Grid View: minimal 2-column thumbnail + name only /
   // Sized so exactly 3 rows are visible on screen
-  const GRID_GAP = 6;
+  const GRID_GAP = 10;
   const GRID_PADDING_H = 10;
   const GRID_ITEM_WIDTH = (SCREEN_WIDTH - GRID_PADDING_H * 2 - GRID_GAP) / 2;
   const GRID_VISIBLE_ROWS = 3;
-  const GRID_NAME_HEIGHT = 40; // text + padding
+  const GRID_NAME_HEIGHT = 35; // text + padding
   // Available height for grid = screen minus header/sort/chips/nav (~280px approx)
-  const GRID_AVAILABLE_HEIGHT = Dimensions.get('window').height - 180;
+  const GRID_AVAILABLE_HEIGHT = Dimensions.get('window').height - 300;
   const GRID_ROW_HEIGHT = Math.floor(
     (GRID_AVAILABLE_HEIGHT - GRID_GAP * (GRID_VISIBLE_ROWS - 1)) /
       GRID_VISIBLE_ROWS,
@@ -1916,6 +1919,17 @@ export default function SavedOutfitsScreen() {
     },
     [theme, GRID_ITEM_WIDTH, GRID_ROW_HEIGHT, GRID_IMAGE_HEIGHT],
   );
+
+  // Sort/Filter popover submenu transition (matches ClosetScreen pattern)
+  const openSubmenu = (view: 'sort' | 'filter') => {
+    setMenuView(view);
+    submenuOpacity.setValue(0);
+    Animated.timing(submenuOpacity, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
     <SafeAreaView
@@ -2106,7 +2120,7 @@ export default function SavedOutfitsScreen() {
       <View
         style={{
           height: Math.max(insets.top - 10, 44), // ✅ min 44px for non-notched devices
-          backgroundColor: theme.colors.background,
+          backgroundColor: theme.colors.background
         }}
       />
       <View
@@ -2126,19 +2140,20 @@ export default function SavedOutfitsScreen() {
           <TouchableOpacity
             onPress={() => {
               hSelect();
-              setShowSortDropdown(prev => !prev);
+              setMenuVisible(prev => !prev);
+              setMenuView('main');
             }}
             style={{
               padding: 8,
               borderRadius: 20,
-              backgroundColor: showSortDropdown
+              backgroundColor: menuVisible
                 ? theme.colors.primary
                 : theme.colors.surface,
             }}>
             <MaterialIcons
-              name="sort"
+              name="filter-list"
               size={24}
-              color={showSortDropdown ? '#fff' : theme.colors.primary}
+              color={menuVisible ? '#fff' : theme.colors.primary}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -2187,163 +2202,62 @@ export default function SavedOutfitsScreen() {
         </View>
       </View>
 
-      {/* Sort dropdown — toggled via header icon */}
-      {showSortDropdown && (
-        <Animatable.View
-          animation="fadeInDown"
-          duration={200}
+      {/* Active filter/sort indicator chips */}
+      {(sortType !== 'newest' || occasionFilter !== null) && (
+        <View
           style={{
-            marginHorizontal: 16,
-            marginBottom: 8,
-            backgroundColor: theme.colors.surface,
-            borderRadius: 16,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: theme.colors.surfaceBorder,
-            overflow: 'hidden',
+            flexDirection: 'row',
+            paddingHorizontal: 16,
+            paddingVertical: 6,
+            gap: 8,
+            flexWrap: 'wrap',
           }}>
-          {(
-            [
-              {key: 'newest', label: 'Newest', icon: 'schedule'},
-              {key: 'favorites', label: 'Favorites', icon: 'favorite'},
-              {key: 'planned', label: 'Planned', icon: 'event'},
-              {key: 'stars', label: 'Rating', icon: 'star'},
-            ] as const
-          ).map(({key, label, icon}) => (
-            <TouchableOpacity
-              key={key}
-              onPress={() => {
-                hSelect();
-                setSortType(key);
-                setShowSortDropdown(false);
-              }}
-              activeOpacity={0.7}
+          {sortType !== 'newest' && (
+            <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                backgroundColor:
-                  sortType === key
-                    ? theme.colors.primary + '18'
-                    : 'transparent',
+                backgroundColor: theme.colors.primary + '20',
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 12,
+                gap: 4,
+              }}>
+              <MaterialIcons name="sort" size={14} color={theme.colors.primary} />
+              <Text style={{fontSize: 12, fontWeight: '600', color: theme.colors.primary}}>
+                {sortType === 'favorites' ? 'Favorites' : sortType === 'planned' ? 'Planned' : 'Rating'}
+              </Text>
+              <TouchableOpacity onPress={() => setSortType('newest')} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                <MaterialIcons name="close" size={14} color={theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {occasionFilter !== null && OCCASION_CONFIG[occasionFilter] && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: OCCASION_CONFIG[occasionFilter].color + '25',
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 12,
+                gap: 4,
               }}>
               <MaterialIcons
-                name={icon}
-                size={20}
-                color={
-                  sortType === key
-                    ? theme.colors.primary
-                    : theme.colors.foreground3
-                }
-                style={{marginRight: 12}}
+                name={OCCASION_CONFIG[occasionFilter].icon as any}
+                size={14}
+                color={OCCASION_CONFIG[occasionFilter].color}
               />
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: sortType === key ? '700' : '500',
-                  color:
-                    sortType === key
-                      ? theme.colors.primary
-                      : theme.colors.foreground,
-                  flex: 1,
-                }}>
-                {label}
+              <Text style={{fontSize: 12, fontWeight: '600', color: OCCASION_CONFIG[occasionFilter].color}}>
+                {OCCASION_CONFIG[occasionFilter].label}
               </Text>
-              {sortType === key && (
-                <MaterialIcons
-                  name="check"
-                  size={18}
-                  color={theme.colors.primary}
-                />
-              )}
-            </TouchableOpacity>
-          ))}
-        </Animatable.View>
+              <TouchableOpacity onPress={() => setOccasionFilter(null)} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                <MaterialIcons name="close" size={14} color={OCCASION_CONFIG[occasionFilter].color} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       )}
-
-      {/* Occasion filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingVertical: 8,
-          paddingHorizontal: 16,
-          gap: 8,
-        }}
-        style={{flexGrow: 0}}>
-        {/* "All" chip */}
-        <TouchableOpacity
-          onPress={() => setOccasionFilter(null)}
-          style={{
-            paddingHorizontal: 14,
-            paddingVertical: 8,
-            borderRadius: 16,
-            backgroundColor:
-              occasionFilter === null
-                ? theme.colors.button1
-                : theme.colors.surface3,
-            borderWidth: 1,
-            borderColor:
-              occasionFilter === null
-                ? theme.colors.surfaceBorder
-                : theme.colors.surfaceBorder,
-          }}>
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color:
-                occasionFilter === null ? 'white' : theme.colors.foreground,
-            }}>
-            All ({displayOutfits.length})
-          </Text>
-        </TouchableOpacity>
-
-        {/* Occasion chips */}
-        {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(occasion => {
-          const config = OCCASION_CONFIG[occasion];
-          const count = displayOutfits.filter(
-            o => o.occasion === occasion,
-          ).length;
-          if (count === 0) return null;
-          const isSelected = occasionFilter === occasion;
-
-          return (
-            <TouchableOpacity
-              key={occasion}
-              onPress={() => setOccasionFilter(isSelected ? null : occasion)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 16,
-                backgroundColor: isSelected
-                  ? config.color
-                  : theme.colors.surface,
-                borderWidth: 1,
-                borderColor: isSelected
-                  ? config.color
-                  : theme.colors.surfaceBorder,
-                gap: 6,
-              }}>
-              <MaterialIcons
-                name={config.icon as any}
-                size={16}
-                color={isSelected ? '#fff' : config.color}
-              />
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '600',
-                  color: isSelected ? '#fff' : theme.colors.foreground,
-                }}>
-                {config.label} ({count})
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
 
       {/* Demo indicator banner */}
       {outfitsState === 'demo' && (
@@ -2376,7 +2290,7 @@ export default function SavedOutfitsScreen() {
       )}
 
       {/* 🪩 Virtualized FlashList / Grid View */}
-      <View style={{flex: 1, width: '100%'}}>
+      <View style={{flex: 1, width: '100%', marginTop:12}}>
         {/* Empty state - only show when user had outfits before but now has none */}
         {outfitsState === 'empty-real' && sortedOutfits.length === 0 ? (
           <View
@@ -3301,6 +3215,220 @@ export default function SavedOutfitsScreen() {
         }}>
         <MaterialIcons name="keyboard-arrow-up" size={32} color="#fff" />
       </AppleTouchFeedback>
+
+      {/* Sort / Filter Popover (matches ClosetScreen pattern) */}
+      {menuVisible && (
+        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+          <View
+            style={{
+              position: 'absolute',
+              top: 20,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'transparent',
+              zIndex: 9999,
+            }}>
+            <TouchableWithoutFeedback>
+              <View>
+                {menuView === 'main' && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: insets.top + 85,
+                      right: 20,
+                      width: 220,
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 16,
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      elevation: 20,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.25,
+                      shadowOffset: {width: 0, height: 4},
+                      shadowRadius: 14,
+                      zIndex: 9999,
+                    }}>
+                         <TouchableOpacity
+                      style={{paddingVertical: 10, flexDirection: 'row', alignItems: 'center'}}
+                      onPress={() => {
+                        hSelect();
+                        openSubmenu('filter');
+                      }}>
+                      <MaterialIcons name="filter-list" size={22} color={theme.colors.foreground} />
+                      <Text style={{fontSize: 17, color: theme.colors.foreground, fontWeight: '600', marginLeft: 10}}>
+                        Filter by Occasion
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{paddingVertical: 10, flexDirection: 'row', alignItems: 'center'}}
+                      onPress={() => {
+                        hSelect();
+                        openSubmenu('sort');
+                      }}>
+                      <MaterialIcons name="sort" size={22} color={theme.colors.foreground} />
+                      <Text style={{fontSize: 17, color: theme.colors.foreground, fontWeight: '600', marginLeft: 10}}>
+                        Sort
+                      </Text>
+                    </TouchableOpacity>
+                 
+                  </View>
+                )}
+
+                {menuView === 'sort' && (
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      top: insets.top + 85,
+                      right: 16,
+                      width: 260,
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 16,
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      elevation: 20,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.25,
+                      shadowOffset: {width: 0, height: 4},
+                      shadowRadius: 14,
+                      zIndex: 9999,
+                      opacity: submenuOpacity,
+                      transform: [{scale: submenuOpacity.interpolate({inputRange: [0, 1], outputRange: [0.95, 1]})}],
+                    }}>
+                    {(
+                      [
+                        {key: 'newest', label: 'Newest', icon: 'schedule'},
+                        {key: 'favorites', label: 'Favorites', icon: 'favorite'},
+                        {key: 'planned', label: 'Planned', icon: 'event'},
+                        {key: 'stars', label: 'Rating', icon: 'star'},
+                      ] as const
+                    ).map(({key, label, icon}) => (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => {
+                          hSelect();
+                          setSortType(key);
+                          setMenuVisible(false);
+                        }}
+                        style={{paddingVertical: 10, flexDirection: 'row', alignItems: 'center'}}>
+                        <MaterialIcons
+                          name={icon}
+                          size={20}
+                          color={sortType === key ? theme.colors.primary : theme.colors.foreground}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            color: sortType === key ? theme.colors.primary : theme.colors.foreground,
+                            fontWeight: sortType === key ? '700' : '400',
+                            marginLeft: 10,
+                            flex: 1,
+                          }}>
+                          {label}
+                        </Text>
+                        {sortType === key && (
+                          <MaterialIcons name="check" size={18} color={theme.colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </Animated.View>
+                )}
+
+                {menuView === 'filter' && (
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      top: insets.top + 85,
+                      right: 16,
+                      width: 280,
+                      maxHeight: Dimensions.get('window').height * 0.6,
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: 16,
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      elevation: 20,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.25,
+                      shadowOffset: {width: 0, height: 4},
+                      shadowRadius: 14,
+                      zIndex: 9999,
+                      opacity: submenuOpacity,
+                      transform: [{scale: submenuOpacity.interpolate({inputRange: [0, 1], outputRange: [0.95, 1]})}],
+                    }}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom: 8}}>
+                      {/* "All" option */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          hSelect();
+                          setOccasionFilter(null);
+                          setMenuVisible(false);
+                        }}
+                        style={{paddingVertical: 10, flexDirection: 'row', alignItems: 'center'}}>
+                        <MaterialIcons
+                          name="select-all"
+                          size={20}
+                          color={occasionFilter === null ? theme.colors.primary : theme.colors.foreground}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            color: occasionFilter === null ? theme.colors.primary : theme.colors.foreground,
+                            fontWeight: occasionFilter === null ? '700' : '400',
+                            marginLeft: 10,
+                            flex: 1,
+                          }}>
+                          All ({displayOutfits.length})
+                        </Text>
+                        {occasionFilter === null && (
+                          <MaterialIcons name="check" size={18} color={theme.colors.primary} />
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Occasion options */}
+                      {(Object.keys(OCCASION_CONFIG) as OutfitOccasion[]).map(occasion => {
+                        const config = OCCASION_CONFIG[occasion];
+                        const count = displayOutfits.filter(o => o.occasion === occasion).length;
+                        if (count === 0) return null;
+                        const isSelected = occasionFilter === occasion;
+
+                        return (
+                          <TouchableOpacity
+                            key={occasion}
+                            onPress={() => {
+                              hSelect();
+                              setOccasionFilter(isSelected ? null : occasion);
+                              setMenuVisible(false);
+                            }}
+                            style={{paddingVertical: 10, flexDirection: 'row', alignItems: 'center'}}>
+                            <MaterialIcons
+                              name={config.icon as any}
+                              size={20}
+                              color={isSelected ? config.color : theme.colors.foreground}
+                            />
+                            <Text
+                              style={{
+                                fontSize: 16,
+                                color: isSelected ? config.color : theme.colors.foreground,
+                                fontWeight: isSelected ? '700' : '400',
+                                marginLeft: 10,
+                                flex: 1,
+                              }}>
+                              {config.label} ({count})
+                            </Text>
+                            {isSelected && (
+                              <MaterialIcons name="check" size={18} color={config.color} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </Animated.View>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      )}
     </SafeAreaView>
   );
 }
