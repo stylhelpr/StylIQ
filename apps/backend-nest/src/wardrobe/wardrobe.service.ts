@@ -41,6 +41,7 @@ import {
 import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
 import { STYLE_AGENTS } from './logic/style-agents';
+import { validateCategoryPair } from './logic/categoryValidator';
 
 // NEW: feedback filters
 import {
@@ -2723,8 +2724,13 @@ ${lockedLines}
       (draft?.main_category as string | undefined) ??
       (draft?.category as string | undefined);
 
-    const main_category: CreateWardrobeItemDto['main_category'] =
+    const resolvedMain: CreateWardrobeItemDto['main_category'] =
       this.resolveMainCategory(rawMain, rawSub, layeringRaw);
+
+    // Validate main_category ↔ subcategory pair (catches AI misclassification)
+    const validated = validateCategoryPair(resolvedMain, rawSub, name);
+    const main_category = validated.main_category as CreateWardrobeItemDto['main_category'];
+    const validatedSub = validated.subcategory;
 
     const layering = this.normalizeLayeringDto(layeringRaw);
     const pattern_scale = this.normalizePatternScaleDto(
@@ -2759,7 +2765,7 @@ ${lockedLines}
       gsutil_uri: pick('gsutil_uri'),
       object_key: pick('object_key'),
 
-      subcategory: pick('subcategory'),
+      subcategory: validatedSub ?? pick('subcategory'),
       color: pick('color'),
       material: pick('material'),
       fit: pick('fit'),
