@@ -1387,7 +1387,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                 <ActionButtons />
 
                 {/* Expandable reasoning */}
-                {getCurrentOutfit()?.reasoning && (
+                {/* {getCurrentOutfit()?.reasoning && (
                   <Animatable.View
                     animation="fadeIn"
                     duration={250}
@@ -1407,7 +1407,7 @@ const AiStylistSuggestions: React.FC<Props> = ({
                       {getCurrentOutfit()?.reasoning}
                     </Text>
                   </Animatable.View>
-                )}
+                )} */}
 
                 {/* Collapse/Expand toggle for reasoning */}
                 {/* {getCurrentOutfit()?.reasoning && (
