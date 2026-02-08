@@ -117,7 +117,7 @@ const KEYWORD_RULES: Array<[RegExp, MainCategory]> = [
 
   [/\bskirt\b/i, 'Skirts'],
 
-  [/\b(jacket|blazer|coat|parka|windbreaker|anorak|puffer)\b/i, 'Outerwear'],
+  [/\b(jacket|blazer|coat|parka|windbreaker|anorak|puffer|shacket|overshirt)\b/i, 'Outerwear'],
   [/\bcardigan\b/i, 'Outerwear'],
   [/\b(vest|gilet)\b/i, 'Outerwear'],
 

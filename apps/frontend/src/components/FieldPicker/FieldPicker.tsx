@@ -204,6 +204,15 @@ export default function FieldPicker({
           }}
           badgeColors={[theme.colors.button1]}
           badgeTextStyle={{color: theme.colors.buttonText1}}
+          ArrowUpIconComponent={() => (
+            <Text style={{color: theme.colors.foreground, fontSize: 14}}>▲</Text>
+          )}
+          ArrowDownIconComponent={() => (
+            <Text style={{color: theme.colors.foreground, fontSize: 14}}>▼</Text>
+          )}
+          TickIconComponent={() => (
+            <Text style={{color: theme.colors.foreground, fontSize: 14}}>✓</Text>
+          )}
         />
       </View>
     );
@@ -249,6 +258,15 @@ export default function FieldPicker({
           zIndex: 9999,
           elevation: 9999,
         }}
+        ArrowUpIconComponent={() => (
+          <Text style={{color: theme.colors.foreground, fontSize: 14}}>▲</Text>
+        )}
+        ArrowDownIconComponent={() => (
+          <Text style={{color: theme.colors.foreground, fontSize: 14}}>▼</Text>
+        )}
+        TickIconComponent={() => (
+          <Text style={{color: theme.colors.foreground, fontSize: 14}}>✓</Text>
+        )}
       />
       {customMode && (
         <>

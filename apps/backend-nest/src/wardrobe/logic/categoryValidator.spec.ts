@@ -128,6 +128,51 @@ describe('validateCategoryPair', () => {
     expect(r.corrected).toBe(false);
   });
 
+  // ── Shacket / Overshirt → Outerwear ────────────────────────────────
+  it('corrects "Shacket" from Tops → Outerwear (keyword)', () => {
+    const r = validateCategoryPair('Tops', 'Shacket');
+    expect(r.main_category).toBe('Outerwear');
+    expect(r.corrected).toBe(true);
+  });
+
+  it('corrects "Overshirt" from Tops → Outerwear (keyword)', () => {
+    const r = validateCategoryPair('Tops', 'Overshirt');
+    expect(r.main_category).toBe('Outerwear');
+    expect(r.corrected).toBe(true);
+  });
+
+  it('corrects "Linen Shacket" from Tops → Outerwear via name', () => {
+    const r = validateCategoryPair('Tops', undefined, 'Linen Shacket');
+    expect(r.main_category).toBe('Outerwear');
+    expect(r.corrected).toBe(true);
+  });
+
+  it('keeps "Overshirt" as Outerwear when already correct (no correction)', () => {
+    const r = validateCategoryPair('Outerwear', 'Overshirt');
+    expect(r.main_category).toBe('Outerwear');
+    expect(r.corrected).toBe(false);
+  });
+
+  // Negative: "Shirt" alone must NOT trigger Outerwear
+  it('keeps "Dress Shirt" as Tops (shirt ≠ overshirt)', () => {
+    const r = validateCategoryPair('Tops', 'Dress Shirts');
+    expect(r.main_category).toBe('Tops');
+    expect(r.corrected).toBe(false);
+  });
+
+  // ── Jumpsuit / Romper — taxonomy confirmation ─────────────────────
+  it('Jumpsuits belong to Dresses per canonical taxonomy', () => {
+    const r = validateCategoryPair('Dresses', 'Jumpsuits');
+    expect(r.main_category).toBe('Dresses');
+    expect(r.corrected).toBe(false);
+  });
+
+  it('Rompers belong to Dresses per canonical taxonomy', () => {
+    const r = validateCategoryPair('Dresses', 'Rompers');
+    expect(r.main_category).toBe('Dresses');
+    expect(r.corrected).toBe(false);
+  });
+
   // ── CATEGORY_MAP sanity ───────────────────────────────────────────
   it('CATEGORY_MAP has all 21 main categories', () => {
     expect(Object.keys(CATEGORY_MAP)).toHaveLength(21);
