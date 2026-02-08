@@ -6,7 +6,12 @@
     "Henleys",
     "Tank Tops",
     "Sweaters",
-    "Hoodies"
+    "Hoodies",
+    "Blouses",
+    "Bodysuits",
+    "Crop Tops",
+    "Camisoles",
+    "Tunics"
   ],
   "Bottoms": [
     "Jeans",
@@ -14,7 +19,10 @@
     "Trousers",
     "Joggers",
     "Shorts",
-    "Cargo Pants"
+    "Cargo Pants",
+    "Leggings",
+    "Skorts",
+    "Wide-Leg Pants"
   ],
   "Outerwear": [
     "Bomber Jackets",
@@ -24,7 +32,10 @@
     "Leather Jackets",
     "Denim Jackets",
     "Parkas",
-    "Vests"
+    "Vests",
+    "Cardigans",
+    "Puffer Jackets",
+    "Raincoats"
   ],
   "Shoes": [
     "Athletic Sneakers",
@@ -39,7 +50,14 @@
     "Combat Boots",
     "Chukkas",
     "Sandals",
-    "Slides"
+    "Slides",
+    "Heels",
+    "Flats",
+    "Ankle Boots",
+    "Knee-High Boots",
+    "Mules",
+    "Wedges",
+    "Platforms"
   ],
   "Accessories": [
     "Belts",
@@ -48,9 +66,19 @@
     "Gloves",
     "Sunglasses",
     "Watches",
-    "Ties"
+    "Ties",
+    "Hair Accessories",
+    "Hosiery/Tights"
   ],
-  "Undergarments": ["Undershirts", "Briefs", "Boxers", "Socks"],
+  "Undergarments": [
+    "Undershirts",
+    "Briefs",
+    "Boxers",
+    "Socks",
+    "Bras",
+    "Panties",
+    "Shapewear"
+  ],
   "Activewear": [
     "Athletic Tops",
     "Running Shorts",
@@ -66,7 +94,15 @@
     "Wrap Dresses",
     "Shirt Dresses",
     "Cocktail Dresses",
-    "Casual Dresses"
+    "Casual Dresses",
+    "Gowns",
+    "Evening Dresses",
+    "Slip Dresses",
+    "Bodycon Dresses",
+    "Sweater Dresses",
+    "Jumpsuits",
+    "Rompers",
+    "Overalls"
   ],
   "Skirts": [
     "Mini Skirts",
@@ -74,7 +110,9 @@
     "Maxi Skirts",
     "Pencil Skirts",
     "A-Line Skirts",
-    "Pleated Skirts"
+    "Pleated Skirts",
+    "Wrap Skirts",
+    "Denim Skirts"
   ],
   "Bags": [
     "Handbags",
@@ -95,6 +133,48 @@
     "Bracelets",
     "Earrings",
     "Rings"
+  ],
+  "Loungewear": [
+    "Lounge Sets",
+    "Lounge Tops",
+    "Lounge Pants",
+    "Sweatshirts",
+    "Sweatpants",
+    "Co-ords"
+  ],
+  "Sleepwear": [
+    "Pajama Sets",
+    "Pajama Separates",
+    "Nightgowns",
+    "Nightshirts",
+    "Robes"
+  ],
+  "Swimwear": [
+    "One-Piece Swimsuits",
+    "Bikinis",
+    "Cover-Ups",
+    "Rash Guards"
+  ],
+  "Maternity": [
+    "Maternity Tops",
+    "Maternity Dresses",
+    "Maternity Leggings"
+  ],
+  "Unisex": [
+    "Gender-Neutral Tees",
+    "Hoodies",
+    "Joggers"
+  ],
+  "Costumes": [
+    "Costumes",
+    "Costume Accessories"
+  ],
+  "TraditionalWear": [
+    "Cultural Attire",
+    "Saree",
+    "Kimono",
+    "Abaya",
+    "Hanbok"
   ],
   "Other": []
 }

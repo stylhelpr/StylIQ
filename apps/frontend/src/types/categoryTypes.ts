@@ -38,6 +38,8 @@ export type Subcategory =
   | 'Sweaters'
   | 'Hoodies'
   | 'Corsets'
+  | 'Camisoles'
+  | 'Tunics'
 
   // Bottoms
   | 'Jeans'
@@ -49,6 +51,8 @@ export type Subcategory =
   | 'Skirts'
   | 'Culottes'
   | 'Leggings'
+  | 'Skorts'
+  | 'Wide-Leg Pants'
 
   // Outerwear
   | 'Bomber Jackets'
@@ -61,6 +65,8 @@ export type Subcategory =
   | 'Raincoats'
   | 'Capes'
   | 'Vests'
+  | 'Cardigans'
+  | 'Puffer Jackets'
 
   // Shoes
   | 'Athletic Sneakers'
@@ -80,6 +86,11 @@ export type Subcategory =
   | 'Slides'
   | 'Clogs'
   | 'Slippers'
+  | 'Ankle Boots'
+  | 'Knee-High Boots'
+  | 'Mules'
+  | 'Wedges'
+  | 'Platforms'
 
   // Accessories
   | 'Belts'
@@ -97,6 +108,7 @@ export type Subcategory =
   | 'Pins & Brooches'
   | 'Face Masks'
   | 'Tech Accessories'
+  | 'Hosiery/Tights'
 
   // Undergarments
   | 'Undershirts'
@@ -133,6 +145,12 @@ export type Subcategory =
   | 'Shirt Dresses'
   | 'Cocktail Dresses'
   | 'Casual Dresses'
+  | 'Slip Dresses'
+  | 'Bodycon Dresses'
+  | 'Sweater Dresses'
+  | 'Jumpsuits'
+  | 'Rompers'
+  | 'Overalls'
 
   // Skirts
   | 'Mini Skirts'
@@ -141,6 +159,8 @@ export type Subcategory =
   | 'Pencil Skirts'
   | 'A-Line Skirts'
   | 'Pleated Skirts'
+  | 'Wrap Skirts'
+  | 'Denim Skirts'
 
   // Bags
   | 'Handbags'
@@ -162,20 +182,50 @@ export type Subcategory =
   | 'Earrings'
   | 'Rings'
 
-  // Loungewear / Sleepwear / etc.
+  // Loungewear
+  | 'Lounge Sets'
+  | 'Lounge Tops'
+  | 'Lounge Pants'
+  | 'Sweatshirts'
+  | 'Sweatpants'
+  | 'Co-ords'
+
+  // Sleepwear
   | 'Pajamas'
-  | 'Robes'
+  | 'Pajama Sets'
+  | 'Pajama Separates'
   | 'Nightgowns'
+  | 'Nightshirts'
+  | 'Robes'
+
+  // Swimwear
   | 'Swim Trunks'
   | 'Bikinis'
   | 'One-piece Swimsuits'
+  | 'One-Piece Swimsuits'
+  | 'Cover-Ups'
+  | 'Rash Guards'
+
+  // Maternity
   | 'Maternity Tops'
   | 'Maternity Dresses'
+  | 'Maternity Leggings'
+
+  // Unisex
   | 'Gender-Neutral Tees'
   | 'Oversized Tees'
   | 'Utility Vests'
+
+  // Costumes
   | 'Costumes'
-  | 'Cultural Attire';
+  | 'Costume Accessories'
+
+  // TraditionalWear
+  | 'Cultural Attire'
+  | 'Saree'
+  | 'Kimono'
+  | 'Abaya'
+  | 'Hanbok';
 
 export type MaterialType =
   | 'Cotton'

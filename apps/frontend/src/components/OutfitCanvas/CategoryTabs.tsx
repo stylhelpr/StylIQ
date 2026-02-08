@@ -3,9 +3,9 @@ import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native
 import {useAppTheme} from '../../context/ThemeContext';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
-export type Category = 'All' | 'Tops' | 'Bottoms' | 'Dresses' | 'Skirts' | 'Shoes' | 'Accessories' | 'Bags' | 'Headwear' | 'Jewelry';
+export type Category = 'All' | 'Tops' | 'Bottoms' | 'Outerwear' | 'Dresses' | 'Skirts' | 'Shoes' | 'Accessories' | 'Bags' | 'Headwear' | 'Jewelry';
 
-const CATEGORIES: Category[] = ['All', 'Tops', 'Bottoms', 'Dresses', 'Skirts', 'Shoes', 'Accessories', 'Bags', 'Headwear', 'Jewelry'];
+const CATEGORIES: Category[] = ['All', 'Tops', 'Bottoms', 'Outerwear', 'Dresses', 'Skirts', 'Shoes', 'Accessories', 'Bags', 'Headwear', 'Jewelry'];
 
 type Props = {
   selectedCategory: Category;

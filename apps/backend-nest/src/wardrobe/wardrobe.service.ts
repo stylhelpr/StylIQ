@@ -2474,6 +2474,7 @@ ${lockedLines}
     // not be overridden by legacy subcategory keyword checks.
     const newCategories: CreateWardrobeItemDto['main_category'][] = [
       'Dresses', 'Skirts', 'Bags', 'Headwear', 'Jewelry', 'Other',
+      'Loungewear', 'Sleepwear', 'Swimwear', 'Maternity', 'Unisex', 'Costumes', 'TraditionalWear',
     ];
     if (newCategories.includes(normalized)) return normalized;
     const s = (sub ?? '').toLowerCase();
