@@ -46,7 +46,7 @@ const ITEM_HEIGHT = ITEM_WIDTH * 1.3;
 
 // Horizontal sections view card sizing
 const HORIZ_CARD_WIDTH = 140;
-const HORIZ_CARD_HEIGHT = 120;
+const HORIZ_CARD_HEIGHT = 100;
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -882,6 +882,8 @@ export default function ClosetScreen({navigate}: Props) {
               style={{
                 width: '100%',
                 backgroundColor: theme.colors.surface,
+                // backgroundColor: 'white',
+                padding: 8
               }}>
               <FastImage
                 source={{
@@ -1031,38 +1033,42 @@ export default function ClosetScreen({navigate}: Props) {
         <View
           style={{
             height: Math.max(insets.top, 44),
-            backgroundColor: theme.colors.background,
+            backgroundColor: 'theme.colors.background',
           }}
         />
-        <Text style={globalStyles.header}>Wardrobe</Text>
+      
 
-        {/* Header buttons */}
-        <View style={globalStyles.section}>
-          <View style={[styles.buttonRow]}>
-            <View style={{marginRight: 8}}>
-              <AppleTouchFeedback
-                style={[
-                  globalStyles.buttonPrimary,
-                  {
-                    paddingHorizontal: 28,
-                    minWidth: 180,
-                    alignSelf: 'center',
-                    flexShrink: 0,
-                  },
-                ]}
-                hapticStyle="impactMedium"
-                onPress={() => {
-                  ReactNativeHapticFeedback.trigger('notificationSuccess', {
-                    enableVibrateFallback: true,
-                    ignoreAndroidSystemSettings: false,
-                  });
-                  navigate('OutfitCanvas');
-                }}>
-                <Text style={globalStyles.buttonPrimaryText}>
-                  + Build An Outfit
-                </Text>
-              </AppleTouchFeedback>
-            </View>
+        {/* Header row: title + buttons on one line */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            // paddingHorizontal: 16,
+            marginBottom: 8,
+          }}>
+          <Text style={[globalStyles.header, {marginBottom: 0}]}>Wardrobe</Text>
+
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <AppleTouchFeedback
+              style={[
+                globalStyles.buttonPrimary,
+                {
+                  paddingHorizontal: 16,
+                  paddingVertical: 11,
+                  marginRight: 10,
+                },
+              ]}
+              hapticStyle="impactMedium"
+              onPress={() => {
+                ReactNativeHapticFeedback.trigger('notificationSuccess', {
+                  enableVibrateFallback: true,
+                  ignoreAndroidSystemSettings: false,
+                });
+                navigate('OutfitCanvas');
+              }}>
+              <Text style={globalStyles.buttonPrimaryText}>+ Build An Outfit</Text>
+            </AppleTouchFeedback>
 
             {/* View Mode Toggle */}
             <AppleTouchFeedback
@@ -1073,7 +1079,7 @@ export default function ClosetScreen({navigate}: Props) {
                 borderRadius: tokens.borderRadius.sm,
                 backgroundColor: theme.colors.button1,
                 elevation: 2,
-                marginRight: 6,
+                marginRight: 10,
               }}
               onPress={() => {
                 hSelect();
@@ -1083,7 +1089,7 @@ export default function ClosetScreen({navigate}: Props) {
               }}>
               <MaterialIcons
                 name={viewMode === 'grid' ? 'view-stream' : 'grid-view'}
-                size={33}
+                size={28}
                 color={theme.colors.buttonText1}
               />
             </AppleTouchFeedback>
@@ -1104,7 +1110,7 @@ export default function ClosetScreen({navigate}: Props) {
               }}>
               <MaterialIcons
                 name="filter-list"
-                size={33}
+                size={28}
                 color={theme.colors.buttonText1}
               />
             </AppleTouchFeedback>
@@ -1376,7 +1382,7 @@ export default function ClosetScreen({navigate}: Props) {
             <View
               style={{
                 position: 'absolute',
-                top: 0,
+                top: -60,
                 left: 0,
                 right: 0,
                 bottom: 0,
