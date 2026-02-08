@@ -46,6 +46,7 @@ const TripsHomeScreen = ({trips, onNewTrip, onTripPress, onRefresh}: Props) => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+          marginTop: 100,
     },
     header: {
       flexDirection: 'row',

@@ -23,6 +23,17 @@ const WEATHER_COLORS: Record<WeatherCondition, string> = {
   windy: '#6EE7B7',
 };
 
+const MONTH_LABELS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+function formatFullDate(day: DayWeather): string {
+  const date = new Date(day.date + 'T12:00:00');
+  const month = MONTH_LABELS[date.getMonth()];
+  return `${day.dayLabel} ${month} ${date.getDate()}`;
+}
+
 type Props = {
   weather: DayWeather[];
 };
@@ -46,10 +57,10 @@ const WeatherStrip = ({weather}: Props) => {
       paddingHorizontal: 14,
       borderWidth: tokens.borderWidth.hairline,
       borderColor: theme.colors.surfaceBorder,
-      minWidth: 72,
+      minWidth: 80,
     },
     dayLabel: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '600',
       color: theme.colors.foreground2,
       marginBottom: 6,
@@ -78,7 +89,7 @@ const WeatherStrip = ({weather}: Props) => {
         contentContainerStyle={styles.scrollContent}>
         {weather.map((day, idx) => (
           <View key={day.date + idx} style={styles.dayCard}>
-            <Text style={styles.dayLabel}>{day.dayLabel}</Text>
+            <Text style={styles.dayLabel}>{formatFullDate(day)}</Text>
             <View style={styles.iconWrap}>
               <Icon
                 name={WEATHER_ICONS[day.condition]}

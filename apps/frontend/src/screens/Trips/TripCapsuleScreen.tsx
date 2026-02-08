@@ -130,6 +130,7 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+       marginTop: 100,
     },
     header: {
       flexDirection: 'row',

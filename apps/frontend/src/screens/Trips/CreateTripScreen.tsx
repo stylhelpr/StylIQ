@@ -24,7 +24,7 @@ import {
   addClosetLocation,
   saveTrip,
 } from '../../lib/trips/tripsStorage';
-import {generateMockWeather} from '../../lib/trips/mockWeather';
+import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
 import {buildCapsule, adaptWardrobeItem} from '../../lib/trips/capsuleEngine';
 import ActivityChips from '../../components/Trips/ActivityChips';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
@@ -89,7 +89,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
 
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
-    const weather = generateMockWeather(destination, startStr, endStr);
+    const weather = await fetchRealWeather(destination, startStr, endStr);
     const locationLabel =
       locations.find(l => l.id === selectedLocationId)?.label || 'Home';
     const adapted = wardrobe.map(adaptWardrobeItem);
@@ -120,6 +120,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+       marginTop: 100,
     },
     header: {
       flexDirection: 'row',
