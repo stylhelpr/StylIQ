@@ -1105,6 +1105,19 @@ export const createGlobalStyles = (theme: Theme) =>
       borderColor: theme.colors.surfaceBorder,
     },
 
+       outfitCard5: {
+      width: isTablet ? 160 : isLargePhone ? 195 : isRegularPhone ? 184 : 165,
+      // marginRight: isTablet ? 16 : isLargePhone ? 12 : isRegularPhone ? 12 : 12,
+      alignItems: 'flex-start',
+      backgroundColor: theme.colors.surface,
+      overflow: 'hidden',
+      borderRadius: tokens.borderRadius.lg,
+      // borderRadius: tokens.borderRadius.sm,
+      borderWidth: tokens.borderWidth.hairline,
+      borderColor: theme.colors.surfaceBorder,
+    },
+
+
     // ============================================================
     // 🎙️ Prompt Input (Voice/Chat Bar)
     // ============================================================

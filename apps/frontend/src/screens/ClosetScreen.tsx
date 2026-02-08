@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FlashList} from '@shopify/flash-list';
+import {FlatList} from 'react-native';
 import FastImage from 'react-native-fast-image';
 import {useAppTheme} from '../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -42,6 +43,10 @@ const NUM_COLUMNS = 2;
 const ITEM_SPACING = 12;
 const ITEM_WIDTH = (SCREEN_WIDTH - ITEM_SPACING * 3) / NUM_COLUMNS;
 const ITEM_HEIGHT = ITEM_WIDTH * 1.3;
+
+// Horizontal sections view card sizing
+const HORIZ_CARD_WIDTH = ITEM_WIDTH * 0.95;
+const HORIZ_CARD_HEIGHT = HORIZ_CARD_WIDTH * 1.3;
 
 // Animated pressable with scale effect for images
 const ScalePressable = ({
@@ -178,6 +183,7 @@ export default function ClosetScreen({navigate}: Props) {
     'All' | MainCategory
   >('All');
   const [sortOption, setSortOption] = useState<'az' | 'za' | 'favorites'>('az');
+  const [viewMode, setViewMode] = useState<'grid' | 'sections'>('grid');
 
   // Menu states
   const [menuVisible, setMenuVisible] = useState(false);
@@ -448,6 +454,28 @@ export default function ClosetScreen({navigate}: Props) {
     }
 
     return result;
+  }, [filtered]);
+
+  // Group filtered items by main category for sections view
+  const categorizedSections = useMemo(() => {
+    const grouped: Record<
+      string,
+      (WardrobeItem & {inferredCategory?: any; effectiveMain?: MainCategory})[]
+    > = {};
+
+    for (const item of filtered) {
+      const main =
+        (item.main_category as string) ||
+        item.inferredCategory?.main ||
+        'Uncategorized';
+      if (!grouped[main]) grouped[main] = [];
+      grouped[main].push(item);
+    }
+
+    return Object.entries(grouped).map(([category, items]) => ({
+      category,
+      items,
+    }));
   }, [filtered]);
 
   // FAB state
@@ -815,6 +843,173 @@ export default function ClosetScreen({navigate}: Props) {
     [],
   );
 
+  const renderHorizontalCard = useCallback(
+    ({
+      item,
+    }: {
+      item: WardrobeItem & {
+        inferredCategory?: any;
+        effectiveMain?: MainCategory;
+      };
+    }) => {
+      const isDemo = item.id.startsWith('demo-');
+      const imageUri =
+        item.touchedUpImageUrl ??
+        item.processedImageUrl ??
+        item.thumbnailUrl ??
+        item.image_url;
+
+      return (
+        <View style={{width: HORIZ_CARD_WIDTH, marginRight: ITEM_SPACING}}>
+          <ScalePressable
+            style={globalStyles.outfitCard5}
+            onPress={() => {
+              if (isDemo) {
+                navigate('AddItem');
+              } else {
+                navigate('ItemDetail', {itemId: item.id, item});
+              }
+            }}
+            onLongPress={() => {
+              if (!isDemo) {
+                setEditedName(item.name ?? '');
+                setEditedColor(item.color ?? '');
+                setSelectedItemToEdit(item);
+                setShowEditModal(true);
+              }
+            }}>
+            <View
+              style={{
+                width: '100%',
+                backgroundColor: theme.colors.surface,
+              }}>
+              <FastImage
+                source={{
+                  uri: imageUri,
+                  priority: FastImage.priority.normal,
+                  cache: FastImage.cacheControl.immutable,
+                }}
+                style={{width: '100%', height: HORIZ_CARD_HEIGHT}}
+                resizeMode={FastImage.resizeMode.contain}
+              />
+            </View>
+
+            {/* Favorite - hide for demo items */}
+            {!isDemo && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  zIndex: 10,
+                  padding: 4,
+                }}>
+                <AppleTouchFeedback
+                  hapticStyle="impactLight"
+                  onPress={() =>
+                    favoriteMutation.mutate({
+                      id: item.id,
+                      favorite: !item.favorite,
+                    })
+                  }>
+                  <MaterialIcons
+                    name="favorite"
+                    size={28}
+                    color={item.favorite ? 'red' : theme.colors.inputBorder}
+                  />
+                </AppleTouchFeedback>
+              </View>
+            )}
+
+            {/* Demo badge */}
+            {isDemo && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  backgroundColor: 'black',
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 6,
+                }}>
+                <Text
+                  style={{
+                    color: 'white',
+                    fontSize: 11,
+                    fontWeight: tokens.fontWeight.semiBold,
+                  }}>
+                  Sample
+                </Text>
+              </View>
+            )}
+
+            {/* Labels */}
+            <View style={globalStyles.labelContainer}>
+              <Text
+                style={[globalStyles.cardLabel]}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {item.name}
+              </Text>
+              <Text style={[globalStyles.cardSubLabel]} numberOfLines={1}>
+                {item.subcategory as string || item.inferredCategory?.sub || ''}
+              </Text>
+            </View>
+
+            {/* Try On - hide for demo items */}
+            {!isDemo && (
+              <AppleTouchFeedback
+                hapticStyle="impactLight"
+                onPress={() =>
+                  navigate('TryOnOverlay', {
+                    outfit: {
+                      top: {
+                        name: item.name,
+                        imageUri: item.image_url,
+                      },
+                    },
+                    userPhotoUri: Image.resolveAssetSource(
+                      require('../assets/images/full-body-temp1.png'),
+                    ).uri,
+                  })
+                }
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  left: 8,
+                  backgroundColor: 'black',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 8,
+                }}>
+                <Text
+                  style={{
+                    color: theme.colors.foreground,
+                    fontSize: 14,
+                    fontWeight: tokens.fontWeight.medium,
+                  }}>
+                  Try On
+                </Text>
+              </AppleTouchFeedback>
+            )}
+          </ScalePressable>
+        </View>
+      );
+    },
+    [globalStyles, theme, navigate, favoriteMutation, wardrobeState],
+  );
+
+  const horizKeyExtractor = useCallback(
+    (
+      item: WardrobeItem & {
+        inferredCategory?: any;
+        effectiveMain?: MainCategory;
+      },
+    ) => item.id,
+    [],
+  );
+
   return (
     <SafeAreaView
       edges={['top']}
@@ -868,6 +1063,30 @@ export default function ClosetScreen({navigate}: Props) {
                 </Text>
               </AppleTouchFeedback>
             </View>
+
+            {/* View Mode Toggle */}
+            <AppleTouchFeedback
+              hapticStyle="impactLight"
+              style={{
+                paddingHorizontal: 7,
+                paddingVertical: 8,
+                borderRadius: tokens.borderRadius.sm,
+                backgroundColor: theme.colors.button1,
+                elevation: 2,
+                marginRight: 6,
+              }}
+              onPress={() => {
+                hSelect();
+                setViewMode(prev =>
+                  prev === 'grid' ? 'sections' : 'grid',
+                );
+              }}>
+              <MaterialIcons
+                name={viewMode === 'grid' ? 'view-stream' : 'grid-view'}
+                size={33}
+                color={theme.colors.buttonText1}
+              />
+            </AppleTouchFeedback>
 
             {/* Unified Menu Trigger */}
             <AppleTouchFeedback
@@ -961,23 +1180,64 @@ export default function ClosetScreen({navigate}: Props) {
           </View>
         )}
 
-        {/* Wardrobe Grid - FlashList */}
-        <FlashList
-          data={flatListData}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          getItemType={getItemType}
-          overrideItemLayout={overrideItemLayout}
-          numColumns={NUM_COLUMNS}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          drawDistance={ITEM_HEIGHT * 2}
-          contentContainerStyle={{
-            paddingHorizontal: ITEM_SPACING / 2,
-            paddingBottom: 120,
-          }}
-        />
+        {/* Wardrobe Views */}
+        {viewMode === 'grid' ? (
+          <FlashList
+            data={flatListData}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            getItemType={getItemType}
+            overrideItemLayout={overrideItemLayout}
+            numColumns={NUM_COLUMNS}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            drawDistance={ITEM_HEIGHT * 2}
+            contentContainerStyle={{
+              paddingHorizontal: ITEM_SPACING / 2,
+              paddingBottom: 120,
+            }}
+          />
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{paddingBottom: 120}}>
+            {categorizedSections.map(section => (
+              <View key={section.category} style={{marginBottom: 8}}>
+                <Animated.Text
+                  style={[
+                    globalStyles.sectionTitle5,
+                    {
+                      paddingHorizontal: ITEM_SPACING,
+                      marginTop: 16,
+                      marginBottom: 8,
+                      transform: [
+                        {
+                          translateY: screenFade.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [20, 0],
+                          }),
+                        },
+                      ],
+                      opacity: screenFade,
+                    },
+                  ]}>
+                  {section.category}
+                </Animated.Text>
+                <FlatList
+                  data={section.items}
+                  renderItem={renderHorizontalCard}
+                  keyExtractor={horizKeyExtractor}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{paddingHorizontal: ITEM_SPACING}}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
         <>
           {/* Floating Mini FABs */}
