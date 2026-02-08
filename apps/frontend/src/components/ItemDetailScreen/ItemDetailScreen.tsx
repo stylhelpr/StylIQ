@@ -24,6 +24,19 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {ActivityIndicator} from 'react-native';
 import {fontScale, moderateScale} from '../../utils/scale';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import FieldPicker, {
+  MAIN_CATEGORIES,
+  FIT_OPTIONS,
+  PATTERN_OPTIONS,
+  PATTERN_SCALE_OPTIONS,
+  SEASONALITY_OPTIONS,
+  LAYERING_OPTIONS,
+  DRESS_CODE_OPTIONS,
+  ANCHOR_ROLE_OPTIONS,
+  COLOR_FAMILY_OPTIONS,
+  OCCASION_OPTIONS,
+} from '../FieldPicker/FieldPicker';
+import categoriesJson from '../../assets/data/categories.json';
 
 type Props = {
   route: any;
@@ -530,23 +543,31 @@ export default function ItemDetailScreen({route, navigation}: Props) {
           <Text style={useGlobalStyles().title}>Name</Text>
           <TextInput value={name} onChangeText={setName} style={styles.input} />
 
-          <Text style={useGlobalStyles().title}>Category</Text>
-          <TextInput
+          <FieldPicker
+            label="Category"
             value={category}
-            onChangeText={setCategory}
-            style={styles.input}
-            placeholder="e.g. Shirt, Pants, Shoes"
-            placeholderTextColor={theme.colors.muted}
+            options={MAIN_CATEGORIES}
+            onChange={val => {
+              setCategory(val);
+              setSubcategory('');
+            }}
+            placeholder="Select category…"
           />
 
-          <Text style={useGlobalStyles().title}>Subcategory</Text>
-          <TextInput
-            value={subcategory}
-            onChangeText={setSubcategory}
-            style={styles.input}
-            placeholder="e.g. Dress Shirt, Chinos"
-            placeholderTextColor={theme.colors.muted}
-          />
+          {category &&
+            (categoriesJson as Record<string, string[]>)[category]?.length >
+              0 && (
+              <FieldPicker
+                label="Subcategory"
+                value={subcategory}
+                options={
+                  (categoriesJson as Record<string, string[]>)[category] ?? []
+                }
+                onChange={setSubcategory}
+                allowCustom
+                placeholder="Select subcategory…"
+              />
+            )}
 
           <Text style={useGlobalStyles().title}>Material</Text>
           <TextInput
@@ -557,13 +578,12 @@ export default function ItemDetailScreen({route, navigation}: Props) {
             placeholderTextColor={theme.colors.muted}
           />
 
-          <Text style={useGlobalStyles().title}>Fit</Text>
-          <TextInput
+          <FieldPicker
+            label="Fit"
             value={fit}
-            onChangeText={setFit}
-            style={styles.input}
-            placeholder="e.g. Slim, Regular"
-            placeholderTextColor={theme.colors.muted}
+            options={FIT_OPTIONS}
+            onChange={setFit}
+            placeholder="Select fit…"
           />
 
           <Text style={useGlobalStyles().title}>Size</Text>
@@ -603,77 +623,70 @@ export default function ItemDetailScreen({route, navigation}: Props) {
           />
 
           {/* Enriched */}
-          <Text style={useGlobalStyles().title}>Pattern</Text>
-          <TextInput
+          <FieldPicker
+            label="Pattern"
             value={pattern}
-            onChangeText={setPattern}
-            style={styles.input}
-            placeholder="e.g. Striped, Plaid"
-            placeholderTextColor={theme.colors.muted}
+            options={PATTERN_OPTIONS}
+            onChange={setPattern}
+            placeholder="Select pattern…"
           />
 
-          <Text style={useGlobalStyles().title}>Pattern Scale</Text>
-          <TextInput
+          <FieldPicker
+            label="Pattern Scale"
             value={patternScale}
-            onChangeText={setPatternScale}
-            style={styles.input}
-            placeholder="subtle / medium / bold or 0 / 1 / 2"
-            placeholderTextColor={theme.colors.muted}
+            options={PATTERN_SCALE_OPTIONS}
+            onChange={setPatternScale}
+            placeholder="Select pattern scale…"
           />
 
-          <Text style={useGlobalStyles().title}>Seasonality</Text>
-          <TextInput
+          <FieldPicker
+            label="Seasonality"
             value={seasonality}
-            onChangeText={setSeasonality}
-            style={styles.input}
-            placeholder="SS, FW, or ALL_SEASON"
-            placeholderTextColor={theme.colors.muted}
+            options={SEASONALITY_OPTIONS}
+            onChange={setSeasonality}
+            placeholder="Select season…"
           />
 
-          <Text style={useGlobalStyles().title}>Layering</Text>
-          <TextInput
+          <FieldPicker
+            label="Layering"
             value={layering}
-            onChangeText={setLayering}
-            style={styles.input}
-            placeholder="BASE, MID, SHELL, ACCENT"
-            placeholderTextColor={theme.colors.muted}
+            options={LAYERING_OPTIONS}
+            onChange={setLayering}
+            placeholder="Select layer…"
           />
 
           {/* Derived (from AddItemScreen) */}
-          <Text style={useGlobalStyles().title}>Dress Code</Text>
-          <TextInput
+          <FieldPicker
+            label="Dress Code"
             value={dressCode}
-            onChangeText={setDressCode}
-            style={styles.input}
-            placeholder="UltraCasual, Casual, SmartCasual, BusinessCasual, Business, BlackTie"
-            placeholderTextColor={theme.colors.muted}
+            options={DRESS_CODE_OPTIONS}
+            onChange={setDressCode}
+            placeholder="Select dress code…"
           />
 
-          <Text style={useGlobalStyles().title}>Anchor Role</Text>
-          <TextInput
+          <FieldPicker
+            label="Anchor Role"
             value={anchorRole}
-            onChangeText={setAnchorRole}
-            style={styles.input}
-            placeholder="Hero, Neutral, Connector"
-            placeholderTextColor={theme.colors.muted}
+            options={ANCHOR_ROLE_OPTIONS}
+            onChange={setAnchorRole}
+            placeholder="Select anchor role…"
           />
 
-          <Text style={useGlobalStyles().title}>Color Family</Text>
-          <TextInput
+          <FieldPicker
+            label="Color Family"
             value={colorFamily}
-            onChangeText={setColorFamily}
-            style={styles.input}
-            placeholder="e.g. Navy, Black, White, Gray, Beige…"
-            placeholderTextColor={theme.colors.muted}
+            options={COLOR_FAMILY_OPTIONS}
+            onChange={setColorFamily}
+            placeholder="Select color family…"
           />
 
-          <Text style={useGlobalStyles().title}>Occasion Tags</Text>
-          <TextInput
+          <FieldPicker
+            label="Occasion Tags"
             value={occasionTags}
-            onChangeText={setOccasionTags}
-            style={styles.input}
-            placeholder="Comma separated: Work, DateNight, Travel, Gym"
-            placeholderTextColor={theme.colors.muted}
+            options={OCCASION_OPTIONS}
+            onChange={setOccasionTags}
+            multiple
+            placeholder="Select occasions…"
           />
 
           <View style={styles.buttonRow}>

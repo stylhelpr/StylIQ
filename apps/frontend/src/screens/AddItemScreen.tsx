@@ -23,6 +23,15 @@ import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import {tokens} from '../styles/tokens/tokens';
 import {ActivityIndicator} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import FieldPicker, {
+  MAIN_CATEGORIES,
+  FIT_OPTIONS,
+  PATTERN_OPTIONS,
+  PATTERN_SCALE_OPTIONS,
+  SEASONALITY_OPTIONS,
+  LAYERING_OPTIONS,
+} from '../components/FieldPicker/FieldPicker';
+import categories from '../assets/data/categories.json';
 
 // --- input normalizers (unchanged) ---
 const normalizePatternScale = (
@@ -646,15 +655,15 @@ export default function AddItemScreen({
                     placeholder="e.g. White Button-down"
                     placeholderTextColor={theme.colors.muted}
                   />
-                  <Text style={styles.label}>
-                    Category (optional, applied to all)
-                  </Text>
-                  <TextInput
+                  <FieldPicker
+                    label="Category (optional, applied to all)"
                     value={category}
-                    onChangeText={setCategory}
-                    style={styles.input}
-                    placeholder="e.g. Shirt, Pants"
-                    placeholderTextColor={theme.colors.muted}
+                    options={MAIN_CATEGORIES}
+                    onChange={val => {
+                      setCategory(val);
+                      setSubcategory('');
+                    }}
+                    placeholder="Select category…"
                   />
                   <Text style={styles.label}>
                     Color (optional, applied to all)
@@ -676,14 +685,21 @@ export default function AddItemScreen({
                     placeholder="Comma separated: casual, winter, linen"
                     placeholderTextColor={theme.colors.muted}
                   />
-                  <Text style={styles.label}>Subcategory (optional)</Text>
-                  <TextInput
-                    value={subcategory}
-                    onChangeText={setSubcategory}
-                    style={styles.input}
-                    placeholder="e.g. Dress Shirt, Chinos"
-                    placeholderTextColor={theme.colors.muted}
-                  />
+                  {category &&
+                    (categories as Record<string, string[]>)[category]?.length >
+                      0 && (
+                      <FieldPicker
+                        label="Subcategory (optional)"
+                        value={subcategory}
+                        options={
+                          (categories as Record<string, string[]>)[category] ??
+                          []
+                        }
+                        onChange={setSubcategory}
+                        allowCustom
+                        placeholder="Select subcategory…"
+                      />
+                    )}
                   <Text style={styles.label}>Material (optional)</Text>
                   <TextInput
                     value={material}
@@ -692,13 +708,12 @@ export default function AddItemScreen({
                     placeholder="e.g. Cotton, Wool, Linen"
                     placeholderTextColor={theme.colors.muted}
                   />
-                  <Text style={styles.label}>Fit (optional)</Text>
-                  <TextInput
+                  <FieldPicker
+                    label="Fit (optional)"
                     value={fit}
-                    onChangeText={setFit}
-                    style={styles.input}
-                    placeholder="e.g. Slim, Regular"
-                    placeholderTextColor={theme.colors.muted}
+                    options={FIT_OPTIONS}
+                    onChange={setFit}
+                    placeholder="Select fit…"
                   />
                   <Text style={styles.label}>Size (optional)</Text>
                   <TextInput
@@ -716,37 +731,33 @@ export default function AddItemScreen({
                     placeholder="e.g. Ferragamo"
                     placeholderTextColor={theme.colors.muted}
                   />
-                  <Text style={styles.label}>Pattern (optional)</Text>
-                  <TextInput
+                  <FieldPicker
+                    label="Pattern (optional)"
                     value={pattern}
-                    onChangeText={setPattern}
-                    style={styles.input}
-                    placeholder="e.g. Striped, Plaid"
-                    placeholderTextColor={theme.colors.muted}
+                    options={PATTERN_OPTIONS}
+                    onChange={setPattern}
+                    placeholder="Select pattern…"
                   />
-                  <Text style={styles.label}>Pattern Scale (optional)</Text>
-                  <TextInput
+                  <FieldPicker
+                    label="Pattern Scale (optional)"
                     value={patternScale}
-                    onChangeText={setPatternScale}
-                    style={styles.input}
-                    placeholder="e.g. subtle / medium / bold or 0 / 1 / 2"
-                    placeholderTextColor={theme.colors.muted}
+                    options={PATTERN_SCALE_OPTIONS}
+                    onChange={setPatternScale}
+                    placeholder="Select pattern scale…"
                   />
-                  <Text style={styles.label}>Seasonality (optional)</Text>
-                  <TextInput
+                  <FieldPicker
+                    label="Seasonality (optional)"
                     value={seasonality}
-                    onChangeText={setSeasonality}
-                    style={styles.input}
-                    placeholder="e.g. SS, FW, ALL_SEASON"
-                    placeholderTextColor={theme.colors.muted}
+                    options={SEASONALITY_OPTIONS}
+                    onChange={setSeasonality}
+                    placeholder="Select season…"
                   />
-                  <Text style={styles.label}>Layering (optional)</Text>
-                  <TextInput
+                  <FieldPicker
+                    label="Layering (optional)"
                     value={layering}
-                    onChangeText={setLayering}
-                    style={styles.input}
-                    placeholder="e.g. BASE, MID, SHELL, ACCENT"
-                    placeholderTextColor={theme.colors.muted}
+                    options={LAYERING_OPTIONS}
+                    onChange={setLayering}
+                    placeholder="Select layer…"
                   />
                 </>
               )}
