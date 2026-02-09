@@ -260,6 +260,22 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
       paddingHorizontal: 40,
       marginTop: 12,
     },
+    mainLooksHeader: {
+      paddingHorizontal: tokens.spacing.md,
+      marginTop: tokens.spacing.lg,
+      marginBottom: tokens.spacing.sm,
+    },
+    mainLooksTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: theme.colors.foreground,
+    },
+    mainLooksSubtitle: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.colors.foreground2,
+      marginTop: 2,
+    },
   });
 
   if (!capsule) {
@@ -342,8 +358,13 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
           packingList={capsule.packingList}
         />
 
-        {/* Outfits Carousel */}
-        <Text style={styles.sectionTitle}>Outfits</Text>
+        {/* Main Looks */}
+        <View style={styles.mainLooksHeader}>
+          <Text style={styles.mainLooksTitle}>Your Main Looks</Text>
+          <Text style={styles.mainLooksSubtitle}>
+            Designed for key moments. We've packed everything else below.
+          </Text>
+        </View>
         <OutfitCarousel outfits={capsule.outfits} />
 
         {/* Packing List */}
