@@ -8,7 +8,7 @@
 // • Now includes contextual awareness via VoiceMemory
 // -----------------------------------------------------------------------------
 
-import {fetchWeather} from '../travelWeather';
+import {fetchWeather, getCurrentLocation} from '../travelWeather';
 import React from 'react';
 import {
   scheduleLocalNotification,
@@ -179,17 +179,37 @@ export const voiceCommandMap = [
   // 🌦 TIER 4 — Smart Nudges & Reminders
   // ---------------------------------------------------------------------------
   {
-    keywords: ['what’s the weather', 'weather today', 'forecast'],
+    keywords: ["what's the weather", 'weather today', 'forecast'],
     action: async () => {
       try {
         VoiceMemory.set('lastIntent', 'weather');
         VoiceMemory.set('lastDate', 'today');
-        const data = await fetchWeather();
+
+        let lat: number | undefined;
+        let lon: number | undefined;
+        try {
+          const loc = await getCurrentLocation();
+          lat = loc.lat;
+          lon = loc.lon;
+        } catch {
+          // GPS unavailable
+        }
+
+        if (!lat || !lon) {
+          Alert.alert(
+            'Weather',
+            "I can't access your location right now. Try asking for weather in a specific city.",
+          );
+          return;
+        }
+
+        if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}`);
+
+        const data = await fetchWeather(lat, lon);
         const summary =
-          data?.description ||
-          data?.weather ||
+          data?.condition ||
           'clear skies with mild temperatures';
-        const temp = data?.temperature || data?.temp || '--';
+        const temp = data?.temperature || '--';
         Alert.alert('Current Weather', `${summary}\n${temp}°`);
       } catch {
         Alert.alert('Unable to fetch weather right now.');

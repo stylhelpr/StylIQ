@@ -24,12 +24,37 @@ export interface WeatherResponse {
   forecast: ForecastDay[];
 }
 
+export interface CurrentWeatherResponse {
+  city: string;
+  lat: number;
+  lng: number;
+  tempF: number;
+  tempC: number;
+  feelsLikeF: number;
+  feelsLikeC: number;
+  tempMinF: number;
+  tempMinC: number;
+  tempMaxF: number;
+  tempMaxC: number;
+  windSpeedMph: number;
+  windSpeedMs: number;
+  humidity: number;
+  pressure: number;
+  condition: string;
+  description: string;
+  icon: string;
+}
+
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 @Injectable()
 export class WeatherService {
   private readonly logger = new Logger(WeatherService.name);
   private cache = new Map<string, { data: WeatherResponse; expiry: number }>();
+  private currentCache = new Map<
+    string,
+    { data: CurrentWeatherResponse; expiry: number }
+  >();
   private readonly CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   constructor(private readonly configService: ConfigService) {}
@@ -63,7 +88,7 @@ export class WeatherService {
     return result;
   }
 
-  private async geocode(city: string): Promise<GeoResult> {
+  async geocode(city: string): Promise<GeoResult> {
     const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
     if (!apiKey) {
       throw new Error('OPENWEATHER_API_KEY not configured');
@@ -242,6 +267,136 @@ export class WeatherService {
     );
 
     return days;
+  }
+
+  // ── Current weather (single point-in-time) ──
+
+  async getCurrentWeather(
+    lat: number,
+    lng: number,
+  ): Promise<CurrentWeatherResponse> {
+    const cacheKey = `current_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+    const cached = this.currentCache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      this.logger.log(`[Weather] Current cache hit for ${lat},${lng}`);
+      return cached.data;
+    }
+
+    const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
+    if (!apiKey) throw new Error('OPENWEATHER_API_KEY not configured');
+
+    const url =
+      `https://api.openweathermap.org/data/2.5/weather` +
+      `?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Current weather HTTP ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+    const result = this.buildCurrentResponse(data, lat, lng);
+
+    this.currentCache.set(cacheKey, {
+      data: result,
+      expiry: Date.now() + this.CACHE_TTL,
+    });
+
+    this.logger.log(
+      `[Weather] Current weather for ${lat},${lng}: ${result.tempF}°F / ${result.tempC}°C`,
+    );
+    return result;
+  }
+
+  async getTomorrowWeather(
+    lat: number,
+    lng: number,
+  ): Promise<CurrentWeatherResponse> {
+    const cacheKey = `tomorrow_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+    const cached = this.currentCache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      this.logger.log(`[Weather] Tomorrow cache hit for ${lat},${lng}`);
+      return cached.data;
+    }
+
+    const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
+    if (!apiKey) throw new Error('OPENWEATHER_API_KEY not configured');
+
+    const url =
+      `https://api.openweathermap.org/data/2.5/forecast` +
+      `?lat=${lat}&lon=${lng}&appid=${apiKey}&units=metric`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Forecast HTTP ${res.status}: ${body}`);
+    }
+
+    const data = await res.json();
+    const list: any[] = data.list || [];
+
+    // Find tomorrow's noon entry
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const entry =
+      list.find(
+        (x: any) =>
+          x.dt_txt?.startsWith(tomorrowStr) &&
+          x.dt_txt?.includes('12:00:00'),
+      ) ||
+      list.find((x: any) => x.dt_txt?.startsWith(tomorrowStr)) ||
+      list[0];
+
+    if (!entry) throw new Error('No forecast data found for tomorrow');
+
+    const result = this.buildCurrentResponse(entry, lat, lng);
+    result.city = data.city?.name || '';
+
+    this.currentCache.set(cacheKey, {
+      data: result,
+      expiry: Date.now() + this.CACHE_TTL,
+    });
+
+    this.logger.log(
+      `[Weather] Tomorrow weather for ${lat},${lng}: ${result.tempF}°F / ${result.tempC}°C`,
+    );
+    return result;
+  }
+
+  private buildCurrentResponse(
+    data: any,
+    lat: number,
+    lng: number,
+  ): CurrentWeatherResponse {
+    const tempC = data.main?.temp ?? 0;
+    const feelsLikeC = data.main?.feels_like ?? tempC;
+    const tempMinC = data.main?.temp_min ?? tempC;
+    const tempMaxC = data.main?.temp_max ?? tempC;
+    const windMs = data.wind?.speed ?? 0;
+
+    return {
+      city: data.name || '',
+      lat,
+      lng,
+      tempF: tempC * (9 / 5) + 32,
+      tempC,
+      feelsLikeF: feelsLikeC * (9 / 5) + 32,
+      feelsLikeC,
+      tempMinF: tempMinC * (9 / 5) + 32,
+      tempMinC,
+      tempMaxF: tempMaxC * (9 / 5) + 32,
+      tempMaxC,
+      windSpeedMph: +(windMs * 2.237).toFixed(1),
+      windSpeedMs: windMs,
+      humidity: data.main?.humidity ?? 0,
+      pressure: data.main?.pressure ?? 0,
+      condition: data.weather?.[0]?.main || 'Clear',
+      description: data.weather?.[0]?.description || 'clear sky',
+      icon: data.weather?.[0]?.icon || '01d',
+    };
   }
 
   private mapCondition(

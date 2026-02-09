@@ -1,0 +1,35 @@
+name: No Direct OpenWeather
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  check:
+    name: Block direct OpenWeather in frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for direct OpenWeather usage
+        run: |
+          FAIL=0
+
+          if grep -rn "api\.openweathermap\.org" apps/frontend/src/; then
+            FAIL=1
+          fi
+
+          if grep -rn "openweathermap\.org/data" apps/frontend/src/; then
+            FAIL=1
+          fi
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "❌ Direct OpenWeather usage detected in frontend. Use backend /api/weather instead."
+            exit 1
+          fi
+
+          echo "✅ No direct OpenWeather calls in frontend."

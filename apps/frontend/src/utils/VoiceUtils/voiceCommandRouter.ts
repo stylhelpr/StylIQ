@@ -309,16 +309,18 @@ export const routeVoiceCommand = async (
 
       VoiceMemory.set('lastCity', city);
 
-      // Use same fallback coords if none found
-      let lat = 34.05;
-      let lon = -118.24;
+      if (__DEV__) console.log(`[VoiceWeather] city=${city}`);
 
-      const weatherResponse = await fetchWeather(lat, lon, 'imperial');
-      const data = weatherResponse?.fahrenheit;
+      const weatherResponse = await fetchWeather(
+        undefined,
+        undefined,
+        'imperial',
+        'today',
+        city,
+      );
 
-      const condition =
-        data?.weather?.[0]?.description || data?.description || 'clear skies';
-      const temperature = Math.round(data?.main?.temp ?? 0);
+      const condition = weatherResponse?.condition || 'clear skies';
+      const temperature = weatherResponse?.temperature || 0;
 
       VoiceBus.emit('weather', {city, temperature, condition});
       VoiceMemory.set('lastCommand', 'weather');
@@ -363,15 +365,13 @@ export const routeVoiceCommand = async (
         lon = -118.24;
       }
 
-      const weatherResponse = await fetchWeather(lat, lon, 'imperial');
-      const data = weatherResponse?.fahrenheit;
+      if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}, day=tomorrow`);
 
-      const city = data?.name || VoiceMemory.get('lastCity') || 'Los Angeles';
-      const condition =
-        data?.weather?.[0]?.description ||
-        data?.description ||
-        'similar conditions';
-      const temperature = Math.round(data?.main?.temp ?? 0);
+      const weatherResponse = await fetchWeather(lat, lon, 'imperial', 'tomorrow');
+
+      const city = weatherResponse?.city || VoiceMemory.get('lastCity') || 'Los Angeles';
+      const condition = weatherResponse?.condition || 'similar conditions';
+      const temperature = weatherResponse?.temperature || 0;
 
       VoiceBus.emit('weather', {city, temperature, condition});
       VoiceMemory.set('lastCommand', 'weather');
@@ -415,16 +415,13 @@ export const routeVoiceCommand = async (
         lon = -118.24;
       }
 
+      if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}`);
+
       const weatherResponse = await fetchWeather(lat, lon, 'imperial');
 
-      const data = weatherResponse?.fahrenheit;
-
-      const city = data?.name || 'Los Angeles';
-      const condition =
-        data?.weather?.[0]?.description ||
-        data?.description ||
-        'Unknown conditions';
-      const temperature = Math.round(data?.main?.temp ?? 0);
+      const city = weatherResponse?.city || 'Los Angeles';
+      const condition = weatherResponse?.condition || 'Unknown conditions';
+      const temperature = weatherResponse?.temperature || 0;
 
       VoiceBus.emit('weather', {
         city,
