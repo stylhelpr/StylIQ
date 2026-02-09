@@ -3,7 +3,15 @@
 // NO personal preferences, NO learning, NO bias - pure constraints-based logic
 
 export type OutfitPlanSlot = {
-  category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+  category:
+    | 'Tops'
+    | 'Bottoms'
+    | 'Dresses'
+    | 'Shoes'
+    | 'Outerwear'
+    | 'Accessories'
+    | 'Activewear'
+    | 'Swimwear';
   description: string;
   formality?: number;
 };
@@ -156,9 +164,13 @@ OUTPUT (JSON only):
       ]
     },
     {
-      "title": "Pick #2: [Different vibe]",
+      "title": "Pick #2: [Different vibe — dress option if appropriate]",
       "why": "One sentence explaining the different approach",
-      "slots": [...]
+      "slots": [
+        {"category": "Dresses", "description": "midi dress in neutral tone", "formality": N},
+        {"category": "Shoes", "description": "strappy sandals", "formality": N},
+        {"category": "Accessories", "description": "statement earrings", "formality": N}
+      ]
     },
     {
       "title": "Pick #3: [Wildcard/Bold choice]",
@@ -171,10 +183,16 @@ OUTPUT (JSON only):
 RULES:
 - Exactly 3 outfits: #1 safe, #2 different vibe, #3 controlled wildcard
 - Each outfit MUST include a "why" field: one concise sentence explaining why this combination works
-- Each outfit SHOULD include ALL 5 categories: Tops, Bottoms, Shoes, Outerwear, Accessories
+- Each outfit uses one of two STRUCTURES:
+  A) SEPARATES: Tops + Bottoms + Shoes [+ Outerwear] [+ Accessories]
+  B) ONE-PIECE: Dresses + Shoes [+ Outerwear] [+ Accessories]
+- NEVER combine Tops+Bottoms with Dresses in the same outfit
+- Activewear slots replace Tops+Bottoms for athletic/gym contexts
+- Swimwear is a standalone slot for beach/pool contexts
+- Valid categories: Tops, Bottoms, Dresses, Shoes, Outerwear, Accessories, Activewear, Swimwear
 - Only omit Outerwear if weather/context makes it inappropriate (e.g., hot summer day)
 - Only omit Accessories if none would enhance the outfit
-- Prefer COMPLETE outfits with 4-5 items over minimal 3-item outfits
+- Prefer COMPLETE outfits with 3-5 items over minimal 2-item outfits
 - Description: generic (e.g., "dark jeans", "white sneakers", "navy blazer", "light bomber jacket", "leather belt")
 - No brands, no specific items, no images, no item names
 - Formality 1-10 per slot
@@ -227,7 +245,15 @@ PICK #3 WILDCARD CONSTRAINTS (critical):
  * - All outfits must be DESIGNED around the centerpiece, not have it appended
  */
 export type CenterpieceItem = {
-  category: 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+  category:
+    | 'Tops'
+    | 'Bottoms'
+    | 'Dresses'
+    | 'Shoes'
+    | 'Outerwear'
+    | 'Accessories'
+    | 'Activewear'
+    | 'Swimwear';
   description: string; // e.g., "navy blue chinos", "white leather sneakers"
   color?: string;
   formality?: number;
@@ -270,16 +296,28 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
+  // Determine which categories to generate (exclude centerpiece + structural complements)
   const allCategories = [
     'Tops',
     'Bottoms',
+    'Dresses',
     'Shoes',
     'Outerwear',
     'Accessories',
+    'Activewear',
+    'Swimwear',
   ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -455,16 +493,28 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
+  // Determine which categories to generate (exclude centerpiece + structural complements)
   const allCategories = [
     'Tops',
     'Bottoms',
+    'Dresses',
     'Shoes',
     'Outerwear',
     'Accessories',
+    'Activewear',
+    'Swimwear',
   ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -945,16 +995,28 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
+  // Determine which categories to generate (exclude centerpiece + structural complements)
   const allCategories = [
     'Tops',
     'Bottoms',
+    'Dresses',
     'Shoes',
     'Outerwear',
     'Accessories',
+    'Activewear',
+    'Swimwear',
   ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description
@@ -1193,16 +1255,28 @@ WARDROBE CONSTRAINT (only use item types from this list):
 ${availableItems.join(', ')}`;
   }
 
-  // Determine which categories to generate (exclude centerpiece category)
+  // Determine which categories to generate (exclude centerpiece + structural complements)
   const allCategories = [
     'Tops',
     'Bottoms',
+    'Dresses',
     'Shoes',
     'Outerwear',
     'Accessories',
+    'Activewear',
+    'Swimwear',
   ];
+  const centerpieceCatLc = centerpieceItem.category.toLowerCase();
+  const structuralExclusions = new Set<string>();
+  structuralExclusions.add(centerpieceCatLc);
+  if (centerpieceCatLc === 'dresses') {
+    structuralExclusions.add('tops');
+    structuralExclusions.add('bottoms');
+  } else if (centerpieceCatLc === 'tops' || centerpieceCatLc === 'bottoms') {
+    structuralExclusions.add('dresses');
+  }
   const categoriesToGenerate = allCategories.filter(
-    (c) => c.toLowerCase() !== centerpieceItem.category.toLowerCase(),
+    (c) => !structuralExclusions.has(c.toLowerCase()),
   );
 
   // Build centerpiece description

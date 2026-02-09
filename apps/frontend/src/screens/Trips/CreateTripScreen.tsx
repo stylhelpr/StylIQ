@@ -100,7 +100,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
         locations.find(l => l.id === selectedLocationId)?.label || 'Home';
       const adapted = wardrobe.map(adaptWardrobeItem);
       const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel);
-      const warnings = validateCapsule(capsule, weatherResult.days, activities);
+      const warnings = validateCapsule(capsule, weatherResult.days, activities, adapted);
 
       const trip: Trip = {
         id: generateId(),

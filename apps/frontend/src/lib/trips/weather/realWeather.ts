@@ -28,38 +28,71 @@ type CacheEntry = {
 
 // ── Cache helpers ──
 
-async function getCached(city: string): Promise<DayWeather[] | null> {
+function cacheKey(city: string, startDate: string, endDate: string): string {
+  return CACHE_PREFIX + city.toLowerCase().trim() + ':' + startDate + ':' + endDate;
+}
+
+function expectedDayCount(startDate: string, endDate: string): number {
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
+  return Math.round((end.getTime() - start.getTime()) / (86400 * 1000)) + 1;
+}
+
+async function getCached(
+  city: string,
+  startDate: string,
+  endDate: string,
+): Promise<DayWeather[] | null> {
   try {
-    const key = CACHE_PREFIX + city.toLowerCase().trim();
+    const key = cacheKey(city, startDate, endDate);
     const raw = await AsyncStorage.getItem(key);
     if (!raw) {
-      console.log(TAG, `Cache MISS for "${city}" (no entry)`);
+      console.log(TAG, `Cache MISS for "${city}" ${startDate}→${endDate} (no entry)`);
       return null;
     }
     const entry = JSON.parse(raw) as CacheEntry;
-    if (entry.expiry > Date.now()) {
-      console.log(
-        TAG,
-        `Cache HIT for "${city}" — ${entry.data.length} days, expires in ${Math.round((entry.expiry - Date.now()) / 1000)}s`,
-      );
-      return entry.data;
+    if (entry.expiry <= Date.now()) {
+      console.log(TAG, `Cache EXPIRED for "${city}" ${startDate}→${endDate}, removing`);
+      await AsyncStorage.removeItem(key);
+      return null;
     }
-    console.log(TAG, `Cache EXPIRED for "${city}", removing`);
-    await AsyncStorage.removeItem(key);
+
+    const expected = expectedDayCount(startDate, endDate);
+    console.log(
+      TAG,
+      `Cache HIT for "${city}" ${startDate}→${endDate} — cached=${entry.data.length} days, expected=${expected}, expires in ${Math.round((entry.expiry - Date.now()) / 1000)}s`,
+    );
+
+    // Safety: invalidate if cached day count doesn't match expected
+    if (entry.data.length !== expected) {
+      console.warn(
+        TAG,
+        `Cache INVALIDATED for "${city}" — cached ${entry.data.length} days but need ${expected}. Refetching.`,
+      );
+      await AsyncStorage.removeItem(key);
+      return null;
+    }
+
+    return entry.data;
   } catch {
-    console.warn(TAG, `Cache read error for "${city}"`);
+    console.warn(TAG, `Cache read error for "${city}" ${startDate}→${endDate}`);
   }
   return null;
 }
 
-async function setCache(city: string, data: DayWeather[]): Promise<void> {
+async function setCache(
+  city: string,
+  startDate: string,
+  endDate: string,
+  data: DayWeather[],
+): Promise<void> {
   try {
-    const key = CACHE_PREFIX + city.toLowerCase().trim();
+    const key = cacheKey(city, startDate, endDate);
     const entry: CacheEntry = {data, expiry: Date.now() + CACHE_TTL};
     await AsyncStorage.setItem(key, JSON.stringify(entry));
-    console.log(TAG, `Cache SET for "${city}" — ${data.length} days`);
+    console.log(TAG, `Cache SET for "${city}" ${startDate}→${endDate} — ${data.length} days`);
   } catch {
-    console.warn(TAG, `Cache write error for "${city}"`);
+    console.warn(TAG, `Cache write error for "${city}" ${startDate}→${endDate}`);
   }
 }
 
@@ -135,11 +168,11 @@ export async function fetchRealWeather(
 ): Promise<WeatherResult> {
   console.log(TAG, `START fetchRealWeather("${city}", ${startDate}, ${endDate})`);
 
-  // Check frontend cache first
-  const cached = await getCached(city);
+  // Check frontend cache first (key includes city + date range)
+  const cached = await getCached(city, startDate, endDate);
   if (cached && cached.length > 0) {
-    console.log(TAG, `Returning CACHED weather for "${city}"`);
-    return {days: buildTripWeather(cached, startDate, endDate), source: 'cached'};
+    console.log(TAG, `Returning CACHED weather for "${city}" ${startDate}→${endDate}`);
+    return {days: cached, source: 'cached'};
   }
 
   try {
@@ -170,9 +203,10 @@ export async function fetchRealWeather(
     );
 
     if (forecast.length > 0) {
-      await setCache(city, forecast);
-      console.log(TAG, `SUCCESS — returning ${forecast.length} real forecast days`);
-      return {days: buildTripWeather(forecast, startDate, endDate), source: 'live'};
+      const tripWeather = buildTripWeather(forecast, startDate, endDate);
+      await setCache(city, startDate, endDate, tripWeather);
+      console.log(TAG, `SUCCESS — returning ${tripWeather.length} trip weather days`);
+      return {days: tripWeather, source: 'live'};
     }
 
     console.warn(TAG, `FALLBACK TO MOCK — API returned empty forecast for "${city}"`);

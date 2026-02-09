@@ -28,15 +28,41 @@ const OutfitCarousel = ({outfits}: Props) => {
       borderColor: theme.colors.surfaceBorder,
       overflow: 'hidden',
     },
+    supportCard: {
+      width: CARD_WIDTH,
+      backgroundColor: theme.colors.surface,
+      borderRadius: tokens.borderRadius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.surfaceBorder,
+      borderStyle: 'dashed',
+      overflow: 'hidden',
+      opacity: 0.85,
+    },
     cardHeader: {
       paddingHorizontal: 16,
       paddingTop: 14,
       paddingBottom: 10,
     },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
     dayLabel: {
       fontSize: 16,
       fontWeight: '700',
       color: theme.colors.foreground,
+    },
+    occasionBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+      backgroundColor: theme.colors.surface2,
+    },
+    occasionText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.colors.foreground2,
     },
     itemCount: {
       fontSize: 12,
@@ -110,10 +136,21 @@ const OutfitCarousel = ({outfits}: Props) => {
       decelerationRate="fast"
       snapToInterval={CARD_WIDTH + 14}
       snapToAlignment="start">
-      {outfits.map(outfit => (
-        <View key={outfit.id} style={styles.card}>
+      {outfits.map(outfit => {
+        const isSupport = (outfit.type ?? 'anchor') === 'support';
+        return (
+        <View key={outfit.id} style={isSupport ? styles.supportCard : styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.dayLabel}>{outfit.dayLabel}</Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.dayLabel}>
+                {outfit.dayLabel}{isSupport ? ' +' : ''}
+              </Text>
+              {outfit.occasion ? (
+                <View style={styles.occasionBadge}>
+                  <Text style={styles.occasionText}>{outfit.occasion}</Text>
+                </View>
+              ) : null}
+            </View>
             <Text style={styles.itemCount}>
               {outfit.items.length} item{outfit.items.length !== 1 ? 's' : ''}
             </Text>
@@ -140,7 +177,8 @@ const OutfitCarousel = ({outfits}: Props) => {
             ))}
           </View>
         </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 };

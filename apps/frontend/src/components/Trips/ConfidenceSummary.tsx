@@ -69,7 +69,7 @@ function computeCoverage(
         });
         break;
       case 'Active':
-        items.push({label: 'Workouts', covered: allItems.some(i => i.mainCategory === 'Tops')});
+        items.push({label: 'Workouts', covered: allItems.some(i => i.mainCategory === 'Activewear' || i.mainCategory === 'Tops')});
         break;
       case 'Sightseeing':
         items.push({label: 'Walking', covered: allCategories.has('Shoes')});

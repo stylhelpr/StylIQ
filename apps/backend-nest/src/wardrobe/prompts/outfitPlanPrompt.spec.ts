@@ -161,7 +161,7 @@ describe('PATH #2: buildStartWithItemPromptV2 (ISOLATED)', () => {
 
       expect(prompt).toContain('do NOT generate a slot for Shoes');
       expect(prompt).toContain(
-        'Only generate slots for: Tops, Bottoms, Outerwear, Accessories',
+        'Only generate slots for: Tops, Bottoms, Dresses, Outerwear, Accessories, Activewear, Swimwear',
       );
     });
   });
@@ -333,7 +333,7 @@ describe('Path Isolation Verification', () => {
     const prompt = buildOutfitPlanPrompt('casual outfit');
 
     // PATH #1 should mention all categories
-    expect(prompt).toContain('Tops, Bottoms, Shoes');
+    expect(prompt).toContain('Tops, Bottoms, Dresses, Shoes');
     expect(prompt).not.toContain('do NOT generate a slot for');
   });
 });
@@ -1018,7 +1018,7 @@ describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
 
       expect(prompt).toContain('do NOT generate a slot for Shoes');
       expect(prompt).toContain(
-        'Only generate slots for: Tops, Bottoms, Outerwear, Accessories',
+        'Only generate slots for: Tops, Bottoms, Dresses, Outerwear, Accessories, Activewear, Swimwear',
       );
     });
   });
@@ -1030,7 +1030,7 @@ describe('PATH #2: Intent Mode Exclusivity (V3)', () => {
       // These are PATH #1 specific markers that should NOT change
       expect(prompt).toContain('SYSTEM: Stateless outfit planning engine');
       expect(prompt).toContain('Pick #1: [Safe/Classic choice]');
-      expect(prompt).toContain('Pick #2: [Different vibe]');
+      expect(prompt).toContain('Pick #2: [Different vibe');
       expect(prompt).toContain('Pick #3: [Wildcard/Bold choice]');
       expect(prompt).not.toContain('INTENT MODE');
       expect(prompt).not.toContain('CENTERPIECE');

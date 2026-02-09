@@ -84,6 +84,8 @@ export type TripPackingItem = {
 export type CapsuleOutfit = {
   id: string;
   dayLabel: string;
+  type?: 'anchor' | 'support';
+  occasion?: string;
   items: TripPackingItem[];
 };
 
@@ -93,8 +95,11 @@ export type PackingGroup = {
 };
 
 export type TripCapsule = {
+  build_id: string;
   outfits: CapsuleOutfit[];
   packingList: PackingGroup[];
+  version?: number;
+  fingerprint?: string;
 };
 
 export type Trip = {

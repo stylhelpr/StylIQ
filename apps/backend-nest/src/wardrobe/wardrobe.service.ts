@@ -107,7 +107,15 @@ type AnyWeights = WeightsLong | WeightsShort;
 // ───────────────────────────────────────────────
 // Slot helpers
 // ───────────────────────────────────────────────
-type Slot = 'tops' | 'bottoms' | 'shoes' | 'outerwear' | 'accessories';
+type Slot =
+  | 'tops'
+  | 'bottoms'
+  | 'shoes'
+  | 'outerwear'
+  | 'accessories'
+  | 'dresses'
+  | 'activewear'
+  | 'swimwear';
 
 function toLongWeights(w: AnyWeights): WeightsLong {
   if ('styleWeight' in w) return { ...w };
@@ -574,6 +582,22 @@ export class WardrobeService {
       /\b(belt|watch|hat|scarf|tie|sunglasses|bag|briefcase)\b/i.test(sub)
     )
       return 'accessories';
+    if (
+      main === 'dresses' ||
+      main === 'formalwear' ||
+      /\b(dress|gown|romper|jumpsuit)\b/i.test(sub)
+    )
+      return 'dresses';
+    if (
+      main === 'activewear' ||
+      /\b(legging|jogger|athletic|sport|gym|workout)\b/i.test(sub)
+    )
+      return 'activewear';
+    if (
+      main === 'swimwear' ||
+      /\b(bikini|swimsuit|swim\s*trunk|rash\s*guard)\b/i.test(sub)
+    )
+      return 'swimwear';
     return undefined;
   }
 
@@ -3692,7 +3716,23 @@ ${lockedLines}
       mainLc === 'accessories' ||
       /\b(belt|watch|hat|scarf|tie|sunglasses|bag|briefcase)\b/i.test(subLc);
 
+    const isDress =
+      mainLc === 'dresses' ||
+      mainLc === 'formalwear' ||
+      /\b(dress|gown|romper|jumpsuit)\b/i.test(subLc);
+
+    const isActive =
+      mainLc === 'activewear' ||
+      /\b(legging|jogger|athletic|sport|gym|workout)\b/i.test(subLc);
+
+    const isSwim =
+      mainLc === 'swimwear' ||
+      /\b(bikini|swimsuit|swim\s*trunk|rash\s*guard)\b/i.test(subLc);
+
     const slot =
+      (isDress && 'DRESS') ||
+      (isActive && 'ACTIVE') ||
+      (isSwim && 'SWIM') ||
       (isBottom && 'BOTTOM') ||
       (isShoes && 'SHOES') ||
       (isOuter && 'OUTER') ||
