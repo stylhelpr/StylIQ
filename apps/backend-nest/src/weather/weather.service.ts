@@ -61,14 +61,29 @@ export class WeatherService {
 
   async getWeather(city: string): Promise<WeatherResponse> {
     const cacheKey = city.toLowerCase().trim();
+    this.logger.log(
+      `[TripsForecastDiag] getWeather city="${city}" cacheKey="${cacheKey}"`,
+    );
     const cached = this.cache.get(cacheKey);
     if (cached && cached.expiry > Date.now()) {
-      this.logger.log(`[Weather] Cache hit for "${city}"`);
+      this.logger.log(
+        `[TripsForecastDiag] Cache HIT — ${cached.data.forecast.length} days, city="${cached.data.city}"`,
+      );
       return cached.data;
     }
+    this.logger.log(`[TripsForecastDiag] Cache MISS`);
 
     const geo = await this.geocode(city);
+    this.logger.log(
+      `[TripsForecastDiag] Geocoded → lat=${geo.lat}, lng=${geo.lng}, addr="${geo.formattedAddress}"`,
+    );
     const forecast = await this.fetchForecast(geo.lat, geo.lng);
+
+    this.logger.log(
+      `[TripsForecastDiag] Forecast returned ${forecast.length} days, ` +
+        `first=${forecast[0]?.date} last=${forecast[forecast.length - 1]?.date}, ` +
+        `sample day0: high=${forecast[0]?.highF} low=${forecast[0]?.lowF}`,
+    );
 
     const result: WeatherResponse = {
       city: geo.formattedAddress || city,
@@ -82,9 +97,6 @@ export class WeatherService {
       expiry: Date.now() + this.CACHE_TTL,
     });
 
-    this.logger.log(
-      `[Weather] Fetched ${forecast.length}-day forecast for "${city}"`,
-    );
     return result;
   }
 
@@ -94,29 +106,29 @@ export class WeatherService {
       throw new Error('OPENWEATHER_API_KEY not configured');
     }
 
-    // Try exact query first, then city name only (strip state/country suffix)
-    const queries = [city];
-    const cityOnly = city.split(',')[0].trim();
-    if (cityOnly !== city.trim()) queries.push(cityOnly);
-
-    let data: any[] = [];
-    for (const q of queries) {
-      const url =
-        `https://api.openweathermap.org/geo/1.0/direct` +
-        `?q=${encodeURIComponent(q)}&limit=1&appid=${apiKey}`;
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`Geocoding HTTP ${res.status}`);
-      }
-      data = await res.json();
-      if (Array.isArray(data) && data.length) {
-        this.logger.log(`[Weather] Geocoded with query "${q}"`);
-        break;
-      }
+    // Normalize: "Calabasas, CA" → "Calabasas,CA,US" (OpenWeather format)
+    const parts = city.split(',').map(p => p.trim()).filter(Boolean);
+    let normalized = parts.join(',');
+    // If 2-part like "City,CA", append US country code
+    if (parts.length === 2 && /^[A-Z]{2}$/i.test(parts[1])) {
+      normalized += ',US';
     }
 
-    if (!data.length) {
-      throw new Error(`Geocoding returned no results for "${city}"`);
+    this.logger.log(
+      `[TripsForecastDiag] geocode input="${city}" normalized="${normalized}"`,
+    );
+
+    const url =
+      `https://api.openweathermap.org/geo/1.0/direct` +
+      `?q=${encodeURIComponent(normalized)}&limit=1&appid=${apiKey}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Geocoding HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!Array.isArray(data) || !data.length) {
+      throw new Error(`Geocoding returned no results for "${city}" (query="${normalized}")`);
     }
 
     const result = data[0];

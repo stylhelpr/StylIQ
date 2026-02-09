@@ -4,7 +4,7 @@ import {DayWeather, WeatherCondition} from '../../../types/trips';
 import {generateMockWeather} from '../mockWeather';
 
 // ── TEMP diagnostic tag (grep for this to remove later) ──
-const TAG = '[WeatherDiag]';
+const TAG = '[TripsForecastDiag]';
 
 // v2 cache key invalidates any stale entries from prior format
 const CACHE_PREFIX = '@styliq_weather_v2_';
@@ -175,8 +175,10 @@ export async function fetchRealWeather(
       return buildTripWeather(forecast, startDate, endDate);
     }
 
-    console.warn(TAG, `FALLBACK — API returned empty forecast for "${city}"`);
-    return generateMockWeather(city, startDate, endDate);
+    console.warn(TAG, `FALLBACK TO MOCK — API returned empty forecast for "${city}"`);
+    const mock = generateMockWeather(city, startDate, endDate);
+    console.warn(TAG, `MOCK sample day0: high=${mock[0]?.highF} low=${mock[0]?.lowF} cond=${mock[0]?.condition}`);
+    return mock;
   } catch (err: any) {
     // ── Surface exact error details for debugging ──
     const status = err?.response?.status;
@@ -190,6 +192,8 @@ export async function fetchRealWeather(
     console.error(TAG, `  Body:    ${JSON.stringify(body ?? '(none)')}`);
     console.error(TAG, `  Message: ${message}`);
 
-    return generateMockWeather(city, startDate, endDate);
+    const mock = generateMockWeather(city, startDate, endDate);
+    console.error(TAG, `MOCK sample day0: high=${mock[0]?.highF} low=${mock[0]?.lowF} cond=${mock[0]?.condition}`);
+    return mock;
   }
 }
