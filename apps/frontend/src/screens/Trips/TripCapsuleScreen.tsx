@@ -1,5 +1,5 @@
 import React, {useState, useMemo, useCallback} from 'react';
-import {View, Text, ScrollView, StyleSheet} from 'react-native';
+import {View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
@@ -8,14 +8,16 @@ import {
   TripCapsule,
   TripPackingItem,
   PackingGroup,
-  TripWardrobeItem,
+  CapsuleWarning,
 } from '../../types/trips';
 import {updateTrip} from '../../lib/trips/tripsStorage';
-import {adaptWardrobeItem} from '../../lib/trips/capsuleEngine';
+import {adaptWardrobeItem, buildCapsule, validateCapsule} from '../../lib/trips/capsuleEngine';
+import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
 import WeatherStrip from '../../components/Trips/WeatherStrip';
 import OutfitCarousel from '../../components/Trips/OutfitCarousel';
 import PackingListSection from '../../components/Trips/PackingListSection';
 import ItemReplaceModal from '../../components/Trips/ItemReplaceModal';
+import ConfidenceSummary from '../../components/Trips/ConfidenceSummary';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
 type Props = {
@@ -28,7 +30,9 @@ type Props = {
 const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
   const {theme} = useAppTheme();
   const [capsule, setCapsule] = useState<TripCapsule | null>(trip.capsule);
+  const [warnings, setWarnings] = useState<CapsuleWarning[]>(trip.warnings || []);
   const [replaceItem, setReplaceItem] = useState<TripPackingItem | null>(null);
+  const [isRebuilding, setIsRebuilding] = useState(false);
 
   const adaptedWardrobe = useMemo(
     () => wardrobe.map(adaptWardrobeItem),
@@ -42,13 +46,72 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
   const dateRange = `${formatDate(start)} – ${formatDate(end)}`;
 
   const persistCapsule = useCallback(
-    async (newCapsule: TripCapsule) => {
+    async (newCapsule: TripCapsule, newWarnings?: CapsuleWarning[]) => {
       setCapsule(newCapsule);
-      await updateTrip({...trip, capsule: newCapsule});
+      if (newWarnings !== undefined) setWarnings(newWarnings);
+      const updated = {
+        ...trip,
+        capsule: newCapsule,
+        ...(newWarnings !== undefined ? {warnings: newWarnings.length > 0 ? newWarnings : undefined} : {}),
+      };
+      const saved = await updateTrip(updated);
+      if (!saved) {
+        Alert.alert('Save Error', "Couldn't save changes. Please try again.");
+      }
       onRefresh();
     },
     [trip, onRefresh],
   );
+
+  const handleRebuild = useCallback(() => {
+    Alert.alert(
+      'Rebuild Capsule',
+      'Rebuild your packing list? Packed checkmarks will be reset.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Rebuild',
+          onPress: async () => {
+            setIsRebuilding(true);
+            try {
+              const weatherResult = await fetchRealWeather(
+                trip.destination,
+                trip.startDate,
+                trip.endDate,
+              );
+              const newCapsule = buildCapsule(
+                adaptedWardrobe,
+                weatherResult.days,
+                trip.activities,
+                trip.startingLocationLabel,
+              );
+              const newWarnings = validateCapsule(newCapsule, weatherResult.days, trip.activities);
+              const updated: Trip = {
+                ...trip,
+                weather: weatherResult.days,
+                weatherSource: weatherResult.source,
+                capsule: newCapsule,
+                warnings: newWarnings.length > 0 ? newWarnings : undefined,
+              };
+              const saved = await updateTrip(updated);
+              if (!saved) {
+                Alert.alert('Save Error', "Couldn't save rebuilt capsule. Please try again.");
+              } else {
+                setCapsule(newCapsule);
+                setWarnings(newWarnings);
+              }
+              onRefresh();
+            } catch (err) {
+              console.error('[TripCapsule] rebuild failed:', err);
+              Alert.alert('Error', 'Something went wrong rebuilding your capsule.');
+            } finally {
+              setIsRebuilding(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [trip, adaptedWardrobe, onRefresh]);
 
   const handleTogglePacked = useCallback(
     (itemId: string) => {
@@ -154,6 +217,9 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
       color: theme.colors.foreground2,
       marginTop: 2,
     },
+    rebuildBtn: {
+      padding: 8,
+    },
     scrollContent: {
       paddingBottom: 120,
     },
@@ -164,6 +230,22 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
       paddingHorizontal: tokens.spacing.md,
       marginTop: tokens.spacing.lg,
       marginBottom: tokens.spacing.sm,
+    },
+    warningCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: tokens.spacing.md,
+      marginBottom: 6,
+      padding: 10,
+      backgroundColor: '#FFF8E1',
+      borderRadius: tokens.borderRadius.md,
+    },
+    warningText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: '#F57C00',
+      flex: 1,
     },
     emptyContainer: {
       flex: 1,
@@ -221,6 +303,17 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
           </Text>
           <Text style={styles.headerDate}>{dateRange}</Text>
         </View>
+        <AppleTouchFeedback
+          onPress={isRebuilding ? () => {} : handleRebuild}
+          hapticStyle="impactLight">
+          <View style={styles.rebuildBtn}>
+            {isRebuilding ? (
+              <ActivityIndicator size="small" color={theme.colors.foreground2} />
+            ) : (
+              <Icon name="refresh" size={22} color={theme.colors.foreground2} />
+            )}
+          </View>
+        </AppleTouchFeedback>
       </View>
 
       <ScrollView
@@ -228,7 +321,26 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
         showsVerticalScrollIndicator={false}>
         {/* Weather Strip */}
         <Text style={styles.sectionTitle}>Weather</Text>
-        <WeatherStrip weather={trip.weather} />
+        <WeatherStrip weather={trip.weather} source={trip.weatherSource} />
+
+        {/* Warnings */}
+        {warnings.length > 0 && (
+          <View style={{marginTop: tokens.spacing.sm}}>
+            {warnings.map((w, idx) => (
+              <View key={idx} style={styles.warningCard}>
+                <Icon name="warning" size={16} color="#FF9500" />
+                <Text style={styles.warningText}>{w.message}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Confidence Summary */}
+        <ConfidenceSummary
+          weather={trip.weather}
+          activities={trip.activities}
+          packingList={capsule.packingList}
+        />
 
         {/* Outfits Carousel */}
         <Text style={styles.sectionTitle}>Outfits</Text>

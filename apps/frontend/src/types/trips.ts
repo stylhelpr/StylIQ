@@ -8,6 +8,18 @@ export type TripActivity =
   | 'Sightseeing'
   | 'Cold Weather';
 
+export type WeatherSource = 'live' | 'cached' | 'estimated';
+
+export type WeatherResult = {
+  days: DayWeather[];
+  source: WeatherSource;
+};
+
+export type CapsuleWarning = {
+  code: string;
+  message: string;
+};
+
 export type WeatherCondition =
   | 'sunny'
   | 'partly-cloudy'
@@ -94,7 +106,9 @@ export type Trip = {
   startingLocationId: string;
   startingLocationLabel: string;
   weather: DayWeather[];
+  weatherSource?: WeatherSource;
   capsule: TripCapsule | null;
+  warnings?: CapsuleWarning[];
   createdAt: string;
 };
 

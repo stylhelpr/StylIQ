@@ -6,6 +6,7 @@ import {
   CapsuleOutfit,
   PackingGroup,
   TripWardrobeItem,
+  CapsuleWarning,
 } from '../../types/trips';
 
 // ── Wardrobe adapter ──
@@ -106,12 +107,25 @@ const CATEGORY_MAP: Record<string, CategoryBucket> = {
   Headwear: 'accessories',
   Jewelry: 'accessories',
   Swimwear: 'tops',
+  Loungewear: 'tops',
+  Sleepwear: 'tops',
+  Undergarments: 'accessories',
+  Maternity: 'tops',
+  TraditionalWear: 'dresses',
+  Unisex: 'tops',
+  Costumes: 'accessories',
+  Other: 'accessories',
 };
 
 function getBucket(item: TripWardrobeItem): CategoryBucket | null {
   const cat = item.main_category;
   if (!cat) return null;
-  return CATEGORY_MAP[cat] ?? null;
+  const bucket = CATEGORY_MAP[cat];
+  if (!bucket) {
+    console.warn('[CapsuleEngine] Unknown category, routing to accessories:', cat);
+    return 'accessories';
+  }
+  return bucket;
 }
 
 // ── Weather analysis ──
@@ -389,4 +403,74 @@ export function buildCapsule(
     }));
 
   return {outfits, packingList};
+}
+
+// ── Capsule validation ──
+
+export function validateCapsule(
+  capsule: TripCapsule,
+  weather: DayWeather[],
+  activities: TripActivity[],
+): CapsuleWarning[] {
+  const warnings: CapsuleWarning[] = [];
+  const allCategories = new Set(capsule.packingList.map(g => g.category));
+  const allItems = capsule.packingList.flatMap(g => g.items);
+
+  if (!allCategories.has('Shoes') && allItems.length > 0) {
+    warnings.push({
+      code: 'NO_SHOES',
+      message: 'No shoes in your packing list — add footwear to your wardrobe',
+    });
+  }
+
+  const needsWarm = weather.some(d => d.lowF < 55);
+  if (needsWarm && !allCategories.has('Outerwear')) {
+    warnings.push({
+      code: 'NO_OUTERWEAR',
+      message: 'Cold days ahead but no outerwear available',
+    });
+  }
+
+  const hasRain = weather.some(d => d.rainChance > 50);
+  if (hasRain) {
+    const hasRainItem = allItems.some(
+      i => i.mainCategory === 'Outerwear',
+    );
+    if (!hasRainItem) {
+      warnings.push({
+        code: 'NO_RAIN_GEAR',
+        message: 'Rain expected but no outerwear packed',
+      });
+    }
+  }
+
+  if (!allCategories.has('Tops') && !allCategories.has('Dresses') && allItems.length > 0) {
+    warnings.push({
+      code: 'NO_TOPS',
+      message: 'No tops or dresses — add clothing to your wardrobe',
+    });
+  }
+
+  if (activities.includes('Beach')) {
+    const hasSwim = allItems.some(
+      i =>
+        i.subCategory?.toLowerCase().includes('swim') ||
+        i.mainCategory === 'Swimwear',
+    );
+    if (!hasSwim) {
+      warnings.push({
+        code: 'NO_SWIMWEAR',
+        message: 'Beach planned but no swimwear found',
+      });
+    }
+  }
+
+  if (allItems.length === 0) {
+    warnings.push({
+      code: 'EMPTY_CAPSULE',
+      message: 'No items could be packed — add items to your wardrobe',
+    });
+  }
+
+  return warnings;
 }

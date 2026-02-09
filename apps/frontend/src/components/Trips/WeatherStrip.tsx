@@ -3,7 +3,7 @@ import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
-import {DayWeather, WeatherCondition} from '../../types/trips';
+import {DayWeather, WeatherCondition, WeatherSource} from '../../types/trips';
 
 const WEATHER_ICONS: Record<WeatherCondition, string> = {
   sunny: 'wb-sunny',
@@ -36,14 +36,27 @@ function formatFullDate(day: DayWeather): string {
 
 type Props = {
   weather: DayWeather[];
+  source?: WeatherSource;
 };
 
-const WeatherStrip = ({weather}: Props) => {
+const WeatherStrip = ({weather, source}: Props) => {
   const {theme} = useAppTheme();
 
   const styles = StyleSheet.create({
     container: {
       marginBottom: tokens.spacing.lg,
+    },
+    estimatedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: tokens.spacing.md,
+      marginBottom: 8,
+    },
+    estimatedText: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: '#FF9500',
     },
     scrollContent: {
       paddingHorizontal: tokens.spacing.md,
@@ -83,6 +96,12 @@ const WeatherStrip = ({weather}: Props) => {
 
   return (
     <View style={styles.container}>
+      {source === 'estimated' && (
+        <View style={styles.estimatedBadge}>
+          <Icon name="info-outline" size={13} color="#FF9500" />
+          <Text style={styles.estimatedText}>Estimated forecast</Text>
+        </View>
+      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

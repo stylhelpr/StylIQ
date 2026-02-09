@@ -9,6 +9,7 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -25,7 +26,7 @@ import {
   saveTrip,
 } from '../../lib/trips/tripsStorage';
 import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
-import {buildCapsule, adaptWardrobeItem} from '../../lib/trips/capsuleEngine';
+import {buildCapsule, adaptWardrobeItem, validateCapsule} from '../../lib/trips/capsuleEngine';
 import ActivityChips from '../../components/Trips/ActivityChips';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
@@ -75,6 +76,10 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
   const handleAddLocation = async () => {
     if (!newLocationName.trim()) return;
     const loc = await addClosetLocation(newLocationName);
+    if (!loc) {
+      Alert.alert('Error', "Couldn't save location. Please try again.");
+      return;
+    }
     setLocations(prev => [...prev, loc]);
     setSelectedLocationId(loc.id);
     setNewLocationName('');
@@ -84,33 +89,47 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
     if (!destination.trim()) return;
     setIsBuilding(true);
 
-    // Small delay for premium feel
-    await new Promise(r => setTimeout(r, 600));
+    try {
+      // Small delay for premium feel
+      await new Promise(r => setTimeout(r, 600));
 
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
-    const weather = await fetchRealWeather(destination, startStr, endStr);
-    const locationLabel =
-      locations.find(l => l.id === selectedLocationId)?.label || 'Home';
-    const adapted = wardrobe.map(adaptWardrobeItem);
-    const capsule = buildCapsule(adapted, weather, activities, locationLabel);
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = endDate.toISOString().split('T')[0];
+      const weatherResult = await fetchRealWeather(destination, startStr, endStr);
+      const locationLabel =
+        locations.find(l => l.id === selectedLocationId)?.label || 'Home';
+      const adapted = wardrobe.map(adaptWardrobeItem);
+      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel);
+      const warnings = validateCapsule(capsule, weatherResult.days, activities);
 
-    const trip: Trip = {
-      id: generateId(),
-      destination: destination.trim(),
-      startDate: startStr,
-      endDate: endStr,
-      activities,
-      startingLocationId: selectedLocationId,
-      startingLocationLabel: locationLabel,
-      weather,
-      capsule,
-      createdAt: new Date().toISOString(),
-    };
+      const trip: Trip = {
+        id: generateId(),
+        destination: destination.trim(),
+        startDate: startStr,
+        endDate: endStr,
+        activities,
+        startingLocationId: selectedLocationId,
+        startingLocationLabel: locationLabel,
+        weather: weatherResult.days,
+        weatherSource: weatherResult.source,
+        capsule,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        createdAt: new Date().toISOString(),
+      };
 
-    await saveTrip(trip);
-    setIsBuilding(false);
-    onTripCreated(trip);
+      const saved = await saveTrip(trip);
+      if (!saved) {
+        Alert.alert('Save Error', "Couldn't save your trip. Please try again.");
+        setIsBuilding(false);
+        return;
+      }
+      setIsBuilding(false);
+      onTripCreated(trip);
+    } catch (err) {
+      console.error('[CreateTrip] handleBuildCapsule failed:', err);
+      Alert.alert('Error', 'Something went wrong building your capsule. Please try again.');
+      setIsBuilding(false);
+    }
   };
 
   const selectedLocation = locations.find(l => l.id === selectedLocationId);

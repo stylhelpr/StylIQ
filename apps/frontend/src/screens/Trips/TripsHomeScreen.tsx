@@ -34,7 +34,10 @@ const TripsHomeScreen = ({trips, onNewTrip, onTripPress, onRefresh}: Props) => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await deleteTrip(trip.id);
+            const ok = await deleteTrip(trip.id);
+            if (!ok) {
+              Alert.alert('Error', "Couldn't delete trip. Please try again.");
+            }
             onRefresh();
           },
         },

@@ -23,25 +23,43 @@ export async function getTrips(): Promise<Trip[]> {
   }
 }
 
-export async function saveTrip(trip: Trip): Promise<void> {
-  const trips = await getTrips();
-  trips.unshift(trip);
-  await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
-}
-
-export async function updateTrip(updated: Trip): Promise<void> {
-  const trips = await getTrips();
-  const idx = trips.findIndex(t => t.id === updated.id);
-  if (idx >= 0) {
-    trips[idx] = updated;
+export async function saveTrip(trip: Trip): Promise<boolean> {
+  try {
+    const trips = await getTrips();
+    trips.unshift(trip);
     await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    return true;
+  } catch (err) {
+    console.error('[TripsStorage] saveTrip failed:', err);
+    return false;
   }
 }
 
-export async function deleteTrip(id: string): Promise<void> {
-  const trips = await getTrips();
-  const filtered = trips.filter(t => t.id !== id);
-  await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(filtered));
+export async function updateTrip(updated: Trip): Promise<boolean> {
+  try {
+    const trips = await getTrips();
+    const idx = trips.findIndex(t => t.id === updated.id);
+    if (idx >= 0) {
+      trips[idx] = updated;
+      await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
+    }
+    return true;
+  } catch (err) {
+    console.error('[TripsStorage] updateTrip failed:', err);
+    return false;
+  }
+}
+
+export async function deleteTrip(id: string): Promise<boolean> {
+  try {
+    const trips = await getTrips();
+    const filtered = trips.filter(t => t.id !== id);
+    await AsyncStorage.setItem(TRIPS_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (err) {
+    console.error('[TripsStorage] deleteTrip failed:', err);
+    return false;
+  }
 }
 
 // ── Closet Locations ──
@@ -59,13 +77,18 @@ export async function getClosetLocations(): Promise<ClosetLocation[]> {
 
 export async function addClosetLocation(
   label: string,
-): Promise<ClosetLocation> {
-  const locations = await getClosetLocations();
-  const newLoc: ClosetLocation = {
-    id: `custom_${Date.now()}`,
-    label: label.trim(),
-  };
-  locations.push(newLoc);
-  await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
-  return newLoc;
+): Promise<ClosetLocation | null> {
+  try {
+    const locations = await getClosetLocations();
+    const newLoc: ClosetLocation = {
+      id: `custom_${Date.now()}`,
+      label: label.trim(),
+    };
+    locations.push(newLoc);
+    await AsyncStorage.setItem(LOCATIONS_KEY, JSON.stringify(locations));
+    return newLoc;
+  } catch (err) {
+    console.error('[TripsStorage] addClosetLocation failed:', err);
+    return null;
+  }
 }

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {apiClient} from '../../apiClient';
-import {DayWeather, WeatherCondition} from '../../../types/trips';
+import {DayWeather, WeatherCondition, WeatherResult} from '../../../types/trips';
 import {generateMockWeather} from '../mockWeather';
 
 // ── TEMP diagnostic tag (grep for this to remove later) ──
@@ -126,20 +126,20 @@ function buildTripWeather(
 /**
  * Fetch real weather for a city and date range.
  * Falls back to mock weather on any failure.
- * Same signature as generateMockWeather for drop-in replacement.
+ * Returns weather days + source tag for trust layer.
  */
 export async function fetchRealWeather(
   city: string,
   startDate: string,
   endDate: string,
-): Promise<DayWeather[]> {
+): Promise<WeatherResult> {
   console.log(TAG, `START fetchRealWeather("${city}", ${startDate}, ${endDate})`);
 
   // Check frontend cache first
   const cached = await getCached(city);
   if (cached && cached.length > 0) {
     console.log(TAG, `Returning CACHED weather for "${city}"`);
-    return buildTripWeather(cached, startDate, endDate);
+    return {days: buildTripWeather(cached, startDate, endDate), source: 'cached'};
   }
 
   try {
@@ -172,13 +172,13 @@ export async function fetchRealWeather(
     if (forecast.length > 0) {
       await setCache(city, forecast);
       console.log(TAG, `SUCCESS — returning ${forecast.length} real forecast days`);
-      return buildTripWeather(forecast, startDate, endDate);
+      return {days: buildTripWeather(forecast, startDate, endDate), source: 'live'};
     }
 
     console.warn(TAG, `FALLBACK TO MOCK — API returned empty forecast for "${city}"`);
     const mock = generateMockWeather(city, startDate, endDate);
     console.warn(TAG, `MOCK sample day0: high=${mock[0]?.highF} low=${mock[0]?.lowF} cond=${mock[0]?.condition}`);
-    return mock;
+    return {days: mock, source: 'estimated'};
   } catch (err: any) {
     // ── Surface exact error details for debugging ──
     const status = err?.response?.status;
@@ -194,6 +194,6 @@ export async function fetchRealWeather(
 
     const mock = generateMockWeather(city, startDate, endDate);
     console.error(TAG, `MOCK sample day0: high=${mock[0]?.highF} low=${mock[0]?.lowF} cond=${mock[0]?.condition}`);
-    return mock;
+    return {days: mock, source: 'estimated'};
   }
 }
