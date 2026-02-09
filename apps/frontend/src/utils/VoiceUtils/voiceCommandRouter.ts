@@ -297,43 +297,7 @@ export const routeVoiceCommand = async (
       return routeVoiceCommand('show my schedule tomorrow', navigate);
   }
 
-  // 🧩 Weather follow-up: "in <city>"
-  if (
-    VoiceMemory.get('lastCommand') === 'weather' &&
-    lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i)
-  ) {
-    try {
-      const match = lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i);
-      const city = match?.[2]?.trim();
-      if (!city) return;
-
-      VoiceMemory.set('lastCity', city);
-
-      if (__DEV__) console.log(`[VoiceWeather] city=${city}`);
-
-      const weatherResponse = await fetchWeather(
-        undefined,
-        undefined,
-        'imperial',
-        'today',
-        city,
-      );
-
-      const condition = weatherResponse?.condition || 'clear skies';
-      const temperature = weatherResponse?.temperature || 0;
-
-      VoiceBus.emit('weather', {city, temperature, condition});
-      VoiceMemory.set('lastCommand', 'weather');
-      VoiceMemory.set('lastCity', city);
-      VoiceMemory.set('lastCondition', condition);
-      VoiceMemory.set('lastTemp', temperature);
-    } catch (err) {
-      // Weather follow-up (city) failed silently
-    }
-    return;
-  }
-
-  // 🧩 Weather follow-up: "tomorrow"
+  // 🧩 Weather follow-up: "tomorrow" (must come BEFORE city handler)
   if (
     VoiceMemory.get('lastCommand') === 'weather' &&
     includesAny(['tomorrow', 'next day'])
@@ -384,6 +348,42 @@ export const routeVoiceCommand = async (
     return;
   }
 
+  // 🧩 Weather follow-up: "in <city>"
+  if (
+    VoiceMemory.get('lastCommand') === 'weather' &&
+    lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i)
+  ) {
+    try {
+      const match = lower.match(/\b(in|for|about)\s+([a-z\s]+)$/i);
+      const city = match?.[2]?.trim();
+      if (!city) return;
+
+      VoiceMemory.set('lastCity', city);
+
+      if (__DEV__) console.log(`[VoiceWeather] city=${city}`);
+
+      const weatherResponse = await fetchWeather(
+        undefined,
+        undefined,
+        'imperial',
+        'today',
+        city,
+      );
+
+      const condition = weatherResponse?.condition || 'clear skies';
+      const temperature = weatherResponse?.temperature || 0;
+
+      VoiceBus.emit('weather', {city, temperature, condition});
+      VoiceMemory.set('lastCommand', 'weather');
+      VoiceMemory.set('lastCity', city);
+      VoiceMemory.set('lastCondition', condition);
+      VoiceMemory.set('lastTemp', temperature);
+    } catch (err) {
+      // Weather follow-up (city) failed silently
+    }
+    return;
+  }
+
   // ---------------------------
   // 🌦️ Weather command
   // ---------------------------
@@ -415,9 +415,10 @@ export const routeVoiceCommand = async (
         lon = -118.24;
       }
 
-      if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}`);
+      const day = includesAny(['tomorrow', 'next day']) ? 'tomorrow' : 'today';
+      if (__DEV__) console.log(`[VoiceWeather] lat=${lat}, lng=${lon}, day=${day}`);
 
-      const weatherResponse = await fetchWeather(lat, lon, 'imperial');
+      const weatherResponse = await fetchWeather(lat, lon, 'imperial', day);
 
       const city = weatherResponse?.city || 'Los Angeles';
       const condition = weatherResponse?.condition || 'Unknown conditions';

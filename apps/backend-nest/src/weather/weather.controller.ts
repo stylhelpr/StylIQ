@@ -43,10 +43,11 @@ export class WeatherController {
         );
       }
 
+      const cityArg = city?.trim();
       const result =
         day === 'tomorrow'
-          ? await this.weatherService.getTomorrowWeather(lat, lng)
-          : await this.weatherService.getCurrentWeather(lat, lng);
+          ? await this.weatherService.getTomorrowWeather(lat, lng, cityArg)
+          : await this.weatherService.getCurrentWeather(lat, lng, cityArg);
 
       if (cityName) result.city = cityName;
 

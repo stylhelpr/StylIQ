@@ -94,17 +94,28 @@ export class WeatherService {
       throw new Error('OPENWEATHER_API_KEY not configured');
     }
 
-    // Use OpenWeather Geocoding API (same key as forecast, no extra key needed)
-    const url =
-      `https://api.openweathermap.org/geo/1.0/direct` +
-      `?q=${encodeURIComponent(city)}&limit=1&appid=${apiKey}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`Geocoding HTTP ${res.status}`);
+    // Try exact query first, then city name only (strip state/country suffix)
+    const queries = [city];
+    const cityOnly = city.split(',')[0].trim();
+    if (cityOnly !== city.trim()) queries.push(cityOnly);
+
+    let data: any[] = [];
+    for (const q of queries) {
+      const url =
+        `https://api.openweathermap.org/geo/1.0/direct` +
+        `?q=${encodeURIComponent(q)}&limit=1&appid=${apiKey}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Geocoding HTTP ${res.status}`);
+      }
+      data = await res.json();
+      if (Array.isArray(data) && data.length) {
+        this.logger.log(`[Weather] Geocoded with query "${q}"`);
+        break;
+      }
     }
 
-    const data = await res.json();
-    if (!Array.isArray(data) || !data.length) {
+    if (!data.length) {
       throw new Error(`Geocoding returned no results for "${city}"`);
     }
 
@@ -274,13 +285,17 @@ export class WeatherService {
   async getCurrentWeather(
     lat: number,
     lng: number,
+    cityKey?: string,
   ): Promise<CurrentWeatherResponse> {
-    const cacheKey = `current_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+    const cacheKey = cityKey
+      ? `current:city:${cityKey.toLowerCase().trim()}:today`
+      : `current:${lat.toFixed(3)}:${lng.toFixed(3)}:today`;
     const cached = this.currentCache.get(cacheKey);
     if (cached && cached.expiry > Date.now()) {
-      this.logger.log(`[Weather] Current cache hit for ${lat},${lng}`);
+      this.logger.log(`[WeatherCache] HIT key=${cacheKey}`);
       return cached.data;
     }
+    this.logger.log(`[WeatherCache] MISS key=${cacheKey}`);
 
     const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
     if (!apiKey) throw new Error('OPENWEATHER_API_KEY not configured');
@@ -312,13 +327,17 @@ export class WeatherService {
   async getTomorrowWeather(
     lat: number,
     lng: number,
+    cityKey?: string,
   ): Promise<CurrentWeatherResponse> {
-    const cacheKey = `tomorrow_${lat.toFixed(2)}_${lng.toFixed(2)}`;
+    const cacheKey = cityKey
+      ? `current:city:${cityKey.toLowerCase().trim()}:tomorrow`
+      : `current:${lat.toFixed(3)}:${lng.toFixed(3)}:tomorrow`;
     const cached = this.currentCache.get(cacheKey);
     if (cached && cached.expiry > Date.now()) {
-      this.logger.log(`[Weather] Tomorrow cache hit for ${lat},${lng}`);
+      this.logger.log(`[WeatherCache] HIT key=${cacheKey}`);
       return cached.data;
     }
+    this.logger.log(`[WeatherCache] MISS key=${cacheKey}`);
 
     const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
     if (!apiKey) throw new Error('OPENWEATHER_API_KEY not configured');
