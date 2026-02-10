@@ -8,6 +8,7 @@ import {
   TripActivity,
   PackingGroup,
 } from '../../types/trips';
+import {isSlot, isAnySlot} from '../../lib/categoryMapping';
 
 type CoverageItem = {
   label: string;
@@ -52,24 +53,36 @@ function computeCoverage(
   for (const activity of activities) {
     switch (activity) {
       case 'Business':
-        items.push({label: 'Business', covered: allItems.some(i => i.mainCategory === 'Tops' || i.mainCategory === 'Dresses')});
+        items.push({
+          label: 'Business',
+          covered: allItems.some(i => isAnySlot(i, ['tops', 'dresses'])),
+        });
         break;
       case 'Dinner':
-        items.push({label: 'Dinners', covered: allItems.some(i => i.mainCategory === 'Tops' || i.mainCategory === 'Dresses')});
+        items.push({
+          label: 'Dinners',
+          covered: allItems.some(i => isAnySlot(i, ['tops', 'dresses'])),
+        });
         break;
       case 'Formal':
-        items.push({label: 'Formal events', covered: allItems.some(i => i.mainCategory === 'Tops' || i.mainCategory === 'Dresses')});
+        items.push({
+          label: 'Formal events',
+          covered: allItems.some(i => isAnySlot(i, ['tops', 'dresses'])),
+        });
         break;
       case 'Beach':
         items.push({
           label: 'Beach',
           covered: allItems.some(
-            i => i.subCategory?.toLowerCase().includes('swim') || i.mainCategory === 'Swimwear',
+            i => i.subCategory?.toLowerCase().includes('swim') || isSlot(i, 'swimwear'),
           ),
         });
         break;
       case 'Active':
-        items.push({label: 'Workouts', covered: allItems.some(i => i.mainCategory === 'Activewear' || i.mainCategory === 'Tops')});
+        items.push({
+          label: 'Workouts',
+          covered: allItems.some(i => isAnySlot(i, ['activewear', 'tops'])),
+        });
         break;
       case 'Sightseeing':
         items.push({label: 'Walking', covered: allCategories.has('Shoes')});

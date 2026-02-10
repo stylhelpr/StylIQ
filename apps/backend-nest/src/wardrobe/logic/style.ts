@@ -1,5 +1,7 @@
 // apps/backend-nest/src/wardrobe/logic/style.ts
 
+import { isSlot } from './categoryMapping';
+
 // ───────────────────────────────────────────────────────────────
 // Types
 // ───────────────────────────────────────────────────────────────
@@ -367,21 +369,16 @@ export function scoreItemForStyle(
   // ── NEW OPTIONAL SIGNALS ──────────────────────────────────────
 
   // Fit alignment (simple but effective)
+  // Use canonical slot mapping for category detection
   if (W.fitMatch) {
-    if (
-      style.topsFit &&
-      item.main_category &&
-      t(item.main_category) === 'tops' &&
-      t(item.fit) === style.topsFit
-    ) {
+    if (style.topsFit && isSlot(item, 'tops') && t(item.fit) === style.topsFit) {
       maxPossible += W.fitMatch;
       rawScore += W.fitMatch;
       reasons.push(`+${W.fitMatch} fitMatch:tops=${t(item.fit)}`);
     }
     if (
       style.bottomsFit &&
-      item.main_category &&
-      t(item.main_category) === 'bottoms' &&
+      isSlot(item, 'bottoms') &&
       t(item.fit) === style.bottomsFit
     ) {
       maxPossible += W.fitMatch;

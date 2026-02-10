@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import type {WardrobeItem, Outfit, SuggestionParams} from '../types/wardrobe';
+import {isSlot} from '../lib/categoryMapping';
 
 export type OutfitWithReasons = {
   outfit: Outfit;
@@ -58,9 +59,9 @@ export function useOutfitSuggestion(
   const matchesWeather = (item: WardrobeItem, weather: string) => {
     if (weather === 'Any') return true;
     if (weather === 'hot')
-      return item.material !== 'Wool' && item.mainCategory !== 'Outerwear';
+      return item.material !== 'Wool' && !isSlot(item, 'outerwear');
     if (weather === 'cold')
-      return item.material === 'Wool' || item.mainCategory === 'Outerwear';
+      return item.material === 'Wool' || isSlot(item, 'outerwear');
     if (weather === 'rainy') return item.material === 'Waterproof';
     return true;
   };

@@ -1,4 +1,10 @@
 import { parseConstraints } from './constraints';
+import {
+  mapMainCategoryToSlot,
+  isSlot,
+  filterBySlot,
+  type Slot,
+} from './categoryMapping';
 
 export type CatalogItemLite = {
   index: number;
@@ -60,8 +66,9 @@ export function finalizeOutfitSlots(
     /(sneaker|trainer)/.test(subOf(x)) || /(sneaker|trainer)/.test(styleOf(x));
   const isBoot = (x: CatalogItemLite) =>
     /boot/.test(subOf(x)) || /boot/.test(styleOf(x));
+  // Use canonical slot mapping for footwear detection
   const isFootwear = (x: CatalogItemLite) =>
-    lc(x.main_category) === 'shoes' ||
+    isSlot(x, 'shoes') ||
     [
       'loafer',
       'sneaker',
@@ -91,9 +98,10 @@ export function finalizeOutfitSlots(
   };
 
   // De-dup outerwear (prefer blazer/sport coat)
+  // Use canonical slot mapping for outerwear detection
   const outers = items
     .map((it, i) => ({ it, i }))
-    .filter(({ it }) => lc(it.main_category) === 'outerwear');
+    .filter(({ it }) => isSlot(it, 'outerwear'));
   if (outers.length > 1) {
     const prefScore = (s?: string) =>
       /\b(blazer|sport\s*coat)\b/i.test(lc(s)) ? 0 : 1;
@@ -164,8 +172,14 @@ export function finalizeOutfitSlots(
     return (A.index ?? 999) - (B.index ?? 999);
   };
 
-  const isTop = (x: CatalogItemLite) => lc(x.main_category) === 'tops';
-  const isBottom = (x: CatalogItemLite) => lc(x.main_category) === 'bottoms';
+  // Use canonical slot mapping for category detection
+  const getSlot = (x: CatalogItemLite): Slot =>
+    mapMainCategoryToSlot(x.main_category ?? '');
+  const isTop = (x: CatalogItemLite) => getSlot(x) === 'tops';
+  const isBottom = (x: CatalogItemLite) => getSlot(x) === 'bottoms';
+  const isDress = (x: CatalogItemLite) => getSlot(x) === 'dresses';
+  const isActivewear = (x: CatalogItemLite) => getSlot(x) === 'activewear';
+  const isSwimwear = (x: CatalogItemLite) => getSlot(x) === 'swimwear';
 
   pruneToOne(isTop);
   pruneToOne(isBottom, preferBottoms);
@@ -173,7 +187,13 @@ export function finalizeOutfitSlots(
 
   const hasTop = items.some(isTop);
   const hasBottom = items.some(isBottom);
+  const hasDress = items.some(isDress);
+  const hasActivewear = items.some(isActivewear);
+  const hasSwimwear = items.some(isSwimwear);
   const hasFootwear = items.some((x) => isFootwear(x));
+
+  // Slot-aware completeness: one-piece items replace top+bottom requirement
+  const isOnePieceOutfit = hasDress || hasActivewear || hasSwimwear;
 
   const pickBest = (
     pred: (x: CatalogItemLite) => boolean,
@@ -185,19 +205,22 @@ export function finalizeOutfitSlots(
     return pool.slice().sort(prefer)[0];
   };
 
-  if (!hasTop) {
-    const top = pickBest((x) => isTop(x));
-    if (top) items.push(top);
-    else appendMissing('A shirt');
-  }
+  // Only require top+bottom for separates outfits (not dresses/activewear/swimwear)
+  if (!isOnePieceOutfit) {
+    if (!hasTop) {
+      const top = pickBest((x) => isTop(x));
+      if (top) items.push(top);
+      else appendMissing('A shirt');
+    }
 
-  if (!hasBottom) {
-    const bottom = pickBest(
-      (x) => isBottom(x) && subOf(x) !== 'shorts',
-      preferBottoms,
-    );
-    if (bottom) items.push(bottom);
-    else appendMissing('Dress trousers');
+    if (!hasBottom) {
+      const bottom = pickBest(
+        (x) => isBottom(x) && subOf(x) !== 'shorts',
+        preferBottoms,
+      );
+      if (bottom) items.push(bottom);
+      else appendMissing('Dress trousers');
+    }
   }
 
   const currentlyHasLoafer = items.some(isLoafer);
@@ -274,15 +297,15 @@ export function validateOutfits(
   const blackTie = /\b(black\s*tie|white\s*tie|tux(edo)?)\b/.test(q);
 
   const lc = (s?: string) => (s ?? '').toLowerCase();
+  // Use canonical slot mapping for category detection
   const isBottom = (x?: CatalogItemLite) =>
     !!x &&
-    (lc(x.main_category) === 'bottoms' ||
+    (isSlot(x, 'bottoms') ||
       /\b(shorts|trouser|pants|jeans|chinos|joggers?|sweatpants?|track)\b/i.test(
         lc(x.subcategory),
       ));
 
-  const isShoes = (x?: CatalogItemLite) =>
-    !!x && lc(x.main_category) === 'shoes';
+  const isShoes = (x?: CatalogItemLite) => !!x && isSlot(x, 'shoes');
   const isSneaker = (x?: CatalogItemLite) =>
     !!x &&
     /\b(sneakers?|trainers?|running|athletic)\b/i.test(lc(x.subcategory));
@@ -295,11 +318,10 @@ export function validateOutfits(
     !!x && /\bshorts?\b/i.test(lc(x.subcategory));
   const isHoodie = (x?: CatalogItemLite) =>
     !!x && /\bhoodie\b/i.test(lc(x.subcategory));
-  const isOuter = (x?: CatalogItemLite) =>
-    !!x && lc(x.main_category) === 'outerwear';
+  const isOuter = (x?: CatalogItemLite) => !!x && isSlot(x, 'outerwear');
 
   const orderRank = (c: CatalogItemLite) =>
-    lc(c.main_category) === 'tops'
+    isSlot(c, 'tops')
       ? 1
       : isBottom(c)
         ? 2
@@ -353,7 +375,8 @@ export function validateOutfits(
 
   // Array-level fallback if LLM produced nothing useful
   if (out.length === 0 || out.every((o) => (o.items || []).length === 0)) {
-    const tops = catalog.filter((x) => lc(x.main_category) === 'tops');
+    // Use canonical slot mapping for category filtering
+    const tops = filterBySlot(catalog, 'tops');
     const bottoms = catalog.filter(isBottom);
     const sneakers = catalog.filter(isSneaker);
     const dressShoes = catalog.filter(isDressShoe);

@@ -1,4 +1,14 @@
-import {normalizeOutfitStructure, shouldRebuildCapsule, buildCapsule, adaptWardrobeItem, CAPSULE_VERSION} from './capsuleEngine';
+import {
+  normalizeOutfitStructure,
+  shouldRebuildCapsule,
+  buildCapsule,
+  adaptWardrobeItem,
+  CAPSULE_VERSION,
+  deriveClimateZone,
+  getActivityProfile,
+  inferGarmentFlags,
+  gatePool,
+} from './capsuleEngine';
 import {TripPackingItem, TripCapsule, TripWardrobeItem, DayWeather, TripActivity} from '../../types/trips';
 
 function makeItem(overrides: Partial<TripPackingItem> & {mainCategory: string}): TripPackingItem {
@@ -137,9 +147,10 @@ describe('normalizeOutfitStructure', () => {
   });
 
   it('keeps only 1 top when 2 tops are present', () => {
+    // Use two actual Tops items (not Formalwear which now maps to dresses)
     const items = [
       makeItem({wardrobeItemId: 't1', mainCategory: 'Tops', name: 'Button-Down'}),
-      makeItem({wardrobeItemId: 't2', mainCategory: 'Formalwear', name: 'Dress Shirt'}),
+      makeItem({wardrobeItemId: 't2', mainCategory: 'Tops', name: 'Polo Shirt'}),
       makeItem({wardrobeItemId: 'b1', mainCategory: 'Bottoms', name: 'Slacks'}),
       makeItem({wardrobeItemId: 'sh1', mainCategory: 'Shoes', name: 'Oxfords'}),
     ];
@@ -147,12 +158,26 @@ describe('normalizeOutfitStructure', () => {
     const result = normalizeOutfitStructure(items);
 
     expect(result).toHaveLength(3);
-    const tops = result.filter(i => {
-      const cat = i.mainCategory;
-      return cat === 'Tops' || cat === 'Formalwear';
-    });
+    const tops = result.filter(i => i.mainCategory === 'Tops');
     expect(tops).toHaveLength(1);
-    expect(tops[0].name).toBe('Button-Down'); // first top-like kept
+    expect(tops[0].name).toBe('Button-Down'); // first top kept
+  });
+
+  it('treats Formalwear as dress-like (removes bottoms when present)', () => {
+    // Formalwear now maps to dresses bucket (one-piece formal items)
+    const items = [
+      makeItem({wardrobeItemId: 'f1', mainCategory: 'Formalwear', name: 'Tuxedo'}),
+      makeItem({wardrobeItemId: 'b1', mainCategory: 'Bottoms', name: 'Slacks'}),
+      makeItem({wardrobeItemId: 'sh1', mainCategory: 'Shoes', name: 'Oxfords'}),
+    ];
+
+    const result = normalizeOutfitStructure(items);
+
+    // Formalwear is dress-like, so bottoms should be removed
+    expect(result).toHaveLength(2);
+    expect(result.find(i => i.mainCategory === 'Formalwear')).toBeDefined();
+    expect(result.find(i => i.mainCategory === 'Shoes')).toBeDefined();
+    expect(result.find(i => i.mainCategory === 'Bottoms')).toBeUndefined();
   });
 
   // ── Pass-through cases ──
@@ -370,5 +395,232 @@ describe('buildCapsule hard reset rebuild', () => {
     const weather = makeWeather();
     const capsule = buildCapsule(wardrobe, weather, activities, 'Home');
     expect(capsule.build_id).toMatch(/^build_\d+_[a-z0-9]+$/);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  GLOBAL CLIMATE GATING TESTS (6 integration tests)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function makeWardrobeItem(overrides: Partial<TripWardrobeItem> & {id: string}): TripWardrobeItem {
+  return {name: 'Test Item', ...overrides};
+}
+
+describe('Global Climate Gating', () => {
+  // Test 1: freezing + formal blocks shorts/sandals/tank
+  it('freezing + formal: blocks shorts, sandals, tank tops', () => {
+    const freezingWeather: DayWeather[] = [
+      {date: '2025-01-15', dayLabel: 'Wed', highF: 28, lowF: 15, condition: 'snowy', rainChance: 20},
+    ];
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', formalityScore: 80}),
+      makeWardrobeItem({id: 't2', name: 'Tank Top', main_category: 'Tops', subcategory: 'Tank Top'}),
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Sandals', main_category: 'Shoes', subcategory: 'Sandals'}),
+    ];
+    const capsule = buildCapsule(wardrobe, freezingWeather, ['Formal'], 'Home');
+    const allItemNames = capsule.outfits.flatMap(o => o.items.map(i => i.name));
+
+    expect(allItemNames).not.toContain('Tank Top');
+    expect(allItemNames).not.toContain('Shorts');
+    expect(allItemNames).not.toContain('Sandals');
+  });
+
+  // Test 2: hot + beach allows swimwear/hawaiian
+  it('hot + beach: allows swimwear and hawaiian shirts', () => {
+    const hotWeather: DayWeather[] = [
+      {date: '2025-07-15', dayLabel: 'Tue', highF: 95, lowF: 78, condition: 'sunny', rainChance: 5},
+    ];
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 'sw1', name: 'Bikini', main_category: 'Swimwear'}),
+      makeWardrobeItem({id: 't1', name: 'Hawaiian Shirt', main_category: 'Tops', subcategory: 'Hawaiian'}),
+      makeWardrobeItem({id: 's1', name: 'Flip-Flops', main_category: 'Shoes', subcategory: 'Flip-Flops'}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Beach'], 'Home');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+
+    // Beach allows swimwear
+    expect(allItems.some(i => i.mainCategory === 'Swimwear')).toBe(true);
+  });
+
+  // Test 3: hot + business blocks hawaiian/swimwear
+  it('hot + business: blocks hawaiian and swimwear', () => {
+    const hotWeather: DayWeather[] = [
+      {date: '2025-07-15', dayLabel: 'Tue', highF: 95, lowF: 78, condition: 'sunny', rainChance: 5},
+    ];
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Hawaiian Shirt', main_category: 'Tops', subcategory: 'Hawaiian'}),
+      makeWardrobeItem({id: 't2', name: 'Dress Shirt', main_category: 'Tops', formalityScore: 80}),
+      makeWardrobeItem({id: 'sw1', name: 'Swim Trunks', main_category: 'Swimwear'}),
+      makeWardrobeItem({id: 'b1', name: 'Chinos', main_category: 'Bottoms', formalityScore: 70}),
+      makeWardrobeItem({id: 's1', name: 'Loafers', main_category: 'Shoes', formalityScore: 75}),
+    ];
+    const capsule = buildCapsule(wardrobe, hotWeather, ['Business'], 'Home');
+    const allItemNames = capsule.outfits.flatMap(o => o.items.map(i => i.name));
+
+    expect(allItemNames).not.toContain('Hawaiian Shirt');
+    expect(allItemNames).not.toContain('Swim Trunks');
+  });
+
+  // Test 4: mild + casual allows shorts
+  it('mild + casual: allows shorts', () => {
+    const mildWeather: DayWeather[] = [
+      {date: '2025-05-15', dayLabel: 'Thu', highF: 72, lowF: 58, condition: 'sunny', rainChance: 5},
+    ];
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'T-Shirt', main_category: 'Tops'}),
+      makeWardrobeItem({id: 'b1', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+      makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes'}),
+    ];
+    const capsule = buildCapsule(wardrobe, mildWeather, ['Casual'], 'Home');
+    const allItemNames = capsule.outfits.flatMap(o => o.items.map(i => i.name));
+
+    expect(allItemNames).toContain('Shorts');
+  });
+
+  // Test 5: cool + dinner does not select beach items
+  it('cool + dinner: does not select beach items', () => {
+    const coolWeather: DayWeather[] = [
+      {date: '2025-03-15', dayLabel: 'Sat', highF: 58, lowF: 48, condition: 'partly-cloudy', rainChance: 15},
+      {date: '2025-03-16', dayLabel: 'Sun', highF: 60, lowF: 50, condition: 'sunny', rainChance: 10},
+    ];
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Hawaiian Shirt', main_category: 'Tops', subcategory: 'Hawaiian'}),
+      makeWardrobeItem({id: 't2', name: 'Blazer', main_category: 'Tops', formalityScore: 75}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', formalityScore: 80}),
+      makeWardrobeItem({id: 's1', name: 'Oxfords', main_category: 'Shoes', formalityScore: 85}),
+    ];
+    const capsule = buildCapsule(wardrobe, coolWeather, ['Dinner'], 'Home');
+    const dinnerOutfit = capsule.outfits.find(o => o.occasion === 'Dinner');
+
+    if (dinnerOutfit) {
+      const names = dinnerOutfit.items.map(i => i.name);
+      expect(names).not.toContain('Hawaiian Shirt');
+    }
+  });
+
+  // Test 6: false positive - "short sleeve" doesn't match shorts
+  it('false positive: "short sleeve" is NOT treated as shorts', () => {
+    const coldWeather: DayWeather[] = [
+      {date: '2025-01-15', dayLabel: 'Wed', highF: 40, lowF: 30, condition: 'cloudy', rainChance: 20},
+    ];
+    const shortSleeveShirt = makeWardrobeItem({
+      id: 't1',
+      name: 'Short Sleeve Button-Down',
+      main_category: 'Tops',
+      subcategory: 'Button-Down',
+    });
+
+    // Gate should NOT block "short sleeve" as if it were shorts
+    const flags = inferGarmentFlags(shortSleeveShirt);
+    expect(flags.isMinimalCoverage).toBe(false);
+
+    // Also verify gatePool doesn't filter it out
+    const climate = deriveClimateZone(coldWeather[0]);
+    const activity = getActivityProfile('Formal');
+    const result = gatePool([shortSleeveShirt], climate, activity);
+    expect(result).toContain(shortSleeveShirt);
+  });
+
+  // Additional: CAPSULE_VERSION is 3 (bumped for climate gating)
+  it('CAPSULE_VERSION is 3 (bumped for climate gating)', () => {
+    expect(CAPSULE_VERSION).toBe(3);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ██  MANDATORY REGRESSION: Masculine user NEVER receives feminine items
+  // ══════════════════════════════════════════════════════════════════════════
+
+  it('REGRESSION: Masculine user never receives feminine clothing, shoes, or jewelry', () => {
+    // Masculine-majority wardrobe with some feminine items that MUST be blocked
+    // detectPresentation needs masculine signals to dominate
+    const mixedWardrobe: TripWardrobeItem[] = [
+      // Masculine items (majority - ensures presentation === 'masculine')
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80}),
+      makeWardrobeItem({id: 't3', name: 'Polo Shirt', main_category: 'Tops', subcategory: 'Polo', formalityScore: 60}),
+      makeWardrobeItem({id: 't4', name: 'V-Neck Sweater', main_category: 'Tops', subcategory: 'Sweater', formalityScore: 65}),
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Navy Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 70}),
+      makeWardrobeItem({id: 'b3', name: 'Dark Jeans', main_category: 'Bottoms', subcategory: 'Jeans', formalityScore: 50}),
+      makeWardrobeItem({id: 'sh1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 'sh2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      makeWardrobeItem({id: 'o2', name: 'Wool Suit Jacket', main_category: 'Outerwear', subcategory: 'Suit', formalityScore: 90}),
+      makeWardrobeItem({id: 'a1', name: 'Leather Watch', main_category: 'Accessories', subcategory: 'Watch'}),
+      makeWardrobeItem({id: 'a2', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+      makeWardrobeItem({id: 'a3', name: 'Striped Necktie', main_category: 'Accessories', subcategory: 'Necktie'}),
+      // Extra masculine shoes to push signal ratio above 70%
+      makeWardrobeItem({id: 'sh4', name: 'Black Oxfords', main_category: 'Shoes', subcategory: 'Oxford'}),
+      makeWardrobeItem({id: 'sh5', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafer'}),
+      // Feminine items that MUST BE BLOCKED (minority - simulates misclassified items)
+      makeWardrobeItem({id: 'd1', name: 'Evening Gown', main_category: 'Dresses', subcategory: 'Gown'}),
+      makeWardrobeItem({id: 'sk1', name: 'Pencil Skirt', main_category: 'Skirts', subcategory: 'Skirt'}),
+      makeWardrobeItem({id: 'sh3', name: 'Stiletto Heels', main_category: 'Shoes', subcategory: 'Heels'}),
+      makeWardrobeItem({id: 'j1', name: 'Diamond Earrings', main_category: 'Jewelry', subcategory: 'Earrings'}),
+      makeWardrobeItem({id: 'bag1', name: 'Designer Purse', main_category: 'Bags', subcategory: 'Purse'}),
+    ];
+
+    const weather: DayWeather[] = [
+      {date: '2025-06-15', dayLabel: 'Sun', highF: 75, lowF: 60, condition: 'sunny', rainChance: 5},
+      {date: '2025-06-16', dayLabel: 'Mon', highF: 78, lowF: 62, condition: 'sunny', rainChance: 10},
+    ];
+
+    // Build capsule with multiple activities
+    const capsule = buildCapsule(mixedWardrobe, weather, ['Formal', 'Business', 'Dinner', 'Casual'], 'Home');
+
+    // Extract all items from all outfits
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    const allNames = allItems.map(i => i.name);
+    const allSubcats = allItems.map(i => i.subCategory || '').filter(Boolean);
+
+    // ZERO TOLERANCE: None of these feminine items should appear
+    const forbiddenPatterns = ['Gown', 'Skirt', 'Heels', 'Earrings', 'Purse'];
+
+    for (const pattern of forbiddenPatterns) {
+      const foundInName = allNames.some(n => n.toLowerCase().includes(pattern.toLowerCase()));
+      const foundInSubcat = allSubcats.some(s => s.toLowerCase().includes(pattern.toLowerCase()));
+      expect(foundInName || foundInSubcat).toBe(false);
+    }
+
+    // Verify masculine items ARE included (at least some)
+    const hasMasculineItems = allNames.some(n =>
+      n.includes('Shirt') || n.includes('Trousers') || n.includes('Oxford') || n.includes('Chinos')
+    );
+    expect(hasMasculineItems).toBe(true);
+  });
+
+  it('inferGarmentFlags correctly identifies feminine-only items', () => {
+    // Items that MUST be flagged as feminine
+    const feminineItems = [
+      makeWardrobeItem({id: '1', name: 'Black Dress', main_category: 'Dresses'}),
+      makeWardrobeItem({id: '2', name: 'Pencil Skirt', main_category: 'Skirts'}),
+      makeWardrobeItem({id: '3', name: 'Silk Blouse', subcategory: 'Blouse'}),
+      makeWardrobeItem({id: '4', name: 'Stiletto Heels', subcategory: 'Heels'}),
+      makeWardrobeItem({id: '5', name: 'Red Pumps', subcategory: 'Pumps'}),
+      makeWardrobeItem({id: '6', name: 'Diamond Earrings', subcategory: 'Earrings'}),
+      makeWardrobeItem({id: '7', name: 'Designer Purse', subcategory: 'Purse'}),
+      makeWardrobeItem({id: '8', name: 'Evening Clutch', subcategory: 'Clutch'}),
+    ];
+
+    for (const item of feminineItems) {
+      const flags = inferGarmentFlags(item);
+      expect(flags.isFeminineOnly).toBe(true);
+    }
+
+    // Items that must NOT be flagged as feminine (false positive prevention)
+    const masculineItems = [
+      makeWardrobeItem({id: '10', name: 'Dress Shirt', subcategory: 'Dress Shirt'}),
+      makeWardrobeItem({id: '11', name: 'Oxford Shoes', subcategory: 'Oxford'}),
+      makeWardrobeItem({id: '12', name: 'Leather Watch', subcategory: 'Watch'}),
+      makeWardrobeItem({id: '13', name: 'Wool Trousers', subcategory: 'Trousers'}),
+    ];
+
+    for (const item of masculineItems) {
+      const flags = inferGarmentFlags(item);
+      expect(flags.isFeminineOnly).toBe(false);
+    }
   });
 });

@@ -2,6 +2,11 @@
 // STATELESS, DETERMINISTIC outfit planning engine
 // NO personal preferences, NO learning, NO bias - pure constraints-based logic
 
+/**
+ * OutfitPlanSlot category type.
+ * Matches PlanCategory in categoryMapping.ts.
+ * ALL outfit-eligible slots are represented.
+ */
 export type OutfitPlanSlot = {
   category:
     | 'Tops'
@@ -11,7 +16,9 @@ export type OutfitPlanSlot = {
     | 'Outerwear'
     | 'Accessories'
     | 'Activewear'
-    | 'Swimwear';
+    | 'Swimwear'
+    | 'Undergarments'
+    | 'Other';
   description: string;
   formality?: number;
 };
@@ -189,7 +196,8 @@ RULES:
 - NEVER combine Tops+Bottoms with Dresses in the same outfit
 - Activewear slots replace Tops+Bottoms for athletic/gym contexts
 - Swimwear is a standalone slot for beach/pool contexts
-- Valid categories: Tops, Bottoms, Dresses, Shoes, Outerwear, Accessories, Activewear, Swimwear
+- Valid categories: Tops, Bottoms, Dresses, Shoes, Outerwear, Accessories, Activewear, Swimwear, Undergarments, Other
+- CRITICAL: If an item is a dress, gown, romper, or jumpsuit, its category MUST be 'Dresses', never 'Bottoms'
 - Only omit Outerwear if weather/context makes it inappropriate (e.g., hot summer day)
 - Only omit Accessories if none would enhance the outfit
 - Prefer COMPLETE outfits with 3-5 items over minimal 2-item outfits
@@ -244,6 +252,10 @@ PICK #3 WILDCARD CONSTRAINTS (critical):
  * - The LLM must NOT generate a slot for the centerpiece's category
  * - All outfits must be DESIGNED around the centerpiece, not have it appended
  */
+/**
+ * CenterpieceItem category type.
+ * Matches PlanCategory in categoryMapping.ts.
+ */
 export type CenterpieceItem = {
   category:
     | 'Tops'
@@ -253,7 +265,9 @@ export type CenterpieceItem = {
     | 'Outerwear'
     | 'Accessories'
     | 'Activewear'
-    | 'Swimwear';
+    | 'Swimwear'
+    | 'Undergarments'
+    | 'Other';
   description: string; // e.g., "navy blue chinos", "white leather sneakers"
   color?: string;
   formality?: number;
@@ -297,6 +311,7 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
   const allCategories = [
     'Tops',
     'Bottoms',
@@ -306,6 +321,8 @@ ${availableItems.join(', ')}`;
     'Accessories',
     'Activewear',
     'Swimwear',
+    'Undergarments',
+    'Other',
   ];
   const centerpieceCatLc = centerpieceItem.category.toLowerCase();
   const structuralExclusions = new Set<string>();
@@ -494,6 +511,7 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
   const allCategories = [
     'Tops',
     'Bottoms',
@@ -503,6 +521,8 @@ ${availableItems.join(', ')}`;
     'Accessories',
     'Activewear',
     'Swimwear',
+    'Undergarments',
+    'Other',
   ];
   const centerpieceCatLc = centerpieceItem.category.toLowerCase();
   const structuralExclusions = new Set<string>();
@@ -996,6 +1016,7 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
   const allCategories = [
     'Tops',
     'Bottoms',
@@ -1005,6 +1026,8 @@ ${availableItems.join(', ')}`;
     'Accessories',
     'Activewear',
     'Swimwear',
+    'Undergarments',
+    'Other',
   ];
   const centerpieceCatLc = centerpieceItem.category.toLowerCase();
   const structuralExclusions = new Set<string>();
@@ -1256,6 +1279,7 @@ ${availableItems.join(', ')}`;
   }
 
   // Determine which categories to generate (exclude centerpiece + structural complements)
+  // All plan-visible categories (from canonical categoryMapping)
   const allCategories = [
     'Tops',
     'Bottoms',
@@ -1265,6 +1289,8 @@ ${availableItems.join(', ')}`;
     'Accessories',
     'Activewear',
     'Swimwear',
+    'Undergarments',
+    'Other',
   ];
   const centerpieceCatLc = centerpieceItem.category.toLowerCase();
   const structuralExclusions = new Set<string>();

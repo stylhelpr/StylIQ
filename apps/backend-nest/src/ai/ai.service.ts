@@ -3598,60 +3598,98 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
           feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
         }))
         .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      dress: wardrobe
+        .filter(
+          (item) =>
+            this.mapToCategory(item.main_category || item.category) === 'dress',
+        )
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      activewear: wardrobe
+        .filter(
+          (item) =>
+            this.mapToCategory(item.main_category || item.category) ===
+            'activewear',
+        )
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
+      swimwear: wardrobe
+        .filter(
+          (item) =>
+            this.mapToCategory(item.main_category || item.category) ===
+            'swimwear',
+        )
+        .map((item) => ({
+          ...item,
+          feedbackScore: feedbackContext.itemScores.get(item.id) || 0,
+        }))
+        .sort((a, b) => b.feedbackScore - a.feedbackScore),
     };
 
     // Enforce completeness for each outfit
+    // Dress-based outfits: dress + shoes (no top/bottom needed)
+    // Separates outfits: top + bottom + shoes
     for (const outfit of outfitsWithItems) {
       const existingIds = new Set(
         outfit.items.map((item) => item?.id).filter(Boolean),
       );
+      const hasDress = outfit.items.some((item) => item?.category === 'dress');
       const hasTop = outfit.items.some((item) => item?.category === 'top');
       const hasBottom = outfit.items.some(
         (item) => item?.category === 'bottom',
       );
       const hasShoes = outfit.items.some((item) => item?.category === 'shoes');
 
-      // Inject missing top
-      if (!hasTop && categoryPools.top.length > 0) {
-        const fallback = categoryPools.top.find(
-          (item) => !existingIds.has(item.id),
-        );
-        if (fallback) {
-          outfit.items.push({
-            id: fallback.id,
-            name: fallback.name || fallback.ai_title || 'Item',
-            imageUrl:
-              fallback.touched_up_image_url ||
-              fallback.processed_image_url ||
-              fallback.image_url ||
-              fallback.image,
-            category: 'top',
-          });
-          existingIds.add(fallback.id);
+      // Skip top/bottom injection for dress-based outfits (dresses are one-piece)
+      if (!hasDress) {
+        // Inject missing top
+        if (!hasTop && categoryPools.top.length > 0) {
+          const fallback = categoryPools.top.find(
+            (item) => !existingIds.has(item.id),
+          );
+          if (fallback) {
+            outfit.items.push({
+              id: fallback.id,
+              name: fallback.name || fallback.ai_title || 'Item',
+              imageUrl:
+                fallback.touched_up_image_url ||
+                fallback.processed_image_url ||
+                fallback.image_url ||
+                fallback.image,
+              category: 'top',
+            });
+            existingIds.add(fallback.id);
+          }
+        }
+
+        // Inject missing bottom
+        if (!hasBottom && categoryPools.bottom.length > 0) {
+          const fallback = categoryPools.bottom.find(
+            (item) => !existingIds.has(item.id),
+          );
+          if (fallback) {
+            outfit.items.push({
+              id: fallback.id,
+              name: fallback.name || fallback.ai_title || 'Item',
+              imageUrl:
+                fallback.touched_up_image_url ||
+                fallback.processed_image_url ||
+                fallback.image_url ||
+                fallback.image,
+              category: 'bottom',
+            });
+            existingIds.add(fallback.id);
+          }
         }
       }
 
-      // Inject missing bottom
-      if (!hasBottom && categoryPools.bottom.length > 0) {
-        const fallback = categoryPools.bottom.find(
-          (item) => !existingIds.has(item.id),
-        );
-        if (fallback) {
-          outfit.items.push({
-            id: fallback.id,
-            name: fallback.name || fallback.ai_title || 'Item',
-            imageUrl:
-              fallback.touched_up_image_url ||
-              fallback.processed_image_url ||
-              fallback.image_url ||
-              fallback.image,
-            category: 'bottom',
-          });
-          existingIds.add(fallback.id);
-        }
-      }
-
-      // Inject missing shoes
+      // Inject missing shoes (always required for all outfit types)
       if (!hasShoes && categoryPools.shoes.length > 0) {
         const fallback = categoryPools.shoes.find(
           (item) => !existingIds.has(item.id),
@@ -3711,36 +3749,42 @@ ${feedbackContext.dislikedPatterns.length > 0 ? `NOTE: Items marked with "prefer
     return `Warm today (${temp}°F) — keep it light and breathable.`;
   }
 
-  /** Map backend category to frontend category type */
+  /**
+   * Map backend category to frontend category type.
+   * Uses canonical categoryMapping for slot resolution, then converts to
+   * the simplified category format expected by outfit completion logic.
+   */
   private mapToCategory(
     category: string,
-  ): 'top' | 'bottom' | 'outerwear' | 'shoes' | 'accessory' {
-    const normalized = (category || '').toLowerCase();
-    if (
-      normalized.includes('top') ||
-      normalized.includes('shirt') ||
-      normalized.includes('blouse')
-    )
-      return 'top';
-    if (
-      normalized.includes('bottom') ||
-      normalized.includes('pant') ||
-      normalized.includes('skirt')
-    )
-      return 'bottom';
-    if (
-      normalized.includes('outer') ||
-      normalized.includes('jacket') ||
-      normalized.includes('coat')
-    )
-      return 'outerwear';
-    if (
-      normalized.includes('shoe') ||
-      normalized.includes('boot') ||
-      normalized.includes('sneaker')
-    )
-      return 'shoes';
-    return 'accessory';
+  ):
+    | 'top'
+    | 'bottom'
+    | 'outerwear'
+    | 'shoes'
+    | 'accessory'
+    | 'dress'
+    | 'activewear'
+    | 'swimwear' {
+    // Import canonical mapping (lazy to avoid circular deps)
+    const { mapMainCategoryToSlot } = require('../wardrobe/logic/categoryMapping');
+
+    const slot = mapMainCategoryToSlot(category);
+
+    // Convert slot names to simplified category format
+    const SLOT_TO_SIMPLE: Record<string, string> = {
+      tops: 'top',
+      bottoms: 'bottom',
+      shoes: 'shoes',
+      outerwear: 'outerwear',
+      accessories: 'accessory',
+      dresses: 'dress',
+      activewear: 'activewear',
+      swimwear: 'swimwear',
+      undergarments: 'accessory', // Treat as accessory for outfit logic
+      other: 'accessory', // Default to accessory
+    };
+
+    return (SLOT_TO_SIMPLE[slot] || 'accessory') as any;
   }
 
   /* ------------------------------------------------------------

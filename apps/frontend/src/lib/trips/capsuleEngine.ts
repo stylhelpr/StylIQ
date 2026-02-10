@@ -9,9 +9,125 @@ import {
   CapsuleWarning,
 } from '../../types/trips';
 import {PACKING_CATEGORY_ORDER} from './constants';
+import {
+  isSlot,
+  getSlot,
+  mapMainCategoryToSlot,
+  type Slot,
+  MAIN_CATEGORY_TO_SLOT,
+} from '../categoryMapping';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 2;
+export const CAPSULE_VERSION = 3;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  GLOBAL CLIMATE GATING (minimal layer)
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type ClimateZone = 'freezing' | 'cold' | 'cool' | 'mild' | 'warm' | 'hot';
+export type ActivityContext = 'city' | 'beach' | 'sport' | 'universal';
+export type ActivityProfile = {formality: number; context: ActivityContext};
+export type GarmentFlags = {
+  isMinimalCoverage: boolean;
+  isBeachContext: boolean;
+  isCasualOnly: boolean;
+  isFeminineOnly: boolean;
+};
+
+export function deriveClimateZone(dayWeather: DayWeather | undefined): ClimateZone {
+  if (!dayWeather) return 'mild';
+  const {lowF, highF} = dayWeather;
+  if (lowF < 32) return 'freezing';
+  if (lowF < 45) return 'cold';
+  if (lowF < 55) return 'cool';
+  if (lowF < 65 && highF < 75) return 'mild';
+  if (highF < 85) return 'warm';
+  return 'hot';
+}
+
+export function getActivityProfile(activity: TripActivity): ActivityProfile {
+  switch (activity) {
+    case 'Formal': return {formality: 3, context: 'city'};
+    case 'Business': return {formality: 2, context: 'city'};
+    case 'Dinner': return {formality: 2, context: 'city'};
+    case 'Beach': return {formality: 0, context: 'beach'};
+    case 'Active': return {formality: 0, context: 'sport'};
+    case 'Sightseeing': return {formality: 1, context: 'universal'};
+    case 'Casual': return {formality: 0, context: 'universal'};
+    case 'Cold Weather': return {formality: 1, context: 'universal'};
+    default: return {formality: 0, context: 'universal'};
+  }
+}
+
+export function inferGarmentFlags(item: TripWardrobeItem): GarmentFlags {
+  const sub = (item.subcategory || '').toLowerCase();
+  const name = (item.name || '').toLowerCase();
+  const cat = item.main_category || '';
+
+  // Minimal coverage: shorts, tank tops, sandals, flip-flops, swimwear
+  const isShorts = sub.includes('shorts') || (name.includes('shorts') && !name.includes('short sleeve'));
+  const isTankTop = (sub.includes('tank') && !name.includes('tank watch')) || name === 'tank top';
+  const isSandal = sub.includes('sandal') || sub.includes('flip-flop') || name.includes('flip-flop');
+  const isSwimwear = cat === 'Swimwear';
+  const isMinimalCoverage = isShorts || isTankTop || isSandal || isSwimwear;
+
+  // Beach context: Hawaiian shirts, board shorts, swimwear
+  const isHawaiian = sub.includes('hawaiian') || name.includes('hawaiian') || name.includes('aloha');
+  const isBoardShorts = sub.includes('board short') || (name.includes('board') && name.includes('short') && !name.includes('boardroom'));
+  const isBeachContext = isHawaiian || isBoardShorts || isSwimwear;
+
+  // Casual-only: very low formality items for formal gating
+  const isCasualOnly = isHawaiian || isSwimwear || isTankTop;
+
+  // ── Feminine-only detection (HARD BLOCK for masculine users) ──
+  // Clothing
+  const isDress = cat === 'Dresses' || sub.includes('dress') && !sub.includes('dress shirt');
+  const isSkirt = cat === 'Skirts' || sub.includes('skirt') && !name.includes('skirt steak');
+  const isBlouse = sub.includes('blouse');
+  const isGown = sub.includes('gown');
+  // Shoes
+  const isHeels = sub.includes('heel') && !name.includes('heel tab') || sub.includes('stiletto') || sub.includes('pump') || sub.includes('slingback') || sub.includes('mary jane');
+  const isBalletFlat = sub.includes('ballet flat') || (name.includes('ballet') && name.includes('flat'));
+  // Jewelry/Accessories
+  const isEarring = sub.includes('earring') || name.includes('earring');
+  const isBracelet = sub.includes('bracelet') || name.includes('bracelet');
+  const isAnklet = sub.includes('anklet') || name.includes('anklet');
+  const isPurse = sub.includes('purse') || sub.includes('handbag') || sub.includes('clutch') || name.includes('purse') || name.includes('handbag');
+
+  const isFeminineOnly = isDress || isSkirt || isBlouse || isGown || isHeels || isBalletFlat || isEarring || isBracelet || isAnklet || isPurse;
+
+  return {isMinimalCoverage, isBeachContext, isCasualOnly, isFeminineOnly};
+}
+
+export function gatePool(
+  items: TripWardrobeItem[],
+  climateZone: ClimateZone,
+  activity: ActivityProfile,
+  presentation: 'masculine' | 'feminine' | 'mixed' = 'mixed',
+): TripWardrobeItem[] {
+  const isColdOrFreezing = climateZone === 'cold' || climateZone === 'freezing';
+  const isFormalActivity = activity.formality >= 2;
+  const isCityContext = activity.context === 'city';
+  const isMasculine = presentation === 'masculine';
+
+  return items.filter(item => {
+    const flags = inferGarmentFlags(item);
+
+    // RULE 0 (FIRST CHECK): Block feminine-only items for masculine users — NO EXCEPTIONS
+    if (isMasculine && flags.isFeminineOnly) return false;
+
+    // Rule 1: Block minimal coverage in cold/freezing
+    if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+
+    // Rule 2: Block beach-context items for business/formal/dinner (city context + formal)
+    if (isFormalActivity && isCityContext && flags.isBeachContext) return false;
+
+    // Rule 3: Block casual-only items for formal activities
+    if (isFormalActivity && flags.isCasualOnly) return false;
+
+    return true;
+  });
+}
 
 export type RebuildMode = 'AUTO' | 'FORCE';
 
@@ -146,50 +262,25 @@ function shuffleWithSeed<T>(arr: T[], rand: () => number): T[] {
 }
 
 // ── Category bucketing ──
+// Uses canonical mapping from src/lib/categoryMapping.ts
+// which is synced with backend: apps/backend-nest/src/wardrobe/logic/categoryMapping.ts
 
-type CategoryBucket =
-  | 'tops'
-  | 'bottoms'
-  | 'outerwear'
-  | 'shoes'
-  | 'accessories'
-  | 'dresses'
-  | 'activewear'
-  | 'swimwear';
+/**
+ * CategoryBucket is now an alias for Slot from the canonical mapping.
+ * This type is kept for backward compatibility with existing code.
+ */
+type CategoryBucket = Slot;
 
-const CATEGORY_MAP: Record<string, CategoryBucket> = {
-  Tops: 'tops',
-  Bottoms: 'bottoms',
-  Outerwear: 'outerwear',
-  Shoes: 'shoes',
-  Accessories: 'accessories',
-  Dresses: 'dresses',
-  Skirts: 'bottoms',
-  Activewear: 'activewear',
-  Formalwear: 'tops',
-  Bags: 'accessories',
-  Headwear: 'accessories',
-  Jewelry: 'accessories',
-  Swimwear: 'swimwear',
-  Loungewear: 'tops',
-  Sleepwear: 'tops',
-  Undergarments: 'accessories',
-  Maternity: 'tops',
-  TraditionalWear: 'dresses',
-  Unisex: 'tops',
-  Costumes: 'accessories',
-  Other: 'accessories',
-};
+/**
+ * CATEGORY_MAP - Re-exported from canonical categoryMapping.ts
+ * DO NOT modify - this is the single source of truth.
+ */
+const CATEGORY_MAP = MAIN_CATEGORY_TO_SLOT as Record<string, CategoryBucket>;
 
 function getBucket(item: TripWardrobeItem): CategoryBucket | null {
   const cat = item.main_category;
   if (!cat) return null;
-  const bucket = CATEGORY_MAP[cat];
-  if (!bucket) {
-    console.warn('[CapsuleEngine] Unknown category, routing to accessories:', cat);
-    return 'accessories';
-  }
-  return bucket;
+  return mapMainCategoryToSlot(cat);
 }
 
 // ── Weather analysis ──
@@ -249,21 +340,17 @@ function activityScore(
         if (dressCode.includes('casual') || formality < 50) score += 1;
         break;
       case 'Beach':
-        if (item.main_category === 'Swimwear') score += 3;
+        if (isSlot(item, 'swimwear')) score += 3;
         break;
       case 'Active':
-        if (
-          item.main_category === 'Activewear' ||
-          occasions.includes('gym')
-        )
-          score += 2;
+        if (isSlot(item, 'activewear') || occasions.includes('gym')) score += 2;
         break;
       case 'Sightseeing':
         if (dressCode.includes('casual') || dressCode.includes('smart'))
           score += 1;
         break;
       case 'Cold Weather':
-        if (item.main_category === 'Outerwear') score += 2;
+        if (isSlot(item, 'outerwear')) score += 2;
         if ((item.thermalRating ?? 0) > 60) score += 1;
         break;
     }
@@ -438,10 +525,12 @@ export function detectPresentation(
     const cat = item.main_category || '';
     const sub = (item.subcategory || '').toLowerCase();
 
+    // Feminine signals — but "dress shirt" is masculine, not feminine
+    const isDressShirt = sub.includes('dress shirt');
     if (
       cat === 'Dresses' ||
       cat === 'Skirts' ||
-      sub.includes('dress') ||
+      (sub.includes('dress') && !isDressShirt) ||
       sub.includes('skirt') ||
       sub.includes('heel') ||
       sub.includes('blouse') ||
@@ -457,7 +546,8 @@ export function detectPresentation(
       sub.includes('blazer') ||
       sub.includes('suit') ||
       sub.includes('tie') ||
-      sub.includes('necktie')
+      sub.includes('necktie') ||
+      isDressShirt
     ) {
       masc++;
     }
@@ -494,6 +584,28 @@ function buildOutfitForActivity(
   presentation: Presentation,
 ): TripPackingItem[] {
   const items: TripPackingItem[] = [];
+
+  // ── Apply global climate + gender gating ──
+  const climateZone = deriveClimateZone(dayWeather);
+  const activityProfile = getActivityProfile(activity);
+  const isMasculine = presentation === 'masculine';
+  const gatedBuckets = {} as Record<CategoryBucket, TripWardrobeItem[]>;
+  for (const key of Object.keys(buckets) as CategoryBucket[]) {
+    gatedBuckets[key] = gatePool(buckets[key], climateZone, activityProfile, presentation);
+    // Fallback: if gating empties the bucket, use original — BUT NEVER FOR MASCULINE + FEMININE ITEMS
+    if (gatedBuckets[key].length === 0 && buckets[key].length > 0) {
+      if (isMasculine) {
+        // For masculine: filter out feminine items even in fallback
+        gatedBuckets[key] = buckets[key].filter(item => !inferGarmentFlags(item).isFeminineOnly);
+      } else {
+        gatedBuckets[key] = buckets[key];
+      }
+    }
+  }
+  const gatedShoes = gatePool(selectedShoes, climateZone, activityProfile, presentation);
+  // For masculine: NEVER fallback to feminine shoes
+  const finalShoes = gatedShoes.length > 0 ? gatedShoes : (isMasculine ? selectedShoes.filter(s => !inferGarmentFlags(s).isFeminineOnly) : selectedShoes);
+
   const pick = mode === 'support'
     ? (b: TripWardrobeItem[], idx: number, arr: TripPackingItem[], loc: string) =>
         pickFromBucketReuse(b, idx, arr, loc, usedItemIds)
@@ -501,99 +613,99 @@ function buildOutfitForActivity(
 
   switch (activity) {
     case 'Beach': {
-      if (buckets.swimwear.length > 0) {
-        const swimIdx = dayIndex % buckets.swimwear.length;
-        items.push(toPackingItem(buckets.swimwear[swimIdx], locationLabel));
+      if (gatedBuckets.swimwear.length > 0) {
+        const swimIdx = dayIndex % gatedBuckets.swimwear.length;
+        items.push(toPackingItem(gatedBuckets.swimwear[swimIdx], locationLabel));
       } else {
-        pick(buckets.tops, dayIndex, items, locationLabel);
+        pick(gatedBuckets.tops, dayIndex, items, locationLabel);
       }
-      pickShoe(selectedShoes, dayIndex, items, locationLabel);
+      pickShoe(finalShoes, dayIndex, items, locationLabel);
       if (mode === 'anchor') {
-        pick(buckets.accessories, dayIndex, items, locationLabel);
+        pick(gatedBuckets.accessories, dayIndex, items, locationLabel);
       }
       break;
     }
     case 'Active': {
-      if (buckets.activewear.length > 0) {
-        const firstIdx = dayIndex % buckets.activewear.length;
-        const first = buckets.activewear[firstIdx];
+      if (gatedBuckets.activewear.length > 0) {
+        const firstIdx = dayIndex % gatedBuckets.activewear.length;
+        const first = gatedBuckets.activewear[firstIdx];
         items.push(toPackingItem(first, locationLabel));
         // Try second activewear item for bottom (disambiguate upper vs lower)
-        if (buckets.activewear.length > 1) {
-          const secondIdx = (dayIndex + 1) % buckets.activewear.length;
-          const second = buckets.activewear[secondIdx];
+        if (gatedBuckets.activewear.length > 1) {
+          const secondIdx = (dayIndex + 1) % gatedBuckets.activewear.length;
+          const second = gatedBuckets.activewear[secondIdx];
           if (second.id !== first.id) {
             // Avoid 2 upper-body activewear items; fall back to regular bottoms
             if (isUpperActivewear(first) && isUpperActivewear(second)) {
-              pick(buckets.bottoms, dayIndex, items, locationLabel);
+              pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
             } else {
               items.push(toPackingItem(second, locationLabel));
             }
           }
         }
       } else {
-        pick(buckets.tops, dayIndex, items, locationLabel);
-        pick(buckets.bottoms, dayIndex, items, locationLabel);
+        pick(gatedBuckets.tops, dayIndex, items, locationLabel);
+        pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
       }
-      pickShoe(selectedShoes, dayIndex, items, locationLabel);
+      pickShoe(finalShoes, dayIndex, items, locationLabel);
       break;
     }
     case 'Business': {
-      pick(buckets.tops, dayIndex, items, locationLabel);
-      pick(buckets.bottoms, dayIndex, items, locationLabel);
-      pickShoe(selectedShoes, dayIndex, items, locationLabel);
-      if (mode === 'anchor' && buckets.outerwear.length > 0) {
-        items.push(toPackingItem(buckets.outerwear[0], locationLabel));
+      pick(gatedBuckets.tops, dayIndex, items, locationLabel);
+      pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
+      pickShoe(finalShoes, dayIndex, items, locationLabel);
+      if (mode === 'anchor' && gatedBuckets.outerwear.length > 0) {
+        items.push(toPackingItem(gatedBuckets.outerwear[0], locationLabel));
       }
       break;
     }
     case 'Formal': {
-      if (presentation !== 'masculine' && buckets.dresses.length > 0) {
-        const formalDress = buckets.dresses.find(
+      if (presentation !== 'masculine' && gatedBuckets.dresses.length > 0) {
+        const formalDress = gatedBuckets.dresses.find(
           d => (d.formalityScore ?? 50) >= 70,
         );
         if (formalDress) {
           items.push(toPackingItem(formalDress, locationLabel));
         } else {
-          items.push(toPackingItem(buckets.dresses[0], locationLabel));
+          items.push(toPackingItem(gatedBuckets.dresses[0], locationLabel));
         }
       } else {
-        pick(buckets.tops, dayIndex, items, locationLabel);
-        pick(buckets.bottoms, dayIndex, items, locationLabel);
+        pick(gatedBuckets.tops, dayIndex, items, locationLabel);
+        pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
       }
-      pickShoe(selectedShoes, dayIndex, items, locationLabel);
-      pick(buckets.accessories, dayIndex, items, locationLabel);
+      pickShoe(finalShoes, dayIndex, items, locationLabel);
+      pick(gatedBuckets.accessories, dayIndex, items, locationLabel);
       break;
     }
     case 'Dinner': {
       if (
         presentation !== 'masculine' &&
-        buckets.dresses.length > 0 &&
+        gatedBuckets.dresses.length > 0 &&
         dayIndex % 2 === 0
       ) {
         const dressIdx =
-          Math.floor(dayIndex / 2) % buckets.dresses.length;
+          Math.floor(dayIndex / 2) % gatedBuckets.dresses.length;
         items.push(
-          toPackingItem(buckets.dresses[dressIdx], locationLabel),
+          toPackingItem(gatedBuckets.dresses[dressIdx], locationLabel),
         );
       } else {
-        pick(buckets.tops, dayIndex, items, locationLabel);
-        pick(buckets.bottoms, dayIndex, items, locationLabel);
+        pick(gatedBuckets.tops, dayIndex, items, locationLabel);
+        pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
       }
-      pickShoe(selectedShoes, dayIndex, items, locationLabel);
+      pickShoe(finalShoes, dayIndex, items, locationLabel);
       if (mode === 'anchor') {
-        pick(buckets.accessories, dayIndex, items, locationLabel);
+        pick(gatedBuckets.accessories, dayIndex, items, locationLabel);
       }
       break;
     }
     default: {
       // Casual, Sightseeing, Cold Weather
-      pick(buckets.tops, dayIndex, items, locationLabel);
-      pick(buckets.bottoms, dayIndex, items, locationLabel);
-      pickShoe(selectedShoes, dayIndex, items, locationLabel);
+      pick(gatedBuckets.tops, dayIndex, items, locationLabel);
+      pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
+      pickShoe(finalShoes, dayIndex, items, locationLabel);
       if (mode === 'anchor') {
         pickOuterwear(selectedOuterwear, dayWeather, items, locationLabel);
-        pick(buckets.accessories, dayIndex, items, locationLabel);
+        pick(gatedBuckets.accessories, dayIndex, items, locationLabel);
       }
       break;
     }
@@ -926,9 +1038,7 @@ export function validateCapsule(
 
   const hasRain = weather.some(d => d.rainChance > 50);
   if (hasRain) {
-    const hasRainItem = allItems.some(
-      i => i.mainCategory === 'Outerwear',
-    );
+    const hasRainItem = allItems.some(i => isSlot(i, 'outerwear'));
     if (!hasRainItem) {
       warnings.push({
         code: 'NO_RAIN_GEAR',
@@ -946,9 +1056,7 @@ export function validateCapsule(
 
   if (activities.includes('Beach')) {
     const hasSwim = allItems.some(
-      i =>
-        i.subCategory?.toLowerCase().includes('swim') ||
-        i.mainCategory === 'Swimwear',
+      i => i.subCategory?.toLowerCase().includes('swim') || isSlot(i, 'swimwear'),
     );
     if (!hasSwim) {
       warnings.push({
@@ -959,9 +1067,7 @@ export function validateCapsule(
   }
 
   if (activities.includes('Active')) {
-    const hasActivewear = allItems.some(
-      i => i.mainCategory === 'Activewear',
-    );
+    const hasActivewear = allItems.some(i => isSlot(i, 'activewear'));
     if (!hasActivewear) {
       warnings.push({
         code: 'NO_ACTIVEWEAR',
@@ -976,9 +1082,7 @@ export function validateCapsule(
 
   if (
     presentation === 'masculine' &&
-    capsule.outfits.some(o =>
-      o.items.some(i => i.mainCategory === 'Dresses'),
-    )
+    capsule.outfits.some(o => o.items.some(i => isSlot(i, 'dresses')))
   ) {
     warnings.push({
       code: 'STYLE_COHERENCE_VIOLATION',

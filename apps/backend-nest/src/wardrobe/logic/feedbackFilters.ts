@@ -131,6 +131,10 @@ function safeParseOutfitJson(raw: unknown): any | null {
   return null;
 }
 
+/**
+ * NormalizedCategory - all 21 MainCategories + 'unknown' fallback.
+ * Used for feedback rule matching.
+ */
 type NormalizedCategory =
   | 'tops'
   | 'bottoms'
@@ -148,6 +152,11 @@ type NormalizedCategory =
   | 'undergarments'
   | 'loungewear'
   | 'sleepwear'
+  | 'maternity'
+  | 'unisex'
+  | 'costumes'
+  | 'traditionalwear'
+  | 'other'
   | 'unknown';
 
 const CATEGORY_ALIASES: Array<[NormalizedCategory, RegExp]> = [
@@ -185,6 +194,14 @@ const CATEGORY_ALIASES: Array<[NormalizedCategory, RegExp]> = [
   ],
   ['loungewear', /\b(lounge|sweatshirts?|co-?ords?)\b/i],
   ['sleepwear', /\b(pajamas?|nightgowns?|nightshirts?|robes?|sleepwear)\b/i],
+  ['maternity', /\b(maternity|pregnancy|nursing)\b/i],
+  ['unisex', /\b(unisex|gender[-\s]?neutral)\b/i],
+  ['costumes', /\b(costumes?|halloween|cosplay)\b/i],
+  [
+    'traditionalwear',
+    /\b(kimonos?|sarees?|saris?|abayas?|hanboks?|traditional)\b/i,
+  ],
+  ['other', /\b(other|miscellaneous)\b/i],
 ];
 
 function normalizeCategoryText(s: string): NormalizedCategory {

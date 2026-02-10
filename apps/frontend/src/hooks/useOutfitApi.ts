@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {API_BASE_URL} from '../config/api';
 import {getAccessToken} from '../utils/auth';
+import {findBySlot, type Slot} from '../lib/categoryMapping';
 
 export type OutfitApiItem = {
   index: number;
@@ -282,19 +283,48 @@ export function useOutfitApi(userId?: string) {
   };
 }
 
+/**
+ * Pick first item matching a slot.
+ * Uses canonical slot mapping - e.g., 'bottoms' includes both Bottoms and Skirts.
+ */
+export function pickFirstBySlot(
+  items: OutfitApiItem[] | undefined,
+  slot: Slot,
+) {
+  if (!items?.length) return undefined;
+  return findBySlot(items, slot);
+}
+
+/**
+ * @deprecated Use pickFirstBySlot instead for slot-based lookups.
+ * This function is kept for backward compatibility but uses canonical mapping internally.
+ */
 export function pickFirstByCategory(
   items: OutfitApiItem[] | undefined,
   cat: string,
 ) {
   if (!items?.length) return undefined;
+  // Map category string to slot for canonical lookup
+  const slotMap: Record<string, Slot> = {
+    Tops: 'tops',
+    Bottoms: 'bottoms',
+    Shoes: 'shoes',
+    Outerwear: 'outerwear',
+    Accessories: 'accessories',
+    Dresses: 'dresses',
+    Activewear: 'activewear',
+    Swimwear: 'swimwear',
+  };
+  const slot = slotMap[cat];
+  if (slot) {
+    return findBySlot(items, slot);
+  }
+  // Fallback: exact category match for unmapped categories
   return items.find(i => i.main_category === cat);
 }
 
 export function pickTopOrOuter(items?: OutfitApiItem[]) {
-  return (
-    pickFirstByCategory(items, 'Tops') ??
-    pickFirstByCategory(items, 'Outerwear')
-  );
+  return pickFirstBySlot(items, 'tops') ?? pickFirstBySlot(items, 'outerwear');
 }
 
 ////////////////////

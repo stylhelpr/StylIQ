@@ -42,6 +42,16 @@ import { extractStrictJson } from './logic/json';
 import { applyContextualFilters } from './logic/contextFilters';
 import { STYLE_AGENTS } from './logic/style-agents';
 import { validateCategoryPair } from './logic/categoryValidator';
+import {
+  mapMainCategoryToSlot,
+  mapPlanCategoryToSlot,
+  pineconeFilterForSlot,
+  type Slot,
+  REFINEMENT_CATEGORY_KEYWORDS,
+  detectSlotsInText,
+  SLOT_TO_PLAN_CATEGORY,
+  filterBySlot,
+} from './logic/categoryMapping';
 
 // NEW: feedback filters
 import {
@@ -105,17 +115,9 @@ type WeightsShort = {
 type AnyWeights = WeightsLong | WeightsShort;
 
 // ───────────────────────────────────────────────
-// Slot helpers
+// Slot helpers (now using canonical categoryMapping)
 // ───────────────────────────────────────────────
-type Slot =
-  | 'tops'
-  | 'bottoms'
-  | 'shoes'
-  | 'outerwear'
-  | 'accessories'
-  | 'dresses'
-  | 'activewear'
-  | 'swimwear';
+// NOTE: Slot type is imported from ./logic/categoryMapping
 
 function toLongWeights(w: AnyWeights): WeightsLong {
   if ('styleWeight' in w) return { ...w };
@@ -345,6 +347,17 @@ export class WardrobeService {
         replaceSlots.add('tops');
     }
 
+    // 🛡️ DRESS PROMOTION RULE (normal mode)
+    // If refinement mentions a dress, promote to dresses slot and suppress tops+bottoms
+    const dressPattern = /\b(dress|gown|romper|jumpsuit|midi\s*dress)\b/i;
+    if (dressPattern.test(lc)) {
+      replaceSlots.delete('bottoms');
+      replaceSlots.delete('tops');
+      replaceSlots.add('dresses');
+      keepSlots.delete('bottoms');
+      keepSlots.delete('tops');
+    }
+
     return { keepSlots, replaceSlots, additionsBySlot };
   }
 
@@ -545,60 +558,15 @@ export class WardrobeService {
     return map[s];
   }
 
-  private getSlot(c?: CatalogItem): Slot | undefined {
-    if (!c) return undefined;
-    const main = (c.main_category ?? '').toLowerCase();
-    const sub = (c.subcategory ?? '').toLowerCase();
-    if (
-      main === 'tops' ||
-      /\b(t-?shirt|tee|polo|shirt|sweater|knit|henley|hoodie)\b/i.test(sub)
-    )
-      return 'tops';
-    if (
-      main === 'bottoms' ||
-      main === 'skirts' ||
-      /\b(trouser|pants|jeans|chinos|shorts|joggers?|sweatpants?)\b/i.test(sub)
-    )
-      return 'bottoms';
-    if (
-      main === 'shoes' ||
-      /\b(sneakers?|trainers?|running|athletic|loafers?|boots?|oxfords?|derbys?|sandals?)\b/i.test(
-        sub,
-      )
-    )
-      return 'shoes';
-    if (
-      main === 'outerwear' ||
-      /\b(blazer|sport\s*coat|suit\s*jacket|jacket|coat|parka|tren(ch|ch)|overcoat|topcoat|windbreaker)\b/i.test(
-        sub,
-      )
-    )
-      return 'outerwear';
-    if (
-      main === 'accessories' ||
-      main === 'bags' ||
-      main === 'headwear' ||
-      main === 'jewelry' ||
-      /\b(belt|watch|hat|scarf|tie|sunglasses|bag|briefcase)\b/i.test(sub)
-    )
-      return 'accessories';
-    if (
-      main === 'dresses' ||
-      main === 'formalwear' ||
-      /\b(dress|gown|romper|jumpsuit)\b/i.test(sub)
-    )
-      return 'dresses';
-    if (
-      main === 'activewear' ||
-      /\b(legging|jogger|athletic|sport|gym|workout)\b/i.test(sub)
-    )
-      return 'activewear';
-    if (
-      main === 'swimwear' ||
-      /\b(bikini|swimsuit|swim\s*trunk|rash\s*guard)\b/i.test(sub)
-    )
-      return 'swimwear';
-    return undefined;
+  /**
+   * Maps a CatalogItem to its Slot using the canonical categoryMapping.
+   * NEVER returns undefined - all 21 categories are mapped.
+   */
+  private getSlot(c?: CatalogItem): Slot {
+    if (!c) return 'other';
+    const main = c.main_category ?? '';
+    // Use the canonical mapping - never returns undefined
+    return mapMainCategoryToSlot(main);
   }
 
   private textOf(c: CatalogItem): string {
@@ -662,15 +630,10 @@ export class WardrobeService {
   }): { title: string; why: string } {
     if (!o.items?.length) return { title: o.title, why: o.why };
 
-    const tops = o.items.filter(
-      (c) => (c.main_category ?? '').toLowerCase() === 'tops',
-    );
-    const bottoms = o.items.filter(
-      (c) => (c.main_category ?? '').toLowerCase() === 'bottoms',
-    );
-    const shoes = o.items.filter(
-      (c) => (c.main_category ?? '').toLowerCase() === 'shoes',
-    );
+    // Use canonical slot mapping for category filtering
+    const tops = filterBySlot(o.items, 'tops');
+    const bottoms = filterBySlot(o.items, 'bottoms');
+    const shoes = filterBySlot(o.items, 'shoes');
 
     const topName = tops[0]?.label ?? '';
     const bottomName = bottoms[0]?.label ?? '';
@@ -1709,53 +1672,8 @@ ${lockedLines}
 
         console.log('⚡ [FAST] Parsing refinement text only:', refinementText);
 
-        const categoryKeywords: Record<string, string[]> = {
-          tops: [
-            'shirt',
-            'top',
-            'tee',
-            't-shirt',
-            'blouse',
-            'sweater',
-            'hoodie',
-            'cardigan',
-          ],
-          bottoms: [
-            'pants',
-            'jeans',
-            'shorts',
-            'trousers',
-            'bottom',
-            'skirt',
-            'chinos',
-          ],
-          shoes: [
-            'shoes',
-            'sneakers',
-            'boots',
-            'loafers',
-            'sandals',
-            'heels',
-            'footwear',
-          ],
-          outerwear: [
-            'jacket',
-            'coat',
-            'blazer',
-            'outerwear',
-            'windbreaker',
-            'puffer',
-          ],
-          accessories: [
-            'belt',
-            'accessory',
-            'accessories',
-            'watch',
-            'hat',
-            'scarf',
-            'bag',
-          ],
-        };
+        // Use canonical REFINEMENT_CATEGORY_KEYWORDS from categoryMapping
+        const categoryKeywords = REFINEMENT_CATEGORY_KEYWORDS;
 
         // Detect categories mentioned with explicit "change" intent
         // More precise patterns - require change verb directly before category
@@ -1808,27 +1726,69 @@ ${lockedLines}
           lockedItemsByCategory.delete(changeCat.toLowerCase());
         }
 
-        // All standard categories
+        // All standard plan categories (from canonical categoryMapping)
         const allCategories = [
           'Tops',
           'Bottoms',
+          'Dresses',
           'Shoes',
           'Outerwear',
           'Accessories',
+          'Activewear',
+          'Swimwear',
+          'Undergarments',
+          'Other',
         ];
 
         // Change slots = categories NOT being kept
-        const changeCategories = allCategories.filter(
+        let changeCategories = allCategories.filter(
           (c) =>
             !keepCategories
               .map((k) => k.toLowerCase())
               .includes(c.toLowerCase()),
         );
 
-        refinementAction = {
-          keep_slots: keepCategories,
-          change_slots: changeCategories,
-        };
+        // 🛡️ DRESS PROMOTION RULE
+        // If refinement mentions a dress (dress/gown/romper/jumpsuit/midi),
+        // promote to Dresses slot and suppress Tops+Bottoms
+        const dressPattern = /\b(dress|gown|romper|jumpsuit|midi\s*dress)\b/i;
+        const hasDressIntent = dressPattern.test(refinementText);
+
+        if (hasDressIntent) {
+          console.log(
+            '⚡ [FAST] Dress promotion triggered - refinement contains dress keyword',
+          );
+
+          // Remove Tops and Bottoms from change_slots (will be replaced by Dresses)
+          changeCategories = changeCategories.filter(
+            (c) => c !== 'Tops' && c !== 'Bottoms',
+          );
+
+          // Ensure Dresses is in change_slots
+          if (!changeCategories.includes('Dresses')) {
+            changeCategories.push('Dresses');
+          }
+
+          // Also remove from keep_slots if present
+          const filteredKeep = keepCategories.filter(
+            (c) => c.toLowerCase() !== 'tops' && c.toLowerCase() !== 'bottoms',
+          );
+
+          console.log(
+            '⚡ [FAST] Dress promotion - updated change_slots:',
+            changeCategories,
+          );
+
+          refinementAction = {
+            keep_slots: filteredKeep,
+            change_slots: changeCategories,
+          };
+        } else {
+          refinementAction = {
+            keep_slots: keepCategories,
+            change_slots: changeCategories,
+          };
+        }
 
         console.log(
           '⚡ [FAST] Refinement - keep slots:',
@@ -2056,6 +2016,23 @@ ${lockedLines}
         });
       });
 
+      // 🛡️ SLOT NORMALIZATION GUARD (last-line defense)
+      // If any slot maps to 'bottoms' slot but description contains dress keywords,
+      // normalize to 'Dresses' before Pinecone lookup
+      // Use canonical slot mapping to detect bottoms-classified items
+      const dressDescPattern = /\b(dress|gown|romper|jumpsuit|midi\s*dress)\b/i;
+      for (const s of allSlots) {
+        if (
+          mapPlanCategoryToSlot(s.slot.category || '') === 'bottoms' &&
+          dressDescPattern.test(s.slot.description || '')
+        ) {
+          console.log(
+            `⚡ [FAST] Slot normalization: "${s.slot.description}" category ${s.slot.category} → Dresses`,
+          );
+          s.slot.category = 'Dresses';
+        }
+      }
+
       console.log('⚡ [FAST] Total slots to embed:', allSlots.length);
 
       // Embed ALL slot descriptions in a SINGLE batch API call
@@ -2229,19 +2206,20 @@ ${lockedLines}
 
         // Fill CHANGED slots with best matches from Pinecone (based on LLM's generic descriptions)
         for (const sr of slotResults) {
-          // Skip if we already have an item for this category (from kept slots)
-          const categoryMain = this.slotCategoryToMainCategory(
-            sr.slot.category as OutfitPlanSlot['category'],
+          // Skip if we already have an item for this slot (from kept slots)
+          // Use slot-based comparison to handle categories that map to the same slot
+          // (e.g., Skirts maps to 'bottoms' slot same as Bottoms)
+          const targetSlot = mapPlanCategoryToSlot(
+            sr.slot.category as string,
           );
           const alreadyHasCategory = items.some(
-            (it) =>
-              it.main_category?.toLowerCase() === categoryMain.toLowerCase(),
+            (it) => mapMainCategoryToSlot(it.main_category) === targetSlot,
           );
 
           if (alreadyHasCategory) {
             if (isStartWithItem) {
               console.log(
-                `⚡ [FAST] PATH #2: Skipping ${categoryMain} slot (centerpiece already fills this category)`,
+                `⚡ [FAST] PATH #2: Skipping ${targetSlot} slot (centerpiece already fills this category)`,
               );
             }
             continue;
@@ -2358,32 +2336,24 @@ ${lockedLines}
   }
 
   /**
-   * Maps slot category to Pinecone metadata filter
+   * Maps slot category to Pinecone metadata filter.
+   * Uses canonical categoryMapping - ALWAYS returns a filter, NEVER undefined.
    */
   private mapSlotCategoryToFilter(
-    category: OutfitPlanSlot['category'],
-  ): Record<string, any> | undefined {
-    const categoryMap: Record<string, string> = {
-      Tops: 'Tops',
-      Bottoms: 'Bottoms',
-      Shoes: 'Shoes',
-      Outerwear: 'Outerwear',
-      Accessories: 'Accessories',
-    };
-
-    const mainCategory = categoryMap[category];
-    if (!mainCategory) return undefined;
-
-    return { main_category: { $eq: mainCategory } };
+    category: string,
+  ): Record<string, any> {
+    const slot = mapPlanCategoryToSlot(category);
+    return pineconeFilterForSlot(slot);
   }
 
   /**
-   * Maps slot category to main_category string for comparison
+   * Maps slot category to main_category string for comparison.
+   * Uses canonical categoryMapping.
    */
-  private slotCategoryToMainCategory(
-    category: OutfitPlanSlot['category'],
-  ): string {
-    return category; // They're the same in our schema
+  private slotCategoryToMainCategory(category: string): string {
+    // For comparison purposes, we use the plan category directly
+    // as Pinecone stores the original main_category
+    return SLOT_TO_PLAN_CATEGORY[mapPlanCategoryToSlot(category)];
   }
 
   /**
