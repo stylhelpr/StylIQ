@@ -17,8 +17,10 @@ import {
   MAIN_CATEGORY_TO_SLOT,
 } from '../categoryMapping';
 
+import {filterEligibleItems, type Presentation as EligibilityPresentation} from './styleEligibility';
+
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 3;
+export const CAPSULE_VERSION = 4;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -178,12 +180,14 @@ export function buildCapsuleFingerprint(
   weather: DayWeather[],
   activities: TripActivity[],
   location: string,
+  presentation?: Presentation,
 ): string {
   return JSON.stringify({
     wardrobe: wardrobe.map(w => w.id).sort(),
     weather: weather.map(d => `${d.date}:${d.highF}:${d.lowF}:${d.condition}`),
     activities: [...activities].sort(),
     location,
+    presentation: presentation || 'mixed',
   });
 }
 
@@ -844,17 +848,24 @@ export function buildCapsule(
   weather: DayWeather[],
   activities: TripActivity[],
   startingLocationLabel: string,
+  explicitPresentation?: Presentation,
 ): TripCapsule {
   const numDays = Math.max(weather.length, 1);
   const needs = analyzeWeather(weather);
 
+  // Step 0: Resolve presentation — explicit profile overrides wardrobe detection
+  const presentation: Presentation = explicitPresentation ?? detectPresentation(wardrobeItems);
+
+  // Step 0b: Pre-filter ineligible items BEFORE any bucketing/scoring
+  const eligibleItems = filterEligibleItems(wardrobeItems, presentation);
+
   const seedStr =
-    wardrobeItems.map(i => i.id).join(',') +
+    eligibleItems.map(i => i.id).join(',') +
     weather.map(w => w.date).join(',') +
     activities.join(',');
   const rand = seededRandom(hashString(seedStr));
 
-  // Step 1: Bucket items by category (8 buckets)
+  // Step 1: Bucket items by category (8 buckets) — operates on eligible items only
   const buckets: Record<CategoryBucket, TripWardrobeItem[]> = {
     tops: [],
     bottoms: [],
@@ -866,7 +877,7 @@ export function buildCapsule(
     swimwear: [],
   };
 
-  for (const item of wardrobeItems) {
+  for (const item of eligibleItems) {
     const bucket = getBucket(item);
     if (bucket) buckets[bucket].push(item);
   }
@@ -878,8 +889,7 @@ export function buildCapsule(
     );
   }
 
-  // Step 2b: Detect presentation and hard-lock buckets for style coherence
-  const presentation = detectPresentation(wardrobeItems);
+  // Step 2b: Hard-lock buckets for style coherence (defense-in-depth)
 
   if (presentation === 'masculine') {
     buckets.dresses = [];
@@ -998,12 +1008,13 @@ export function buildCapsule(
   // Step 10: Build packing list
   const packingList = buildPackingList(outfits, PACKING_CATEGORY_ORDER);
 
-  // Step 11: Stamp fingerprint
+  // Step 11: Stamp fingerprint (includes presentation for cache invalidation)
   const fingerprint = buildCapsuleFingerprint(
     wardrobeItems,
     weather,
     activities,
     startingLocationLabel,
+    presentation,
   );
 
   return {build_id: generateBuildId(), outfits, packingList, version: CAPSULE_VERSION, fingerprint};
@@ -1016,6 +1027,7 @@ export function validateCapsule(
   weather: DayWeather[],
   activities: TripActivity[],
   wardrobeItems?: TripWardrobeItem[],
+  explicitPresentation?: Presentation,
 ): CapsuleWarning[] {
   const warnings: CapsuleWarning[] = [];
   const allCategories = new Set(capsule.packingList.map(g => g.category));
@@ -1076,9 +1088,8 @@ export function validateCapsule(
     }
   }
 
-  const presentation = wardrobeItems
-    ? detectPresentation(wardrobeItems)
-    : 'mixed';
+  const presentation = explicitPresentation
+    ?? (wardrobeItems ? detectPresentation(wardrobeItems) : 'mixed');
 
   if (
     presentation === 'masculine' &&

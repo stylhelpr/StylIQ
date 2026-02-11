@@ -2236,11 +2236,11 @@ ${lockedLines}
               usedIds.add(itemId);
               if (isRefinement) {
                 console.log(
-                  `⚡ [FAST] Changed ${categoryMain} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
+                  `⚡ [FAST] Changed ${targetSlot} slot: ${item.name} (from LLM description: "${sr.slot.description}")`,
                 );
               } else if (isStartWithItem) {
                 console.log(
-                  `⚡ [FAST] PATH #2: Complementary ${categoryMain}: ${item.name} (matched: "${sr.slot.description}")`,
+                  `⚡ [FAST] PATH #2: Complementary ${targetSlot}: ${item.name} (matched: "${sr.slot.description}")`,
                 );
               }
               break;

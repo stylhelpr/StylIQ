@@ -8,9 +8,10 @@ import TripCapsuleScreen from './TripCapsuleScreen';
 type Props = {
   navigate: (screen: string, params?: any) => void;
   wardrobe: any[];
+  userGenderPresentation?: string;
 };
 
-const TripsNavigator = ({navigate, wardrobe}: Props) => {
+const TripsNavigator = ({navigate, wardrobe, userGenderPresentation}: Props) => {
   const [screen, setScreen] = useState<TripsScreen>('home');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -60,6 +61,7 @@ const TripsNavigator = ({navigate, wardrobe}: Props) => {
           wardrobe={wardrobe}
           onBack={goToHome}
           onTripCreated={trip => goToCapsule(trip.id)}
+          userGenderPresentation={userGenderPresentation}
         />
       );
     case 'capsule':
@@ -73,6 +75,7 @@ const TripsNavigator = ({navigate, wardrobe}: Props) => {
           wardrobe={wardrobe}
           onBack={goToHome}
           onRefresh={refreshTrips}
+          userGenderPresentation={userGenderPresentation}
         />
       );
     default:

@@ -26,7 +26,9 @@ import {
   saveTrip,
 } from '../../lib/trips/tripsStorage';
 import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
-import {buildCapsule, adaptWardrobeItem, validateCapsule} from '../../lib/trips/capsuleEngine';
+import {buildCapsule, adaptWardrobeItem, validateCapsule, detectPresentation} from '../../lib/trips/capsuleEngine';
+import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
+import {useGenderPresentation} from '../../hooks/useGenderPresentation';
 import ActivityChips from '../../components/Trips/ActivityChips';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
@@ -38,10 +40,13 @@ type Props = {
   wardrobe: any[];
   onBack: () => void;
   onTripCreated: (trip: Trip) => void;
+  userGenderPresentation?: string;
 };
 
-const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
+const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentation}: Props) => {
   const {theme} = useAppTheme();
+  const hookGender = useGenderPresentation();
+  const rawGender = userGenderPresentation ?? hookGender;
 
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState(() => {
@@ -99,8 +104,11 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated}: Props) => {
       const locationLabel =
         locations.find(l => l.id === selectedLocationId)?.label || 'Home';
       const adapted = wardrobe.map(adaptWardrobeItem);
-      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel);
-      const warnings = validateCapsule(capsule, weatherResult.days, activities, adapted);
+      const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
+        ? normalizeGenderToPresentation(rawGender)
+        : detectPresentation(adapted);
+      const capsule = buildCapsule(adapted, weatherResult.days, activities, locationLabel, presentation);
+      const warnings = validateCapsule(capsule, weatherResult.days, activities, adapted, presentation);
 
       const trip: Trip = {
         id: generateId(),

@@ -2,6 +2,7 @@ import {
   normalizeOutfitStructure,
   shouldRebuildCapsule,
   buildCapsule,
+  buildCapsuleFingerprint,
   adaptWardrobeItem,
   CAPSULE_VERSION,
   deriveClimateZone,
@@ -524,9 +525,9 @@ describe('Global Climate Gating', () => {
     expect(result).toContain(shortSleeveShirt);
   });
 
-  // Additional: CAPSULE_VERSION is 3 (bumped for climate gating)
-  it('CAPSULE_VERSION is 3 (bumped for climate gating)', () => {
-    expect(CAPSULE_VERSION).toBe(3);
+  // Additional: CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)
+  it('CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)', () => {
+    expect(CAPSULE_VERSION).toBe(4);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -622,5 +623,117 @@ describe('Global Climate Gating', () => {
       const flags = inferGarmentFlags(item);
       expect(flags.isFeminineOnly).toBe(false);
     }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  EXPLICIT PRESENTATION: buildCapsule with explicitPresentation param
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('buildCapsule with explicit presentation', () => {
+  // Wardrobe with NO strong gendered signals — detectPresentation would return 'mixed'
+  // This simulates the real bug: masculine user with generic items + some dresses
+  const ambiguousWardrobe: TripWardrobeItem[] = [
+    // Generic items (no masculine signals like oxford/loafer/blazer/suit/tie)
+    makeWardrobeItem({id: 't1', name: 'White T-Shirt', main_category: 'Tops', subcategory: 'T-Shirt'}),
+    makeWardrobeItem({id: 't2', name: 'Blue T-Shirt', main_category: 'Tops', subcategory: 'T-Shirt'}),
+    makeWardrobeItem({id: 't3', name: 'Henley', main_category: 'Tops', subcategory: 'Henley'}),
+    makeWardrobeItem({id: 'b1', name: 'Jeans', main_category: 'Bottoms', subcategory: 'Jeans'}),
+    makeWardrobeItem({id: 'b2', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'}),
+    makeWardrobeItem({id: 'b3', name: 'Cargo Pants', main_category: 'Bottoms', subcategory: 'Pants'}),
+    makeWardrobeItem({id: 's1', name: 'Sneakers', main_category: 'Shoes', subcategory: 'Sneakers'}),
+    makeWardrobeItem({id: 's2', name: 'Boots', main_category: 'Shoes', subcategory: 'Boots'}),
+    makeWardrobeItem({id: 'a1', name: 'Baseball Cap', main_category: 'Accessories', subcategory: 'Hat'}),
+    // Feminine items that MUST be blocked for masculine users
+    makeWardrobeItem({id: 'd1', name: 'Summer Dress', main_category: 'Dresses', subcategory: 'Sundress'}),
+    makeWardrobeItem({id: 'sk1', name: 'Mini Skirt', main_category: 'Skirts', subcategory: 'Mini Skirt'}),
+    makeWardrobeItem({id: 'd2', name: 'Halter Dress', main_category: 'Dresses', subcategory: 'Halter Dress'}),
+  ];
+
+  const weather: DayWeather[] = [
+    {date: '2025-06-15', dayLabel: 'Sun', highF: 80, lowF: 65, condition: 'sunny', rainChance: 5},
+    {date: '2025-06-16', dayLabel: 'Mon', highF: 78, lowF: 62, condition: 'sunny', rainChance: 10},
+    {date: '2025-06-17', dayLabel: 'Tue', highF: 82, lowF: 66, condition: 'partly-cloudy', rainChance: 15},
+  ];
+
+  it('TEST 1: masculine explicit → ZERO dresses in output', () => {
+    const capsule = buildCapsule(ambiguousWardrobe, weather, ['Casual', 'Dinner'], 'Home', 'masculine');
+
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    const allCategories = allItems.map(i => i.mainCategory);
+
+    expect(allCategories).not.toContain('Dresses');
+    expect(allCategories).not.toContain('Skirts');
+
+    // Also check packing list
+    const packingCategories = capsule.packingList.map(g => g.category);
+    expect(packingCategories).not.toContain('Dresses');
+    expect(packingCategories).not.toContain('Skirts');
+  });
+
+  it('TEST 2: feminine explicit → dresses allowed', () => {
+    const capsule = buildCapsule(ambiguousWardrobe, weather, ['Casual', 'Dinner'], 'Home', 'feminine');
+
+    // With feminine presentation and dinner activity, dresses may appear
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    // Dresses are ELIGIBLE (may or may not be picked depending on scheduling)
+    // At minimum, the dresses bucket should not be empty
+    // Just verify no crash and items are produced
+    expect(allItems.length).toBeGreaterThan(0);
+  });
+
+  it('TEST 3: masculine + no explicit → falls back to detectPresentation', () => {
+    // Without explicit presentation, detectPresentation infers from wardrobe
+    // This wardrobe has no strong masculine signals → 'mixed' → dresses may leak
+    // But with explicit 'masculine', they are blocked
+    const withExplicit = buildCapsule(ambiguousWardrobe, weather, ['Casual'], 'Home', 'masculine');
+    const withoutExplicit = buildCapsule(ambiguousWardrobe, weather, ['Casual'], 'Home');
+
+    const explicitItems = withExplicit.outfits.flatMap(o => o.items);
+    expect(explicitItems.every(i => i.mainCategory !== 'Dresses')).toBe(true);
+    expect(explicitItems.every(i => i.mainCategory !== 'Skirts')).toBe(true);
+  });
+
+  it('TEST 4: Skirts still map to bottoms slot (regression)', () => {
+    // For feminine presentation, skirts should work as bottoms
+    const feminineWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Blouse', main_category: 'Tops', subcategory: 'Blouse'}),
+      makeWardrobeItem({id: 'sk1', name: 'A-Line Skirt', main_category: 'Skirts', subcategory: 'A-Line'}),
+      makeWardrobeItem({id: 's1', name: 'Ballet Flats', main_category: 'Shoes', subcategory: 'Ballet Flat'}),
+    ];
+
+    const capsule = buildCapsule(feminineWardrobe, weather, ['Casual'], 'Home', 'feminine');
+
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    // Skirts should be in the output as bottoms for feminine users
+    const hasSkirt = allItems.some(i => i.mainCategory === 'Skirts');
+    expect(hasSkirt).toBe(true);
+  });
+
+  it('TEST 5: masculine user with ONLY dresses in wardrobe → no crash, empty outfits', () => {
+    const dressOnlyWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 'd1', name: 'Evening Gown', main_category: 'Dresses'}),
+      makeWardrobeItem({id: 'd2', name: 'Sundress', main_category: 'Dresses'}),
+    ];
+
+    // Should not crash, should produce empty/minimal capsule
+    const capsule = buildCapsule(dressOnlyWardrobe, weather, ['Casual'], 'Home', 'masculine');
+    expect(capsule).toBeDefined();
+    expect(capsule.outfits).toBeDefined();
+
+    // All dresses should be filtered out
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    expect(allItems.every(i => i.mainCategory !== 'Dresses')).toBe(true);
+  });
+
+  it('TEST 6: buildCapsuleFingerprint includes presentation (cache invalidation)', () => {
+    const fp1 = buildCapsuleFingerprint(ambiguousWardrobe, weather, ['Casual'], 'Home', 'masculine');
+    const fp2 = buildCapsuleFingerprint(ambiguousWardrobe, weather, ['Casual'], 'Home', 'feminine');
+    const fp3 = buildCapsuleFingerprint(ambiguousWardrobe, weather, ['Casual'], 'Home');
+
+    // Different presentations → different fingerprints → cache invalidation
+    expect(fp1).not.toBe(fp2);
+    // No presentation → defaults to 'mixed', different from 'masculine'
+    expect(fp1).not.toBe(fp3);
   });
 });

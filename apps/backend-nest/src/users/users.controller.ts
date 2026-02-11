@@ -33,6 +33,7 @@ export class UsersController {
       userId,
       first_name: user.first_name,
       last_name: user.last_name,
+      gender_presentation: user.gender_presentation,
     });
 
     return {
@@ -44,6 +45,7 @@ export class UsersController {
       profession: user.profession,
       bio: user.bio,
       fashion_level: user.fashion_level,
+      gender_presentation: user.gender_presentation,
       profile_picture: user.profile_picture,
       theme_mode: user.theme_mode,
       onboarding_complete: user.onboarding_complete,

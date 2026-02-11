@@ -12,8 +12,11 @@ import {
 } from '../../types/trips';
 import {updateTrip} from '../../lib/trips/tripsStorage';
 import {adaptWardrobeItem, buildCapsule, validateCapsule, CAPSULE_VERSION, shouldRebuildCapsule, detectPresentation, buildCapsuleFingerprint, RebuildMode} from '../../lib/trips/capsuleEngine';
+import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
+import {filterEligibleItems} from '../../lib/trips/styleEligibility';
 import {PACKING_CATEGORY_ORDER} from '../../lib/trips/constants';
 import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
+import {useGenderPresentation} from '../../hooks/useGenderPresentation';
 import WeatherStrip from '../../components/Trips/WeatherStrip';
 import OutfitCarousel from '../../components/Trips/OutfitCarousel';
 import PackingListSection from '../../components/Trips/PackingListSection';
@@ -26,6 +29,7 @@ type Props = {
   wardrobe: any[];
   onBack: () => void;
   onRefresh: () => void;
+  userGenderPresentation?: string;
 };
 
 /** DEV failsafe: buildCapsule must never be called while an old capsule exists */
@@ -37,12 +41,16 @@ function assertCapsuleWiped(currentCapsule: TripCapsule | null, context: string)
   }
 }
 
-const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
+const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresentation}: Props) => {
   const {theme} = useAppTheme();
   const [capsule, setCapsule] = useState<TripCapsule | null>(trip.capsule);
   const [warnings, setWarnings] = useState<CapsuleWarning[]>(trip.warnings || []);
   const [replaceItem, setReplaceItem] = useState<TripPackingItem | null>(null);
   const [isRebuilding, setIsRebuilding] = useState(false);
+
+  // Resolve presentation: explicit prop > hook > wardrobe detection
+  const hookGender = useGenderPresentation();
+  const rawGender = userGenderPresentation ?? hookGender;
 
   const adaptedWardrobe = useMemo(
     () => wardrobe.map(adaptWardrobeItem),
@@ -53,12 +61,15 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
   const didRebuildRef = useRef(false);
 
   useEffect(() => {
-    const presentation = detectPresentation(adaptedWardrobe);
+    const presentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
+      ? normalizeGenderToPresentation(rawGender)
+      : detectPresentation(adaptedWardrobe);
     const fingerprint = buildCapsuleFingerprint(
       adaptedWardrobe,
       trip.weather || [],
       trip.activities,
       trip.startingLocationLabel,
+      presentation,
     );
     const {rebuild: needsRebuild, reason, mode} = shouldRebuildCapsule(
       capsule ?? undefined,
@@ -106,15 +117,17 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
           weatherResult.days,
           trip.activities,
           trip.startingLocationLabel,
+          presentation,
         );
         if (__DEV__) {
-          console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id);
+          console.log('[TripCapsule] Rebuilding fresh capsule', newCapsule.build_id, 'presentation:', presentation);
         }
         const newWarnings = validateCapsule(
           newCapsule,
           weatherResult.days,
           trip.activities,
           adaptedWardrobe,
+          presentation,
         );
         if (cancelled) return;
 
@@ -193,16 +206,20 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
                 trip.startDate,
                 trip.endDate,
               );
+              const forcePresentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
+                ? normalizeGenderToPresentation(rawGender)
+                : detectPresentation(adaptedWardrobe);
               const newCapsule = buildCapsule(
                 adaptedWardrobe,
                 weatherResult.days,
                 trip.activities,
                 trip.startingLocationLabel,
+                forcePresentation,
               );
               if (__DEV__) {
-                console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id}`);
+                console.log(`[TripCapsule] FORCE REBUILD trip=${trip.id} build=${newCapsule.build_id} presentation=${forcePresentation}`);
               }
-              const newWarnings = validateCapsule(newCapsule, weatherResult.days, trip.activities, adaptedWardrobe);
+              const newWarnings = validateCapsule(newCapsule, weatherResult.days, trip.activities, adaptedWardrobe, forcePresentation);
 
               const updated: Trip = {
                 ...wipedTrip,
@@ -289,14 +306,21 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh}: Props) => {
     [capsule, replaceItem, persistCapsule],
   );
 
-  // Get alternatives for the replace modal
+  // Resolve presentation for replace modal filtering
+  const resolvedPresentation = useMemo(() => {
+    const fromProfile = normalizeGenderToPresentation(rawGender);
+    return fromProfile !== 'mixed' ? fromProfile : detectPresentation(adaptedWardrobe);
+  }, [rawGender, adaptedWardrobe]);
+
+  // Get alternatives for the replace modal — filtered by eligibility
   const replaceAlternatives = useMemo(() => {
     if (!replaceItem) return [];
     const cat = replaceItem.mainCategory;
-    return adaptedWardrobe.filter(
+    const catMatches = adaptedWardrobe.filter(
       item => (item.main_category || 'Other') === cat,
     );
-  }, [replaceItem, adaptedWardrobe]);
+    return filterEligibleItems(catMatches, resolvedPresentation);
+  }, [replaceItem, adaptedWardrobe, resolvedPresentation]);
 
   const styles = StyleSheet.create({
     container: {
