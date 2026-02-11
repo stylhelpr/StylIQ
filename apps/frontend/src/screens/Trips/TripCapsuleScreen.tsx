@@ -11,7 +11,7 @@ import {
   CapsuleWarning,
 } from '../../types/trips';
 import {updateTrip} from '../../lib/trips/tripsStorage';
-import {adaptWardrobeItem, buildCapsule, validateCapsule, CAPSULE_VERSION, shouldRebuildCapsule, detectPresentation, buildCapsuleFingerprint, RebuildMode} from '../../lib/trips/capsuleEngine';
+import {adaptWardrobeItem, buildCapsule, validateCapsule, CAPSULE_VERSION, shouldRebuildCapsule, detectPresentation, buildCapsuleFingerprint, RebuildMode, inferGarmentFlags, getActivityProfile} from '../../lib/trips/capsuleEngine';
 import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
 import {filterEligibleItems} from '../../lib/trips/styleEligibility';
 import {PACKING_CATEGORY_ORDER} from '../../lib/trips/constants';
@@ -84,8 +84,18 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
       );
     }
 
-    if (!needsRebuild || didRebuildRef.current) return;
-    didRebuildRef.current = true;
+ if (didRebuildRef.current) return;
+
+// DEV: force rebuild so capsuleEngine logging runs
+if (__DEV__) {
+  console.log('[TripCapsule] DEV forcing rebuild for logging');
+} else if (!needsRebuild) {
+  return;
+}
+
+didRebuildRef.current = true;
+
+
     let cancelled = false;
 
     (async () => {
@@ -312,15 +322,26 @@ const TripCapsuleScreen = ({trip, wardrobe, onBack, onRefresh, userGenderPresent
     return fromProfile !== 'mixed' ? fromProfile : detectPresentation(adaptedWardrobe);
   }, [rawGender, adaptedWardrobe]);
 
-  // Get alternatives for the replace modal — filtered by eligibility
+  // Does this trip include formal activities? (formality >= 2)
+  const tripHasFormalActivity = useMemo(
+    () => trip.activities.some(a => getActivityProfile(a).formality >= 2),
+    [trip.activities],
+  );
+
+  // Get alternatives for the replace modal — filtered by eligibility + formality
   const replaceAlternatives = useMemo(() => {
     if (!replaceItem) return [];
     const cat = replaceItem.mainCategory;
     const catMatches = adaptedWardrobe.filter(
       item => (item.main_category || 'Other') === cat,
     );
-    return filterEligibleItems(catMatches, resolvedPresentation);
-  }, [replaceItem, adaptedWardrobe, resolvedPresentation]);
+    let eligible = filterEligibleItems(catMatches, resolvedPresentation);
+    // If trip includes formal activities, block casual-only items from replacements
+    if (tripHasFormalActivity) {
+      eligible = eligible.filter(item => !inferGarmentFlags(item).isCasualOnly);
+    }
+    return eligible;
+  }, [replaceItem, adaptedWardrobe, resolvedPresentation, tripHasFormalActivity]);
 
   const styles = StyleSheet.create({
     container: {

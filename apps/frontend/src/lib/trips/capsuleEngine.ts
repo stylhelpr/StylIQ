@@ -18,9 +18,16 @@ import {
 } from '../categoryMapping';
 
 import {filterEligibleItems, type Presentation as EligibilityPresentation} from './styleEligibility';
+import {
+  logInput,
+  logWeatherAnalysis,
+  logSlotDecision,
+  logOverride,
+  logOutput,
+} from './logging/tripAI.logger';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 4;
+export const CAPSULE_VERSION = 7;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -78,8 +85,28 @@ export function inferGarmentFlags(item: TripWardrobeItem): GarmentFlags {
   const isBoardShorts = sub.includes('board short') || (name.includes('board') && name.includes('short') && !name.includes('boardroom'));
   const isBeachContext = isHawaiian || isBoardShorts || isSwimwear;
 
-  // Casual-only: very low formality items for formal gating
-  const isCasualOnly = isHawaiian || isSwimwear || isTankTop;
+  // Casual-only: items that should NEVER appear in Business/Dinner/Formal (formality >= 2)
+  // Informal footwear
+  const isSneaker = sub.includes('sneaker') || sub.includes('trainer') || name.includes('sneaker') || name.includes('trainer');
+  const isAthleticShoe = sub.includes('athletic') || sub.includes('running shoe');
+  const isWorkBoot = sub.includes('work boot') || sub.includes('hiking') || sub.includes('combat boot');
+  const isSlide = sub === 'slides' || (sub.includes('slide') && !name.includes('slideshow'));
+  const isEspadrille = sub.includes('espadrille');
+  const isBoatShoe = sub.includes('boat shoe') || sub.includes('boat shoes');
+  const isInformalShoe = isSneaker || isAthleticShoe || isWorkBoot || isSlide || isSandal || isEspadrille || isBoatShoe;
+  // Informal tops / loungewear
+  const isHoodie = sub.includes('hoodie') || sub.includes('sweatshirt') || (name.includes('hoodie') && !name.includes('hood ornament'));
+  const isGraphicTee = (sub.includes('t-shirt') || sub.includes('tee')) && !sub.includes('dress shirt');
+  const isCropTop = sub.includes('crop top') || sub.includes('crop');
+  const isJogger = sub.includes('jogger') || sub.includes('sweatpant');
+  const isCargo = sub.includes('cargo');
+  const isLegging = sub.includes('legging');
+  const isInformalTop = isHoodie || isGraphicTee || isCropTop || isJogger || isCargo || isLegging;
+  // Casual outerwear (not suitable for Business/Formal)
+  const isDenimJacket = sub.includes('denim jacket') || sub.includes('jean jacket');
+  const isPuffer = sub.includes('puffer');
+  const isCasualOuterwear = isDenimJacket || isPuffer;
+  const isCasualOnly = isHawaiian || isSwimwear || isTankTop || isShorts || isInformalShoe || isInformalTop || isCasualOuterwear;
 
   // ── Feminine-only detection (HARD BLOCK for masculine users) ──
   // Clothing
@@ -140,12 +167,15 @@ export function shouldRebuildCapsule(
   fingerprint?: string,
   mode: RebuildMode = 'AUTO',
 ): {rebuild: boolean; reason: string; mode: RebuildMode} {
-  // FORCE mode: always rebuild, bypass all checks
+
+  // FORCE mode: always rebuild
   if (mode === 'FORCE') {
-    return {rebuild: true, reason: 'FORCE_REBUILD', mode: 'FORCE'};
+    return { rebuild: true, reason: 'FORCE_REBUILD', mode: 'FORCE' };
   }
 
-  if (!capsule) return {rebuild: false, reason: 'NO_CAPSULE', mode: 'AUTO'};
+  if (!capsule) {
+    return { rebuild: false, reason: 'NO_CAPSULE', mode: 'AUTO' };
+  }
 
   const version = capsule.version ?? 0;
 
@@ -593,22 +623,42 @@ function buildOutfitForActivity(
   const climateZone = deriveClimateZone(dayWeather);
   const activityProfile = getActivityProfile(activity);
   const isMasculine = presentation === 'masculine';
+  const isFormalActivity = activityProfile.formality >= 2;
   const gatedBuckets = {} as Record<CategoryBucket, TripWardrobeItem[]>;
   for (const key of Object.keys(buckets) as CategoryBucket[]) {
     gatedBuckets[key] = gatePool(buckets[key], climateZone, activityProfile, presentation);
-    // Fallback: if gating empties the bucket, use original — BUT NEVER FOR MASCULINE + FEMININE ITEMS
+    // Fallback: if gating empties the bucket — NEVER bypass formality or gender rules
     if (gatedBuckets[key].length === 0 && buckets[key].length > 0) {
       if (isMasculine) {
-        // For masculine: filter out feminine items even in fallback
-        gatedBuckets[key] = buckets[key].filter(item => !inferGarmentFlags(item).isFeminineOnly);
+        gatedBuckets[key] = buckets[key].filter(item => {
+          const flags = inferGarmentFlags(item);
+          if (flags.isFeminineOnly) return false;
+          if (isFormalActivity && flags.isCasualOnly) return false;
+          return true;
+        });
+      } else if (isFormalActivity) {
+        // Non-masculine fallback: still respect formality rules
+        gatedBuckets[key] = buckets[key].filter(item => !inferGarmentFlags(item).isCasualOnly);
       } else {
         gatedBuckets[key] = buckets[key];
       }
     }
   }
   const gatedShoes = gatePool(selectedShoes, climateZone, activityProfile, presentation);
-  // For masculine: NEVER fallback to feminine shoes
-  const finalShoes = gatedShoes.length > 0 ? gatedShoes : (isMasculine ? selectedShoes.filter(s => !inferGarmentFlags(s).isFeminineOnly) : selectedShoes);
+  // Shoe fallback: NEVER bypass formality or gender rules
+  let finalShoes: TripWardrobeItem[];
+  if (gatedShoes.length > 0) {
+    finalShoes = gatedShoes;
+  } else if (isMasculine) {
+    finalShoes = selectedShoes.filter(s => {
+      const f = inferGarmentFlags(s);
+      return !f.isFeminineOnly && !(isFormalActivity && f.isCasualOnly);
+    });
+  } else if (isFormalActivity) {
+    finalShoes = selectedShoes.filter(s => !inferGarmentFlags(s).isCasualOnly);
+  } else {
+    finalShoes = selectedShoes;
+  }
 
   const pick = mode === 'support'
     ? (b: TripWardrobeItem[], idx: number, arr: TripPackingItem[], loc: string) =>
@@ -731,6 +781,24 @@ function buildOutfitForActivity(
     usedItemIds.add(item.wardrobeItemId);
   }
 
+  if (__DEV__) {
+    console.log('[TripCapsule][OUTFIT_PICK]', {
+      activity,
+      dayIndex,
+      mode,
+      presentation,
+      weather: dayWeather
+        ? `${dayWeather.lowF}-${dayWeather.highF} ${dayWeather.condition}`
+        : 'none',
+      picked: normalized.map(i => ({
+        id: i.wardrobeItemId,
+        name: i.name,
+        mainCategory: i.mainCategory,
+        subCategory: i.subCategory,
+      })),
+    });
+  }
+
   return normalized;
 }
 
@@ -850,6 +918,7 @@ export function buildCapsule(
   startingLocationLabel: string,
   explicitPresentation?: Presentation,
 ): TripCapsule {
+  const requestId = `trip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const numDays = Math.max(weather.length, 1);
   const needs = analyzeWeather(weather);
 
@@ -858,6 +927,24 @@ export function buildCapsule(
 
   // Step 0b: Pre-filter ineligible items BEFORE any bucketing/scoring
   const eligibleItems = filterEligibleItems(wardrobeItems, presentation);
+
+  logInput(requestId, {
+    numDays,
+    activities,
+    weatherDays: weather.length,
+    wardrobeSize: wardrobeItems.length,
+    presentation,
+    eligibleCount: eligibleItems.length,
+    location: startingLocationLabel,
+  });
+
+  logWeatherAnalysis(requestId, {
+    needsWarmLayer: needs.needsWarmLayer,
+    needsRainLayer: needs.needsRainLayer,
+    isHot: needs.isHot,
+    isCold: needs.isCold,
+    climateZones: weather.map(d => deriveClimateZone(d)),
+  });
 
   const seedStr =
     eligibleItems.map(i => i.id).join(',') +
@@ -889,9 +976,22 @@ export function buildCapsule(
     );
   }
 
+  // Log bucket populations
+  for (const key of Object.keys(buckets) as CategoryBucket[]) {
+    logSlotDecision(requestId, {
+      category: key,
+      selectedCount: buckets[key].length,
+      selected: buckets[key].slice(0, 5).map(i => i.name || i.id),
+      reason: 'bucketed_and_sorted',
+    });
+  }
+
   // Step 2b: Hard-lock buckets for style coherence (defense-in-depth)
 
   if (presentation === 'masculine') {
+    const prevDresses = buckets.dresses.length;
+    const prevBottoms = buckets.bottoms.length;
+    const prevAccessories = buckets.accessories.length;
     buckets.dresses = [];
     buckets.bottoms = buckets.bottoms.filter(
       i => !(i.subcategory || '').toLowerCase().includes('skirt'),
@@ -901,15 +1001,32 @@ export function buildCapsule(
         i.main_category !== 'Bags' ||
         !(i.subcategory || '').toLowerCase().match(/handbag|purse/),
     );
+    if (prevDresses > 0 || prevBottoms !== buckets.bottoms.length || prevAccessories !== buckets.accessories.length) {
+      logOverride(requestId, {
+        rule: 'masculine_hard_lock',
+        before: prevDresses + prevBottoms + prevAccessories,
+        after: buckets.dresses.length + buckets.bottoms.length + buckets.accessories.length,
+        detail: `dresses: ${prevDresses}→0, bottoms: ${prevBottoms}→${buckets.bottoms.length}, accessories: ${prevAccessories}→${buckets.accessories.length}`,
+      });
+    }
   }
 
   if (presentation === 'feminine') {
+    const prevActivewear = buckets.activewear.length;
     buckets.activewear = buckets.activewear.filter(
       i =>
         !['Basketball Shorts', 'Gym Shorts', 'Board Shorts'].includes(
           i.subcategory || '',
         ),
     );
+    if (prevActivewear !== buckets.activewear.length) {
+      logOverride(requestId, {
+        rule: 'feminine_hard_lock',
+        before: prevActivewear,
+        after: buckets.activewear.length,
+        detail: 'removed masculine activewear (basketball/gym/board shorts)',
+      });
+    }
   }
 
   // Step 3: Plan day schedules
@@ -918,6 +1035,15 @@ export function buildCapsule(
   // Step 4: Select shoes
   const maxShoes = numDays <= 5 ? 2 : 3;
   const selectedShoes = buckets.shoes.slice(0, maxShoes);
+
+  logSlotDecision(requestId, {
+    category: 'shoes_selected',
+    requiredCount: maxShoes,
+    selectedCount: selectedShoes.length,
+    selected: selectedShoes.map(s => s.name || s.id),
+    rejected: buckets.shoes.slice(maxShoes).map(s => s.name || s.id),
+    reason: `max ${maxShoes} shoes for ${numDays}-day trip`,
+  });
 
   // Step 5: Select outerwear
   const selectedOuterwear: TripWardrobeItem[] = [];
@@ -931,6 +1057,13 @@ export function buildCapsule(
       selectedOuterwear.push(rainItem);
     }
   }
+
+  logSlotDecision(requestId, {
+    category: 'outerwear_selected',
+    selectedCount: selectedOuterwear.length,
+    selected: selectedOuterwear.map(o => o.name || o.id),
+    reason: `warmLayer=${needs.needsWarmLayer} rainLayer=${needs.needsRainLayer}`,
+  });
 
   // Step 6: Build ANCHOR outfits (first pass)
   const outfits: CapsuleOutfit[] = [];
@@ -997,10 +1130,18 @@ export function buildCapsule(
       outfit.items = outfit.items.filter(
         i => CATEGORY_MAP[i.mainCategory] !== 'dresses',
       );
-      if (__DEV__ && outfit.items.length < before) {
-        console.warn(
-          '[TripCapsule] invariant: stripped dresses from masculine capsule',
-        );
+      if (outfit.items.length < before) {
+        if (__DEV__) {
+          console.warn(
+            '[TripCapsule] invariant: stripped dresses from masculine capsule',
+          );
+        }
+        logOverride(requestId, {
+          rule: 'masculine_dress_strip',
+          before,
+          after: outfit.items.length,
+          detail: `outfit ${outfit.id}: removed ${before - outfit.items.length} dress-bucket items`,
+        });
       }
     }
   }
@@ -1017,7 +1158,16 @@ export function buildCapsule(
     presentation,
   );
 
-  return {build_id: generateBuildId(), outfits, packingList, version: CAPSULE_VERSION, fingerprint};
+  const buildId = generateBuildId();
+
+  logOutput(requestId, {
+    outfitCount: outfits.length,
+    packingGroups: packingList.map(g => ({category: g.category, count: g.items.length})),
+    uniqueItems: packingList.reduce((sum, g) => sum + g.items.length, 0),
+    buildId,
+  });
+
+  return {build_id: buildId, outfits, packingList, version: CAPSULE_VERSION, fingerprint};
 }
 
 // ── Capsule validation ──

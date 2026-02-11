@@ -60,6 +60,16 @@ import {
   OutfitFeedbackRow, // ✅ correct type
 } from './logic/feedbackFilters';
 
+// Structured audit logging (gated behind OUTFIT_AI_DEBUG env var)
+import {
+  logInput,
+  logPrompt,
+  logRawResponse,
+  logParsed,
+  logFilter,
+  logOutput,
+} from './logging/outfitAI.logger';
+
 /**
  * Google Cloud Storage client.
  * - Used to delete images from GCS when wardrobe items are removed.
@@ -679,13 +689,27 @@ export class WardrobeService {
         | 'agent12';
       sessionId?: string;
       refinementPrompt?: string;
-      lockedItemIds?: string[]; // 👇 ADD THIS
+      lockedItemIds?: string[];
+      requestId?: string;
     },
   ) {
+    const reqId = opts?.requestId || randomUUID();
+    const stdStartTime = Date.now();
     try {
       let lockedIds =
         (opts as any)?.lockedItemIds ?? (opts as any)?.locked_item_ids ?? [];
       console.log('[CTRL] lockedIds =', lockedIds);
+
+      logInput(reqId, {
+        userId,
+        query,
+        mode: 'standard',
+        topK,
+        weather: opts?.weather,
+        userStyle: opts?.userStyle,
+        lockedItemIds: lockedIds,
+        styleAgent: opts?.styleAgent,
+      });
       // ── Session & refinement handling ───────────────────────────
       const sessionId = opts?.sessionId?.trim();
       const refinement = (opts?.refinementPrompt ?? '').trim();
@@ -995,6 +1019,7 @@ export class WardrobeService {
       }
 
       // Style Agent hard filters
+      const preAgentCount = catalog.length;
       // Style Agent 1
       if (opts?.styleAgent && STYLE_AGENTS[opts.styleAgent]) {
         const agent = STYLE_AGENTS[opts.styleAgent];
@@ -1089,6 +1114,16 @@ export class WardrobeService {
         // console.log(`🎯 Agent12 refined filter: ${catalog.length} items left`);
       }
 
+      if (opts?.styleAgent) {
+        logFilter(reqId, {
+          stage: 'style_agent',
+          reason: opts.styleAgent,
+          catalogBefore: preAgentCount,
+          catalogAfter: catalog.length,
+          rejectedCount: preAgentCount - catalog.length,
+        });
+      }
+
       // 3) Contextual pre-filters — ALWAYS apply (even with styleAgent)
       {
         // ⚡ Keep a copy of locked/forceKeep items before filtering
@@ -1113,6 +1148,13 @@ export class WardrobeService {
         }
         console.log('🎨 Post-contextual filter catalog count:', catalog.length);
 
+        logFilter(reqId, {
+          stage: 'contextual',
+          catalogBefore: preAgentCount,
+          catalogAfter: catalog.length,
+          rejectedCount: preAgentCount - catalog.length,
+        });
+
         if (keepMap.size) {
           console.log(
             '🔒 Restored locked/forceKeep items after contextual filters',
@@ -1135,9 +1177,17 @@ export class WardrobeService {
         feedbackRows = await this.fetchFeedbackRows(userId);
         feedbackRules = compileFeedbackRulesFromRows(feedbackRows);
 
+        const preFeedbackCount = catalog.length;
         catalog = applyFeedbackFilters(catalog, feedbackRules, {
           minKeep: 6,
           softenWhenBelow: true,
+        });
+
+        logFilter(reqId, {
+          stage: 'feedback',
+          catalogBefore: preFeedbackCount,
+          catalogAfter: catalog.length,
+          rejectedCount: preFeedbackCount - catalog.length,
         });
 
         // soft prefs from rules
@@ -1298,12 +1348,31 @@ ${lockedLines}
 
       console.log('📝 Final prompt for outfit generation:\n', fullPrompt);
 
+      logPrompt(reqId, {
+        prompt: fullPrompt,
+        model: 'gemini-2.5-pro',
+        catalogSize: workingCatalog.length,
+      });
+
       // 6) LLM call and parse
+      const llmStartTime = Date.now();
       const raw = await this.vertex.generateReasonedOutfit(fullPrompt);
+      const llmLatencyMs = Date.now() - llmStartTime;
       const text =
         (raw?.candidates?.[0]?.content?.parts?.[0]?.text as string) ??
         (typeof raw === 'string' ? raw : '');
       const parsed = extractStrictJson(text);
+
+      logRawResponse(reqId, {
+        responseText: text,
+        model: 'gemini-2.5-pro',
+        latencyMs: llmLatencyMs,
+      });
+
+      logParsed(reqId, {
+        outfitCount: (parsed.outfits || []).length,
+        reasoning: parsed.outfits?.[0]?.why,
+      });
 
       // Map by index (use workingCatalog indices only)
       const byIndex = new Map<number, (typeof workingCatalog)[number]>();
@@ -1528,7 +1597,17 @@ ${lockedLines}
           outfit_id: 'o1',
         };
 
-      const request_id = randomUUID();
+      logOutput(reqId, {
+        outfits: withIds.map((o) => ({
+          id: o.outfit_id,
+          title: o.title,
+          itemCategories: o.items.map((it: any) => it?.main_category),
+        })),
+        totalLatencyMs: Date.now() - stdStartTime,
+        itemCounts: withIds.map((o) => o.items.length),
+      });
+
+      const request_id = reqId;
 
       if (process.env.NODE_ENV !== 'production') {
         console.dir(
@@ -1611,14 +1690,28 @@ ${lockedLines}
       weather?: WeatherContext;
       styleAgent?: string;
       lockedItemIds?: string[];
+      requestId?: string;
     },
   ) {
     const startTime = Date.now();
+    const reqId = opts?.requestId || randomUUID();
     console.log('⚡ [FAST] Starting generateOutfitsFast for user:', userId);
     console.log('⚡ [FAST] Full query:', query);
 
     try {
       const { weather, lockedItemIds = [] } = opts || {};
+
+      logInput(reqId, {
+        userId,
+        query,
+        mode: 'fast',
+        weather,
+        userStyle: opts?.userStyle,
+        lockedItemIds,
+        styleAgent: opts?.styleAgent,
+        isRefinement: query.toLowerCase().includes('refinement'),
+        isStartWithItem: lockedItemIds.length > 0 && !query.toLowerCase().includes('refinement'),
+      });
 
       // ── 0) Fetch available item types from user's wardrobe ──
       const { rows: categoryRows } = await pool.query(
@@ -1975,16 +2068,26 @@ ${lockedLines}
         '⚡ [FAST] Plan prompt (first 500 chars):',
         planPrompt.substring(0, 500),
       );
+
+      logPrompt(reqId, {
+        prompt: planPrompt,
+        model: 'gemini-2.0-flash',
+        promptLength: planPrompt.length,
+      });
+
       const planStartTime = Date.now();
 
       const plan = await this.vertex.generateOutfitPlan(planPrompt);
 
-      console.log(
-        '⚡ [FAST] Plan generated in',
-        Date.now() - planStartTime,
-        'ms',
-      );
+      const planLatencyMs = Date.now() - planStartTime;
+      console.log('⚡ [FAST] Plan generated in', planLatencyMs, 'ms');
       console.log('⚡ [FAST] Plan:', JSON.stringify(plan, null, 2));
+
+      logRawResponse(reqId, {
+        responseText: JSON.stringify(plan),
+        model: 'gemini-2.0-flash',
+        latencyMs: planLatencyMs,
+      });
 
       // Handle both new format (single outfit) and old format (outfits array)
       const outfitsArray = plan.outfit ? [plan.outfit] : plan.outfits || [];
@@ -2081,6 +2184,13 @@ ${lockedLines}
         console.log(
           `⚡ [FAST] Slot "${result.slot.description}" (${result.slot.category}) → ${result.matches.length} matches, top: ${topMatch?.metadata?.name || topMatch?.metadata?.ai_title || topMatch?.id || 'none'} (score: ${topMatch?.score?.toFixed(3) || 'n/a'})`,
         );
+
+        logFilter(reqId, {
+          stage: `pinecone_slot:${result.slot.category}`,
+          reason: result.slot.description,
+          catalogBefore: 5,
+          catalogAfter: result.matches.length,
+        });
       }
 
       // Reconstruct assembledOutfits structure
@@ -2092,11 +2202,18 @@ ${lockedLines}
         return { outfitPlan, slotResults };
       });
 
+      const embedPineconeMs = Date.now() - embedStartTime;
       console.log(
         '⚡ [FAST] Total embed + Pinecone time:',
-        Date.now() - embedStartTime,
+        embedPineconeMs,
         'ms',
       );
+
+      logParsed(reqId, {
+        outfitCount: outfitsArray.length,
+        slots: allSlots.map((s) => ({ category: s.slot.category, description: s.slot.description })),
+        reasoning: `embed+pinecone: ${embedPineconeMs}ms`,
+      });
 
       // ── 3) Fetch full item details from PostgreSQL ──
       const dbStartTime = Date.now();
@@ -2318,8 +2435,18 @@ ${lockedLines}
       const totalTime = Date.now() - startTime;
       console.log('⚡ [FAST] Total generateOutfitsFast time:', totalTime, 'ms');
 
+      logOutput(reqId, {
+        outfits: outfits.map((o: any) => ({
+          id: o.outfit_id,
+          title: o.title,
+          itemCategories: o.items?.map((it: any) => it?.main_category),
+        })),
+        totalLatencyMs: totalTime,
+        itemCounts: outfits.map((o: any) => o.items?.length ?? 0),
+      });
+
       return {
-        request_id: randomUUID(),
+        request_id: reqId,
         outfit_id: best.outfit_id,
         items: best.items,
         why: best.why,

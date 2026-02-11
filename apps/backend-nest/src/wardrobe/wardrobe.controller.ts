@@ -17,6 +17,7 @@ import { CreateWardrobeItemDto } from './dto/create-wardrobe-item.dto';
 import { UpdateWardrobeItemDto } from './dto/update-wardrobe-item.dto';
 import { DeleteItemDto } from './dto/delete-item.dto';
 import { VertexService } from '../vertex/vertex.service';
+import { randomUUID } from 'crypto';
 import {
   AnalyzeImageRequestDto,
   AnalyzeImageResponseDto,
@@ -166,6 +167,8 @@ export class WardrobeController {
     console.log('🚀 [OUTFITS] refinementPrompt:', body.refinementPrompt);
     console.log('🚀 [OUTFITS] original query:', body.query);
 
+    const requestId = randomUUID();
+
     // Use fast mode if explicitly requested
     if (body.useFastMode) {
       // If there's a refinement prompt, append it to the query
@@ -180,6 +183,7 @@ export class WardrobeController {
         weather: weatherArg,
         styleAgent: body.styleAgent,
         lockedItemIds: body.lockedItemIds ?? [],
+        requestId,
       });
     }
 
@@ -193,6 +197,7 @@ export class WardrobeController {
       sessionId: body.session_id || (body as any).sessionId,
       refinementPrompt: body.refinementPrompt,
       lockedItemIds: body.lockedItemIds ?? [],
+      requestId,
     });
   }
 
@@ -222,6 +227,7 @@ export class WardrobeController {
       weather: body.weather,
       styleAgent: body.styleAgent,
       lockedItemIds: body.lockedItemIds ?? [],
+      requestId: randomUUID(),
     });
   }
 

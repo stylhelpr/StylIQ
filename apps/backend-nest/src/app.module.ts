@@ -53,7 +53,7 @@ import { ScheduledOutfitNotifier } from './scheduled-outfit/scheduled-outfit.not
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+     envFilePath: 'apps/backend-nest/.env',
     }),
     ThrottlerModule.forRoot([
       {

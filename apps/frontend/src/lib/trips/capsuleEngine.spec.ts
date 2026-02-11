@@ -526,8 +526,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)
-  it('CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)', () => {
-    expect(CAPSULE_VERSION).toBe(4);
+  it('CAPSULE_VERSION is 7 (added structured audit logging)', () => {
+    expect(CAPSULE_VERSION).toBe(7);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -735,5 +735,490 @@ describe('buildCapsule with explicit presentation', () => {
     expect(fp1).not.toBe(fp2);
     // No presentation → defaults to 'mixed', different from 'masculine'
     expect(fp1).not.toBe(fp3);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  FORMALITY GATING: Business/Dinner/Formal must NEVER include informal items
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Formality gating — inferGarmentFlags isCasualOnly', () => {
+  it('sneakers are isCasualOnly', () => {
+    const sneaker: TripWardrobeItem = {id: 's1', name: 'White Sneakers', main_category: 'Shoes', subcategory: 'Lifestyle Sneakers'};
+    expect(inferGarmentFlags(sneaker).isCasualOnly).toBe(true);
+  });
+
+  it('athletic sneakers are isCasualOnly', () => {
+    const shoe: TripWardrobeItem = {id: 's2', name: 'Running Shoes', main_category: 'Shoes', subcategory: 'Athletic Sneakers'};
+    expect(inferGarmentFlags(shoe).isCasualOnly).toBe(true);
+  });
+
+  it('work boots are isCasualOnly', () => {
+    const boot: TripWardrobeItem = {id: 's3', name: 'Timberland Work Boots', main_category: 'Shoes', subcategory: 'Work Boots'};
+    expect(inferGarmentFlags(boot).isCasualOnly).toBe(true);
+  });
+
+  it('hiking boots are isCasualOnly', () => {
+    const boot: TripWardrobeItem = {id: 's4', name: 'Trail Hikers', main_category: 'Shoes', subcategory: 'Hiking Boots'};
+    expect(inferGarmentFlags(boot).isCasualOnly).toBe(true);
+  });
+
+  it('combat boots are isCasualOnly', () => {
+    const boot: TripWardrobeItem = {id: 's5', name: 'Black Combat Boots', main_category: 'Shoes', subcategory: 'Combat Boots'};
+    expect(inferGarmentFlags(boot).isCasualOnly).toBe(true);
+  });
+
+  it('slides are isCasualOnly', () => {
+    const slide: TripWardrobeItem = {id: 's6', name: 'Adidas Slides', main_category: 'Shoes', subcategory: 'Slides'};
+    expect(inferGarmentFlags(slide).isCasualOnly).toBe(true);
+  });
+
+  it('hoodies are isCasualOnly', () => {
+    const hoodie: TripWardrobeItem = {id: 't1', name: 'Grey Hoodie', main_category: 'Tops', subcategory: 'Hoodies'};
+    expect(inferGarmentFlags(hoodie).isCasualOnly).toBe(true);
+  });
+
+  it('sweatshirts are isCasualOnly', () => {
+    const sweat: TripWardrobeItem = {id: 't2', name: 'Crewneck Sweatshirt', main_category: 'Loungewear', subcategory: 'Sweatshirts'};
+    expect(inferGarmentFlags(sweat).isCasualOnly).toBe(true);
+  });
+
+  it('t-shirts are isCasualOnly', () => {
+    const tee: TripWardrobeItem = {id: 't3', name: 'Graphic Tee', main_category: 'Tops', subcategory: 'T-Shirts'};
+    expect(inferGarmentFlags(tee).isCasualOnly).toBe(true);
+  });
+
+  it('joggers are isCasualOnly', () => {
+    const jogger: TripWardrobeItem = {id: 'b1', name: 'Nike Joggers', main_category: 'Bottoms', subcategory: 'Joggers'};
+    expect(inferGarmentFlags(jogger).isCasualOnly).toBe(true);
+  });
+
+  // ── V6: Expanded coverage ──
+
+  it('shorts are isCasualOnly', () => {
+    const shorts: TripWardrobeItem = {id: 'b2', name: 'Khaki Shorts', main_category: 'Bottoms', subcategory: 'Shorts'};
+    expect(inferGarmentFlags(shorts).isCasualOnly).toBe(true);
+  });
+
+  it('cargo pants are isCasualOnly', () => {
+    const cargo: TripWardrobeItem = {id: 'b3', name: 'Olive Cargo Pants', main_category: 'Bottoms', subcategory: 'Cargo Pants'};
+    expect(inferGarmentFlags(cargo).isCasualOnly).toBe(true);
+  });
+
+  it('leggings are isCasualOnly', () => {
+    const legging: TripWardrobeItem = {id: 'b4', name: 'Black Leggings', main_category: 'Bottoms', subcategory: 'Leggings'};
+    expect(inferGarmentFlags(legging).isCasualOnly).toBe(true);
+  });
+
+  it('crop tops are isCasualOnly', () => {
+    const crop: TripWardrobeItem = {id: 't4', name: 'White Crop Top', main_category: 'Tops', subcategory: 'Crop Tops'};
+    expect(inferGarmentFlags(crop).isCasualOnly).toBe(true);
+  });
+
+  it('espadrilles are isCasualOnly', () => {
+    const esp: TripWardrobeItem = {id: 's7', name: 'Woven Espadrilles', main_category: 'Shoes', subcategory: 'Espadrilles'};
+    expect(inferGarmentFlags(esp).isCasualOnly).toBe(true);
+  });
+
+  it('boat shoes are isCasualOnly', () => {
+    const boat: TripWardrobeItem = {id: 's8', name: 'Sperry Boat Shoes', main_category: 'Shoes', subcategory: 'Boat Shoes'};
+    expect(inferGarmentFlags(boat).isCasualOnly).toBe(true);
+  });
+
+  it('denim jackets are isCasualOnly', () => {
+    const denim: TripWardrobeItem = {id: 'o1', name: 'Denim Jacket', main_category: 'Outerwear', subcategory: 'Denim Jackets'};
+    expect(inferGarmentFlags(denim).isCasualOnly).toBe(true);
+  });
+
+  it('puffer jackets are isCasualOnly', () => {
+    const puffer: TripWardrobeItem = {id: 'o2', name: 'North Face Puffer', main_category: 'Outerwear', subcategory: 'Puffer Jackets'};
+    expect(inferGarmentFlags(puffer).isCasualOnly).toBe(true);
+  });
+
+  // ── FALSE NEGATIVES: formal items must NOT be isCasualOnly ──
+
+  it('oxfords are NOT isCasualOnly', () => {
+    const oxford: TripWardrobeItem = {id: 'f1', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords'};
+    expect(inferGarmentFlags(oxford).isCasualOnly).toBe(false);
+  });
+
+  it('loafers are NOT isCasualOnly', () => {
+    const loafer: TripWardrobeItem = {id: 'f2', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafers'};
+    expect(inferGarmentFlags(loafer).isCasualOnly).toBe(false);
+  });
+
+  it('derbies are NOT isCasualOnly', () => {
+    const derby: TripWardrobeItem = {id: 'f3', name: 'Suede Derbies', main_category: 'Shoes', subcategory: 'Derbies'};
+    expect(inferGarmentFlags(derby).isCasualOnly).toBe(false);
+  });
+
+  it('chelsea boots are NOT isCasualOnly', () => {
+    const chelsea: TripWardrobeItem = {id: 'f4', name: 'Black Chelsea Boots', main_category: 'Shoes', subcategory: 'Chelsea Boots'};
+    expect(inferGarmentFlags(chelsea).isCasualOnly).toBe(false);
+  });
+
+  it('dress shirts are NOT isCasualOnly', () => {
+    const shirt: TripWardrobeItem = {id: 'f5', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts'};
+    expect(inferGarmentFlags(shirt).isCasualOnly).toBe(false);
+  });
+
+  it('blazers are NOT isCasualOnly', () => {
+    const blazer: TripWardrobeItem = {id: 'f6', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazers'};
+    expect(inferGarmentFlags(blazer).isCasualOnly).toBe(false);
+  });
+
+  it('chinos are NOT isCasualOnly', () => {
+    const chino: TripWardrobeItem = {id: 'f7', name: 'Khaki Chinos', main_category: 'Bottoms', subcategory: 'Chinos'};
+    expect(inferGarmentFlags(chino).isCasualOnly).toBe(false);
+  });
+
+  it('monk straps are NOT isCasualOnly', () => {
+    const monk: TripWardrobeItem = {id: 'f8', name: 'Double Monk Straps', main_category: 'Shoes', subcategory: 'Monk Straps'};
+    expect(inferGarmentFlags(monk).isCasualOnly).toBe(false);
+  });
+
+  it('trousers are NOT isCasualOnly', () => {
+    const trouser: TripWardrobeItem = {id: 'f9', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers'};
+    expect(inferGarmentFlags(trouser).isCasualOnly).toBe(false);
+  });
+
+  it('sweaters are NOT isCasualOnly', () => {
+    const sweater: TripWardrobeItem = {id: 'f10', name: 'Cashmere Sweater', main_category: 'Tops', subcategory: 'Sweaters'};
+    expect(inferGarmentFlags(sweater).isCasualOnly).toBe(false);
+  });
+
+  it('blazers (outerwear) are NOT isCasualOnly', () => {
+    const blazer: TripWardrobeItem = {id: 'f11', name: 'Charcoal Blazer', main_category: 'Outerwear', subcategory: 'Blazers'};
+    expect(inferGarmentFlags(blazer).isCasualOnly).toBe(false);
+  });
+
+  it('trench coats are NOT isCasualOnly', () => {
+    const trench: TripWardrobeItem = {id: 'f12', name: 'Beige Trench Coat', main_category: 'Outerwear', subcategory: 'Trench Coats'};
+    expect(inferGarmentFlags(trench).isCasualOnly).toBe(false);
+  });
+
+  it('peacoats are NOT isCasualOnly', () => {
+    const peacoat: TripWardrobeItem = {id: 'f13', name: 'Navy Peacoat', main_category: 'Outerwear', subcategory: 'Peacoats'};
+    expect(inferGarmentFlags(peacoat).isCasualOnly).toBe(false);
+  });
+
+  it('polo shirts are NOT isCasualOnly', () => {
+    const polo: TripWardrobeItem = {id: 'f14', name: 'Navy Polo Shirt', main_category: 'Tops', subcategory: 'Polo Shirts'};
+    expect(inferGarmentFlags(polo).isCasualOnly).toBe(false);
+  });
+});
+
+describe('Formality gating — gatePool blocks informal items for formal activities', () => {
+  const businessProfile = {formality: 2, context: 'city' as const};
+  const formalProfile = {formality: 3, context: 'city' as const};
+  const dinnerProfile = {formality: 2, context: 'city' as const};
+  const casualProfile = {formality: 0, context: 'universal' as const};
+
+  const sneaker: TripWardrobeItem = {id: 's1', name: 'Red Sneakers', main_category: 'Shoes', subcategory: 'Lifestyle Sneakers'};
+  const oxford: TripWardrobeItem = {id: 's2', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords'};
+  const workBoot: TripWardrobeItem = {id: 's3', name: 'Work Boots', main_category: 'Shoes', subcategory: 'Work Boots'};
+  const loafer: TripWardrobeItem = {id: 's4', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafers'};
+  const hoodie: TripWardrobeItem = {id: 't1', name: 'Grey Hoodie', main_category: 'Tops', subcategory: 'Hoodies'};
+  const dressShirt: TripWardrobeItem = {id: 't2', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts'};
+  const tee: TripWardrobeItem = {id: 't3', name: 'Graphic Tee', main_category: 'Tops', subcategory: 'T-Shirts'};
+  const jogger: TripWardrobeItem = {id: 'b1', name: 'Joggers', main_category: 'Bottoms', subcategory: 'Joggers'};
+
+  const allShoes = [sneaker, oxford, workBoot, loafer];
+  const allTops = [hoodie, dressShirt, tee];
+
+  it('Business: blocks sneakers, keeps oxfords and loafers', () => {
+    const result = gatePool(allShoes, 'mild', businessProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).not.toContain('s1'); // sneaker blocked
+    expect(ids).not.toContain('s3'); // work boot blocked
+    expect(ids).toContain('s2'); // oxford kept
+    expect(ids).toContain('s4'); // loafer kept
+  });
+
+  it('Formal: blocks sneakers and work boots, keeps oxfords and loafers', () => {
+    const result = gatePool(allShoes, 'mild', formalProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).not.toContain('s1'); // sneaker blocked
+    expect(ids).not.toContain('s3'); // work boot blocked
+    expect(ids).toContain('s2'); // oxford kept
+    expect(ids).toContain('s4'); // loafer kept
+  });
+
+  it('Dinner: blocks sneakers and work boots, keeps oxfords and loafers', () => {
+    const result = gatePool(allShoes, 'mild', dinnerProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).not.toContain('s1');
+    expect(ids).not.toContain('s3');
+    expect(ids).toContain('s2');
+    expect(ids).toContain('s4');
+  });
+
+  it('Casual: keeps ALL shoes including sneakers and work boots', () => {
+    const result = gatePool(allShoes, 'mild', casualProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).toContain('s1'); // sneaker kept
+    expect(ids).toContain('s2'); // oxford kept
+    expect(ids).toContain('s3'); // work boot kept
+    expect(ids).toContain('s4'); // loafer kept
+  });
+
+  it('Business: blocks hoodies and tees, keeps dress shirts', () => {
+    const result = gatePool(allTops, 'mild', businessProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).not.toContain('t1'); // hoodie blocked
+    expect(ids).not.toContain('t3'); // tee blocked
+    expect(ids).toContain('t2'); // dress shirt kept
+  });
+
+  it('Formal: blocks hoodies and tees, keeps dress shirts', () => {
+    const result = gatePool(allTops, 'mild', formalProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).not.toContain('t1');
+    expect(ids).not.toContain('t3');
+    expect(ids).toContain('t2');
+  });
+
+  it('Dinner: blocks hoodies, keeps dress shirts', () => {
+    const result = gatePool(allTops, 'mild', dinnerProfile);
+    const ids = result.map(i => i.id);
+    expect(ids).not.toContain('t1');
+    expect(ids).toContain('t2');
+  });
+
+  it('Business: blocks joggers', () => {
+    const result = gatePool([jogger], 'mild', businessProfile);
+    expect(result).toHaveLength(0);
+  });
+
+  it('Casual: keeps hoodies, tees, and joggers', () => {
+    const result = gatePool([...allTops, jogger], 'mild', casualProfile);
+    expect(result).toHaveLength(4);
+  });
+
+  // ── V6: Expanded blocking ──
+
+  it('Business: blocks shorts', () => {
+    const shorts: TripWardrobeItem = {id: 'b2', name: 'Khaki Shorts', main_category: 'Bottoms', subcategory: 'Shorts'};
+    expect(gatePool([shorts], 'mild', businessProfile)).toHaveLength(0);
+  });
+
+  it('Business: blocks cargo pants', () => {
+    const cargo: TripWardrobeItem = {id: 'b3', name: 'Olive Cargo Pants', main_category: 'Bottoms', subcategory: 'Cargo Pants'};
+    expect(gatePool([cargo], 'mild', businessProfile)).toHaveLength(0);
+  });
+
+  it('Formal: blocks leggings', () => {
+    const legging: TripWardrobeItem = {id: 'b4', name: 'Black Leggings', main_category: 'Bottoms', subcategory: 'Leggings'};
+    expect(gatePool([legging], 'mild', formalProfile)).toHaveLength(0);
+  });
+
+  it('Formal: blocks espadrilles', () => {
+    const esp: TripWardrobeItem = {id: 's9', name: 'Woven Espadrilles', main_category: 'Shoes', subcategory: 'Espadrilles'};
+    expect(gatePool([esp], 'mild', formalProfile)).toHaveLength(0);
+  });
+
+  it('Formal: blocks boat shoes', () => {
+    const boat: TripWardrobeItem = {id: 's10', name: 'Boat Shoes', main_category: 'Shoes', subcategory: 'Boat Shoes'};
+    expect(gatePool([boat], 'mild', formalProfile)).toHaveLength(0);
+  });
+
+  it('Business: blocks denim jackets', () => {
+    const denim: TripWardrobeItem = {id: 'o1', name: 'Denim Jacket', main_category: 'Outerwear', subcategory: 'Denim Jackets'};
+    expect(gatePool([denim], 'mild', businessProfile)).toHaveLength(0);
+  });
+
+  it('Business: blocks puffer jackets', () => {
+    const puffer: TripWardrobeItem = {id: 'o2', name: 'North Face Puffer', main_category: 'Outerwear', subcategory: 'Puffer Jackets'};
+    expect(gatePool([puffer], 'mild', businessProfile)).toHaveLength(0);
+  });
+
+  it('Casual: keeps shorts and cargo', () => {
+    const shorts: TripWardrobeItem = {id: 'b2', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'};
+    const cargo: TripWardrobeItem = {id: 'b3', name: 'Cargo Pants', main_category: 'Bottoms', subcategory: 'Cargo Pants'};
+    const result = gatePool([shorts, cargo], 'mild', casualProfile);
+    expect(result).toHaveLength(2);
+  });
+
+  it('Dinner: blocks crop tops', () => {
+    const crop: TripWardrobeItem = {id: 't5', name: 'White Crop Top', main_category: 'Tops', subcategory: 'Crop Tops'};
+    expect(gatePool([crop], 'mild', dinnerProfile)).toHaveLength(0);
+  });
+});
+
+describe('Formality gating — buildCapsule integration', () => {
+  const formalWardrobe: TripWardrobeItem[] = [
+    {id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts', formalityScore: 80, dressCode: 'business'},
+    {id: 't2', name: 'Grey Hoodie', main_category: 'Tops', subcategory: 'Hoodies', formalityScore: 20},
+    {id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 75},
+    {id: 'b2', name: 'Black Joggers', main_category: 'Bottoms', subcategory: 'Joggers', formalityScore: 10},
+    {id: 's1', name: 'Red Sneakers', main_category: 'Shoes', subcategory: 'Lifestyle Sneakers', formalityScore: 20},
+    {id: 's2', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords', formalityScore: 90, dressCode: 'formal'},
+    {id: 'a1', name: 'Leather Watch', main_category: 'Accessories', subcategory: 'Watch'},
+  ];
+
+  const weather: DayWeather[] = [
+    {date: '2026-03-01', dayLabel: 'Sun', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    {date: '2026-03-02', dayLabel: 'Mon', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+  ];
+
+  it('Business trip: ZERO sneakers, ZERO hoodies, ZERO joggers in outfits', () => {
+    const capsule = buildCapsule(formalWardrobe, weather, ['Business'], 'Home', 'masculine');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    const subCategories = allItems.map(i => (i.subCategory || '').toLowerCase());
+    const names = allItems.map(i => i.name.toLowerCase());
+
+    // Sneakers must NEVER appear
+    expect(subCategories.some(s => s.includes('sneaker'))).toBe(false);
+    expect(names.some(n => n.includes('sneaker'))).toBe(false);
+    // Hoodies must NEVER appear
+    expect(subCategories.some(s => s.includes('hoodie'))).toBe(false);
+    expect(names.some(n => n.includes('hoodie'))).toBe(false);
+    // Joggers must NEVER appear
+    expect(subCategories.some(s => s.includes('jogger'))).toBe(false);
+    expect(names.some(n => n.includes('jogger'))).toBe(false);
+  });
+
+  it('Formal event: ZERO sneakers in outfits', () => {
+    const capsule = buildCapsule(formalWardrobe, weather, ['Formal'], 'Home', 'masculine');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    const subCategories = allItems.map(i => (i.subCategory || '').toLowerCase());
+
+    expect(subCategories.some(s => s.includes('sneaker'))).toBe(false);
+  });
+
+  it('Dinner: ZERO sneakers or hoodies in Dinner outfits', () => {
+    // Dinner appears as secondary activity; primary is Casual which CAN have sneakers
+    const capsule = buildCapsule(formalWardrobe, weather, ['Dinner'], 'Home', 'masculine');
+    const dinnerOutfits = capsule.outfits.filter(o => o.occasion === 'Dinner');
+    const dinnerItems = dinnerOutfits.flatMap(o => o.items);
+    const subCategories = dinnerItems.map(i => (i.subCategory || '').toLowerCase());
+
+    // Dinner outfits must not contain sneakers or hoodies
+    expect(subCategories.some(s => s.includes('sneaker'))).toBe(false);
+    expect(subCategories.some(s => s.includes('hoodie'))).toBe(false);
+  });
+
+  it('Casual trip: sneakers and hoodies ARE allowed', () => {
+    const capsule = buildCapsule(formalWardrobe, weather, ['Casual'], 'Home', 'masculine');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    const allWardrobeIds = allItems.map(i => i.wardrobeItemId);
+
+    // With only sneakers available as shoes, they should be packed for casual
+    expect(allWardrobeIds.some(id => id === 's1' || id === 's2')).toBe(true);
+  });
+
+  it('Mixed Business+Casual trip: Business outfits have NO sneakers, Casual outfits CAN', () => {
+    const mixedWeather: DayWeather[] = [
+      {date: '2026-03-03', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-04', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-05', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+    ];
+    const capsule = buildCapsule(formalWardrobe, mixedWeather, ['Business', 'Casual'], 'Home', 'masculine');
+
+    for (const outfit of capsule.outfits) {
+      if (outfit.occasion === 'Business') {
+        const subs = outfit.items.map(i => (i.subCategory || '').toLowerCase());
+        expect(subs.some(s => s.includes('sneaker'))).toBe(false);
+        expect(subs.some(s => s.includes('hoodie'))).toBe(false);
+        expect(subs.some(s => s.includes('jogger'))).toBe(false);
+      }
+    }
+  });
+
+  it('Business trip: ZERO shorts even in warm weather', () => {
+    const warmWeather: DayWeather[] = [
+      {date: '2026-07-01', dayLabel: 'Mon', highF: 92, lowF: 78, condition: 'sunny', rainChance: 5},
+      {date: '2026-07-02', dayLabel: 'Tue', highF: 95, lowF: 80, condition: 'sunny', rainChance: 5},
+    ];
+    const wardrobeWithShorts: TripWardrobeItem[] = [
+      {id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts', formalityScore: 80},
+      {id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 75},
+      {id: 'b2', name: 'Khaki Shorts', main_category: 'Bottoms', subcategory: 'Shorts', formalityScore: 10},
+      {id: 's1', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords', formalityScore: 90},
+    ];
+    const capsule = buildCapsule(wardrobeWithShorts, warmWeather, ['Business'], 'Home', 'masculine');
+    const allItems = capsule.outfits.flatMap(o => o.items);
+    expect(allItems.some(i => (i.subCategory || '').toLowerCase().includes('short'))).toBe(false);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  FALLBACK SAFETY: Fallback must NEVER bypass formality rules
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Fallback safety — fail-closed for formal activities', () => {
+  it('feminine user with ONLY hoodies: Business outfit gets NO tops (fail-closed), NOT hoodies', () => {
+    const hoodieOnlyWardrobe: TripWardrobeItem[] = [
+      {id: 't1', name: 'Grey Hoodie', main_category: 'Tops', subcategory: 'Hoodies'},
+      {id: 't2', name: 'Black Hoodie', main_category: 'Tops', subcategory: 'Hoodies'},
+      {id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers'},
+      {id: 's1', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafers'},
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-01', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+    const capsule = buildCapsule(hoodieOnlyWardrobe, weather, ['Business'], 'Home', 'feminine');
+
+    // Business outfits must NOT contain hoodies even via fallback
+    for (const outfit of capsule.outfits) {
+      if (outfit.occasion === 'Business') {
+        const subs = outfit.items.map(i => (i.subCategory || '').toLowerCase());
+        expect(subs.some(s => s.includes('hoodie'))).toBe(false);
+      }
+    }
+  });
+
+  it('mixed user with ONLY sneakers: Formal outfit gets NO shoes (fail-closed), NOT sneakers', () => {
+    const sneakerOnlyWardrobe: TripWardrobeItem[] = [
+      {id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirts', formalityScore: 80},
+      {id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 75},
+      {id: 's1', name: 'White Sneakers', main_category: 'Shoes', subcategory: 'Lifestyle Sneakers'},
+      {id: 's2', name: 'Running Shoes', main_category: 'Shoes', subcategory: 'Athletic Sneakers'},
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-01', dayLabel: 'Sun', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    ];
+    // Formal is last day per planDaySchedules
+    const capsule = buildCapsule(sneakerOnlyWardrobe, weather, ['Formal'], 'Home', 'mixed');
+
+    for (const outfit of capsule.outfits) {
+      if (outfit.occasion === 'Formal') {
+        const subs = outfit.items.map(i => (i.subCategory || '').toLowerCase());
+        expect(subs.some(s => s.includes('sneaker'))).toBe(false);
+        expect(subs.some(s => s.includes('athletic'))).toBe(false);
+      }
+    }
+  });
+
+  it('all genders: Business NEVER has shorts, cargo, leggings, espadrilles, or puffer jackets', () => {
+    const mixedWardrobe: TripWardrobeItem[] = [
+      {id: 't1', name: 'Polo Shirt', main_category: 'Tops', subcategory: 'Polo Shirts'},
+      {id: 'b1', name: 'Shorts', main_category: 'Bottoms', subcategory: 'Shorts'},
+      {id: 'b2', name: 'Cargo Pants', main_category: 'Bottoms', subcategory: 'Cargo Pants'},
+      {id: 'b3', name: 'Leggings', main_category: 'Bottoms', subcategory: 'Leggings'},
+      {id: 'b4', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers'},
+      {id: 's1', name: 'Espadrilles', main_category: 'Shoes', subcategory: 'Espadrilles'},
+      {id: 's2', name: 'Loafers', main_category: 'Shoes', subcategory: 'Loafers'},
+      {id: 'o1', name: 'Puffer Jacket', main_category: 'Outerwear', subcategory: 'Puffer Jackets'},
+      {id: 'o2', name: 'Blazer', main_category: 'Outerwear', subcategory: 'Blazers'},
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-03', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+
+    for (const pres of ['masculine', 'feminine', 'mixed'] as const) {
+      const capsule = buildCapsule(mixedWardrobe, weather, ['Business'], 'Home', pres);
+      for (const outfit of capsule.outfits) {
+        if (outfit.occasion === 'Business') {
+          const subs = outfit.items.map(i => (i.subCategory || '').toLowerCase());
+          expect(subs.some(s => s.includes('short'))).toBe(false);
+          expect(subs.some(s => s.includes('cargo'))).toBe(false);
+          expect(subs.some(s => s.includes('legging'))).toBe(false);
+          expect(subs.some(s => s.includes('espadrille'))).toBe(false);
+          expect(subs.some(s => s.includes('puffer'))).toBe(false);
+        }
+      }
+    }
   });
 });

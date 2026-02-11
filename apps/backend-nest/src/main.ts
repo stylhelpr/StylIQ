@@ -60,7 +60,7 @@ async function bootstrap() {
     const app = await NestFactory.create<NestFastifyApplication>(
       AppModule,
       adapter,
-      { logger: ['error', 'warn'] },
+      { logger: ['error', 'warn', 'log'] },
     );
 
     // Global validation pipe
