@@ -111,7 +111,10 @@ export function inferGarmentFlags(item: TripWardrobeItem): GarmentFlags {
 
   // ── Feminine-only detection (HARD BLOCK for masculine users) ──
   // Clothing
-  const isDress = cat === 'Dresses' || sub.includes('dress') && !sub.includes('dress shirt');
+  // "dress" as a garment (the noun) always appears at the END of the subcategory
+  // ("wrap dress", "maxi dress", "sundress"), while "dress" as an adjective
+  // appears at the START ("dress boots", "dress shoes", "dress shirt").
+  const isDress = cat === 'Dresses' || sub.endsWith('dress');
   const isSkirt = cat === 'Skirts' || sub.includes('skirt') && !name.includes('skirt steak');
   const isBlouse = sub.includes('blouse');
   const isGown = sub.includes('gown');
@@ -143,17 +146,43 @@ export function gatePool(
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
 
+    const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
+
     // RULE 0 (FIRST CHECK): Block feminine-only items for masculine users — NO EXCEPTIONS
-    if (isMasculine && flags.isFeminineOnly) return false;
+    if (isMasculine && flags.isFeminineOnly) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation | isFeminineOnly=true`);
+      }
+      return false;
+    }
 
     // Rule 1: Block minimal coverage in cold/freezing
-    if (isColdOrFreezing && flags.isMinimalCoverage) return false;
+    if (isColdOrFreezing && flags.isMinimalCoverage) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=climate_minimal | zone=${climateZone} isMinimalCoverage=true`);
+      }
+      return false;
+    }
 
     // Rule 2: Block beach-context items for business/formal/dinner (city context + formal)
-    if (isFormalActivity && isCityContext && flags.isBeachContext) return false;
+    if (isFormalActivity && isCityContext && flags.isBeachContext) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=beach_context | formality=${activity.formality}`);
+      }
+      return false;
+    }
 
     // Rule 3: Block casual-only items for formal activities
-    if (isFormalActivity && flags.isCasualOnly) return false;
+    if (isFormalActivity && flags.isCasualOnly) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_SHOE] REJECT ${item.name} (${item.id}) | gate=casual_only | formality=${activity.formality} isCasualOnly=true sub=${item.subcategory}`);
+      }
+      return false;
+    }
+
+    if (__DEV__ && isShoe) {
+      console.log(`[TripCapsule][GATE_SHOE] PASS ${item.name} (${item.id}) | zone=${climateZone} formality=${activity.formality} presentation=${presentation}`);
+    }
 
     return true;
   });
@@ -195,20 +224,39 @@ export function gateBackupPool(
 
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
+    const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
+    const effectiveFormality = item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY;
 
     // GATE 1 — Presentation (never relax)
-    if (isMasculine && flags.isFeminineOnly) return false;
+    if (isMasculine && flags.isFeminineOnly) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation | isFeminineOnly=true`);
+      }
+      return false;
+    }
 
     // GATE 2 — Trip-incompatible casual (metadata-driven)
-    // Blocks items whose formalityScore falls below the trip's required floor.
-    // Items without metadata default conservatively (30) — blocks on formal trips.
-    if (minFormality > 0 && (item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY) < minFormality) return false;
+    if (minFormality > 0 && effectiveFormality < minFormality) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} effective=${effectiveFormality} minFormality=${minFormality}`);
+      }
+      return false;
+    }
 
     // GATE 3 — Climate (±15°F tolerance)
     const sweetMin = item.climateSweetspotFMin;
     const sweetMax = item.climateSweetspotFMax;
     if (sweetMin != null && sweetMax != null) {
-      if (sweetMax < tripLowF - 15 || sweetMin > tripHighF + 15) return false;
+      if (sweetMax < tripLowF - 15 || sweetMin > tripHighF + 15) {
+        if (__DEV__ && isShoe) {
+          console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=climate | sweetspot=${sweetMin}-${sweetMax} tripRange=${tripLowF}-${tripHighF}`);
+        }
+        return false;
+      }
+    }
+
+    if (__DEV__ && isShoe) {
+      console.log(`[TripCapsule][GATE_BACKUP_SHOE] PASS ${item.name} (${item.id}) | formality=${effectiveFormality}/${minFormality} climate=${sweetMin ?? '?'}-${sweetMax ?? '?'}/${tripLowF}-${tripHighF}`);
     }
 
     return true;
@@ -232,18 +280,39 @@ export function gateBackupPoolFallback(
 
   return items.filter(item => {
     const flags = inferGarmentFlags(item);
+    const isShoe = mapMainCategoryToSlot(item.main_category ?? '') === 'shoes';
+    const effectiveFormality = item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY;
 
     // GATE 1 — Presentation (never relax)
-    if (isMasculine && flags.isFeminineOnly) return false;
+    if (isMasculine && flags.isFeminineOnly) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=presentation`);
+      }
+      return false;
+    }
 
     // GATE 2 — Trip-incompatible casual (never relax, same floor as strict)
-    if (minFormality > 0 && (item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY) < minFormality) return false;
+    if (minFormality > 0 && effectiveFormality < minFormality) {
+      if (__DEV__ && isShoe) {
+        console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} effective=${effectiveFormality} minFormality=${minFormality}`);
+      }
+      return false;
+    }
 
     // GATE 3 — Climate (relaxed: ±25°F tolerance)
     const sweetMin = item.climateSweetspotFMin;
     const sweetMax = item.climateSweetspotFMax;
     if (sweetMin != null && sweetMax != null) {
-      if (sweetMax < tripLowF - 25 || sweetMin > tripHighF + 25) return false;
+      if (sweetMax < tripLowF - 25 || sweetMin > tripHighF + 25) {
+        if (__DEV__ && isShoe) {
+          console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=climate | sweetspot=${sweetMin}-${sweetMax} tripRange=${tripLowF}-${tripHighF}`);
+        }
+        return false;
+      }
+    }
+
+    if (__DEV__ && isShoe) {
+      console.log(`[TripCapsule][GATE_FALLBACK_SHOE] PASS ${item.name} (${item.id}) | formality=${effectiveFormality}/${minFormality}`);
     }
 
     return true;
@@ -813,12 +882,12 @@ export function detectPresentation(
     const cat = item.main_category || '';
     const sub = (item.subcategory || '').toLowerCase();
 
-    // Feminine signals — but "dress shirt" is masculine, not feminine
-    const isDressShirt = sub.includes('dress shirt');
+    // Feminine signals — "dress" as a garment noun (ends with "dress"),
+    // NOT "dress" as an adjective ("dress boots", "dress shoes", "dress shirt")
     if (
       cat === 'Dresses' ||
       cat === 'Skirts' ||
-      (sub.includes('dress') && !isDressShirt) ||
+      sub.endsWith('dress') ||
       sub.includes('skirt') ||
       sub.includes('heel') ||
       sub.includes('blouse') ||
@@ -835,7 +904,7 @@ export function detectPresentation(
       sub.includes('suit') ||
       sub.includes('tie') ||
       sub.includes('necktie') ||
-      isDressShirt
+      sub.includes('dress shirt')
     ) {
       masc++;
     }
@@ -1466,6 +1535,30 @@ export function buildCapsule(
     }
   }
 
+  // Coverage-gap awareness: count unique mandatory items per backup-eligible slot
+  const mandatorySlotCounts = new Map<CategoryBucket, number>();
+  for (const cat of backupCandidateCategories) mandatorySlotCounts.set(cat, 0);
+  const seenMandatory = new Set<string>();
+  for (const o of outfits) {
+    for (const pi of o.items) {
+      if (seenMandatory.has(pi.wardrobeItemId)) continue;
+      seenMandatory.add(pi.wardrobeItemId);
+      const slot = mapMainCategoryToSlot(pi.mainCategory);
+      if (slot && mandatorySlotCounts.has(slot as CategoryBucket)) {
+        mandatorySlotCounts.set(slot as CategoryBucket, (mandatorySlotCounts.get(slot as CategoryBucket) ?? 0) + 1);
+      }
+    }
+  }
+  // Mean of counts across backup-eligible slots → slots below mean are underrepresented
+  const slotCountValues = [...mandatorySlotCounts.values()];
+  const meanSlotCount = slotCountValues.length > 0
+    ? slotCountValues.reduce((sum, v) => sum + v, 0) / slotCountValues.length
+    : 0;
+  const underrepresentedSlots = new Set<CategoryBucket>();
+  for (const [slot, count] of mandatorySlotCounts) {
+    if (count < meanSlotCount) underrepresentedSlots.add(slot);
+  }
+
   // Helper: compute compatibleDays for an item across anchor outfits
   function computeCompatibleDays(item: TripWardrobeItem): number {
     let count = 0;
@@ -1503,7 +1596,8 @@ export function buildCapsule(
     const isVersatileColor = VERSATILE_COLORS.has(colorLower);
     const catBonus = CATEGORY_BONUS[getBucket(item) ?? ''] ?? 0;
     const formalityBonus = hasFormalActivity ? Math.floor((item.formalityScore ?? 50) / 25) : 0;
-    const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus;
+    const coverageGapBonus = underrepresentedSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
+    const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus + coverageGapBonus;
 
     strictCandidates.push({item, score, compatibleDays});
   }
@@ -1565,15 +1659,17 @@ export function buildCapsule(
       const compatibleDays = computeCompatibleDays(item);
       if (compatibleDays < fallbackThreshold) continue;
 
-      // Fallback scoring: base + multiOutfit(+10) + neutralColor(+5) + packedElsewhere(+5)
+      // Fallback scoring: base + multiOutfit(+10) + neutralColor(+5) + packedElsewhere(+5) + coverageGap(+15)
       const neutralColorBonus = VERSATILE_COLORS.has((item.color || '').toLowerCase()) ? 5 : 0;
       const multiOutfitBonus = compatibleDays >= 2 ? 10 : 0;
       const packedElsewhereBonus = packedItemIds.has(item.id) ? 5 : 0;
+      const coverageGapBonus = underrepresentedSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
       const score =
         compatibleDays * 10 +
         multiOutfitBonus +
         neutralColorBonus +
-        packedElsewhereBonus;
+        packedElsewhereBonus +
+        coverageGapBonus;
 
       fallbackCandidates.push({item, score, compatibleDays});
     }

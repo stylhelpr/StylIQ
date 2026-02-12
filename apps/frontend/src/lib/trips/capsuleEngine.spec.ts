@@ -910,6 +910,66 @@ describe('Formality gating — inferGarmentFlags isCasualOnly', () => {
   });
 });
 
+describe('Feminine-only detection — isFeminineOnly false-positive prevention', () => {
+  // Items with "dress" as an adjective (NOT dresses) must NOT be flagged feminine-only
+  it('dress boots are NOT isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'db1', name: 'Brown Dress Boots', main_category: 'Shoes', subcategory: 'Dress Boots'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(false);
+  });
+
+  it('dress shoes are NOT isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'ds1', name: 'Black Dress Shoes', main_category: 'Shoes', subcategory: 'Dress Shoes'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(false);
+  });
+
+  it('dress shirt is NOT isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'ds2', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(false);
+  });
+
+  it('dress pants are NOT isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'dp1', name: 'Grey Dress Pants', main_category: 'Bottoms', subcategory: 'Dress Pants'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(false);
+  });
+
+  // Actual dresses MUST still be flagged feminine-only
+  it('wrap dress IS isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'wd1', name: 'Red Wrap Dress', main_category: 'Dresses', subcategory: 'Wrap Dress'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+
+  it('maxi dress IS isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'md1', name: 'Floral Maxi Dress', main_category: 'Dresses', subcategory: 'Maxi Dress'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+
+  it('sundress IS isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'sd1', name: 'Yellow Sundress', main_category: 'Dresses', subcategory: 'Sundress'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+
+  it('cocktail dress IS isFeminineOnly (main_category Dresses)', () => {
+    const item: TripWardrobeItem = {id: 'cd1', name: 'Black Cocktail Dress', main_category: 'Dresses', subcategory: 'Cocktail Dress'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+
+  it('subcategory "dress" (bare noun) IS isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'bd1', name: 'Little Black Dress', main_category: 'Dresses', subcategory: 'Dress'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+
+  // Other feminine items still correctly detected
+  it('stiletto heels are isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'sh1', name: 'Black Stilettos', main_category: 'Shoes', subcategory: 'Stiletto'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+
+  it('ballet flats are isFeminineOnly', () => {
+    const item: TripWardrobeItem = {id: 'bf1', name: 'Nude Ballet Flats', main_category: 'Shoes', subcategory: 'Ballet Flat'};
+    expect(inferGarmentFlags(item).isFeminineOnly).toBe(true);
+  });
+});
+
 describe('Formality gating — gatePool blocks informal items for formal activities', () => {
   const businessProfile = {formality: 2, context: 'city' as const};
   const formalProfile = {formality: 3, context: 'city' as const};
@@ -962,6 +1022,36 @@ describe('Formality gating — gatePool blocks informal items for formal activit
     expect(ids).toContain('s2'); // oxford kept
     expect(ids).toContain('s3'); // work boot kept
     expect(ids).toContain('s4'); // loafer kept
+  });
+
+  // Diagnostic: cold Business trip with multiple formal shoe types
+  it('Business/cold: keeps all formal shoes (oxford, loafer, derby, chelsea, monk)', () => {
+    const formalShoes: TripWardrobeItem[] = [
+      {id: 'fs1', name: 'Cap-Toe Oxfords', main_category: 'Shoes', subcategory: 'Oxfords', formalityScore: 90},
+      {id: 'fs2', name: 'Penny Loafers', main_category: 'Shoes', subcategory: 'Loafers', formalityScore: 75},
+      {id: 'fs3', name: 'Brown Derby Shoes', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 78},
+      {id: 'fs4', name: 'Chelsea Boots', main_category: 'Shoes', subcategory: 'Chelsea Boots', formalityScore: 70},
+      {id: 'fs5', name: 'Monk Strap Shoes', main_category: 'Shoes', subcategory: 'Monk Strap', formalityScore: 82},
+      {id: 'fs6', name: 'Dress Boots', main_category: 'Shoes', subcategory: 'Dress Boots', formalityScore: 72},
+    ];
+    // Test all climate zones × Business
+    for (const zone of ['cold', 'freezing', 'cool', 'mild', 'warm'] as const) {
+      const result = gatePool(formalShoes, zone, businessProfile, 'masculine');
+      const passedIds = result.map(i => i.id);
+      for (const shoe of formalShoes) {
+        expect(passedIds).toContain(shoe.id);
+      }
+    }
+  });
+
+  it('Business/cold: blocks casual shoes even in mild weather', () => {
+    const casualShoes: TripWardrobeItem[] = [
+      {id: 'cs1', name: 'Running Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 10},
+      {id: 'cs2', name: 'Hiking Boots', main_category: 'Shoes', subcategory: 'Hiking Boots', formalityScore: 20},
+      {id: 'cs3', name: 'Slides', main_category: 'Shoes', subcategory: 'Slides', formalityScore: 5},
+    ];
+    const result = gatePool(casualShoes, 'mild', businessProfile, 'masculine');
+    expect(result.length).toBe(0);
   });
 
   it('Business: blocks hoodies and tees, keeps dress shirts', () => {
@@ -1816,6 +1906,110 @@ describe('Backup kit — two-tier fallback', () => {
     const reasons1 = (capsule1.tripBackupKit || []).map(b => b.reason);
     const reasons2 = (capsule2.tripBackupKit || []).map(b => b.reason);
     expect(reasons1).toEqual(reasons2);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  BACKUP KIT — COVERAGE-GAP AWARENESS
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Backup kit — coverage-gap awareness', () => {
+  const threeDayWeather: DayWeather[] = [
+    {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+  ];
+
+  it('underrepresented category outranks versatile layer when coverage is imbalanced', () => {
+    // Wardrobe: many tops (3 mandatory + 2 spare), 2 mandatory shoes + 1 spare, 1 spare outerwear
+    // Outfits will use ~3 tops, ~2 shoes → shoes underrepresented vs tops
+    // The spare shoe should appear in the backup kit thanks to coverage-gap bonus
+    const wardrobe: TripWardrobeItem[] = [
+      // Tops — enough for 3-day rotation with extras
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+      makeWardrobeItem({id: 't4', name: 'Mint Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 72, dressCode: 'business'}),
+      makeWardrobeItem({id: 't5', name: 'Grey Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 70, dressCode: 'business'}),
+      // Bottoms
+      makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      // Shoes — 3 total so engine uses 2 in outfits and 1 remains spare
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 's3', name: 'Black Derby Shoes', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 78}),
+      // Outerwear — 1 spare
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      // Accessories
+      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+
+    const capsule = buildCapsule(wardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    if (!capsule.tripBackupKit || capsule.tripBackupKit.length === 0) return;
+
+    const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
+
+    // Verify a shoe backup exists — coverage-gap bonus should ensure a spare shoe makes the kit
+    const backupIds = capsule.tripBackupKit.map(b => b.wardrobeItemId);
+    const hasShoeBackup = backupIds.some(id => {
+      const item = wardrobe.find(w => w.id === id);
+      return item && !outfitItemIds.has(id) && (item.main_category === 'Shoes');
+    });
+    expect(hasShoeBackup).toBe(true);
+  });
+
+  it('balanced coverage produces no coverage-gap bonus', () => {
+    // All backup-eligible slots have equal mandatory items → no slot is underrepresented
+    // Use a wardrobe where tops and shoes are equally represented
+    const balancedWardrobe: TripWardrobeItem[] = [
+      // 3 tops (all become mandatory for 3-day trip)
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+      makeWardrobeItem({id: 't4', name: 'Mint Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 72, dressCode: 'business'}),
+      // Bottoms
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      // 3 shoes — equally represented as tops
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 's3', name: 'Black Derby', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 85}),
+      // Outerwear spare
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      // Accessories
+      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+
+    // Two runs should be identical (deterministic)
+    const capsule1 = buildCapsule(balancedWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    const capsule2 = buildCapsule(balancedWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+
+    const ids1 = (capsule1.tripBackupKit || []).map(b => b.wardrobeItemId);
+    const ids2 = (capsule2.tripBackupKit || []).map(b => b.wardrobeItemId);
+    expect(ids1).toEqual(ids2);
+  });
+
+  it('coverage-gap bonus is deterministic across runs', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Shirt A', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Shirt B', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 78, dressCode: 'business'}),
+      makeWardrobeItem({id: 't3', name: 'Shirt C', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 76, dressCode: 'business'}),
+      makeWardrobeItem({id: 't4', name: 'Shirt D', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 74, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxford', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Loafer', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 'o1', name: 'Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      makeWardrobeItem({id: 'a1', name: 'Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+
+    const c1 = buildCapsule(wardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    const c2 = buildCapsule(wardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+
+    expect((c1.tripBackupKit || []).map(b => b.wardrobeItemId))
+      .toEqual((c2.tripBackupKit || []).map(b => b.wardrobeItemId));
+    expect((c1.tripBackupKit || []).map(b => b.reason))
+      .toEqual((c2.tripBackupKit || []).map(b => b.reason));
   });
 });
 
