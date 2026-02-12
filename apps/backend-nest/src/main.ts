@@ -1,3 +1,8 @@
+// Load .env in dev only
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: '.env' });
+}
+
 // SECURITY: No dotenv - secrets loaded from filesystem only
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';

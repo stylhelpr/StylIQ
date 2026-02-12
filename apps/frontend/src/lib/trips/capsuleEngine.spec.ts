@@ -526,8 +526,8 @@ describe('Global Climate Gating', () => {
   });
 
   // Additional: CAPSULE_VERSION is 4 (bumped for eligibility pre-filter)
-  it('CAPSULE_VERSION is 7 (added structured audit logging)', () => {
-    expect(CAPSULE_VERSION).toBe(7);
+  it('CAPSULE_VERSION is 8 (post-gate diversity + rotation)', () => {
+    expect(CAPSULE_VERSION).toBe(8);
   });
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1042,6 +1042,93 @@ describe('Formality gating — gatePool blocks informal items for formal activit
   it('Dinner: blocks crop tops', () => {
     const crop: TripWardrobeItem = {id: 't5', name: 'White Crop Top', main_category: 'Tops', subcategory: 'Crop Tops'};
     expect(gatePool([crop], 'mild', dinnerProfile)).toHaveLength(0);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ██  DIVERSITY + ROTATION — POST-GATE
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('Diversity + Rotation — post-gate', () => {
+  it('alternates formal shoes across Business days when 2+ eligible shoes exist', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Wool Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Navy Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 70}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-05', dayLabel: 'Thu', highF: 73, lowF: 59, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+
+    const businessOutfits = capsule.outfits.filter(o => o.occasion === 'Business');
+    expect(businessOutfits.length).toBeGreaterThanOrEqual(2);
+
+    const shoesByDay = businessOutfits.map(o => {
+      const shoe = o.items.find(i => i.mainCategory === 'Shoes');
+      return shoe?.wardrobeItemId;
+    }).filter(Boolean);
+
+    // With 2 shoes, they should alternate — both must appear
+    const uniqueShoes = new Set(shoesByDay);
+    expect(uniqueShoes.size).toBe(2);
+
+    // Consecutive Business days should NOT repeat the same shoe
+    for (let i = 1; i < shoesByDay.length; i++) {
+      expect(shoesByDay[i]).not.toBe(shoesByDay[i - 1]);
+    }
+  });
+
+  it('rotation survives gating shrinkage (3 shoes → 2 after formality gate)', () => {
+    const wardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Button-Down', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 80}),
+      makeWardrobeItem({id: 'b2', name: 'Chinos', main_category: 'Bottoms', subcategory: 'Chinos', formalityScore: 70}),
+      // 3 shoes: 2 formal (survive gating) + 1 casual (gated out for Business)
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 's3', name: 'White Sneakers', main_category: 'Shoes', subcategory: 'Sneakers', formalityScore: 20}),
+      makeWardrobeItem({id: 'o1', name: 'Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+      makeWardrobeItem({id: 'a1', name: 'Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
+      {date: '2026-03-05', dayLabel: 'Thu', highF: 73, lowF: 59, condition: 'sunny', rainChance: 10},
+    ];
+
+    const capsule = buildCapsule(wardrobe, weather, ['Business'], 'Home', 'masculine');
+    const businessOutfits = capsule.outfits.filter(o => o.occasion === 'Business');
+
+    // Sneakers must be gated out for Business
+    for (const outfit of businessOutfits) {
+      const shoes = outfit.items.filter(i => i.mainCategory === 'Shoes');
+      expect(shoes.every(s => s.wardrobeItemId !== 's3')).toBe(true);
+    }
+
+    // Despite gating shrinking pool from 3→2, remaining shoes should alternate
+    const shoeIds = businessOutfits.map(o => {
+      const shoe = o.items.find(i => i.mainCategory === 'Shoes');
+      return shoe?.wardrobeItemId;
+    }).filter(Boolean);
+
+    if (shoeIds.length >= 2) {
+      // Consecutive shoes should differ
+      for (let i = 1; i < shoeIds.length; i++) {
+        expect(shoeIds[i]).not.toBe(shoeIds[i - 1]);
+      }
+    }
   });
 });
 

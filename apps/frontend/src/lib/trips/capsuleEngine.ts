@@ -27,7 +27,7 @@ import {
 } from './logging/tripAI.logger';
 
 // Bump this whenever capsule logic changes to force auto-rebuild of stale stored capsules
-export const CAPSULE_VERSION = 7;
+export const CAPSULE_VERSION = 8;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ██  GLOBAL CLIMATE GATING (minimal layer)
@@ -493,10 +493,10 @@ function pickFromBucketReuse(
   dayIndex: number,
   items: TripPackingItem[],
   locationLabel: string,
-  usedItemIds: Set<string>,
+  usageTracker: Map<string, number[]>,
 ): void {
   if (bucket.length === 0) return;
-  const reusable = bucket.filter(b => usedItemIds.has(b.id));
+  const reusable = bucket.filter(b => usageTracker.has(b.id));
   if (reusable.length > 0) {
     const idx = dayIndex % reusable.length;
     items.push(toPackingItem(reusable[idx], locationLabel));
@@ -543,6 +543,90 @@ function isUpperActivewear(item: TripWardrobeItem): boolean {
     sub.includes('jersey') ||
     sub.includes('jacket')
   );
+}
+
+// ── Diversity + Rotation (applied POST-GATE) ──
+
+/**
+ * Reorders a gated bucket so that `dayIndex % len` lands on the best
+ * (least-used, longest-cooldown) candidate.
+ *
+ * 1. Filter items exceeding maxUsesPerItem.
+ * 2. Score each item: useCount * 50 + recency cooldown.
+ * 3. Sort ascending (best first).
+ * 4. Rotation-align: place best candidate at index (dayIndex % len).
+ *
+ * usageTracker maps TripWardrobeItem.id → array of dayIndexes where used.
+ */
+function applyDiversityAndRotate(
+  items: TripWardrobeItem[],
+  dayIndex: number,
+  usageTracker: Map<string, number[]>,
+  maxUsesPerItem: number,
+  debugLabel?: string,
+): TripWardrobeItem[] {
+  if (items.length <= 1) {
+    if (__DEV__ && debugLabel) {
+      console.log(
+        `[TripCapsule][DIVERSITY] day=${dayIndex} ${debugLabel}: only ${items.length} eligible after gating`,
+      );
+    }
+    return items;
+  }
+
+  // 1. Filter items exceeding max uses
+  let eligible = items.filter(item => {
+    const uses = (usageTracker.get(item.id) || []).length;
+    return uses < maxUsesPerItem;
+  });
+  if (eligible.length === 0) eligible = [...items]; // safety: all maxed → reset
+
+  // 2. Score each item (lower = better candidate)
+  const scored = eligible.map(item => {
+    const uses = usageTracker.get(item.id) || [];
+    const useCount = uses.length;
+    const lastUsedDay = uses.length > 0 ? uses[uses.length - 1] : -Infinity;
+    const daysSinceUse = dayIndex - lastUsedDay;
+    const cooldownPenalty =
+      daysSinceUse <= 1 ? 40 :
+      daysSinceUse === 2 ? 20 :
+      daysSinceUse === 3 ? 10 : 0;
+    const penalty = useCount * 50 + cooldownPenalty;
+    return {item, penalty, useCount, cooldownPenalty};
+  });
+
+  // 3. Sort by penalty ascending — stable sort preserves original order for ties
+  scored.sort((a, b) => a.penalty - b.penalty);
+
+  // 4. Rotation alignment: place best candidate at (dayIndex % len)
+  const len = scored.length;
+  const targetIdx = dayIndex % len;
+  const aligned: TripWardrobeItem[] = new Array(len);
+  for (let i = 0; i < len; i++) {
+    aligned[(targetIdx + i) % len] = scored[i].item;
+  }
+
+  // 5. __DEV__ diagnostic: per-pick proof of diversity
+  if (__DEV__ && debugLabel) {
+    const picked = scored[0]; // best candidate (placed at targetIdx)
+    const top3 = scored.slice(0, 3);
+    console.log(
+      `[TripCapsule][DIVERSITY] day=${dayIndex} ${debugLabel}: ` +
+      `bucketLen=${len} moduloIdx=${targetIdx} ` +
+      `picked=${picked.item.name}(${picked.item.id}) penalty=${picked.penalty}`,
+      {
+        candidates: top3.map(s => ({
+          name: s.item.name,
+          id: s.item.id,
+          penalty: s.penalty,
+          uses: s.useCount,
+          cooldown: s.cooldownPenalty,
+        })),
+      },
+    );
+  }
+
+  return aligned;
 }
 
 // ── Wardrobe presentation detection ──
@@ -608,11 +692,12 @@ export function detectPresentation(
 function buildOutfitForActivity(
   activity: TripActivity,
   dayIndex: number,
+  numDays: number,
   dayWeather: DayWeather | undefined,
   buckets: Record<CategoryBucket, TripWardrobeItem[]>,
   selectedShoes: TripWardrobeItem[],
   selectedOuterwear: TripWardrobeItem[],
-  usedItemIds: Set<string>,
+  usageTracker: Map<string, number[]>,
   locationLabel: string,
   mode: 'anchor' | 'support',
   presentation: Presentation,
@@ -660,9 +745,26 @@ function buildOutfitForActivity(
     finalShoes = selectedShoes;
   }
 
+  // ── Apply diversity + rotation alignment (POST-GATE) ──
+  // This ensures pickFromBucket's dayIndex % len lands on the best candidate
+  const maxUsesForBucket = (len: number) =>
+    len > 0 ? Math.ceil(numDays / len) + 1 : Infinity;
+  for (const key of Object.keys(gatedBuckets) as CategoryBucket[]) {
+    gatedBuckets[key] = applyDiversityAndRotate(
+      gatedBuckets[key], dayIndex, usageTracker,
+      maxUsesForBucket(gatedBuckets[key].length),
+      __DEV__ ? `${activity}/${key}` : undefined,
+    );
+  }
+  finalShoes = applyDiversityAndRotate(
+    finalShoes, dayIndex, usageTracker,
+    maxUsesForBucket(finalShoes.length),
+    __DEV__ ? `${activity}/shoes` : undefined,
+  );
+
   const pick = mode === 'support'
     ? (b: TripWardrobeItem[], idx: number, arr: TripPackingItem[], loc: string) =>
-        pickFromBucketReuse(b, idx, arr, loc, usedItemIds)
+        pickFromBucketReuse(b, idx, arr, loc, usageTracker)
     : pickFromBucket;
 
   switch (activity) {
@@ -709,7 +811,8 @@ function buildOutfitForActivity(
       pick(gatedBuckets.bottoms, dayIndex, items, locationLabel);
       pickShoe(finalShoes, dayIndex, items, locationLabel);
       if (mode === 'anchor' && gatedBuckets.outerwear.length > 0) {
-        items.push(toPackingItem(gatedBuckets.outerwear[0], locationLabel));
+        const outerIdx = dayIndex % gatedBuckets.outerwear.length;
+        items.push(toPackingItem(gatedBuckets.outerwear[outerIdx], locationLabel));
       }
       break;
     }
@@ -776,9 +879,11 @@ function buildOutfitForActivity(
     });
   }
 
-  // Track all used items
+  // Track all used items with day index for diversity scoring
   for (const item of normalized) {
-    usedItemIds.add(item.wardrobeItemId);
+    const days = usageTracker.get(item.wardrobeItemId) || [];
+    days.push(dayIndex);
+    usageTracker.set(item.wardrobeItemId, days);
   }
 
   if (__DEV__) {
@@ -1067,18 +1172,19 @@ export function buildCapsule(
 
   // Step 6: Build ANCHOR outfits (first pass)
   const outfits: CapsuleOutfit[] = [];
-  const usedItemIds = new Set<string>();
+  const usageTracker = new Map<string, number[]>();
 
   for (let day = 0; day < numDays; day++) {
     const schedule = daySchedules[day];
     const anchorItems = buildOutfitForActivity(
       schedule.primary,
       day,
+      numDays,
       weather[day],
       buckets,
       selectedShoes,
       selectedOuterwear,
-      usedItemIds,
+      usageTracker,
       startingLocationLabel,
       'anchor',
       presentation,
@@ -1099,11 +1205,12 @@ export function buildCapsule(
       const supportItems = buildOutfitForActivity(
         schedule.secondary,
         day,
+        numDays,
         weather[day],
         buckets,
         selectedShoes,
         selectedOuterwear,
-        usedItemIds,
+        usageTracker,
         startingLocationLabel,
         'support',
         presentation,
