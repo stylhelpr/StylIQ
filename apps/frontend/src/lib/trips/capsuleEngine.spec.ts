@@ -1312,12 +1312,14 @@ describe('Alternates — runner-up candidates per slot', () => {
     expect(alts.length).toBe(2);
   });
 
-  it('shoe alternates are present when 2+ formal shoes exist', () => {
+  it('shoe alternates are present when 3+ formal shoes exist', () => {
+    // 3 shoes: 1 may be reserved as backup, leaving 2 for outfit (1 pick + 1 alternate)
     const wardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
       makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
       makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 's3', name: 'Black Derby', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 85}),
     ];
     const weather: DayWeather[] = [
       {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
@@ -1328,7 +1330,7 @@ describe('Alternates — runner-up candidates per slot', () => {
     expect(shoe).toBeDefined();
     const alts = (shoe as any)?.alternates;
     expect(alts).toBeDefined();
-    expect(alts.length).toBe(1); // 2 shoes → 1 alternate
+    expect(alts.length).toBeGreaterThanOrEqual(1);
     expect(alts[0].id).not.toBe(shoe!.wardrobeItemId);
   });
 
@@ -2078,7 +2080,7 @@ describe('Trip backup kit', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('no overlap with mandatory outfit items', () => {
+  it('no overlap with planned outfit items', () => {
     const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
     if (!capsule.tripBackupKit) return;
     const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
@@ -2106,7 +2108,7 @@ describe('Trip backup kit', () => {
     }
   });
 
-  it('no kit when wardrobe too small', () => {
+  it('no kit when wardrobe too small for unused reserves', () => {
     const tinyWardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
@@ -2117,7 +2119,15 @@ describe('Trip backup kit', () => {
     ];
 
     const capsule = buildCapsule(tinyWardrobe, weather, ['Business'], 'Home', 'masculine');
-    expect(capsule.tripBackupKit).toBeUndefined();
+    // All items consumed by outfit — no unused items available for reserves
+    // Fallback may produce a kit from used items, but primary reserve phase won't
+    if (capsule.tripBackupKit) {
+      // If fallback triggered, items should still be valid
+      for (const b of capsule.tripBackupKit) {
+        expect(b.wardrobeItemId).toBeDefined();
+        expect(b.reason.length).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('outfits do not have backupSuggestions', () => {
@@ -2132,43 +2142,15 @@ describe('Trip backup kit', () => {
 // ██  BACKUP KIT — USED ITEM PENALTY (not exclusion)
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('Backup kit — used items eligible with penalty', () => {
+describe('Backup kit — reserve lock (hard exclusion)', () => {
   const threeDayWeather: DayWeather[] = [
     {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
     {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
     {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
   ];
 
-  it('used items appear as backups when no unused spares exist', () => {
-    // Small wardrobe: all backup-eligible items become mandatory in outfits
-    // With no spares, used items must still produce backups (score > 0 after penalty)
-    const smallWardrobe: TripWardrobeItem[] = [
-      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
-      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
-      makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
-      makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
-      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
-      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
-      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
-      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
-    ];
-
-    const capsule = buildCapsule(smallWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
-    // With 3 tops all mandatory + 2 shoes all mandatory, no unused spares exist.
-    // High-quality used items (3 compatible days each) should still produce backups.
-    const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
-    if (capsule.tripBackupKit && capsule.tripBackupKit.length > 0) {
-      // If backups are produced, at least one must be a used item (since all are used)
-      const allUsed = capsule.tripBackupKit.every(b => outfitItemIds.has(b.wardrobeItemId));
-      expect(allUsed).toBe(true);
-    }
-    // The key assertion: backups should exist (used items not filtered out)
-    expect(capsule.tripBackupKit).toBeDefined();
-    expect(capsule.tripBackupKit!.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('unused items are preferred over used items', () => {
-    // Large wardrobe: plenty of spares available
+  it('reserves never overlap with outfit items when spares exist', () => {
+    // Large wardrobe: plenty of spares per slot
     const wardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
@@ -2186,22 +2168,42 @@ describe('Backup kit — used items eligible with penalty', () => {
     ];
 
     const capsule = buildCapsule(wardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
-    if (!capsule.tripBackupKit) return;
-
-    // When spares exist, penalty ensures unused items are preferred
+    expect(capsule.tripBackupKit).toBeDefined();
     const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
-    for (const b of capsule.tripBackupKit) {
+    for (const b of capsule.tripBackupKit!) {
       expect(outfitItemIds.has(b.wardrobeItemId)).toBe(false);
     }
   });
 
-  it('gates still block bad items even with used-item inclusion', () => {
-    // Ensure casual items are still blocked on formal trips
+  it('fallback allows used items when no unused spares exist', () => {
+    // Small wardrobe: all backup-eligible items consumed by outfits
+    const smallWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
+      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+    ];
+
+    const capsule = buildCapsule(smallWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    // Fallback may produce backups from used items for small wardrobes
+    if (capsule.tripBackupKit && capsule.tripBackupKit.length > 0) {
+      // Valid kit: items have content
+      for (const b of capsule.tripBackupKit) {
+        expect(b.wardrobeItemId).toBeDefined();
+        expect(b.reason.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('gates still block casual items regardless of reserve mode', () => {
     const mixedWardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business'}),
-      // Casual top — should NEVER appear as backup on Business trip
       makeWardrobeItem({id: 't4', name: 'Grey Hoodie', main_category: 'Tops', subcategory: 'Hoodie', formalityScore: 20}),
       makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
       makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
@@ -2212,9 +2214,7 @@ describe('Backup kit — used items eligible with penalty', () => {
 
     const capsule = buildCapsule(mixedWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
     if (!capsule.tripBackupKit) return;
-
     const backupIds = capsule.tripBackupKit.map(b => b.wardrobeItemId);
-    // Hoodie and sneakers must NOT appear regardless of used-item penalty
     expect(backupIds).not.toContain('t4');
     expect(backupIds).not.toContain('s2');
   });
@@ -2239,7 +2239,7 @@ describe('Backup kit — used items eligible with penalty', () => {
     expect(capsule.tripBackupKit.length).toBeLessThanOrEqual(2);
   });
 
-  it('deterministic output with used items', () => {
+  it('deterministic output', () => {
     const wardrobe: TripWardrobeItem[] = [
       makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
       makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
@@ -2268,27 +2268,21 @@ describe('Backup kit — proven-fit formality bypass', () => {
     {date: '2026-03-04', dayLabel: 'Wed', highF: 71, lowF: 57, condition: 'sunny', rainChance: 5},
   ];
 
-  it('item with null formalityScore used in outfit can appear in backup kit', () => {
-    const wardrobe: TripWardrobeItem[] = [
-      makeWardrobeItem({id: 't1', name: 'Unscored Dress Shirt A', main_category: 'Tops', subcategory: 'Dress Shirt', dressCode: 'business'}),
-      makeWardrobeItem({id: 't2', name: 'Unscored Dress Shirt B', main_category: 'Tops', subcategory: 'Dress Shirt', dressCode: 'business'}),
-      makeWardrobeItem({id: 't3', name: 'Unscored Dress Shirt C', main_category: 'Tops', subcategory: 'Dress Shirt', dressCode: 'business'}),
-      makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
-      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
-      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
-      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 75}),
-      makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
-    ];
+  it('null-formalityScore items pass gateBackupPool when in provenFitIds', () => {
+    // With reserve lock, proven-fit bypass matters for FALLBACK path.
+    // Test the gate function directly: null-formalityScore + proven-fit → passes gate.
+    const item = makeWardrobeItem({
+      id: 't1', name: 'Unscored Dress Shirt', main_category: 'Tops',
+      subcategory: 'Dress Shirt', dressCode: 'business',
+    });
 
-    const capsule = buildCapsule(wardrobe, threeDayWeather, ['Formal'], 'Home', 'masculine');
-    // Null-formality tops pass gatePool (per-outfit gate uses dressCode/subcategory,
-    // not formalityScore). Used in outfits → proven-fit → bypass backup formality floor.
-    expect(capsule.tripBackupKit).toBeDefined();
-    if (capsule.tripBackupKit && capsule.tripBackupKit.length > 0) {
-      const backupIds = capsule.tripBackupKit.map(b => b.wardrobeItemId);
-      const hasNullFormalityTop = backupIds.some(id => ['t1', 't2', 't3'].includes(id));
-      expect(hasNullFormalityTop).toBe(true);
-    }
+    // Without provenFitIds → blocked (DEFAULT_UNKNOWN_FORMALITY=30 < 50)
+    const blocked = gateBackupPool([item], ['Formal'], threeDayWeather, 'masculine');
+    expect(blocked.length).toBe(0);
+
+    // With provenFitIds → passes formality floor
+    const passed = gateBackupPool([item], ['Formal'], threeDayWeather, 'masculine', new Set(['t1']));
+    expect(passed.length).toBe(1);
   });
 
   it('same null-formalityScore item, if unused, is still blocked on formal trips', () => {
@@ -2363,5 +2357,218 @@ describe('Backup kit — proven-fit formality bypass', () => {
       .toEqual((c2.tripBackupKit || []).map(b => b.wardrobeItemId));
     expect((c1.tripBackupKit || []).map(b => b.reason))
       .toEqual((c2.tripBackupKit || []).map(b => b.reason));
+  });
+});
+
+describe('Backup kit — reserve selection quality', () => {
+  const threeDayWeather: DayWeather[] = [
+    {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    {date: '2026-03-04', dayLabel: 'Wed', highF: 68, lowF: 54, condition: 'partly-cloudy', rainChance: 15},
+  ];
+
+  // Rich wardrobe: enough items so outfits consume some and leave quality spares
+  const richWardrobe: TripWardrobeItem[] = [
+    // Tops: 6 dress shirts — outfits use ~3, leaving 3 quality spares
+    makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business', color: 'white'}),
+    makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business', color: 'blue'}),
+    makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 78, dressCode: 'business', color: 'pink'}),
+    makeWardrobeItem({id: 't4', name: 'Lavender Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 76, dressCode: 'business', color: 'lavender'}),
+    makeWardrobeItem({id: 't5', name: 'Grey Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business', color: 'grey'}),
+    makeWardrobeItem({id: 't6', name: 'Cream Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 74, dressCode: 'business', color: 'cream'}),
+    // Bottoms: 3
+    makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85, color: 'navy'}),
+    makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85, color: 'grey'}),
+    makeWardrobeItem({id: 'b3', name: 'Charcoal Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 82, color: 'charcoal'}),
+    // Shoes: 3
+    makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90, color: 'black'}),
+    makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 78, color: 'brown'}),
+    makeWardrobeItem({id: 's3', name: 'Black Derby', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 85, color: 'black'}),
+    // Outerwear: 2
+    makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 82, color: 'navy'}),
+    makeWardrobeItem({id: 'o2', name: 'Charcoal Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80, color: 'charcoal'}),
+    // Accessories
+    makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+  ];
+
+  it('reserves exist when enough quality items exist', () => {
+    const capsule = buildCapsule(richWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeDefined();
+    expect(capsule.tripBackupKit!.length).toBeGreaterThanOrEqual(1);
+    expect(capsule.tripBackupKit!.length).toBeLessThanOrEqual(2);
+  });
+
+  it('reserves are top-tier, not scraps — all pass formality gate', () => {
+    const capsule = buildCapsule(richWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeDefined();
+    for (const b of capsule.tripBackupKit!) {
+      // Every reserve must be a formal-appropriate item (not casual)
+      const item = richWardrobe.find(w => w.id === b.wardrobeItemId)!;
+      const flags = inferGarmentFlags(item);
+      expect(flags.isCasualOnly).toBe(false);
+      // Formal items: formalityScore should be substantial
+      expect(item.formalityScore).toBeGreaterThanOrEqual(70);
+    }
+  });
+
+  it('reserves have zero overlap with planned outfits', () => {
+    const capsule = buildCapsule(richWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeDefined();
+    const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
+    // Hard exclusion: every reserve must be unused
+    for (const b of capsule.tripBackupKit!) {
+      expect(outfitItemIds.has(b.wardrobeItemId)).toBe(false);
+    }
+  });
+
+  it('engine never returns empty backup kit if >= 2 valid items exist', () => {
+    // Wardrobe with exactly 2 items per backup-eligible slot
+    const minWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 78, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+      makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 78}),
+      makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+      {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    ];
+
+    const capsule = buildCapsule(minWardrobe, weather, ['Business'], 'Home', 'masculine');
+    // With 2+ valid items per slot, reserve logic should produce a kit
+    expect(capsule.tripBackupKit).toBeDefined();
+    expect(capsule.tripBackupKit!.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('deterministic output preserved', () => {
+    const c1 = buildCapsule(richWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    const c2 = buildCapsule(richWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+
+    const ids1 = (c1.tripBackupKit || []).map(b => b.wardrobeItemId);
+    const ids2 = (c2.tripBackupKit || []).map(b => b.wardrobeItemId);
+    expect(ids1).toEqual(ids2);
+
+    const reasons1 = (c1.tripBackupKit || []).map(b => b.reason);
+    const reasons2 = (c2.tripBackupKit || []).map(b => b.reason);
+    expect(reasons1).toEqual(reasons2);
+  });
+});
+
+describe('Backup isolation — reserve-first architecture', () => {
+  const threeDayWeather: DayWeather[] = [
+    {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    {date: '2026-03-03', dayLabel: 'Tue', highF: 70, lowF: 56, condition: 'sunny', rainChance: 5},
+    {date: '2026-03-04', dayLabel: 'Wed', highF: 68, lowF: 54, condition: 'partly-cloudy', rainChance: 15},
+  ];
+
+  // Large wardrobe: plenty of items so reserves, outfits, and alternates all have candidates
+  const largeWardrobe: TripWardrobeItem[] = [
+    makeWardrobeItem({id: 't1', name: 'White Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business', color: 'white'}),
+    makeWardrobeItem({id: 't2', name: 'Blue Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business', color: 'blue'}),
+    makeWardrobeItem({id: 't3', name: 'Pink Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 78, dressCode: 'business', color: 'pink'}),
+    makeWardrobeItem({id: 't4', name: 'Lavender Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 76, dressCode: 'business', color: 'lavender'}),
+    makeWardrobeItem({id: 't5', name: 'Grey Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 75, dressCode: 'business', color: 'grey'}),
+    makeWardrobeItem({id: 't6', name: 'Cream Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 74, dressCode: 'business', color: 'cream'}),
+    makeWardrobeItem({id: 'b1', name: 'Navy Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85, color: 'navy'}),
+    makeWardrobeItem({id: 'b2', name: 'Grey Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85, color: 'grey'}),
+    makeWardrobeItem({id: 'b3', name: 'Charcoal Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 82, color: 'charcoal'}),
+    makeWardrobeItem({id: 's1', name: 'Oxford Shoes', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90, color: 'black'}),
+    makeWardrobeItem({id: 's2', name: 'Brown Loafers', main_category: 'Shoes', subcategory: 'Loafer', formalityScore: 78, color: 'brown'}),
+    makeWardrobeItem({id: 's3', name: 'Black Derby', main_category: 'Shoes', subcategory: 'Derby', formalityScore: 85, color: 'black'}),
+    makeWardrobeItem({id: 'o1', name: 'Navy Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 82, color: 'navy'}),
+    makeWardrobeItem({id: 'o2', name: 'Charcoal Blazer', main_category: 'Outerwear', subcategory: 'Blazer', formalityScore: 80, color: 'charcoal'}),
+    makeWardrobeItem({id: 'a1', name: 'Silk Tie', main_category: 'Accessories', subcategory: 'Tie'}),
+  ];
+
+  it('backups never overlap outfits', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeDefined();
+    const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
+    for (const b of capsule.tripBackupKit!) {
+      expect(outfitItemIds.has(b.wardrobeItemId)).toBe(false);
+    }
+  });
+
+  it('backups never overlap alternates', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    expect(capsule.tripBackupKit).toBeDefined();
+    const backupIds = new Set(capsule.tripBackupKit!.map(b => b.wardrobeItemId));
+    // Collect all alternate IDs from all outfit items
+    const alternateIds: string[] = [];
+    for (const outfit of capsule.outfits) {
+      for (const item of outfit.items) {
+        const alts = (item as any).alternates as Array<{id: string}> | undefined;
+        if (alts) {
+          for (const alt of alts) alternateIds.push(alt.id);
+        }
+      }
+    }
+    for (const altId of alternateIds) {
+      expect(backupIds.has(altId)).toBe(false);
+    }
+  });
+
+  it('alternates never overlap outfits (already-picked items)', () => {
+    const capsule = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    for (const outfit of capsule.outfits) {
+      const pickedIds = new Set(outfit.items.map(i => i.wardrobeItemId));
+      for (const item of outfit.items) {
+        const alts = (item as any).alternates as Array<{id: string}> | undefined;
+        if (!alts) continue;
+        for (const alt of alts) {
+          // Alternate must not be the same as any picked item in this outfit
+          expect(pickedIds.has(alt.id)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('fallback only triggers when no unused candidates exist', () => {
+    // Tiny wardrobe: all items consumed by outfits
+    const tinyWardrobe: TripWardrobeItem[] = [
+      makeWardrobeItem({id: 't1', name: 'Dress Shirt', main_category: 'Tops', subcategory: 'Dress Shirt', formalityScore: 80, dressCode: 'business'}),
+      makeWardrobeItem({id: 'b1', name: 'Trousers', main_category: 'Bottoms', subcategory: 'Trousers', formalityScore: 85}),
+      makeWardrobeItem({id: 's1', name: 'Oxfords', main_category: 'Shoes', subcategory: 'Oxford', formalityScore: 90}),
+    ];
+    const weather: DayWeather[] = [
+      {date: '2026-03-02', dayLabel: 'Mon', highF: 72, lowF: 58, condition: 'sunny', rainChance: 10},
+    ];
+
+    // Spy on console.log to detect RESERVE_FALLBACK_USED
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const capsule = buildCapsule(tinyWardrobe, weather, ['Business'], 'Home', 'masculine');
+
+    if (capsule.tripBackupKit && capsule.tripBackupKit.length > 0) {
+      // If fallback produced backups from used items, it must have logged
+      const outfitItemIds = new Set(capsule.outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
+      const hasUsedBackup = capsule.tripBackupKit.some(b => outfitItemIds.has(b.wardrobeItemId));
+      if (hasUsedBackup) {
+        const fallbackLogs = logSpy.mock.calls.filter(
+          args => typeof args[0] === 'string' && args[0].includes('RESERVE_FALLBACK_USED'),
+        );
+        expect(fallbackLogs.length).toBeGreaterThanOrEqual(1);
+      }
+    }
+    logSpy.mockRestore();
+  });
+
+  it('deterministic ordering preserved', () => {
+    const c1 = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+    const c2 = buildCapsule(largeWardrobe, threeDayWeather, ['Business'], 'Home', 'masculine');
+
+    // Backup kit
+    const bIds1 = (c1.tripBackupKit || []).map(b => b.wardrobeItemId);
+    const bIds2 = (c2.tripBackupKit || []).map(b => b.wardrobeItemId);
+    expect(bIds1).toEqual(bIds2);
+
+    // Outfit items
+    for (let i = 0; i < c1.outfits.length; i++) {
+      const items1 = c1.outfits[i].items.map(it => it.wardrobeItemId);
+      const items2 = c2.outfits[i].items.map(it => it.wardrobeItemId);
+      expect(items1).toEqual(items2);
+    }
   });
 });

@@ -1404,6 +1404,115 @@ export function buildCapsule(
   // Step 3: Plan day schedules
   const daySchedules = planDaySchedules(activities, weather, numDays);
 
+  // Step 3b: RESERVE BACKUPS FIRST — select high-quality reserves and isolate
+  //          them from the outfit candidate pool. This guarantees zero overlap
+  //          between backups and any outfit or alternate.
+  const reservedItemIds = new Set<string>();
+  type ReserveCandidate = {item: TripWardrobeItem; score: number; compatibleDays: number; slot: CategoryBucket};
+  let preSelectedReserves: ReserveCandidate[] = [];
+  {
+    const VERSATILE_COLORS = new Set(['black', 'navy', 'grey', 'gray', 'white', 'tan', 'charcoal', 'cream', 'beige', 'khaki']);
+    const CATEGORY_BONUS: Record<string, number> = {tops: 3, outerwear: 2, shoes: 1};
+    const backupSlots: CategoryBucket[] = ['tops', 'shoes', 'outerwear'];
+    const hasFormalAct = activities.some(a => getActivityProfile(a).formality >= 2);
+
+    // Compute compatible days against day schedules (pre-outfit)
+    function preCompatibleDays(item: TripWardrobeItem): number {
+      let count = 0;
+      for (let i = 0; i < daySchedules.length; i++) {
+        const dw = weather[i];
+        if (!dw) continue;
+        const cz = deriveClimateZone(dw);
+        const ap = getActivityProfile(daySchedules[i].primary);
+        if (gatePool([item], cz, ap, presentation).length > 0) count++;
+      }
+      return count;
+    }
+
+    // Coverage-gap: estimate from bucket sizes (pre-outfit proxy)
+    const slotSizes = new Map<CategoryBucket, number>();
+    for (const s of backupSlots) slotSizes.set(s, (buckets[s] || []).length);
+    const sizeValues = [...slotSizes.values()];
+    const meanSize = sizeValues.length > 0
+      ? sizeValues.reduce((sum, v) => sum + v, 0) / sizeValues.length
+      : 0;
+    const underrepSlots = new Set<CategoryBucket>();
+    for (const [s, sz] of slotSizes) {
+      if (sz < meanSize) underrepSlots.add(s);
+    }
+
+    function preScoreReserve(item: TripWardrobeItem, compat: number): number {
+      const colorLower = (item.color || '').toLowerCase();
+      const isVersatileColor = VERSATILE_COLORS.has(colorLower);
+      const catBonus = CATEGORY_BONUS[getBucket(item) ?? ''] ?? 0;
+      const formalityBonus = hasFormalAct ? Math.floor((item.formalityScore ?? 50) / 25) : 0;
+      const coverageGapBonus = underrepSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
+      return compat * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus + coverageGapBonus;
+    }
+
+    const strictThreshold = Math.ceil(daySchedules.length / 2);
+    const perSlotReserves = new Map<CategoryBucket, ReserveCandidate[]>();
+
+    for (const slot of backupSlots) {
+      const slotItems = buckets[slot] || [];
+      // Gate with NO provenFitIds — reserves must pass on their own merit
+      const gated = gateBackupPool(slotItems, activities, weather, presentation);
+      const candidates: ReserveCandidate[] = [];
+
+      for (const item of gated) {
+        const compat = preCompatibleDays(item);
+        if (compat < strictThreshold) continue;
+        const score = preScoreReserve(item, compat);
+        if (score > 0) {
+          candidates.push({item, score, compatibleDays: compat, slot});
+        }
+      }
+      candidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
+      perSlotReserves.set(slot, candidates.slice(0, 2));
+    }
+
+    // Diversity pass: best from each slot, then fill to max 2
+    const allCandidates: ReserveCandidate[] = [];
+    for (const c of perSlotReserves.values()) allCandidates.push(...c);
+    allCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
+
+    const selected: ReserveCandidate[] = [];
+    const pickedSlots = new Set<CategoryBucket>();
+    for (const c of allCandidates) {
+      if (selected.length >= 2) break;
+      if (!pickedSlots.has(c.slot)) {
+        selected.push(c);
+        pickedSlots.add(c.slot);
+      }
+    }
+    if (selected.length < 2) {
+      for (const c of allCandidates) {
+        if (selected.length >= 2) break;
+        if (!selected.some(s => s.item.id === c.item.id)) {
+          selected.push(c);
+        }
+      }
+    }
+    selected.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
+
+    preSelectedReserves = selected;
+    for (const c of selected) {
+      reservedItemIds.add(c.item.id);
+    }
+
+    if (__DEV__ && reservedItemIds.size > 0) {
+      console.log(
+        `[TripCapsule][RESERVE_LOCK] Reserved ${reservedItemIds.size} items BEFORE outfit construction: ` +
+        selected.map(c => `${c.item.name} (${c.slot})`).join(', '),
+      );
+    }
+  }
+
+  // Remove reserved items from ALL buckets — outfits and alternates will never see them
+  for (const key of Object.keys(buckets) as CategoryBucket[]) {
+    buckets[key] = buckets[key].filter(item => !reservedItemIds.has(item.id));
+  }
+
   // Step 4: Select shoes
   const maxShoes = numDays <= 5 ? 2 : 3;
   const selectedShoes = buckets.shoes.slice(0, maxShoes);
@@ -1520,71 +1629,18 @@ export function buildCapsule(
     }
   }
 
-  // Step 9b: Build trip-level backup kit (1–2 high-quality alternates)
-  // Two-tier pipeline:
-  //   Pass 1 (strict): gate → ≥50% compatibility → score → top 2
-  //   Pass 2 (fallback): relaxed gate → ≥30% compatibility → score → top 2
-  //   Fallback only runs if strict tier returns 0 items.
-  //   Used items are penalized, NOT excluded — allows backups from small wardrobes.
-  const VERSATILE_COLORS = new Set(['black', 'navy', 'grey', 'gray', 'white', 'tan', 'charcoal', 'cream', 'beige', 'khaki']);
-  const CATEGORY_BONUS: Record<string, number> = {tops: 3, outerwear: 2, shoes: 1};
-  // Penalty for items already used in outfits. Strong enough to prefer true spares
-  // (a spare with 2 compatible days beats a used item with 2), weak enough that
-  // a high-quality used item still enters the pool when no spares exist.
-  // At -20, a used item needs ~2 extra compatible days (+20 pts) to match a spare.
-  const USED_ITEM_PENALTY = 20;
-  const mandatoryIds = new Set(outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
+  // Step 9b: Format pre-selected reserves OR run post-outfit fallback
+  //
+  // preSelectedReserves were chosen in Step 3b (before outfit construction)
+  // and removed from buckets, guaranteeing zero overlap with outfits/alternates.
+  // Fallback only runs if pre-selection found nothing (small wardrobe).
+  const usedItemIds = new Set(outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
   const anchorOutfits = outfits.filter(o => o.type === 'anchor');
   const hasFormalActivity = activities.some(a => getActivityProfile(a).formality >= 2);
-  const minFormality = tripFormalityFloor(activities);
+  const isColdTrip = weather.some(d => d.lowF < 55);
+  const isRainyTrip = weather.some(d => d.rainChance > 50);
 
-  // 1. Collect ALL candidates from tops/shoes/outerwear (including used items)
-  const backupCandidateCategories: CategoryBucket[] = ['tops', 'shoes', 'outerwear'];
-  const rawCandidates: TripWardrobeItem[] = [];
-  for (const cat of backupCandidateCategories) {
-    for (const item of buckets[cat]) {
-      rawCandidates.push(item);
-    }
-  }
-
-  // Coverage-gap awareness: count unique mandatory items per backup-eligible slot
-  const mandatorySlotCounts = new Map<CategoryBucket, number>();
-  for (const cat of backupCandidateCategories) mandatorySlotCounts.set(cat, 0);
-  const seenMandatory = new Set<string>();
-  for (const o of outfits) {
-    for (const pi of o.items) {
-      if (seenMandatory.has(pi.wardrobeItemId)) continue;
-      seenMandatory.add(pi.wardrobeItemId);
-      const slot = mapMainCategoryToSlot(pi.mainCategory);
-      if (slot && mandatorySlotCounts.has(slot as CategoryBucket)) {
-        mandatorySlotCounts.set(slot as CategoryBucket, (mandatorySlotCounts.get(slot as CategoryBucket) ?? 0) + 1);
-      }
-    }
-  }
-  // Mean of counts across backup-eligible slots → slots below mean are underrepresented
-  const slotCountValues = [...mandatorySlotCounts.values()];
-  const meanSlotCount = slotCountValues.length > 0
-    ? slotCountValues.reduce((sum, v) => sum + v, 0) / slotCountValues.length
-    : 0;
-  const underrepresentedSlots = new Set<CategoryBucket>();
-  for (const [slot, count] of mandatorySlotCounts) {
-    if (count < meanSlotCount) underrepresentedSlots.add(slot);
-  }
-
-  // Helper: compute compatibleDays for an item across anchor outfits
-  function computeCompatibleDays(item: TripWardrobeItem): number {
-    let count = 0;
-    for (const ao of anchorOutfits) {
-      const aoIdx = outfits.indexOf(ao);
-      const dw = weather[aoIdx];
-      const cz = deriveClimateZone(dw);
-      const ap = getActivityProfile(ao.occasion as TripActivity);
-      if (gatePool([item], cz, ap, presentation).length > 0) count++;
-    }
-    return count;
-  }
-
-  // Shared reason-generation context
+  // Derive dominant activity for reason text
   const dominantActivity = anchorOutfits.reduce((acc, o) => {
     const a = o.occasion || 'trip';
     acc.set(a, (acc.get(a) || 0) + 1);
@@ -1592,36 +1648,8 @@ export function buildCapsule(
   }, new Map<string, number>());
   const topActivity = [...dominantActivity.entries()]
     .sort((a, b) => b[1] - a[1])[0]?.[0]?.toLowerCase() || 'trip';
-  const isColdTrip = weather.some(d => d.lowF < 55);
-  const isRainyTrip = weather.some(d => d.rainChance > 50);
 
-  // ── Pass 1: Strict tier ──
-  const gatedCandidates = gateBackupPool(rawCandidates, activities, weather, presentation, mandatoryIds);
-  const strictThreshold = Math.ceil(anchorOutfits.length / 2);
-  const strictCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
-
-  for (const item of gatedCandidates) {
-    const compatibleDays = computeCompatibleDays(item);
-    if (compatibleDays < strictThreshold) continue;
-
-    const colorLower = (item.color || '').toLowerCase();
-    const isVersatileColor = VERSATILE_COLORS.has(colorLower);
-    const catBonus = CATEGORY_BONUS[getBucket(item) ?? ''] ?? 0;
-    const formalityBonus = hasFormalActivity ? Math.floor((item.formalityScore ?? 50) / 25) : 0;
-    const coverageGapBonus = underrepresentedSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
-    const usedPenalty = mandatoryIds.has(item.id) ? USED_ITEM_PENALTY : 0;
-    const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus + coverageGapBonus - usedPenalty;
-
-    // Only include candidates with positive score — ensures used items
-    // only make the cut when their quality overcomes the penalty.
-    if (score > 0) {
-      strictCandidates.push({item, score, compatibleDays});
-    }
-  }
-  strictCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
-
-  // Strict-tier reason builder
-  function buildStrictReason(c: {item: TripWardrobeItem; compatibleDays: number}): string {
+  function buildReserveReason(c: {item: TripWardrobeItem; compatibleDays: number; slot: CategoryBucket}): string {
     const clauses: string[] = [];
 
     if (c.compatibleDays >= 3) {
@@ -1642,12 +1670,11 @@ export function buildCapsule(
       clauses.push('Easy swap if needed.');
     }
 
-    const bucket = getBucket(c.item);
-    if (bucket === 'tops') {
+    if (c.slot === 'tops') {
       clauses.push('Light and packable spare.');
-    } else if (bucket === 'outerwear') {
+    } else if (c.slot === 'outerwear') {
       clauses.push('Layers without added bulk.');
-    } else if (bucket === 'shoes') {
+    } else if (c.slot === 'shoes') {
       const sub = (c.item.subcategory || 'shoe').toLowerCase();
       clauses.push(`Secondary ${sub} for rotation.`);
     }
@@ -1657,52 +1684,66 @@ export function buildCapsule(
 
   let tripBackupKit: BackupSuggestion[];
 
-  if (strictCandidates.length >= 1) {
-    // Pass 1 produced results — use them (max 2)
-    tripBackupKit = strictCandidates.slice(0, 2).map(c => ({
+  if (preSelectedReserves.length >= 1) {
+    // Primary path: reserves were pre-selected and isolated before outfit construction
+    tripBackupKit = preSelectedReserves.map(c => ({
       wardrobeItemId: c.item.id,
       name: c.item.name || 'Unknown Item',
       imageUrl: getImageUrl(c.item),
-      reason: buildStrictReason(c),
+      reason: buildReserveReason(c),
     }));
   } else {
-    // ── Pass 2: Fallback tier (relaxed gates, top 2 only) ──
-    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation, mandatoryIds);
+    // FALLBACK: no unused reserves found pre-outfit. Allow used items with logging.
+    const backupCandidateCategories: CategoryBucket[] = ['tops', 'shoes', 'outerwear'];
+    const rawCandidates: TripWardrobeItem[] = [];
+    for (const cat of backupCandidateCategories) {
+      // Use FULL original eligibleItems since buckets were filtered
+      for (const item of eligibleItems) {
+        if (getBucket(item) === cat) rawCandidates.push(item);
+      }
+    }
+    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation, usedItemIds);
     const fallbackThreshold = Math.ceil(anchorOutfits.length * 0.3);
-    const fallbackCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
+    const fallbackCandidates: ReserveCandidate[] = [];
 
     for (const item of fallbackGated) {
-      const compatibleDays = computeCompatibleDays(item);
-      if (compatibleDays < fallbackThreshold) continue;
+      let compat = 0;
+      for (const ao of anchorOutfits) {
+        const aoIdx = outfits.indexOf(ao);
+        const dw = weather[aoIdx];
+        const cz = deriveClimateZone(dw);
+        const ap = getActivityProfile(ao.occasion as TripActivity);
+        if (gatePool([item], cz, ap, presentation).length > 0) compat++;
+      }
+      if (compat < fallbackThreshold) continue;
 
-      // Fallback scoring: base + multiOutfit(+10) + neutralColor(+5) + coverageGap(+15) - usedPenalty(20)
-      const neutralColorBonus = VERSATILE_COLORS.has((item.color || '').toLowerCase()) ? 5 : 0;
-      const multiOutfitBonus = compatibleDays >= 2 ? 10 : 0;
-      const usedPenalty = mandatoryIds.has(item.id) ? USED_ITEM_PENALTY : 0;
-      const coverageGapBonus = underrepresentedSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
-      const score =
-        compatibleDays * 10 +
-        multiOutfitBonus +
-        neutralColorBonus +
-        coverageGapBonus -
-        usedPenalty;
+      const neutralColorBonus = new Set(['black', 'navy', 'grey', 'gray', 'white', 'tan', 'charcoal', 'cream', 'beige', 'khaki'])
+        .has((item.color || '').toLowerCase()) ? 5 : 0;
+      const multiOutfitBonus = compat >= 2 ? 10 : 0;
+      const score = compat * 10 + multiOutfitBonus + neutralColorBonus;
 
       if (score > 0) {
-        fallbackCandidates.push({item, score, compatibleDays});
+        fallbackCandidates.push({item, score, compatibleDays: compat, slot: getBucket(item) as CategoryBucket});
       }
     }
     fallbackCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
 
-    // Fallback-tier reason builder
-    tripBackupKit = fallbackCandidates.slice(0, 2).map(c => {
-      const clauses: string[] = [];
+    const fallbackSelected = fallbackCandidates.slice(0, 2);
+    for (const c of fallbackSelected) {
+      if (usedItemIds.has(c.item.id)) {
+        console.log(
+          `[TripCapsule][RESERVE_FALLBACK_USED] reason=INSUFFICIENT_WARDROBE slot=${c.slot} item=${c.item.id} name="${c.item.name}"`,
+        );
+      }
+    }
 
+    tripBackupKit = fallbackSelected.map(c => {
+      const clauses: string[] = [];
       if (c.compatibleDays >= 2) {
         clauses.push(`Works with ${c.compatibleDays} ${topActivity} looks.`);
       } else {
         clauses.push(`Pairs with ${topActivity} outfits.`);
       }
-
       if (isColdTrip && (c.item.thermalRating ?? 0) > 60) {
         clauses.push('Weather-safe layer.');
       } else if (hasFormalActivity && (c.item.formalityScore ?? 0) >= 70) {
@@ -1710,7 +1751,6 @@ export function buildCapsule(
       } else {
         clauses.push('Flexible backup.');
       }
-
       return {
         wardrobeItemId: c.item.id,
         name: c.item.name || 'Unknown Item',
@@ -1719,8 +1759,8 @@ export function buildCapsule(
       };
     });
 
-    // Log when both tiers produce nothing — helps detect systemic edge cases
     if (fallbackCandidates.length === 0) {
+      const minFormality = tripFormalityFloor(activities);
       const tripLowF = Math.min(...weather.map(d => d.lowF));
       const tripHighF = Math.max(...weather.map(d => d.highF));
       logOverride(requestId, {
@@ -1732,10 +1772,34 @@ export function buildCapsule(
           minFormality,
           climateRange: {lowF: tripLowF, highF: tripHighF},
           rawCandidates: rawCandidates.length,
-          gatedStrict: gatedCandidates.length,
           gatedFallback: fallbackGated.length,
         }),
       });
+    }
+  }
+
+  // ── DEV: Hard isolation assertions ──
+  if (__DEV__) {
+    for (const b of tripBackupKit) {
+      if (usedItemIds.has(b.wardrobeItemId) && preSelectedReserves.length > 0) {
+        throw new Error(
+          `[TripCapsule] ISOLATION VIOLATION: backup "${b.name}" (${b.wardrobeItemId}) overlaps planned outfit`,
+        );
+      }
+    }
+    // Verify alternates don't overlap with reserves
+    for (const outfit of outfits) {
+      for (const pi of outfit.items) {
+        const alts = (pi as any).alternates as Array<{id: string}> | undefined;
+        if (!alts) continue;
+        for (const alt of alts) {
+          if (reservedItemIds.has(alt.id)) {
+            throw new Error(
+              `[TripCapsule] ISOLATION VIOLATION: alternate "${alt.id}" overlaps reserved backup`,
+            );
+          }
+        }
+      }
     }
   }
 
