@@ -182,6 +182,8 @@ function SwipeableEventCard({
       backgroundColor: theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.surfaceBorder,
+      borderLeftWidth: 3,
+      borderLeftColor: '#ffdd00ff',
     },
     name: {
       color: theme.colors.foreground,
@@ -318,6 +320,8 @@ function SwipeableOutfitCard({
       backgroundColor: theme.colors.surface3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.surfaceBorder,
+      borderLeftWidth: 3,
+      borderLeftColor: '#00ff73ff',
     },
     name: {
       color: theme.colors.foreground,
