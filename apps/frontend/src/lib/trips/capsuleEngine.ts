@@ -159,6 +159,97 @@ export function gatePool(
   });
 }
 
+/**
+ * Conservative default for items missing formalityScore metadata.
+ * 30 passes casual trips (floor 0) but fails business/formal (floor 40/50),
+ * forcing proper classification and preventing unclassified junk in backups.
+ */
+const DEFAULT_UNKNOWN_FORMALITY = 30;
+
+/**
+ * Derive the minimum formalityScore an item needs to be acceptable for a trip.
+ * Based on the trip's highest-formality activity, not garment names.
+ *   formality 0–1 (Casual/Sightseeing/Active): no floor (all items pass)
+ *   formality 2   (Business/Dinner):           floor 40
+ *   formality 3   (Formal):                    floor 50
+ */
+function tripFormalityFloor(activities: TripActivity[]): number {
+  const max = Math.max(...activities.map(a => getActivityProfile(a).formality));
+  return max >= 3 ? 50 : max >= 2 ? 40 : 0;
+}
+
+/**
+ * Trip-wide backup pool gate (strict).
+ * Uses only universal, metadata-driven gates — no garment-name lists.
+ */
+export function gateBackupPool(
+  items: TripWardrobeItem[],
+  activities: TripActivity[],
+  weather: DayWeather[],
+  presentation: 'masculine' | 'feminine' | 'mixed',
+): TripWardrobeItem[] {
+  const minFormality = tripFormalityFloor(activities);
+  const tripLowF = Math.min(...weather.map(d => d.lowF));
+  const tripHighF = Math.max(...weather.map(d => d.highF));
+  const isMasculine = presentation === 'masculine';
+
+  return items.filter(item => {
+    const flags = inferGarmentFlags(item);
+
+    // GATE 1 — Presentation (never relax)
+    if (isMasculine && flags.isFeminineOnly) return false;
+
+    // GATE 2 — Trip-incompatible casual (metadata-driven)
+    // Blocks items whose formalityScore falls below the trip's required floor.
+    // Items without metadata default conservatively (30) — blocks on formal trips.
+    if (minFormality > 0 && (item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY) < minFormality) return false;
+
+    // GATE 3 — Climate (±15°F tolerance)
+    const sweetMin = item.climateSweetspotFMin;
+    const sweetMax = item.climateSweetspotFMax;
+    if (sweetMin != null && sweetMax != null) {
+      if (sweetMax < tripLowF - 15 || sweetMin > tripHighF + 15) return false;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Fallback backup pool gate. Relaxes ONLY climate tolerance (±25°F).
+ * Presentation and formality gates are never relaxed.
+ */
+export function gateBackupPoolFallback(
+  items: TripWardrobeItem[],
+  activities: TripActivity[],
+  weather: DayWeather[],
+  presentation: 'masculine' | 'feminine' | 'mixed',
+): TripWardrobeItem[] {
+  const minFormality = tripFormalityFloor(activities);
+  const tripLowF = Math.min(...weather.map(d => d.lowF));
+  const tripHighF = Math.max(...weather.map(d => d.highF));
+  const isMasculine = presentation === 'masculine';
+
+  return items.filter(item => {
+    const flags = inferGarmentFlags(item);
+
+    // GATE 1 — Presentation (never relax)
+    if (isMasculine && flags.isFeminineOnly) return false;
+
+    // GATE 2 — Trip-incompatible casual (never relax, same floor as strict)
+    if (minFormality > 0 && (item.formalityScore ?? DEFAULT_UNKNOWN_FORMALITY) < minFormality) return false;
+
+    // GATE 3 — Climate (relaxed: ±25°F tolerance)
+    const sweetMin = item.climateSweetspotFMin;
+    const sweetMax = item.climateSweetspotFMax;
+    if (sweetMin != null && sweetMax != null) {
+      if (sweetMax < tripLowF - 25 || sweetMin > tripHighF + 25) return false;
+    }
+
+    return true;
+  });
+}
+
 export type RebuildMode = 'AUTO' | 'FORCE';
 
 export function shouldRebuildCapsule(
@@ -1355,82 +1446,184 @@ export function buildCapsule(
   }
 
   // Step 9b: Build trip-level backup kit (2–3 globally versatile items)
+  // Two-tier pipeline:
+  //   Pass 1 (strict): gate → ≥50% compatibility → score → top 3
+  //   Pass 2 (fallback): relaxed gate → ≥30% compatibility → score → top 2
+  //   Fallback only runs if strict tier returns 0 items.
   const VERSATILE_COLORS = new Set(['black', 'navy', 'grey', 'gray', 'white', 'tan', 'charcoal', 'cream', 'beige', 'khaki']);
   const CATEGORY_BONUS: Record<string, number> = {tops: 3, outerwear: 2, shoes: 1};
   const mandatoryIds = new Set(outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
   const anchorOutfits = outfits.filter(o => o.type === 'anchor');
+  const hasFormalActivity = activities.some(a => getActivityProfile(a).formality >= 2);
+  const minFormality = tripFormalityFloor(activities);
 
+  // 1. Collect candidates from tops/shoes/outerwear, exclude mandatory items
   const backupCandidateCategories: CategoryBucket[] = ['tops', 'shoes', 'outerwear'];
-  const backupCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
-
+  const rawCandidates: TripWardrobeItem[] = [];
   for (const cat of backupCandidateCategories) {
     for (const item of buckets[cat]) {
-      if (mandatoryIds.has(item.id)) continue;
-
-      // Count how many anchor outfits this item passes gating for
-      let compatibleDays = 0;
-      for (const ao of anchorOutfits) {
-        const aoIdx = outfits.indexOf(ao);
-        const dw = weather[aoIdx];
-        const cz = deriveClimateZone(dw);
-        const ap = getActivityProfile(ao.occasion as TripActivity);
-        if (gatePool([item], cz, ap, presentation).length > 0) {
-          compatibleDays++;
-        }
-      }
-
-      const colorLower = (item.color || '').toLowerCase();
-      const isVersatileColor = VERSATILE_COLORS.has(colorLower);
-      const catBonus = CATEGORY_BONUS[cat] ?? 0;
-      const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus;
-
-      backupCandidates.push({item, score, compatibleDays});
+      if (!mandatoryIds.has(item.id)) rawCandidates.push(item);
     }
   }
 
-  // Sort: score DESC, then id ASC (deterministic tiebreak)
-  backupCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
+  // Helper: compute compatibleDays for an item across anchor outfits
+  function computeCompatibleDays(item: TripWardrobeItem): number {
+    let count = 0;
+    for (const ao of anchorOutfits) {
+      const aoIdx = outfits.indexOf(ao);
+      const dw = weather[aoIdx];
+      const cz = deriveClimateZone(dw);
+      const ap = getActivityProfile(ao.occasion as TripActivity);
+      if (gatePool([item], cz, ap, presentation).length > 0) count++;
+    }
+    return count;
+  }
 
+  // Shared reason-generation context
+  const dominantActivity = anchorOutfits.reduce((acc, o) => {
+    const a = o.occasion || 'trip';
+    acc.set(a, (acc.get(a) || 0) + 1);
+    return acc;
+  }, new Map<string, number>());
+  const topActivity = [...dominantActivity.entries()]
+    .sort((a, b) => b[1] - a[1])[0]?.[0]?.toLowerCase() || 'trip';
   const isColdTrip = weather.some(d => d.lowF < 55);
   const isRainyTrip = weather.some(d => d.rainChance > 50);
-  const tripBackupKit: BackupSuggestion[] = backupCandidates.slice(0, 3).map(c => {
+
+  // ── Pass 1: Strict tier ──
+  const gatedCandidates = gateBackupPool(rawCandidates, activities, weather, presentation);
+  const strictThreshold = Math.ceil(anchorOutfits.length / 2);
+  const strictCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
+
+  for (const item of gatedCandidates) {
+    const compatibleDays = computeCompatibleDays(item);
+    if (compatibleDays < strictThreshold) continue;
+
+    const colorLower = (item.color || '').toLowerCase();
+    const isVersatileColor = VERSATILE_COLORS.has(colorLower);
+    const catBonus = CATEGORY_BONUS[getBucket(item) ?? ''] ?? 0;
+    const formalityBonus = hasFormalActivity ? Math.floor((item.formalityScore ?? 50) / 25) : 0;
+    const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus;
+
+    strictCandidates.push({item, score, compatibleDays});
+  }
+  strictCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
+
+  // Strict-tier reason builder
+  function buildStrictReason(c: {item: TripWardrobeItem; compatibleDays: number}): string {
     const clauses: string[] = [];
 
-    // Clause 1: compatibility
     if (c.compatibleDays >= 3) {
-      clauses.push(`Works with ${c.compatibleDays} outfits.`);
+      clauses.push(`Pairs with ${c.compatibleDays} ${topActivity} outfits.`);
     } else if (c.compatibleDays >= 2) {
-      clauses.push(`Pairs with ${c.compatibleDays} looks.`);
+      clauses.push(`Works across ${c.compatibleDays} outfits.`);
     } else {
-      clauses.push('Versatile backup pick.');
+      clauses.push(`Compatible ${topActivity} backup.`);
     }
 
-    // Clause 2: weather context
     if (isColdTrip && (c.item.thermalRating ?? 0) > 60) {
-      clauses.push('Extra warmth for colder days.');
+      clauses.push('Warm layer for cooler days.');
+    } else if (hasFormalActivity && (c.item.formalityScore ?? 0) >= 70) {
+      clauses.push('Formal-appropriate substitute.');
     } else if (isRainyTrip) {
-      clauses.push('Handy if weather turns.');
+      clauses.push('Backup if weather turns.');
     } else {
       clauses.push('Easy swap if needed.');
     }
 
-    // Clause 3: category context
     const bucket = getBucket(c.item);
     if (bucket === 'tops') {
-      clauses.push('Light and easy to pack.');
+      clauses.push('Light and packable spare.');
     } else if (bucket === 'outerwear') {
-      clauses.push('Layers without extra bulk.');
+      clauses.push('Layers without added bulk.');
     } else if (bucket === 'shoes') {
-      clauses.push('No extra pair needed.');
+      const sub = (c.item.subcategory || 'shoe').toLowerCase();
+      clauses.push(`Secondary ${sub} for rotation.`);
     }
 
-    return {
+    return clauses.join(' ');
+  }
+
+  let tripBackupKit: BackupSuggestion[];
+
+  if (strictCandidates.length >= 1) {
+    // Pass 1 produced results — use them
+    tripBackupKit = strictCandidates.slice(0, 3).map(c => ({
       wardrobeItemId: c.item.id,
       name: c.item.name || 'Unknown Item',
       imageUrl: getImageUrl(c.item),
-      reason: clauses.join(' '),
-    };
-  });
+      reason: buildStrictReason(c),
+    }));
+  } else {
+    // ── Pass 2: Fallback tier (relaxed gates, top 2 only) ──
+    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation);
+    const fallbackThreshold = Math.ceil(anchorOutfits.length * 0.3);
+    const packedItemIds = mandatoryIds;
+    const fallbackCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
+
+    for (const item of fallbackGated) {
+      const compatibleDays = computeCompatibleDays(item);
+      if (compatibleDays < fallbackThreshold) continue;
+
+      // Fallback scoring: base + multiOutfit(+10) + neutralColor(+5) + packedElsewhere(+5)
+      const neutralColorBonus = VERSATILE_COLORS.has((item.color || '').toLowerCase()) ? 5 : 0;
+      const multiOutfitBonus = compatibleDays >= 2 ? 10 : 0;
+      const packedElsewhereBonus = packedItemIds.has(item.id) ? 5 : 0;
+      const score =
+        compatibleDays * 10 +
+        multiOutfitBonus +
+        neutralColorBonus +
+        packedElsewhereBonus;
+
+      fallbackCandidates.push({item, score, compatibleDays});
+    }
+    fallbackCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
+
+    // Fallback-tier reason builder
+    tripBackupKit = fallbackCandidates.slice(0, 2).map(c => {
+      const clauses: string[] = [];
+
+      if (c.compatibleDays >= 2) {
+        clauses.push(`Works with ${c.compatibleDays} ${topActivity} looks.`);
+      } else {
+        clauses.push(`Pairs with ${topActivity} outfits.`);
+      }
+
+      if (isColdTrip && (c.item.thermalRating ?? 0) > 60) {
+        clauses.push('Weather-safe layer.');
+      } else if (hasFormalActivity && (c.item.formalityScore ?? 0) >= 70) {
+        clauses.push('Formal-appropriate substitute.');
+      } else {
+        clauses.push('Flexible backup.');
+      }
+
+      return {
+        wardrobeItemId: c.item.id,
+        name: c.item.name || 'Unknown Item',
+        imageUrl: getImageUrl(c.item),
+        reason: clauses.join(' '),
+      };
+    });
+
+    // Log when both tiers produce nothing — helps detect systemic edge cases
+    if (fallbackCandidates.length === 0) {
+      const tripLowF = Math.min(...weather.map(d => d.lowF));
+      const tripHighF = Math.max(...weather.map(d => d.highF));
+      logOverride(requestId, {
+        rule: 'backup_kit_empty',
+        before: rawCandidates.length,
+        after: 0,
+        detail: JSON.stringify({
+          dominantActivity: topActivity,
+          minFormality,
+          climateRange: {lowF: tripLowF, highF: tripHighF},
+          rawCandidates: rawCandidates.length,
+          gatedStrict: gatedCandidates.length,
+          gatedFallback: fallbackGated.length,
+        }),
+      });
+    }
+  }
 
   // Step 10: Build packing list
   const packingList = buildPackingList(outfits, PACKING_CATEGORY_ORDER);
