@@ -57,7 +57,7 @@ async function getResolvedLocation(city: string): Promise<ResolvedLocation | nul
   }
 }
 
-async function setResolvedLocation(city: string, resolved: ResolvedLocation): Promise<void> {
+export async function setResolvedLocation(city: string, resolved: ResolvedLocation): Promise<void> {
   try {
     const key = LOCATION_PREFIX + city.toLowerCase().trim();
     await AsyncStorage.setItem(key, JSON.stringify(resolved));

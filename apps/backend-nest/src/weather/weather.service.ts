@@ -7,6 +7,13 @@ interface GeoResult {
   formattedAddress: string;
 }
 
+export interface LocationSuggestion {
+  displayName: string;
+  lat: number;
+  lng: number;
+  placeKey: string;
+}
+
 interface ForecastDay {
   date: string;
   dayLabel: string;
@@ -145,6 +152,34 @@ export class WeatherService {
       lng: result.lon,
       formattedAddress: formatted,
     };
+  }
+
+  async searchLocations(query: string): Promise<LocationSuggestion[]> {
+    const apiKey = this.configService.get<string>('OPENWEATHER_API_KEY');
+    if (!apiKey) return [];
+
+    const parts = query.split(',').map(p => p.trim()).filter(Boolean);
+    let normalized = parts.join(',');
+    if (parts.length === 2 && /^[A-Z]{2}$/i.test(parts[1])) {
+      normalized += ',US';
+    }
+
+    const url =
+      `https://api.openweathermap.org/geo/1.0/direct` +
+      `?q=${encodeURIComponent(normalized)}&limit=5&appid=${apiKey}`;
+
+    const res = await fetch(url);
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+
+    return data.map(r => ({
+      displayName: [r.name, r.state, r.country].filter(Boolean).join(', '),
+      lat: r.lat,
+      lng: r.lon,
+      placeKey: `${r.lat.toFixed(2)}:${r.lon.toFixed(2)}`,
+    }));
   }
 
   // ── Forecast: try One Call 3.0, fall back to free-tier 2.5 ──

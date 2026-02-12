@@ -113,6 +113,9 @@ export type TripCapsule = {
 export type Trip = {
   id: string;
   destination: string;
+  destinationLat?: number;
+  destinationLng?: number;
+  destinationPlaceKey?: string;
   startDate: string;
   endDate: string;
   activities: TripActivity[];

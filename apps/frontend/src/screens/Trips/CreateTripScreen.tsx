@@ -25,12 +25,14 @@ import {
   addClosetLocation,
   saveTrip,
 } from '../../lib/trips/tripsStorage';
-import {fetchRealWeather} from '../../lib/trips/weather/realWeather';
+import {fetchRealWeather, setResolvedLocation} from '../../lib/trips/weather/realWeather';
 import {buildCapsule, adaptWardrobeItem, validateCapsule, detectPresentation} from '../../lib/trips/capsuleEngine';
 import {normalizeGenderToPresentation} from '../../lib/trips/styleEligibility';
 import {useGenderPresentation} from '../../hooks/useGenderPresentation';
 import ActivityChips from '../../components/Trips/ActivityChips';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
+import DestinationInput from './DestinationInput';
+import {GeocodeSuggestion} from './useGeocodeSearch';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
@@ -48,7 +50,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
   const hookGender = useGenderPresentation();
   const rawGender = userGenderPresentation ?? hookGender;
 
-  const [destination, setDestination] = useState('');
+  const [selectedDestination, setSelectedDestination] = useState<GeocodeSuggestion | null>(null);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -91,7 +93,10 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
   };
 
   const handleBuildCapsule = async () => {
-    if (!destination.trim()) return;
+    if (!selectedDestination?.lat || !selectedDestination?.lng) {
+      Alert.alert('Select Destination', 'Please select a valid destination from the list.');
+      return;
+    }
     setIsBuilding(true);
 
     try {
@@ -100,7 +105,14 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
 
       const startStr = startDate.toISOString().split('T')[0];
       const endStr = endDate.toISOString().split('T')[0];
-      const weatherResult = await fetchRealWeather(destination, startStr, endStr);
+
+      // Pre-populate resolved location cache so weather fetch uses correct coordinates
+      await setResolvedLocation(selectedDestination.displayName, {
+        lat: selectedDestination.lat,
+        lng: selectedDestination.lng,
+        resolvedCity: selectedDestination.displayName,
+      });
+      const weatherResult = await fetchRealWeather(selectedDestination.displayName, startStr, endStr);
       const locationLabel =
         locations.find(l => l.id === selectedLocationId)?.label || 'Home';
       const adapted = wardrobe.map(adaptWardrobeItem);
@@ -112,7 +124,10 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
 
       const trip: Trip = {
         id: generateId(),
-        destination: destination.trim(),
+        destination: selectedDestination.displayName,
+        destinationLat: selectedDestination.lat,
+        destinationLng: selectedDestination.lng,
+        destinationPlaceKey: selectedDestination.placeKey,
         startDate: startStr,
         endDate: endStr,
         activities,
@@ -141,7 +156,7 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
   };
 
   const selectedLocation = locations.find(l => l.id === selectedLocationId);
-  const isValid = destination.trim().length > 0;
+  const isValid = selectedDestination !== null;
 
   const styles = StyleSheet.create({
     container: {
@@ -344,14 +359,10 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
         keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
           <Text style={styles.label}>Destination</Text>
-          <TextInput
-            style={styles.input}
-            value={destination}
-            onChangeText={setDestination}
-            placeholder="Where are you going?"
-            placeholderTextColor={theme.colors.foreground2}
-            autoCapitalize="words"
-            returnKeyType="done"
+          <DestinationInput
+            value={selectedDestination}
+            onSelect={setSelectedDestination}
+            onClear={() => setSelectedDestination(null)}
           />
         </View>
 
