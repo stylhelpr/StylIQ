@@ -117,6 +117,7 @@ didRebuildRef.current = true;
           trip.destination,
           trip.startDate,
           trip.endDate,
+          __DEV__ ? {bypassCache: true, reason: 'DEV_FORCE_REBUILD'} : undefined,
         );
         if (cancelled) return;
 
@@ -215,6 +216,7 @@ didRebuildRef.current = true;
                 trip.destination,
                 trip.startDate,
                 trip.endDate,
+                {bypassCache: true, reason: 'FORCE_REBUILD'},
               );
               const forcePresentation = normalizeGenderToPresentation(rawGender) !== 'mixed'
                 ? normalizeGenderToPresentation(rawGender)

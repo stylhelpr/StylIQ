@@ -6,8 +6,8 @@ import {generateMockWeather} from '../mockWeather';
 // ── TEMP diagnostic tag (grep for this to remove later) ──
 const TAG = '[TripsForecastDiag]';
 
-// v2 cache key invalidates any stale entries from prior format
 const CACHE_PREFIX = '@styliq_weather_v2_';
+const LOCATION_PREFIX = '@styliq_weather_loc_';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -21,15 +21,62 @@ const VALID_CONDITIONS: WeatherCondition[] = [
   'windy',
 ];
 
+// ── Types ──
+
+export type ResolvedLocation = {
+  lat: number;
+  lng: number;
+  resolvedCity: string;
+};
+
+export type FetchWeatherOptions = {
+  bypassCache?: boolean;
+  reason?: string;
+};
+
 type CacheEntry = {
   data: DayWeather[];
   expiry: number;
+  resolved?: ResolvedLocation;
 };
 
-// ── Cache helpers ──
+// ── Location resolution cache ──
 
-function cacheKey(city: string, startDate: string, endDate: string): string {
-  return CACHE_PREFIX + city.toLowerCase().trim() + ':' + startDate + ':' + endDate;
+function locationFingerprint(resolved: ResolvedLocation): string {
+  return `${resolved.lat.toFixed(2)}:${resolved.lng.toFixed(2)}`;
+}
+
+async function getResolvedLocation(city: string): Promise<ResolvedLocation | null> {
+  try {
+    const key = LOCATION_PREFIX + city.toLowerCase().trim();
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as ResolvedLocation;
+  } catch {
+    return null;
+  }
+}
+
+async function setResolvedLocation(city: string, resolved: ResolvedLocation): Promise<void> {
+  try {
+    const key = LOCATION_PREFIX + city.toLowerCase().trim();
+    await AsyncStorage.setItem(key, JSON.stringify(resolved));
+    console.log(TAG, `Location resolution SET "${city}" → ${resolved.resolvedCity} (${locationFingerprint(resolved)})`);
+  } catch {
+    console.warn(TAG, `Location resolution write error for "${city}"`);
+  }
+}
+
+// ── Weather cache helpers ──
+
+function buildCacheKey(
+  startDate: string,
+  endDate: string,
+  resolved: ResolvedLocation | null,
+  city: string,
+): string {
+  const locPart = resolved ? locationFingerprint(resolved) : city.toLowerCase().trim();
+  return CACHE_PREFIX + locPart + ':' + startDate + ':' + endDate;
 }
 
 function expectedDayCount(startDate: string, endDate: string): number {
@@ -39,12 +86,12 @@ function expectedDayCount(startDate: string, endDate: string): number {
 }
 
 async function getCached(
-  city: string,
+  key: string,
   startDate: string,
   endDate: string,
-): Promise<DayWeather[] | null> {
+  city: string,
+): Promise<CacheEntry | null> {
   try {
-    const key = cacheKey(city, startDate, endDate);
     const raw = await AsyncStorage.getItem(key);
     if (!raw) {
       console.log(TAG, `Cache MISS for "${city}" ${startDate}→${endDate} (no entry)`);
@@ -58,9 +105,12 @@ async function getCached(
     }
 
     const expected = expectedDayCount(startDate, endDate);
+    const resolvedInfo = entry.resolved
+      ? ` resolved=${entry.resolved.resolvedCity} (${locationFingerprint(entry.resolved)})`
+      : '';
     console.log(
       TAG,
-      `Cache HIT for "${city}" ${startDate}→${endDate} — cached=${entry.data.length} days, expected=${expected}, expires in ${Math.round((entry.expiry - Date.now()) / 1000)}s`,
+      `Cache HIT for "${city}" ${startDate}→${endDate} — cached=${entry.data.length} days, expected=${expected}, expires in ${Math.round((entry.expiry - Date.now()) / 1000)}s${resolvedInfo}`,
     );
 
     // Safety: invalidate if cached day count doesn't match expected
@@ -73,7 +123,7 @@ async function getCached(
       return null;
     }
 
-    return entry.data;
+    return entry;
   } catch {
     console.warn(TAG, `Cache read error for "${city}" ${startDate}→${endDate}`);
   }
@@ -81,18 +131,17 @@ async function getCached(
 }
 
 async function setCache(
-  city: string,
-  startDate: string,
-  endDate: string,
+  key: string,
   data: DayWeather[],
+  city: string,
+  resolved?: ResolvedLocation,
 ): Promise<void> {
   try {
-    const key = cacheKey(city, startDate, endDate);
-    const entry: CacheEntry = {data, expiry: Date.now() + CACHE_TTL};
+    const entry: CacheEntry = {data, expiry: Date.now() + CACHE_TTL, resolved};
     await AsyncStorage.setItem(key, JSON.stringify(entry));
-    console.log(TAG, `Cache SET for "${city}" ${startDate}→${endDate} — ${data.length} days`);
+    console.log(TAG, `Cache SET for "${city}" — ${data.length} days, key="${key}"`);
   } catch {
-    console.warn(TAG, `Cache write error for "${city}" ${startDate}→${endDate}`);
+    console.warn(TAG, `Cache write error for "${city}"`);
   }
 }
 
@@ -160,19 +209,54 @@ function buildTripWeather(
  * Fetch real weather for a city and date range.
  * Falls back to mock weather on any failure.
  * Returns weather days + source tag for trust layer.
+ *
+ * Options:
+ *   bypassCache — skip cache read and delete existing entry before fetching
+ *   reason — logged for diagnostics when bypassing
  */
 export async function fetchRealWeather(
   city: string,
   startDate: string,
   endDate: string,
+  options?: FetchWeatherOptions,
 ): Promise<WeatherResult> {
-  console.log(TAG, `START fetchRealWeather("${city}", ${startDate}, ${endDate})`);
+  const {bypassCache = false, reason} = options || {};
 
-  // Check frontend cache first (key includes city + date range)
-  const cached = await getCached(city, startDate, endDate);
-  if (cached && cached.length > 0) {
-    console.log(TAG, `Returning CACHED weather for "${city}" ${startDate}→${endDate}`);
-    return {days: cached, source: 'cached'};
+  // Resolve location fingerprint from prior API calls
+  const resolved = await getResolvedLocation(city);
+  const key = buildCacheKey(startDate, endDate, resolved, city);
+
+  console.log(
+    TAG,
+    `START fetchRealWeather("${city}", ${startDate}, ${endDate})` +
+      (resolved ? ` resolved=${resolved.resolvedCity} (${locationFingerprint(resolved)})` : ' resolved=none') +
+      ` key="${key}"`,
+  );
+
+  // ── Bypass path: delete cache entry, then fetch fresh ──
+  if (bypassCache) {
+    console.log(TAG, `Cache BYPASS reason="${reason || 'unspecified'}"`);
+    try {
+      await AsyncStorage.removeItem(key);
+      console.log(TAG, `Cache DELETE key="${key}"`);
+      // Also clean up old city-string-based key if we're using a resolved key
+      if (resolved) {
+        const oldKey = buildCacheKey(startDate, endDate, null, city);
+        if (oldKey !== key) {
+          await AsyncStorage.removeItem(oldKey);
+          console.log(TAG, `Cache DELETE (old format) key="${oldKey}"`);
+        }
+      }
+    } catch {
+      console.warn(TAG, 'Cache bypass delete error (non-fatal)');
+    }
+  } else {
+    // ── Normal path: check cache ──
+    const cached = await getCached(key, startDate, endDate, city);
+    if (cached && cached.data.length > 0) {
+      console.log(TAG, `Returning CACHED weather for "${city}" ${startDate}→${endDate}`);
+      return {days: cached.data, source: 'cached'};
+    }
   }
 
   try {
@@ -182,6 +266,24 @@ export async function fetchRealWeather(
       TAG,
       `API response status=${res.status}, forecast count=${res.data?.forecast?.length ?? 0}`,
     );
+
+    // Extract resolved location from API response (lat/lng from geocoding)
+    const apiResolved: ResolvedLocation | undefined =
+      res.data?.lat != null && res.data?.lng != null
+        ? {
+            lat: res.data.lat,
+            lng: res.data.lng,
+            resolvedCity: res.data.city || city,
+          }
+        : undefined;
+
+    if (apiResolved) {
+      console.log(
+        TAG,
+        `Resolved location: ${apiResolved.resolvedCity} (${apiResolved.lat.toFixed(4)}, ${apiResolved.lng.toFixed(4)})`,
+      );
+      await setResolvedLocation(city, apiResolved);
+    }
 
     if (__DEV__) {
       console.log(
@@ -204,7 +306,11 @@ export async function fetchRealWeather(
 
     if (forecast.length > 0) {
       const tripWeather = buildTripWeather(forecast, startDate, endDate);
-      await setCache(city, startDate, endDate, tripWeather);
+      // Store with resolved-location key (or city key if no resolved data)
+      const finalKey = apiResolved
+        ? buildCacheKey(startDate, endDate, apiResolved, city)
+        : key;
+      await setCache(finalKey, tripWeather, city, apiResolved);
       console.log(TAG, `SUCCESS — returning ${tripWeather.length} trip weather days`);
       return {days: tripWeather, source: 'live'};
     }

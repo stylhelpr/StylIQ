@@ -216,6 +216,7 @@ export function gateBackupPool(
   activities: TripActivity[],
   weather: DayWeather[],
   presentation: 'masculine' | 'feminine' | 'mixed',
+  provenFitIds: ReadonlySet<string> = new Set(),
 ): TripWardrobeItem[] {
   const minFormality = tripFormalityFloor(activities);
   const tripLowF = Math.min(...weather.map(d => d.lowF));
@@ -236,7 +237,10 @@ export function gateBackupPool(
     }
 
     // GATE 2 — Trip-incompatible casual (metadata-driven)
-    if (minFormality > 0 && effectiveFormality < minFormality) {
+    // Items that were used in anchor/support outfits already passed gatePool's
+    // per-outfit formality check — they are proven-fit. Only apply the metadata-
+    // based formality floor to unused items that haven't been validated yet.
+    if (!provenFitIds.has(item.id) && minFormality > 0 && effectiveFormality < minFormality) {
       if (__DEV__ && isShoe) {
         console.log(`[TripCapsule][GATE_BACKUP_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} effective=${effectiveFormality} minFormality=${minFormality}`);
       }
@@ -272,6 +276,7 @@ export function gateBackupPoolFallback(
   activities: TripActivity[],
   weather: DayWeather[],
   presentation: 'masculine' | 'feminine' | 'mixed',
+  provenFitIds: ReadonlySet<string> = new Set(),
 ): TripWardrobeItem[] {
   const minFormality = tripFormalityFloor(activities);
   const tripLowF = Math.min(...weather.map(d => d.lowF));
@@ -291,8 +296,9 @@ export function gateBackupPoolFallback(
       return false;
     }
 
-    // GATE 2 — Trip-incompatible casual (never relax, same floor as strict)
-    if (minFormality > 0 && effectiveFormality < minFormality) {
+    // GATE 2 — Trip-incompatible casual (never relax for unproven items)
+    // Proven-fit items (used in outfits) bypass — they passed gatePool already.
+    if (!provenFitIds.has(item.id) && minFormality > 0 && effectiveFormality < minFormality) {
       if (__DEV__ && isShoe) {
         console.log(`[TripCapsule][GATE_FALLBACK_SHOE] REJECT ${item.name} (${item.id}) | gate=formality | formalityScore=${item.formalityScore} effective=${effectiveFormality} minFormality=${minFormality}`);
       }
@@ -1514,24 +1520,30 @@ export function buildCapsule(
     }
   }
 
-  // Step 9b: Build trip-level backup kit (2–3 globally versatile items)
+  // Step 9b: Build trip-level backup kit (1–2 high-quality alternates)
   // Two-tier pipeline:
-  //   Pass 1 (strict): gate → ≥50% compatibility → score → top 3
+  //   Pass 1 (strict): gate → ≥50% compatibility → score → top 2
   //   Pass 2 (fallback): relaxed gate → ≥30% compatibility → score → top 2
   //   Fallback only runs if strict tier returns 0 items.
+  //   Used items are penalized, NOT excluded — allows backups from small wardrobes.
   const VERSATILE_COLORS = new Set(['black', 'navy', 'grey', 'gray', 'white', 'tan', 'charcoal', 'cream', 'beige', 'khaki']);
   const CATEGORY_BONUS: Record<string, number> = {tops: 3, outerwear: 2, shoes: 1};
+  // Penalty for items already used in outfits. Strong enough to prefer true spares
+  // (a spare with 2 compatible days beats a used item with 2), weak enough that
+  // a high-quality used item still enters the pool when no spares exist.
+  // At -20, a used item needs ~2 extra compatible days (+20 pts) to match a spare.
+  const USED_ITEM_PENALTY = 20;
   const mandatoryIds = new Set(outfits.flatMap(o => o.items.map(i => i.wardrobeItemId)));
   const anchorOutfits = outfits.filter(o => o.type === 'anchor');
   const hasFormalActivity = activities.some(a => getActivityProfile(a).formality >= 2);
   const minFormality = tripFormalityFloor(activities);
 
-  // 1. Collect candidates from tops/shoes/outerwear, exclude mandatory items
+  // 1. Collect ALL candidates from tops/shoes/outerwear (including used items)
   const backupCandidateCategories: CategoryBucket[] = ['tops', 'shoes', 'outerwear'];
   const rawCandidates: TripWardrobeItem[] = [];
   for (const cat of backupCandidateCategories) {
     for (const item of buckets[cat]) {
-      if (!mandatoryIds.has(item.id)) rawCandidates.push(item);
+      rawCandidates.push(item);
     }
   }
 
@@ -1584,7 +1596,7 @@ export function buildCapsule(
   const isRainyTrip = weather.some(d => d.rainChance > 50);
 
   // ── Pass 1: Strict tier ──
-  const gatedCandidates = gateBackupPool(rawCandidates, activities, weather, presentation);
+  const gatedCandidates = gateBackupPool(rawCandidates, activities, weather, presentation, mandatoryIds);
   const strictThreshold = Math.ceil(anchorOutfits.length / 2);
   const strictCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
 
@@ -1597,9 +1609,14 @@ export function buildCapsule(
     const catBonus = CATEGORY_BONUS[getBucket(item) ?? ''] ?? 0;
     const formalityBonus = hasFormalActivity ? Math.floor((item.formalityScore ?? 50) / 25) : 0;
     const coverageGapBonus = underrepresentedSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
-    const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus + coverageGapBonus;
+    const usedPenalty = mandatoryIds.has(item.id) ? USED_ITEM_PENALTY : 0;
+    const score = compatibleDays * 10 + (isVersatileColor ? 5 : 0) + catBonus + formalityBonus + coverageGapBonus - usedPenalty;
 
-    strictCandidates.push({item, score, compatibleDays});
+    // Only include candidates with positive score — ensures used items
+    // only make the cut when their quality overcomes the penalty.
+    if (score > 0) {
+      strictCandidates.push({item, score, compatibleDays});
+    }
   }
   strictCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
 
@@ -1641,8 +1658,8 @@ export function buildCapsule(
   let tripBackupKit: BackupSuggestion[];
 
   if (strictCandidates.length >= 1) {
-    // Pass 1 produced results — use them
-    tripBackupKit = strictCandidates.slice(0, 3).map(c => ({
+    // Pass 1 produced results — use them (max 2)
+    tripBackupKit = strictCandidates.slice(0, 2).map(c => ({
       wardrobeItemId: c.item.id,
       name: c.item.name || 'Unknown Item',
       imageUrl: getImageUrl(c.item),
@@ -1650,28 +1667,29 @@ export function buildCapsule(
     }));
   } else {
     // ── Pass 2: Fallback tier (relaxed gates, top 2 only) ──
-    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation);
+    const fallbackGated = gateBackupPoolFallback(rawCandidates, activities, weather, presentation, mandatoryIds);
     const fallbackThreshold = Math.ceil(anchorOutfits.length * 0.3);
-    const packedItemIds = mandatoryIds;
     const fallbackCandidates: {item: TripWardrobeItem; score: number; compatibleDays: number}[] = [];
 
     for (const item of fallbackGated) {
       const compatibleDays = computeCompatibleDays(item);
       if (compatibleDays < fallbackThreshold) continue;
 
-      // Fallback scoring: base + multiOutfit(+10) + neutralColor(+5) + packedElsewhere(+5) + coverageGap(+15)
+      // Fallback scoring: base + multiOutfit(+10) + neutralColor(+5) + coverageGap(+15) - usedPenalty(20)
       const neutralColorBonus = VERSATILE_COLORS.has((item.color || '').toLowerCase()) ? 5 : 0;
       const multiOutfitBonus = compatibleDays >= 2 ? 10 : 0;
-      const packedElsewhereBonus = packedItemIds.has(item.id) ? 5 : 0;
+      const usedPenalty = mandatoryIds.has(item.id) ? USED_ITEM_PENALTY : 0;
       const coverageGapBonus = underrepresentedSlots.has(getBucket(item) as CategoryBucket) ? 15 : 0;
       const score =
         compatibleDays * 10 +
         multiOutfitBonus +
         neutralColorBonus +
-        packedElsewhereBonus +
-        coverageGapBonus;
+        coverageGapBonus -
+        usedPenalty;
 
-      fallbackCandidates.push({item, score, compatibleDays});
+      if (score > 0) {
+        fallbackCandidates.push({item, score, compatibleDays});
+      }
     }
     fallbackCandidates.sort((a, b) => b.score - a.score || a.item.id.localeCompare(b.item.id));
 
