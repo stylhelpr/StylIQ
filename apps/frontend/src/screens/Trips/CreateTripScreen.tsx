@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {syncTripToIOSCalendar} from '../../utils/tripCalendarSync';
 import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
 import {
@@ -145,6 +146,15 @@ const CreateTripScreen = ({wardrobe, onBack, onTripCreated, userGenderPresentati
         Alert.alert('Save Error', "Couldn't save your trip. Please try again.");
         setIsBuilding(false);
         return;
+      }
+      try {
+        await syncTripToIOSCalendar(trip);
+      } catch (syncErr) {
+        console.error('[CreateTrip] iOS calendar sync failed:', syncErr);
+        Alert.alert(
+          'Calendar Sync',
+          'Trip saved, but couldn\'t add to your iOS Calendar. It will sync on next app open.',
+        );
       }
       setIsBuilding(false);
       onTripCreated(trip);

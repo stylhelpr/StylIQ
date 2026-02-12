@@ -11,6 +11,7 @@ import {useAppTheme} from '../../context/ThemeContext';
 import {tokens} from '../../styles/tokens/tokens';
 import {Trip} from '../../types/trips';
 import {deleteTrip} from '../../lib/trips/tripsStorage';
+import {removeTripFromIOSCalendar} from '../../utils/tripCalendarSync';
 import TripCard from '../../components/Trips/TripCard';
 import AppleTouchFeedback from '../../components/AppleTouchFeedback/AppleTouchFeedback';
 
@@ -34,6 +35,7 @@ const TripsHomeScreen = ({trips, onNewTrip, onTripPress, onRefresh}: Props) => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            await removeTripFromIOSCalendar(trip.id);
             const ok = await deleteTrip(trip.id);
             if (!ok) {
               Alert.alert('Error', "Couldn't delete trip. Please try again.");
